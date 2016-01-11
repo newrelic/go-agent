@@ -1,0 +1,96 @@
+package utilization
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestJSONMarshalling(t *testing.T) {
+	ramMib := uint64(1024)
+	u := Data{
+		MetadataVersion:   1,
+		LogicalProcessors: 4,
+		RamMib:            &ramMib,
+		Hostname:          "localhost",
+		Vendors: &vendors{
+			AWS: &vendor{
+				Id:   "8BADFOOD",
+				Type: "t2.micro",
+				Zone: "us-west-1",
+			},
+			Docker: &vendor{Id: "47cbd16b77c50cbf71401"},
+		},
+	}
+
+	expect := `{` +
+		`"metadata_version":1,` +
+		`"logical_processors":4,` +
+		`"total_ram_mib":1024,` +
+		`"hostname":"localhost",` +
+		`"vendors":{` +
+		`"aws":{` +
+		`"id":"8BADFOOD",` +
+		`"type":"t2.micro",` +
+		`"zone":"us-west-1"` +
+		`},` +
+		`"docker":{` +
+		`"id":"47cbd16b77c50cbf71401"` +
+		`}` +
+		`}` +
+		`}`
+
+	j, err := json.Marshal(u)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(j) != expect {
+		t.Error(string(j), expect)
+	}
+
+	// Test that we marshal not-present values to nil.
+	u.RamMib = nil
+	u.Hostname = ""
+	expect = `{` +
+		`"metadata_version":1,` +
+		`"logical_processors":4,` +
+		`"total_ram_mib":null,` +
+		`"hostname":"",` +
+		`"vendors":{` +
+		`"aws":{` +
+		`"id":"8BADFOOD",` +
+		`"type":"t2.micro",` +
+		`"zone":"us-west-1"` +
+		`},` +
+		`"docker":{` +
+		`"id":"47cbd16b77c50cbf71401"` +
+		`}` +
+		`}` +
+		`}`
+
+	j, err = json.Marshal(u)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(j) != expect {
+		t.Error(string(j), expect)
+	}
+}
+
+func TestUtilizationHash(t *testing.T) {
+	config := []Config{
+		Config{DetectAWS: true, DetectDocker: true},
+		Config{DetectAWS: false, DetectDocker: false},
+	}
+	for _, c := range config {
+		u := Gather(c)
+		js, err := json.Marshal(u)
+		if err != nil {
+			t.Error(err)
+		}
+		if u.MetadataVersion == 0 || u.LogicalProcessors == 0 ||
+			u.RamMib == nil || *u.RamMib == 0 ||
+			u.Hostname == "" {
+			t.Fatal(u, string(js))
+		}
+	}
+}
