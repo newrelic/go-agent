@@ -244,6 +244,9 @@ func newApp(c Config) (*App, error) {
 		return nil, err
 	}
 
+	// NOTE: If this is changed and the connect JSON is created afresh
+	// before each connect (to get recent utilization info), the contents of
+	// the config labels map should be copied to prevent data races.
 	connectJSON, err := configConnectJSON(&c)
 	if nil != err {
 		return nil, fmt.Errorf("unable to create config connect JSON: %s", err)
