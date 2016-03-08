@@ -351,6 +351,6 @@ func (app *App) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	if "" == id {
 		return
 	}
-	// TODO: Perhaps turn this into a try.
+	// TODO: Perhaps do not block if the channel is full.
 	app.dataChan <- appData{id, data}
 }
