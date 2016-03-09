@@ -4,7 +4,6 @@ package internal
 
 import (
 	"encoding/json"
-	"regexp"
 	"strings"
 
 	"go.datanerd.us/p/will/newrelic/log"
@@ -12,30 +11,24 @@ import (
 
 const (
 	placeholder = "*"
+	separator   = "/"
 )
 
 type segmentRule struct {
-	Prefix        string   `json:"prefix"`
-	Terms         []string `json:"terms"`
-	TermsRegexRaw string
-	TermsRegex    *regexp.Regexp
+	Prefix   string   `json:"prefix"`
+	Terms    []string `json:"terms"`
+	TermsMap map[string]struct{}
 }
 
 // The key is the rules Prefix field with any trailing slash removed.
 type SegmentRules map[string]*segmentRule
 
-func buildTermsRegex(terms []string) string {
-	if 0 == len(terms) {
-		// If there aren't any terms, then the expected behaviour is not
-		// to match anything. We'll return a regex that can't possibly
-		// match anything.
-		return "$."
+func buildTermsMap(terms []string) map[string]struct{} {
+	m := make(map[string]struct{}, len(terms))
+	for _, t := range terms {
+		m[t] = struct{}{}
 	}
-	groups := make([]string, len(terms))
-	for i, t := range terms {
-		groups[i] = "(" + t + ")"
-	}
-	return strings.Join(groups, "|")
+	return m
 }
 
 func (rules *SegmentRules) UnmarshalJSON(b []byte) error {
@@ -61,40 +54,13 @@ func (rules *SegmentRules) UnmarshalJSON(b []byte) error {
 			continue
 		}
 
-		rule.TermsRegexRaw = buildTermsRegex(rule.Terms)
-		re, err := regexp.Compile(rule.TermsRegexRaw)
-		if nil != err {
-			log.Warn("unable to compile segment term rule terms regexp",
-				log.Context{
-					"prefix": rule.Prefix,
-					"terms":  rule.Terms,
-					"regex":  rule.TermsRegexRaw,
-				})
-			continue
-		}
-		rule.TermsRegex = re
+		rule.TermsMap = buildTermsMap(rule.Terms)
 
 		rs[prefix] = rule
 	}
 
 	*rules = rs
 	return nil
-}
-
-func collapse(name string) string {
-	segments := strings.Split(name, "/")
-	collapsed := make([]string, 0, len(segments))
-
-	for i, segment := range segments {
-		if segment == placeholder &&
-			i < len(segments)-1 &&
-			segments[i+1] == placeholder {
-			continue
-		}
-		collapsed = append(collapsed, segment)
-	}
-
-	return strings.Join(collapsed, "/")
 }
 
 func (rule *segmentRule) apply(name string) string {
@@ -105,42 +71,71 @@ func (rule *segmentRule) apply(name string) string {
 	s := strings.TrimPrefix(name, rule.Prefix)
 
 	leadingSlash := ""
-	if strings.HasPrefix(s, "/") {
-		leadingSlash = "/"
-		s = strings.TrimPrefix(s, "/")
+	if strings.HasPrefix(s, separator) {
+		leadingSlash = separator
+		s = strings.TrimPrefix(s, separator)
 	}
 
 	if "" != s {
-		segments := strings.Split(s, "/")
+		segments := strings.Split(s, separator)
 		replaced := make([]string, len(segments))
 
 		for i, segment := range segments {
-			if rule.TermsRegex.MatchString(segment) {
+			_, whitelisted := rule.TermsMap[segment]
+			if whitelisted {
 				replaced[i] = segment
 			} else {
 				replaced[i] = placeholder
 			}
 		}
-		s = strings.Join(replaced, "/")
+
+		s = collapsePlaceholders(replaced)
 	}
 
-	return collapse(rule.Prefix + leadingSlash + s)
+	return rule.Prefix + leadingSlash + s
 }
 
 func (rules SegmentRules) Apply(name string) string {
 	if nil == rules {
 		return name
 	}
-	segments := strings.Split(name, "/")
-	if len(segments) < 3 {
-		return name
-	}
 
-	key := strings.Join(segments[0:2], "/")
-	rule, ok := rules[key]
+	rule, ok := rules[firstTwoSegments(name)]
 	if !ok {
 		return name
 	}
 
 	return rule.apply(name)
+}
+
+func firstTwoSegments(name string) string {
+	firstSlashIdx := strings.Index(name, separator)
+	if firstSlashIdx == -1 {
+		return name
+	}
+
+	secondSlashIdx := strings.Index(name[firstSlashIdx+1:], separator)
+	if secondSlashIdx == -1 {
+		return name
+	}
+
+	return name[0 : firstSlashIdx+secondSlashIdx+1]
+}
+
+func collapsePlaceholders(segments []string) string {
+	prevStar := false
+	collapsed := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		if segment == placeholder {
+			if !prevStar {
+				collapsed = append(collapsed, segment)
+			}
+			prevStar = true
+		} else {
+			collapsed = append(collapsed, segment)
+			prevStar = false
+		}
+	}
+
+	return strings.Join(collapsed, separator)
 }
