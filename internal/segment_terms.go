@@ -78,18 +78,17 @@ func (rule *segmentRule) apply(name string) string {
 
 	if "" != s {
 		segments := strings.Split(s, separator)
-		replaced := make([]string, len(segments))
 
 		for i, segment := range segments {
 			_, whitelisted := rule.TermsMap[segment]
 			if whitelisted {
-				replaced[i] = segment
+				segments[i] = segment
 			} else {
-				replaced[i] = placeholder
+				segments[i] = placeholder
 			}
 		}
 
-		s = collapsePlaceholders(replaced)
+		s = collapsePlaceholders(segments)
 	}
 
 	return rule.Prefix + leadingSlash + s
