@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"go.datanerd.us/p/will/newrelic/internal/crossagent"
@@ -99,6 +100,35 @@ func BenchmarkSegmentTerms(b *testing.B) {
 		out := rules.Apply(input)
 		if out != expected {
 			b.Fatal(out, expected)
+		}
+	}
+}
+
+func TestCollapsePlaceholders(t *testing.T) {
+	testcases := []struct {
+		input  string
+		expect string
+	}{
+		{input: "", expect: ""},
+		{input: "/", expect: "/"},
+		{input: "*", expect: "*"},
+		{input: "*/*", expect: "*"},
+		{input: "a/b/c", expect: "a/b/c"},
+		{input: "*/*/*", expect: "*"},
+		{input: "a/*/*/*/b", expect: "a/*/b"},
+		{input: "a/b/*/*/*/", expect: "a/b/*/"},
+		{input: "a/b/*/*/*", expect: "a/b/*"},
+		{input: "*/*/a/b/*/*/*", expect: "*/a/b/*"},
+		{input: "*/*/a/b/*/c/*/*/d/e/*/*/*", expect: "*/a/b/*/c/*/d/e/*"},
+		{input: "a/*/b", expect: "a/*/b"},
+	}
+
+	for _, tc := range testcases {
+		segments := strings.Split(tc.input, "/")
+		segments = collapsePlaceholders(segments)
+		out := strings.Join(segments, "/")
+		if out != tc.expect {
+			t.Error(tc.input, tc.expect, out)
 		}
 	}
 }

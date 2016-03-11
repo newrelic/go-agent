@@ -88,7 +88,8 @@ func (rule *segmentRule) apply(name string) string {
 			}
 		}
 
-		s = collapsePlaceholders(segments)
+		segments = collapsePlaceholders(segments)
+		s = strings.Join(segments, separator)
 	}
 
 	return rule.Prefix + leadingSlash + s
@@ -121,20 +122,23 @@ func firstTwoSegments(name string) string {
 	return name[0 : firstSlashIdx+secondSlashIdx+1]
 }
 
-func collapsePlaceholders(segments []string) string {
+func collapsePlaceholders(segments []string) []string {
+	j := 0
 	prevStar := false
-	collapsed := make([]string, 0, len(segments))
-	for _, segment := range segments {
-		if segment == placeholder {
-			if !prevStar {
-				collapsed = append(collapsed, segment)
+	for i := 0; i < len(segments); i++ {
+		segment := segments[i]
+		if placeholder == segment {
+			if prevStar {
+				continue
 			}
+			segments[j] = placeholder
+			j++
 			prevStar = true
 		} else {
-			collapsed = append(collapsed, segment)
+			segments[j] = segment
+			j++
 			prevStar = false
 		}
 	}
-
-	return strings.Join(collapsed, separator)
+	return segments[0:j]
 }
