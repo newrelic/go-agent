@@ -1,4 +1,4 @@
-package newrelic
+package test
 
 import (
 	"net/http"
@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"go.datanerd.us/p/will/newrelic"
+	"go.datanerd.us/p/will/newrelic/api"
 	"go.datanerd.us/p/will/newrelic/internal"
 )
 
@@ -41,7 +43,7 @@ func BenchmarkMuxWithoutNewRelic(b *testing.B) {
 func BenchmarkMuxWithNewRelic(b *testing.B) {
 	app := testApp(nil, nil, b)
 	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, handler))
+	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, handler))
 
 	w := httptest.NewRecorder()
 
@@ -54,14 +56,14 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 }
 
 func BenchmarkMuxDevelopmentMode(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
+	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := NewApplication(cfg)
+	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, handler))
+	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, handler))
 
 	w := httptest.NewRecorder()
 
@@ -74,7 +76,7 @@ func BenchmarkMuxDevelopmentMode(b *testing.B) {
 }
 
 type TestApp struct {
-	Application
+	api.Application
 	h *internal.Harvest
 }
 
@@ -82,15 +84,15 @@ func (app *TestApp) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	data.MergeIntoHarvest(app.h)
 }
 
-func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) *TestApp {
-	cfg := NewConfig("my app", sampleLicense)
+func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*api.Config), t testing.TB) *TestApp {
+	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
 
 	if nil != cfgfn {
 		cfgfn(&cfg)
 	}
 
-	app, err := newApp(cfg)
+	app, err := internal.NewApp(cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -98,11 +100,11 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 	if nil != replyfn {
 		reply := internal.ConnectReplyDefaults()
 		replyfn(reply)
-		app.setRun(&appRun{ConnectReply: reply})
+		app.SetRun(&internal.AppRun{ConnectReply: reply})
 	}
 
 	ta := &TestApp{Application: app, h: internal.NewHarvest(time.Now())}
-	app.testConsumer = ta
+	app.TestConsumer = ta
 	return ta
 }
 
@@ -116,20 +118,20 @@ func TestRecordCustomEventSuccess(t *testing.T) {
 }
 
 func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
-	cfgfn := func(cfg *Config) { cfg.HighSecurity = true }
+	cfgfn := func(cfg *api.Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != highSecurityEnabledError {
+	if err != internal.HighSecurityEnabledError {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
-	cfgfn := func(cfg *Config) { cfg.CustomEvents.Enabled = false }
+	cfgfn := func(cfg *api.Config) { cfg.CustomEvents.Enabled = false }
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != customEventsDisabledError {
+	if err != internal.CustomEventsDisabledError {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -148,7 +150,7 @@ func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectCustomEvents = false }
 	app := testApp(replyfn, nil, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != customEventsRemoteDisabledError {
+	if err != internal.CustomEventsRemoteDisabledError {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -201,13 +203,13 @@ func TestNoticeErrorBackground(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.TestNoticeErrorBackground",
+		Klass:   "test.myError",
+		Caller:  "test.TestNoticeErrorBackground",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Pattern/myName", "", true, nil},
@@ -229,13 +231,13 @@ func TestNoticeErrorWeb(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.TestNoticeErrorWeb",
+		Klass:   "test.myError",
+		Caller:  "test.TestNoticeErrorWeb",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Pattern/myName", "", true, nil},
@@ -267,7 +269,7 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 }
 
 func TestNoticeErrorHighSecurity(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
+	cfgFn := func(cfg *api.Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	err := txn.NoticeError(myError{})
@@ -278,13 +280,13 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     internal.HighSecurityErrorMsg,
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.TestNoticeErrorHighSecurity",
+		Klass:   "test.myError",
+		Caller:  "test.TestNoticeErrorHighSecurity",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     internal.HighSecurityErrorMsg,
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Pattern/myName", "", true, nil},
@@ -296,7 +298,7 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 }
 
 func TestNoticeErrorLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ErrorCollector.Enabled = false }
+	cfgFn := func(cfg *api.Config) { cfg.ErrorCollector.Enabled = false }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	err := txn.NoticeError(myError{})
@@ -352,7 +354,7 @@ func TestNoticeErrorNil(t *testing.T) {
 }
 
 func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ErrorCollector.CaptureEvents = false }
+	cfgFn := func(cfg *api.Config) { cfg.ErrorCollector.CaptureEvents = false }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	err := txn.NoticeError(myError{})
@@ -363,8 +365,8 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.TestNoticeErrorEventsLocallyDisabled",
+		Klass:   "test.myError",
+		Caller:  "test.TestNoticeErrorEventsLocallyDisabled",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
@@ -388,8 +390,8 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.TestNoticeErrorEventsRemotelyDisabled",
+		Klass:   "test.myError",
+		Caller:  "test.TestNoticeErrorEventsRemotelyDisabled",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
@@ -402,7 +404,7 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 }
 
 var (
-	sampleRequest, _ = http.NewRequest("get", "newrelic.com", nil)
+	sampleRequest, _ = http.NewRequest("get", "test.com", nil)
 )
 
 func TestTransactionEventWeb(t *testing.T) {
@@ -430,7 +432,7 @@ func TestTransactionEventBackground(t *testing.T) {
 }
 
 func TestTransactionEventLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.TransactionEvents.Enabled = false }
+	cfgFn := func(cfg *api.Config) { cfg.TransactionEvents.Enabled = false }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("myName", nil, sampleRequest)
 	err := txn.End()
@@ -453,7 +455,7 @@ func TestTransactionEventRemotelyDisabled(t *testing.T) {
 
 func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("my response"))
-	if txn, ok := w.(Transaction); ok {
+	if txn, ok := w.(newrelic.Transaction); ok {
 		txn.NoticeError(myError{})
 	}
 }
@@ -461,7 +463,7 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 func TestWrapHandleFunc(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, myErrorHandler))
+	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, myErrorHandler))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
@@ -473,13 +475,13 @@ func TestWrapHandleFunc(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Pattern/hello",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.myErrorHandler",
+		Klass:   "test.myError",
+		Caller:  "test.myErrorHandler",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Pattern/hello",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Pattern/hello", "", true, nil},
@@ -496,7 +498,7 @@ func TestWrapHandleFunc(t *testing.T) {
 func TestWrapHandle(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
-	mux.Handle(WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
+	mux.Handle(newrelic.WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
@@ -508,13 +510,13 @@ func TestWrapHandle(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Pattern/hello",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-		Caller:  "newrelic.myErrorHandler",
+		Klass:   "test.myError",
+		Caller:  "test.myErrorHandler",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Pattern/hello",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Pattern/hello", "", true, nil},
@@ -545,7 +547,7 @@ func TestSetName(t *testing.T) {
 	})
 }
 
-func deferEndPanic(txn Transaction, panicMe interface{}) (r interface{}) {
+func deferEndPanic(txn newrelic.Transaction, panicMe interface{}) (r interface{}) {
 	defer func() {
 		r = recover()
 	}()
@@ -568,13 +570,13 @@ func TestPanicError(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Pattern/myName",
 		Msg:     "my msg",
-		Klass:   "newrelic.myError",
+		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Pattern/myName", "", true, nil},
