@@ -117,7 +117,7 @@ func (r *metricRule) apply(s string) (ruleResult, string) {
 	// Ambiguity abounds.
 
 	if r.Ignore {
-		if "" != r.re.FindString(s) {
+		if r.re.MatchString(s) {
 			return ruleIgnore, ""
 		}
 		return ruleUnchanged, s
