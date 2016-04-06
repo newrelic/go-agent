@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrDockerUnsupported = errors.New("Docker unsupported on this platform")
+	ErrDockerNotFound    = errors.New("Docker ID not found")
 )
 
 func DockerID() (string, error) {
@@ -67,14 +68,14 @@ func parseDockerID(r io.Reader) (string, error) {
 		// # docker lxc driver
 		// when %r{^/lxc/([0-9a-f]+)$}                         then $1
 		//
-		var id []byte
+		var id string
 		if bytes.HasPrefix(cols[2], []byte("/docker/")) {
-			id = cols[2][len("/docker/"):]
+			id = string(cols[2][len("/docker/"):])
 		} else if bytes.HasPrefix(cols[2], []byte("/lxc/")) {
-			id = cols[2][len("/lxc/"):]
+			id = string(cols[2][len("/lxc/"):])
 		} else if bytes.HasPrefix(cols[2], []byte("/system.slice/docker-")) &&
 			bytes.HasSuffix(cols[2], []byte(".scope")) {
-			id = cols[2][len("/system.slice/docker-") : len(cols[2])-len(".scope")]
+			id = string(cols[2][len("/system.slice/docker-") : len(cols[2])-len(".scope")])
 		} else {
 			continue
 		}
@@ -85,10 +86,10 @@ func parseDockerID(r io.Reader) (string, error) {
 			// not docker or not a format we accept.
 			return "", err
 		}
-		return string(id), nil
+		return id, nil
 	}
 
-	return "", nil
+	return "", ErrDockerNotFound
 }
 
 func isCPUCol(col []byte) bool {
@@ -108,10 +109,10 @@ func isCPUCol(col []byte) bool {
 	return false
 }
 
-func validateDockerID(id []byte) error {
-	if !dockerIdRegex.Match(id) {
+func validateDockerID(id string) error {
+	if !dockerIdRegex.MatchString(id) {
 		return fmt.Errorf("%s does not match %s",
-			string(id), dockerIdRegexRaw)
+			id, dockerIdRegexRaw)
 	}
 
 	return nil

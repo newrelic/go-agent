@@ -36,15 +36,15 @@ func TestDockerIDCrossAgent(t *testing.T) {
 }
 
 func TestDockerIDValidation(t *testing.T) {
-	err := validateDockerID([]byte("baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1239"))
+	err := validateDockerID("baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1239")
 	if nil != err {
 		t.Error("Validation should pass with a 64-character hex string.")
 	}
-	err = validateDockerID([]byte("39ffbba"))
+	err = validateDockerID("39ffbba")
 	if nil == err {
 		t.Error("Validation should have failed with short string.")
 	}
-	err = validateDockerID([]byte("z000000000000000000000000000000000000000000000000100000000000000"))
+	err = validateDockerID("z000000000000000000000000000000000000000000000000100000000000000")
 	if nil == err {
 		t.Error("Validation should have failed with non-hex characters.")
 	}
