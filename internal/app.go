@@ -276,12 +276,7 @@ func (app *App) SetRun(run *AppRun) {
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
 	return NewTxn(TxnInput{
-		Config: TxnConfig{
-			TransactionEventsEnabled:    app.config.TransactionEvents.Enabled,
-			ErrorCollectorEnabled:       app.config.ErrorCollector.Enabled,
-			ErrorCollectorCaptureEvents: app.config.ErrorCollector.CaptureEvents,
-			HighSecurity:                app.config.HighSecurity,
-		},
+		Config:   app.config,
 		Reply:    run.ConnectReply,
 		Request:  r,
 		Writer:   w,

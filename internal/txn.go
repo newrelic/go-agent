@@ -5,19 +5,14 @@ import (
 	"net/http"
 	"sync"
 	"time"
-)
 
-type TxnConfig struct {
-	TransactionEventsEnabled    bool
-	ErrorCollectorEnabled       bool
-	ErrorCollectorCaptureEvents bool
-	HighSecurity                bool
-}
+	"go.datanerd.us/p/will/newrelic/api"
+)
 
 type TxnInput struct {
 	Writer   http.ResponseWriter
 	Request  *http.Request
-	Config   TxnConfig
+	Config   api.Config
 	Reply    *ConnectReply
 	Consumer DataConsumer
 }
@@ -55,12 +50,12 @@ func NewTxn(input TxnInput, name string) *txn {
 }
 
 func (txn *txn) txnEventsEnabled() bool {
-	return txn.Config.TransactionEventsEnabled &&
+	return txn.Config.TransactionEvents.Enabled &&
 		txn.Reply.CollectAnalyticsEvents
 }
 
 func (txn *txn) errorEventsEnabled() bool {
-	return txn.Config.ErrorCollectorCaptureEvents &&
+	return txn.Config.ErrorCollector.CaptureEvents &&
 		txn.Reply.CollectErrorEvents
 }
 
@@ -172,7 +167,7 @@ func (txn *txn) noticeErrorInternal(err error, stack *StackTrace) error {
 	// not depend on whether or not errors are enabled.
 	txn.errorsSeen++
 
-	if !txn.Config.ErrorCollectorEnabled {
+	if !txn.Config.ErrorCollector.Enabled {
 		return ErrorsLocallyDisabled
 	}
 
