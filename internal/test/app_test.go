@@ -171,7 +171,7 @@ func TestTxnResponseWriter(t *testing.T) {
 	// should be expanded to make sure that calling ResponseWriter methods
 	// after the transaction has ended is not problematic.
 	w := &sampleResponseWriter{
-		header: make(map[string][]string),
+		header: make(http.Header),
 	}
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", w, nil)
