@@ -1,4 +1,4 @@
-# New Relic Go Agent
+# New Relic Go Instrumentation Library
 
 ## Requirements
 
