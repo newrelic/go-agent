@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.datanerd.us/p/will/go-sdk/internal/crossagent"
+	"github.com/newrelic/go-sdk/internal/crossagent"
 )
 
 type maybeResponse struct {

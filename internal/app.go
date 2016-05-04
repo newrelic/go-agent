@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"go.datanerd.us/p/will/go-sdk/api"
-	"go.datanerd.us/p/will/go-sdk/log"
-	"go.datanerd.us/p/will/go-sdk/version"
+	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-sdk/version"
 )
 
 // AppRun contains information regarding a single connection session with the

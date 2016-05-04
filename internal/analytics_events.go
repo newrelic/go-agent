@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"container/heap"
 
-	"go.datanerd.us/p/will/go-sdk/internal/jsonx"
-	"go.datanerd.us/p/will/go-sdk/log"
+	"github.com/newrelic/go-sdk/internal/jsonx"
+	"github.com/newrelic/go-sdk/log"
 )
 
 // eventStamp allows for uniform random sampling of events.  When an event is

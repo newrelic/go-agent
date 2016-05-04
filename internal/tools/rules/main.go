@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"go.datanerd.us/p/will/go-sdk/internal"
+	"github.com/newrelic/go-sdk/internal"
 )
 
 func fail(reason string) {

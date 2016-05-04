@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"go.datanerd.us/p/will/go-sdk/api"
-	"go.datanerd.us/p/will/go-sdk/internal/utilization"
-	"go.datanerd.us/p/will/go-sdk/version"
+	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-sdk/internal/utilization"
+	"github.com/newrelic/go-sdk/version"
 )
 
 type labels map[string]string

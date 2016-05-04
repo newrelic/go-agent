@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"go.datanerd.us/p/will/go-sdk/log"
+	"github.com/newrelic/go-sdk/log"
 )
 
 const (

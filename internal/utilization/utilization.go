@@ -5,8 +5,8 @@ package utilization
 import (
 	"runtime"
 
-	"go.datanerd.us/p/will/go-sdk/internal/sysinfo"
-	"go.datanerd.us/p/will/go-sdk/log"
+	"github.com/newrelic/go-sdk/internal/sysinfo"
+	"github.com/newrelic/go-sdk/log"
 )
 
 const metadataVersion = 1

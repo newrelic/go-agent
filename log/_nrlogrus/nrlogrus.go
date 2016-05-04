@@ -2,7 +2,7 @@ package nrlogrus
 
 import (
 	"github.com/Sirupsen/logrus"
-	"go.datanerd.us/p/will/go-sdk/log"
+	"github.com/newrelic/go-sdk/log"
 )
 
 type shim struct {

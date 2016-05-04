@@ -1,8 +1,8 @@
 package newrelic
 
 import (
-	"go.datanerd.us/p/will/go-sdk/api"
-	"go.datanerd.us/p/will/go-sdk/internal"
+	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-sdk/internal"
 )
 
 func NewConfig(appname, license string) api.Config {

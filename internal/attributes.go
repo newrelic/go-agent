@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"go.datanerd.us/p/will/go-sdk/log"
+	"github.com/newrelic/go-sdk/log"
 )
 
 type destinationConfig struct {

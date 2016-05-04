@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"go.datanerd.us/p/will/go-sdk/api"
+	"github.com/newrelic/go-sdk/api"
 )
 
 type TxnInput struct {
