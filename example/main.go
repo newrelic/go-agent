@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"go.datanerd.us/p/will/newrelic"
-	"go.datanerd.us/p/will/newrelic/log"
+	newrelic "go.datanerd.us/p/will/go-sdk"
+	"go.datanerd.us/p/will/go-sdk/log"
 
 	// "github.com/Sirupsen/logrus"
-	// _ "go.datanerd.us/p/will/newrelic/log/nrlogrus"
+	// _ "go.datanerd.us/p/will/go-sdk/log/nrlogrus"
 )
 
 var (

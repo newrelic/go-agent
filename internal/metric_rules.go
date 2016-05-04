@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"go.datanerd.us/p/will/newrelic/log"
+	"go.datanerd.us/p/will/go-sdk/log"
 )
 
 type ruleResult int

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.datanerd.us/p/will/newrelic/internal/crossagent"
+	"go.datanerd.us/p/will/go-sdk/internal/crossagent"
 )
 
 type AttributeTestcase struct {

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"go.datanerd.us/p/will/newrelic"
-	"go.datanerd.us/p/will/newrelic/api"
-	"go.datanerd.us/p/will/newrelic/internal"
+	newrelic "go.datanerd.us/p/will/go-sdk"
+	"go.datanerd.us/p/will/go-sdk/api"
+	"go.datanerd.us/p/will/go-sdk/internal"
 )
 
 var (

@@ -1,4 +1,4 @@
-# New Relic Go Instrumentation Library
+# New Relic Go SDK
 
 ## Requirements
 

@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"go.datanerd.us/p/will/newrelic/api"
-	"go.datanerd.us/p/will/newrelic/internal/utilization"
-	"go.datanerd.us/p/will/newrelic/version"
+	"go.datanerd.us/p/will/go-sdk/api"
+	"go.datanerd.us/p/will/go-sdk/internal/utilization"
+	"go.datanerd.us/p/will/go-sdk/version"
 )
 
 type labels map[string]string

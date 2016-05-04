@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"go.datanerd.us/p/will/newrelic/log"
-	"go.datanerd.us/p/will/newrelic/version"
+	"go.datanerd.us/p/will/go-sdk/log"
+	"go.datanerd.us/p/will/go-sdk/version"
 )
 
 const (

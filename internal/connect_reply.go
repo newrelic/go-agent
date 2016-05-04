@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"go.datanerd.us/p/will/newrelic/log"
+	"go.datanerd.us/p/will/go-sdk/log"
 )
 
 type AgentRunID string
