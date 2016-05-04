@@ -11,7 +11,7 @@ import (
 	"go.datanerd.us/p/will/go-sdk/log"
 
 	// "github.com/Sirupsen/logrus"
-	// _ "go.datanerd.us/p/will/go-sdk/log/nrlogrus"
+	// _ "go.datanerd.us/p/will/go-sdk/log/_nrlogrus"
 )
 
 var (
