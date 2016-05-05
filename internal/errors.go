@@ -58,8 +58,6 @@ func newTxnErrors(max int) txnErrors {
 }
 
 func (errors *txnErrors) Add(e *txnError) {
-	// QUESTION: Which errors should we take?  Last in wins?  Priority
-	// system?
 	if len(*errors) < cap(*errors) {
 		*errors = append(*errors, e)
 	}

@@ -22,7 +22,7 @@ type Transaction interface {
 	// NoticeError records an error an associates it with the Transaction. A
 	// stack trace is created for the error at the point at which this
 	// method is called.  If NoticeError is called multiple times in the
-	// same transaction, the first error is recorded.  This behavior is
-	// subject to potential change in the future.
+	// same transaction, the first five errors are recorded.  This behavior
+	// is subject to potential change in the future.
 	NoticeError(err error) error
 }
