@@ -64,7 +64,6 @@ func calculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 	return floatSecondsToDuration(c.ApdexThresholdSeconds)
 }
 
-// TODO: Where does this belong?
 func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	var afterURLRules string
 	if "" != input {
