@@ -56,6 +56,8 @@ func mergeContexts(cs ...Context) Context {
 	case 0:
 		return Context{}
 	case 1:
+		// A single context is not copied to improve performance.  This
+		// assumes that Fire does not modify the Entry's Context.
 		return cs[0]
 	default:
 		c := Context{}
