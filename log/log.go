@@ -43,6 +43,12 @@ type Hook interface {
 }
 
 var (
+	// Logger is fed log entries as they occur.  This value should be set
+	// during initialization, and before other New Relic functions are
+	// called: changing it during application execution is a race condition.
+	// If changing the log file or log level dynamically is desirable,
+	// Logger should be set to a Hook whose behavior is guarded by a
+	// synchronization primitive.
 	Logger Hook
 )
 
