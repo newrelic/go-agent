@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"bytes"
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -31,4 +33,17 @@ func absTimeDiff(t1, t2 time.Time) time.Duration {
 		return t1.Sub(t2)
 	}
 	return t2.Sub(t1)
+}
+
+func compactJSON(js []byte) []byte {
+	buf := new(bytes.Buffer)
+	if err := json.Compact(buf, js); err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func compactJSONString(js string) string {
+	out := compactJSON([]byte(js))
+	return string(out)
 }

@@ -18,7 +18,20 @@ func TestErrorEventMarshal(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	if string(js) != `[{"type":"TransactionError","error.class":"*errors.errorString","error.message":"hello","timestamp":1.41713646e+09,"transactionName":"myName","duration":3},{},{}]` {
+	expect := compactJSONString(`
+	[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3
+		},
+		{},
+		{}
+	]`)
+	if string(js) != expect {
 		t.Error(string(js))
 	}
 }
