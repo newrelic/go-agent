@@ -16,9 +16,8 @@ const (
 	// therefore should only be made for web transactions.
 	dispatcherMetric = "HttpDispatcher"
 
-	// QUESTION: Determine what the second segment should be.
-	webMetricPrefix        = "WebTransaction/Pattern"
-	backgroundMetricPrefix = "OtherTransaction/Pattern"
+	webMetricPrefix        = "WebTransaction/Go"
+	backgroundMetricPrefix = "OtherTransaction/Go"
 
 	instanceReporting = "Instance/Reporting"
 

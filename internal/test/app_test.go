@@ -201,22 +201,22 @@ func TestNoticeErrorBackground(t *testing.T) {
 	}
 	txn.End()
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorBackground",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -229,25 +229,25 @@ func TestNoticeErrorWeb(t *testing.T) {
 	}
 	txn.End()
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Pattern/myName",
+		TxnName: "WebTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorWeb",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "WebTransaction/Pattern/myName",
+		TxnName: "WebTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Pattern/myName", "", true, nil},
+		{"WebTransaction/Go/myName", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
 		{"Apdex", "", true, nil},
-		{"Apdex/Pattern/myName", "", false, nil},
+		{"Apdex/Go/myName", "", false, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/WebTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/WebTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -263,7 +263,7 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
 }
@@ -278,22 +278,22 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 	}
 	txn.End()
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     internal.HighSecurityErrorMsg,
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorHighSecurity",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     internal.HighSecurityErrorMsg,
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -309,11 +309,11 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -329,11 +329,11 @@ func TestNoticeErrorRemotelyDisabled(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -348,7 +348,7 @@ func TestNoticeErrorNil(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
 }
@@ -363,18 +363,18 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 	}
 	txn.End()
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorEventsLocallyDisabled",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -388,18 +388,18 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	}
 	txn.End()
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorEventsRemotelyDisabled",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -415,7 +415,7 @@ func TestTransactionEventWeb(t *testing.T) {
 		t.Error(err)
 	}
 	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{
-		{Name: "WebTransaction/Pattern/myName", Zone: "S"},
+		{Name: "WebTransaction/Go/myName", Zone: "S"},
 	})
 }
 
@@ -427,7 +427,7 @@ func TestTransactionEventBackground(t *testing.T) {
 		t.Error(err)
 	}
 	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{
-		{Name: "OtherTransaction/Pattern/myName"},
+		{Name: "OtherTransaction/Go/myName"},
 	})
 }
 
@@ -473,25 +473,25 @@ func TestWrapHandleFunc(t *testing.T) {
 	}
 
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Pattern/hello",
+		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "WebTransaction/Pattern/hello",
+		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Pattern/hello", "", true, nil},
+		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
 		{"Apdex", "", true, nil},
-		{"Apdex/Pattern/hello", "", false, nil},
+		{"Apdex/Go/hello", "", false, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/WebTransaction/Pattern/hello", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/WebTransaction/Go/hello", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -508,25 +508,25 @@ func TestWrapHandle(t *testing.T) {
 	}
 
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Pattern/hello",
+		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "WebTransaction/Pattern/hello",
+		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Pattern/hello", "", true, nil},
+		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
 		{"Apdex", "", true, nil},
-		{"Apdex/Pattern/hello", "", false, nil},
+		{"Apdex/Go/hello", "", false, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/WebTransaction/Pattern/hello", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/WebTransaction/Go/hello", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -542,7 +542,7 @@ func TestSetName(t *testing.T) {
 	}
 
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/two", "", true, nil},
+		{"OtherTransaction/Go/two", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
 }
@@ -568,22 +568,22 @@ func TestPanicError(t *testing.T) {
 	}
 
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -598,22 +598,22 @@ func TestPanicString(t *testing.T) {
 	}
 
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
 		Klass:   "internal.panicError",
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
 		Klass:   "internal.panicError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -628,22 +628,22 @@ func TestPanicInt(t *testing.T) {
 	}
 
 	app.h.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
 		Klass:   "internal.panicError",
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName: "OtherTransaction/Pattern/myName",
+		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
 		Klass:   "internal.panicError",
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Pattern/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -659,7 +659,7 @@ func TestPanicNil(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Pattern/myName", "", true, nil},
+		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
 }

@@ -14,15 +14,15 @@ func TestCreateFullTxnNameBasic(t *testing.T) {
 		background bool
 		expect     string
 	}{
-		{"", true, "WebTransaction/Pattern/"},
-		{"/", true, "WebTransaction/Pattern/"},
-		{"hello", true, "WebTransaction/Pattern/hello"},
-		{"/hello", true, "WebTransaction/Pattern/hello"},
+		{"", true, "WebTransaction/Go/"},
+		{"/", true, "WebTransaction/Go/"},
+		{"hello", true, "WebTransaction/Go/hello"},
+		{"/hello", true, "WebTransaction/Go/hello"},
 
-		{"", false, "OtherTransaction/Pattern/"},
-		{"/", false, "OtherTransaction/Pattern/"},
-		{"hello", false, "OtherTransaction/Pattern/hello"},
-		{"/hello", false, "OtherTransaction/Pattern/hello"},
+		{"", false, "OtherTransaction/Go/"},
+		{"/", false, "OtherTransaction/Go/"},
+		{"hello", false, "OtherTransaction/Go/hello"},
+		{"/hello", false, "OtherTransaction/Go/hello"},
 	}
 
 	for _, tc := range tcs {
@@ -49,7 +49,7 @@ func TestCreateFullTxnNameURLRulesIgnore(t *testing.T) {
 
 func TestCreateFullTxnNameTxnRulesIgnore(t *testing.T) {
 	js := `[{
-		"match_expression":"^WebTransaction/Pattern/zap/zip/zep$",
+		"match_expression":"^WebTransaction/Go/zap/zip/zep$",
 		"ignore":true
 	}]`
 	reply := ConnectReplyDefaults()
@@ -68,11 +68,11 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 			{"match_expression":"zip","each_segment":true,"replacement":"zoop"}
 		],
 		"transaction_name_rules":[
-			{"match_expression":"WebTransaction/Pattern/zap/zoop/zep",
-			 "replacement":"WebTransaction/Pattern/zap/zoop/zep/zup/zyp"}
+			{"match_expression":"WebTransaction/Go/zap/zoop/zep",
+			 "replacement":"WebTransaction/Go/zap/zoop/zep/zup/zyp"}
 		],
 		"transaction_segment_terms":[
-			{"prefix": "WebTransaction/Pattern/",
+			{"prefix": "WebTransaction/Go/",
 			 "terms": ["zyp", "zoop", "zap"]}
 		]
 	}`
@@ -81,14 +81,14 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != "WebTransaction/Pattern/zap/zoop/*/zyp" {
+	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != "WebTransaction/Go/zap/zoop/*/zyp" {
 		t.Error(out)
 	}
 }
 
 func TestCalculateApdexThreshold(t *testing.T) {
 	reply := ConnectReplyDefaults()
-	threshold := calculateApdexThreshold(reply, "WebTransaction/Pattern/hello")
+	threshold := calculateApdexThreshold(reply, "WebTransaction/Go/hello")
 	if threshold != 500*time.Millisecond {
 		t.Error("default apdex threshold", threshold)
 	}
@@ -96,14 +96,14 @@ func TestCalculateApdexThreshold(t *testing.T) {
 	reply = ConnectReplyDefaults()
 	reply.ApdexThresholdSeconds = 1.3
 	reply.KeyTxnApdex = map[string]float64{
-		"WebTransaction/Pattern/zip": 2.2,
-		"WebTransaction/Pattern/zap": 2.3,
+		"WebTransaction/Go/zip": 2.2,
+		"WebTransaction/Go/zap": 2.3,
 	}
-	threshold = calculateApdexThreshold(reply, "WebTransaction/Pattern/hello")
+	threshold = calculateApdexThreshold(reply, "WebTransaction/Go/hello")
 	if threshold != 1300*time.Millisecond {
 		t.Error(threshold)
 	}
-	threshold = calculateApdexThreshold(reply, "WebTransaction/Pattern/zip")
+	threshold = calculateApdexThreshold(reply, "WebTransaction/Go/zip")
 	if threshold != 2200*time.Millisecond {
 		t.Error(threshold)
 	}
