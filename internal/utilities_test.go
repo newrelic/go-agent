@@ -58,3 +58,12 @@ func TestTimeToFloatMilliseconds(t *testing.T) {
 		t.Error(ms)
 	}
 }
+
+func TestCompactJSON(t *testing.T) {
+	in := `
+	{   "zip":	1}`
+	out := compactJSONString(in)
+	if out != `{"zip":1}` {
+		t.Fatal(in, out)
+	}
+}
