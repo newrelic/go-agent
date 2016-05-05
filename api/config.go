@@ -7,25 +7,6 @@ import (
 	"strings"
 )
 
-func NewConfig(appname, license string) Config {
-	c := Config{}
-
-	c.AppName = appname
-	c.License = license
-	c.Collector = "collector.newrelic.com"
-	c.Labels = make(map[string]string)
-	c.CustomEvents.Enabled = true
-	c.TransactionEvents.Enabled = true
-	c.HighSecurity = false
-	c.UseSSL = true
-	c.ErrorCollector.Enabled = true
-	c.ErrorCollector.CaptureEvents = true
-	c.Utilization.DetectAWS = true
-	c.Utilization.DetectDocker = true
-
-	return c
-}
-
 type Config struct {
 	// AppName determines the application record in your New Relic dashboard
 	// into which data will be reported.  Collecting data by app name allows
@@ -103,6 +84,25 @@ type Config struct {
 		DetectAWS    bool
 		DetectDocker bool
 	}
+}
+
+func NewConfig(appname, license string) Config {
+	c := Config{}
+
+	c.AppName = appname
+	c.License = license
+	c.Collector = "collector.newrelic.com"
+	c.Labels = make(map[string]string)
+	c.CustomEvents.Enabled = true
+	c.TransactionEvents.Enabled = true
+	c.HighSecurity = false
+	c.UseSSL = true
+	c.ErrorCollector.Enabled = true
+	c.ErrorCollector.CaptureEvents = true
+	c.Utilization.DetectAWS = true
+	c.Utilization.DetectDocker = true
+
+	return c
 }
 
 const (
