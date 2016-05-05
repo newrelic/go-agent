@@ -12,13 +12,16 @@ First, create a `Config`:
 cfg := newrelic.NewConfig("Your Application Name", "YOUR_LICENSE_KEY")
 ```
 
-Config has many public fields which can be changed to modify behavior.  Take a look in [config.go](api/config.go).  Then, create an `Application`:
+Config has many public fields which can be changed to modify behavior.  Take a
+look in [config.go](api/config.go).  Then, create an `Application`:
 
 ```
 app, err := newrelic.NewApplication(cfg)
 ```
 
-`Application` is an interface described in [application.go](api/application.go).  If the `Config` is invalid, `NewApplication` will return `nil` and an error.  Using the `Application`, you can add custom events:
+`Application` is an interface described in [application.go](api/application.go).
+If the `Config` is invalid, `NewApplication` will return `nil` and an error.
+Using the `Application`, you can add custom events:
 
 ```
 app.RecordCustomEvent("my_event_type", map[string]interface{}{
@@ -36,7 +39,10 @@ txn := app.StartTransaction("my_transaction", nil, nil)
 defer txn.End()
 ```
 
-`Transaction` is an interface described in [transaction.go](api/transaction.go).  Since instrumentation of standard library http handlers is common, two helper functions, `WrapHandle` and `WrapHandleFunc` are located in [instrumentation.go](instrumentation.go).
+`Transaction` is an interface described in [transaction.go](api/transaction.go).
+Since instrumentation of standard library http handlers is common, two helper
+functions, `WrapHandle` and `WrapHandleFunc` are located in
+[instrumentation.go](instrumentation.go).
 
 ## Example
 
@@ -52,12 +58,6 @@ Then access:
 * [http://localhost:8000/](http://localhost:8000/)
 * [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
 * [http://localhost:8000/custom_event](http://localhost:8000/custom_event)
-
-If you want to run against staging, set the `NRCOLLECTOR` environment variable.
-
-## Goals
-
-https://newrelic.quip.com/V0AqAQariF9c
 
 ## Codebase Markers
 
