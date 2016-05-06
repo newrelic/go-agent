@@ -47,3 +47,20 @@ func compactJSONString(js string) string {
 	out := compactJSON([]byte(js))
 	return string(out)
 }
+
+// stringLengthByteLimit truncates strings using a byte-limit boundary and
+// avoids terminating in the middle of a multibyte character.
+func stringLengthByteLimit(str string, byteLimit int) string {
+	if len(str) <= byteLimit {
+		return str
+	}
+
+	limitIndex := 0
+	for pos := range str {
+		if pos > byteLimit {
+			break
+		}
+		limitIndex = pos
+	}
+	return str[0:limitIndex]
+}

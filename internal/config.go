@@ -56,13 +56,11 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 		Identifier      string            `json:"identifier"`
 		Util            *utilization.Data `json:"utilization"`
 	}{
-		Pid:      pid,
-		Language: agentLanguage,
-		Version:  version.Version,
-		Host:     util.Hostname,
-		// QUESTION: Should we limit the length of this field here, or
-		// check the length of the value in the Config Validate method?
-		HostDisplayName: c.HostDisplayName,
+		Pid:             pid,
+		Language:        agentLanguage,
+		Version:         version.Version,
+		Host:            util.Hostname,
+		HostDisplayName: stringLengthByteLimit(c.HostDisplayName),
 		Settings: struct {
 			// QUESTION: Should Labels be flattened and included
 			// here?

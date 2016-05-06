@@ -67,3 +67,32 @@ func TestCompactJSON(t *testing.T) {
 		t.Fatal(in, out)
 	}
 }
+
+func TestStringLengthByteLimit(t *testing.T) {
+	testcases := []struct {
+		input  string
+		limit  int
+		expect string
+	}{
+		{"awesome", -1, ""},
+		{"awesome", 0, ""},
+		{"awesome", 1, "a"},
+		{"awesome", 7, "awesome"},
+		{"awesome", 20, "awesome"},
+		{"日本\x80語", 10, "日本\x80語"}, // bad unicode
+		{"日本", 1, ""},
+		{"日本", 2, ""},
+		{"日本", 3, "日"},
+		{"日本", 4, "日"},
+		{"日本", 5, "日"},
+		{"日本", 6, "日本"},
+		{"日本", 7, "日本"},
+	}
+
+	for _, tc := range testcases {
+		out := stringLengthByteLimit(tc.input, tc.limit)
+		if out != tc.expect {
+			t.Error(tc.input, tc.limit, tc.expect, out)
+		}
+	}
+}
