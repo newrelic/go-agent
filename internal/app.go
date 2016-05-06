@@ -295,7 +295,7 @@ func (app *App) RecordCustomEvent(eventType string, params map[string]interface{
 		return HighSecurityEnabledError
 	}
 
-	if !app.config.CustomEvents.Enabled {
+	if !app.config.CustomInsightsEvents.Enabled {
 		return CustomEventsDisabledError
 	}
 

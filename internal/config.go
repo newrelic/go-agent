@@ -66,10 +66,7 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 		Settings: struct {
 			// QUESTION: Should Labels be flattened and included
 			// here?
-			HighSecurity bool `json:"high_security"`
-			// QUESTION: Should CustomEvents.Enabled be changed to
-			// CustomInsightsEvents.Enabled for consistency with
-			// other agents?
+			HighSecurity                bool `json:"high_security"`
 			CustomEventsEnabled         bool `json:"custom_insights_events.enabled"`
 			TransactionEventsEnabled    bool `json:"transaction_events.enabled"`
 			ErrorCollectorEnabled       bool `json:"error_collector.enabled"`
@@ -82,7 +79,7 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 			UtilizationDetectDocker bool        `json:"utilization.detect_docker"`
 		}{
 			HighSecurity:                c.HighSecurity,
-			CustomEventsEnabled:         c.CustomEvents.Enabled,
+			CustomEventsEnabled:         c.CustomInsightsEvents.Enabled,
 			TransactionEventsEnabled:    c.TransactionEvents.Enabled,
 			ErrorCollectorEnabled:       c.ErrorCollector.Enabled,
 			ErrorCollectorCaptureEvents: c.ErrorCollector.CaptureEvents,

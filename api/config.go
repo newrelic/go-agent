@@ -41,12 +41,12 @@ type Config struct {
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/security/high-security
 	HighSecurity bool
 
-	// CustomEvents.Enabled controls whether the App.RecordCustomEvent() method
+	// CustomInsightsEvents.Enabled controls whether the App.RecordCustomEvent() method
 	// will collect custom analytics events. This feature will be disabled
 	// if HighSecurity mode is enabled.
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
-	CustomEvents struct {
+	CustomInsightsEvents struct {
 		Enabled bool
 	}
 
@@ -93,7 +93,7 @@ func NewConfig(appname, license string) Config {
 	c.License = license
 	c.Collector = "collector.newrelic.com"
 	c.Labels = make(map[string]string)
-	c.CustomEvents.Enabled = true
+	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
 	c.HighSecurity = false
 	c.UseSSL = true

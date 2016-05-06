@@ -128,7 +128,7 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
-	cfgfn := func(cfg *api.Config) { cfg.CustomEvents.Enabled = false }
+	cfgfn := func(cfg *api.Config) { cfg.CustomInsightsEvents.Enabled = false }
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
 	if err != internal.CustomEventsDisabledError {
