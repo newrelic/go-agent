@@ -16,7 +16,7 @@ import (
 
 const (
 	procotolVersion = "14"
-	userAgent       = "NewRelic-GoAgent/" + version.Version
+	userAgent       = "NewRelic-Go-SDK/" + version.Version
 
 	// Methods used in collector communication.
 	CmdRedirect     = "get_redirect_host"
