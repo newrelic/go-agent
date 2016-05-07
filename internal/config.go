@@ -41,6 +41,11 @@ func transportSetting(t http.RoundTripper) interface{} {
 	return fmt.Sprintf("%T", t)
 }
 
+const (
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Custom-Host-Names.md
+	hostByteLimit = 255
+)
+
 func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e Environment) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid             int               `json:"pid"`
@@ -59,8 +64,8 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 		Pid:             pid,
 		Language:        agentLanguage,
 		Version:         version.Version,
-		Host:            util.Hostname,
-		HostDisplayName: stringLengthByteLimit(c.HostDisplayName),
+		Host:            stringLengthByteLimit(util.Hostname, hostByteLimit),
+		HostDisplayName: stringLengthByteLimit(c.HostDisplayName, hostByteLimit),
 		Settings: struct {
 			// QUESTION: Should Labels be flattened and included
 			// here?
