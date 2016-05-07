@@ -234,7 +234,6 @@ func (e invalidAttributeError) Error() string {
 }
 
 func valueIsValid(val interface{}) error {
-	// TODO(willhf): Is there a more elegant way to do this?
 	switch val.(type) {
 	case string, bool, nil,
 		uint8, uint16, uint32, uint64,
