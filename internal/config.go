@@ -46,6 +46,26 @@ const (
 	hostByteLimit = 255
 )
 
+type settings api.Config
+
+func (s *settings) MarshalJSON() ([]byte, error) {
+	c := (*api.Config)(s)
+	js, err := json.Marshal(c)
+	if nil != err {
+		return nil, err
+	}
+	fields := make(map[string]interface{})
+	err = json.Unmarshal(js, &fields)
+	if nil != err {
+		return nil, err
+	}
+	// The License field is not simply ignored by adding the `json:"-"` tag
+	// to it since we want to allow consumers to populate Config from JSON.
+	delete(fields, `License`)
+	fields[`Transport`] = transportSetting(c.Transport)
+	return json.Marshal(fields)
+}
+
 func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e Environment) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid             int               `json:"pid"`
@@ -66,36 +86,11 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 		Version:         version.Version,
 		Host:            stringLengthByteLimit(util.Hostname, hostByteLimit),
 		HostDisplayName: stringLengthByteLimit(c.HostDisplayName, hostByteLimit),
-		Settings: struct {
-			// QUESTION: Should Labels be flattened and included
-			// here?
-			HighSecurity                bool `json:"high_security"`
-			CustomEventsEnabled         bool `json:"custom_insights_events.enabled"`
-			TransactionEventsEnabled    bool `json:"transaction_events.enabled"`
-			ErrorCollectorEnabled       bool `json:"error_collector.enabled"`
-			ErrorCollectorCaptureEvents bool `json:"error_collector.capture_events"`
-			// QUESTION: Should HostDisplayName be duplication here?
-			UseSSL                  bool        `json:"ssl"`
-			Transport               interface{} `json:"transport"`
-			Collector               string      `json:"collector"`
-			UtilizationDetectAWS    bool        `json:"utilization.detect_aws"`
-			UtilizationDetectDocker bool        `json:"utilization.detect_docker"`
-		}{
-			HighSecurity:                c.HighSecurity,
-			CustomEventsEnabled:         c.CustomInsightsEvents.Enabled,
-			TransactionEventsEnabled:    c.TransactionEvents.Enabled,
-			ErrorCollectorEnabled:       c.ErrorCollector.Enabled,
-			ErrorCollectorCaptureEvents: c.ErrorCollector.CaptureEvents,
-			UseSSL:                  c.UseSSL,
-			Transport:               transportSetting(c.Transport),
-			Collector:               c.Collector,
-			UtilizationDetectAWS:    c.Utilization.DetectAWS,
-			UtilizationDetectDocker: c.Utilization.DetectDocker,
-		},
-		AppName:      strings.Split(c.AppName, ";"),
-		HighSecurity: c.HighSecurity,
-		Labels:       labels(c.Labels),
-		Environment:  e,
+		Settings:        (*settings)(c),
+		AppName:         strings.Split(c.AppName, ";"),
+		HighSecurity:    c.HighSecurity,
+		Labels:          labels(c.Labels),
+		Environment:     e,
 		// This identifier field is provided to avoid:
 		// https://newrelic.atlassian.net/browse/DSCORE-778
 		//
