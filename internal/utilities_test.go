@@ -74,6 +74,7 @@ func TestStringLengthByteLimit(t *testing.T) {
 		limit  int
 		expect string
 	}{
+		{"", 255, ""},
 		{"awesome", -1, ""},
 		{"awesome", 0, ""},
 		{"awesome", 1, "a"},
