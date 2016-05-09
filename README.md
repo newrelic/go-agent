@@ -58,8 +58,3 @@ Then access:
 * [http://localhost:8000/](http://localhost:8000/)
 * [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
 * [http://localhost:8000/custom_event](http://localhost:8000/custom_event)
-
-## Codebase Markers
-
-* `QUESTION` This is a open design decision and I would love your input!
-* `TODO`  This is an issue which should be addressed at some point.
