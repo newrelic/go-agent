@@ -46,7 +46,6 @@ type ConnectReply struct {
 }
 
 func ConnectReplyDefaults() *ConnectReply {
-	// TODO: Compare these values to other agents.
 	return &ConnectReply{
 		ApdexThresholdSeconds:  0.5,
 		CollectAnalyticsEvents: true,

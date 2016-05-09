@@ -26,7 +26,7 @@ const (
 	attributeKeyLengthLimit   = 255
 	attributeValueLengthLimit = 255
 	attributeUserLimit        = 64
-	attributeAgentLimit       = 255 - attributeUserLimit // TODO(willhf): check this
+	attributeAgentLimit       = 255 - attributeUserLimit
 	customEventAttributeLimit = 64
 
 	// Limits affecting Config validation are found in the config package.

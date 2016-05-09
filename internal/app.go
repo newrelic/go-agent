@@ -323,6 +323,6 @@ func (app *App) Consume(id AgentRunID, data Harvestable) {
 	if "" == id {
 		return
 	}
-	// TODO: Perhaps do not block if the channel is full.
+
 	app.dataChan <- appData{id, data}
 }

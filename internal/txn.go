@@ -70,8 +70,6 @@ func (txn *txn) freezeName() {
 	}
 }
 
-// TODO: Investigate this:  Don't some agents have apdex for background
-// transactions?
 func (txn *txn) getsApdex() bool {
 	return txn.isWeb
 }
