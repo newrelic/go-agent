@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -164,11 +163,9 @@ func (txn *txn) WriteHeader(code int) {
 		return
 	}
 
-	txn.noticeErrorInternal(txnError{
-		msg:   http.StatusText(code),
-		klass: strconv.Itoa(code),
-		stack: GetStackTrace(0),
-	})
+	e := txnErrorFromResponseCode(code)
+	e.stack = GetStackTrace(0)
+	txn.noticeErrorInternal(e)
 }
 
 var (

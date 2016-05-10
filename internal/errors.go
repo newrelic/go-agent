@@ -3,7 +3,9 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -31,6 +33,13 @@ func txnErrorFromError(err error) txnError {
 	return txnError{
 		msg:   err.Error(),
 		klass: reflect.TypeOf(err).String(),
+	}
+}
+
+func txnErrorFromResponseCode(code int) txnError {
+	return txnError{
+		msg:   http.StatusText(code),
+		klass: strconv.Itoa(code),
 	}
 }
 
