@@ -155,11 +155,15 @@ func debug(data Harvestable) {
 			continue
 		}
 		if nil != err {
-			d = []byte(err.Error())
+			log.Debug("integration", log.Context{
+				"cmd":   cmd,
+				"error": err.Error(),
+			})
+			continue
 		}
 		log.Debug("integration", log.Context{
 			"cmd":  cmd,
-			"data": string(d),
+			"data": JSONString(d),
 		})
 	}
 }

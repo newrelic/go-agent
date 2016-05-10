@@ -7,6 +7,18 @@ import (
 	"time"
 )
 
+// JSONString assists in logging JSON:  Based on the formatter used to log
+// Context contents, the contents could be marshalled as JSON or just printed
+// directly.
+type JSONString string
+
+func (js JSONString) MarshalJSON() ([]byte, error) {
+	if "" == js {
+		return []byte("null"), nil
+	}
+	return []byte(js), nil
+}
+
 func removeFirstSegment(name string) string {
 	idx := strings.Index(name, "/")
 	if -1 == idx {

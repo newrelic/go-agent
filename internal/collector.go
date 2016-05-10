@@ -126,7 +126,7 @@ func CollectorRequest(cmd Cmd, client *http.Client) ([]byte, error) {
 	}
 
 	log.Debug("rpm request", cn, log.Context{
-		"payload": string(cmd.Data),
+		"payload": JSONString(cmd.Data),
 	})
 
 	resp, err := collectorRequestInternal(url, cmd.Data, client)
@@ -135,7 +135,7 @@ func CollectorRequest(cmd Cmd, client *http.Client) ([]byte, error) {
 	}
 
 	log.Debug("rpm response", cn, log.Context{
-		"response": string(resp),
+		"response": JSONString(resp),
 	})
 
 	return resp, err
