@@ -570,13 +570,13 @@ func TestPanicError(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
-		Klass:   "test.myError",
+		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
-		Klass:   "test.myError",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
@@ -600,13 +600,13 @@ func TestPanicString(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
-		Klass:   "internal.panicError",
+		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
-		Klass:   "internal.panicError",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
@@ -630,13 +630,13 @@ func TestPanicInt(t *testing.T) {
 	app.h.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
-		Klass:   "internal.panicError",
+		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
-		Klass:   "internal.panicError",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
@@ -661,5 +661,143 @@ func TestPanicNil(t *testing.T) {
 	app.h.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
+	})
+}
+
+func TestResponseCodeError(t *testing.T) {
+	app := testApp(nil, nil, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.WriteHeader(http.StatusBadRequest)   // 400
+	txn.WriteHeader(http.StatusUnauthorized) // 401
+
+	txn.End()
+
+	if http.StatusBadRequest != w.Code {
+		t.Error(w.Code)
+	}
+
+	app.h.ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "Bad Request",
+		Klass:   "400",
+		Caller:  "internal.(*txn).WriteHeader",
+	}})
+	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "Bad Request",
+		Klass:   "400",
+	}})
+	app.h.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/hello", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/hello", "", false, nil},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/WebTransaction/Go/hello", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+	})
+}
+
+func TestResponseCode404Filtered(t *testing.T) {
+	app := testApp(nil, nil, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.WriteHeader(http.StatusNotFound)
+
+	txn.End()
+
+	if http.StatusNotFound != w.Code {
+		t.Error(w.Code)
+	}
+
+	app.h.ExpectErrors(t, []internal.WantError{})
+	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.h.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/hello", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/hello", "", false, nil},
+	})
+}
+
+func TestResponseCodeCustomFilter(t *testing.T) {
+	cfgFn := func(cfg *api.Config) {
+		cfg.ErrorCollector.IgnoreStatusCodes =
+			append(cfg.ErrorCollector.IgnoreStatusCodes,
+				http.StatusNotFound)
+	}
+	app := testApp(nil, cfgFn, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.WriteHeader(http.StatusNotFound)
+
+	txn.End()
+
+	app.h.ExpectErrors(t, []internal.WantError{})
+	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.h.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/hello", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/hello", "", false, nil},
+	})
+}
+
+func TestResponseCodeAfterEnd(t *testing.T) {
+	app := testApp(nil, nil, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.End()
+	txn.WriteHeader(http.StatusBadRequest)
+
+	if http.StatusBadRequest != w.Code {
+		t.Error(w.Code)
+	}
+
+	app.h.ExpectErrors(t, []internal.WantError{})
+	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.h.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/hello", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/hello", "", false, nil},
+	})
+}
+
+func TestResponseCodeAfterWrite(t *testing.T) {
+	app := testApp(nil, nil, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.Write([]byte("zap"))
+	txn.WriteHeader(http.StatusBadRequest)
+
+	txn.End()
+
+	if out := w.Body.String(); "zap" != out {
+		t.Error(out)
+	}
+
+	if http.StatusOK != w.Code {
+		t.Error(w.Code)
+	}
+
+	app.h.ExpectErrors(t, []internal.WantError{})
+	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.h.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/hello", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/hello", "", false, nil},
 	})
 }

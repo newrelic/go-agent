@@ -58,8 +58,9 @@ type Config struct {
 	}
 
 	ErrorCollector struct {
-		Enabled       bool
-		CaptureEvents bool
+		Enabled           bool
+		CaptureEvents     bool
+		IgnoreStatusCodes []int
 	}
 
 	// HostDisplayName sets a custom display name for your application
@@ -99,6 +100,9 @@ func NewConfig(appname, license string) Config {
 	c.UseSSL = true
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
+	c.ErrorCollector.IgnoreStatusCodes = []int{
+		http.StatusNotFound, // 404
+	}
 	c.Utilization.DetectAWS = true
 	c.Utilization.DetectDocker = true
 

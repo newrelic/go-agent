@@ -8,11 +8,11 @@ import (
 )
 
 func TestErrorEventMarshal(t *testing.T) {
-	when := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	e := txnErrorFromError(errors.New("hello"))
+	e.when = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	e.stack = GetStackTrace(0)
 
-	stack := GetStackTrace(0)
-	e := newTxnError(false, errors.New("hello"), stack, when)
-	event := CreateErrorEvent(e, "myName", 3*time.Second)
+	event := CreateErrorEvent(&e, "myName", 3*time.Second)
 
 	js, err := json.Marshal(event)
 	if nil != err {
