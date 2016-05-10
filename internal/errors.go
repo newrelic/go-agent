@@ -3,24 +3,43 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
+	"strconv"
 	"time"
 )
 
-type panicError struct {
-	v interface{}
-}
+const (
+	PanicErrorKlass = "panic"
+)
 
-func (p panicError) Error() string {
-	return fmt.Sprintf("%v", p.v)
-}
-
-func PanicValueToError(v interface{}) error {
+func panicValueMsg(v interface{}) string {
 	switch val := v.(type) {
 	case error:
-		return val
+		return val.Error()
 	default:
-		return panicError{v: v}
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func txnErrorFromPanic(v interface{}) txnError {
+	return txnError{
+		msg:   panicValueMsg(v),
+		klass: PanicErrorKlass,
+	}
+}
+
+func txnErrorFromError(err error) txnError {
+	return txnError{
+		msg:   err.Error(),
+		klass: reflect.TypeOf(err).String(),
+	}
+}
+
+func txnErrorFromResponseCode(code int) txnError {
+	return txnError{
+		msg:   http.StatusText(code),
+		klass: strconv.Itoa(code),
 	}
 }
 
@@ -29,26 +48,6 @@ type txnError struct {
 	stack *StackTrace
 	msg   string
 	klass string
-}
-
-const (
-	HighSecurityErrorMsg = "message removed by high security setting"
-)
-
-func newTxnError(highSecurity bool, err error, stack *StackTrace, now time.Time) *txnError {
-	var msg string
-	if highSecurity {
-		msg = HighSecurityErrorMsg
-	} else {
-		msg = err.Error()
-	}
-
-	return &txnError{
-		when:  now,
-		stack: stack,
-		msg:   msg,
-		klass: reflect.TypeOf(err).String(),
-	}
 }
 
 type txnErrors []*txnError

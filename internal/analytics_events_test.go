@@ -245,9 +245,11 @@ func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 }
 
 func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
-	now := time.Now()
-	e := newTxnError(false, errors.New("my error"), GetStackTrace(0), now)
+	e := txnErrorFromError(errors.New("my error"))
+	e.when = time.Now()
+	e.stack = GetStackTrace(0)
+
 	txnName := "WebTransaction/Go/zip/zap"
-	event := CreateErrorEvent(e, txnName, 3*time.Second)
+	event := CreateErrorEvent(&e, txnName, 3*time.Second)
 	analyticsEventBenchmarkHelper(b, event)
 }

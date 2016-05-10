@@ -32,6 +32,10 @@ type txn struct {
 	errors     txnErrors // Lazily initialized.
 	errorsSeen uint64
 
+	// wroteHeader prevents capturing multiple response code errors if the
+	// user erroneously calls WriteHeader multiple times.
+	wroteHeader bool
+
 	// Fields assigned at completion
 	stop           time.Time
 	duration       time.Duration
@@ -114,9 +118,55 @@ func (txn *txn) MergeIntoHarvest(h *Harvest) {
 	}
 }
 
-func (txn *txn) Header() http.Header         { return txn.Writer.Header() }
-func (txn *txn) Write(b []byte) (int, error) { return txn.Writer.Write(b) }
-func (txn *txn) WriteHeader(code int)        { txn.Writer.WriteHeader(code) }
+func responseCodeIsError(cfg *api.Config, code int) bool {
+	if code < http.StatusBadRequest { // 400
+		return false
+	}
+	for _, ignoreCode := range cfg.ErrorCollector.IgnoreStatusCodes {
+		if code == ignoreCode {
+			return false
+		}
+	}
+	return true
+}
+
+func (txn *txn) Header() http.Header { return txn.Writer.Header() }
+
+func (txn *txn) Write(b []byte) (int, error) {
+	n, err := txn.Writer.Write(b)
+
+	txn.Lock()
+	defer txn.Unlock()
+
+	if !txn.finished {
+		txn.wroteHeader = true
+	}
+
+	return n, err
+}
+
+func (txn *txn) WriteHeader(code int) {
+	txn.Writer.WriteHeader(code)
+
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return
+	}
+	if txn.wroteHeader {
+		return
+	}
+	txn.wroteHeader = true
+
+	if !responseCodeIsError(&txn.Config, code) {
+		return
+	}
+
+	e := txnErrorFromResponseCode(code)
+	e.stack = GetStackTrace(0)
+	txn.noticeErrorInternal(e)
+}
 
 var (
 	AlreadyEndedErr = errors.New("transaction has already ended")
@@ -134,9 +184,9 @@ func (txn *txn) End() error {
 
 	r := recover()
 	if nil != r {
-		stack := GetStackTrace(0)
-		err := PanicValueToError(r)
-		txn.noticeErrorInternal(err, stack)
+		e := txnErrorFromPanic(r)
+		e.stack = GetStackTrace(0)
+		txn.noticeErrorInternal(e)
 	}
 
 	txn.end()
@@ -160,7 +210,11 @@ var (
 	NilError               = errors.New("nil error")
 )
 
-func (txn *txn) noticeErrorInternal(err error, stack *StackTrace) error {
+const (
+	HighSecurityErrorMsg = "message removed by high security setting"
+)
+
+func (txn *txn) noticeErrorInternal(err txnError) error {
 	// Increment errorsSeen even if errors are disabled:  Error metrics do
 	// not depend on whether or not errors are enabled.
 	txn.errorsSeen++
@@ -177,7 +231,13 @@ func (txn *txn) noticeErrorInternal(err error, stack *StackTrace) error {
 		txn.errors = newTxnErrors(MaxTxnErrors)
 	}
 
-	txn.errors.Add(newTxnError(txn.Config.HighSecurity, err, stack, time.Now()))
+	if txn.Config.HighSecurity {
+		err.msg = HighSecurityErrorMsg
+	}
+
+	err.when = time.Now()
+
+	txn.errors.Add(&err)
 
 	return nil
 }
@@ -194,9 +254,9 @@ func (txn *txn) NoticeError(err error) error {
 		return NilError
 	}
 
-	stack := GetStackTrace(1)
-
-	return txn.noticeErrorInternal(err, stack)
+	e := txnErrorFromError(err)
+	e.stack = GetStackTrace(1)
+	return txn.noticeErrorInternal(e)
 }
 
 func (txn *txn) SetName(name string) error {

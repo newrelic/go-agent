@@ -214,6 +214,10 @@ func (app *App) process() {
 }
 
 func NewApp(c api.Config) (*App, error) {
+	cp := make([]int, len(c.ErrorCollector.IgnoreStatusCodes))
+	copy(cp, c.ErrorCollector.IgnoreStatusCodes)
+	c.ErrorCollector.IgnoreStatusCodes = cp
+
 	if err := c.Validate(); nil != err {
 		return nil, err
 	}
