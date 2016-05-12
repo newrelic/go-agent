@@ -51,11 +51,12 @@ func (st *StackTrace) MarshalJSON() ([]byte, error) {
 
 	for _, pc := range st.callers {
 		f, place := pcToFunc(pc)
-		str := "in unknown"
+		str := "unknown"
 		if nil != f {
-			name := f.Name()
+			// Format designed to match the Ruby agent.
+			name := path.Base(f.Name())
 			file, line := f.FileLine(place)
-			str = fmt.Sprintf(" in %s called at %s (%d)", name, file, line)
+			str = fmt.Sprintf("%s:%d:in `%s`", file, line, name)
 		}
 
 		lines = append(lines, str)
