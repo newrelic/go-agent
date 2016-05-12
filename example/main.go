@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,20 +25,15 @@ func init() {
 	// logrus.SetLevel(logrus.DebugLevel)
 }
 
-func myHandler(w http.ResponseWriter, r *http.Request) {
+func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "hello world")
-	time.Sleep(50 * time.Millisecond)
 }
-
-type myError struct{}
-
-func (m myError) Error() string { return "my error message" }
 
 func noticeError(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
 	if txn, ok := w.(newrelic.Transaction); ok {
-		txn.NoticeError(myError{})
+		txn.NoticeError(errors.New("my error message"))
 	}
 }
 
@@ -52,22 +48,30 @@ func customEvent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const (
-	appname = "My Golang Application"
-	// licenseVar must be set to your New Relic license to run this example.
-	licenseVar   = "NRLICENSE"
-	collectorVar = "NRCOLLECTOR"
-)
+func setName(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "changing the transaction's name")
+
+	if txn, ok := w.(newrelic.Transaction); ok {
+		txn.SetName("other-name")
+	}
+}
 
 func background(w http.ResponseWriter, r *http.Request) {
 	// Transactions started without an http.Request are classified as
-	// background (Non-Web) transactions.
+	// background transactions.
 	txn := app.StartTransaction("background", nil, nil)
 	defer txn.End()
 
 	io.WriteString(w, "background txn")
 	time.Sleep(150 * time.Millisecond)
 }
+
+const (
+	appname = "My Golang Application"
+	// licenseVar must be set to your New Relic license to run this example.
+	licenseVar   = "NRLICENSE"
+	collectorVar = "NRCOLLECTOR"
+)
 
 func main() {
 	lic := os.Getenv(licenseVar)
@@ -89,9 +93,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", myHandler))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error", noticeError))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
 	http.HandleFunc("/background", background)
 
 	http.ListenAndServe(":8000", nil)
