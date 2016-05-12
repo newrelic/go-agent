@@ -1,3 +1,9 @@
+// Package nrlogrus forwards Go-SDK log messages to logrus.  If you are using
+// logrus for your application and would like the Go-SDK log messages to end up
+// in the same place, simply import this package for the side effects:
+//
+//	import _ "github.com/newrelic/go-sdk/log/_nrlogrus"
+//
 package nrlogrus
 
 import (
