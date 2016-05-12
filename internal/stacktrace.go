@@ -56,7 +56,7 @@ func (st *StackTrace) MarshalJSON() ([]byte, error) {
 			// Format designed to match the Ruby agent.
 			name := path.Base(f.Name())
 			file, line := f.FileLine(place)
-			str = fmt.Sprintf("%s:%d:in `%s`", file, line, name)
+			str = fmt.Sprintf("%s:%d:in `%s'", file, line, name)
 		}
 
 		lines = append(lines, str)
