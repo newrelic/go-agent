@@ -82,9 +82,9 @@ type Config struct {
 	// recognizable names.
 	HostDisplayName string
 
-	// UseSSL controls whether http or https is used to send data to New
+	// UseTLS controls whether http or https is used to send data to New
 	// Relic servers.
-	UseSSL bool
+	UseTLS bool
 
 	// Transport may be provided to customize communication with the New
 	// Relic servers.  This may be used to configure a proxy.
@@ -118,7 +118,7 @@ func NewConfig(appname, license string) Config {
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
 	c.HighSecurity = false
-	c.UseSSL = true
+	c.UseTLS = true
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
 	c.ErrorCollector.IgnoreStatusCodes = []int{
@@ -146,7 +146,7 @@ func (c Config) Validate() error {
 	if len(c.License) != licenseLength {
 		return licenseLenErr
 	}
-	if c.HighSecurity && !c.UseSSL {
+	if c.HighSecurity && !c.UseTLS {
 		return highSecuritySSLErr
 	}
 	if "" == c.AppName {

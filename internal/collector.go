@@ -39,7 +39,7 @@ var (
 
 type Cmd struct {
 	Name      string
-	UseSSL    bool
+	UseTLS    bool
 	Collector string
 	License   string
 	RunID     string
@@ -52,7 +52,7 @@ func (cmd *Cmd) url() string {
 	u.Host = cmd.Collector
 	u.Path = "agent_listener/invoke_raw_method"
 
-	if cmd.UseSSL {
+	if cmd.UseTLS {
 		u.Scheme = "https"
 	} else {
 		u.Scheme = "http"
@@ -220,7 +220,7 @@ func processConnectMessages(reply []byte) {
 }
 
 type ConnectAttemptArgs struct {
-	UseSSL            bool
+	UseTLS            bool
 	RedirectCollector string
 	License           string
 	ConnectJSON       []byte
@@ -230,7 +230,7 @@ type ConnectAttemptArgs struct {
 func ConnectAttempt(args ConnectAttemptArgs) (string, *ConnectReply, error) {
 	call := Cmd{
 		Name:      CmdRedirect,
-		UseSSL:    args.UseSSL,
+		UseTLS:    args.UseTLS,
 		Collector: args.RedirectCollector,
 		License:   args.License,
 		Data:      []byte("[]"),

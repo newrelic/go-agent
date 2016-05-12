@@ -9,7 +9,7 @@ var (
 	actualData = "my_data"
 	call       = Cmd{
 		Name:      "error_data",
-		UseSSL:    true,
+		UseTLS:    true,
 		Collector: "the-collector.com",
 		License:   "12345",
 		RunID:     "db97531",

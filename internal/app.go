@@ -83,7 +83,7 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 
 		if nil == err {
 			call := Cmd{
-				UseSSL:    app.config.UseSSL,
+				UseTLS:    app.config.UseTLS,
 				Collector: run.collector,
 				License:   app.config.License,
 				RunID:     run.RunID.String(),
@@ -119,7 +119,7 @@ func (app *App) connectRoutine() {
 	for {
 		collector, reply, err := ConnectAttempt(
 			ConnectAttemptArgs{
-				UseSSL:            app.config.UseSSL,
+				UseTLS:            app.config.UseTLS,
 				RedirectCollector: app.config.Collector,
 				License:           app.config.License,
 				ConnectJSON:       app.connectJSON,
