@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// Config contains all of the settings which affect Application and Transaction
+// behavior.  NewConfig will create a Config with proper defaults.
 type Config struct {
 	// AppName determines the application record in your New Relic dashboard
 	// into which data will be reported.  Collecting data by app name allows
@@ -50,16 +52,27 @@ type Config struct {
 		Enabled bool
 	}
 
-	// TransactionEvents.Enabled controls the collection of transaction
-	// analytics event data.  Event data allows the New Relic UI to show
-	// additional information such as histograms.
+	// TransactionEvents contains settings affecting transaction analytics
+	// events.  This data allows the New Relic UI to show additional
+	// information such as histograms.
 	TransactionEvents struct {
+		// Enabled controls whether transaction analytics events are
+		// captured.
 		Enabled bool
 	}
 
+	// ErrorCollector contains settings which control the capture of errors.
 	ErrorCollector struct {
-		Enabled           bool
-		CaptureEvents     bool
+		// Enabled controls whether errors are captured.  This setting
+		// affects both traced errors and error analytics events.
+		Enabled bool
+		// CaptureEvents controls whether error anlytics events are
+		// captured.  This data is used on the error analytics page.
+		CaptureEvents bool
+		// IgnoreStatusCodes controls which http response codes are
+		// automatically turned into errors.  By default, response codes
+		// greater than or equal to 400, with the exception of 404, are
+		// turned into errors.
 		IgnoreStatusCodes []int
 	}
 
@@ -81,8 +94,16 @@ type Config struct {
 	// data.  You should not need to alter this value.
 	Collector string
 
+	// Utilization contains settings controlling system information
+	// detection and gathering.
 	Utilization struct {
-		DetectAWS    bool
+		// DetectAWS controls whether the Application will attempt to
+		// detect whether the system is running on AWS.  This will make
+		// a small number of local network calls at Application
+		// creation.
+		DetectAWS bool
+		// DetectDocker controls whether the Application will attempt to
+		// detect Docker by parsing /proc/self/cgroup.
 		DetectDocker bool
 	}
 }
