@@ -13,6 +13,15 @@ type Environment struct {
 	Version  string `env:"Version"`
 }
 
+var (
+	sampleEnvironment = Environment{
+		Compiler: "comp",
+		GOARCH:   "arch",
+		GOOS:     "goos",
+		Version:  "vers",
+	}
+)
+
 func NewEnvironment() Environment {
 	return Environment{
 		Compiler: runtime.Compiler,

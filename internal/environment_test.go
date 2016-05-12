@@ -7,13 +7,7 @@ import (
 )
 
 func TestMarshalEnvironment(t *testing.T) {
-	e := &Environment{
-		Compiler: "comp",
-		GOARCH:   "arch",
-		GOOS:     "goos",
-		Version:  "vers",
-	}
-	js, err := json.Marshal(e)
+	js, err := json.Marshal(&sampleEnvironment)
 	if nil != err {
 		t.Fatal(err)
 	}

@@ -218,17 +218,11 @@ func (app *App) process() {
 }
 
 func NewApp(c api.Config) (*App, error) {
-	cp := make([]int, len(c.ErrorCollector.IgnoreStatusCodes))
-	copy(cp, c.ErrorCollector.IgnoreStatusCodes)
-	c.ErrorCollector.IgnoreStatusCodes = cp
-
+	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
 	}
 
-	// NOTE: If this is changed and the connect JSON is created afresh
-	// before each connect (to get recent utilization info), the contents of
-	// the config labels map should be copied to prevent data races.
 	connectJSON, err := configConnectJSON(&c)
 	if nil != err {
 		return nil, fmt.Errorf("unable to create config connect JSON: %s", err)

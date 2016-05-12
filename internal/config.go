@@ -12,6 +12,22 @@ import (
 	"github.com/newrelic/go-sdk/version"
 )
 
+func copyConfigReferenceFields(cfg api.Config) api.Config {
+	cp := cfg
+	if nil != cfg.Labels {
+		cp.Labels = make(map[string]string, len(cfg.Labels))
+		for key, val := range cfg.Labels {
+			cp.Labels[key] = val
+		}
+	}
+	if nil != cfg.ErrorCollector.IgnoreStatusCodes {
+		ignored := make([]int, len(cfg.ErrorCollector.IgnoreStatusCodes))
+		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
+		cp.ErrorCollector.IgnoreStatusCodes = ignored
+	}
+	return cp
+}
+
 type labels map[string]string
 
 func (l labels) MarshalJSON() ([]byte, error) {

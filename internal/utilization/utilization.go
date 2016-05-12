@@ -24,6 +24,16 @@ type Data struct {
 	Vendors           *vendors `json:"vendors,omitempty"`
 }
 
+var (
+	sampleRamMib = uint64(1024)
+	SampleData   = Data{
+		MetadataVersion:   metadataVersion,
+		LogicalProcessors: 16,
+		RamMib:            &sampleRamMib,
+		Hostname:          "my-hostname",
+	}
+)
+
 type vendor struct {
 	Id   string `json:"id,omitempty"`
 	Type string `json:"type,omitempty"`
