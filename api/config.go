@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Config contains all of the settings which affect Application and Transaction
-// behavior.  NewConfig will create a Config with proper defaults.
+// Config contains settings affecting Application and Transaction behavior.
+// NewConfig should be used to create a Config with proper defaults.
 type Config struct {
 	// AppName determines the application record in your New Relic dashboard
 	// into which data will be reported.  Collecting data by app name allows

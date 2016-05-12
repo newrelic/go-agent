@@ -2,8 +2,8 @@ package newrelic
 
 import "net/http"
 
-// WrapHandle facilitates instrumentation of net/http package's handlers
-// registered with an http.ServeMux.  As an example, to instrument this code:
+// WrapHandle facilitates instrumentation of handlers registered with an
+// http.ServeMux.  As an example, to instrument this code:
 //
 //    http.Handle("/foo", fooHandler)
 //

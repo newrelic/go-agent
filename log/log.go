@@ -7,8 +7,6 @@ import (
 
 type Level int32
 
-type Context map[string]interface{}
-
 const (
 	LevelError Level = iota
 	LevelWarning
@@ -30,6 +28,8 @@ func (level Level) String() string {
 		return fmt.Sprintf("Unknown(%d)", level)
 	}
 }
+
+type Context map[string]interface{}
 
 type Entry struct {
 	Level     Level
