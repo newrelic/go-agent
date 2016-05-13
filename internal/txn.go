@@ -111,6 +111,10 @@ func (txn *txn) MergeIntoHarvest(h *Harvest) {
 	}
 
 	requestURI := ""
+	if nil != txn.Request && nil != txn.Request.URL {
+		requestURI = safeURL(txn.Request.URL)
+	}
+
 	h.MergeErrors(txn.errors, txn.finalName, requestURI)
 
 	if txn.errorEventsEnabled() {
