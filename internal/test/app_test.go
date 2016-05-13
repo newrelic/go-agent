@@ -17,9 +17,10 @@ var (
 )
 
 var (
-	helloResponse   = []byte("hello")
-	helloPath       = "/hello"
-	helloRequest, _ = http.NewRequest("GET", helloPath, nil)
+	helloResponse    = []byte("hello")
+	helloPath        = "/hello"
+	helloQueryParams = "?secret=hideme"
+	helloRequest, _  = http.NewRequest("GET", helloPath+helloQueryParams, nil)
 )
 
 func handler(w http.ResponseWriter, req *http.Request) {
@@ -205,6 +206,7 @@ func TestNoticeErrorBackground(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorBackground",
+		URL:     "",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
@@ -222,7 +224,7 @@ func TestNoticeErrorBackground(t *testing.T) {
 
 func TestNoticeErrorWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("myName", nil, sampleRequest)
+	txn := app.StartTransaction("myName", nil, helloRequest)
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -233,6 +235,7 @@ func TestNoticeErrorWeb(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorWeb",
+		URL:     "/hello",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/myName",
@@ -403,13 +406,9 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	})
 }
 
-var (
-	sampleRequest, _ = http.NewRequest("get", "test.com", nil)
-)
-
 func TestTransactionEventWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("myName", nil, sampleRequest)
+	txn := app.StartTransaction("myName", nil, helloRequest)
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -434,7 +433,7 @@ func TestTransactionEventBackground(t *testing.T) {
 func TestTransactionEventLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *api.Config) { cfg.TransactionEvents.Enabled = false }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("myName", nil, sampleRequest)
+	txn := app.StartTransaction("myName", nil, helloRequest)
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -445,7 +444,7 @@ func TestTransactionEventLocallyDisabled(t *testing.T) {
 func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectAnalyticsEvents = false }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("myName", nil, sampleRequest)
+	txn := app.StartTransaction("myName", nil, helloRequest)
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -477,6 +476,7 @@ func TestWrapHandleFunc(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
+		URL:     "/hello",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",
@@ -512,6 +512,7 @@ func TestWrapHandle(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
+		URL:     "/hello",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",
@@ -572,6 +573,7 @@ func TestPanicError(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
+		URL:     "",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
@@ -602,6 +604,7 @@ func TestPanicString(t *testing.T) {
 		Msg:     "my string",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
+		URL:     "",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
@@ -632,6 +635,7 @@ func TestPanicInt(t *testing.T) {
 		Msg:     "22",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
+		URL:     "",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
@@ -683,6 +687,7 @@ func TestResponseCodeError(t *testing.T) {
 		Msg:     "Bad Request",
 		Klass:   "400",
 		Caller:  "internal.(*txn).WriteHeader",
+		URL:     "/hello",
 	}})
 	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",

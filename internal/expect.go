@@ -29,7 +29,7 @@ type WantError struct {
 	Msg     string
 	Klass   string
 	Caller  string
-	// TODO: Eventually add requestURI here.
+	URL     string
 }
 
 type WantErrorEvent struct {
@@ -196,6 +196,7 @@ func expectError(v validator, err *harvestError, expect WantError) {
 	validateStringField(v, "txnName", expect.TxnName, err.txnName)
 	validateStringField(v, "klass", expect.Klass, err.txnError.klass)
 	validateStringField(v, "msg", expect.Msg, err.txnError.msg)
+	validateStringField(v, "URL", expect.URL, err.requestURI)
 }
 
 func expectErrors(v validator, errors *harvestErrors, expect []WantError) {
