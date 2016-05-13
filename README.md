@@ -4,57 +4,93 @@
 
 Go 1.3+ is required, due to the use of http.Client's Timeout field.
 
-## Use
+## Getting Started
 
-First, create a `Config`:
+There are three types exposed by this SDK.
 
-```
-cfg := newrelic.NewConfig("Your Application Name", "YOUR_LICENSE_KEY")
-```
+| Entity  | See | Created By |
+| ------------- | ------------- | ------------- |
+| `Config`       | [config.go](api/config.go)  | `NewConfig`  |
+| `Application`  | [application.go](api/application.go)  | `NewApplication`  |
+| `Transaction`  | [transaction.go](api/transaction.go)  | `application.StartTransaction` or implicitly by `WrapHandle` and `WrapHandleFunc`  |
 
-Config has many public fields which can be changed to modify behavior.  Take a
-look in [config.go](api/config.go).  Then, create an `Application`:
-
-```
-app, err := newrelic.NewApplication(cfg)
-```
-
-`Application` is an interface described in [application.go](api/application.go).
-If the `Config` is invalid, `NewApplication` will return `nil` and an error.
-Using the `Application`, you can add custom events:
-
-```
-app.RecordCustomEvent("my_event_type", map[string]interface{}{
-	"myString": "hello",
-	"myFloat":  0.603,
-	"myInt":    123,
-	"myBool":   true,
-})
-```
-
-and record transactions:
-
-```
-txn := app.StartTransaction("my_transaction", nil, nil)
-defer txn.End()
-```
-
-`Transaction` is an interface described in [transaction.go](api/transaction.go).
-Since instrumentation of standard library http handlers is common, two helper
-functions, `WrapHandle` and `WrapHandleFunc` are located in
-[instrumentation.go](instrumentation.go).
+The public interface is contained in the top-level `newrelic` package and
+the `newrelic/api` package.
 
 ## Example
 
-An example web server lives in: [example/main.go](./example/main.go)
+Here is a barebones web server before and after New Relic Go-SDK instrumentation.
 
-To run it:
+### Before Instrumentation
+
+```go
+package main
+
+import (
+	"io"
+	"net/http"
+)
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "hello, world")
+}
+
+func main() {
+	http.HandleFunc("/", helloHandler)
+	http.ListenAndServe(":8000", nil)
+}
+```
+
+### After Instrumentation
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+
+	"github.com/newrelic/go-sdk"
+)
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "hello, world")
+}
+
+func main() {
+	// Create a config.  You need to provide the desired application name
+	// and your New Relic license key.
+	cfg := newrelic.NewConfig("My Go Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+
+	// Create an application.  This represents an application in the New
+	// Relic UI.
+	app, err := newrelic.NewApplication(cfg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// Wrap http.Handler.  The performance of this handler is recorded.
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", helloHandler))
+	http.ListenAndServe(":8000", nil)
+}
+```
+
+## Let's Go!
+
+An example web server lives in: [example/main.go](./example/main.go).  To run it:
 
 ```
-NRLICENSE=YOUR_LICENSE_HERE go run example/main.go
+env NRLICENSE=__YOUR_LICENSE_HERE__ go run example/main.go
 ```
 
-Then access:
+Some endpoints exposed are:
 * [http://localhost:8000/](http://localhost:8000/)
 * [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
-* [http://localhost:8000/custom_event](http://localhost:8000/custom_event)
+
+This example will appear as "My Golang Application" in your New Relic applications list.
+
+
+
