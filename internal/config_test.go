@@ -21,7 +21,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	{
 		"pid":123,
 		"language":"go",
-		"agent_version":"0.2.0",
+		"agent_version":"0.2.1",
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
@@ -74,7 +74,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	{
 		"pid":123,
 		"language":"go",
-		"agent_version":"0.2.0",
+		"agent_version":"0.2.1",
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
