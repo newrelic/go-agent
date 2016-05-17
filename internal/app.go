@@ -27,7 +27,6 @@ type appData struct {
 
 type App struct {
 	config       api.Config
-	connectJSON  []byte
 	client       *http.Client
 	TestConsumer DataConsumer
 
@@ -117,18 +116,21 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 
 func (app *App) connectRoutine() {
 	for {
-		collector, reply, err := ConnectAttempt(
-			ConnectAttemptArgs{
-				UseTLS:            app.config.UseTLS,
-				RedirectCollector: app.config.Collector,
-				License:           app.config.License,
-				ConnectJSON:       app.connectJSON,
-				Client:            app.client,
-			})
-
+		connectJSON, err := configConnectJSON(&app.config)
 		if nil == err {
-			app.connectChan <- &AppRun{reply, collector}
-			return
+			collector, reply, err := ConnectAttempt(
+				ConnectAttemptArgs{
+					UseTLS:            app.config.UseTLS,
+					RedirectCollector: app.config.Collector,
+					License:           app.config.License,
+					ConnectJSON:       connectJSON,
+					Client:            app.client,
+				})
+
+			if nil == err {
+				app.connectChan <- &AppRun{reply, collector}
+				return
+			}
 		}
 
 		if IsDisconnect(err) || IsLicenseException(err) {
@@ -136,7 +138,9 @@ func (app *App) connectRoutine() {
 			return
 		}
 
-		log.Warn("application connect failure", log.Context{"error": err.Error()})
+		log.Warn("application connect failure", log.Context{
+			"error": err.Error(),
+		})
 
 		time.Sleep(ConnectBackoff)
 	}
@@ -223,14 +227,8 @@ func NewApp(c api.Config) (*App, error) {
 		return nil, err
 	}
 
-	connectJSON, err := configConnectJSON(&c)
-	if nil != err {
-		return nil, fmt.Errorf("unable to create config connect JSON: %s", err)
-	}
-
 	app := &App{
 		config:             c,
-		connectJSON:        connectJSON,
 		connectChan:        make(chan *AppRun),
 		collectorErrorChan: make(chan error),
 		dataChan:           make(chan appData, AppDataChanSize),
