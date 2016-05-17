@@ -1,8 +1,15 @@
 package internal
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+
+	"github.com/newrelic/go-sdk/api"
 )
 
 var (
@@ -18,7 +25,12 @@ var (
 )
 
 func TestLicenseInvalid(t *testing.T) {
-	r := `{"exception":{"message":"Invalid license key, please contact support@newrelic.com","error_type":"NewRelic::Agent::LicenseException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"Invalid license key, please contact support@newrelic.com",
+			"error_type":"NewRelic::Agent::LicenseException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
@@ -29,7 +41,8 @@ func TestLicenseInvalid(t *testing.T) {
 }
 
 func TestRedirectSuccess(t *testing.T) {
-	reply, err := parseResponse([]byte(`{"return_value":"staging-collector-101.newrelic.com"}`))
+	r := `{"return_value":"staging-collector-101.newrelic.com"}`
+	reply, err := parseResponse([]byte(r))
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -70,7 +83,47 @@ func TestReplyNull(t *testing.T) {
 }
 
 func TestConnectSuccess(t *testing.T) {
-	inner := `{"agent_run_id":"599551769342729","product_level":40,"js_agent_file":"","cross_process_id":"17833#31785","collect_errors":true,"url_rules":[{"each_segment":false,"match_expression":".*\\.(ace|arj|ini|txt|udl|plist|css|gif|ico|jpe?g|js|png|swf|woff|caf|aiff|m4v|mpe?g|mp3|mp4|mov)$","eval_order":1000,"replace_all":false,"ignore":false,"terminate_chain":true,"replacement":"\/*.\\1"},{"each_segment":true,"match_expression":"^[0-9][0-9a-f_,.-]*$","eval_order":1001,"replace_all":false,"ignore":false,"terminate_chain":false,"replacement":"*"},{"each_segment":false,"match_expression":"^(.*)\/[0-9][0-9a-f_,-]*\\.([0-9a-z][0-9a-z]*)$","eval_order":1002,"replace_all":false,"ignore":false,"terminate_chain":false,"replacement":"\\1\/.*\\2"}],"messages":[{"message":"Reporting to: https:\/\/staging.newrelic.com\/accounts\/17833\/applications\/31785","level":"INFO"}],"data_report_period":60,"collect_traces":true,"sampling_rate":0,"js_agent_loader":"","encoding_key":"d67afc830dab717fd163bfcb0b8b88423e9a1a3b","apdex_t":0.5,"collect_analytics_events":true,"trusted_account_ids":[17833]}`
+	inner := `{
+	"agent_run_id":"599551769342729",
+	"product_level":40,
+	"js_agent_file":"",
+	"cross_process_id":"12345#12345",
+	"collect_errors":true,
+	"url_rules":[
+		{
+			"each_segment":false,
+			"match_expression":".*\\.(txt|udl|plist|css)$",
+			"eval_order":1000,
+			"replace_all":false,
+			"ignore":false,
+			"terminate_chain":true,
+			"replacement":"\/*.\\1"
+		},
+		{
+			"each_segment":true,
+			"match_expression":"^[0-9][0-9a-f_,.-]*$",
+			"eval_order":1001,
+			"replace_all":false,
+			"ignore":false,
+			"terminate_chain":false,
+			"replacement":"*"
+		}
+	],
+	"messages":[
+		{
+			"message":"Reporting to staging",
+			"level":"INFO"
+		}
+	],
+	"data_report_period":60,
+	"collect_traces":true,
+	"sampling_rate":0,
+	"js_agent_loader":"",
+	"encoding_key":"the-encoding-key",
+	"apdex_t":0.5,
+	"collect_analytics_events":true,
+	"trusted_account_ids":[49402]
+}`
 	outer := `{"return_value":` + inner + `}`
 	reply, err := parseResponse([]byte(outer))
 
@@ -83,7 +136,8 @@ func TestConnectSuccess(t *testing.T) {
 }
 
 func TestClientError(t *testing.T) {
-	reply, err := parseResponse([]byte(`{"exception":{"message":"something","error_type":"my_error"}}`))
+	r := `{"exception":{"message":"something","error_type":"my_error"}}`
+	reply, err := parseResponse([]byte(r))
 	if nil == err || err.Error() != "my_error: something" {
 		t.Fatal(err)
 	}
@@ -95,7 +149,12 @@ func TestClientError(t *testing.T) {
 func TestForceRestartException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := `{"exception":{"message":"something","error_type":"NewRelic::Agent::ForceRestartException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"something",
+			"error_type":"NewRelic::Agent::ForceRestartException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
@@ -108,7 +167,12 @@ func TestForceRestartException(t *testing.T) {
 func TestForceDisconnectException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := `{"exception":{"message":"something","error_type":"NewRelic::Agent::ForceDisconnectException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"something",
+			"error_type":"NewRelic::Agent::ForceDisconnectException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
@@ -158,5 +222,214 @@ func TestUrl(t *testing.T) {
 	got := u.Query().Get("license_key")
 	if got != cmd.License {
 		t.Errorf("got=%q cmd.License=%q", got, cmd.License)
+	}
+}
+
+const (
+	redirectBody   = `{"return_value":"special_collector"}`
+	connectBody    = `{"return_value":{"agent_run_id":"my_agent_run_id"}}`
+	disconnectBody = `{"exception":{"error_type":"NewRelic::Agent::ForceDisconnectException"}}`
+	licenseBody    = `{"exception":{"error_type":"NewRelic::Agent::LicenseException"}}`
+	malformedBody  = `{"return_value":}}`
+)
+
+func makeResponse(code int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: code,
+		Body:       ioutil.NopCloser(strings.NewReader(body)),
+	}
+}
+
+type endpointResult struct {
+	response *http.Response
+	err      error
+}
+
+type connectMockRoundTripper struct {
+	redirect endpointResult
+	connect  endpointResult
+}
+
+func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	cmd := r.URL.Query().Get("method")
+	switch cmd {
+	case CmdRedirect:
+		return m.redirect.response, m.redirect.err
+	case CmdConnect:
+		return m.connect.response, m.connect.err
+	default:
+		return nil, fmt.Errorf("unknown cmd: %s", cmd)
+	}
+}
+
+func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
+
+func testConnectHelper(transport http.RoundTripper) (string, *ConnectReply, error) {
+	lic := "0123456789012345678901234567890123456789"
+	cfg := api.NewConfig("my appname", lic)
+	cfg.Development = true
+	cfg.Utilization.DetectAWS = false
+	cfg.Utilization.DetectDocker = false
+	cfg.Transport = transport
+	client := &http.Client{Transport: cfg.Transport}
+	return connectAttempt(&cfg, client)
+}
+
+func TestConnectAttemptSuccess(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if collector != "special_collector" {
+		t.Error(collector)
+	}
+	if nil == reply || reply.RunID != "my_agent_run_id" {
+		t.Error(reply)
+	}
+	if nil != err {
+		t.Error(err)
+	}
+}
+
+func TestConnectAttemptDisconnectOnRedirect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, disconnectBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsDisconnect(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, disconnectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsDisconnect(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptLicenseExceptionOnRedirect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, licenseBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsLicenseException(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptLicenseExceptionOnConnect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, licenseBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsLicenseException(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptInvalidJSON(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, malformedBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttemptCollectorNotString(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, `{"return_value":123}`)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttempt413(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(413, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if err != ErrPayloadTooLarge {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttempt415(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(415, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if err != ErrUnsupportedMedia {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptUnexpectedCode(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(404, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if _, ok := err.(unexpectedStatusCodeErr); !ok {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptUnexpectedError(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{err: errors.New("unexpected error")},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttemptMissingRunID(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, `{"return_value":{}}`)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
 	}
 }

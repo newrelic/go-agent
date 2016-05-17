@@ -73,6 +73,14 @@ func (cmd *Cmd) url() string {
 	return u.String()
 }
 
+type unexpectedStatusCodeErr struct {
+	code int
+}
+
+func (e unexpectedStatusCodeErr) Error() string {
+	return fmt.Sprintf("unexpected HTTP status code: %d", e.code)
+}
+
 func collectorRequestInternal(url string, data []byte, client *http.Client) ([]byte, error) {
 	deflated, err := compress(data)
 	if nil != err {
@@ -107,8 +115,7 @@ func collectorRequestInternal(url string, data []byte, client *http.Client) ([]b
 	// If the response code is not 200, then the collector may not return
 	// valid JSON.
 	if 200 != resp.StatusCode {
-		return nil, fmt.Errorf("unexpected collector HTTP status code: %d",
-			resp.StatusCode)
+		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
