@@ -18,7 +18,12 @@ var (
 )
 
 func TestLicenseInvalid(t *testing.T) {
-	r := `{"exception":{"message":"Invalid license key, please contact support@newrelic.com","error_type":"NewRelic::Agent::LicenseException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"Invalid license key, please contact support@newrelic.com",
+			"error_type":"NewRelic::Agent::LicenseException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
@@ -29,7 +34,8 @@ func TestLicenseInvalid(t *testing.T) {
 }
 
 func TestRedirectSuccess(t *testing.T) {
-	reply, err := parseResponse([]byte(`{"return_value":"staging-collector-101.newrelic.com"}`))
+	r := `{"return_value":"staging-collector-101.newrelic.com"}`
+	reply, err := parseResponse([]byte(r))
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -70,7 +76,47 @@ func TestReplyNull(t *testing.T) {
 }
 
 func TestConnectSuccess(t *testing.T) {
-	inner := `{"agent_run_id":"599551769342729","product_level":40,"js_agent_file":"","cross_process_id":"17833#31785","collect_errors":true,"url_rules":[{"each_segment":false,"match_expression":".*\\.(ace|arj|ini|txt|udl|plist|css|gif|ico|jpe?g|js|png|swf|woff|caf|aiff|m4v|mpe?g|mp3|mp4|mov)$","eval_order":1000,"replace_all":false,"ignore":false,"terminate_chain":true,"replacement":"\/*.\\1"},{"each_segment":true,"match_expression":"^[0-9][0-9a-f_,.-]*$","eval_order":1001,"replace_all":false,"ignore":false,"terminate_chain":false,"replacement":"*"},{"each_segment":false,"match_expression":"^(.*)\/[0-9][0-9a-f_,-]*\\.([0-9a-z][0-9a-z]*)$","eval_order":1002,"replace_all":false,"ignore":false,"terminate_chain":false,"replacement":"\\1\/.*\\2"}],"messages":[{"message":"Reporting to: https:\/\/staging.newrelic.com\/accounts\/17833\/applications\/31785","level":"INFO"}],"data_report_period":60,"collect_traces":true,"sampling_rate":0,"js_agent_loader":"","encoding_key":"d67afc830dab717fd163bfcb0b8b88423e9a1a3b","apdex_t":0.5,"collect_analytics_events":true,"trusted_account_ids":[17833]}`
+	inner := `{
+	"agent_run_id":"599551769342729",
+	"product_level":40,
+	"js_agent_file":"",
+	"cross_process_id":"12345#12345",
+	"collect_errors":true,
+	"url_rules":[
+		{
+			"each_segment":false,
+			"match_expression":".*\\.(txt|udl|plist|css)$",
+			"eval_order":1000,
+			"replace_all":false,
+			"ignore":false,
+			"terminate_chain":true,
+			"replacement":"\/*.\\1"
+		},
+		{
+			"each_segment":true,
+			"match_expression":"^[0-9][0-9a-f_,.-]*$",
+			"eval_order":1001,
+			"replace_all":false,
+			"ignore":false,
+			"terminate_chain":false,
+			"replacement":"*"
+		}
+	],
+	"messages":[
+		{
+			"message":"Reporting to staging",
+			"level":"INFO"
+		}
+	],
+	"data_report_period":60,
+	"collect_traces":true,
+	"sampling_rate":0,
+	"js_agent_loader":"",
+	"encoding_key":"the-encoding-key",
+	"apdex_t":0.5,
+	"collect_analytics_events":true,
+	"trusted_account_ids":[49402]
+}`
 	outer := `{"return_value":` + inner + `}`
 	reply, err := parseResponse([]byte(outer))
 
@@ -83,7 +129,8 @@ func TestConnectSuccess(t *testing.T) {
 }
 
 func TestClientError(t *testing.T) {
-	reply, err := parseResponse([]byte(`{"exception":{"message":"something","error_type":"my_error"}}`))
+	r := `{"exception":{"message":"something","error_type":"my_error"}}`
+	reply, err := parseResponse([]byte(r))
 	if nil == err || err.Error() != "my_error: something" {
 		t.Fatal(err)
 	}
@@ -95,7 +142,12 @@ func TestClientError(t *testing.T) {
 func TestForceRestartException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := `{"exception":{"message":"something","error_type":"NewRelic::Agent::ForceRestartException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"something",
+			"error_type":"NewRelic::Agent::ForceRestartException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
@@ -108,7 +160,12 @@ func TestForceRestartException(t *testing.T) {
 func TestForceDisconnectException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := `{"exception":{"message":"something","error_type":"NewRelic::Agent::ForceDisconnectException"}}`
+	r := compactJSONString(`{
+		"exception":{
+			"message":"something",
+			"error_type":"NewRelic::Agent::ForceDisconnectException"
+		}
+	}`)
 	reply, err := parseResponse([]byte(r))
 	if reply != nil {
 		t.Fatal(string(reply))
