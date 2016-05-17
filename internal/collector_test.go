@@ -1,8 +1,15 @@
 package internal
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+
+	"github.com/newrelic/go-sdk/api"
 )
 
 var (
@@ -215,5 +222,214 @@ func TestUrl(t *testing.T) {
 	got := u.Query().Get("license_key")
 	if got != cmd.License {
 		t.Errorf("got=%q cmd.License=%q", got, cmd.License)
+	}
+}
+
+const (
+	redirectBody   = `{"return_value":"special_collector"}`
+	connectBody    = `{"return_value":{"agent_run_id":"my_agent_run_id"}}`
+	disconnectBody = `{"exception":{"error_type":"NewRelic::Agent::ForceDisconnectException"}}`
+	licenseBody    = `{"exception":{"error_type":"NewRelic::Agent::LicenseException"}}`
+	malformedBody  = `{"return_value":}}`
+)
+
+func makeResponse(code int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: code,
+		Body:       ioutil.NopCloser(strings.NewReader(body)),
+	}
+}
+
+type endpointResult struct {
+	response *http.Response
+	err      error
+}
+
+type connectMockRoundTripper struct {
+	redirect endpointResult
+	connect  endpointResult
+}
+
+func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	cmd := r.URL.Query().Get("method")
+	switch cmd {
+	case CmdRedirect:
+		return m.redirect.response, m.redirect.err
+	case CmdConnect:
+		return m.connect.response, m.connect.err
+	default:
+		return nil, fmt.Errorf("unknown cmd: %s", cmd)
+	}
+}
+
+func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
+
+func testConnectHelper(transport http.RoundTripper) (string, *ConnectReply, error) {
+	lic := "0123456789012345678901234567890123456789"
+	cfg := api.NewConfig("my appname", lic)
+	cfg.Development = true
+	cfg.Utilization.DetectAWS = false
+	cfg.Utilization.DetectDocker = false
+	cfg.Transport = transport
+	client := &http.Client{Transport: cfg.Transport}
+	return connectAttempt(&cfg, client)
+}
+
+func TestConnectAttemptSuccess(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if collector != "special_collector" {
+		t.Error(collector)
+	}
+	if nil == reply || reply.RunID != "my_agent_run_id" {
+		t.Error(reply)
+	}
+	if nil != err {
+		t.Error(err)
+	}
+}
+
+func TestConnectAttemptDisconnectOnRedirect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, disconnectBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsDisconnect(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, disconnectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsDisconnect(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptLicenseExceptionOnRedirect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, licenseBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsLicenseException(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptLicenseExceptionOnConnect(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, licenseBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if !IsLicenseException(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptInvalidJSON(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, malformedBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttemptCollectorNotString(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, `{"return_value":123}`)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttempt413(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(413, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if err != ErrPayloadTooLarge {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttempt415(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(415, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if err != ErrUnsupportedMedia {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptUnexpectedCode(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(404, connectBody)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if _, ok := err.(unexpectedStatusCodeErr); !ok {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptUnexpectedError(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{err: errors.New("unexpected error")},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
+	}
+}
+
+func TestConnectAttemptMissingRunID(t *testing.T) {
+	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(200, `{"return_value":{}}`)},
+	})
+	if "" != collector || nil != reply {
+		t.Error(collector, reply)
+	}
+	if nil == err {
+		t.Fatal("missing error")
 	}
 }
