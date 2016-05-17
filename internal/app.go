@@ -116,21 +116,10 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 
 func (app *App) connectRoutine() {
 	for {
-		connectJSON, err := configConnectJSON(&app.config)
+		collector, reply, err := connectAttempt(&app.config, app.client)
 		if nil == err {
-			collector, reply, err := ConnectAttempt(
-				ConnectAttemptArgs{
-					UseTLS:            app.config.UseTLS,
-					RedirectCollector: app.config.Collector,
-					License:           app.config.License,
-					ConnectJSON:       connectJSON,
-					Client:            app.client,
-				})
-
-			if nil == err {
-				app.connectChan <- &AppRun{reply, collector}
-				return
-			}
+			app.connectChan <- &AppRun{reply, collector}
+			return
 		}
 
 		if IsDisconnect(err) || IsLicenseException(err) {

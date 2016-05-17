@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/newrelic/go-sdk/api"
 	"github.com/newrelic/go-sdk/log"
 	"github.com/newrelic/go-sdk/version"
 )
@@ -219,24 +220,21 @@ func processConnectMessages(reply []byte) {
 	}
 }
 
-type ConnectAttemptArgs struct {
-	UseTLS            bool
-	RedirectCollector string
-	License           string
-	ConnectJSON       []byte
-	Client            *http.Client
-}
+func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply, error) {
+	js, err := configConnectJSON(cfg)
+	if nil != err {
+		return "", nil, err
+	}
 
-func ConnectAttempt(args ConnectAttemptArgs) (string, *ConnectReply, error) {
 	call := Cmd{
 		Name:      CmdRedirect,
-		UseTLS:    args.UseTLS,
-		Collector: args.RedirectCollector,
-		License:   args.License,
+		UseTLS:    cfg.UseTLS,
+		Collector: cfg.Collector,
+		License:   cfg.License,
 		Data:      []byte("[]"),
 	}
 
-	out, err := CollectorRequest(call, args.Client)
+	out, err := CollectorRequest(call, client)
 	if nil != err {
 		// err is intentionally unmodified:  We do not want to change
 		// the type of these collector errors.
@@ -250,10 +248,10 @@ func ConnectAttempt(args ConnectAttemptArgs) (string, *ConnectReply, error) {
 	}
 
 	call.Collector = host
-	call.Data = args.ConnectJSON
+	call.Data = js
 	call.Name = CmdConnect
 
-	rawReply, err := CollectorRequest(call, args.Client)
+	rawReply, err := CollectorRequest(call, client)
 	if nil != err {
 		// err is intentionally unmodified:  We do not want to change
 		// the type of these collector errors.
