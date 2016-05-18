@@ -83,7 +83,7 @@ func main() {
 An example web server lives in: [example/main.go](./example/main.go).  To run it:
 
 ```
-env NRLICENSE=__YOUR_LICENSE_HERE__ go run example/main.go
+env NEW_RELIC_LICENSE_KEY=__YOUR_LICENSE_HERE__ go run example/main.go
 ```
 
 Some endpoints exposed are:

@@ -67,9 +67,8 @@ func background(w http.ResponseWriter, r *http.Request) {
 }
 
 const (
-	appname = "My Golang Application"
-	// licenseVar must be set to your New Relic license to run this example.
-	licenseVar = "NRLICENSE"
+	licenseVar = "NEW_RELIC_LICENSE_KEY"
+	appname    = "My Golang Application"
 )
 
 func main() {
