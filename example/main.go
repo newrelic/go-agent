@@ -69,8 +69,7 @@ func background(w http.ResponseWriter, r *http.Request) {
 const (
 	appname = "My Golang Application"
 	// licenseVar must be set to your New Relic license to run this example.
-	licenseVar   = "NRLICENSE"
-	collectorVar = "NRCOLLECTOR"
+	licenseVar = "NRLICENSE"
 )
 
 func main() {
@@ -81,10 +80,6 @@ func main() {
 	}
 
 	cfg := newrelic.NewConfig(appname, lic)
-
-	if ctr := os.Getenv(collectorVar); "" != ctr {
-		cfg.Collector = ctr
-	}
 
 	var err error
 	app, err = newrelic.NewApplication(cfg)

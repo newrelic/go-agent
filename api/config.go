@@ -90,10 +90,6 @@ type Config struct {
 	// Relic servers.  This may be used to configure a proxy.
 	Transport http.RoundTripper
 
-	// Collector controls the endpoint to which your application will report
-	// data.  You should not need to alter this value.
-	Collector string
-
 	// Utilization contains settings controlling system information
 	// detection and gathering.
 	Utilization struct {
@@ -113,7 +109,6 @@ func NewConfig(appname, license string) Config {
 
 	c.AppName = appname
 	c.License = license
-	c.Collector = "collector.newrelic.com"
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
