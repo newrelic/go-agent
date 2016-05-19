@@ -25,7 +25,6 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
-			"Collector":"collector.newrelic.com",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Development":false,
 			"ErrorCollector":{
@@ -78,7 +77,6 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
-			"Collector":"collector.newrelic.com",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Development":false,
 			"ErrorCollector":{
