@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-sdk/log"
 )
 
 type TxnInput struct {
@@ -76,23 +77,6 @@ func (txn *txn) freezeName() {
 
 func (txn *txn) getsApdex() bool {
 	return txn.isWeb
-}
-
-func (txn *txn) end() {
-	txn.stop = time.Now()
-	txn.duration = txn.stop.Sub(txn.start)
-
-	txn.freezeName()
-	if txn.getsApdex() {
-		txn.apdexThreshold = calculateApdexThreshold(txn.Reply, txn.finalName)
-		if txn.errorsSeen > 0 {
-			txn.zone = ApdexFailing
-		} else {
-			txn.zone = calculateApdexZone(txn.apdexThreshold, txn.duration)
-		}
-	} else {
-		txn.zone = ApdexNone
-	}
 }
 
 func (txn *txn) MergeIntoHarvest(h *Harvest) {
@@ -193,7 +177,26 @@ func (txn *txn) End() error {
 		txn.noticeErrorInternal(e)
 	}
 
-	txn.end()
+	txn.stop = time.Now()
+	txn.duration = txn.stop.Sub(txn.start)
+
+	txn.freezeName()
+	if txn.getsApdex() {
+		txn.apdexThreshold = calculateApdexThreshold(txn.Reply, txn.finalName)
+		if txn.errorsSeen > 0 {
+			txn.zone = ApdexFailing
+		} else {
+			txn.zone = calculateApdexZone(txn.apdexThreshold, txn.duration)
+		}
+	} else {
+		txn.zone = ApdexNone
+	}
+
+	// This logging adds roughly 4 allocations per transaction.
+	log.Debug("transaction ended", log.Context{
+		"name":        txn.finalName,
+		"duration_ms": txn.duration.Seconds() * 1000.0,
+	})
 
 	if !txn.ignore {
 		txn.Consumer.Consume(txn.Reply.RunID, txn)
