@@ -82,7 +82,7 @@ func (s *settings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fields)
 }
 
-func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e Environment) ([]byte, error) {
+func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e Environment, version string) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid             int               `json:"pid"`
 		Language        string            `json:"language"`
@@ -99,7 +99,7 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 	}{
 		Pid:             pid,
 		Language:        agentLanguage,
-		Version:         version.Version,
+		Version:         version,
 		Host:            stringLengthByteLimit(util.Hostname, hostByteLimit),
 		HostDisplayName: stringLengthByteLimit(c.HostDisplayName, hostByteLimit),
 		Settings:        (*settings)(c),
@@ -129,5 +129,5 @@ func configConnectJSON(c *api.Config) ([]byte, error) {
 		DetectAWS:    c.Utilization.DetectAWS,
 		DetectDocker: c.Utilization.DetectDocker,
 	})
-	return configConnectJSONInternal(c, os.Getpid(), util, env)
+	return configConnectJSONInternal(c, os.Getpid(), util, env, version.Version)
 }

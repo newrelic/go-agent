@@ -53,7 +53,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, sampleEnvironment)
+	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, sampleEnvironment)
+	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2")
 	if nil != err {
 		t.Fatal(err)
 	}
