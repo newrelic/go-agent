@@ -45,7 +45,7 @@ func txnErrorFromResponseCode(code int) txnError {
 
 type txnError struct {
 	when  time.Time
-	stack *StackTrace
+	stack *stackTrace
 	msg   string
 	klass string
 }
@@ -70,7 +70,7 @@ func (h *harvestError) MarshalJSON() ([]byte, error) {
 			h.msg,
 			h.klass,
 			struct {
-				Stack      *StackTrace `json:"stack_trace"`
+				Stack      *stackTrace `json:"stack_trace"`
 				Agent      struct{}    `json:"agentAttributes"`
 				User       struct{}    `json:"userAttributes"`
 				Intrinsics struct{}    `json:"intrinsics"`

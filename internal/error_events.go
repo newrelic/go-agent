@@ -44,7 +44,7 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`},{},{}]`)
 }
 
-func CreateErrorEvent(e *txnError, txnName string, duration time.Duration) *errorEvent {
+func createErrorEvent(e *txnError, txnName string, duration time.Duration) *errorEvent {
 	return &errorEvent{
 		klass:    e.klass,
 		msg:      e.msg,

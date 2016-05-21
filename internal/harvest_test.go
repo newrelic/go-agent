@@ -9,7 +9,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	now := time.Now()
 
 	h := NewHarvest(now)
-	h.CreateFinalMetrics()
+	h.createFinalMetrics()
 	expectMetrics(t, h.metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{customEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
@@ -28,7 +28,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 
 	h.metrics.addSingleCount("drop me!", unforced)
 
-	customE, err := CreateCustomEvent("my event type", map[string]interface{}{"zip": 1}, time.Now())
+	customE, err := createCustomEvent("my event type", map[string]interface{}{"zip": 1}, time.Now())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.errorEvents.Add(&errorEvent{})
 	h.errorEvents.Add(&errorEvent{})
 
-	h.CreateFinalMetrics()
+	h.createFinalMetrics()
 	expectMetrics(t, h.metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{customEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
@@ -58,7 +58,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 func TestCreateTxnMetrics(t *testing.T) {
 	webName := "WebTransaction/zip/zap"
 	backgroundName := "OtherTransaction/zip/zap"
-	args := CreateTxnMetricsArgs{
+	args := createTxnMetricsArgs{
 		Duration:       123 * time.Second,
 		ApdexThreshold: 2 * time.Second,
 	}
@@ -66,9 +66,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.Name = webName
 	args.IsWeb = true
 	args.ErrorsSeen = 1
-	args.Zone = ApdexTolerating
+	args.Zone = apdexTolerating
 	h := NewHarvest(time.Now())
-	h.CreateTxnMetrics(args)
+	h.createTxnMetrics(args)
 	h.ExpectMetrics(t, []WantMetric{
 		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
@@ -83,9 +83,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.Name = webName
 	args.IsWeb = true
 	args.ErrorsSeen = 0
-	args.Zone = ApdexTolerating
+	args.Zone = apdexTolerating
 	h = NewHarvest(time.Now())
-	h.CreateTxnMetrics(args)
+	h.createTxnMetrics(args)
 	h.ExpectMetrics(t, []WantMetric{
 		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
@@ -97,9 +97,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.Name = backgroundName
 	args.IsWeb = false
 	args.ErrorsSeen = 1
-	args.Zone = ApdexNone
+	args.Zone = apdexNone
 	h = NewHarvest(time.Now())
-	h.CreateTxnMetrics(args)
+	h.createTxnMetrics(args)
 	h.ExpectMetrics(t, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
@@ -111,9 +111,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.Name = backgroundName
 	args.IsWeb = false
 	args.ErrorsSeen = 0
-	args.Zone = ApdexNone
+	args.Zone = apdexNone
 	h = NewHarvest(time.Now())
-	h.CreateTxnMetrics(args)
+	h.createTxnMetrics(args)
 	h.ExpectMetrics(t, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},

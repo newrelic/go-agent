@@ -2,34 +2,34 @@ package internal
 
 import "time"
 
-type ApdexZone int
+type apdexZone int
 
 const (
-	ApdexNone ApdexZone = iota
-	ApdexSatisfying
-	ApdexTolerating
-	ApdexFailing
+	apdexNone apdexZone = iota
+	apdexSatisfying
+	apdexTolerating
+	apdexFailing
 )
 
 // Note that this does not take into account whether or not the transaction
 // had an error.  That is expected to be done by the caller.
-func calculateApdexZone(threshold, duration time.Duration) ApdexZone {
+func calculateApdexZone(threshold, duration time.Duration) apdexZone {
 	if duration <= threshold {
-		return ApdexSatisfying
+		return apdexSatisfying
 	}
 	if duration <= (4 * threshold) {
-		return ApdexTolerating
+		return apdexTolerating
 	}
-	return ApdexFailing
+	return apdexFailing
 }
 
-func (zone ApdexZone) label() string {
+func (zone apdexZone) label() string {
 	switch zone {
-	case ApdexSatisfying:
+	case apdexSatisfying:
 		return "S"
-	case ApdexTolerating:
+	case apdexTolerating:
 		return "T"
-	case ApdexFailing:
+	case apdexFailing:
 		return "F"
 	default:
 		return ""

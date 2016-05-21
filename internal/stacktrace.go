@@ -7,13 +7,13 @@ import (
 	"runtime"
 )
 
-type StackTrace struct {
+type stackTrace struct {
 	callers []uintptr
 	written int
 }
 
-func GetStackTrace(skipFrames int) *StackTrace {
-	st := &StackTrace{}
+func getStackTrace(skipFrames int) *stackTrace {
+	st := &stackTrace{}
 
 	skip := 2 // skips runtime.Callers and this function
 	skip += skipFrames
@@ -37,7 +37,7 @@ func pcToFunc(pc uintptr) (*runtime.Func, uintptr) {
 	return runtime.FuncForPC(place), place
 }
 
-func topCallerNameBase(st *StackTrace) string {
+func topCallerNameBase(st *stackTrace) string {
 	f, _ := pcToFunc(st.callers[0])
 	if nil == f {
 		return ""
@@ -46,7 +46,7 @@ func topCallerNameBase(st *StackTrace) string {
 }
 
 // MarshalJSON prepares JSON in the format expected by the collector.
-func (st *StackTrace) MarshalJSON() ([]byte, error) {
+func (st *stackTrace) MarshalJSON() ([]byte, error) {
 	lines := make([]string, 0, len(st.callers))
 
 	for _, pc := range st.callers {

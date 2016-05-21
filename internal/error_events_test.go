@@ -10,9 +10,9 @@ import (
 func TestErrorEventMarshal(t *testing.T) {
 	e := txnErrorFromError(errors.New("hello"))
 	e.when = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	e.stack = GetStackTrace(0)
+	e.stack = getStackTrace(0)
 
-	event := CreateErrorEvent(&e, "myName", 3*time.Second)
+	event := createErrorEvent(&e, "myName", 3*time.Second)
 
 	js, err := json.Marshal(event)
 	if nil != err {

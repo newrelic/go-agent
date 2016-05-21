@@ -10,37 +10,37 @@ func dur(d int) time.Duration {
 }
 
 func TestCalculateApdexZone(t *testing.T) {
-	if z := calculateApdexZone(dur(10), dur(1)); z != ApdexSatisfying {
+	if z := calculateApdexZone(dur(10), dur(1)); z != apdexSatisfying {
 		t.Fatal(z)
 	}
-	if z := calculateApdexZone(dur(10), dur(10)); z != ApdexSatisfying {
+	if z := calculateApdexZone(dur(10), dur(10)); z != apdexSatisfying {
 		t.Fatal(z)
 	}
-	if z := calculateApdexZone(dur(10), dur(11)); z != ApdexTolerating {
+	if z := calculateApdexZone(dur(10), dur(11)); z != apdexTolerating {
 		t.Fatal(z)
 	}
-	if z := calculateApdexZone(dur(10), dur(40)); z != ApdexTolerating {
+	if z := calculateApdexZone(dur(10), dur(40)); z != apdexTolerating {
 		t.Fatal(z)
 	}
-	if z := calculateApdexZone(dur(10), dur(41)); z != ApdexFailing {
+	if z := calculateApdexZone(dur(10), dur(41)); z != apdexFailing {
 		t.Fatal(z)
 	}
-	if z := calculateApdexZone(dur(10), dur(100)); z != ApdexFailing {
+	if z := calculateApdexZone(dur(10), dur(100)); z != apdexFailing {
 		t.Fatal(z)
 	}
 }
 
 func TestApdexLabel(t *testing.T) {
-	if out := ApdexSatisfying.label(); "S" != out {
+	if out := apdexSatisfying.label(); "S" != out {
 		t.Fatal(out)
 	}
-	if out := ApdexTolerating.label(); "T" != out {
+	if out := apdexTolerating.label(); "T" != out {
 		t.Fatal(out)
 	}
-	if out := ApdexFailing.label(); "F" != out {
+	if out := apdexFailing.label(); "F" != out {
 		t.Fatal(out)
 	}
-	if out := ApdexNone.label(); "" != out {
+	if out := apdexNone.label(); "" != out {
 		t.Fatal(out)
 	}
 }

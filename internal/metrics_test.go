@@ -37,11 +37,11 @@ func TestMetrics(t *testing.T) {
 	mt.addDuration("one", "my_scope", 2*time.Second, 1*time.Second, unforced)
 	mt.addDuration("one", "", 2*time.Second, 1*time.Second, unforced)
 
-	mt.addApdex("apdex satisfied", "", 9*time.Second, ApdexSatisfying, unforced)
-	mt.addApdex("apdex satisfied", "", 8*time.Second, ApdexSatisfying, unforced)
-	mt.addApdex("apdex tolerated", "", 7*time.Second, ApdexTolerating, unforced)
-	mt.addApdex("apdex tolerated", "", 8*time.Second, ApdexTolerating, unforced)
-	mt.addApdex("apdex failed", "my_scope", 1*time.Second, ApdexFailing, unforced)
+	mt.addApdex("apdex satisfied", "", 9*time.Second, apdexSatisfying, unforced)
+	mt.addApdex("apdex satisfied", "", 8*time.Second, apdexSatisfying, unforced)
+	mt.addApdex("apdex tolerated", "", 7*time.Second, apdexTolerating, unforced)
+	mt.addApdex("apdex tolerated", "", 8*time.Second, apdexTolerating, unforced)
+	mt.addApdex("apdex failed", "my_scope", 1*time.Second, apdexFailing, unforced)
 
 	mt.addCount("count 123", float64(123), unforced)
 	mt.addSingleCount("count 1", unforced)

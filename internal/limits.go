@@ -4,16 +4,16 @@ import "time"
 
 const (
 	// app behavior
-	ConnectBackoff            = 20 * time.Second
-	HarvestPeriod             = 60 * time.Second
-	CollectorTimeout          = 20 * time.Second
-	AppDataChanSize           = 200
+	connectBackoff            = 20 * time.Second
+	harvestPeriod             = 60 * time.Second
+	collectorTimeout          = 20 * time.Second
+	appDataChanSize           = 200
 	failedMetricAttemptsLimit = 5
 	failedEventsAttemptsLimit = 10
 
 	// transaction behavior
 	maxStackTraceFrames = 100
-	MaxTxnErrors        = 5
+	maxTxnErrors        = 5
 
 	// harvest data
 	maxMetrics       = 2 * 1000

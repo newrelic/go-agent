@@ -9,7 +9,7 @@ import (
 func TestTxnEventMarshal(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 
-	event := CreateTxnEvent(ApdexNone, "myName", 2*time.Second, start)
+	event := CreateTxnEvent(apdexNone, "myName", 2*time.Second, start)
 	js, err := json.Marshal(event)
 	if nil != err {
 		t.Error(err)
@@ -18,7 +18,7 @@ func TestTxnEventMarshal(t *testing.T) {
 		t.Error(string(js))
 	}
 
-	event = CreateTxnEvent(ApdexFailing, "myName", 2*time.Second, start)
+	event = CreateTxnEvent(apdexFailing, "myName", 2*time.Second, start)
 	js, err = json.Marshal(event)
 	if nil != err {
 		t.Error(err)

@@ -15,10 +15,10 @@ var (
 	eventTypeRegexRaw = `^[a-zA-Z0-9:_ ]+$`
 	eventTypeRegex    = regexp.MustCompile(eventTypeRegexRaw)
 
-	eventTypeLengthError = fmt.Errorf("event type exceeds length limit of %d",
+	errEventTypeLength = fmt.Errorf("event type exceeds length limit of %d",
 		attributeKeyLengthLimit)
-	EventTypeRegexError = fmt.Errorf("event type must match %s", eventTypeRegexRaw)
-	numAttributesErr    = fmt.Errorf("maximum of %d attributes exceeded",
+	ErrEventTypeRegex = fmt.Errorf("event type must match %s", eventTypeRegexRaw)
+	errNumAttributes  = fmt.Errorf("maximum of %d attributes exceeded",
 		customEventAttributeLimit)
 )
 
@@ -109,21 +109,21 @@ func (e *customEvent) MarshalJSON() ([]byte, error) {
 
 func eventTypeValidate(eventType string) error {
 	if len(eventType) > attributeKeyLengthLimit {
-		return eventTypeLengthError
+		return errEventTypeLength
 	}
 	if !eventTypeRegex.MatchString(eventType) {
-		return EventTypeRegexError
+		return ErrEventTypeRegex
 	}
 	return nil
 }
 
-func CreateCustomEvent(eventType string, params map[string]interface{}, now time.Time) (*customEvent, error) {
+func createCustomEvent(eventType string, params map[string]interface{}, now time.Time) (*customEvent, error) {
 	if err := eventTypeValidate(eventType); nil != err {
 		return nil, err
 	}
 
 	if len(params) > customEventAttributeLimit {
-		return nil, numAttributesErr
+		return nil, errNumAttributes
 	}
 
 	truncatedParams := make(map[string]interface{})

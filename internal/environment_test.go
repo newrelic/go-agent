@@ -18,7 +18,7 @@ func TestMarshalEnvironment(t *testing.T) {
 }
 
 func TestEnvironmentFields(t *testing.T) {
-	env := NewEnvironment()
+	env := newEnvironment()
 	if env.Compiler != runtime.Compiler {
 		t.Error(env.Compiler, runtime.Compiler)
 	}

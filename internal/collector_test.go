@@ -35,7 +35,7 @@ func TestLicenseInvalid(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !IsLicenseException(err) {
+	if !isLicenseException(err) {
 		t.Fatal(err)
 	}
 }
@@ -159,7 +159,7 @@ func TestForceRestartException(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !IsRestartException(err) {
+	if !isRestartException(err) {
 		t.Fatal(err)
 	}
 }
@@ -177,7 +177,7 @@ func TestForceDisconnectException(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !IsDisconnect(err) {
+	if !isDisconnect(err) {
 		t.Fatal(err)
 	}
 }
@@ -190,7 +190,7 @@ func TestRuntimeError(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !IsRuntime(err) {
+	if !isRuntime(err) {
 		t.Fatal(err)
 	}
 }
@@ -253,9 +253,9 @@ type connectMockRoundTripper struct {
 func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	cmd := r.URL.Query().Get("method")
 	switch cmd {
-	case CmdRedirect:
+	case cmdRedirect:
 		return m.redirect.response, m.redirect.err
-	case CmdConnect:
+	case cmdConnect:
 		return m.connect.response, m.connect.err
 	default:
 		return nil, fmt.Errorf("unknown cmd: %s", cmd)
@@ -299,7 +299,7 @@ func TestConnectAttemptDisconnectOnRedirect(t *testing.T) {
 	if "" != collector || nil != reply {
 		t.Error(collector, reply)
 	}
-	if !IsDisconnect(err) {
+	if !isDisconnect(err) {
 		t.Fatal(err)
 	}
 }
@@ -312,7 +312,7 @@ func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
 	if "" != collector || nil != reply {
 		t.Error(collector, reply)
 	}
-	if !IsDisconnect(err) {
+	if !isDisconnect(err) {
 		t.Fatal(err)
 	}
 }
@@ -325,7 +325,7 @@ func TestConnectAttemptLicenseExceptionOnRedirect(t *testing.T) {
 	if "" != collector || nil != reply {
 		t.Error(collector, reply)
 	}
-	if !IsLicenseException(err) {
+	if !isLicenseException(err) {
 		t.Fatal(err)
 	}
 }
@@ -338,7 +338,7 @@ func TestConnectAttemptLicenseExceptionOnConnect(t *testing.T) {
 	if "" != collector || nil != reply {
 		t.Error(collector, reply)
 	}
-	if !IsLicenseException(err) {
+	if !isLicenseException(err) {
 		t.Fatal(err)
 	}
 }

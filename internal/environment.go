@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-type Environment struct {
+type environment struct {
 	Compiler string `env:"Compiler"`
 	GOARCH   string `env:"GOARCH"`
 	GOOS     string `env:"GOOS"`
@@ -14,7 +14,7 @@ type Environment struct {
 }
 
 var (
-	sampleEnvironment = Environment{
+	sampleEnvironment = environment{
 		Compiler: "comp",
 		GOARCH:   "arch",
 		GOOS:     "goos",
@@ -22,8 +22,8 @@ var (
 	}
 )
 
-func NewEnvironment() Environment {
-	return Environment{
+func newEnvironment() environment {
+	return environment{
 		Compiler: runtime.Compiler,
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
@@ -31,7 +31,7 @@ func NewEnvironment() Environment {
 	}
 }
 
-func (e Environment) MarshalJSON() ([]byte, error) {
+func (e environment) MarshalJSON() ([]byte, error) {
 	var arr [][]interface{}
 
 	val := reflect.ValueOf(e)

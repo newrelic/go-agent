@@ -96,7 +96,7 @@ func expectMetrics(t validator, mt *metricTable, expect []WantMetric) {
 			expectMetricField(t, id, e.Data[5], m.data.sumSquares, "sumSquares")
 		}
 	}
-	for id, _ := range mt.metrics {
+	for id := range mt.metrics {
 		if _, ok := expectedIds[id]; !ok {
 			t.Error("expected metrics does not contain", id.Name, id.Scope)
 		}

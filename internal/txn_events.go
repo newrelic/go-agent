@@ -14,7 +14,7 @@ type TxnEvent struct {
 	Name      string
 	Timestamp time.Time
 	Duration  time.Duration
-	zone      ApdexZone
+	zone      apdexZone
 }
 
 func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
@@ -24,7 +24,7 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	jsonx.AppendFloat(buf, timeToFloatSeconds(e.Timestamp))
 	buf.WriteString(`,"duration":`)
 	jsonx.AppendFloat(buf, e.Duration.Seconds())
-	if ApdexNone != e.zone {
+	if apdexNone != e.zone {
 		buf.WriteString(`,"nr.apdexPerfZone":`)
 		jsonx.AppendString(buf, e.zone.label())
 	}
@@ -39,7 +39,7 @@ func (e *TxnEvent) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func CreateTxnEvent(zone ApdexZone, name string, d time.Duration, start time.Time) *TxnEvent {
+func CreateTxnEvent(zone apdexZone, name string, d time.Duration, start time.Time) *TxnEvent {
 	event := TxnEvent{
 		Name:      name,
 		Timestamp: start,

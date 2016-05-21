@@ -10,7 +10,7 @@ import (
 	"github.com/newrelic/go-sdk/log"
 )
 
-type TxnInput struct {
+type txnInput struct {
 	Writer   http.ResponseWriter
 	Request  *http.Request
 	Config   api.Config
@@ -19,7 +19,7 @@ type TxnInput struct {
 }
 
 type txn struct {
-	TxnInput
+	txnInput
 	// This mutex is required since the consumer may call the public API
 	// interface functions from different routines.
 	sync.Mutex
@@ -41,13 +41,13 @@ type txn struct {
 	stop           time.Time
 	duration       time.Duration
 	finalName      string // Full finalized metric name
-	zone           ApdexZone
+	zone           apdexZone
 	apdexThreshold time.Duration
 }
 
-func NewTxn(input TxnInput, name string) *txn {
+func NewTxn(input txnInput, name string) *txn {
 	return &txn{
-		TxnInput: input,
+		txnInput: input,
 		start:    time.Now(),
 		name:     name,
 		isWeb:    nil != input.Request,
@@ -80,7 +80,7 @@ func (txn *txn) getsApdex() bool {
 }
 
 func (txn *txn) MergeIntoHarvest(h *Harvest) {
-	h.CreateTxnMetrics(CreateTxnMetricsArgs{
+	h.createTxnMetrics(createTxnMetricsArgs{
 		IsWeb:          txn.isWeb,
 		Duration:       txn.duration,
 		Name:           txn.finalName,
@@ -99,10 +99,10 @@ func (txn *txn) MergeIntoHarvest(h *Harvest) {
 		requestURI = safeURL(txn.Request.URL)
 	}
 
-	h.MergeErrors(txn.errors, txn.finalName, requestURI)
+	h.mergeErrors(txn.errors, txn.finalName, requestURI)
 
 	if txn.errorEventsEnabled() {
-		h.CreateErrorEvents(txn.errors, txn.finalName, txn.duration)
+		h.createErrorEvents(txn.errors, txn.finalName, txn.duration)
 	}
 }
 
@@ -152,12 +152,14 @@ func (txn *txn) WriteHeader(code int) {
 	}
 
 	e := txnErrorFromResponseCode(code)
-	e.stack = GetStackTrace(0)
+	e.stack = getStackTrace(0)
 	txn.noticeErrorInternal(e)
 }
 
 var (
-	AlreadyEndedErr = errors.New("transaction has already ended")
+	// ErrAlreadyEnded is returned by public txn methods if End() has
+	// already been called.
+	ErrAlreadyEnded = errors.New("transaction has already ended")
 )
 
 func (txn *txn) End() error {
@@ -165,7 +167,7 @@ func (txn *txn) End() error {
 	defer txn.Unlock()
 
 	if txn.finished {
-		return AlreadyEndedErr
+		return ErrAlreadyEnded
 	}
 
 	txn.finished = true
@@ -173,7 +175,7 @@ func (txn *txn) End() error {
 	r := recover()
 	if nil != r {
 		e := txnErrorFromPanic(r)
-		e.stack = GetStackTrace(0)
+		e.stack = getStackTrace(0)
 		txn.noticeErrorInternal(e)
 	}
 
@@ -184,12 +186,12 @@ func (txn *txn) End() error {
 	if txn.getsApdex() {
 		txn.apdexThreshold = calculateApdexThreshold(txn.Reply, txn.finalName)
 		if txn.errorsSeen > 0 {
-			txn.zone = ApdexFailing
+			txn.zone = apdexFailing
 		} else {
 			txn.zone = calculateApdexZone(txn.apdexThreshold, txn.duration)
 		}
 	} else {
-		txn.zone = ApdexNone
+		txn.zone = apdexNone
 	}
 
 	// This logging adds roughly 4 allocations per transaction.
@@ -214,7 +216,7 @@ func (txn *txn) End() error {
 var (
 	ErrorsLocallyDisabled  = errors.New("errors locally disabled")
 	ErrorsRemotelyDisabled = errors.New("errors remotely disabled")
-	NilError               = errors.New("nil error")
+	ErrNilError            = errors.New("nil error")
 )
 
 const (
@@ -235,7 +237,7 @@ func (txn *txn) noticeErrorInternal(err txnError) error {
 	}
 
 	if nil == txn.errors {
-		txn.errors = newTxnErrors(MaxTxnErrors)
+		txn.errors = newTxnErrors(maxTxnErrors)
 	}
 
 	if txn.Config.HighSecurity {
@@ -254,15 +256,15 @@ func (txn *txn) NoticeError(err error) error {
 	defer txn.Unlock()
 
 	if txn.finished {
-		return AlreadyEndedErr
+		return ErrAlreadyEnded
 	}
 
 	if nil == err {
-		return NilError
+		return ErrNilError
 	}
 
 	e := txnErrorFromError(err)
-	e.stack = GetStackTrace(1)
+	e.stack = getStackTrace(1)
 	return txn.noticeErrorInternal(e)
 }
 
@@ -271,7 +273,7 @@ func (txn *txn) SetName(name string) error {
 	defer txn.Unlock()
 
 	if txn.finished {
-		return AlreadyEndedErr
+		return ErrAlreadyEnded
 	}
 
 	txn.name = name

@@ -122,7 +122,7 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 	cfgfn := func(cfg *api.Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != internal.HighSecurityEnabledError {
+	if err != internal.ErrHighSecurityEnabled {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -132,7 +132,7 @@ func TestRecordCustomEventEventsDisabled(t *testing.T) {
 	cfgfn := func(cfg *api.Config) { cfg.CustomInsightsEvents.Enabled = false }
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != internal.CustomEventsDisabledError {
+	if err != internal.ErrCustomEventsDisabled {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -141,7 +141,7 @@ func TestRecordCustomEventEventsDisabled(t *testing.T) {
 func TestRecordCustomEventBadInput(t *testing.T) {
 	app := testApp(nil, nil, t)
 	err := app.RecordCustomEvent("????", validParams)
-	if err != internal.EventTypeRegexError {
+	if err != internal.ErrEventTypeRegex {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -151,7 +151,7 @@ func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectCustomEvents = false }
 	app := testApp(replyfn, nil, t)
 	err := app.RecordCustomEvent("myType", validParams)
-	if err != internal.CustomEventsRemoteDisabledError {
+	if err != internal.ErrCustomEventsRemoteDisabled {
 		t.Error(err)
 	}
 	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
@@ -259,7 +259,7 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 	txn := app.StartTransaction("myName", nil, nil)
 	txn.End()
 	err := txn.NoticeError(myError{})
-	if err != internal.AlreadyEndedErr {
+	if err != internal.ErrAlreadyEnded {
 		t.Error(err)
 	}
 	txn.End()
@@ -344,7 +344,7 @@ func TestNoticeErrorNil(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	err := txn.NoticeError(nil)
-	if internal.NilError != err {
+	if internal.ErrNilError != err {
 		t.Error(err)
 	}
 	txn.End()
@@ -538,7 +538,7 @@ func TestSetName(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	if err := txn.SetName("three"); err != internal.AlreadyEndedErr {
+	if err := txn.SetName("three"); err != internal.ErrAlreadyEnded {
 		t.Error(err)
 	}
 

@@ -82,7 +82,7 @@ func (s *settings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fields)
 }
 
-func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e Environment, version string) ([]byte, error) {
+func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e environment, version string) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid             int               `json:"pid"`
 		Language        string            `json:"language"`
@@ -93,7 +93,7 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 		AppName         []string          `json:"app_name"`
 		HighSecurity    bool              `json:"high_security"`
 		Labels          labels            `json:"labels,omitempty"`
-		Environment     Environment       `json:"environment"`
+		Environment     environment       `json:"environment"`
 		Identifier      string            `json:"identifier"`
 		Util            *utilization.Data `json:"utilization"`
 	}{
@@ -124,7 +124,7 @@ func configConnectJSONInternal(c *api.Config, pid int, util *utilization.Data, e
 }
 
 func configConnectJSON(c *api.Config) ([]byte, error) {
-	env := NewEnvironment()
+	env := newEnvironment()
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    c.Utilization.DetectAWS,
 		DetectDocker: c.Utilization.DetectDocker,

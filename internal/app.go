@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"os"
 	"sync"
@@ -25,6 +25,7 @@ type appData struct {
 	data Harvestable
 }
 
+// App is the implementation of api.Application.
 type App struct {
 	config       api.Config
 	client       *http.Client
@@ -55,9 +56,9 @@ var (
 )
 
 func isFatalHarvestError(e error) bool {
-	return IsDisconnect(e) ||
-		IsLicenseException(e) ||
-		IsRestartException(e)
+	return isDisconnect(e) ||
+		isLicenseException(e) ||
+		isRestartException(e)
 }
 
 func shouldSaveFailedHarvest(e error) bool {
@@ -68,10 +69,10 @@ func shouldSaveFailedHarvest(e error) bool {
 }
 
 func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
-	h.CreateFinalMetrics()
-	h.ApplyMetricRules(run.MetricRules)
+	h.createFinalMetrics()
+	h.applyMetricRules(run.MetricRules)
 
-	payloads := h.Payloads()
+	payloads := h.payloads()
 	for cmd, p := range payloads {
 
 		data, err := p.Data(run.RunID.String(), harvestStart)
@@ -91,7 +92,7 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 			}
 
 			// The reply from harvest calls is always unused.
-			_, err = CollectorRequest(call, app.client)
+			_, err = collectorRequest(call, app.client)
 		}
 
 		if nil == err {
@@ -122,7 +123,7 @@ func (app *App) connectRoutine() {
 			return
 		}
 
-		if IsDisconnect(err) || IsLicenseException(err) {
+		if isDisconnect(err) || isLicenseException(err) {
 			app.collectorErrorChan <- err
 			return
 		}
@@ -131,7 +132,7 @@ func (app *App) connectRoutine() {
 			"error": err.Error(),
 		})
 
-		time.Sleep(ConnectBackoff)
+		time.Sleep(connectBackoff)
 	}
 }
 
@@ -141,7 +142,7 @@ func debug(data Harvestable) {
 	now := time.Now()
 	h := NewHarvest(now)
 	data.MergeIntoHarvest(h)
-	ps := h.Payloads()
+	ps := h.payloads()
 	for cmd, p := range ps {
 		d, err := p.Data("agent run id", now)
 		if nil == d && nil == err {
@@ -193,11 +194,11 @@ func (app *App) process() {
 			app.SetRun(nil)
 
 			switch {
-			case IsDisconnect(err):
+			case isDisconnect(err):
 				log.Info("application disconnected", cn)
-			case IsLicenseException(err):
+			case isLicenseException(err):
 				log.Error("invalid license", cn)
-			case IsRestartException(err):
+			case isRestartException(err):
 				log.Info("application restarted", cn)
 				go app.connectRoutine()
 			}
@@ -220,10 +221,10 @@ func NewApp(c api.Config) (*App, error) {
 		config:             c,
 		connectChan:        make(chan *AppRun),
 		collectorErrorChan: make(chan error),
-		dataChan:           make(chan appData, AppDataChanSize),
+		dataChan:           make(chan appData, appDataChanSize),
 		client: &http.Client{
 			Transport: c.Transport,
-			Timeout:   CollectorTimeout,
+			Timeout:   collectorTimeout,
 		},
 	}
 
@@ -236,7 +237,7 @@ func NewApp(c api.Config) (*App, error) {
 		return app, nil
 	}
 
-	app.harvestTicker = time.NewTicker(HarvestPeriod)
+	app.harvestTicker = time.NewTicker(harvestPeriod)
 	app.harvestChan = app.harvestTicker.C
 
 	go app.process()
@@ -264,7 +265,7 @@ func (app *App) SetRun(run *AppRun) {
 
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
-	return NewTxn(TxnInput{
+	return NewTxn(txnInput{
 		Config:   app.config,
 		Reply:    run.ConnectReply,
 		Request:  r,
@@ -274,28 +275,28 @@ func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 }
 
 var (
-	HighSecurityEnabledError        = fmt.Errorf("high security enabled")
-	CustomEventsDisabledError       = fmt.Errorf("custom events disabled")
-	CustomEventsRemoteDisabledError = fmt.Errorf("custom events disabled by server")
+	ErrHighSecurityEnabled        = errors.New("high security enabled")
+	ErrCustomEventsDisabled       = errors.New("custom events disabled")
+	ErrCustomEventsRemoteDisabled = errors.New("custom events disabled by server")
 )
 
 func (app *App) RecordCustomEvent(eventType string, params map[string]interface{}) error {
 	if app.config.HighSecurity {
-		return HighSecurityEnabledError
+		return ErrHighSecurityEnabled
 	}
 
 	if !app.config.CustomInsightsEvents.Enabled {
-		return CustomEventsDisabledError
+		return ErrCustomEventsDisabled
 	}
 
-	event, e := CreateCustomEvent(eventType, params, time.Now())
+	event, e := createCustomEvent(eventType, params, time.Now())
 	if nil != e {
 		return e
 	}
 
 	run := app.getRun()
 	if !run.CollectCustomEvents {
-		return CustomEventsRemoteDisabledError
+		return ErrCustomEventsRemoteDisabled
 	}
 
 	app.Consume(run.RunID, event)

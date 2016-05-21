@@ -6,7 +6,7 @@ import (
 )
 
 func TestGetStackTrace(t *testing.T) {
-	stack := GetStackTrace(0)
+	stack := getStackTrace(0)
 	js, err := json.Marshal(stack)
 	if nil != err {
 		t.Fatal(err)

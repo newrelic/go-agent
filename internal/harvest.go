@@ -18,7 +18,7 @@ type Harvest struct {
 	errorTraces  *harvestErrors
 }
 
-func (h *Harvest) Payloads() map[string]payloadCreator {
+func (h *Harvest) payloads() map[string]payloadCreator {
 	return map[string]payloadCreator{
 		cmdMetrics:      h.metrics,
 		cmdCustomEvents: h.customEvents,
@@ -38,7 +38,7 @@ func NewHarvest(now time.Time) *Harvest {
 	}
 }
 
-func (h *Harvest) CreateFinalMetrics() {
+func (h *Harvest) createFinalMetrics() {
 	h.metrics.addSingleCount(instanceReporting, forced)
 
 	h.metrics.addCount(customEventsSeen, h.customEvents.NumSeen(), forced)
@@ -55,7 +55,7 @@ func (h *Harvest) CreateFinalMetrics() {
 	}
 }
 
-func (h *Harvest) ApplyMetricRules(rules MetricRules) {
+func (h *Harvest) applyMetricRules(rules MetricRules) {
 	h.metrics = h.metrics.applyRules(rules)
 }
 
@@ -63,14 +63,14 @@ func (h *Harvest) AddTxnEvent(t *TxnEvent) {
 	h.txnEvents.AddTxnEvent(t)
 }
 
-func (h *Harvest) CreateErrorEvents(errs txnErrors, name string, duration time.Duration) {
+func (h *Harvest) createErrorEvents(errs txnErrors, name string, duration time.Duration) {
 	for _, e := range errs {
-		event := CreateErrorEvent(e, name, duration)
+		event := createErrorEvent(e, name, duration)
 		h.errorEvents.Add(event)
 	}
 }
 
-func (h *Harvest) MergeErrors(errs txnErrors, name string, requestURI string) {
+func (h *Harvest) mergeErrors(errs txnErrors, name string, requestURI string) {
 	h.errorTraces.merge(errs, name, requestURI)
 }
 
@@ -85,16 +85,16 @@ type payloadCreator interface {
 	Data(agentRunID string, harvestStart time.Time) ([]byte, error)
 }
 
-type CreateTxnMetricsArgs struct {
+type createTxnMetricsArgs struct {
 	IsWeb          bool
 	Duration       time.Duration
 	Name           string
-	Zone           ApdexZone
+	Zone           apdexZone
 	ApdexThreshold time.Duration
 	ErrorsSeen     uint64
 }
 
-func (h *Harvest) CreateTxnMetrics(args CreateTxnMetricsArgs) {
+func (h *Harvest) createTxnMetrics(args createTxnMetricsArgs) {
 	// Duration Metrics
 	rollup := backgroundRollup
 	if args.IsWeb {
@@ -106,7 +106,7 @@ func (h *Harvest) CreateTxnMetrics(args CreateTxnMetricsArgs) {
 	h.metrics.addDuration(rollup, "", args.Duration, exclusive, forced)
 
 	// Apdex Metrics
-	if args.Zone != ApdexNone {
+	if args.Zone != apdexNone {
 		h.metrics.addApdex(apdexRollup, "", args.ApdexThreshold, args.Zone, forced)
 
 		mname := apdexPrefix + removeFirstSegment(args.Name)

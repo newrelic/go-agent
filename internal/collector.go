@@ -21,8 +21,8 @@ const (
 	userAgent       = "NewRelic-Go-SDK/" + version.Version
 
 	// Methods used in collector communication.
-	CmdRedirect     = "get_redirect_host"
-	CmdConnect      = "connect"
+	cmdRedirect     = "get_redirect_host"
+	cmdConnect      = "connect"
 	cmdMetrics      = "metric_data"
 	cmdCustomEvents = "custom_event_data"
 	cmdTxnEvents    = "analytic_event_data"
@@ -126,7 +126,7 @@ func collectorRequestInternal(url string, data []byte, client *http.Client) ([]b
 	return parseResponse(b)
 }
 
-func CollectorRequest(cmd Cmd, client *http.Client) ([]byte, error) {
+func collectorRequest(cmd Cmd, client *http.Client) ([]byte, error) {
 	url := cmd.url()
 
 	cn := log.Context{
@@ -175,10 +175,10 @@ const (
 	runtimeType        = "RuntimeError"
 )
 
-func IsRestartException(e error) bool { return hasType(e, forceRestartType) }
-func IsLicenseException(e error) bool { return hasType(e, licenseInvalidType) }
-func IsRuntime(e error) bool          { return hasType(e, runtimeType) }
-func IsDisconnect(e error) bool       { return hasType(e, disconnectType) }
+func isRestartException(e error) bool { return hasType(e, forceRestartType) }
+func isLicenseException(e error) bool { return hasType(e, licenseInvalidType) }
+func isRuntime(e error) bool          { return hasType(e, runtimeType) }
+func isDisconnect(e error) bool       { return hasType(e, disconnectType) }
 
 func parseResponse(b []byte) ([]byte, error) {
 	var r struct {
@@ -244,14 +244,14 @@ func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply
 	}
 
 	call := Cmd{
-		Name:      CmdRedirect,
+		Name:      cmdRedirect,
 		UseTLS:    cfg.UseTLS,
 		Collector: redirectHost,
 		License:   cfg.License,
 		Data:      []byte("[]"),
 	}
 
-	out, err := CollectorRequest(call, client)
+	out, err := collectorRequest(call, client)
 	if nil != err {
 		// err is intentionally unmodified:  We do not want to change
 		// the type of these collector errors.
@@ -266,9 +266,9 @@ func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply
 
 	call.Collector = host
 	call.Data = js
-	call.Name = CmdConnect
+	call.Name = cmdConnect
 
-	rawReply, err := CollectorRequest(call, client)
+	rawReply, err := collectorRequest(call, client)
 	if nil != err {
 		// err is intentionally unmodified:  We do not want to change
 		// the type of these collector errors.

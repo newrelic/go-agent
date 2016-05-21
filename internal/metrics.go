@@ -140,16 +140,16 @@ func (mt *metricTable) addDuration(name, scope string, duration, exclusive time.
 	mt.add(name, scope, data, force)
 }
 
-func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone ApdexZone, force metricForce) {
+func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone apdexZone, force metricForce) {
 	apdexSeconds := apdexThreshold.Seconds()
 	data := metricData{min: apdexSeconds, max: apdexSeconds}
 
 	switch zone {
-	case ApdexSatisfying:
+	case apdexSatisfying:
 		data.countSatisfied = 1
-	case ApdexTolerating:
+	case apdexTolerating:
 		data.totalTolerated = 1
-	case ApdexFailing:
+	case apdexFailing:
 		data.exclusiveFailed = 1
 	}
 
