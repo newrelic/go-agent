@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/newrelic/go-sdk/api"
@@ -227,15 +226,6 @@ func processConnectMessages(reply []byte) {
 		}
 	}
 }
-
-var (
-	redirectHost = func() string {
-		if s := os.Getenv("NEW_RELIC_HOST"); "" != s {
-			return s
-		}
-		return "collector.newrelic.com"
-	}()
-)
 
 func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply, error) {
 	js, err := configConnectJSON(cfg)

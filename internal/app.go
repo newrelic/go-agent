@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -136,8 +135,6 @@ func (app *App) connectRoutine() {
 	}
 }
 
-var goAgentDebug = os.Getenv("GOAGENTDEBUG")
-
 func debug(data Harvestable) {
 	now := time.Now()
 	h := NewHarvest(now)
@@ -180,7 +177,7 @@ func (app *App) process() {
 				harvest = NewHarvest(now)
 			}
 		case d := <-app.dataChan:
-			if "" != goAgentDebug {
+			if "" != debugLogging {
 				debug(d.data)
 			}
 
