@@ -94,12 +94,11 @@ func AppendString(buf *bytes.Buffer, s string) {
 // AppendStringArray appends an array of string literals to buf.
 func AppendStringArray(buf *bytes.Buffer, a ...string) {
 	buf.WriteByte('[')
-	for _, s := range a {
+	for i, s := range a {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
 		AppendString(buf, s)
-		buf.WriteByte(',')
-	}
-	if len(a) > 0 {
-		buf.Truncate(buf.Len() - 1) // strip trailing comma
 	}
 	buf.WriteByte(']')
 }
@@ -122,14 +121,13 @@ func AppendFloat(buf *bytes.Buffer, x float64) error {
 // AppendFloatArray appends an array of numeric literals to buf.
 func AppendFloatArray(buf *bytes.Buffer, a ...float64) error {
 	buf.WriteByte('[')
-	for _, x := range a {
+	for i, x := range a {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
 		if err := AppendFloat(buf, x); err != nil {
 			return err
 		}
-		buf.WriteByte(',')
-	}
-	if len(a) > 0 {
-		buf.Truncate(buf.Len() - 1) // strip trailing comma
 	}
 	buf.WriteByte(']')
 	return nil
@@ -146,12 +144,11 @@ func AppendIntArray(buf *bytes.Buffer, a ...int64) {
 	var scratch [64]byte
 
 	buf.WriteByte('[')
-	for _, x := range a {
+	for i, x := range a {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
 		buf.Write(strconv.AppendInt(scratch[:0], x, 10))
-		buf.WriteByte(',')
-	}
-	if len(a) > 0 {
-		buf.Truncate(buf.Len() - 1) // strip trailing comma
 	}
 	buf.WriteByte(']')
 }
@@ -167,12 +164,11 @@ func AppendUintArray(buf *bytes.Buffer, a ...uint64) {
 	var scratch [64]byte
 
 	buf.WriteByte('[')
-	for _, x := range a {
+	for i, x := range a {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
 		buf.Write(strconv.AppendUint(scratch[:0], x, 10))
-		buf.WriteByte(',')
-	}
-	if len(a) > 0 {
-		buf.Truncate(buf.Len() - 1) // strip trailing comma
 	}
 	buf.WriteByte(']')
 }

@@ -80,6 +80,12 @@ func TestAppendIntArray(t *testing.T) {
 	if want, got := "[1,-2]", buf.String(); want != got {
 		t.Errorf("AppendIntArray(buf)=%q want=%q", got, want)
 	}
+
+	buf.Reset()
+	AppendIntArray(buf, 1, -2, 0)
+	if want, got := "[1,-2,0]", buf.String(); want != got {
+		t.Errorf("AppendIntArray(buf)=%q want=%q", got, want)
+	}
 }
 
 func TestAppendUint(t *testing.T) {
@@ -108,6 +114,12 @@ func TestAppendUintArray(t *testing.T) {
 	buf.Reset()
 	AppendUintArray(buf, 1, 2)
 	if want, got := "[1,2]", buf.String(); want != got {
+		t.Errorf("AppendUintArray(buf)=%q want=%q", got, want)
+	}
+
+	buf.Reset()
+	AppendUintArray(buf, 1, 2, 3)
+	if want, got := "[1,2,3]", buf.String(); want != got {
 		t.Errorf("AppendUintArray(buf)=%q want=%q", got, want)
 	}
 }
