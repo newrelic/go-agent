@@ -76,7 +76,13 @@ func BenchmarkMuxDevelopmentMode(b *testing.B) {
 }
 
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*api.Config), t testing.TB) internal.ExpectApp {
-	app, err := internal.NewTestApp(replyfn, cfgfn)
+	cfg := api.NewConfig("my app", "0123456789012345678901234567890123456789")
+
+	if nil != cfgfn {
+		cfgfn(&cfg)
+	}
+
+	app, err := internal.NewTestApp(replyfn, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}

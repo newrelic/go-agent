@@ -17,6 +17,8 @@ var (
 
 	errEventTypeLength = fmt.Errorf("event type exceeds length limit of %d",
 		attributeKeyLengthLimit)
+	// ErrEventTypeRegex will be returned to caller of app.RecordCustomEvent
+	// if the event type is not valid.
 	ErrEventTypeRegex = fmt.Errorf("event type must match %s", eventTypeRegexRaw)
 	errNumAttributes  = fmt.Errorf("maximum of %d attributes exceeded",
 		customEventAttributeLimit)
@@ -147,6 +149,6 @@ func createCustomEvent(eventType string, params map[string]interface{}, now time
 	}, nil
 }
 
-func (event *customEvent) mergeIntoHarvest(h *harvest) {
-	h.customEvents.Add(event)
+func (e *customEvent) mergeIntoHarvest(h *harvest) {
+	h.customEvents.Add(e)
 }

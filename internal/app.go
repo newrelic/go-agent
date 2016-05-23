@@ -11,10 +11,10 @@ import (
 	"github.com/newrelic/go-sdk/version"
 )
 
-// AppRun contains information regarding a single connection session with the
+// appRun contains information regarding a single connection session with the
 // collector.  It is created upon application connect and is afterwards
 // immutable.
-type AppRun struct {
+type appRun struct {
 	*ConnectReply
 	collector string
 }
@@ -34,13 +34,13 @@ type App struct {
 	harvestChan        <-chan time.Time
 	dataChan           chan appData
 	collectorErrorChan chan error
-	connectChan        chan *AppRun
+	connectChan        chan *appRun
 
 	// run is non-nil when the app is successfully connected.  It is
 	// immutable.  It is assigned by the processor goroutine and accessed by
 	// goroutines calling app API methods.  It should be accessed using
 	// getRun and SetRun.
-	run *AppRun
+	run *appRun
 	sync.RWMutex
 }
 
@@ -49,7 +49,7 @@ func (app *App) String() string {
 }
 
 var (
-	placeholderRun = &AppRun{
+	placeholderRun = &appRun{
 		ConnectReply: connectReplyDefaults(),
 	}
 )
@@ -67,7 +67,7 @@ func shouldSaveFailedHarvest(e error) bool {
 	return true
 }
 
-func (app *App) doHarvest(h *harvest, harvestStart time.Time, run *AppRun) {
+func (app *App) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 	h.createFinalMetrics()
 	h.applyMetricRules(run.MetricRules)
 
@@ -118,7 +118,7 @@ func (app *App) connectRoutine() {
 	for {
 		collector, reply, err := connectAttempt(&app.config, app.client)
 		if nil == err {
-			app.connectChan <- &AppRun{reply, collector}
+			app.connectChan <- &appRun{reply, collector}
 			return
 		}
 
@@ -188,7 +188,7 @@ func (app *App) process() {
 
 		case err := <-app.collectorErrorChan:
 			h = nil
-			app.SetRun(nil)
+			app.setRun(nil)
 
 			switch {
 			case isDisconnect(err):
@@ -201,7 +201,7 @@ func (app *App) process() {
 			}
 		case r := <-app.connectChan:
 			h = newHarvest(time.Now())
-			app.SetRun(r)
+			app.setRun(r)
 			log.Info("application connected", cn,
 				log.Context{"run": r.RunID})
 		}
@@ -216,7 +216,7 @@ func NewApp(c api.Config) (*App, error) {
 
 	app := &App{
 		config:             c,
-		connectChan:        make(chan *AppRun),
+		connectChan:        make(chan *appRun),
 		collectorErrorChan: make(chan error),
 		dataChan:           make(chan appData, appDataChanSize),
 		client: &http.Client{
@@ -248,14 +248,8 @@ type ExpectApp interface {
 	api.Application
 }
 
-func NewTestApp(replyfn func(*ConnectReply), cfgfn func(*api.Config)) (ExpectApp, error) {
-	cfg := api.NewConfig("my app", "0123456789012345678901234567890123456789")
+func NewTestApp(replyfn func(*ConnectReply), cfg api.Config) (ExpectApp, error) {
 	cfg.Development = true
-
-	if nil != cfgfn {
-		cfgfn(&cfg)
-	}
-
 	app, err := NewApp(cfg)
 	if nil != err {
 		return nil, err
@@ -264,7 +258,7 @@ func NewTestApp(replyfn func(*ConnectReply), cfgfn func(*api.Config)) (ExpectApp
 	if nil != replyfn {
 		reply := connectReplyDefaults()
 		replyfn(reply)
-		app.SetRun(&AppRun{ConnectReply: reply})
+		app.setRun(&appRun{ConnectReply: reply})
 	}
 
 	app.testHarvest = newHarvest(time.Now())
@@ -272,7 +266,7 @@ func NewTestApp(replyfn func(*ConnectReply), cfgfn func(*api.Config)) (ExpectApp
 	return app, nil
 }
 
-func (app *App) getRun() *AppRun {
+func (app *App) getRun() *appRun {
 	app.RLock()
 	defer app.RUnlock()
 
@@ -282,13 +276,14 @@ func (app *App) getRun() *AppRun {
 	return app.run
 }
 
-func (app *App) SetRun(run *AppRun) {
+func (app *App) setRun(run *appRun) {
 	app.Lock()
 	defer app.Unlock()
 
 	app.run = run
 }
 
+// StartTransaction implements newrelic.Application's StartTransaction.
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
 	return newTxn(txnInput{
@@ -301,11 +296,18 @@ func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 }
 
 var (
-	ErrHighSecurityEnabled        = errors.New("high security enabled")
-	ErrCustomEventsDisabled       = errors.New("custom events disabled")
+	// ErrHighSecurityEnabled is returned by app.RecordCustomEvent if high
+	// security mode is enabled.
+	ErrHighSecurityEnabled = errors.New("high security enabled")
+	// ErrCustomEventsDisabled is returned by app.RecordCustomEvent if
+	// custom events have been disabled in te api.Config structure.
+	ErrCustomEventsDisabled = errors.New("custom events disabled")
+	// ErrCustomEventsRemoteDisabled is returned by app.RecordCustomEvent if
+	// custom events have been disabled by the collector response.
 	ErrCustomEventsRemoteDisabled = errors.New("custom events disabled by server")
 )
 
+// RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *App) RecordCustomEvent(eventType string, params map[string]interface{}) error {
 	if app.config.HighSecurity {
 		return ErrHighSecurityEnabled
