@@ -29,8 +29,8 @@ func NewApplication(c api.Config) (Application, error) {
 	return internal.NewApp(c)
 }
 
-// See api/application.go
+// Application is described in api/application.go
 type Application api.Application
 
-// See api/transaction.go
+// Transaction is described in api/transaction.go
 type Transaction api.Transaction

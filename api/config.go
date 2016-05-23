@@ -104,6 +104,7 @@ type Config struct {
 	}
 }
 
+// NewConfig returns a Config with proper defaults.
 func NewConfig(appname, license string) Config {
 	c := Config{}
 
@@ -131,25 +132,26 @@ const (
 )
 
 var (
-	licenseLenErr      = fmt.Errorf("license length is not %d", licenseLength)
-	highSecuritySSLErr = errors.New("high security requires SSL")
-	appNameMissing     = errors.New("AppName required")
-	appNameLimitErr    = fmt.Errorf("max of %d rollup application names", appNameLimit)
+	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
+	errHighSecurityTLS = errors.New("high security requires TLS")
+	errAppNameMissing  = errors.New("AppName required")
+	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
+// Validate checks the config for improper fields.  If this method returns an
+// error, then newrelic.NewApplication will return an error.
 func (c Config) Validate() error {
 	if len(c.License) != licenseLength {
-		return licenseLenErr
+		return errLicenseLen
 	}
 	if c.HighSecurity && !c.UseTLS {
-		return highSecuritySSLErr
+		return errHighSecurityTLS
 	}
 	if "" == c.AppName {
-		return appNameMissing
+		return errAppNameMissing
 	}
 	if strings.Count(c.AppName, ";") > appNameLimit {
-		return appNameLimitErr
+		return errAppNameLimit
 	}
-
 	return nil
 }
