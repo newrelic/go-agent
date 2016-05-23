@@ -91,7 +91,7 @@ func (txn *txn) MergeIntoHarvest(h *Harvest) {
 
 	if txn.txnEventsEnabled() {
 		event := createTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start)
-		h.AddTxnEvent(event)
+		h.addTxnEvent(event)
 	}
 
 	requestURI := ""

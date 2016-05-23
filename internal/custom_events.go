@@ -28,5 +28,5 @@ func (cs *customEvents) Data(agentRunID string, harvestStart time.Time) ([]byte,
 	return cs.events.CollectorJSON(agentRunID)
 }
 
-func (cs *customEvents) NumSeen() float64  { return cs.events.NumSeen() }
-func (cs *customEvents) NumSaved() float64 { return cs.events.NumSaved() }
+func (cs *customEvents) numSeen() float64  { return cs.events.NumSeen() }
+func (cs *customEvents) numSaved() float64 { return cs.events.NumSaved() }

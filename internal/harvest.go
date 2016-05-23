@@ -41,14 +41,14 @@ func NewHarvest(now time.Time) *Harvest {
 func (h *Harvest) createFinalMetrics() {
 	h.metrics.addSingleCount(instanceReporting, forced)
 
-	h.metrics.addCount(customEventsSeen, h.customEvents.NumSeen(), forced)
-	h.metrics.addCount(customEventsSent, h.customEvents.NumSaved(), forced)
+	h.metrics.addCount(customEventsSeen, h.customEvents.numSeen(), forced)
+	h.metrics.addCount(customEventsSent, h.customEvents.numSaved(), forced)
 
-	h.metrics.addCount(txnEventsSeen, h.txnEvents.NumSeen(), forced)
-	h.metrics.addCount(txnEventsSent, h.txnEvents.NumSaved(), forced)
+	h.metrics.addCount(txnEventsSeen, h.txnEvents.numSeen(), forced)
+	h.metrics.addCount(txnEventsSent, h.txnEvents.numSaved(), forced)
 
-	h.metrics.addCount(errorEventsSeen, h.errorEvents.NumSeen(), forced)
-	h.metrics.addCount(errorEventsSent, h.errorEvents.NumSaved(), forced)
+	h.metrics.addCount(errorEventsSeen, h.errorEvents.numSeen(), forced)
+	h.metrics.addCount(errorEventsSent, h.errorEvents.numSaved(), forced)
 
 	if h.metrics.numDropped > 0 {
 		h.metrics.addCount(supportabilityDropped, float64(h.metrics.numDropped), forced)
@@ -59,7 +59,7 @@ func (h *Harvest) applyMetricRules(rules metricRules) {
 	h.metrics = h.metrics.applyRules(rules)
 }
 
-func (h *Harvest) AddTxnEvent(t *txnEvent) {
+func (h *Harvest) addTxnEvent(t *txnEvent) {
 	h.txnEvents.AddTxnEvent(t)
 }
 

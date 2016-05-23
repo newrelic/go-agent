@@ -77,5 +77,5 @@ func (events *errorEvents) Data(agentRunID string, harvestStart time.Time) ([]by
 	return events.events.CollectorJSON(agentRunID)
 }
 
-func (events *errorEvents) NumSeen() float64  { return events.events.NumSeen() }
-func (events *errorEvents) NumSaved() float64 { return events.events.NumSaved() }
+func (events *errorEvents) numSeen() float64  { return events.events.NumSeen() }
+func (events *errorEvents) numSaved() float64 { return events.events.NumSaved() }
