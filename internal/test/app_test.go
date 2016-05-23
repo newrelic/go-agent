@@ -10,6 +10,18 @@ import (
 	"github.com/newrelic/go-sdk/internal"
 )
 
+func TestNewApplicationNonNil(t *testing.T) {
+	cfg := api.NewConfig("appname", "short license key")
+	cfg.Development = true
+	app, err := newrelic.NewApplication(cfg)
+	if nil == err {
+		t.Error("error expected when license key is short")
+	}
+	if nil != app {
+		t.Error("app expected to be nil when error is returned")
+	}
+}
+
 var (
 	sampleLicense = "0123456789012345678901234567890123456789"
 	validParams   = map[string]interface{}{"zip": 1, "zap": 2}

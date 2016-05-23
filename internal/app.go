@@ -209,7 +209,7 @@ func (app *App) process() {
 }
 
 // NewApp creates and returns an App or an error.
-func NewApp(c api.Config) (*App, error) {
+func NewApp(c api.Config) (api.Application, error) {
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
@@ -253,11 +253,11 @@ type ExpectApp interface {
 // NewTestApp returns an ExpectApp for testing in the internal/test package.
 func NewTestApp(replyfn func(*ConnectReply), cfg api.Config) (ExpectApp, error) {
 	cfg.Development = true
-	app, err := NewApp(cfg)
+	application, err := NewApp(cfg)
 	if nil != err {
 		return nil, err
 	}
-
+	app := application.(*App)
 	if nil != replyfn {
 		reply := connectReplyDefaults()
 		replyfn(reply)
