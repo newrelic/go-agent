@@ -11,7 +11,7 @@ import (
 func TestCrossAgentSegmentTerms(t *testing.T) {
 	var tcs []struct {
 		Testname string       `json:"testname"`
-		Rules    SegmentRules `json:"transaction_segment_terms"`
+		Rules    segmentRules `json:"transaction_segment_terms"`
 		Tests    []struct {
 			Input    string `json:"input"`
 			Expected string `json:"expected"`
@@ -49,7 +49,7 @@ func TestSegmentTerms(t *testing.T) {
          ]
       }
    ]`
-	var rules SegmentRules
+	var rules segmentRules
 	if err := json.Unmarshal([]byte(js), &rules); nil != err {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestSegmentTerms(t *testing.T) {
 }
 
 func TestEmptySegmentTerms(t *testing.T) {
-	var rules SegmentRules
+	var rules segmentRules
 
 	input := "my/name"
 	out := rules.Apply(input)
@@ -86,7 +86,7 @@ func BenchmarkSegmentTerms(b *testing.B) {
          ]
       }
    ]`
-	var rules SegmentRules
+	var rules segmentRules
 	if err := json.Unmarshal([]byte(js), &rules); nil != err {
 		b.Fatal(err)
 	}

@@ -15,7 +15,7 @@ type txnInput struct {
 	Request  *http.Request
 	Config   api.Config
 	Reply    *ConnectReply
-	Consumer DataConsumer
+	Consumer dataConsumer
 }
 
 type txn struct {
@@ -45,7 +45,7 @@ type txn struct {
 	apdexThreshold time.Duration
 }
 
-func NewTxn(input txnInput, name string) *txn {
+func newTxn(input txnInput, name string) *txn {
 	return &txn{
 		txnInput: input,
 		start:    time.Now(),
@@ -90,7 +90,7 @@ func (txn *txn) MergeIntoHarvest(h *Harvest) {
 	})
 
 	if txn.txnEventsEnabled() {
-		event := CreateTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start)
+		event := createTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start)
 		h.AddTxnEvent(event)
 	}
 
@@ -214,12 +214,19 @@ func (txn *txn) End() error {
 }
 
 var (
-	ErrorsLocallyDisabled  = errors.New("errors locally disabled")
+	// ErrorsLocallyDisabled is returned if error capture is disabled by
+	// local configuration.
+	ErrorsLocallyDisabled = errors.New("errors locally disabled")
+	// ErrorsRemotelyDisabled is returned if error capture is disabled
+	// by remote configuration.
 	ErrorsRemotelyDisabled = errors.New("errors remotely disabled")
-	ErrNilError            = errors.New("nil error")
+	// ErrNilError is returned if the provided error is nil.
+	ErrNilError = errors.New("nil error")
 )
 
 const (
+	// HighSecurityErrorMsg is used in place of the error's message
+	// (err.String()) when high security moed is enabled.
 	HighSecurityErrorMsg = "message removed by high security setting"
 )
 

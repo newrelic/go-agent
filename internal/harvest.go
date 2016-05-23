@@ -6,7 +6,7 @@ type Harvestable interface {
 	MergeIntoHarvest(h *Harvest)
 }
 
-type DataConsumer interface {
+type dataConsumer interface {
 	Consume(AgentRunID, Harvestable)
 }
 
@@ -55,11 +55,11 @@ func (h *Harvest) createFinalMetrics() {
 	}
 }
 
-func (h *Harvest) applyMetricRules(rules MetricRules) {
+func (h *Harvest) applyMetricRules(rules metricRules) {
 	h.metrics = h.metrics.applyRules(rules)
 }
 
-func (h *Harvest) AddTxnEvent(t *TxnEvent) {
+func (h *Harvest) AddTxnEvent(t *txnEvent) {
 	h.txnEvents.AddTxnEvent(t)
 }
 

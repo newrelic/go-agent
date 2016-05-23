@@ -10,7 +10,7 @@ import (
 func TestMetricRules(t *testing.T) {
 	var tcs []struct {
 		Testname string      `json:"testname"`
-		Rules    MetricRules `json:"rules"`
+		Rules    metricRules `json:"rules"`
 		Tests    []struct {
 			Input    string `json:"input"`
 			Expected string `json:"expected"`
@@ -49,7 +49,7 @@ func TestMetricRuleWithNegativeLookaheadAssertion(t *testing.T) {
 		"eval_order":0,
 		"each_segment":true
 	}]`
-	var rules MetricRules
+	var rules metricRules
 	err := json.Unmarshal([]byte(js), &rules)
 	if nil != err {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestMetricRuleWithNegativeLookaheadAssertion(t *testing.T) {
 }
 
 func TestNilApplyRules(t *testing.T) {
-	var rules MetricRules
+	var rules metricRules
 
 	input := "hello"
 	out := rules.Apply(input)
@@ -76,7 +76,7 @@ func TestAmbiguousReplacement(t *testing.T) {
 		"ignore":false,
 		"eval_order":0
 	}]`
-	var rules MetricRules
+	var rules metricRules
 	err := json.Unmarshal([]byte(js), &rules)
 	if nil != err {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestAmbiguousReplacement(t *testing.T) {
 
 func TestBadMetricRulesJSON(t *testing.T) {
 	js := `{}`
-	var rules MetricRules
+	var rules metricRules
 	err := json.Unmarshal([]byte(js), &rules)
 	if nil == err {
 		t.Fatal("missing bad json error")

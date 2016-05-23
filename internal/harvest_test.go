@@ -35,7 +35,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.customEvents.Add(customE)
 	h.customEvents.Add(customE)
 
-	txnE := &TxnEvent{}
+	txnE := &txnEvent{}
 	h.txnEvents.AddTxnEvent(txnE)
 	h.txnEvents.AddTxnEvent(txnE)
 

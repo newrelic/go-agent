@@ -214,7 +214,7 @@ func (mt *metricTable) MergeIntoHarvest(h *Harvest) {
 	h.metrics.mergeFailed(mt)
 }
 
-func (mt *metricTable) applyRules(rules MetricRules) *metricTable {
+func (mt *metricTable) applyRules(rules metricRules) *metricTable {
 	if nil == rules {
 		return mt
 	}

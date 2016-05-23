@@ -28,7 +28,7 @@ type appData struct {
 type App struct {
 	config       api.Config
 	client       *http.Client
-	TestConsumer DataConsumer
+	TestConsumer dataConsumer
 
 	harvestTicker      *time.Ticker
 	harvestChan        <-chan time.Time
@@ -81,7 +81,7 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 		}
 
 		if nil == err {
-			call := Cmd{
+			call := rpmCmd{
 				UseTLS:    app.config.UseTLS,
 				Collector: run.collector,
 				License:   app.config.License,
@@ -262,7 +262,7 @@ func (app *App) SetRun(run *AppRun) {
 
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
-	return NewTxn(txnInput{
+	return newTxn(txnInput{
 		Config:   app.config,
 		Reply:    run.ConnectReply,
 		Request:  r,

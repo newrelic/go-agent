@@ -36,7 +36,7 @@ type metricRule struct {
 	re                     *regexp.Regexp
 }
 
-type MetricRules []*metricRule
+type metricRules []*metricRule
 
 // Go's regexp backreferences use `${1}` instead of the Perlish `\1`, so we must
 // transform the replacement string.  This is non-trivial: `\1` is a
@@ -48,14 +48,14 @@ var (
 	transformReplacementReplacement = "$${${1}}"
 )
 
-func (rules *MetricRules) UnmarshalJSON(data []byte) (err error) {
+func (rules *metricRules) UnmarshalJSON(data []byte) (err error) {
 	var raw []*metricRule
 
 	if err := json.Unmarshal(data, &raw); nil != err {
 		return err
 	}
 
-	valid := make(MetricRules, 0, len(raw))
+	valid := make(metricRules, 0, len(raw))
 
 	for _, r := range raw {
 		re, err := regexp.Compile("(?i)" + r.RawExpr)
@@ -87,15 +87,15 @@ func (rules *MetricRules) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
-func (rules MetricRules) Len() int {
+func (rules metricRules) Len() int {
 	return len(rules)
 }
 
 // Rules should be applied in increasing order
-func (rules MetricRules) Less(i, j int) bool {
+func (rules metricRules) Less(i, j int) bool {
 	return rules[i].Order < rules[j].Order
 }
-func (rules MetricRules) Swap(i, j int) {
+func (rules metricRules) Swap(i, j int) {
 	rules[i], rules[j] = rules[j], rules[i]
 }
 
@@ -144,7 +144,7 @@ func (r *metricRule) apply(s string) (ruleResult, string) {
 	return ruleChanged, out
 }
 
-func (rules MetricRules) Apply(input string) string {
+func (rules metricRules) Apply(input string) string {
 	var res ruleResult
 	s := input
 

@@ -97,7 +97,7 @@ func TestApplyRules(t *testing.T) {
 		"eval_order":1
 	}
 	]`
-	var rules MetricRules
+	var rules metricRules
 	err := json.Unmarshal([]byte(js), &rules)
 	if nil != err {
 		t.Fatal(err)
@@ -123,7 +123,7 @@ func TestApplyRules(t *testing.T) {
 }
 
 func TestApplyEmptyRules(t *testing.T) {
-	rules := make(MetricRules, 0, 1)
+	rules := make(metricRules, 0, 1)
 
 	mt := newMetricTable(20, start)
 	mt.addDuration("one", "", 2*time.Second, 1*time.Second, unforced)
@@ -136,7 +136,7 @@ func TestApplyEmptyRules(t *testing.T) {
 }
 
 func TestApplyNilRules(t *testing.T) {
-	var rules MetricRules
+	var rules metricRules
 
 	mt := newMetricTable(20, start)
 	mt.addDuration("one", "", 2*time.Second, 1*time.Second, unforced)

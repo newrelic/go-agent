@@ -10,14 +10,14 @@ import (
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
-type TxnEvent struct {
+type txnEvent struct {
 	Name      string
 	Timestamp time.Time
 	Duration  time.Duration
 	zone      apdexZone
 }
 
-func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
+func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`[{"type":"Transaction","name":`)
 	jsonx.AppendString(buf, e.Name)
 	buf.WriteString(`,"timestamp":`)
@@ -31,7 +31,7 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`},{},{}]`)
 }
 
-func (e *TxnEvent) MarshalJSON() ([]byte, error) {
+func (e *txnEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
 
 	e.WriteJSON(buf)
@@ -39,8 +39,8 @@ func (e *TxnEvent) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func CreateTxnEvent(zone apdexZone, name string, d time.Duration, start time.Time) *TxnEvent {
-	event := TxnEvent{
+func createTxnEvent(zone apdexZone, name string, d time.Duration, start time.Time) *txnEvent {
+	event := txnEvent{
 		Name:      name,
 		Timestamp: start,
 		Duration:  d,
@@ -60,7 +60,7 @@ func newTxnEvents(max int) *txnEvents {
 	}
 }
 
-func (events *txnEvents) AddTxnEvent(e *TxnEvent) {
+func (events *txnEvents) AddTxnEvent(e *txnEvent) {
 	stamp := eventStamp(rand.Float32())
 	events.events.AddEvent(analyticsEvent{stamp, e})
 }

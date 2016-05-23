@@ -38,7 +38,7 @@ var (
 	ErrUnsupportedMedia = errors.New("unsupported media")
 )
 
-type Cmd struct {
+type rpmCmd struct {
 	Name      string
 	UseTLS    bool
 	Collector string
@@ -47,7 +47,7 @@ type Cmd struct {
 	Data      []byte
 }
 
-func (cmd *Cmd) url() string {
+func (cmd *rpmCmd) url() string {
 	var u url.URL
 
 	u.Host = cmd.Collector
@@ -125,7 +125,7 @@ func collectorRequestInternal(url string, data []byte, client *http.Client) ([]b
 	return parseResponse(b)
 }
 
-func collectorRequest(cmd Cmd, client *http.Client) ([]byte, error) {
+func collectorRequest(cmd rpmCmd, client *http.Client) ([]byte, error) {
 	url := cmd.url()
 
 	cn := log.Context{
@@ -233,7 +233,7 @@ func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply
 		return "", nil, err
 	}
 
-	call := Cmd{
+	call := rpmCmd{
 		Name:      cmdRedirect,
 		UseTLS:    cfg.UseTLS,
 		Collector: redirectHost,

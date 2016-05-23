@@ -20,8 +20,9 @@ type segmentRule struct {
 	TermsMap map[string]struct{}
 }
 
-// The key is the rules Prefix field with any trailing slash removed.
-type SegmentRules map[string]*segmentRule
+// segmentRules is keyed by each segmentRule's Prefix field with any trailing
+// slash removed.
+type segmentRules map[string]*segmentRule
 
 func buildTermsMap(terms []string) map[string]struct{} {
 	m := make(map[string]struct{}, len(terms))
@@ -31,7 +32,7 @@ func buildTermsMap(terms []string) map[string]struct{} {
 	return m
 }
 
-func (rules *SegmentRules) UnmarshalJSON(b []byte) error {
+func (rules *segmentRules) UnmarshalJSON(b []byte) error {
 	var raw []*segmentRule
 
 	if err := json.Unmarshal(b, &raw); nil != err {
@@ -95,7 +96,7 @@ func (rule *segmentRule) apply(name string) string {
 	return rule.Prefix + leadingSlash + s
 }
 
-func (rules SegmentRules) Apply(name string) string {
+func (rules segmentRules) Apply(name string) string {
 	if nil == rules {
 		return name
 	}

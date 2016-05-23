@@ -206,7 +206,7 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 	}
 }
 
-func analyticsEventBenchmarkHelper(b *testing.B, w JSONWriter) {
+func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 	events := newAnalyticsEvents(maxTxnEvents)
 	event := analyticsEvent{eventStamp(1), w}
 	for n := 0; n < maxTxnEvents; n++ {
@@ -226,7 +226,7 @@ func analyticsEventBenchmarkHelper(b *testing.B, w JSONWriter) {
 
 func BenchmarkTxnEventsCollectorJSON(b *testing.B) {
 	txnName := "WebTransaction/Go/zip/zap"
-	event := CreateTxnEvent(apdexSatisfying, txnName, 2*time.Second, time.Now())
+	event := createTxnEvent(apdexSatisfying, txnName, 2*time.Second, time.Now())
 	analyticsEventBenchmarkHelper(b, event)
 }
 

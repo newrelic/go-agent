@@ -14,7 +14,7 @@ import (
 
 var (
 	actualData = "my_data"
-	call       = Cmd{
+	call       = rpmCmd{
 		Name:      "error_data",
 		UseTLS:    true,
 		Collector: "the-collector.com",
@@ -207,7 +207,7 @@ func TestUnknownError(t *testing.T) {
 }
 
 func TestUrl(t *testing.T) {
-	cmd := Cmd{
+	cmd := rpmCmd{
 		Name:      "foo_method",
 		Collector: "example.com",
 		License:   "123abc",

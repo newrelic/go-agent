@@ -17,13 +17,13 @@ func eventStampCmp(a, b eventStamp) bool {
 	return a < b
 }
 
-type JSONWriter interface {
+type jsonWriter interface {
 	WriteJSON(buf *bytes.Buffer)
 }
 
 type analyticsEvent struct {
 	stamp eventStamp
-	JSONWriter
+	jsonWriter
 }
 
 type analyticsEventHeap []analyticsEvent

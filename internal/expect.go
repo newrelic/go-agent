@@ -135,7 +135,7 @@ func expectCustomEvents(v validator, cs *customEvents, expect []WantCustomEvent)
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*cs.events.events)[i].JSONWriter.(*customEvent)
+		event, ok := (*cs.events.events)[i].jsonWriter.(*customEvent)
 		if !ok {
 			v.Error("wrong custom event")
 		} else {
@@ -157,7 +157,7 @@ func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].JSONWriter.(*errorEvent)
+		event, ok := (*events.events.events)[i].jsonWriter.(*errorEvent)
 		if !ok {
 			v.Error("wrong error event")
 		} else {
@@ -166,7 +166,7 @@ func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent
 	}
 }
 
-func expectTxnEvent(v validator, e *TxnEvent, expect WantTxnEvent) {
+func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
 	validateStringField(v, "apdex zone", expect.Zone, e.zone.label())
 	validateStringField(v, "name", expect.Name, e.Name)
 	if 0 == e.Duration {
@@ -181,7 +181,7 @@ func expectTxnEvents(v validator, events *txnEvents, expect []WantTxnEvent) {
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].JSONWriter.(*TxnEvent)
+		event, ok := (*events.events.events)[i].jsonWriter.(*txnEvent)
 		if !ok {
 			v.Error("wrong txn event")
 		} else {

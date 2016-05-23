@@ -7,20 +7,23 @@ import (
 	"github.com/newrelic/go-sdk/log"
 )
 
+// AgentRunID identifies the current connection with the collector.
 type AgentRunID string
 
 func (id AgentRunID) String() string {
 	return string(id)
 }
 
+// ConnectReply contains all of the settings and state send down from the
+// collector.  It should not be modified after creation.
 type ConnectReply struct {
 	RunID AgentRunID `json:"agent_run_id"`
 
 	// Transaction Name Modifiers
-	SegmentTerms SegmentRules `json:"transaction_segment_terms"`
-	TxnNameRules MetricRules  `json:"transaction_name_rules"`
-	URLRules     MetricRules  `json:"url_rules"`
-	MetricRules  MetricRules  `json:"metric_name_rules"`
+	SegmentTerms segmentRules `json:"transaction_segment_terms"`
+	TxnNameRules metricRules  `json:"transaction_name_rules"`
+	URLRules     metricRules  `json:"url_rules"`
+	MetricRules  metricRules  `json:"metric_name_rules"`
 
 	// Cross Process
 	EncodingKey     string `json:"encoding_key"`
