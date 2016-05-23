@@ -21,14 +21,14 @@ type AppRun struct {
 
 type appData struct {
 	id   AgentRunID
-	data Harvestable
+	data harvestable
 }
 
 // App is the implementation of api.Application.
 type App struct {
-	config       api.Config
-	client       *http.Client
-	TestConsumer dataConsumer
+	config      api.Config
+	client      *http.Client
+	testHarvest *harvest
 
 	harvestTicker      *time.Ticker
 	harvestChan        <-chan time.Time
@@ -50,7 +50,7 @@ func (app *App) String() string {
 
 var (
 	placeholderRun = &AppRun{
-		ConnectReply: ConnectReplyDefaults(),
+		ConnectReply: connectReplyDefaults(),
 	}
 )
 
@@ -67,7 +67,7 @@ func shouldSaveFailedHarvest(e error) bool {
 	return true
 }
 
-func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
+func (app *App) doHarvest(h *harvest, harvestStart time.Time, run *AppRun) {
 	h.createFinalMetrics()
 	h.applyMetricRules(run.MetricRules)
 
@@ -109,7 +109,7 @@ func (app *App) doHarvest(h *Harvest, harvestStart time.Time, run *AppRun) {
 		})
 
 		if shouldSaveFailedHarvest(err) {
-			app.Consume(run.RunID, p)
+			app.consume(run.RunID, p)
 		}
 	}
 }
@@ -135,10 +135,10 @@ func (app *App) connectRoutine() {
 	}
 }
 
-func debug(data Harvestable) {
+func debug(data harvestable) {
 	now := time.Now()
-	h := NewHarvest(now)
-	data.MergeIntoHarvest(h)
+	h := newHarvest(now)
+	data.mergeIntoHarvest(h)
 	ps := h.payloads()
 	for cmd, p := range ps {
 		d, err := p.Data("agent run id", now)
@@ -160,7 +160,7 @@ func debug(data Harvestable) {
 }
 
 func (app *App) process() {
-	var harvest *Harvest
+	var h *harvest
 
 	cn := log.Context{
 		"app":     app.String(),
@@ -171,10 +171,10 @@ func (app *App) process() {
 		select {
 		case <-app.harvestChan:
 			run := app.getRun()
-			if "" != run.RunID && nil != harvest {
+			if "" != run.RunID && nil != h {
 				now := time.Now()
-				go app.doHarvest(harvest, now, run)
-				harvest = NewHarvest(now)
+				go app.doHarvest(h, now, run)
+				h = newHarvest(now)
 			}
 		case d := <-app.dataChan:
 			if "" != debugLogging {
@@ -182,12 +182,12 @@ func (app *App) process() {
 			}
 
 			run := app.getRun()
-			if "" != d.id && nil != harvest && run.RunID == d.id {
-				d.data.MergeIntoHarvest(harvest)
+			if "" != d.id && nil != h && run.RunID == d.id {
+				d.data.mergeIntoHarvest(h)
 			}
 
 		case err := <-app.collectorErrorChan:
-			harvest = nil
+			h = nil
 			app.SetRun(nil)
 
 			switch {
@@ -200,7 +200,7 @@ func (app *App) process() {
 				go app.connectRoutine()
 			}
 		case r := <-app.connectChan:
-			harvest = NewHarvest(time.Now())
+			h = newHarvest(time.Now())
 			app.SetRun(r)
 			log.Info("application connected", cn,
 				log.Context{"run": r.RunID})
@@ -239,6 +239,35 @@ func NewApp(c api.Config) (*App, error) {
 
 	go app.process()
 	go app.connectRoutine()
+
+	return app, nil
+}
+
+type ExpectApp interface {
+	Expect
+	api.Application
+}
+
+func NewTestApp(replyfn func(*ConnectReply), cfgfn func(*api.Config)) (ExpectApp, error) {
+	cfg := api.NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg.Development = true
+
+	if nil != cfgfn {
+		cfgfn(&cfg)
+	}
+
+	app, err := NewApp(cfg)
+	if nil != err {
+		return nil, err
+	}
+
+	if nil != replyfn {
+		reply := connectReplyDefaults()
+		replyfn(reply)
+		app.SetRun(&AppRun{ConnectReply: reply})
+	}
+
+	app.testHarvest = newHarvest(time.Now())
 
 	return app, nil
 }
@@ -296,14 +325,14 @@ func (app *App) RecordCustomEvent(eventType string, params map[string]interface{
 		return ErrCustomEventsRemoteDisabled
 	}
 
-	app.Consume(run.RunID, event)
+	app.consume(run.RunID, event)
 
 	return nil
 }
 
-func (app *App) Consume(id AgentRunID, data Harvestable) {
-	if nil != app.TestConsumer {
-		app.TestConsumer.Consume(id, data)
+func (app *App) consume(id AgentRunID, data harvestable) {
+	if nil != app.testHarvest {
+		data.mergeIntoHarvest(app.testHarvest)
 		return
 	}
 

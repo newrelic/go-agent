@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	newrelic "github.com/newrelic/go-sdk"
 	"github.com/newrelic/go-sdk/api"
@@ -76,37 +75,12 @@ func BenchmarkMuxDevelopmentMode(b *testing.B) {
 	}
 }
 
-type TestApp struct {
-	api.Application
-	h *internal.Harvest
-}
-
-func (app *TestApp) Consume(id internal.AgentRunID, data internal.Harvestable) {
-	data.MergeIntoHarvest(app.h)
-}
-
-func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*api.Config), t testing.TB) *TestApp {
-	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
-
-	if nil != cfgfn {
-		cfgfn(&cfg)
-	}
-
-	app, err := internal.NewApp(cfg)
+func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*api.Config), t testing.TB) internal.ExpectApp {
+	app, err := internal.NewTestApp(replyfn, cfgfn)
 	if nil != err {
 		t.Fatal(err)
 	}
-
-	if nil != replyfn {
-		reply := internal.ConnectReplyDefaults()
-		replyfn(reply)
-		app.SetRun(&internal.AppRun{ConnectReply: reply})
-	}
-
-	ta := &TestApp{Application: app, h: internal.NewHarvest(time.Now())}
-	app.TestConsumer = ta
-	return ta
+	return app
 }
 
 func TestRecordCustomEventSuccess(t *testing.T) {
@@ -115,7 +89,7 @@ func TestRecordCustomEventSuccess(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{{"myType", validParams}})
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{{"myType", validParams}})
 }
 
 func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
@@ -125,7 +99,7 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 	if err != internal.ErrHighSecurityEnabled {
 		t.Error(err)
 	}
-	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
@@ -135,7 +109,7 @@ func TestRecordCustomEventEventsDisabled(t *testing.T) {
 	if err != internal.ErrCustomEventsDisabled {
 		t.Error(err)
 	}
-	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
 }
 
 func TestRecordCustomEventBadInput(t *testing.T) {
@@ -144,7 +118,7 @@ func TestRecordCustomEventBadInput(t *testing.T) {
 	if err != internal.ErrEventTypeRegex {
 		t.Error(err)
 	}
-	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
 }
 
 func TestRecordCustomEventRemoteDisable(t *testing.T) {
@@ -154,7 +128,7 @@ func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	if err != internal.ErrCustomEventsRemoteDisabled {
 		t.Error(err)
 	}
-	app.h.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
 }
 
 type sampleResponseWriter struct {
@@ -201,19 +175,19 @@ func TestNoticeErrorBackground(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorBackground",
 		URL:     "",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -230,19 +204,19 @@ func TestNoticeErrorWeb(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorWeb",
 		URL:     "/hello",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -263,9 +237,9 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
@@ -280,18 +254,18 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     internal.HighSecurityErrorMsg,
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorHighSecurity",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     internal.HighSecurityErrorMsg,
 		Klass:   "test.myError",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -309,9 +283,9 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -329,9 +303,9 @@ func TestNoticeErrorRemotelyDisabled(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -348,9 +322,9 @@ func TestNoticeErrorNil(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
@@ -365,14 +339,14 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorEventsLocallyDisabled",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -390,14 +364,14 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 		t.Error(err)
 	}
 	txn.End()
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.TestNoticeErrorEventsRemotelyDisabled",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -413,7 +387,7 @@ func TestTransactionEventWeb(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{
 		{Name: "WebTransaction/Go/myName", Zone: "S"},
 	})
 }
@@ -425,7 +399,7 @@ func TestTransactionEventBackground(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{
 		{Name: "OtherTransaction/Go/myName"},
 	})
 }
@@ -438,7 +412,7 @@ func TestTransactionEventLocallyDisabled(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{})
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{})
 }
 
 func TestTransactionEventRemotelyDisabled(t *testing.T) {
@@ -449,7 +423,7 @@ func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.h.ExpectTxnEvents(t, []internal.WantTxnEvent{})
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{})
 }
 
 func myErrorHandler(w http.ResponseWriter, req *http.Request) {
@@ -471,19 +445,19 @@ func TestWrapHandleFunc(t *testing.T) {
 		t.Error(out)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
 		URL:     "/hello",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -507,19 +481,19 @@ func TestWrapHandle(t *testing.T) {
 		t.Error(out)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 		Caller:  "test.myErrorHandler",
 		URL:     "/hello",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "test.myError",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -542,7 +516,7 @@ func TestSetName(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/two", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
@@ -568,19 +542,19 @@ func TestPanicError(t *testing.T) {
 		t.Error("panic not propogated", r)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 		URL:     "",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my msg",
 		Klass:   internal.PanicErrorKlass,
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -599,19 +573,19 @@ func TestPanicString(t *testing.T) {
 		t.Error("panic not propogated", r)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 		URL:     "",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "my string",
 		Klass:   internal.PanicErrorKlass,
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -630,19 +604,19 @@ func TestPanicInt(t *testing.T) {
 		t.Error("panic not propogated", r)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "internal.(*txn).End",
 		URL:     "",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "OtherTransaction/Go/myName",
 		Msg:     "22",
 		Klass:   internal.PanicErrorKlass,
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
@@ -660,9 +634,9 @@ func TestPanicNil(t *testing.T) {
 		t.Error(r)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
 	})
@@ -682,19 +656,19 @@ func TestResponseCodeError(t *testing.T) {
 		t.Error(w.Code)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{{
+	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "Bad Request",
 		Klass:   "400",
 		Caller:  "internal.(*txn).WriteHeader",
 		URL:     "/hello",
 	}})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "Bad Request",
 		Klass:   "400",
 	}})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -719,9 +693,9 @@ func TestResponseCode404Filtered(t *testing.T) {
 		t.Error(w.Code)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -744,9 +718,9 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 
 	txn.End()
 
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -767,9 +741,9 @@ func TestResponseCodeAfterEnd(t *testing.T) {
 		t.Error(w.Code)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},
@@ -796,9 +770,9 @@ func TestResponseCodeAfterWrite(t *testing.T) {
 		t.Error(w.Code)
 	}
 
-	app.h.ExpectErrors(t, []internal.WantError{})
-	app.h.ExpectErrorEvents(t, []internal.WantErrorEvent{})
-	app.h.ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/hello", "", true, nil},
 		{"WebTransaction", "", true, nil},
 		{"HttpDispatcher", "", true, nil},

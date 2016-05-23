@@ -43,24 +43,32 @@ type WantTxnEvent struct {
 	Zone string
 }
 
-func (h *Harvest) ExpectCustomEvents(t validator, want []WantCustomEvent) {
-	expectCustomEvents(t, h.customEvents, want)
+type Expect interface {
+	ExpectCustomEvents(t validator, want []WantCustomEvent)
+	ExpectErrors(t validator, want []WantError)
+	ExpectErrorEvents(t validator, want []WantErrorEvent)
+	ExpectTxnEvents(t validator, want []WantTxnEvent)
+	ExpectMetrics(t validator, want []WantMetric)
 }
 
-func (h *Harvest) ExpectErrors(t validator, want []WantError) {
-	expectErrors(t, h.errorTraces, want)
+func (app *App) ExpectCustomEvents(t validator, want []WantCustomEvent) {
+	expectCustomEvents(t, app.testHarvest.customEvents, want)
 }
 
-func (h *Harvest) ExpectErrorEvents(t validator, want []WantErrorEvent) {
-	expectErrorEvents(t, h.errorEvents, want)
+func (app *App) ExpectErrors(t validator, want []WantError) {
+	expectErrors(t, app.testHarvest.errorTraces, want)
 }
 
-func (h *Harvest) ExpectTxnEvents(t validator, want []WantTxnEvent) {
-	expectTxnEvents(t, h.txnEvents, want)
+func (app *App) ExpectErrorEvents(t validator, want []WantErrorEvent) {
+	expectErrorEvents(t, app.testHarvest.errorEvents, want)
 }
 
-func (h *Harvest) ExpectMetrics(t validator, want []WantMetric) {
-	expectMetrics(t, h.metrics, want)
+func (app *App) ExpectTxnEvents(t validator, want []WantTxnEvent) {
+	expectTxnEvents(t, app.testHarvest.txnEvents, want)
+}
+
+func (app *App) ExpectMetrics(t validator, want []WantMetric) {
+	expectMetrics(t, app.testHarvest.metrics, want)
 }
 
 func expectMetricField(t validator, id metricID, v1, v2 float64, fieldName string) {

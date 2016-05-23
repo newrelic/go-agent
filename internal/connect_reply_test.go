@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreateFullTxnNameBasic(t *testing.T) {
-	emptyReply := ConnectReplyDefaults()
+	emptyReply := connectReplyDefaults()
 
 	tcs := []struct {
 		input      string
@@ -37,7 +37,7 @@ func TestCreateFullTxnNameURLRulesIgnore(t *testing.T) {
 		"match_expression":".*zip.*$",
 		"ignore":true
 	}]`
-	reply := ConnectReplyDefaults()
+	reply := connectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply.URLRules)
 	if nil != err {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestCreateFullTxnNameTxnRulesIgnore(t *testing.T) {
 		"match_expression":"^WebTransaction/Go/zap/zip/zep$",
 		"ignore":true
 	}]`
-	reply := ConnectReplyDefaults()
+	reply := connectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply.TxnNameRules)
 	if nil != err {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 			 "terms": ["zyp", "zoop", "zap"]}
 		]
 	}`
-	reply := ConnectReplyDefaults()
+	reply := connectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply)
 	if nil != err {
 		t.Fatal(err)
@@ -87,13 +87,13 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 }
 
 func TestCalculateApdexThreshold(t *testing.T) {
-	reply := ConnectReplyDefaults()
+	reply := connectReplyDefaults()
 	threshold := calculateApdexThreshold(reply, "WebTransaction/Go/hello")
 	if threshold != 500*time.Millisecond {
 		t.Error("default apdex threshold", threshold)
 	}
 
-	reply = ConnectReplyDefaults()
+	reply = connectReplyDefaults()
 	reply.ApdexThresholdSeconds = 1.3
 	reply.KeyTxnApdex = map[string]float64{
 		"WebTransaction/Go/zip": 2.2,

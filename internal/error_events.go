@@ -69,7 +69,7 @@ func (events *errorEvents) Add(e *errorEvent) {
 	events.events.AddEvent(analyticsEvent{stamp, e})
 }
 
-func (events *errorEvents) MergeIntoHarvest(h *Harvest) {
+func (events *errorEvents) mergeIntoHarvest(h *harvest) {
 	h.errorEvents.events.MergeFailed(events.events)
 }
 

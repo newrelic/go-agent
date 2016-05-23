@@ -48,7 +48,7 @@ type ConnectReply struct {
 	JSAgentFile string `json:"js_agent_file"`
 }
 
-func ConnectReplyDefaults() *ConnectReply {
+func connectReplyDefaults() *ConnectReply {
 	return &ConnectReply{
 		ApdexThresholdSeconds:  0.5,
 		CollectAnalyticsEvents: true,

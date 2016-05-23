@@ -20,7 +20,7 @@ func (cs *customEvents) Add(e *customEvent) {
 	cs.events.AddEvent(analyticsEvent{stamp, e})
 }
 
-func (cs *customEvents) MergeIntoHarvest(h *Harvest) {
+func (cs *customEvents) mergeIntoHarvest(h *harvest) {
 	h.customEvents.events.MergeFailed(cs.events)
 }
 

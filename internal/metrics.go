@@ -210,7 +210,7 @@ func (mt *metricTable) CollectorJSON(agentRunID string, now time.Time) ([]byte, 
 func (mt *metricTable) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
 	return mt.CollectorJSON(agentRunID, harvestStart)
 }
-func (mt *metricTable) MergeIntoHarvest(h *Harvest) {
+func (mt *metricTable) mergeIntoHarvest(h *harvest) {
 	h.metrics.mergeFailed(mt)
 }
 

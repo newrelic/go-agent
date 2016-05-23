@@ -65,7 +65,7 @@ func (events *txnEvents) AddTxnEvent(e *txnEvent) {
 	events.events.AddEvent(analyticsEvent{stamp, e})
 }
 
-func (events *txnEvents) MergeIntoHarvest(h *Harvest) {
+func (events *txnEvents) mergeIntoHarvest(h *harvest) {
 	h.txnEvents.events.MergeFailed(events.events)
 }
 

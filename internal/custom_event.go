@@ -147,6 +147,6 @@ func createCustomEvent(eventType string, params map[string]interface{}, now time
 	}, nil
 }
 
-func (event *customEvent) MergeIntoHarvest(h *Harvest) {
+func (event *customEvent) mergeIntoHarvest(h *harvest) {
 	h.customEvents.Add(event)
 }

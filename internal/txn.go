@@ -79,7 +79,7 @@ func (txn *txn) getsApdex() bool {
 	return txn.isWeb
 }
 
-func (txn *txn) MergeIntoHarvest(h *Harvest) {
+func (txn *txn) mergeIntoHarvest(h *harvest) {
 	h.createTxnMetrics(createTxnMetricsArgs{
 		IsWeb:          txn.isWeb,
 		Duration:       txn.duration,
@@ -201,7 +201,7 @@ func (txn *txn) End() error {
 	})
 
 	if !txn.ignore {
-		txn.Consumer.Consume(txn.Reply.RunID, txn)
+		txn.Consumer.consume(txn.Reply.RunID, txn)
 	}
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not

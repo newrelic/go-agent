@@ -125,4 +125,4 @@ func (errors *harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]
 	return json.Marshal([]interface{}{agentRunID, errors.errors})
 }
 
-func (errors *harvestErrors) MergeIntoHarvest(h *Harvest) {}
+func (errors *harvestErrors) mergeIntoHarvest(h *harvest) {}

@@ -267,7 +267,7 @@ func connectAttempt(cfg *api.Config, client *http.Client) (string, *ConnectReply
 
 	processConnectMessages(rawReply)
 
-	reply := ConnectReplyDefaults()
+	reply := connectReplyDefaults()
 	err = json.Unmarshal(rawReply, reply)
 	if nil != err {
 		return "", nil, fmt.Errorf("unable to parse connect reply: %v", err)

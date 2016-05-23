@@ -2,15 +2,15 @@ package internal
 
 import "time"
 
-type Harvestable interface {
-	MergeIntoHarvest(h *Harvest)
+type harvestable interface {
+	mergeIntoHarvest(h *harvest)
 }
 
 type dataConsumer interface {
-	Consume(AgentRunID, Harvestable)
+	consume(AgentRunID, harvestable)
 }
 
-type Harvest struct {
+type harvest struct {
 	metrics      *metricTable
 	customEvents *customEvents
 	txnEvents    *txnEvents
@@ -18,7 +18,7 @@ type Harvest struct {
 	errorTraces  *harvestErrors
 }
 
-func (h *Harvest) payloads() map[string]payloadCreator {
+func (h *harvest) payloads() map[string]payloadCreator {
 	return map[string]payloadCreator{
 		cmdMetrics:      h.metrics,
 		cmdCustomEvents: h.customEvents,
@@ -28,8 +28,8 @@ func (h *Harvest) payloads() map[string]payloadCreator {
 	}
 }
 
-func NewHarvest(now time.Time) *Harvest {
-	return &Harvest{
+func newHarvest(now time.Time) *harvest {
+	return &harvest{
 		metrics:      newMetricTable(maxMetrics, now),
 		customEvents: newCustomEvents(maxCustomEvents),
 		txnEvents:    newTxnEvents(maxTxnEvents),
@@ -38,7 +38,7 @@ func NewHarvest(now time.Time) *Harvest {
 	}
 }
 
-func (h *Harvest) createFinalMetrics() {
+func (h *harvest) createFinalMetrics() {
 	h.metrics.addSingleCount(instanceReporting, forced)
 
 	h.metrics.addCount(customEventsSeen, h.customEvents.numSeen(), forced)
@@ -55,22 +55,22 @@ func (h *Harvest) createFinalMetrics() {
 	}
 }
 
-func (h *Harvest) applyMetricRules(rules metricRules) {
+func (h *harvest) applyMetricRules(rules metricRules) {
 	h.metrics = h.metrics.applyRules(rules)
 }
 
-func (h *Harvest) addTxnEvent(t *txnEvent) {
+func (h *harvest) addTxnEvent(t *txnEvent) {
 	h.txnEvents.AddTxnEvent(t)
 }
 
-func (h *Harvest) createErrorEvents(errs txnErrors, name string, duration time.Duration) {
+func (h *harvest) createErrorEvents(errs txnErrors, name string, duration time.Duration) {
 	for _, e := range errs {
 		event := createErrorEvent(e, name, duration)
 		h.errorEvents.Add(event)
 	}
 }
 
-func (h *Harvest) mergeErrors(errs txnErrors, name string, requestURI string) {
+func (h *harvest) mergeErrors(errs txnErrors, name string, requestURI string) {
 	h.errorTraces.merge(errs, name, requestURI)
 }
 
@@ -78,7 +78,7 @@ type payloadCreator interface {
 	// In the event of a rpm request failure (hopefully simply an
 	// intermittent collector issue) the payload may be merged into the next
 	// time period's harvest.
-	Harvestable
+	harvestable
 	// Data prepares JSON in the format expected by the collector endpoint.
 	// This method should return (nil, nil) if the payload is empty and no
 	// rpm request is necessary.
@@ -94,7 +94,7 @@ type createTxnMetricsArgs struct {
 	ErrorsSeen     uint64
 }
 
-func (h *Harvest) createTxnMetrics(args createTxnMetricsArgs) {
+func (h *harvest) createTxnMetrics(args createTxnMetricsArgs) {
 	// Duration Metrics
 	rollup := backgroundRollup
 	if args.IsWeb {
