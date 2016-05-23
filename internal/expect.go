@@ -12,6 +12,8 @@ func validateStringField(v validator, fieldName, v1, v2 string) {
 	}
 }
 
+// WantMetric is a metric expectation.  If Data is nil, then any data values are
+// acceptable.
 type WantMetric struct {
 	Name   string
 	Scope  string
@@ -19,11 +21,13 @@ type WantMetric struct {
 	Data   []float64
 }
 
+// WantCustomEvent is a custom event expectation.
 type WantCustomEvent struct {
 	Type   string
 	Params map[string]interface{}
 }
 
+// WantError is a traced error expectation.
 type WantError struct {
 	TxnName string
 	Msg     string
@@ -32,17 +36,21 @@ type WantError struct {
 	URL     string
 }
 
+// WantErrorEvent is an error event expectation.
 type WantErrorEvent struct {
 	TxnName string
 	Msg     string
 	Klass   string
 }
 
+// WantTxnEvent is a transaction event expectation.
 type WantTxnEvent struct {
 	Name string
 	Zone string
 }
 
+// Expect exposes methods that allow for testing whether the correct data was
+// captured.
 type Expect interface {
 	ExpectCustomEvents(t validator, want []WantCustomEvent)
 	ExpectErrors(t validator, want []WantError)
@@ -51,22 +59,27 @@ type Expect interface {
 	ExpectMetrics(t validator, want []WantMetric)
 }
 
+// ExpectCustomEvents implement Expect's ExpectCustomEvents.
 func (app *App) ExpectCustomEvents(t validator, want []WantCustomEvent) {
 	expectCustomEvents(t, app.testHarvest.customEvents, want)
 }
 
+// ExpectErrors implement Expect's ExpectErrors.
 func (app *App) ExpectErrors(t validator, want []WantError) {
 	expectErrors(t, app.testHarvest.errorTraces, want)
 }
 
+// ExpectErrorEvents implement Expect's ExpectErrorEvents.
 func (app *App) ExpectErrorEvents(t validator, want []WantErrorEvent) {
 	expectErrorEvents(t, app.testHarvest.errorEvents, want)
 }
 
+// ExpectTxnEvents implement Expect's ExpectTxnEvents.
 func (app *App) ExpectTxnEvents(t validator, want []WantTxnEvent) {
 	expectTxnEvents(t, app.testHarvest.txnEvents, want)
 }
 
+// ExpectMetrics implement Expect's ExpectMetrics.
 func (app *App) ExpectMetrics(t validator, want []WantMetric) {
 	expectMetrics(t, app.testHarvest.metrics, want)
 }

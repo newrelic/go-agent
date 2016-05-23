@@ -66,6 +66,9 @@ func calculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 	return floatSecondsToDuration(c.ApdexThresholdSeconds)
 }
 
+// CreateFullTxnName uses collector rules and the appropriate metric prefix to
+// construct the full transaction metric name from the name given by the
+// consumer.
 func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	var afterURLRules string
 	if "" != input {
