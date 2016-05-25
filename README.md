@@ -91,6 +91,3 @@ Some endpoints exposed are:
 * [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
 
 This example will appear as "My Golang Application" in your New Relic applications list.
-
-
-
