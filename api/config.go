@@ -7,114 +7,105 @@ import (
 	"strings"
 )
 
-// Config contains settings affecting Application and Transaction behavior.
-// NewConfig should be used to create a Config with proper defaults.
+// Config contains Application and Transaction behavior settings.
+// Use NewConfig to create a Config with proper defaults.
 type Config struct {
-	// AppName determines the application record in your New Relic dashboard
-	// into which data will be reported.  Collecting data by app name allows
-	// you to run an application on more than one server and have all the
-	// data aggregated under the same name.
+	// AppName is used by New Relic to link data across servers.
 	//
 	// https://docs.newrelic.com/docs/apm/new-relic-apm/installation-configuration/naming-your-application
 	AppName string
 
-	// License is your 40 digit hexadecimal New Relic license key.
+	// License is your New Relic license key.
 	//
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/account-setup/license-key
 	License string
 
-	// Development can be used in testing and staging situations to stub out
-	// the application.  If this bool is set to true, the agent will not
-	// collect information, communicate with the New Relic servers, or spawn
-	// goroutines.
+	// Development determines whether the SDK will communicate with the New
+	// Relic servers and spawn goroutines.  This can be useful in testing
+	// and staging situations.
 	Development bool
 
-	// Labels are key value pairs which can be used to roll up applications
-	// into specific categories.
+	// Labels are key value pairs used to roll up applications into specific
+	// categories.
 	//
 	// https://docs.newrelic.com/docs/apm/new-relic-apm/maintenance/labels-categories-organizing-your-apps-servers
 	Labels map[string]string
 
-	// HighSecurity mode is an account level feature.  It must be enabled in
-	// the New Relic UI before being used here.  HighSecurity mode will
-	// guarantee that certain agent settings can not be made more
-	// permissive.
+	// HighSecurity guarantees that certain agent settings can not be made
+	// more permissive.  This setting must match the corresponding account
+	// setting in the New Relic UI.
 	//
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/security/high-security
 	HighSecurity bool
 
-	// CustomInsightsEvents.Enabled controls whether the App.RecordCustomEvent() method
-	// will collect custom analytics events. This feature will be disabled
-	// if HighSecurity mode is enabled.
+	// CustomInsightsEvents controls the behavior of
+	// Application.RecordCustomEvent.
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 	CustomInsightsEvents struct {
+		// Enabled controls whether RecordCustomEvent will collect
+		// custom analytics events.  High security mode overrides this
+		// setting.
 		Enabled bool
 	}
 
-	// TransactionEvents contains settings affecting transaction analytics
-	// events.  This data allows the New Relic UI to show additional
-	// information such as histograms.
+	// TransactionEvents controls the behavior of transaction analytics
+	// events.
 	TransactionEvents struct {
-		// Enabled controls whether transaction analytics events are
-		// captured.
+		// Enabled controls whether transaction events are captured.
 		Enabled bool
-		// Attributes controls which attributes get put into transaction
+		// Attributes controls the attributes included with transaction
 		// events.
 		Attributes AttributeDestinationConfig
 	}
 
-	// ErrorCollector contains settings which control the capture of errors.
+	// ErrorCollector controls the capture of errors.
 	ErrorCollector struct {
 		// Enabled controls whether errors are captured.  This setting
 		// affects both traced errors and error analytics events.
 		Enabled bool
-		// CaptureEvents controls whether error anlytics events are
-		// captured.  This data is used on the error analytics page.
+		// CaptureEvents controls whether error analytics events are
+		// captured.
 		CaptureEvents bool
 		// IgnoreStatusCodes controls which http response codes are
 		// automatically turned into errors.  By default, response codes
 		// greater than or equal to 400, with the exception of 404, are
 		// turned into errors.
 		IgnoreStatusCodes []int
-		// Attributes controls which attributes get put into traced
-		// errors and error events.
+		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
 	}
 
-	// HostDisplayName sets a custom display name for your application
-	// server in the New Relic UI.  Servers are normally identified by host
-	// and port number.  This setting allows you to give your hosts more
-	// recognizable names.
+	// HostDisplayName gives this server a recognizable name in the New
+	// Relic UI.  This is an optional setting.
 	HostDisplayName string
 
 	// UseTLS controls whether http or https is used to send data to New
 	// Relic servers.
 	UseTLS bool
 
-	// Transport may be provided to customize communication with the New
-	// Relic servers.  This may be used to configure a proxy.
+	// Transport customizes http.Client communication with New Relic
+	// servers.  This may be used to configure a proxy.
 	Transport http.RoundTripper
 
-	// Utilization contains settings controlling system information
-	// detection and gathering.
+	// Utilization controls the detection and gathering of system
+	// information.
 	Utilization struct {
-		// DetectAWS controls whether the Application will attempt to
-		// detect whether the system is running on AWS.  This will make
-		// a small number of local network calls at Application
-		// creation.
+		// DetectAWS controls whether the Application attempts to detect
+		// AWS.
 		DetectAWS bool
-		// DetectDocker controls whether the Application will attempt to
-		// detect Docker by parsing /proc/self/cgroup.
+		// DetectDocker controls whether the Application attempts to
+		// detect Docker.
 		DetectDocker bool
 	}
 
-	// Attributes controls which attributes get put into all data types.
+	// Attributes controls the attributes included with errors and
+	// transaction events.
 	Attributes AttributeDestinationConfig
 }
 
-// AttributeDestinationConfig configures which attributes get put into which
-// data types.
+// AttributeDestinationConfig controls the attributes included with errors and
+// transaction events.
 type AttributeDestinationConfig struct {
 	Enabled bool
 	Include []string
@@ -158,8 +149,8 @@ var (
 	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
-// Validate checks the config for improper fields.  If this method returns an
-// error, then newrelic.NewApplication will return an error.
+// Validate checks the config for improper fields.  If the config is invalid,
+// newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
 	if len(c.License) != licenseLength {
 		return errLicenseLen

@@ -1,6 +1,6 @@
 // Package attributes contains the names of the automatically captured
 // attributes.  Attributes are key value pairs attached to transaction events,
-// error events, and traced errors.  You may add your own attributes using
+// error events, and traced errors.  You may add your own attributes using the
 // Transaction.AddAttribute method (see api/transaction.go).
 //
 // These attribute names are exposed here to facilitate configuration.
