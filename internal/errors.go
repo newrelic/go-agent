@@ -73,29 +73,24 @@ func (h *harvestError) MarshalJSON() ([]byte, error) {
 			h.klass,
 			struct {
 				Stack      *stackTrace `json:"stack_trace"`
-				Agent      struct{}    `json:"agentAttributes"`
-				User       struct{}    `json:"userAttributes"`
+				Agent      JSONString  `json:"agentAttributes"`
+				User       JSONString  `json:"userAttributes"`
 				Intrinsics struct{}    `json:"intrinsics"`
 				RequestURI string      `json:"request_uri,omitempty"`
 			}{
 				Stack:      h.stack,
+				User:       userAttributesStringJSON(h.attrs, destError),
+				Agent:      agentAttributesStringJSON(h.attrs, destError),
 				RequestURI: h.requestURI,
 			},
 		})
-}
-
-func (e *txnError) toHarvestError(txnName string, requestURI string) *harvestError {
-	return &harvestError{
-		txnError:   *e,
-		txnName:    txnName,
-		requestURI: requestURI,
-	}
 }
 
 type harvestError struct {
 	txnError
 	txnName    string
 	requestURI string
+	attrs      *attributes
 }
 
 type harvestErrors struct {
@@ -108,13 +103,22 @@ func newHarvestErrors(max int) *harvestErrors {
 	}
 }
 
-func (errors *harvestErrors) merge(errs txnErrors, txnName string, requestURI string) {
+func harvestErrorFromTxnError(e *txnError, txnName string, requestURI string, attrs *attributes) *harvestError {
+	return &harvestError{
+		txnError:   *e,
+		txnName:    txnName,
+		requestURI: requestURI,
+		attrs:      attrs,
+	}
+}
+
+func mergeTxnErrors(errors *harvestErrors, errs txnErrors, txnName string, requestURI string, attrs *attributes) {
 	for _, e := range errs {
 		if len(errors.errors) == cap(errors.errors) {
 			return
 		}
-
-		errors.errors = append(errors.errors, e.toHarvestError(txnName, requestURI))
+		he := harvestErrorFromTxnError(e, txnName, requestURI, attrs)
+		errors.errors = append(errors.errors, he)
 	}
 }
 

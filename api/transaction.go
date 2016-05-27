@@ -22,11 +22,21 @@ type Transaction interface {
 	// End, otherwise an error will be returned.
 	SetName(name string) error
 
-	// NoticeError records an error an associates it with the Transaction. A
-	// stack trace is created for the error at the point at which this
+	// NoticeError records an error and associates it with the Transaction.
+	// A stack trace is created for the error at the point at which this
 	// method is called.  If NoticeError is called multiple times in the
 	// same transaction, the first five errors are recorded (this behavior
 	// is subject to potential change in the future).  This method will only
 	// work if called before End, otherwise an error will be returned.
 	NoticeError(err error) error
+
+	// AddAttribute adds a key value pair to the current transaction.  This
+	// information is attached to errors, transaction events, and error
+	// events.  The key must contain fewer than than 255 bytes.  The value
+	// must be a number, string, or boolean.  Attribute configuration is
+	// applied (see config.go).
+	//
+	// For more information, see:
+	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
+	AddAttribute(key string, value interface{}) error
 }

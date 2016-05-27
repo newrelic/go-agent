@@ -114,7 +114,7 @@ func TestTruncatedStringValue(t *testing.T) {
 
 func TestInvalidValueType(t *testing.T) {
 	event, err := createCustomEvent("myEvent", map[string]interface{}{"alpha": []string{}}, now)
-	if _, ok := err.(invalidAttributeError); !ok {
+	if _, ok := err.(ErrInvalidAttribute); !ok {
 		t.Fatal(err)
 	}
 	if nil != event {

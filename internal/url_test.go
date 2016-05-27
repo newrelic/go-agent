@@ -43,3 +43,14 @@ func TestSafeURL(t *testing.T) {
 		}
 	}
 }
+
+func TestSafeURLFromString(t *testing.T) {
+	out := safeURLFromString(`http://localhost:8000/hello?zip=zap`)
+	if `http://localhost:8000/hello` != out {
+		t.Error(out)
+	}
+	out = safeURLFromString("?????")
+	if "" != out {
+		t.Error(out)
+	}
+}

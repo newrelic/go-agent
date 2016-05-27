@@ -56,6 +56,15 @@ func setName(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func addAttribute(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "adding attributes")
+
+	if txn, ok := w.(newrelic.Transaction); ok {
+		txn.AddAttribute("myString", "hello")
+		txn.AddAttribute("myInt", 123)
+	}
+}
+
 func background(w http.ResponseWriter, r *http.Request) {
 	// Transactions started without an http.Request are classified as
 	// background transactions.
@@ -91,6 +100,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error", noticeError))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_attribute", addAttribute))
 	http.HandleFunc("/background", background)
 
 	http.ListenAndServe(":8000", nil)

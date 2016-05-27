@@ -51,47 +51,7 @@ func (e *customEvent) WriteJSON(buf *bytes.Buffer) {
 		}
 		jsonx.AppendString(buf, key)
 		buf.WriteByte(':')
-
-		switch v := val.(type) {
-		case nil:
-			buf.WriteString(`null`)
-		case string:
-			jsonx.AppendString(buf, v)
-		case bool:
-			if v {
-				buf.WriteString(`true`)
-			} else {
-				buf.WriteString(`false`)
-			}
-		case uint8:
-			jsonx.AppendUint(buf, uint64(v))
-		case uint16:
-			jsonx.AppendUint(buf, uint64(v))
-		case uint32:
-			jsonx.AppendUint(buf, uint64(v))
-		case uint64:
-			jsonx.AppendUint(buf, v)
-		case uint:
-			jsonx.AppendUint(buf, uint64(v))
-		case uintptr:
-			jsonx.AppendUint(buf, uint64(v))
-		case int8:
-			jsonx.AppendInt(buf, int64(v))
-		case int16:
-			jsonx.AppendInt(buf, int64(v))
-		case int32:
-			jsonx.AppendInt(buf, int64(v))
-		case int64:
-			jsonx.AppendInt(buf, v)
-		case int:
-			jsonx.AppendInt(buf, int64(v))
-		case float32:
-			jsonx.AppendFloat(buf, float64(v))
-		case float64:
-			jsonx.AppendFloat(buf, v)
-		default:
-			jsonx.AppendString(buf, fmt.Sprintf("%T", v))
-		}
+		writeAttributeValueJSON(buf, val)
 	}
 	buf.WriteByte('}')
 
@@ -134,7 +94,7 @@ func createCustomEvent(eventType string, params map[string]interface{}, now time
 			return nil, err
 		}
 
-		val = truncateLongStringValue(val)
+		val = truncateStringValueIfLongInterface(val)
 
 		if err := valueIsValid(val); nil != err {
 			return nil, err

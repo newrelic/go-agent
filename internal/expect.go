@@ -1,6 +1,9 @@
 package internal
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type validator interface {
 	Error(...interface{})
@@ -10,6 +13,16 @@ func validateStringField(v validator, fieldName, v1, v2 string) {
 	if v1 != v2 {
 		v.Error(fieldName, v1, v2)
 	}
+}
+
+type addValidatorField struct {
+	field    interface{}
+	original validator
+}
+
+func (a addValidatorField) Error(fields ...interface{}) {
+	fields = append([]interface{}{a.field}, fields...)
+	a.original.Error(fields...)
 }
 
 // WantMetric is a metric expectation.  If Data is nil, then any data values are
@@ -29,24 +42,30 @@ type WantCustomEvent struct {
 
 // WantError is a traced error expectation.
 type WantError struct {
-	TxnName string
-	Msg     string
-	Klass   string
-	Caller  string
-	URL     string
+	TxnName         string
+	Msg             string
+	Klass           string
+	Caller          string
+	URL             string
+	UserAttributes  map[string]interface{}
+	AgentAttributes map[string]interface{}
 }
 
 // WantErrorEvent is an error event expectation.
 type WantErrorEvent struct {
-	TxnName string
-	Msg     string
-	Klass   string
+	TxnName         string
+	Msg             string
+	Klass           string
+	UserAttributes  map[string]interface{}
+	AgentAttributes map[string]interface{}
 }
 
 // WantTxnEvent is a transaction event expectation.
 type WantTxnEvent struct {
-	Name string
-	Zone string
+	Name            string
+	Zone            string
+	UserAttributes  map[string]interface{}
+	AgentAttributes map[string]interface{}
 }
 
 // Expect exposes methods that allow for testing whether the correct data was
@@ -61,27 +80,27 @@ type Expect interface {
 
 // ExpectCustomEvents implement Expect's ExpectCustomEvents.
 func (app *App) ExpectCustomEvents(t validator, want []WantCustomEvent) {
-	expectCustomEvents(t, app.testHarvest.customEvents, want)
+	expectCustomEvents(addValidatorField{`custom events:`, t}, app.testHarvest.customEvents, want)
 }
 
 // ExpectErrors implement Expect's ExpectErrors.
 func (app *App) ExpectErrors(t validator, want []WantError) {
-	expectErrors(t, app.testHarvest.errorTraces, want)
+	expectErrors(addValidatorField{`traced errors:`, t}, app.testHarvest.errorTraces, want)
 }
 
 // ExpectErrorEvents implement Expect's ExpectErrorEvents.
 func (app *App) ExpectErrorEvents(t validator, want []WantErrorEvent) {
-	expectErrorEvents(t, app.testHarvest.errorEvents, want)
+	expectErrorEvents(addValidatorField{`error events:`, t}, app.testHarvest.errorEvents, want)
 }
 
 // ExpectTxnEvents implement Expect's ExpectTxnEvents.
 func (app *App) ExpectTxnEvents(t validator, want []WantTxnEvent) {
-	expectTxnEvents(t, app.testHarvest.txnEvents, want)
+	expectTxnEvents(addValidatorField{`txn events:`, t}, app.testHarvest.txnEvents, want)
 }
 
 // ExpectMetrics implement Expect's ExpectMetrics.
 func (app *App) ExpectMetrics(t validator, want []WantMetric) {
-	expectMetrics(t, app.testHarvest.metrics, want)
+	expectMetrics(addValidatorField{`metrics:`, t}, app.testHarvest.metrics, want)
 }
 
 func expectMetricField(t validator, id metricID, v1, v2 float64, fieldName string) {
@@ -124,6 +143,28 @@ func expectMetrics(t validator, mt *metricTable, expect []WantMetric) {
 	}
 }
 
+func expectAttributes(v validator, exists map[string]interface{}, expect map[string]interface{}) {
+	// TODO: This params comparison can be made smarter: Alert differences
+	// based on sub/super set behavior.
+	if len(exists) != len(expect) {
+		v.Error("attributes length difference", exists, expect)
+		return
+	}
+	for key, val := range expect {
+		found, ok := exists[key]
+		if !ok {
+			v.Error("missing key", key)
+			continue
+		}
+		v1 := fmt.Sprint(found)
+		v2 := fmt.Sprint(val)
+		if v1 != v2 {
+			v.Error("value difference", fmt.Sprintf("key=%s", key),
+				v1, v2)
+		}
+	}
+}
+
 func expectCustomEvent(v validator, event *customEvent, expect WantCustomEvent) {
 	if event.eventType != expect.Type {
 		v.Error("type mismatch", event.eventType, expect.Type)
@@ -133,20 +174,7 @@ func expectCustomEvent(v validator, event *customEvent, expect WantCustomEvent) 
 	if diff > time.Hour {
 		v.Error("large timestamp difference", event.eventType, now, event.timestamp)
 	}
-	// TODO: This params comparison can be made smarter: Alert differences
-	// based on sub/super set behavior.
-	if len(event.truncatedParams) != len(expect.Params) {
-		v.Error("params length difference", event.truncatedParams, expect.Params)
-		return
-	}
-	for key, val := range expect.Params {
-		found, ok := event.truncatedParams[key]
-		if !ok {
-			v.Error("missing key", key)
-		} else if val != found {
-			v.Error("value difference", val, found)
-		}
-	}
+	expectAttributes(v, event.truncatedParams, expect.Params)
 }
 
 func expectCustomEvents(v validator, cs *customEvents, expect []WantCustomEvent) {
@@ -169,6 +197,12 @@ func expectErrorEvent(v validator, err *errorEvent, expect WantErrorEvent) {
 	validateStringField(v, "txnName", expect.TxnName, err.txnName)
 	validateStringField(v, "klass", expect.Klass, err.klass)
 	validateStringField(v, "msg", expect.Msg, err.msg)
+	if nil != expect.UserAttributes {
+		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectAttributes(v, getAgentAttributes(err.attrs, destError), expect.AgentAttributes)
+	}
 }
 
 func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent) {
@@ -192,6 +226,12 @@ func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
 	validateStringField(v, "name", expect.Name, e.Name)
 	if 0 == e.Duration {
 		v.Error("zero duration", e.Duration)
+	}
+	if nil != expect.UserAttributes {
+		expectAttributes(v, getUserAttributes(e.attrs, destTxnEvent), expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectAttributes(v, getAgentAttributes(e.attrs, destTxnEvent), expect.AgentAttributes)
 	}
 }
 
@@ -218,6 +258,12 @@ func expectError(v validator, err *harvestError, expect WantError) {
 	validateStringField(v, "klass", expect.Klass, err.txnError.klass)
 	validateStringField(v, "msg", expect.Msg, err.txnError.msg)
 	validateStringField(v, "URL", expect.URL, err.requestURI)
+	if nil != expect.UserAttributes {
+		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectAttributes(v, getAgentAttributes(err.attrs, destError), expect.AgentAttributes)
+	}
 }
 
 func expectErrors(v validator, errors *harvestErrors, expect []WantError) {

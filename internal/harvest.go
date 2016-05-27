@@ -63,17 +63,6 @@ func (h *harvest) addTxnEvent(t *txnEvent) {
 	h.txnEvents.AddTxnEvent(t)
 }
 
-func (h *harvest) createErrorEvents(errs txnErrors, name string, duration time.Duration) {
-	for _, e := range errs {
-		event := createErrorEvent(e, name, duration)
-		h.errorEvents.Add(event)
-	}
-}
-
-func (h *harvest) mergeErrors(errs txnErrors, name string, requestURI string) {
-	h.errorTraces.merge(errs, name, requestURI)
-}
-
 type payloadCreator interface {
 	// In the event of a rpm request failure (hopefully simply an
 	// intermittent collector issue) the payload may be merged into the next

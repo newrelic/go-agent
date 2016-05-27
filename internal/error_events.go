@@ -14,6 +14,7 @@ type errorEvent struct {
 	when     time.Time
 	txnName  string
 	duration time.Duration
+	attrs    *attributes
 }
 
 func (e *errorEvent) MarshalJSON() ([]byte, error) {
@@ -41,16 +42,22 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`,"duration":`)
 	jsonx.AppendFloat(buf, e.duration.Seconds())
 
-	buf.WriteString(`},{},{}]`)
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	userAttributesJSON(e.attrs, buf, destError)
+	buf.WriteByte(',')
+	agentAttributesJSON(e.attrs, buf, destError)
+	buf.WriteByte(']')
 }
 
-func createErrorEvent(e *txnError, txnName string, duration time.Duration) *errorEvent {
+func createErrorEvent(e *txnError, txnName string, duration time.Duration, attrs *attributes) *errorEvent {
 	return &errorEvent{
 		klass:    e.klass,
 		msg:      e.msg,
 		when:     e.when,
 		txnName:  txnName,
 		duration: duration,
+		attrs:    attrs,
 	}
 }
 

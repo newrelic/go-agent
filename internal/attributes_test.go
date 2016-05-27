@@ -1,132 +1,142 @@
 package internal
 
 import (
+	"bytes"
 	"encoding/json"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/newrelic/go-sdk/api"
 	"github.com/newrelic/go-sdk/internal/crossagent"
 )
 
 type AttributeTestcase struct {
-	Testname             string                      `json:"testname"`
-	Config               map[string]*json.RawMessage `json:"config"`
-	Key                  string                      `json:"input_key"`
-	InputDestinations    []string                    `json:"input_default_destinations"`
-	ExpectedDestinations []string                    `json:"expected_destinations"`
+	Testname string `json:"testname"`
+	Config   struct {
+		AttributesEnabled        bool     `json:"attributes.enabled"`
+		AttributesInclude        []string `json:"attributes.include"`
+		AttributesExclude        []string `json:"attributes.exclude"`
+		BrowserAttributesEnabled bool     `json:"browser_monitoring.attributes.enabled"`
+		BrowserAttributesInclude []string `json:"browser_monitoring.attributes.include"`
+		BrowserAttributesExclude []string `json:"browser_monitoring.attributes.exclude"`
+		ErrorAttributesEnabled   bool     `json:"error_collector.attributes.enabled"`
+		ErrorAttributesInclude   []string `json:"error_collector.attributes.include"`
+		ErrorAttributesExclude   []string `json:"error_collector.attributes.exclude"`
+		EventsAttributesEnabled  bool     `json:"transaction_events.attributes.enabled"`
+		EventsAttributesInclude  []string `json:"transaction_events.attributes.include"`
+		EventsAttributesExclude  []string `json:"transaction_events.attributes.exclude"`
+		TracerAttributesEnabled  bool     `json:"transaction_tracer.attributes.enabled"`
+		TracerAttributesInclude  []string `json:"transaction_tracer.attributes.include"`
+		TracerAttributesExclude  []string `json:"transaction_tracer.attributes.exclude"`
+	} `json:"config"`
+	Key                  string   `json:"input_key"`
+	InputDestinations    []string `json:"input_default_destinations"`
+	ExpectedDestinations []string `json:"expected_destinations"`
 }
 
-func destinationsFromArray(dests []string) destination {
-	d := destinationNone
+var (
+	destTranslate = map[string]destinationSet{
+		"attributes":         destAll,
+		"transaction_events": destTxnEvent,
+		"transaction_tracer": destTxnTrace,
+		"error_collector":    destError,
+		"browser_monitoring": destBrowser,
+	}
+)
+
+func destinationsFromArray(dests []string) destinationSet {
+	d := destNone
 	for _, s := range dests {
-		switch s {
-		case "transaction_events":
-			d |= destinationEvent
-		case "transaction_tracer":
-			d |= destinationTrace
-		case "error_collector":
-			d |= destinationError
-		case "browser_monitoring":
-			d |= destinationBrowser
+		if x, ok := destTranslate[s]; ok {
+			d |= x
 		}
 	}
 	return d
 }
 
-func getActualDestinations(attributes *attributes, key string) destination {
-	dests := []destination{
-		destinationEvent,
-		destinationTrace,
-		destinationError,
-		destinationBrowser,
+func destToString(d destinationSet) string {
+	if 0 == d {
+		return "none"
 	}
-	actual := destinationNone
-
-	for _, d := range dests {
-		out := attributes.GetAgent(d)
-		if _, ok := out[key]; ok {
-			actual |= d
+	out := ""
+	for _, ds := range []struct {
+		Name string
+		Dest destinationSet
+	}{
+		{Name: "event", Dest: destTxnEvent},
+		{Name: "trace", Dest: destTxnTrace},
+		{Name: "error", Dest: destError},
+		{Name: "browser", Dest: destBrowser},
+	} {
+		if 0 != d&ds.Dest {
+			if "" == out {
+				out = ds.Name
+			} else {
+				out = out + "," + ds.Name
+			}
 		}
 	}
-	return actual
+	return out
 }
 
-func (tc *AttributeTestcase) disable(t *testing.T, val *json.RawMessage, setting *bool) {
-	var b bool
+func runAttributeTestcase(t *testing.T, js json.RawMessage) {
+	var tc AttributeTestcase
 
-	if err := json.Unmarshal(*val, &b); nil != err {
-		t.Fatal(tc.Testname, err)
-	}
-	*setting = b
-}
+	tc.Config.AttributesEnabled = true
+	tc.Config.BrowserAttributesEnabled = false
+	tc.Config.ErrorAttributesEnabled = true
+	tc.Config.EventsAttributesEnabled = true
+	tc.Config.TracerAttributesEnabled = true
 
-func (tc *AttributeTestcase) includeExclude(t *testing.T, val *json.RawMessage) []string {
-	var matches []string
-
-	if err := json.Unmarshal(*val, &matches); nil != err {
-		t.Fatal(tc.Testname, err)
-	}
-	return matches
-}
-
-func (tc *AttributeTestcase) processSetting(t *testing.T, cfg *attributeConfig, key string, val *json.RawMessage) {
-
-	segments := strings.Split(key, ".")
-	if len(segments) < 2 {
-		t.Fatal(tc.Testname, key)
+	if err := json.Unmarshal(js, &tc); nil != err {
+		t.Error(err)
+		return
 	}
 
-	var dc *destinationConfig
-	switch segments[0] {
-	case "attributes":
-		dc = &cfg.All
-	case "transaction_events":
-		dc = &cfg.TransactionEvents
-	case "transaction_tracer":
-		dc = &cfg.TransactionTracer
-	case "error_collector":
-		dc = &cfg.ErrorCollector
-	case "browser_monitoring":
-		dc = &cfg.BrowserMonitoring
-	default:
-		t.Fatal(tc.Testname, key)
+	input := attributeConfigInput{
+		attributes: api.AttributeDestinationConfig{
+			Enabled: tc.Config.AttributesEnabled,
+			Include: tc.Config.AttributesInclude,
+			Exclude: tc.Config.AttributesExclude,
+		},
+		errorCollector: api.AttributeDestinationConfig{
+			Enabled: tc.Config.ErrorAttributesEnabled,
+			Include: tc.Config.ErrorAttributesInclude,
+			Exclude: tc.Config.ErrorAttributesExclude,
+		},
+		transactionEvents: api.AttributeDestinationConfig{
+			Enabled: tc.Config.EventsAttributesEnabled,
+			Include: tc.Config.EventsAttributesInclude,
+			Exclude: tc.Config.EventsAttributesExclude,
+		},
+		browserMonitoring: api.AttributeDestinationConfig{
+			Enabled: tc.Config.BrowserAttributesEnabled,
+			Include: tc.Config.BrowserAttributesInclude,
+			Exclude: tc.Config.BrowserAttributesExclude,
+		},
+		transactionTracer: api.AttributeDestinationConfig{
+			Enabled: tc.Config.TracerAttributesEnabled,
+			Include: tc.Config.TracerAttributesInclude,
+			Exclude: tc.Config.TracerAttributesExclude,
+		},
 	}
 
-	switch segments[len(segments)-1] {
-	case "enabled":
-		tc.disable(t, val, &dc.Enabled)
-	case "include":
-		dc.Include = tc.includeExclude(t, val)
-	case "exclude":
-		dc.Exclude = tc.includeExclude(t, val)
-	default:
-		t.Fatal(tc.Testname, key)
-	}
-}
+	cfg := createAttributeConfig(input)
 
-func (tc *AttributeTestcase) Run(t *testing.T) {
 	inputDests := destinationsFromArray(tc.InputDestinations)
 	expectedDests := destinationsFromArray(tc.ExpectedDestinations)
 
-	config := defaultAttributeConfig
+	out := applyAttributeConfig(cfg, tc.Key, inputDests)
 
-	for key, val := range tc.Config {
-		tc.processSetting(t, &config, key, val)
-	}
-
-	attributes := createAttributes(&config)
-
-	attributes.addAgent(tc.Key, interface{}(1), inputDests)
-	actualDests := getActualDestinations(attributes, tc.Key)
-
-	if actualDests != expectedDests {
-		t.Error(tc.Testname, expectedDests, actualDests)
+	if out != expectedDests {
+		t.Error(tc.Testname, destToString(expectedDests),
+			destToString(out))
 	}
 }
 
 func TestCrossAgentAttributes(t *testing.T) {
-	var tcs []AttributeTestcase
+	var tcs []json.RawMessage
 
 	err := crossagent.ReadJSON("attribute_configuration.json", &tcs)
 	if err != nil {
@@ -134,123 +144,125 @@ func TestCrossAgentAttributes(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		tc.Run(t)
+		runAttributeTestcase(t, tc)
 	}
 }
 
-func toJSON(x interface{}) string {
-	out, err := json.Marshal(x)
-	if nil != err {
-		return ""
+func TestWriteAttributeValueJSON(t *testing.T) {
+	buf := &bytes.Buffer{}
+
+	buf.WriteByte('[')
+	writeAttributeValueJSON(buf, nil)
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, `escape\me!`)
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, true)
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, false)
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uint8(1))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uint16(2))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uint32(3))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uint64(4))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uint(5))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, uintptr(6))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, int8(-1))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, int16(-2))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, int32(-3))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, int64(-4))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, int(-5))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, float32(1.5))
+	buf.WriteByte(',')
+	writeAttributeValueJSON(buf, float64(4.56))
+	buf.WriteByte(']')
+
+	expect := `[null,"escape\\me!",true,false,1,2,3,4,5,6,-1,-2,-3,-4,-5,1.5,4.56]`
+	js := string(buf.Bytes())
+	if js != expect {
+		t.Error(js, expect)
 	}
-	return string(out)
 }
 
-// Only works if there is a single attribute, since map iteration order is
-// undefined.
-func testUserAttributesAsJSON(t *testing.T, attributes *attributes, expected string) {
-	out := attributes.GetUser(destinationAll)
-	json := toJSON(out)
-	if json != expected {
-		t.Fatal(json, expected)
+func TestUserAttributeValLength(t *testing.T) {
+	cfg := createAttributeConfig(sampleAttributeConfigInput)
+	attrs := newAttributes(cfg)
+
+	atLimit := strings.Repeat("a", attributeValueLengthLimit)
+	tooLong := atLimit + "a"
+
+	err := addUserAttribute(attrs, `escape\me`, tooLong, destAll)
+	if err != nil {
+		t.Error(err)
+	}
+	js := userAttributesStringJSON(attrs, destAll)
+	if `{"escape\\me":"`+atLimit+`"}` != string(js) {
+		t.Error(js)
 	}
 }
 
-const (
-	a324 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" +
-		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-)
+func TestUserAttributeKeyLength(t *testing.T) {
+	cfg := createAttributeConfig(sampleAttributeConfigInput)
+	attrs := newAttributes(cfg)
 
-func TestStringLengthLimits(t *testing.T) {
-	// Value is too long
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", a324, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":"`+
-		`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`+
-		`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`+
-		`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`+
-		`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`)
-
-	// Key is too long
-	attributes = createAttributes(&defaultAttributeConfig)
-	attributes.addUser(a324, "alpha", destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{}`)
+	lengthyKey := strings.Repeat("a", attributeKeyLengthLimit+1)
+	err := addUserAttribute(attrs, lengthyKey, 123, destAll)
+	if _, ok := err.(invalidAttributeKeyErr); !ok {
+		t.Error(err)
+	}
+	js := userAttributesStringJSON(attrs, destAll)
+	if `{}` != string(js) {
+		t.Error(js)
+	}
 }
 
-func TestBadValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", make(map[string]string), destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{}`)
-}
-
-func TestNullValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", nil, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":null}`)
-}
-
-func TestIntValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", 123, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":123}`)
-}
-
-func TestFloatValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", 44.55, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":44.55}`)
-}
-
-func TestStringValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", "beta", destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":"beta"}`)
-}
-
-func TestBoolValue(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", true, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":true}`)
-}
-
-func TestReplacement(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
-	attributes.addUser("alpha", 1, destinationAll)
-	attributes.addUser("alpha", 2, destinationAll)
-	attributes.addUser("alpha", 3, destinationAll)
-	testUserAttributesAsJSON(t, attributes, `{"alpha":3}`)
-}
-
-func TestUserLimit(t *testing.T) {
-	attributes := createAttributes(&defaultAttributeConfig)
+func TestNumUserAttributesLimit(t *testing.T) {
+	cfg := createAttributeConfig(sampleAttributeConfigInput)
+	attrs := newAttributes(cfg)
 
 	for i := 0; i < attributeUserLimit; i++ {
 		s := strconv.Itoa(i)
-		attributes.addUser(s, s, destinationAll)
+		err := addUserAttribute(attrs, s, s, destAll)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	attributes.addUser("cant_add_me", 123, destinationAll)
+	err := addUserAttribute(attrs, "cant_add_me", 123, destAll)
+	if _, ok := err.(userAttributeLimitErr); !ok {
+		t.Fatal(err)
+	}
 
-	out := attributes.GetUser(destinationAll)
-	js := toJSON(out)
+	js := userAttributesStringJSON(attrs, destAll)
+	var out map[string]string
+	err = json.Unmarshal([]byte(js), &out)
+	if nil != err {
+		t.Fatal(err)
+	}
 	if len(out) != attributeUserLimit {
-		t.Fatal(len(out), attributeUserLimit)
+		t.Error(len(out))
 	}
-	if strings.Contains(js, "cant_add_me") {
+	if strings.Contains(string(js), "cant_add_me") {
 		t.Fatal(js)
 	}
 
-	// Now test that replacement works when the limit is reached
-	attributes.addUser("0", "BEEN_REPLACED", destinationAll)
-	out = attributes.GetUser(destinationAll)
-	js = toJSON(out)
-	if len(out) != attributeUserLimit {
-		t.Fatal(len(out), attributeUserLimit)
+	// Now test that replacement works when the limit is reached.
+	err = addUserAttribute(attrs, "0", "BEEN_REPLACED", destAll)
+	if nil != err {
+		t.Fatal(err)
 	}
-	if !strings.Contains(js, "BEEN_REPLACED") {
+	js = userAttributesStringJSON(attrs, destAll)
+	if !strings.Contains(string(js), "BEEN_REPLACED") {
 		t.Fatal(js)
 	}
 }

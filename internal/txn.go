@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -11,11 +12,12 @@ import (
 )
 
 type txnInput struct {
-	Writer   http.ResponseWriter
-	Request  *http.Request
-	Config   api.Config
-	Reply    *ConnectReply
-	Consumer dataConsumer
+	Writer     http.ResponseWriter
+	Request    *http.Request
+	Config     api.Config
+	Reply      *ConnectReply
+	Consumer   dataConsumer
+	attrConfig *attributeConfig
 }
 
 type txn struct {
@@ -32,6 +34,7 @@ type txn struct {
 	ignore     bool
 	errors     txnErrors // Lazily initialized.
 	errorsSeen uint64
+	attrs      *attributes
 
 	// wroteHeader prevents capturing multiple response code errors if the
 	// user erroneously calls WriteHeader multiple times.
@@ -46,12 +49,32 @@ type txn struct {
 }
 
 func newTxn(input txnInput, name string) *txn {
-	return &txn{
+	txn := &txn{
 		txnInput: input,
 		start:    time.Now(),
 		name:     name,
 		isWeb:    nil != input.Request,
+		attrs:    newAttributes(input.attrConfig),
 	}
+	if nil != txn.Request {
+		h := input.Request.Header
+		txn.attrs.agent.RequestMethod = input.Request.Method
+		txn.attrs.agent.RequestAcceptHeader = h.Get("Accept")
+		txn.attrs.agent.RequestContentType = h.Get("Content-Type")
+		txn.attrs.agent.RequestHeadersHost = h.Get("Host")
+		txn.attrs.agent.RequestHeadersUserAgent = h.Get("User-Agent")
+		txn.attrs.agent.RequestHeadersReferer = safeURLFromString(h.Get("Referer"))
+
+		if cl := h.Get("Content-Length"); "" != cl {
+			if x, err := strconv.Atoi(cl); nil == err {
+				txn.attrs.agent.RequestContentLength = x
+			}
+		}
+	}
+
+	txn.attrs.agent.HostDisplayName = txn.Config.HostDisplayName
+
+	return txn
 }
 
 func (txn *txn) txnEventsEnabled() bool {
@@ -90,7 +113,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 	})
 
 	if txn.txnEventsEnabled() {
-		event := createTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start)
+		event := createTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start, txn.attrs)
 		h.addTxnEvent(event)
 	}
 
@@ -99,10 +122,13 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 		requestURI = safeURL(txn.Request.URL)
 	}
 
-	h.mergeErrors(txn.errors, txn.finalName, requestURI)
+	mergeTxnErrors(h.errorTraces, txn.errors, txn.finalName, requestURI, txn.attrs)
 
 	if txn.errorEventsEnabled() {
-		h.createErrorEvents(txn.errors, txn.finalName, txn.duration)
+		for _, e := range txn.errors {
+			event := createErrorEvent(e, txn.finalName, txn.duration, txn.attrs)
+			h.errorEvents.Add(event)
+		}
 	}
 }
 
@@ -118,6 +144,51 @@ func responseCodeIsError(cfg *api.Config, code int) bool {
 	return true
 }
 
+var (
+	// statusCodeLookup avoids a strconv.Itoa call.
+	statusCodeLookup = map[int]string{
+		100: "100", 101: "101",
+		200: "200", 201: "201", 202: "202", 203: "203", 204: "204", 205: "205", 206: "206",
+		300: "300", 301: "301", 302: "302", 303: "303", 304: "304", 305: "305", 307: "307",
+		400: "400", 401: "401", 402: "402", 403: "403", 404: "404", 405: "405", 406: "406",
+		407: "407", 408: "408", 409: "409", 410: "410", 411: "411", 412: "412", 413: "413",
+		414: "414", 415: "415", 416: "416", 417: "417", 418: "418", 428: "428", 429: "429",
+		431: "431", 451: "451",
+		500: "500", 501: "501", 502: "502", 503: "503", 504: "504", 505: "505", 511: "511",
+	}
+)
+
+func headersJustWritten(txn *txn, code int) {
+	if txn.finished {
+		return
+	}
+	if txn.wroteHeader {
+		return
+	}
+	txn.wroteHeader = true
+
+	h := txn.Writer.Header()
+
+	txn.attrs.agent.ResponseHeadersContentType = h.Get("Content-Type")
+
+	if val := h.Get("Content-Length"); "" != val {
+		if x, err := strconv.Atoi(val); nil == err {
+			txn.attrs.agent.ResponseHeadersContentLength = x
+		}
+	}
+
+	txn.attrs.agent.ResponseCode = statusCodeLookup[code]
+	if txn.attrs.agent.ResponseCode == "" {
+		txn.attrs.agent.ResponseCode = strconv.Itoa(code)
+	}
+
+	if responseCodeIsError(&txn.Config, code) {
+		e := txnErrorFromResponseCode(code)
+		e.stack = getStackTrace(1)
+		txn.noticeErrorInternal(e)
+	}
+}
+
 func (txn *txn) Header() http.Header { return txn.Writer.Header() }
 
 func (txn *txn) Write(b []byte) (int, error) {
@@ -126,9 +197,7 @@ func (txn *txn) Write(b []byte) (int, error) {
 	txn.Lock()
 	defer txn.Unlock()
 
-	if !txn.finished {
-		txn.wroteHeader = true
-	}
+	headersJustWritten(txn, http.StatusOK)
 
 	return n, err
 }
@@ -139,21 +208,7 @@ func (txn *txn) WriteHeader(code int) {
 	txn.Lock()
 	defer txn.Unlock()
 
-	if txn.finished {
-		return
-	}
-	if txn.wroteHeader {
-		return
-	}
-	txn.wroteHeader = true
-
-	if !responseCodeIsError(&txn.Config, code) {
-		return
-	}
-
-	e := txnErrorFromResponseCode(code)
-	e.stack = getStackTrace(0)
-	txn.noticeErrorInternal(e)
+	headersJustWritten(txn, code)
 }
 
 var (
@@ -211,6 +266,17 @@ func (txn *txn) End() error {
 	}
 
 	return nil
+}
+
+func (txn *txn) AddAttribute(name string, value interface{}) error {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return ErrAlreadyEnded
+	}
+
+	return addUserAttribute(txn.attrs, name, value, destAll)
 }
 
 var (

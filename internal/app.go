@@ -27,6 +27,7 @@ type appData struct {
 // App is the implementation of api.Application.
 type App struct {
 	config      api.Config
+	attrConfig  *attributeConfig
 	client      *http.Client
 	testHarvest *harvest
 
@@ -216,7 +217,13 @@ func NewApp(c api.Config) (api.Application, error) {
 	}
 
 	app := &App{
-		config:             c,
+		config: c,
+		attrConfig: createAttributeConfig(attributeConfigInput{
+			attributes:        c.Attributes,
+			errorCollector:    c.ErrorCollector.Attributes,
+			transactionEvents: c.TransactionEvents.Attributes,
+		}),
+
 		connectChan:        make(chan *appRun),
 		collectorErrorChan: make(chan error),
 		dataChan:           make(chan appData, appDataChanSize),
@@ -290,11 +297,12 @@ func (app *App) setRun(run *appRun) {
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
 	return newTxn(txnInput{
-		Config:   app.config,
-		Reply:    run.ConnectReply,
-		Request:  r,
-		Writer:   w,
-		Consumer: app,
+		Config:     app.config,
+		Reply:      run.ConnectReply,
+		Request:    r,
+		Writer:     w,
+		Consumer:   app,
+		attrConfig: app.attrConfig,
 	}, name)
 }
 
