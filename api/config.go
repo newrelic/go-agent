@@ -59,6 +59,9 @@ type Config struct {
 		// Enabled controls whether transaction analytics events are
 		// captured.
 		Enabled bool
+		// Attributes controls which attributes get put into transaction
+		// events.
+		Attributes AttributeDestinationConfig
 	}
 
 	// ErrorCollector contains settings which control the capture of errors.
@@ -74,6 +77,9 @@ type Config struct {
 		// greater than or equal to 400, with the exception of 404, are
 		// turned into errors.
 		IgnoreStatusCodes []int
+		// Attributes controls which attributes get put into traced
+		// errors and error events.
+		Attributes AttributeDestinationConfig
 	}
 
 	// HostDisplayName sets a custom display name for your application
@@ -102,6 +108,17 @@ type Config struct {
 		// detect Docker by parsing /proc/self/cgroup.
 		DetectDocker bool
 	}
+
+	// Attributes controls which attributes get put into all data types.
+	Attributes AttributeDestinationConfig
+}
+
+// AttributeDestinationConfig configures which attributes get put into which
+// data types.
+type AttributeDestinationConfig struct {
+	Enabled bool
+	Include []string
+	Exclude []string
 }
 
 // NewConfig returns a Config with proper defaults.
@@ -113,6 +130,7 @@ func NewConfig(appname, license string) Config {
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
+	c.TransactionEvents.Attributes.Enabled = true
 	c.HighSecurity = false
 	c.UseTLS = true
 	c.ErrorCollector.Enabled = true
@@ -120,8 +138,10 @@ func NewConfig(appname, license string) Config {
 	c.ErrorCollector.IgnoreStatusCodes = []int{
 		http.StatusNotFound, // 404
 	}
+	c.ErrorCollector.Attributes.Enabled = true
 	c.Utilization.DetectAWS = true
 	c.Utilization.DetectDocker = true
+	c.Attributes.Enabled = true
 
 	return c
 }

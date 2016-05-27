@@ -17,3 +17,11 @@ func safeURL(u *url.URL) string {
 	}
 	return ur.String()
 }
+
+func safeURLFromString(rawurl string) string {
+	u, err := url.Parse(rawurl)
+	if nil != err {
+		return ""
+	}
+	return safeURL(u)
+}

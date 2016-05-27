@@ -29,4 +29,14 @@ type Transaction interface {
 	// is subject to potential change in the future).  This method will only
 	// work if called before End, otherwise an error will be returned.
 	NoticeError(err error) error
+
+	// AddAttribute adds a key value pair tag to the current transaction.
+	// This is information is attached to errors, transaction events, and
+	// error events.  The key must be contain fewer than than 255 bytes.
+	// The value must be a number, string, or boolean.  Attribute
+	// configuration is applied (see config.go).
+	//
+	// For more information, see:
+	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
+	AddAttribute(key string, value interface{}) error
 }

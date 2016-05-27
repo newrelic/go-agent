@@ -12,6 +12,19 @@ import (
 	"github.com/newrelic/go-sdk/version"
 )
 
+func copyDestConfig(c api.AttributeDestinationConfig) api.AttributeDestinationConfig {
+	cp := c
+	if nil != c.Include {
+		cp.Include = make([]string, len(c.Include))
+		copy(cp.Include, c.Include)
+	}
+	if nil != c.Exclude {
+		cp.Exclude = make([]string, len(c.Exclude))
+		copy(cp.Exclude, c.Exclude)
+	}
+	return cp
+}
+
 func copyConfigReferenceFields(cfg api.Config) api.Config {
 	cp := cfg
 	if nil != cfg.Labels {
@@ -25,6 +38,11 @@ func copyConfigReferenceFields(cfg api.Config) api.Config {
 		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
 		cp.ErrorCollector.IgnoreStatusCodes = ignored
 	}
+
+	cp.Attributes = copyDestConfig(cfg.Attributes)
+	cp.ErrorCollector.Attributes = copyDestConfig(cfg.ErrorCollector.Attributes)
+	cp.TransactionEvents.Attributes = copyDestConfig(cfg.TransactionEvents.Attributes)
+
 	return cp
 }
 
