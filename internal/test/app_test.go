@@ -1331,3 +1331,46 @@ func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 		UserAttributes:  userAttributes,
 	}})
 }
+
+func TestQueueTime(t *testing.T) {
+	app := testApp(nil, nil, t)
+	req, err := http.NewRequest("GET", helloPath+helloQueryParams, nil)
+	req.Header.Add("X-Queue-Start", "1465793282.12345")
+	if nil != err {
+		t.Fatal(err)
+	}
+	txn := app.StartTransaction("myName", nil, req)
+	txn.NoticeError(myError{})
+	txn.End()
+
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/myName",
+		Msg:     "my msg",
+		Klass:   "test.myError",
+		Caller:  "test.TestQueueTime",
+		URL:     "/hello",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+		TxnName: "WebTransaction/Go/myName",
+		Msg:     "my msg",
+		Klass:   "test.myError",
+		Queuing: true,
+	}})
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/myName", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"WebFrontend/QueueTime", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/myName", "", false, nil},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/WebTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+	})
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
+		Name:            "WebTransaction/Go/myName",
+		Zone:            "F",
+		AgentAttributes: nil,
+		Queuing:         true,
+	}})
+}

@@ -14,6 +14,7 @@ type errorEvent struct {
 	when     time.Time
 	txnName  string
 	duration time.Duration
+	queuing  time.Duration
 	attrs    *attributes
 }
 
@@ -42,23 +43,17 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`,"duration":`)
 	jsonx.AppendFloat(buf, e.duration.Seconds())
 
+	if e.queuing > 0 {
+		buf.WriteString(`,"queueDuration":`)
+		jsonx.AppendFloat(buf, e.queuing.Seconds())
+	}
+
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	userAttributesJSON(e.attrs, buf, destError)
 	buf.WriteByte(',')
 	agentAttributesJSON(e.attrs, buf, destError)
 	buf.WriteByte(']')
-}
-
-func createErrorEvent(e *txnError, txnName string, duration time.Duration, attrs *attributes) *errorEvent {
-	return &errorEvent{
-		klass:    e.klass,
-		msg:      e.msg,
-		when:     e.when,
-		txnName:  txnName,
-		duration: duration,
-		attrs:    attrs,
-	}
 }
 
 type errorEvents struct {

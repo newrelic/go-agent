@@ -14,6 +14,7 @@ type txnEvent struct {
 	Name      string
 	Timestamp time.Time
 	Duration  time.Duration
+	queuing   time.Duration
 	zone      apdexZone
 	attrs     *attributes
 }
@@ -29,6 +30,10 @@ func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
 		buf.WriteString(`,"nr.apdexPerfZone":`)
 		jsonx.AppendString(buf, e.zone.label())
 	}
+	if e.queuing > 0 {
+		buf.WriteString(`,"queueDuration":`)
+		jsonx.AppendFloat(buf, e.queuing.Seconds())
+	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	userAttributesJSON(e.attrs, buf, destTxnEvent)
@@ -43,18 +48,6 @@ func (e *txnEvent) MarshalJSON() ([]byte, error) {
 	e.WriteJSON(buf)
 
 	return buf.Bytes(), nil
-}
-
-func createTxnEvent(zone apdexZone, name string, d time.Duration, start time.Time, attrs *attributes) *txnEvent {
-	event := txnEvent{
-		Name:      name,
-		Timestamp: start,
-		Duration:  d,
-		zone:      zone,
-		attrs:     attrs,
-	}
-
-	return &event
 }
 
 type txnEvents struct {
