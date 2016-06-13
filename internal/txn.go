@@ -28,6 +28,7 @@ type txn struct {
 	// finished indicates whether or not End() has been called.  After
 	// finished has been set to true, no recording should occur.
 	finished   bool
+	queuing    time.Duration
 	start      time.Time
 	name       string // Work in progress name
 	isWeb      bool
@@ -70,6 +71,8 @@ func newTxn(input txnInput, name string) *txn {
 				txn.attrs.agent.RequestContentLength = x
 			}
 		}
+
+		txn.queuing = queueDuration(h, txn.start)
 	}
 
 	txn.attrs.agent.HostDisplayName = txn.Config.HostDisplayName
@@ -112,8 +115,19 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 		ErrorsSeen:     txn.errorsSeen,
 	})
 
+	if txn.queuing > 0 {
+		h.metrics.addDuration(queueMetric, "", txn.queuing, txn.queuing, forced)
+	}
+
 	if txn.txnEventsEnabled() {
-		event := createTxnEvent(txn.zone, txn.finalName, txn.duration, txn.start, txn.attrs)
+		event := &txnEvent{
+			Name:      txn.finalName,
+			Timestamp: txn.start,
+			Duration:  txn.duration,
+			queuing:   txn.queuing,
+			zone:      txn.zone,
+			attrs:     txn.attrs,
+		}
 		h.addTxnEvent(event)
 	}
 
@@ -126,8 +140,15 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 
 	if txn.errorEventsEnabled() {
 		for _, e := range txn.errors {
-			event := createErrorEvent(e, txn.finalName, txn.duration, txn.attrs)
-			h.errorEvents.Add(event)
+			h.errorEvents.Add(&errorEvent{
+				klass:    e.klass,
+				msg:      e.msg,
+				when:     e.when,
+				txnName:  txn.finalName,
+				duration: txn.duration,
+				queuing:  txn.queuing,
+				attrs:    txn.attrs,
+			})
 		}
 	}
 }

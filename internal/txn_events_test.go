@@ -8,15 +8,26 @@ import (
 	ats "github.com/newrelic/go-sdk/attributes"
 )
 
-func TestTxnEventMarshal(t *testing.T) {
-	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-
-	event := createTxnEvent(apdexNone, "myName", 2*time.Second, start, nil)
-	js, err := json.Marshal(event)
+func testTxnEventJSON(t *testing.T, e *txnEvent, expect string) {
+	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
+		return
 	}
-	expect := compactJSONString(`[
+	expect = compactJSONString(expect)
+	if string(js) != expect {
+		t.Error(string(js), expect)
+	}
+}
+
+func TestTxnEventMarshal(t *testing.T) {
+	testTxnEventJSON(t, &txnEvent{
+		Name:      "myName",
+		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Duration:  2 * time.Second,
+		zone:      apdexNone,
+		attrs:     nil,
+	}, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
@@ -25,16 +36,13 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
-	if string(js) != expect {
-		t.Error(string(js), expect)
-	}
-
-	event = createTxnEvent(apdexFailing, "myName", 2*time.Second, start, nil)
-	js, err = json.Marshal(event)
-	if nil != err {
-		t.Error(err)
-	}
-	expect = compactJSONString(`[
+	testTxnEventJSON(t, &txnEvent{
+		Name:      "myName",
+		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Duration:  2 * time.Second,
+		zone:      apdexFailing,
+		attrs:     nil,
+	}, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
@@ -44,9 +52,23 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
-	if string(js) != expect {
-		t.Error(string(js), expect)
-	}
+	testTxnEventJSON(t, &txnEvent{
+		Name:      "myName",
+		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Duration:  2 * time.Second,
+		queuing:   5 * time.Second,
+		zone:      apdexNone,
+		attrs:     nil,
+	}, `[
+	{
+		"type":"Transaction",
+		"name":"myName",
+		"timestamp":1.41713646e+09,
+		"duration":2,
+		"queueDuration":5
+	},
+	{},
+	{}]`)
 }
 
 func TestTxnEventAttributes(t *testing.T) {
@@ -60,13 +82,13 @@ func TestTxnEventAttributes(t *testing.T) {
 	addUserAttribute(attr, "zap", 123, destAll)
 	addUserAttribute(attr, "zip", 456, destAll)
 
-	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	event := createTxnEvent(apdexNone, "myName", 2*time.Second, start, attr)
-	js, err := json.Marshal(event)
-	if nil != err {
-		t.Error(err)
-	}
-	expect := compactJSONString(`[
+	testTxnEventJSON(t, &txnEvent{
+		Name:      "myName",
+		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Duration:  2 * time.Second,
+		zone:      apdexNone,
+		attrs:     attr,
+	}, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
@@ -79,7 +101,4 @@ func TestTxnEventAttributes(t *testing.T) {
 	{
 		"request.method":"GET"
 	}]`)
-	if string(js) != expect {
-		t.Error(string(js), expect)
-	}
 }

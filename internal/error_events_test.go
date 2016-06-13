@@ -2,25 +2,33 @@ package internal
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
 	ats "github.com/newrelic/go-sdk/attributes"
 )
 
-func TestErrorEventMarshal(t *testing.T) {
-	e := txnErrorFromError(errors.New("hello"))
-	e.when = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	e.stack = getStackTrace(0)
-	event := createErrorEvent(&e, "myName", 3*time.Second, nil)
-
-	js, err := json.Marshal(event)
+func testErrorEventJSON(t *testing.T, e *errorEvent, expect string) {
+	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
+		return
 	}
-	expect := compactJSONString(`
-	[
+	expect = compactJSONString(expect)
+	if string(js) != expect {
+		t.Error(string(js), expect)
+	}
+}
+
+func TestErrorEventMarshal(t *testing.T) {
+	testErrorEventJSON(t, &errorEvent{
+		klass:    "*errors.errorString",
+		msg:      "hello",
+		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		txnName:  "myName",
+		duration: 3 * time.Second,
+		attrs:    nil,
+	}, `[
 		{
 			"type":"TransactionError",
 			"error.class":"*errors.errorString",
@@ -32,9 +40,27 @@ func TestErrorEventMarshal(t *testing.T) {
 		{},
 		{}
 	]`)
-	if string(js) != expect {
-		t.Error(string(js))
-	}
+	testErrorEventJSON(t, &errorEvent{
+		klass:    "*errors.errorString",
+		msg:      "hello",
+		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		txnName:  "myName",
+		duration: 3 * time.Second,
+		queuing:  5 * time.Second,
+		attrs:    nil,
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3,
+			"queueDuration":5
+		},
+		{},
+		{}
+	]`)
 }
 
 func TestErrorEventAttributes(t *testing.T) {
@@ -48,31 +74,27 @@ func TestErrorEventAttributes(t *testing.T) {
 	addUserAttribute(attr, "zap", 123, destAll)
 	addUserAttribute(attr, "zip", 456, destAll)
 
-	e := txnErrorFromError(errors.New("hello"))
-	e.when = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	e.stack = getStackTrace(0)
-	event := createErrorEvent(&e, "myName", 3*time.Second, attr)
-
-	js, err := json.Marshal(event)
-	if nil != err {
-		t.Error(err)
-	}
-	expect := compactJSONString(`[
-	{
-		"type":"TransactionError",
-		"error.class":"*errors.errorString",
-		"error.message":"hello",
-		"timestamp":1.41713646e+09,
-		"transactionName":"myName",
-		"duration":3
-	},
-	{
-		"zip":456
-	},
-	{
-		"request.method":"GET"
-	}]`)
-	if string(js) != expect {
-		t.Error(string(js), expect)
-	}
+	testErrorEventJSON(t, &errorEvent{
+		klass:    "*errors.errorString",
+		msg:      "hello",
+		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		txnName:  "myName",
+		duration: 3 * time.Second,
+		attrs:    attr,
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3
+		},
+		{
+			"zip":456
+		},
+		{
+			"request.method":"GET"
+		}
+	]`)
 }

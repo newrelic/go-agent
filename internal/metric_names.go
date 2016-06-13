@@ -16,6 +16,8 @@ const (
 	// therefore should only be made for web transactions.
 	dispatcherMetric = "HttpDispatcher"
 
+	queueMetric = "WebFrontend/QueueTime"
+
 	webMetricPrefix        = "WebTransaction/Go"
 	backgroundMetricPrefix = "OtherTransaction/Go"
 

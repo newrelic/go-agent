@@ -225,8 +225,14 @@ func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 }
 
 func BenchmarkTxnEventsCollectorJSON(b *testing.B) {
-	txnName := "WebTransaction/Go/zip/zap"
-	event := createTxnEvent(apdexSatisfying, txnName, 2*time.Second, time.Now(), nil)
+	event := &txnEvent{
+		Name:      "WebTransaction/Go/zip/zap",
+		Timestamp: time.Now(),
+		Duration:  2 * time.Second,
+		queuing:   1 * time.Second,
+		zone:      apdexSatisfying,
+		attrs:     nil,
+	}
 	analyticsEventBenchmarkHelper(b, event)
 }
 
@@ -250,6 +256,13 @@ func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
 	e.stack = getStackTrace(0)
 
 	txnName := "WebTransaction/Go/zip/zap"
-	event := createErrorEvent(&e, txnName, 3*time.Second, nil)
+	event := &errorEvent{
+		klass:    e.klass,
+		msg:      e.msg,
+		when:     e.when,
+		txnName:  txnName,
+		duration: 3 * time.Second,
+		attrs:    nil,
+	}
 	analyticsEventBenchmarkHelper(b, event)
 }

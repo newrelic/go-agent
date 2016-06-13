@@ -56,6 +56,7 @@ type WantErrorEvent struct {
 	TxnName         string
 	Msg             string
 	Klass           string
+	Queuing         bool
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
@@ -64,6 +65,7 @@ type WantErrorEvent struct {
 type WantTxnEvent struct {
 	Name            string
 	Zone            string
+	Queuing         bool
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
@@ -197,6 +199,9 @@ func expectErrorEvent(v validator, err *errorEvent, expect WantErrorEvent) {
 	validateStringField(v, "txnName", expect.TxnName, err.txnName)
 	validateStringField(v, "klass", expect.Klass, err.klass)
 	validateStringField(v, "msg", expect.Msg, err.msg)
+	if (0 != err.queuing) != expect.Queuing {
+		v.Error("queuing", err.queuing)
+	}
 	if nil != expect.UserAttributes {
 		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
 	}
@@ -226,6 +231,9 @@ func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
 	validateStringField(v, "name", expect.Name, e.Name)
 	if 0 == e.Duration {
 		v.Error("zero duration", e.Duration)
+	}
+	if (0 != e.queuing) != expect.Queuing {
+		v.Error("queuing", e.queuing)
 	}
 	if nil != expect.UserAttributes {
 		expectAttributes(v, getUserAttributes(e.attrs, destTxnEvent), expect.UserAttributes)
