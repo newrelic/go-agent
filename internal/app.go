@@ -234,8 +234,9 @@ func NewApp(c api.Config) (api.Application, error) {
 	}
 
 	log.Info("application created", log.Context{
-		"app":     app.String(),
-		"version": version.Version,
+		"app":         app.String(),
+		"version":     version.Version,
+		"development": app.config.Development,
 	})
 
 	if app.config.Development {
