@@ -77,7 +77,7 @@ func background(w http.ResponseWriter, r *http.Request) {
 
 const (
 	licenseVar = "NEW_RELIC_LICENSE_KEY"
-	appname    = "My Golang Application"
+	appname    = "My Go Application"
 )
 
 func main() {
