@@ -297,14 +297,14 @@ func (app *App) setRun(run *appRun) {
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *App) StartTransaction(name string, w http.ResponseWriter, r *http.Request) api.Transaction {
 	run := app.getRun()
-	return newTxn(txnInput{
+	return upgradeTxn(newTxn(txnInput{
 		Config:     app.config,
 		Reply:      run.ConnectReply,
 		Request:    r,
-		Writer:     w,
+		W:          w,
 		Consumer:   app,
 		attrConfig: app.attrConfig,
-	}, name)
+	}, name))
 }
 
 var (
