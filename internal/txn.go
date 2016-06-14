@@ -12,7 +12,7 @@ import (
 )
 
 type txnInput struct {
-	Writer     http.ResponseWriter
+	W          http.ResponseWriter
 	Request    *http.Request
 	Config     api.Config
 	Reply      *ConnectReply
@@ -188,7 +188,7 @@ func headersJustWritten(txn *txn, code int) {
 	}
 	txn.wroteHeader = true
 
-	h := txn.Writer.Header()
+	h := txn.W.Header()
 
 	txn.attrs.agent.ResponseHeadersContentType = h.Get("Content-Type")
 
@@ -210,10 +210,10 @@ func headersJustWritten(txn *txn, code int) {
 	}
 }
 
-func (txn *txn) Header() http.Header { return txn.Writer.Header() }
+func (txn *txn) Header() http.Header { return txn.W.Header() }
 
 func (txn *txn) Write(b []byte) (int, error) {
-	n, err := txn.Writer.Write(b)
+	n, err := txn.W.Write(b)
 
 	txn.Lock()
 	defer txn.Unlock()
@@ -224,7 +224,7 @@ func (txn *txn) Write(b []byte) (int, error) {
 }
 
 func (txn *txn) WriteHeader(code int) {
-	txn.Writer.WriteHeader(code)
+	txn.W.WriteHeader(code)
 
 	txn.Lock()
 	defer txn.Unlock()
@@ -358,7 +358,7 @@ func (txn *txn) NoticeError(err error) error {
 	}
 
 	e := txnErrorFromError(err)
-	e.stack = getStackTrace(1)
+	e.stack = getStackTrace(2)
 	return txn.noticeErrorInternal(e)
 }
 

@@ -1,5 +1,9 @@
 ## ChangeLog
 
+* `Transaction` now implements a subset of the interfaces
+  `http.CloseNotifier`, `http.Flusher`, `http.Hijacker`, and `io.ReaderFrom`
+  to match the behavior of its wrapped `http.ResponseWriter`.
+
 ## 0.4.0
 
 * Queue time support added: if the inbound request contains an
