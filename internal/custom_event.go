@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/newrelic/go-sdk/internal/jsonx"
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // https://newrelic.atlassian.net/wiki/display/eng/Custom+Events+in+New+Relic+Agents

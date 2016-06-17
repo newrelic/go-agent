@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-agent/log"
 )
 
 // AgentRunID identifies the current connection with the collector.

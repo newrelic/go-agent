@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/newrelic/go-sdk/internal/jsonx"
-	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-agent/internal/jsonx"
+	"github.com/newrelic/go-agent/log"
 )
 
 type metricForce int

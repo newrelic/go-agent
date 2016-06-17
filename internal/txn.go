@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-sdk/api"
-	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-agent/api"
+	"github.com/newrelic/go-agent/log"
 )
 
 type txnInput struct {

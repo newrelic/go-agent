@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/newrelic/go-sdk/api"
-	ats "github.com/newrelic/go-sdk/attributes"
-	"github.com/newrelic/go-sdk/internal/jsonx"
+	"github.com/newrelic/go-agent/api"
+	ats "github.com/newrelic/go-agent/attributes"
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Agent-Attributes-PORTED.md

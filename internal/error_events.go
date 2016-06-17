@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/newrelic/go-sdk/internal/jsonx"
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 type errorEvent struct {

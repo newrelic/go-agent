@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/newrelic/go-sdk/internal/utilization"
-	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-agent/internal/utilization"
+	"github.com/newrelic/go-agent/log"
 )
 
 func main() {

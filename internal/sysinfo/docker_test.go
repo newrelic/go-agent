@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/newrelic/go-sdk/internal/crossagent"
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 func TestDockerIDCrossAgent(t *testing.T) {

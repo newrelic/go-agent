@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-agent/api"
 )
 
 // Always do right.  This will gratify some people and astonish the rest.

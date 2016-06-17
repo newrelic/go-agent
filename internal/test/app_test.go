@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	newrelic "github.com/newrelic/go-sdk"
-	"github.com/newrelic/go-sdk/api"
-	ats "github.com/newrelic/go-sdk/attributes"
-	"github.com/newrelic/go-sdk/internal"
+	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/api"
+	ats "github.com/newrelic/go-agent/attributes"
+	"github.com/newrelic/go-agent/internal"
 )
 
 func TestNewApplicationNonNil(t *testing.T) {

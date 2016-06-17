@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	newrelic "github.com/newrelic/go-sdk"
-	"github.com/newrelic/go-sdk/log"
+	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/log"
 
 	// "github.com/Sirupsen/logrus"
-	// _ "github.com/newrelic/go-sdk/log/_nrlogrus"
+	// _ "github.com/newrelic/go-agent/log/_nrlogrus"
 )
 
 var (

@@ -10,14 +10,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/newrelic/go-sdk/api"
-	"github.com/newrelic/go-sdk/log"
-	"github.com/newrelic/go-sdk/version"
+	"github.com/newrelic/go-agent/api"
+	"github.com/newrelic/go-agent/log"
+	"github.com/newrelic/go-agent/version"
 )
 
 const (
 	procotolVersion = "14"
-	userAgent       = "NewRelic-Go-SDK/" + version.Version
+	userAgent       = "NewRelic-Go-Agent/" + version.Version
 
 	// Methods used in collector communication.
 	cmdRedirect     = "get_redirect_host"

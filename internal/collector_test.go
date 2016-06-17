@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-agent/api"
 )
 
 var (

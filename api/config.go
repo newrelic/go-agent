@@ -20,9 +20,9 @@ type Config struct {
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/account-setup/license-key
 	License string
 
-	// Development determines whether the SDK will communicate with the New
-	// Relic servers and spawn goroutines.  This can be useful in testing
-	// and staging situations.
+	// Development determines whether the agent will communicate with the
+	// New Relic servers and spawn goroutines.  This can be useful in
+	// testing and staging situations.
 	Development bool
 
 	// Labels are key value pairs used to roll up applications into specific

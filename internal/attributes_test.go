@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-sdk/api"
-	"github.com/newrelic/go-sdk/internal/crossagent"
+	"github.com/newrelic/go-agent/api"
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 type AttributeTestcase struct {

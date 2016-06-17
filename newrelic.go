@@ -2,8 +2,8 @@
 package newrelic
 
 import (
-	"github.com/newrelic/go-sdk/api"
-	"github.com/newrelic/go-sdk/internal"
+	"github.com/newrelic/go-agent/api"
+	"github.com/newrelic/go-agent/internal"
 )
 
 // NewConfig creates an api.Config populated with the given appname, license,

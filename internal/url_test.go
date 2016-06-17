@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-sdk/internal/crossagent"
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 func TestSafeURL(t *testing.T) {

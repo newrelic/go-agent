@@ -3,7 +3,7 @@ package internal
 import (
 	"testing"
 
-	"github.com/newrelic/go-sdk/api"
+	"github.com/newrelic/go-agent/api"
 )
 
 func TestResponseCodeIsError(t *testing.T) {

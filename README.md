@@ -1,4 +1,4 @@
-# New Relic Go SDK
+# New Relic Go Agent
 
 ## Requirements
 
@@ -6,7 +6,7 @@ Go 1.3+ is required, due to the use of http.Client's Timeout field.
 
 ## Getting Started
 
-There are three types exposed by this SDK.
+There are three types exposed by this agent.
 
 | Entity  | See | Created By |
 | ------------- | ------------- | ------------- |
@@ -19,7 +19,7 @@ the `newrelic/api` package.
 
 ## Example
 
-Here is a barebones web server before and after New Relic Go-SDK instrumentation.
+Here is a barebones web server before and after New Relic Go Agent instrumentation.
 
 ### Before Instrumentation
 
@@ -52,7 +52,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/newrelic/go-sdk"
+	"github.com/newrelic/go-agent"
 )
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/newrelic/go-sdk/log"
+	"github.com/newrelic/go-agent/log"
 )
 
 type ruleResult int
