@@ -1374,3 +1374,52 @@ func TestQueueTime(t *testing.T) {
 		Queuing:         true,
 	}})
 }
+
+func TestIgnore(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("myName", nil, nil)
+	txn.NoticeError(myError{})
+	err := txn.Ignore()
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{})
+	app.ExpectMetrics(t, []internal.WantMetric{})
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{})
+}
+
+func TestIgnoreAlreadyEnded(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("myName", nil, nil)
+	txn.NoticeError(myError{})
+	txn.End()
+	err := txn.Ignore()
+	if err != internal.ErrAlreadyEnded {
+		t.Error(err)
+	}
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/myName",
+		Msg:     "my msg",
+		Klass:   "test.myError",
+		Caller:  "test.TestIgnoreAlreadyEnded",
+		URL:     "",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
+		TxnName: "OtherTransaction/Go/myName",
+		Msg:     "my msg",
+		Klass:   "test.myError",
+	}})
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{"OtherTransaction/Go/myName", "", true, nil},
+		{"OtherTransaction/all", "", true, nil},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
+	})
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
+		Name: "OtherTransaction/Go/myName",
+		Zone: "",
+	}})
+}

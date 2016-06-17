@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* `Transaction` now implements an `Ignore` method which will prevent
+  any of the transaction's data from being recorded.
+
 * `Transaction` now implements a subset of the interfaces
   `http.CloseNotifier`, `http.Flusher`, `http.Hijacker`, and `io.ReaderFrom`
   to match the behavior of its wrapped `http.ResponseWriter`.

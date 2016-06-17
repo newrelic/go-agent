@@ -11,10 +11,11 @@ type Transaction interface {
 	http.ResponseWriter
 
 	// End finishes the current transaction, stopping all further
-	// instrumentation.  Subsequent calls to End will have no effect. If End
-	// is not called, the transaction is effectively ignored, and its data
-	// will not be reported.
+	// instrumentation.  Subsequent calls to End will have no effect.
 	End() error
+
+	// Ignore ensures that this transaction's data will not be recorded.
+	Ignore() error
 
 	// SetName names the transaction.  Care should be taken to use a small
 	// number of names:  If too many names are used, transactions will not

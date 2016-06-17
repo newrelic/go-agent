@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -71,8 +72,19 @@ func background(w http.ResponseWriter, r *http.Request) {
 	txn := app.StartTransaction("background", nil, nil)
 	defer txn.End()
 
-	io.WriteString(w, "background txn")
+	io.WriteString(w, "background transaction")
 	time.Sleep(150 * time.Millisecond)
+}
+
+func ignore(w http.ResponseWriter, r *http.Request) {
+	if coinFlip := (0 == rand.Intn(2)); coinFlip {
+		if txn, ok := w.(newrelic.Transaction); ok {
+			txn.Ignore()
+		}
+		io.WriteString(w, "ignoring the transaction")
+	} else {
+		io.WriteString(w, "not ignoring the transaction")
+	}
 }
 
 const (
@@ -101,6 +113,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_attribute", addAttribute))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/ignore", ignore))
 	http.HandleFunc("/background", background)
 
 	http.ListenAndServe(":8000", nil)
