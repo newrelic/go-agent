@@ -274,6 +274,7 @@ func (txn *txn) End() error {
 	log.Debug("transaction ended", log.Context{
 		"name":        txn.finalName,
 		"duration_ms": txn.duration.Seconds() * 1000.0,
+		"ignored":     txn.ignore,
 	})
 
 	if !txn.ignore {
@@ -371,5 +372,16 @@ func (txn *txn) SetName(name string) error {
 	}
 
 	txn.name = name
+	return nil
+}
+
+func (txn *txn) Ignore() error {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return ErrAlreadyEnded
+	}
+	txn.ignore = true
 	return nil
 }
