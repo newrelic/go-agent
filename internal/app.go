@@ -178,10 +178,6 @@ func (app *App) process() {
 				h = newHarvest(now)
 			}
 		case d := <-app.dataChan:
-			if "" != debugLogging {
-				debug(d.data)
-			}
-
 			run := app.getRun()
 			if "" != d.id && nil != h && run.RunID == d.id {
 				d.data.mergeIntoHarvest(h)
@@ -345,6 +341,10 @@ func (app *App) RecordCustomEvent(eventType string, params map[string]interface{
 }
 
 func (app *App) consume(id AgentRunID, data harvestable) {
+	if "" != debugLogging {
+		debug(data)
+	}
+
 	if nil != app.testHarvest {
 		data.mergeIntoHarvest(app.testHarvest)
 		return
