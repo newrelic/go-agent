@@ -230,17 +230,6 @@ func (mt *metricTable) applyRules(rules metricRules) *metricTable {
 		if !ok {
 			out = rules.Apply(id.Name)
 			cache[id.Name] = out
-
-			if "" == out {
-				log.Debug("metric ignored by rules", log.Context{
-					"name": id.Name,
-				})
-			} else if out != id.Name {
-				log.Debug("metric renamed by rules", log.Context{
-					"input":  id.Name,
-					"output": out,
-				})
-			}
 		}
 
 		if "" != out {

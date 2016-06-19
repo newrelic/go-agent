@@ -54,7 +54,9 @@ func Gather(config Config) *Data {
 
 	if config.DetectDocker {
 		id, err := sysinfo.DockerID()
-		if err != nil && err != sysinfo.ErrDockerUnsupported {
+		if err != nil &&
+			err != sysinfo.ErrDockerUnsupported &&
+			err != sysinfo.ErrDockerNotFound {
 			log.Warn("error gathering Docker information", log.Context{
 				"error": err.Error(),
 			})
@@ -69,10 +71,6 @@ func Gather(config Config) *Data {
 			uDat.Vendors.AWS = aws
 		} else if isAWSValidationError(err) {
 			log.Error("AWS validation error", log.Context{
-				"error": err.Error(),
-			})
-		} else {
-			log.Debug("unable to connect to AWS", log.Context{
 				"error": err.Error(),
 			})
 		}

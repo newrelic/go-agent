@@ -3,8 +3,6 @@ package internal
 import (
 	"strings"
 	"time"
-
-	"github.com/newrelic/go-agent/log"
 )
 
 // AgentRunID identifies the current connection with the collector.
@@ -74,9 +72,6 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	if "" != input {
 		afterURLRules = reply.URLRules.Apply(input)
 		if "" == afterURLRules {
-			log.Debug("transaction ignored by url rules", log.Context{
-				"input": input,
-			})
 			return ""
 		}
 	}
@@ -95,9 +90,6 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 
 	afterNameRules := reply.TxnNameRules.Apply(beforeNameRules)
 	if "" == afterNameRules {
-		log.Debug("transaction ignored by txn name rules", log.Context{
-			"input": beforeNameRules,
-		})
 		return ""
 	}
 
