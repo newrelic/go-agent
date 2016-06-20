@@ -2,6 +2,7 @@ package api
 
 import "net/http"
 
+// Application represents your application.
 type Application interface {
 	// StartTransaction begins a Transaction.
 	// * This method never returns nil.
