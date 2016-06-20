@@ -5,6 +5,7 @@ import (
 	"syscall"
 )
 
+// Hostname returns the host name.
 func Hostname() (string, error) {
 	// Try the builtin API first, which is designed to match the output of
 	// /bin/hostname, and fallback to uname(2) if that fails to match the

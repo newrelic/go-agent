@@ -10,15 +10,15 @@ func TestJSONMarshalling(t *testing.T) {
 	u := Data{
 		MetadataVersion:   1,
 		LogicalProcessors: 4,
-		RamMib:            &ramMib,
+		RAMMib:            &ramMib,
 		Hostname:          "localhost",
 		Vendors: &vendors{
 			AWS: &vendor{
-				Id:   "8BADFOOD",
+				ID:   "8BADFOOD",
 				Type: "t2.micro",
 				Zone: "us-west-1",
 			},
-			Docker: &vendor{Id: "47cbd16b77c50cbf71401"},
+			Docker: &vendor{ID: "47cbd16b77c50cbf71401"},
 		},
 	}
 
@@ -48,7 +48,7 @@ func TestJSONMarshalling(t *testing.T) {
 	}
 
 	// Test that we marshal not-present values to nil.
-	u.RamMib = nil
+	u.RAMMib = nil
 	u.Hostname = ""
 	expect = `{` +
 		`"metadata_version":1,` +
@@ -88,7 +88,7 @@ func TestUtilizationHash(t *testing.T) {
 			t.Error(err)
 		}
 		if u.MetadataVersion == 0 || u.LogicalProcessors == 0 ||
-			u.RamMib == nil || *u.RamMib == 0 ||
+			u.RAMMib == nil || *u.RAMMib == 0 ||
 			u.Hostname == "" {
 			t.Fatal(u, string(js))
 		}

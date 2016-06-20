@@ -11,31 +11,34 @@ import (
 
 const metadataVersion = 1
 
+// Config controls the behavior of utilization information capture.
 type Config struct {
 	DetectAWS    bool
 	DetectDocker bool
 }
 
+// Data contains utilization system information.
 type Data struct {
 	MetadataVersion   int      `json:"metadata_version"`
 	LogicalProcessors int      `json:"logical_processors"`
-	RamMib            *uint64  `json:"total_ram_mib"`
+	RAMMib            *uint64  `json:"total_ram_mib"`
 	Hostname          string   `json:"hostname"`
 	Vendors           *vendors `json:"vendors,omitempty"`
 }
 
 var (
-	sampleRamMib = uint64(1024)
-	SampleData   = Data{
+	sampleRAMMib = uint64(1024)
+	// SampleData contains sample utilization data useful for testing.
+	SampleData = Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: 16,
-		RamMib:            &sampleRamMib,
+		RAMMib:            &sampleRAMMib,
 		Hostname:          "my-hostname",
 	}
 )
 
 type vendor struct {
-	Id   string `json:"id,omitempty"`
+	ID   string `json:"id,omitempty"`
 	Type string `json:"type,omitempty"`
 	Zone string `json:"zone,omitempty"`
 }
@@ -45,6 +48,7 @@ type vendors struct {
 	Docker *vendor `json:"docker,omitempty"`
 }
 
+// Gather gathers system utilization data.
 func Gather(config Config) *Data {
 	uDat := Data{
 		MetadataVersion:   metadataVersion,
@@ -61,7 +65,7 @@ func Gather(config Config) *Data {
 				"error": err.Error(),
 			})
 		} else if id != "" {
-			uDat.Vendors.Docker = &vendor{Id: id}
+			uDat.Vendors.Docker = &vendor{ID: id}
 		}
 	}
 
@@ -92,7 +96,7 @@ func Gather(config Config) *Data {
 	bts, err := sysinfo.PhysicalMemoryBytes()
 	if nil == err {
 		mib := sysinfo.BytesToMebibytes(bts)
-		uDat.RamMib = &mib
+		uDat.RAMMib = &mib
 	} else {
 		log.Error("error getting memory", log.Context{
 			"error": err.Error(),

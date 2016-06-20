@@ -16,7 +16,7 @@ type maybeResponse struct {
 }
 
 type mockTransport struct {
-	Id, Type, Zone maybeResponse
+	ID, Type, Zone maybeResponse
 	reader         *strings.Reader
 	closed         int
 }
@@ -34,7 +34,7 @@ func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	case zoneEndpointPath:
 		response = m.Zone
 	case idEndpointPath:
-		response = m.Id
+		response = m.ID
 	default:
 		return nil, fmt.Errorf("invalid endpoint %s", r.URL.Path)
 	}
@@ -91,7 +91,7 @@ func TestCrossagentAWS(t *testing.T) {
 		Name string `json:"testname"`
 		URIs struct {
 			Type maybeResponse `json:"http://169.254.169.254/2008-02-01/meta-data/instance-type"`
-			Id   maybeResponse `json:"http://169.254.169.254/2008-02-01/meta-data/instance-id"`
+			ID   maybeResponse `json:"http://169.254.169.254/2008-02-01/meta-data/instance-id"`
 			Zone maybeResponse `json:"http://169.254.169.254/2008-02-01/meta-data/placement/availability-zone"`
 		} `json:"uris"`
 		Vendors vendors `json:"expected_vendors_hash"`
@@ -110,7 +110,7 @@ func TestCrossagentAWS(t *testing.T) {
 	for _, tc := range testCases {
 		client := &http.Client{
 			Transport: &mockTransport{
-				Id:   tc.URIs.Id,
+				ID:   tc.URIs.ID,
 				Type: tc.URIs.Type,
 				Zone: tc.URIs.Zone,
 			},
@@ -123,7 +123,7 @@ func TestCrossagentAWS(t *testing.T) {
 			t.Error(tc.Name, err, expectInvalid, isAWSValidationError(err))
 		}
 
-		expectTimeout := tc.URIs.Type.Timeout || tc.URIs.Id.Timeout || tc.URIs.Zone.Timeout
+		expectTimeout := tc.URIs.Type.Timeout || tc.URIs.ID.Timeout || tc.URIs.Zone.Timeout
 		if expectTimeout && nil == err {
 			t.Error(tc.Name, err)
 		}
@@ -131,8 +131,8 @@ func TestCrossagentAWS(t *testing.T) {
 		if tc.Vendors.AWS != nil {
 			if nil == v {
 				t.Error(tc.Name, "missing vendor")
-			} else if v.Id != tc.Vendors.AWS.Id {
-				t.Error(tc.Name, "Id mismatch", v.Id, tc.Vendors.AWS.Id)
+			} else if v.ID != tc.Vendors.AWS.ID {
+				t.Error(tc.Name, "Id mismatch", v.ID, tc.Vendors.AWS.ID)
 			} else if v.Type != tc.Vendors.AWS.Type {
 				t.Error(tc.Name, "Type mismatch", v.Type, tc.Vendors.AWS.Type)
 			} else if v.Zone != tc.Vendors.AWS.Zone {

@@ -5,6 +5,7 @@ package sysinfo
 */
 import "C"
 
+// PhysicalMemoryBytes returns the total amount of host memory.
 func PhysicalMemoryBytes() (uint64, error) {
 	// The function we're calling on Solaris is
 	// long sysconf(int name);

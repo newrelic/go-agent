@@ -12,10 +12,15 @@ import (
 )
 
 var (
+	// ErrDockerUnsupported is returned if Docker is not supported on the
+	// platform.
 	ErrDockerUnsupported = errors.New("Docker unsupported on this platform")
-	ErrDockerNotFound    = errors.New("Docker ID not found")
+	// ErrDockerNotFound is returned if a Docker ID is not found in
+	// /proc/self/cgroup
+	ErrDockerNotFound = errors.New("Docker ID not found")
 )
 
+// DockerID attempts to detect Docker.
 func DockerID() (string, error) {
 	if "linux" != runtime.GOOS {
 		return "", ErrDockerUnsupported
@@ -31,9 +36,9 @@ func DockerID() (string, error) {
 }
 
 var (
-	dockerIdLength   = 64
-	dockerIdRegexRaw = fmt.Sprintf("^[0-9a-f]{%d}$", dockerIdLength)
-	dockerIdRegex    = regexp.MustCompile(dockerIdRegexRaw)
+	dockerIDLength   = 64
+	dockerIDRegexRaw = fmt.Sprintf("^[0-9a-f]{%d}$", dockerIDLength)
+	dockerIDRegex    = regexp.MustCompile(dockerIDRegexRaw)
 )
 
 func parseDockerID(r io.Reader) (string, error) {
@@ -110,9 +115,9 @@ func isCPUCol(col []byte) bool {
 }
 
 func validateDockerID(id string) error {
-	if !dockerIdRegex.MatchString(id) {
+	if !dockerIDRegex.MatchString(id) {
 		return fmt.Errorf("%s does not match %s",
-			id, dockerIdRegexRaw)
+			id, dockerIDRegexRaw)
 	}
 
 	return nil

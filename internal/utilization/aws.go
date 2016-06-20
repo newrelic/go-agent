@@ -52,7 +52,7 @@ func getEndpoints(client *http.Client) (*vendor, error) {
 	v := &vendor{}
 	var err error
 
-	v.Id, err = getAndValidate(client, idEndpoint)
+	v.ID, err = getAndValidate(client, idEndpoint)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"unsafe"
 )
 
+// PhysicalMemoryBytes returns the total amount of host memory.
 func PhysicalMemoryBytes() (uint64, error) {
 	mib := []int32{6 /* CTL_HW */, 5 /* HW_PHYSMEM */}
 

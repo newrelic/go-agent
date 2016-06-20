@@ -8,13 +8,14 @@ import (
 	"strconv"
 )
 
+// BytesToMebibytes converts bytes into mebibytes.
 func BytesToMebibytes(bts uint64) uint64 {
 	return bts / ((uint64)(1024 * 1024))
 }
 
 var (
-	meminfoRe        = regexp.MustCompile(`^MemTotal:\s+([0-9]+)\s+[kK]B$`)
-	memTotalNotFound = errors.New("supported MemTotal not found in /proc/meminfo")
+	meminfoRe           = regexp.MustCompile(`^MemTotal:\s+([0-9]+)\s+[kK]B$`)
+	errMemTotalNotFound = errors.New("supported MemTotal not found in /proc/meminfo")
 )
 
 // parseProcMeminfo is used to parse Linux's "/proc/meminfo".  It is located
@@ -33,7 +34,7 @@ func parseProcMeminfo(f io.Reader) (uint64, error) {
 
 	err := scanner.Err()
 	if err == nil {
-		err = memTotalNotFound
+		err = errMemTotalNotFound
 	}
 	return 0, err
 }
