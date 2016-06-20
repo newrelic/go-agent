@@ -15,7 +15,7 @@ type shim struct {
 	e *logrus.Entry
 }
 
-func (s *shim) Fire(e *log.Entry) {
+func (s *shim) Fire(e log.Entry) {
 	wf := s.e.WithFields(logrus.Fields(e.Context))
 
 	switch e.Level {

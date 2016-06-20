@@ -163,11 +163,6 @@ func debug(data harvestable) {
 func (app *App) process() {
 	var h *harvest
 
-	cn := log.Context{
-		"app":     app.String(),
-		"license": app.config.License,
-	}
-
 	for {
 		select {
 		case <-app.harvestChan:
@@ -189,18 +184,27 @@ func (app *App) process() {
 
 			switch {
 			case isDisconnect(err):
-				log.Info("application disconnected", cn)
+				log.Info("application disconnected", log.Context{
+					"app": app.config.AppName,
+				})
 			case isLicenseException(err):
-				log.Error("invalid license", cn)
+				log.Error("invalid license", log.Context{
+					"app":     app.config.AppName,
+					"license": app.config.License,
+				})
 			case isRestartException(err):
-				log.Info("application restarted", cn)
+				log.Info("application restarted", log.Context{
+					"app": app.config.AppName,
+				})
 				go app.connectRoutine()
 			}
 		case r := <-app.connectChan:
 			h = newHarvest(time.Now())
 			app.setRun(r)
-			log.Info("application connected", cn,
-				log.Context{"run": r.RunID})
+			log.Info("application connected", log.Context{
+				"app": app.config.AppName,
+				"run": r.RunID.String(),
+			})
 		}
 	}
 }
@@ -230,7 +234,7 @@ func NewApp(c api.Config) (api.Application, error) {
 	}
 
 	log.Info("application created", log.Context{
-		"app":         app.String(),
+		"app":         app.config.AppName,
 		"version":     version.Version,
 		"development": app.config.Development,
 	})

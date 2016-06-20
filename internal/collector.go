@@ -128,21 +128,24 @@ func collectorRequestInternal(url string, data []byte, client *http.Client) ([]b
 func collectorRequest(cmd rpmCmd, client *http.Client) ([]byte, error) {
 	url := cmd.url()
 
-	cn := log.Context{
+	log.Debug("rpm request", log.Context{
 		"command": cmd.Name,
 		"url":     url,
-	}
-
-	log.Debug("rpm request", cn, log.Context{
 		"payload": JSONString(cmd.Data),
 	})
 
 	resp, err := collectorRequestInternal(url, cmd.Data, client)
 	if err != nil {
-		log.Debug("rpm failure", cn, log.Context{"error": err.Error()})
+		log.Debug("rpm failure", log.Context{
+			"command": cmd.Name,
+			"url":     url,
+			"error":   err.Error(),
+		})
 	}
 
-	log.Debug("rpm response", cn, log.Context{
+	log.Debug("rpm response", log.Context{
+		"command":  cmd.Name,
+		"url":      url,
 		"response": JSONString(resp),
 	})
 

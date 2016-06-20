@@ -8,17 +8,16 @@ import (
 	"os"
 )
 
-type LogFile struct {
+type logFile struct {
 	level  Level
 	logger *log.Logger
 }
 
 // SetLogFile is used to setup a log file and the selected level.  This function
-// modifies the unprotected public Logger global, and therefore this function
-// should only be used at startup.  The filename can be set to a file path,
-// "stdout", or "stderr".
+// modifies the unprotected public Logger global and should only be used at
+// startup.  The filename can be set to a file path, "stdout", or "stderr".
 func SetLogFile(filename string, level Level) error {
-	l, err := NewFile(filename, level)
+	l, err := newFile(filename, level)
 	if nil != err {
 		return err
 	}
@@ -26,7 +25,7 @@ func SetLogFile(filename string, level Level) error {
 	return nil
 }
 
-func NewFile(location string, level Level) (*LogFile, error) {
+func newFile(location string, level Level) (*logFile, error) {
 	var w io.Writer
 
 	switch location {
@@ -42,7 +41,7 @@ func NewFile(location string, level Level) (*LogFile, error) {
 		}
 	}
 
-	return &LogFile{
+	return &logFile{
 		logger: log.New(w, logPid, logFlags),
 		level:  level,
 	}, nil
@@ -54,14 +53,29 @@ var (
 	logPid = fmt.Sprintf("(%d) ", os.Getpid())
 )
 
-func (f *LogFile) Fire(e *Entry) {
+func levelString(l Level) string {
+	switch l {
+	case LevelError:
+		return "Error"
+	case LevelWarning:
+		return "Warning"
+	case LevelInfo:
+		return "Info"
+	case LevelDebug:
+		return "Debug"
+	default:
+		return fmt.Sprintf("Unknown(%d)", l)
+	}
+}
+
+func (f *logFile) Fire(e Entry) {
 	if e.Level <= f.level {
 		js, err := json.Marshal(struct {
 			Level   string  `json:"level"`
 			Event   string  `json:"event"`
 			Context Context `json:"context"`
 		}{
-			e.Level.String(),
+			levelString(e.Level),
 			e.Event,
 			e.Context,
 		})
