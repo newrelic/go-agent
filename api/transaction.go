@@ -2,12 +2,11 @@ package api
 
 import "net/http"
 
+// Transaction represents a request or a background task.
 type Transaction interface {
-	// If StartTransaction is called with a non-nil http.ResponseWriter, the
-	// Transaction itself may be used in its place.  Doing so will allow
-	// future instrumentation of the response code and response headers.
-	// These methods must not be called if the http.ResponseWriter parameter
-	// to StartTransaction was nil.
+	// If StartTransaction is called with a non-nil http.ResponseWriter then
+	// the Transaction may be used in its place.  This allows
+	// instrumentation of the response code and response headers.
 	http.ResponseWriter
 
 	// End finishes the current transaction, stopping all further
@@ -17,18 +16,13 @@ type Transaction interface {
 	// Ignore ensures that this transaction's data will not be recorded.
 	Ignore() error
 
-	// SetName names the transaction.  Care should be taken to use a small
-	// number of names:  If too many names are used, transactions will not
-	// be grouped usefully.  This method will only work if called before
-	// End, otherwise an error will be returned.
+	// SetName names the transaction.  Transactions will not be grouped
+	// usefully if too many unique names are used.
 	SetName(name string) error
 
-	// NoticeError records an error and associates it with the Transaction.
-	// A stack trace is created for the error at the point at which this
-	// method is called.  If NoticeError is called multiple times in the
-	// same transaction, the first five errors are recorded (this behavior
-	// is subject to potential change in the future).  This method will only
-	// work if called before End, otherwise an error will be returned.
+	// NoticeError records an error.  The first five errors per transaction
+	// are recorded (this behavior is subject to potential change in the
+	// future).
 	NoticeError(err error) error
 
 	// AddAttribute adds a key value pair to the current transaction.  This

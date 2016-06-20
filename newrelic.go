@@ -7,24 +7,18 @@ import (
 )
 
 // NewConfig creates an api.Config populated with the given appname, license,
-// and expected default values.  For descriptions of the fields, see
-// api/config.go
+// and expected default values.  api.Config is described in api/config.go
 func NewConfig(appname, license string) api.Config {
 	return api.NewConfig(appname, license)
 }
 
 // NewApplication creates an Application and spawns goroutines to manage the
 // aggregation and harvesting of data.  On success, a non-nil Application and a
-// nil error will be returned. On failure, a nil Application and a non-nil error
-// will be returned.  This function will fail if the config's Validate method
-// returns an error.
+// nil error are returned. On failure, a nil Application and a non-nil error
+// are returned.
 //
-// Applications returned by this function do not not use any global state (other
-// than the shared log.Logger).  Therefore, it is safe to create multiple
-// applications.
-//
-// The config is passed by value but it contains reference type fields (such as
-// Labels).  These fields must not be modified during the NewApplication call.
+// Applications do not share global state (other than the shared log.Logger).
+// Therefore, it is safe to create multiple applications.
 func NewApplication(c api.Config) (Application, error) {
 	return internal.NewApp(c)
 }

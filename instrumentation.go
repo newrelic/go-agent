@@ -2,20 +2,22 @@ package newrelic
 
 import "net/http"
 
+// instrumentation.go contains helpers built on the lower level API.
+
 // WrapHandle facilitates instrumentation of handlers registered with an
-// http.ServeMux.  As an example, to instrument this code:
+// http.ServeMux.  For example, to instrument this code:
 //
 //    http.Handle("/foo", fooHandler)
 //
-// Perform the following replacement:
+// Perform this replacement:
 //
 //    http.Handle(newrelic.WrapHandle(app, "/foo", fooHandler))
 //
 // The Transaction is passed to the handler in place of the original
-// http.ResponseWriter, so it can be accessed in your handler by type assertion.
+// http.ResponseWriter, so it can be accessed using type assertion.
 // For example, to rename the transaction:
 //
-//	// 'w' is the name of the handler's http.ResponseWriter parameter.
+//	// 'w' is the variable name of the http.ResponseWriter.
 //	if txn, ok := w.(newrelic.Transaction); ok {
 //		txn.SetName("other-name")
 //	}
