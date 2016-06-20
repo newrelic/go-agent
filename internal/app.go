@@ -184,7 +184,7 @@ func (app *App) process() {
 
 			switch {
 			case isDisconnect(err):
-				log.Info("application disconnected", log.Context{
+				log.Error("application disconnected by New Relic", log.Context{
 					"app": app.config.AppName,
 				})
 			case isLicenseException(err):

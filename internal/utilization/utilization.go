@@ -74,7 +74,7 @@ func Gather(config Config) *Data {
 		if nil == err {
 			uDat.Vendors.AWS = aws
 		} else if isAWSValidationError(err) {
-			log.Error("AWS validation error", log.Context{
+			log.Warn("AWS validation error", log.Context{
 				"error": err.Error(),
 			})
 		}
@@ -88,7 +88,7 @@ func Gather(config Config) *Data {
 	if nil == err {
 		uDat.Hostname = host
 	} else {
-		log.Error("error getting hostname", log.Context{
+		log.Warn("error getting hostname", log.Context{
 			"error": err.Error(),
 		})
 	}
@@ -98,7 +98,7 @@ func Gather(config Config) *Data {
 		mib := sysinfo.BytesToMebibytes(bts)
 		uDat.RAMMib = &mib
 	} else {
-		log.Error("error getting memory", log.Context{
+		log.Warn("error getting memory", log.Context{
 			"error": err.Error(),
 		})
 	}
