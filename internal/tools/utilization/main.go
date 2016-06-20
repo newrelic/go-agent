@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	log.SetLogFile("stdout", log.LevelDebug)
+	log.SetFile("stdout", log.LevelDebug)
 
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    true,

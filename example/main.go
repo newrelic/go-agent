@@ -21,7 +21,7 @@ var (
 )
 
 func init() {
-	log.SetLogFile("stdout", log.LevelDebug)
+	log.SetFile("stdout", log.LevelDebug)
 	// logrus.SetOutput(os.Stdout)
 	// logrus.SetLevel(logrus.DebugLevel)
 }

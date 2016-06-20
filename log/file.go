@@ -13,10 +13,10 @@ type logFile struct {
 	logger *log.Logger
 }
 
-// SetLogFile sets up a basic log file for the agent to use.  This function
+// SetFile sets up a basic log file for the agent to use.  This function
 // modifies the Logger global and should only be used at startup.  The filename
 // can be set to a file path, "stdout", or "stderr".
-func SetLogFile(filename string, level Level) error {
+func SetFile(filename string, level Level) error {
 	l, err := newFile(filename, level)
 	if nil != err {
 		return err
