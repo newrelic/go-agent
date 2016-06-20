@@ -1,3 +1,5 @@
+// Package log contains the logging system used by the Go Agent.  It is designed
+// to be simple and easy to integrate with your application's existing logging.
 package log
 
 import "time"
