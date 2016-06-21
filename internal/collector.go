@@ -128,11 +128,13 @@ func collectorRequestInternal(url string, data []byte, client *http.Client) ([]b
 func collectorRequest(cmd rpmCmd, client *http.Client) ([]byte, error) {
 	url := cmd.url()
 
-	log.Debug("rpm request", log.Context{
-		"command": cmd.Name,
-		"url":     url,
-		"payload": JSONString(cmd.Data),
-	})
+	if log.DebugEnabled() {
+		log.Debug("rpm request", log.Context{
+			"command": cmd.Name,
+			"url":     url,
+			"payload": JSONString(cmd.Data),
+		})
+	}
 
 	resp, err := collectorRequestInternal(url, cmd.Data, client)
 	if err != nil {
@@ -143,11 +145,13 @@ func collectorRequest(cmd rpmCmd, client *http.Client) ([]byte, error) {
 		})
 	}
 
-	log.Debug("rpm response", log.Context{
-		"command":  cmd.Name,
-		"url":      url,
-		"response": JSONString(resp),
-	})
+	if log.DebugEnabled() {
+		log.Debug("rpm response", log.Context{
+			"command":  cmd.Name,
+			"url":      url,
+			"response": JSONString(resp),
+		})
+	}
 
 	return resp, err
 }

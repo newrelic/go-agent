@@ -30,6 +30,11 @@ func (s *shim) Fire(e log.Entry) {
 	}
 }
 
+func (s *shim) DebugEnabled() bool {
+	lvl := logrus.GetLevel()
+	return lvl >= logrus.DebugLevel
+}
+
 func init() {
 	log.Logger = &shim{
 		e: logrus.WithFields(logrus.Fields{

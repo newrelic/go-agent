@@ -86,3 +86,7 @@ func (f *logFile) Fire(e Entry) {
 		}
 	}
 }
+
+func (f *logFile) DebugEnabled() bool {
+	return f.level >= LevelDebug
+}
