@@ -34,6 +34,7 @@ type Entry struct {
 // Hook processes log entries.
 type Hook interface {
 	Fire(Entry)
+	DebugEnabled() bool
 }
 
 var (
@@ -66,4 +67,9 @@ func fire(level Level, event string, ctx Context) {
 			Context:   ctx,
 		})
 	}
+}
+
+// DebugEnabled indicates if the Logger's level includes debug.
+func DebugEnabled() bool {
+	return nil != Logger && Logger.DebugEnabled()
 }

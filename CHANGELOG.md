@@ -2,6 +2,8 @@
 
 * Rename `SetLogFile` to `SetFile` to reduce redundancy.
 
+* Added `DebugEnabled` logging guard to reduce overhead.
+
 * `Transaction` now implements an `Ignore` method which will prevent
   any of the transaction's data from being recorded.
 

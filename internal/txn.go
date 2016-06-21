@@ -270,12 +270,13 @@ func (txn *txn) End() error {
 		txn.zone = apdexNone
 	}
 
-	// This logging adds roughly 4 allocations per transaction.
-	log.Debug("transaction ended", log.Context{
-		"name":        txn.finalName,
-		"duration_ms": txn.duration.Seconds() * 1000.0,
-		"ignored":     txn.ignore,
-	})
+	if log.DebugEnabled() {
+		log.Debug("transaction ended", log.Context{
+			"name":        txn.finalName,
+			"duration_ms": txn.duration.Seconds() * 1000.0,
+			"ignored":     txn.ignore,
+		})
+	}
 
 	if !txn.ignore {
 		txn.Consumer.consume(txn.Reply.RunID, txn)
