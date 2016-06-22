@@ -6,7 +6,8 @@ import (
 	"github.com/newrelic/go-agent/api/datastore"
 )
 
-// Transaction represents a request or a background task.
+// Transaction represents a request or a background task.  Each Transaction
+// should only be used in a single goroutine.
 type Transaction interface {
 	// If StartTransaction is called with a non-nil http.ResponseWriter then
 	// the Transaction may be used in its place.  This allows
@@ -40,8 +41,7 @@ type Transaction interface {
 	AddAttribute(key string, value interface{}) error
 
 	// SegmentTracer allows the timing of functions, external calls, and
-	// datastore calls.  These methods MUST only be used in a single
-	// goroutine.
+	// datastore calls.  These methods MUST be used in a single goroutine.
 	SegmentTracer
 }
 
