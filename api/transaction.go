@@ -6,8 +6,8 @@ import (
 	"github.com/newrelic/go-agent/api/datastore"
 )
 
-// Transaction represents a request or a background task.  Each Transaction
-// should only be used in a single goroutine.
+// Transaction represents a request or a background task.
+// Each Transaction should only be used in a single goroutine.
 type Transaction interface {
 	// If StartTransaction is called with a non-nil http.ResponseWriter then
 	// the Transaction may be used in its place.  This allows

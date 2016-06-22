@@ -5,13 +5,13 @@ import "net/http"
 // Application represents your application.
 type Application interface {
 	// StartTransaction begins a Transaction.
+	// * The Transaction should only be used in a single goroutine.
 	// * This method never returns nil.
-	// * If an http.Request is provided, the Transaction is considered
+	// * If an http.Request is provided then the Transaction is considered
 	//   a web transaction.
-	// * If an http.ResponseWriter is provided, the Transaction can be
-	//   used as an http.ResponseWriter in place of the one given.  This
-	//   allows for instrumentation of the HTTP response code and
-	//   response headers.
+	// * If an http.ResponseWriter is provided then the Transaction can be
+	//   used in its place.  This allows instrumentation of the response
+	//   code and response headers.
 	StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction
 
 	// RecordCustomEvent adds a custom event to the application.  This
