@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.5.0
+
 * Added segment timing methods to `Transaction`.  These methods must only be
   used in a single goroutine.
 
