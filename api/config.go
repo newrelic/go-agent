@@ -102,6 +102,13 @@ type Config struct {
 	// Attributes controls the attributes included with errors and
 	// transaction events.
 	Attributes AttributeDestinationConfig
+
+	// RuntimeSampler controls the collection of runtime statistics like
+	// CPU/Memory usage, goroutine count, and GC pauses.
+	RuntimeSampler struct {
+		// Enabled controls whether runtime statistics are captured.
+		Enabled bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes included with errors and
@@ -133,6 +140,7 @@ func NewConfig(appname, license string) Config {
 	c.Utilization.DetectAWS = true
 	c.Utilization.DetectDocker = true
 	c.Attributes.Enabled = true
+	c.RuntimeSampler.Enabled = true
 
 	return c
 }

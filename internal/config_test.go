@@ -49,6 +49,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"HighSecurity":false,
 			"HostDisplayName":"",
 			"Labels":{"zip":"zap"},
+			"RuntimeSampler":{"Enabled":true},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true
@@ -106,6 +107,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"HighSecurity":false,
 			"HostDisplayName":"",
 			"Labels":null,
+			"RuntimeSampler":{"Enabled":true},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true
