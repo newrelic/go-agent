@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* The license length check will not be performed in `Development` mode.
+
 * Rename `SetLogFile` to `SetFile` to reduce redundancy.
 
 * Added `DebugEnabled` logging guard to reduce overhead.

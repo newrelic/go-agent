@@ -152,8 +152,10 @@ var (
 // Validate checks the config for improper fields.  If the config is invalid,
 // newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
-	if len(c.License) != licenseLength {
-		return errLicenseLen
+	if !c.Development {
+		if len(c.License) != licenseLength {
+			return errLicenseLen
+		}
 	}
 	if c.HighSecurity && !c.UseTLS {
 		return errHighSecurityTLS
