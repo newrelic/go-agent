@@ -37,3 +37,31 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
+
+// NewRoundTripper creates an http.RoundTripper to instrument external requests.
+// This RoundTripper must be used in same the goroutine as the other uses of the
+// Transaction's SegmentTracer methods.  http.DefaultTransport is used if an
+// http.RoundTripper is not provided.
+//
+//   client := &http.Client{}
+//   client.Transport = newrelic.NewRoundTripper(txn, nil)
+//   resp, err := client.Get("http://example.com/")
+//
+func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
+	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
+		token := txn.StartSegment()
+		txn.PrepareRequest(token, request)
+
+		if nil == original {
+			original = http.DefaultTransport
+		}
+		response, err := original.RoundTrip(request)
+
+		txn.EndRequest(token, request, response)
+		return response, err
+	})
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }

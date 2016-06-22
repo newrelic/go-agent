@@ -69,6 +69,33 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
+	testTxnEventJSON(t, &txnEvent{
+		Name:      "myName",
+		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Duration:  2 * time.Second,
+		queuing:   5 * time.Second,
+		zone:      apdexNone,
+		attrs:     nil,
+		datastoreExternalTotals: datastoreExternalTotals{
+			externalCallCount:  22,
+			externalDuration:   1122334 * time.Millisecond,
+			datastoreCallCount: 33,
+			datastoreDuration:  5566778 * time.Millisecond,
+		},
+	}, `[
+	{
+		"type":"Transaction",
+		"name":"myName",
+		"timestamp":1.41713646e+09,
+		"duration":2,
+		"queueDuration":5,
+		"externalCallCount":22,
+		"externalDuration":1122.334,
+		"databaseCallCount":33,
+		"databaseDuration":5566.778
+	},
+	{},
+	{}]`)
 }
 
 func TestTxnEventAttributes(t *testing.T) {

@@ -17,6 +17,7 @@ type txnEvent struct {
 	queuing   time.Duration
 	zone      apdexZone
 	attrs     *attributes
+	datastoreExternalTotals
 }
 
 func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
@@ -33,6 +34,20 @@ func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
 	if e.queuing > 0 {
 		buf.WriteString(`,"queueDuration":`)
 		jsonx.AppendFloat(buf, e.queuing.Seconds())
+	}
+	if e.externalCallCount > 0 {
+		buf.WriteString(`,"externalCallCount":`)
+		jsonx.AppendInt(buf, int64(e.externalCallCount))
+		buf.WriteString(`,"externalDuration":`)
+		jsonx.AppendFloat(buf, e.externalDuration.Seconds())
+	}
+	if e.datastoreCallCount > 0 {
+		// Note that "database" is used for the keys here instead of
+		// "datastore" for historical reasons.
+		buf.WriteString(`,"databaseCallCount":`)
+		jsonx.AppendInt(buf, int64(e.datastoreCallCount))
+		buf.WriteString(`,"databaseDuration":`)
+		jsonx.AppendFloat(buf, e.datastoreDuration.Seconds())
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')

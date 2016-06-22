@@ -36,4 +36,67 @@ const (
 	errorEventsSent = "Supportability/Events/TransactionError/Sent"
 
 	supportabilityDropped = "Supportability/MetricsDropped"
+
+	customSegmentPrefix = "Custom/"
+
+	// source.datanerd.us/agents/agent-specs/blob/master/Datastore-Metrics-PORTED.md
+	datastoreAll   = "Datastore/all"
+	datastoreWeb   = "Datastore/allWeb"
+	datastoreOther = "Datastore/allOther"
+
+	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_segment.md
+	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_cat.md
+	// source.datanerd.us/agents/agent-specs/blob/master/Cross-Application-Tracing-PORTED.md
+	externalAll   = "External/all"
+	externalWeb   = "External/allWeb"
+	externalOther = "External/allOther"
 )
+
+type datastoreProductMetrics struct {
+	All   string // Datastore/{datastore}/all
+	Web   string // Datastore/{datastore}/allWeb
+	Other string // Datastore/{datastore}/allOther
+}
+
+func datastoreProductMetric(key datastoreMetricKey) datastoreProductMetrics {
+	d, ok := datastoreProductMetricsCache[key.Product]
+	if ok {
+		return d
+	}
+	return datastoreProductMetrics{
+		All:   "Datastore/" + string(key.Product) + "/all",
+		Web:   "Datastore/" + string(key.Product) + "/allWeb",
+		Other: "Datastore/" + string(key.Product) + "/allOther",
+	}
+}
+
+// Datastore/operation/{datastore}/{operation}
+func datastoreOperationMetric(key datastoreMetricKey) string {
+	return "Datastore/operation/" + string(key.Product) +
+		"/" + key.Operation
+}
+
+// Datastore/statement/{datastore}/{table}/{operation}
+func datastoreStatementMetric(key datastoreMetricKey) string {
+	return "Datastore/statement/" + string(key.Product) +
+		"/" + key.Collection +
+		"/" + key.Operation
+}
+
+// External/{host}/all
+func externalHostMetric(key externalMetricKey) string {
+	return "External/" + key.Host + "/all"
+}
+
+// ExternalApp/{host}/{external_id}/all
+func externalAppMetric(key externalMetricKey) string {
+	return "ExternalApp/" + key.Host +
+		"/" + key.ExternalCrossProcessID + "/all"
+}
+
+// ExternalTransaction/{host}/{external_id}/{external_txnname}
+func externalTransactionMetric(key externalMetricKey) string {
+	return "ExternalTransaction/" + key.Host +
+		"/" + key.ExternalCrossProcessID +
+		"/" + key.ExternalTransactionName
+}

@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Added segment timing methods to `Transaction`.  These methods must only be
+  used in a single goroutine.
+
 * The license length check will not be performed in `Development` mode.
 
 * Rename `SetLogFile` to `SetFile` to reduce redundancy.

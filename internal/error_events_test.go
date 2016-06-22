@@ -61,6 +61,36 @@ func TestErrorEventMarshal(t *testing.T) {
 		{},
 		{}
 	]`)
+	testErrorEventJSON(t, &errorEvent{
+		klass:    "*errors.errorString",
+		msg:      "hello",
+		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		txnName:  "myName",
+		duration: 3 * time.Second,
+		queuing:  5 * time.Second,
+		datastoreExternalTotals: datastoreExternalTotals{
+			externalCallCount:  22,
+			externalDuration:   1122334 * time.Millisecond,
+			datastoreCallCount: 33,
+			datastoreDuration:  5566778 * time.Millisecond,
+		},
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3,
+			"queueDuration":5,
+			"externalCallCount":22,
+			"externalDuration":1122.334,
+			"databaseCallCount":33,
+			"databaseDuration":5566.778
+		},
+		{},
+		{}
+	]`)
 }
 
 func TestErrorEventAttributes(t *testing.T) {

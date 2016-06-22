@@ -54,3 +54,18 @@ func TestSafeURLFromString(t *testing.T) {
 		t.Error(out)
 	}
 }
+
+func TestHostFromExternalURL(t *testing.T) {
+	host := hostFromExternalURL("http://example.com/zip/zap?secret=shh")
+	if host != "example.com" {
+		t.Error(host)
+	}
+	host = hostFromExternalURL("")
+	if host != "" {
+		t.Error(host)
+	}
+	host = hostFromExternalURL("not-a-url")
+	if host != "" {
+		t.Error(host)
+	}
+}

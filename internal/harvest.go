@@ -77,6 +77,7 @@ type payloadCreator interface {
 type createTxnMetricsArgs struct {
 	IsWeb          bool
 	Duration       time.Duration
+	Exclusive      time.Duration
 	Name           string
 	Zone           apdexZone
 	ApdexThreshold time.Duration
@@ -90,9 +91,9 @@ func (h *harvest) createTxnMetrics(args createTxnMetricsArgs) {
 		rollup = webRollup
 		h.metrics.addDuration(dispatcherMetric, "", args.Duration, 0, forced)
 	}
-	exclusive := args.Duration
-	h.metrics.addDuration(args.Name, "", args.Duration, exclusive, forced)
-	h.metrics.addDuration(rollup, "", args.Duration, exclusive, forced)
+
+	h.metrics.addDuration(args.Name, "", args.Duration, args.Exclusive, forced)
+	h.metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
 
 	// Apdex Metrics
 	if args.Zone != apdexNone {
