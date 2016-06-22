@@ -60,6 +60,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	backgroundName := "OtherTransaction/zip/zap"
 	args := createTxnMetricsArgs{
 		Duration:       123 * time.Second,
+		Exclusive:      109 * time.Second,
 		ApdexThreshold: 2 * time.Second,
 	}
 
@@ -70,8 +71,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	h := newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{errorsAll, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{errorsWeb, "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -87,8 +88,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
@@ -101,8 +102,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{errorsAll, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{errorsBackground, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -115,8 +116,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 	})
 
 }

@@ -30,6 +30,18 @@ type metricData struct {
 	sumSquares      float64 // Seconds**2, or 0 for Apdex
 }
 
+func metricDataFromDuration(duration, exclusive time.Duration) metricData {
+	ds := duration.Seconds()
+	return metricData{
+		countSatisfied:  1,
+		totalTolerated:  ds,
+		exclusiveFailed: exclusive.Seconds(),
+		min:             ds,
+		max:             ds,
+		sumSquares:      ds * ds,
+	}
+}
+
 type metric struct {
 	forced metricForce
 	data   metricData
@@ -56,7 +68,7 @@ func (mt *metricTable) full() bool {
 	return len(mt.metrics) >= mt.maxTableSize
 }
 
-func (data *metricData) aggregate(src *metricData) {
+func (data *metricData) aggregate(src metricData) {
 	data.countSatisfied += src.countSatisfied
 	data.totalTolerated += src.totalTolerated
 	data.exclusiveFailed += src.exclusiveFailed
@@ -71,15 +83,9 @@ func (data *metricData) aggregate(src *metricData) {
 	data.sumSquares += src.sumSquares
 }
 
-func (m *metric) clone() *metric {
-	dup := &metric{}
-	*dup = *m
-	return dup
-}
-
-func (mt *metricTable) mergeMetric(id metricID, m *metric) {
+func (mt *metricTable) mergeMetric(id metricID, m metric) {
 	if to := mt.metrics[id]; nil != to {
-		to.data.aggregate(&m.data)
+		to.data.aggregate(m.data)
 		return
 	}
 
@@ -87,8 +93,13 @@ func (mt *metricTable) mergeMetric(id metricID, m *metric) {
 		mt.numDropped++
 		return
 	}
-
-	mt.metrics[id] = m.clone()
+	// NOTE: `new` is used in place of `&m` since the latter will make `m`
+	// get heap allocated regardless of whether or not this line gets
+	// reached (running go version go1.5 darwin/amd64).  See
+	// BenchmarkAddingSameMetrics.
+	alloc := new(metric)
+	*alloc = m
+	mt.metrics[id] = alloc
 }
 
 func (mt *metricTable) mergeFailed(from *metricTable) {
@@ -107,17 +118,17 @@ func (mt *metricTable) mergeFailed(from *metricTable) {
 func (mt *metricTable) merge(from *metricTable, newScope string) {
 	if "" == newScope {
 		for id, m := range from.metrics {
-			mt.mergeMetric(id, m)
+			mt.mergeMetric(id, *m)
 		}
 	} else {
 		for id, m := range from.metrics {
-			mt.mergeMetric(metricID{Name: id.Name, Scope: newScope}, m)
+			mt.mergeMetric(metricID{Name: id.Name, Scope: newScope}, *m)
 		}
 	}
 }
 
 func (mt *metricTable) add(name, scope string, data metricData, force metricForce) {
-	mt.mergeMetric(metricID{Name: name, Scope: scope}, &metric{data: data, forced: force})
+	mt.mergeMetric(metricID{Name: name, Scope: scope}, metric{data: data, forced: force})
 }
 
 func (mt *metricTable) addCount(name string, count float64, force metricForce) {
@@ -129,15 +140,7 @@ func (mt *metricTable) addSingleCount(name string, force metricForce) {
 }
 
 func (mt *metricTable) addDuration(name, scope string, duration, exclusive time.Duration, force metricForce) {
-	data := metricData{
-		countSatisfied:  1,
-		totalTolerated:  duration.Seconds(),
-		exclusiveFailed: exclusive.Seconds(),
-		min:             duration.Seconds(),
-		max:             duration.Seconds(),
-		sumSquares:      duration.Seconds() * duration.Seconds(),
-	}
-	mt.add(name, scope, data, force)
+	mt.add(name, scope, metricDataFromDuration(duration, exclusive), force)
 }
 
 func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone apdexZone, force metricForce) {
@@ -233,7 +236,7 @@ func (mt *metricTable) applyRules(rules metricRules) *metricTable {
 		}
 
 		if "" != out {
-			applied.mergeMetric(metricID{Name: out, Scope: id.Scope}, m)
+			applied.mergeMetric(metricID{Name: out, Scope: id.Scope}, *m)
 		}
 	}
 

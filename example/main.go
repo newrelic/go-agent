@@ -10,6 +10,7 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/api/datastore"
 	"github.com/newrelic/go-agent/log"
 
 	// "github.com/Sirupsen/logrus"
@@ -87,6 +88,65 @@ func ignore(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func segments(w http.ResponseWriter, r *http.Request) {
+	func() {
+		if txn, ok := w.(newrelic.Transaction); ok {
+			defer txn.EndSegment(txn.StartSegment(), "f1")
+		}
+		func() {
+			if txn, ok := w.(newrelic.Transaction); ok {
+				defer txn.EndSegment(txn.StartSegment(), "f2")
+			}
+			io.WriteString(w, "segments!")
+			time.Sleep(10 * time.Millisecond)
+		}()
+		time.Sleep(15 * time.Millisecond)
+	}()
+	time.Sleep(20 * time.Millisecond)
+}
+
+func mysql(w http.ResponseWriter, r *http.Request) {
+	if txn, ok := w.(newrelic.Transaction); ok {
+		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
+			Product:    datastore.MySQL,
+			Collection: "my_table",
+			Operation:  "SELECT",
+		})
+	}
+
+	time.Sleep(20 * time.Millisecond)
+	io.WriteString(w, `performing fake query "SELECT * from my_table"`)
+}
+
+func external(w http.ResponseWriter, r *http.Request) {
+	url := "http://example.com/"
+	if txn, ok := w.(newrelic.Transaction); ok {
+		defer txn.EndExternal(txn.StartSegment(), url)
+	}
+
+	resp, err := http.Get(url)
+	if nil != err {
+		io.WriteString(w, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(w, resp.Body)
+}
+
+func roundtripper(w http.ResponseWriter, r *http.Request) {
+	client := &http.Client{}
+	if txn, ok := w.(newrelic.Transaction); ok {
+		client.Transport = newrelic.NewRoundTripper(txn, nil)
+	}
+	resp, err := client.Get("http://example.com/")
+	if nil != err {
+		io.WriteString(w, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(w, resp.Body)
+}
+
 const (
 	licenseVar = "NEW_RELIC_LICENSE_KEY"
 	appname    = "My Go Application"
@@ -114,6 +174,10 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_attribute", addAttribute))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/ignore", ignore))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/segments", segments))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/mysql", mysql))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc("/background", background)
 
 	http.ListenAndServe(":8000", nil)

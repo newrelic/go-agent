@@ -53,21 +53,25 @@ type WantError struct {
 
 // WantErrorEvent is an error event expectation.
 type WantErrorEvent struct {
-	TxnName         string
-	Msg             string
-	Klass           string
-	Queuing         bool
-	UserAttributes  map[string]interface{}
-	AgentAttributes map[string]interface{}
+	TxnName            string
+	Msg                string
+	Klass              string
+	Queuing            bool
+	ExternalCallCount  uint64
+	DatastoreCallCount uint64
+	UserAttributes     map[string]interface{}
+	AgentAttributes    map[string]interface{}
 }
 
 // WantTxnEvent is a transaction event expectation.
 type WantTxnEvent struct {
-	Name            string
-	Zone            string
-	Queuing         bool
-	UserAttributes  map[string]interface{}
-	AgentAttributes map[string]interface{}
+	Name               string
+	Zone               string
+	Queuing            bool
+	ExternalCallCount  uint64
+	DatastoreCallCount uint64
+	UserAttributes     map[string]interface{}
+	AgentAttributes    map[string]interface{}
 }
 
 // Expect exposes methods that allow for testing whether the correct data was
@@ -208,6 +212,18 @@ func expectErrorEvent(v validator, err *errorEvent, expect WantErrorEvent) {
 	if nil != expect.AgentAttributes {
 		expectAttributes(v, getAgentAttributes(err.attrs, destError), expect.AgentAttributes)
 	}
+	if expect.ExternalCallCount != err.externalCallCount {
+		v.Error("external call count", expect.ExternalCallCount, err.externalCallCount)
+	}
+	if (0 == expect.ExternalCallCount) != (err.externalDuration == 0) {
+		v.Error("external duration", err.externalDuration)
+	}
+	if expect.DatastoreCallCount != err.datastoreCallCount {
+		v.Error("datastore call count", expect.DatastoreCallCount, err.datastoreCallCount)
+	}
+	if (0 == expect.DatastoreCallCount) != (err.datastoreDuration == 0) {
+		v.Error("datastore duration", err.datastoreDuration)
+	}
 }
 
 func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent) {
@@ -240,6 +256,18 @@ func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
 	}
 	if nil != expect.AgentAttributes {
 		expectAttributes(v, getAgentAttributes(e.attrs, destTxnEvent), expect.AgentAttributes)
+	}
+	if expect.ExternalCallCount != e.externalCallCount {
+		v.Error("external call count", expect.ExternalCallCount, e.externalCallCount)
+	}
+	if (0 == expect.ExternalCallCount) != (e.externalDuration == 0) {
+		v.Error("external duration", e.externalDuration)
+	}
+	if expect.DatastoreCallCount != e.datastoreCallCount {
+		v.Error("datastore call count", expect.DatastoreCallCount, e.datastoreCallCount)
+	}
+	if (0 == expect.DatastoreCallCount) != (e.datastoreDuration == 0) {
+		v.Error("datastore duration", e.datastoreDuration)
 	}
 }
 

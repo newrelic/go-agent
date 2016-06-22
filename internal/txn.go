@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/api"
+	"github.com/newrelic/go-agent/api/datastore"
 	"github.com/newrelic/go-agent/log"
 )
 
@@ -36,6 +37,9 @@ type txn struct {
 	errors     txnErrors // Lazily initialized.
 	errorsSeen uint64
 	attrs      *attributes
+
+	// Fields relating to tracing and breakdown metrics/segments.
+	tracer
 
 	// wroteHeader prevents capturing multiple response code errors if the
 	// user erroneously calls WriteHeader multiple times.
@@ -106,9 +110,15 @@ func (txn *txn) getsApdex() bool {
 }
 
 func (txn *txn) mergeIntoHarvest(h *harvest) {
+	exclusive := time.Duration(0)
+	if txn.duration > txn.children {
+		exclusive = txn.duration - txn.children
+	}
+
 	h.createTxnMetrics(createTxnMetricsArgs{
 		IsWeb:          txn.isWeb,
 		Duration:       txn.duration,
+		Exclusive:      exclusive,
 		Name:           txn.finalName,
 		Zone:           txn.zone,
 		ApdexThreshold: txn.apdexThreshold,
@@ -119,6 +129,8 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 		h.metrics.addDuration(queueMetric, "", txn.queuing, txn.queuing, forced)
 	}
 
+	mergeBreakdownMetrics(&txn.tracer, h.metrics, txn.finalName, txn.isWeb)
+
 	if txn.txnEventsEnabled() {
 		event := &txnEvent{
 			Name:      txn.finalName,
@@ -127,6 +139,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 			queuing:   txn.queuing,
 			zone:      txn.zone,
 			attrs:     txn.attrs,
+			datastoreExternalTotals: txn.datastoreExternalTotals,
 		}
 		h.addTxnEvent(event)
 	}
@@ -148,6 +161,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 				duration: txn.duration,
 				queuing:  txn.queuing,
 				attrs:    txn.attrs,
+				datastoreExternalTotals: txn.datastoreExternalTotals,
 			})
 		}
 	}
@@ -385,4 +399,76 @@ func (txn *txn) Ignore() error {
 	}
 	txn.ignore = true
 	return nil
+}
+
+func (txn *txn) StartSegment() api.Token {
+	token := invalidToken
+	txn.Lock()
+	if !txn.finished {
+		token = startSegment(&txn.tracer, time.Now())
+	}
+	txn.Unlock()
+	return token
+}
+
+func (txn *txn) EndSegment(token api.Token, name string) {
+	txn.Lock()
+	if !txn.finished {
+		endBasicSegment(&txn.tracer, token, time.Now(), name)
+	}
+	txn.Unlock()
+}
+
+func (txn *txn) EndDatastore(token api.Token, s datastore.Segment) {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return
+	}
+	endDatastoreSegment(&txn.tracer, token, time.Now(), s)
+}
+
+func (txn *txn) EndExternal(token api.Token, url string) {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return
+	}
+	endExternalSegment(&txn.tracer, token, time.Now(), hostFromExternalURL(url))
+}
+
+func (txn *txn) PrepareRequest(token api.Token, request *http.Request) {
+	txn.Lock()
+	defer txn.Unlock()
+
+	// TODO: handle request CAT headers
+}
+
+func hostFromRequestResponse(request *http.Request, response *http.Response) string {
+	if nil != response && nil != response.Request {
+		request = response.Request
+	}
+	if nil == request || nil == request.URL {
+		return ""
+	}
+	if "" != request.URL.Opaque {
+		return "opaque"
+	}
+	return request.URL.Host
+}
+
+func (txn *txn) EndRequest(token api.Token, request *http.Request, response *http.Response) {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return
+	}
+
+	// TODO: handle response CAT headers
+
+	host := hostFromRequestResponse(request, response)
+	endExternalSegment(&txn.tracer, token, time.Now(), host)
 }

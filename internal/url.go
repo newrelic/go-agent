@@ -25,3 +25,14 @@ func safeURLFromString(rawurl string) string {
 	}
 	return safeURL(u)
 }
+
+func hostFromExternalURL(rawurl string) string {
+	u, err := url.Parse(rawurl)
+	if nil != err {
+		return ""
+	}
+	if "" != u.Opaque {
+		return ""
+	}
+	return u.Host
+}
