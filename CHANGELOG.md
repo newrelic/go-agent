@@ -13,6 +13,8 @@
   `http.CloseNotifier`, `http.Flusher`, `http.Hijacker`, and `io.ReaderFrom`
   to match the behavior of its wrapped `http.ResponseWriter`.
 
+* Changed project name from `go-sdk` to `go-agent`.
+
 ## 0.4.0
 
 * Queue time support added: if the inbound request contains an
