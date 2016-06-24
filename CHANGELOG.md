@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* In `Development` mode, the license must be the proper length or empty.
+
 ## 0.5.0
 
 * Added segment timing methods to `Transaction`.  These methods must only be

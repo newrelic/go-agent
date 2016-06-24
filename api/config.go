@@ -142,29 +142,30 @@ const (
 	appNameLimit  = 3
 )
 
+// The following errors will be returned if your Config fails to validate.
 var (
-	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
-	errHighSecurityTLS = errors.New("high security requires TLS")
-	errAppNameMissing  = errors.New("AppName required")
-	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
+	ErrLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
+	ErrHighSecurityTLS = errors.New("high security requires TLS")
+	ErrAppNameMissing  = errors.New("AppName required")
+	ErrAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
 // Validate checks the config for improper fields.  If the config is invalid,
 // newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
-	if !c.Development {
-		if len(c.License) != licenseLength {
-			return errLicenseLen
-		}
+	// In development mode, the License may be empty.
+	if !((len(c.License) == licenseLength) ||
+		(c.Development && len(c.License) == 0)) {
+		return ErrLicenseLen
 	}
 	if c.HighSecurity && !c.UseTLS {
-		return errHighSecurityTLS
+		return ErrHighSecurityTLS
 	}
 	if "" == c.AppName {
-		return errAppNameMissing
+		return ErrAppNameMissing
 	}
-	if strings.Count(c.AppName, ";") > appNameLimit {
-		return errAppNameLimit
+	if strings.Count(c.AppName, ";") >= appNameLimit {
+		return ErrAppNameLimit
 	}
 	return nil
 }

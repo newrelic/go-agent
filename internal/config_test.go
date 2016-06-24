@@ -134,3 +134,59 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		t.Error(string(js))
 	}
 }
+
+func TestValidate(t *testing.T) {
+	c := api.Config{
+		License: "0123456789012345678901234567890123456789",
+		AppName: "my app",
+	}
+	if err := c.Validate(); nil != err {
+		t.Error(err)
+	}
+	c = api.Config{License: "", AppName: "my app"}
+	if err := c.Validate(); err != api.ErrLicenseLen {
+		t.Error(err)
+	}
+	c = api.Config{License: "", AppName: "my app", Development: true}
+	if err := c.Validate(); nil != err {
+		t.Error(err)
+	}
+	c = api.Config{
+		License: "wronglength",
+		AppName: "my app",
+	}
+	if err := c.Validate(); err != api.ErrLicenseLen {
+		t.Error(err)
+	}
+	c = api.Config{
+		License: "0123456789012345678901234567890123456789",
+		AppName: "too;many;app;names",
+	}
+	if err := c.Validate(); err != api.ErrAppNameLimit {
+		t.Error(err)
+	}
+	c = api.Config{
+		License: "0123456789012345678901234567890123456789",
+		AppName: "",
+	}
+	if err := c.Validate(); err != api.ErrAppNameMissing {
+		t.Error(err)
+	}
+	c = api.Config{
+		License:      "0123456789012345678901234567890123456789",
+		AppName:      "my app",
+		HighSecurity: true,
+	}
+	if err := c.Validate(); err != api.ErrHighSecurityTLS {
+		t.Error(err)
+	}
+	c = api.Config{
+		License:      "0123456789012345678901234567890123456789",
+		AppName:      "my app",
+		UseTLS:       true,
+		HighSecurity: true,
+	}
+	if err := c.Validate(); err != nil {
+		t.Error(err)
+	}
+}
