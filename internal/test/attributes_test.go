@@ -2,7 +2,6 @@ package test
 
 import (
 	"errors"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/newrelic/go-agent/api"
@@ -114,7 +113,7 @@ func TestAgentAttributes(t *testing.T) {
 	}
 
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 
@@ -173,7 +172,7 @@ func TestAttributesDisabled(t *testing.T) {
 	}
 
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 
@@ -214,7 +213,7 @@ func TestAttributesDisabled(t *testing.T) {
 
 func TestDefaultResponseCode(t *testing.T) {
 	app := testApp(nil, nil, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 	txn.Write([]byte("hello"))
@@ -263,7 +262,7 @@ func TestTxnEventAttributesDisabled(t *testing.T) {
 		cfg.TransactionEvents.Attributes.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 	txn.AddAttribute("myStr", "hello")
@@ -314,7 +313,7 @@ func TestErrorAttributesDisabled(t *testing.T) {
 		cfg.ErrorCollector.Attributes.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 	txn.AddAttribute("myStr", "hello")
@@ -379,7 +378,7 @@ func TestAgentAttributesExcluded(t *testing.T) {
 	}
 
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 
@@ -424,7 +423,7 @@ func TestAgentAttributesExcludedFromErrors(t *testing.T) {
 	}
 
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 
@@ -478,7 +477,7 @@ func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 	}
 
 	app := testApp(nil, cfgfn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
 

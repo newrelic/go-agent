@@ -2,7 +2,6 @@ package test
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -44,7 +43,7 @@ func BenchmarkMuxWithoutNewRelic(b *testing.B) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(helloPath, handler)
 
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -59,7 +58,7 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, handler))
 
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -79,7 +78,7 @@ func BenchmarkMuxDevelopmentMode(b *testing.B) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, handler))
 
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -457,7 +456,7 @@ func TestWrapHandleFunc(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
 	mux.HandleFunc(newrelic.WrapHandleFunc(app, helloPath, myErrorHandler))
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
 	out := w.Body.String()
@@ -493,7 +492,7 @@ func TestWrapHandle(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
 	mux.Handle(newrelic.WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
 	out := w.Body.String()
@@ -664,7 +663,7 @@ func TestPanicNil(t *testing.T) {
 
 func TestResponseCodeError(t *testing.T) {
 	app := testApp(nil, nil, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
 	txn.WriteHeader(http.StatusBadRequest)   // 400
@@ -702,7 +701,7 @@ func TestResponseCodeError(t *testing.T) {
 
 func TestResponseCode404Filtered(t *testing.T) {
 	app := testApp(nil, nil, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
 	txn.WriteHeader(http.StatusNotFound)
@@ -731,7 +730,7 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 				http.StatusNotFound)
 	}
 	app := testApp(nil, cfgFn, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
 	txn.WriteHeader(http.StatusNotFound)
@@ -751,7 +750,7 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 
 func TestResponseCodeAfterEnd(t *testing.T) {
 	app := testApp(nil, nil, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
 	txn.End()
@@ -774,7 +773,7 @@ func TestResponseCodeAfterEnd(t *testing.T) {
 
 func TestResponseCodeAfterWrite(t *testing.T) {
 	app := testApp(nil, nil, t)
-	w := httptest.NewRecorder()
+	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
 	txn.Write([]byte("zap"))
