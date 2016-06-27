@@ -35,6 +35,18 @@ var (
 	}()
 )
 
+func TestNewApplicationNil(t *testing.T) {
+	cfg := api.NewConfig("appname", "wrong length")
+	cfg.Development = true
+	app, err := newrelic.NewApplication(cfg)
+	if nil == err {
+		t.Error("error expected when license key is short")
+	}
+	if nil != app {
+		t.Error("app expected to be nil when error is returned")
+	}
+}
+
 func handler(w http.ResponseWriter, req *http.Request) {
 	w.Write(helloResponse)
 }
