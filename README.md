@@ -4,24 +4,72 @@
 
 Go 1.3+ is required, due to the use of http.Client's Timeout field.
 
+Linux and OS X are supported.
+
 ## Getting Started
 
-There are three types exposed by this agent.
+Here are the basic steps to instrumenting your application.  For more
+information, see [GUIDE.md](GUIDE.md).
 
-| Entity  | See | Created By |
-| ------------- | ------------- | ------------- |
-| `Config`       | [config.go](api/config.go)  | `NewConfig`  |
-| `Application`  | [application.go](api/application.go)  | `NewApplication`  |
-| `Transaction`  | [transaction.go](api/transaction.go)  | `application.StartTransaction` or implicitly by `WrapHandle` and `WrapHandleFunc`  |
+#### Step 1: Create a Config and an Application
 
-The public interface is contained in the top-level `newrelic` package and
-the `newrelic/api` package.
+In your `main` function or an `init` block:
 
-## Example
+```go
+config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+app, err = newrelic.NewApplication(config)
+```
 
-Here is a barebones web server before and after New Relic Go Agent instrumentation.
+[more info](GUIDE.md#config-and-application), [application.go](api/application.go),
+[config.go](api/config.go)
 
-### Before Instrumentation
+#### Step 2: Add Transactions
+
+Transactions time requests and background tasks.  Use `WrapHandle` and
+`WrapHandleFunc` to create transactions for requests handled by the `http`
+standard library package.
+
+```go
+http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
+```
+
+Alternatively, create transactions directly using the application's
+`StartTransaction` method:
+
+```go
+txn := app.StartTransaction("myTxn", optionalResponseWriter, optionalRequest)
+defer txn.End()
+```
+
+[more info](GUIDE.md#transactions), [transaction.go](api/transaction.go)
+
+#### Step 3: Instrument Segments
+
+Segments show you where time in your transactions is being spent.  At the
+beginning of important functions, add:
+
+```go
+defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
+```
+
+[more info](GUIDE.md#segments), [segments.go](api/segments.go)
+
+## Runnable Example
+
+[example/main.go](./example/main.go) is an example that will appear as "My Go
+Application" in your New Relic applications list.  To run it:
+
+```
+env NEW_RELIC_LICENSE_KEY=__YOUR_LICENSE_HERE__ go run example/main.go
+```
+
+Some endpoints exposed are [http://localhost:8000/](http://localhost:8000/)
+and [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
+
+
+## Basic Example
+
+Before Instrumentation
 
 ```go
 package main
@@ -41,7 +89,7 @@ func main() {
 }
 ```
 
-### After Instrumentation
+After Instrumentation
 
 ```go
 package main
@@ -77,17 +125,3 @@ func main() {
 	http.ListenAndServe(":8000", nil)
 }
 ```
-
-## Let's Go!
-
-An example web server lives in: [example/main.go](./example/main.go).  To run it:
-
-```
-env NEW_RELIC_LICENSE_KEY=__YOUR_LICENSE_HERE__ go run example/main.go
-```
-
-Some endpoints exposed are:
-* [http://localhost:8000/](http://localhost:8000/)
-* [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
-
-This example will appear as "My Go Application" in your New Relic applications list.
