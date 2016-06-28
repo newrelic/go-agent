@@ -1,5 +1,16 @@
 # Go Agent Guide
 
+## Description
+The New Relic Go Agent allows you to monitor your Go applications with New 
+Relic.  It helps you track transactions, outbound requests, database calls, and
+other parts of your Go application's behavior while automatically providing a 
+running overview of garbage collection events, goroutine activity, and memory 
+use.
+
+## Installation
+To install, run `go get github.com/newrelic/go-agent`, and import the 
+`github.com/newrelic/go-agent` package within your application. 
+
 ## Config and Application
 
 * [config.go](api/config.go)
@@ -9,20 +20,20 @@ In your `main` function or in an `init` block:
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-app, err = newrelic.NewApplication(config)
+app, err := newrelic.NewApplication(config)
 ```
 
 Your application will appear in the New Relic UI with a page showing goroutine,
-GC, Memory, and CPU metrics.
+GC, memory, and CPU metrics.
 
 If you are working in a development environment or running unit tests then you
-can prevent the application from spawning goroutines or reporting to New Relic
+can prevent the Go Agent from spawning goroutines or reporting to New Relic
 by setting the config's `Development` field.
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "")
 config.Development = true
-app, err = newrelic.NewApplication(config)
+app, err := newrelic.NewApplication(config)
 ```
 
 ## Transactions
@@ -30,23 +41,8 @@ app, err = newrelic.NewApplication(config)
 * [transaction.go](api/transaction.go)
 
 Transactions time requests and background tasks.  Transaction should only be
-used in a single goroutine.
-
-Use `WrapHandle` and `WrapHandleFunc` to create transactions for requests
-handled by the `http` standard library package.
-
-```go
-http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
-```
-
-You may then access the transaction in your handlers using type assertion on the
-response writer.
-
-```go
-if txn, ok := responseWriter.(newrelic.Transaction); ok {
-	defer txn.SetName("otherName")
-}
-```
+used in a single goroutine.  You must start a new transaction when a new goroutine
+is spawned. 
 
 Transactions may be created directly using the application's `StartTransaction`
 method.
@@ -64,6 +60,22 @@ txn := app.StartTransaction("backgroundTask", nil, nil)
 defer txn.End()
 ```
 
+Use `WrapHandle` and `WrapHandleFunc` to create transactions for requests
+handled by the `http` standard library package.
+
+```go
+http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
+```
+
+You may then access the transaction in your handlers using type assertion on the
+response writer.
+
+```go
+if txn, ok := responseWriter.(newrelic.Transaction); ok {
+	defer txn.SetName("otherName")
+}
+```
+
 ## Segments
 
 * [segments.go](api/segments.go)
@@ -72,12 +84,17 @@ Find out where the time in your transactions is being spent!  Each transaction
 should only track segments in a single goroutine.
 
 `Transaction` has methods to time external calls, datastore calls, functions,
-and arbitrary blocks of code.  To time a function, add the following line to the
+and arbitrary blocks of code.  
+To time a function, add the following line to the
 beginning of that function:
 
 ```go
 defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
 ```
+
+The `defer` pattern will execute the `txn.StartSegment()` when this line is 
+encountered and the `EndSegment()` method when this function returns.  More 
+information can be found on `defer` [here](https://gobyexample.com/defer)
 
 Segments may be nested.  The segment being ended must be the most recently
 started segment.
