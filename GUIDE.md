@@ -145,7 +145,6 @@ segments.  The simplest way is to use `EndExternal`:
 
 ```go
 func externalCall(url string, txn newrelic.Transaction) (*http.Response, error) {
-	url := "http://www.external.com"
 	defer txn.EndExternal(txn.StartSegment(), url)
 
 	return http.Get(url)
