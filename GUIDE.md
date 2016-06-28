@@ -43,7 +43,7 @@ app, err := newrelic.NewApplication(config)
 * [transaction.go](api/transaction.go)
 
 Transactions time requests and background tasks.  Transaction should only be
-used in a single goroutine.  You must start a new transaction when a new
+used in a single goroutine and a new transaction must be started when a new
 goroutine is spawned.
 
 Transactions may be created directly using the application's `StartTransaction`
