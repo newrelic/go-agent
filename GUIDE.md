@@ -87,8 +87,8 @@ should only track segments in a single goroutine.
 
 `Transaction` has methods to time external calls, datastore calls, functions,
 and arbitrary blocks of code.  
-To time a function, add the following line to the
-beginning of that function:
+
+To time a function, add the following line to the beginning of that function:
 
 ```go
 defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
@@ -96,7 +96,15 @@ defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
 
 The `defer` pattern will execute the `txn.StartSegment()` when this line is
 encountered and the `EndSegment()` method when this function returns.  More
-information can be found on `defer` [here](https://gobyexample.com/defer)
+information can be found on `defer` [here](https://gobyexample.com/defer).
+
+To time a block of code, use the following pattern:
+
+```go
+token := txn.StartSegment()
+// ... code you want to time here ...
+txn.EndSegment(token, "mySegmentName")
+```
 
 Segments may be nested.  The segment being ended must be the most recently
 started segment.
