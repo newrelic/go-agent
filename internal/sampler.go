@@ -95,32 +95,18 @@ func getStats(ss samples) *stats {
 	s.gcPauseFraction = frac
 
 	// GC Pauses
-	// We use the previous GC value to calculate the end time for the last GC
-	// pause, then evaluate the current PauseEnd buffer for all the values since
-	// then. Their indices indicate the relevant durations in PauseNs, from
-	// which we calculate the min and max.
 	if deltaNumGC := cur.memStats.NumGC - prev.memStats.NumGC; deltaNumGC > 0 {
-		lastEnd := prev.memStats.PauseEnd[(prev.memStats.NumGC+255)&255]
-
-		var buckets []time.Duration
-		for i := 0; i < 256; i++ {
-			if cur.memStats.PauseEnd[i] > lastEnd {
-				pause := time.Duration(cur.memStats.PauseNs[i])
-				buckets = append(buckets, pause)
+		var maxPauseNs uint64
+		var minPauseNs uint64
+		for i := prev.memStats.NumGC + 1; i <= cur.memStats.NumGC; i++ {
+			pause := cur.memStats.PauseNs[(i+255)%256]
+			if pause > maxPauseNs {
+				maxPauseNs = pause
+			}
+			if 0 == minPauseNs || pause < minPauseNs {
+				minPauseNs = pause
 			}
 		}
-
-		var maxPauseNs time.Duration
-		minPauseNs := buckets[0]
-		for d := range buckets {
-			if buckets[d] > maxPauseNs {
-				maxPauseNs = buckets[d]
-			}
-			if buckets[d] < minPauseNs {
-				minPauseNs = buckets[d]
-			}
-		}
-
 		s.deltaPauseTotal = time.Duration(deltaPauseTotalNs) * time.Nanosecond
 		s.deltaNumGC = deltaNumGC
 		s.minPause = time.Duration(minPauseNs) * time.Nanosecond
