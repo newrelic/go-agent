@@ -118,12 +118,6 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, `performing fake query "SELECT * from my_table"`)
 }
 
-func externalCall(url string, txn newrelic.Transaction) (*http.Response, error) {
-	defer txn.EndExternal(txn.StartSegment(), url)
-
-	return http.Get(url)
-}
-
 func external(w http.ResponseWriter, r *http.Request) {
 	url := "http://example.com/"
 	if txn, ok := w.(newrelic.Transaction); ok {
