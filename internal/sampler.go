@@ -57,7 +57,7 @@ type samples struct {
 
 type stats struct {
 	numGoroutine         int
-	allocMIB             uint64
+	allocBytes           uint64
 	cpuUserUtilization   float64
 	cpuSystemUtilization float64
 	gcPauseFraction      float64
@@ -74,7 +74,7 @@ func getStats(ss samples) *stats {
 
 	s := stats{
 		numGoroutine: cur.numGoroutine,
-		allocMIB:     cur.memStats.Alloc,
+		allocBytes:   cur.memStats.Alloc,
 	}
 
 	// CPU Utilization
@@ -118,7 +118,7 @@ func getStats(ss samples) *stats {
 
 func (s stats) mergeIntoHarvest(h *harvest) {
 	h.metrics.addValue(runGoroutine, "", float64(s.numGoroutine), forced)
-	h.metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocMIB), 0, forced)
+	h.metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocBytes), 0, forced)
 	h.metrics.addValueExclusive(cpuUserUtilization, "", s.cpuUserUtilization, 0, forced)
 	h.metrics.addValueExclusive(cpuSystemUtilization, "", s.cpuSystemUtilization, 0, forced)
 	h.metrics.addValueExclusive(gcPauseFraction, "", s.gcPauseFraction, 0, forced)
