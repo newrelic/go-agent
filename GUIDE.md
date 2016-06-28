@@ -1,15 +1,17 @@
 # Go Agent Guide
 
 ## Description
-The New Relic Go Agent allows you to monitor your Go applications with New 
+
+The New Relic Go Agent allows you to monitor your Go applications with New
 Relic.  It helps you track transactions, outbound requests, database calls, and
-other parts of your Go application's behavior while automatically providing a 
-running overview of garbage collection events, goroutine activity, and memory 
+other parts of your Go application's behavior while automatically providing a
+running overview of garbage collection events, goroutine activity, and memory
 use.
 
 ## Installation
-To install, run `go get github.com/newrelic/go-agent`, and import the 
-`github.com/newrelic/go-agent` package within your application. 
+
+To install, run `go get github.com/newrelic/go-agent`, and import the
+`github.com/newrelic/go-agent` package within your application.
 
 ## Config and Application
 
@@ -41,8 +43,8 @@ app, err := newrelic.NewApplication(config)
 * [transaction.go](api/transaction.go)
 
 Transactions time requests and background tasks.  Transaction should only be
-used in a single goroutine.  You must start a new transaction when a new goroutine
-is spawned. 
+used in a single goroutine.  You must start a new transaction when a new
+goroutine is spawned.
 
 Transactions may be created directly using the application's `StartTransaction`
 method.
@@ -72,7 +74,7 @@ response writer.
 
 ```go
 if txn, ok := responseWriter.(newrelic.Transaction); ok {
-	defer txn.SetName("otherName")
+	txn.SetName("otherName")
 }
 ```
 
@@ -92,8 +94,8 @@ beginning of that function:
 defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
 ```
 
-The `defer` pattern will execute the `txn.StartSegment()` when this line is 
-encountered and the `EndSegment()` method when this function returns.  More 
+The `defer` pattern will execute the `txn.StartSegment()` when this line is
+encountered and the `EndSegment()` method when this function returns.  More
 information can be found on `defer` [here](https://gobyexample.com/defer)
 
 Segments may be nested.  The segment being ended must be the most recently
