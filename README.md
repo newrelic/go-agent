@@ -1,5 +1,13 @@
 # New Relic Go Agent
 
+## Description
+
+The New Relic Go Agent allows you to monitor your Go applications with New
+Relic.  It helps you track transactions, outbound requests, database calls, and
+other parts of your Go application's behavior while automatically providing a
+running overview of garbage collection events, goroutine activity, and memory
+use.
+
 ## Requirements
 
 Go 1.3+ is required, due to the use of http.Client's Timeout field.
@@ -17,7 +25,7 @@ In your `main` function or an `init` block:
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-app, err = newrelic.NewApplication(config)
+app, err := newrelic.NewApplication(config)
 ```
 
 [more info](GUIDE.md#config-and-application), [application.go](api/application.go),

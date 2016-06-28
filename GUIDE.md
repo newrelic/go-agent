@@ -136,8 +136,11 @@ External segments appear in the transaction "Breakdown table" and in the
 segments.  The simplest way is to use `EndExternal`:
 
 ```go
-url := "http://example.com/"
-defer txn.EndExternal(txn.StartSegment(), url)
+func externalCall(url string, txn newrelic.Transaction) (*http.Response, error) {
+	defer txn.EndExternal(txn.StartSegment(), url)
+
+	return http.Get(url)
+}
 ```
 
 The functions `PrepareRequest` and `EndRequest` are recommended since they will
