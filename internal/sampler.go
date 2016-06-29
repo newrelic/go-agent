@@ -32,7 +32,6 @@ func getSample(now time.Time) *sample {
 		numCPU:       runtime.NumCPU(),
 	}
 
-	// Gather CPU Usage
 	ru := syscall.Rusage{}
 	err := syscall.Getrusage(syscall.RUSAGE_SELF, &ru)
 	if nil == err {
@@ -44,7 +43,6 @@ func getSample(now time.Time) *sample {
 		})
 	}
 
-	// Gather MemStats
 	runtime.ReadMemStats(&s.memStats)
 
 	return &s
