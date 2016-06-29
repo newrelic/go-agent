@@ -22,7 +22,7 @@ func timevalToDuration(tv syscall.Timeval) time.Duration {
 }
 
 func bytesToMebibytesFloat(bts uint64) float64 {
-	return float64(bts) / ((float64)(1024 * 1024))
+	return float64(bts) / (1024 * 1024)
 }
 
 func getSample(now time.Time) *sample {
