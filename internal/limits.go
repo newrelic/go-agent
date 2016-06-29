@@ -30,4 +30,10 @@ const (
 	customEventAttributeLimit = 64
 
 	// Limits affecting Config validation are found in the config package.
+
+	// Runtime metrics should not depend on the sampler period, but the
+	// period must be the same across instances.  For that reason, this
+	// value should not be changed without notifying customers that they
+	// must update all instance simultaneously for valid runtime metrics.
+	runtimeSamplerPeriod = 60 * time.Second
 )

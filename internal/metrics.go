@@ -143,6 +143,22 @@ func (mt *metricTable) addDuration(name, scope string, duration, exclusive time.
 	mt.add(name, scope, metricDataFromDuration(duration, exclusive), force)
 }
 
+func (mt *metricTable) addValueExclusive(name, scope string, total, exclusive float64, force metricForce) {
+	data := metricData{
+		countSatisfied:  1,
+		totalTolerated:  total,
+		exclusiveFailed: exclusive,
+		min:             total,
+		max:             total,
+		sumSquares:      total * total,
+	}
+	mt.add(name, scope, data, force)
+}
+
+func (mt *metricTable) addValue(name, scope string, total float64, force metricForce) {
+	mt.addValueExclusive(name, scope, total, total, force)
+}
+
 func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone apdexZone, force metricForce) {
 	apdexSeconds := apdexThreshold.Seconds()
 	data := metricData{min: apdexSeconds, max: apdexSeconds}

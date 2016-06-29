@@ -50,6 +50,16 @@ const (
 	externalAll   = "External/all"
 	externalWeb   = "External/allWeb"
 	externalOther = "External/allOther"
+
+	// Runtime/System Metrics
+	memoryPhysical       = "Memory/Physical"
+	cpuUserUtilization   = "CPU/User/Utilization"
+	cpuSystemUtilization = "CPU/System/Utilization"
+	cpuUserTime          = "CPU/User Time"
+	cpuSystemTime        = "CPU/System Time"
+	runGoroutine         = "Go/Runtime/Goroutines"
+	gcPauseFraction      = "GC/System/Pause Fraction"
+	gcPauses             = "GC/System/Pauses"
 )
 
 type datastoreProductMetrics struct {

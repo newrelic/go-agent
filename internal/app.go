@@ -249,6 +249,10 @@ func NewApp(c api.Config) (api.Application, error) {
 	go app.process()
 	go app.connectRoutine()
 
+	if app.config.RuntimeSampler.Enabled {
+		go runSampler(app, runtimeSamplerPeriod)
+	}
+
 	return app, nil
 }
 
