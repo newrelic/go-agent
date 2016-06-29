@@ -55,6 +55,8 @@ const (
 	memoryPhysical       = "Memory/Physical"
 	cpuUserUtilization   = "CPU/User/Utilization"
 	cpuSystemUtilization = "CPU/System/Utilization"
+	cpuUserTime          = "CPU/User Time"
+	cpuSystemTime        = "CPU/System Time"
 	runGoroutine         = "Go/Runtime/Goroutines"
 	gcPauseFraction      = "GC/System/Pause Fraction"
 	gcPauses             = "GC/System/Pauses"

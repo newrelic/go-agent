@@ -55,19 +55,24 @@ type samples struct {
 	current  *sample
 }
 
-type stats struct {
-	numGoroutine         int
-	allocBytes           uint64
-	cpuUserUtilization   float64
-	cpuSystemUtilization float64
-	gcPauseFraction      float64
-	deltaNumGC           uint32
-	deltaPauseTotal      time.Duration
-	minPause             time.Duration
-	maxPause             time.Duration
+type cpuStats struct {
+	used     time.Duration
+	fraction float64 // used / (elapsed * numCPU)
 }
 
-func getStats(ss samples) *stats {
+type stats struct {
+	numGoroutine    int
+	allocBytes      uint64
+	user            cpuStats
+	system          cpuStats
+	gcPauseFraction float64
+	deltaNumGC      uint32
+	deltaPauseTotal time.Duration
+	minPause        time.Duration
+	maxPause        time.Duration
+}
+
+func getStats(ss samples) stats {
 	cur := ss.current
 	prev := ss.previous
 	elapsed := cur.when.Sub(prev.when)
@@ -78,15 +83,14 @@ func getStats(ss samples) *stats {
 	}
 
 	// CPU Utilization
+	totalCPUSeconds := elapsed.Seconds() * float64(cur.numCPU)
 	if prev.userTime != 0 && cur.userTime > prev.userTime {
-		diff := cur.userTime - prev.userTime
-		frac := diff.Seconds() / (elapsed.Seconds() * float64(cur.numCPU))
-		s.cpuUserUtilization = frac
+		s.user.used = cur.userTime - prev.userTime
+		s.user.fraction = s.user.used.Seconds() / totalCPUSeconds
 	}
 	if prev.systemTime != 0 && cur.systemTime > prev.systemTime {
-		diff := cur.systemTime - prev.systemTime
-		frac := diff.Seconds() / (elapsed.Seconds() * float64(cur.numCPU))
-		s.cpuSystemUtilization = frac
+		s.system.used = cur.systemTime - prev.systemTime
+		s.system.fraction = s.system.used.Seconds() / totalCPUSeconds
 	}
 
 	// GC Pause Fraction
@@ -113,14 +117,16 @@ func getStats(ss samples) *stats {
 		s.maxPause = time.Duration(maxPauseNs) * time.Nanosecond
 	}
 
-	return &s
+	return s
 }
 
 func (s stats) mergeIntoHarvest(h *harvest) {
 	h.metrics.addValue(runGoroutine, "", float64(s.numGoroutine), forced)
 	h.metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocBytes), 0, forced)
-	h.metrics.addValueExclusive(cpuUserUtilization, "", s.cpuUserUtilization, 0, forced)
-	h.metrics.addValueExclusive(cpuSystemUtilization, "", s.cpuSystemUtilization, 0, forced)
+	h.metrics.addValueExclusive(cpuUserUtilization, "", s.user.fraction, 0, forced)
+	h.metrics.addValueExclusive(cpuSystemUtilization, "", s.system.fraction, 0, forced)
+	h.metrics.addValue(cpuUserTime, "", s.user.used.Seconds(), forced)
+	h.metrics.addValue(cpuSystemTime, "", s.system.used.Seconds(), forced)
 	h.metrics.addValueExclusive(gcPauseFraction, "", s.gcPauseFraction, 0, forced)
 	h.metrics.add(gcPauses, "", metricData{
 		countSatisfied:  float64(s.deltaNumGC),
@@ -137,13 +143,12 @@ func runSampler(app *App, period time.Duration) {
 
 	for now := range time.Tick(period) {
 		current := getSample(now)
-		stats := getStats(samples{
-			previous: previous,
-			current:  current,
-		})
 
 		run := app.getRun()
-		app.consume(run.RunID, stats)
+		app.consume(run.RunID, getStats(samples{
+			previous: previous,
+			current:  current,
+		}))
 		previous = current
 	}
 }
