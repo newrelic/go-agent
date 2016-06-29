@@ -35,5 +35,5 @@ const (
 	// period must be the same across instances.  For that reason, this
 	// value should not be changed without notifying customers that they
 	// must update all instance simultaneously for valid runtime metrics.
-	runtimeSamplerPeriod = 20 * time.Second
+	runtimeSamplerPeriod = 60 * time.Second
 )
