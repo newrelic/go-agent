@@ -10,6 +10,7 @@ use.
 
 ## Installation
 
+The New Relic Go Agent is installed in the same fashion as other Go packages.
 To install, run `go get github.com/newrelic/go-agent`, and import the
 `github.com/newrelic/go-agent` package within your application.
 
@@ -41,9 +42,10 @@ app, err := newrelic.NewApplication(config)
 ## Transactions
 
 * [transaction.go](api/transaction.go)
+* [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
 Transactions time requests and background tasks.  Transaction should only be
-used in a single goroutine.  You must start a new transaction when a new
+used in a single goroutine and a new transaction must be started when a new
 goroutine is spawned.
 
 Transactions may be created directly using the application's `StartTransaction`
@@ -124,6 +126,7 @@ Datastore segments appear in the transaction "Breakdown table" and in the
 importing the `api/datastore` subpackage.
 
 * [datastore.go](api/datastore/datastore.go)
+* [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 ```go
 defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
@@ -140,7 +143,11 @@ defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
 ### External Segments
 
 External segments appear in the transaction "Breakdown table" and in the
-"External services" tab.  There are a couple of ways to instrument external
+"External services" tab.  
+
+* [More info on External Services tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
+
+There are a couple of ways to instrument external
 segments.  The simplest way is to use `EndExternal`:
 
 ```go
@@ -175,6 +182,8 @@ resp, err := client.Get("http://example.com/")
 
 Attributes add context to errors and allow you to filter performance data
 in Insights.
+
+* [More info on Insights attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
 
 ```go
 txn.AddAttribute("key", "value")
