@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/api"
-	ats "github.com/newrelic/go-agent/attributes"
+	ats "github.com/newrelic/go-agent/api/attributes"
 	"github.com/newrelic/go-agent/internal"
 )
 

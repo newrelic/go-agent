@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	ats "github.com/newrelic/go-agent/attributes"
+	ats "github.com/newrelic/go-agent/api/attributes"
 )
 
 func testErrorEventJSON(t *testing.T, e *errorEvent, expect string) {
