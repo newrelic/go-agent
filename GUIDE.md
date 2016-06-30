@@ -205,6 +205,19 @@ txn.AddAttribute("price", 19.99)
 txn.AddAttribute("importantCustomer", true)
 ```
 
+Some attributes are recorded automatically.  They are listed here:
+
+* [api/attributes.go](api/attributes.go)
+
+To disable one of these attributes, `RequestHeadersUserAgent` for example,
+modify the config like this:
+
+```go
+// needs import "github.com/newrelic/go-agent/api/attributes"
+config.Attributes.Exclude = append(config.Attributes.Exclude,
+	attributes.RequestHeadersUserAgent)
+```
+
 ## Custom Events
 
 You may track arbitrary events using custom Insights events.
