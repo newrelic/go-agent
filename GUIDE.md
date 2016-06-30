@@ -210,7 +210,7 @@ txn.AddAttribute("importantCustomer", true)
 Some attributes are recorded automatically.  These are called agent attributes.
 They are listed here:
 
-* [api/attributes.go](api/attributes.go)
+* [api/attributes/attributes.go](api/attributes/attributes.go)
 
 To disable one of these agents attributes, `RequestHeadersUserAgent` for
 example, modify the config like this:
