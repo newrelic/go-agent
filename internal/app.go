@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"sync"
@@ -209,8 +211,30 @@ func (app *App) process() {
 	}
 }
 
+func makeSHA256(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return base64.StdEncoding.EncodeToString(sum[:])
+}
+
+const (
+	expectedTokenHash = "Lk8TAQbydede55QLg1FDnhmIiYXfA4JRheJsffCFr0U="
+)
+
+var (
+	betaURL               = "http://goo.gl/forms/Rcv1b10Qvt1ENLlr1"
+	errMissingBetaToken   = errors.New("missing beta token: please sign the Beta Agreement:  " + betaURL)
+	errIncorrectBetaToken = errors.New("incorrect beta token: please contact New Relic")
+)
+
 // NewApp creates and returns an App or an error.
 func NewApp(c api.Config) (api.Application, error) {
+	if "" == c.BetaToken {
+		return nil, errMissingBetaToken
+	}
+	if b := makeSHA256(c.BetaToken); b != expectedTokenHash {
+		return nil, errIncorrectBetaToken
+	}
+
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
