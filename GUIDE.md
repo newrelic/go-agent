@@ -23,9 +23,9 @@ config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_
 app, err := newrelic.NewApplication(config)
 ```
 
-Find your application in the New Relic UI.  Click on it!  The Go runtime tab
-shows information about goroutine counts, garbage collection, memory, and CPU
-usage.
+Find your application in the New Relic UI.  Click on it to see the Go runtime
+tab that shows information about goroutine counts, garbage collection, memory,
+and CPU usage.
 
 If you are working in a development environment or running unit tests, you may
 not want the Go Agent to spawn goroutines or report to New Relic.  You're in
