@@ -237,4 +237,4 @@ If you are running a load balancer or reverse web proxy then you may configure
 it to add a `X-Queue-Start` header with a Unix timestamp.  This will create a
 band on the application overview chart showing queue time.
 
-[more info](docs.newrelic.com/docs/apm/applications-menu/features/request-queuing-tracking-front-end-time)
+* [More info on Request Queuing](https://docs.newrelic.com/docs/apm/applications-menu/features/request-queuing-tracking-front-end-time)
