@@ -2,9 +2,18 @@
 
 ## Beta
 
-This is Beta software.  You must sign the [Beta
-Agreement](http://goo.gl/forms/Rcv1b10Qvt1ENLlr1) to use it.  A Beta token will
-be emailed to you.
+This is beta software.  The Go Agent requires a beta token.  Getting a token is
+easy!
+
+1. Agree to the click-through [Beta Agreement](http://goo.gl/forms/Rcv1b10Qvt1ENLlr1)
+2. Once your account is approved, we will email you a beta token, usually
+   within the same business day.
+3. Add the beta token to your config (see below for details).
+
+Please join our [Go Agent Beta
+Forum](https://discuss.newrelic.com/c/language-agents/go-agent-beta) to tell us
+how the Go Agent works for you, what you'd like to see and how we can improve
+it.  We're eager to hear your feedback!
 
 ## Description
 
@@ -139,7 +148,7 @@ func main() {
 	// and your New Relic license key.
 	cfg := newrelic.NewConfig("My Go Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
 
-	// Add the Beta Token emailed to you after signing:
+	// Add the beta token emailed to you after signing:
 	//   http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
 	cfg.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 

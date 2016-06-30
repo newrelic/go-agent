@@ -217,7 +217,7 @@ func makeSHA256(key string) string {
 }
 
 const (
-	expectedTokenHash = "Lk8TAQbydede55QLg1FDnhmIiYXfA4JRheJsffCFr0U="
+	expectedTokenHash = "vZi2AtjcnOh2fbhrybZsDIeJa8JfJiWWEOK6zXhPG2E="
 )
 
 var (

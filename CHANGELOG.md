@@ -1,6 +1,6 @@
 ## ChangeLog
 
-* Introduced Beta Token to ensure legal compliance.
+* Introduced beta token to to support our beta program.
 
 * Fix unit tests broken in 1.6.
 

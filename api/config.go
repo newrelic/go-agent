@@ -20,7 +20,7 @@ type Config struct {
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/account-setup/license-key
 	License string
 
-	// BetaToken exists to ensure that you have signed the Beta Agreement
+	// BetaToken exists to ensure that you have signed the beta agreement
 	// available here:
 	//
 	//   http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
