@@ -4,9 +4,8 @@
 
 The New Relic Go Agent allows you to monitor your Go applications with New
 Relic.  It helps you track transactions, outbound requests, database calls, and
-other parts of your Go application's behavior while automatically providing a
-running overview of garbage collection events, goroutine activity, and memory
-use.
+other parts of your Go application's behavior and provides a running overview of
+garbage collection, goroutine activity, and memory use.
 
 ## Requirements
 
@@ -18,6 +17,17 @@ Linux and OS X are supported.
 
 Here are the basic steps to instrumenting your application.  For more
 information, see [GUIDE.md](GUIDE.md).
+
+#### Step 0: Installation
+
+Installing the Go Agent is the same as installing any other Go library.  The
+simplest way is to run:
+
+```
+go get github.com/newrelic/go-agent
+```
+
+Then import the `github.com/newrelic/go-agent` package in your application.
 
 #### Step 1: Create a Config and an Application
 

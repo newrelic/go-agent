@@ -1,18 +1,15 @@
 # Go Agent Guide
 
-## Description
-
-The New Relic Go Agent allows you to monitor your Go applications with New
-Relic.  It helps you track transactions, outbound requests, database calls, and
-other parts of your Go application's behavior while automatically providing a
-running overview of garbage collection events, goroutine activity, and memory
-use.
-
 ## Installation
 
-The New Relic Go Agent is installed in the same fashion as other Go packages.
-To install, run `go get github.com/newrelic/go-agent`, and import the
-`github.com/newrelic/go-agent` package within your application.
+Installing the Go Agent is the same as installing any other Go library.  The
+simplest way is to run:
+
+```
+go get github.com/newrelic/go-agent
+```
+
+Then import the `github.com/newrelic/go-agent` package in your application.
 
 ## Config and Application
 
@@ -26,12 +23,14 @@ config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_
 app, err := newrelic.NewApplication(config)
 ```
 
-Your application will appear in the New Relic UI with a page showing goroutine,
-GC, memory, and CPU metrics.
+Find your application in the New Relic UI.  Click on it!  The Go runtime tab
+shows information about goroutine counts, garbage collection, memory, and CPU
+usage.
 
-If you are working in a development environment or running unit tests then you
-can prevent the Go Agent from spawning goroutines or reporting to New Relic
-by setting the config's `Development` field.
+If you are working in a development environment or running unit tests, you may
+not want the Go Agent to spawn goroutines or report to New Relic.  You're in
+luck!  Set the config's `Development` field to true.  This makes the license key
+optional.
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "")
@@ -44,12 +43,12 @@ app, err := newrelic.NewApplication(config)
 * [transaction.go](api/transaction.go)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
-Transactions time requests and background tasks.  Transaction should only be
-used in a single goroutine and a new transaction must be started when a new
-goroutine is spawned.
+Transactions time requests and background tasks.  Each transaction should only
+be used in a single goroutine.  Start a new transaction when you spawn a new
+goroutine.
 
-Transactions may be created directly using the application's `StartTransaction`
-method.
+The simplest way to create transactions is to use
+`Application.StartTransaction` and `Transaction.End`.
 
 ```go
 txn := app.StartTransaction("transactionName", responseWriter, request)
@@ -64,19 +63,25 @@ txn := app.StartTransaction("backgroundTask", nil, nil)
 defer txn.End()
 ```
 
-Use `WrapHandle` and `WrapHandleFunc` to create transactions for requests
-handled by the `http` standard library package.
+The transaction has helpful methods like `NoticeError` and `SetName`.
+See more in [transaction.go](api/transaction.go).
+
+If you are using the `http` standard library package, use `WrapHandle` and
+`WrapHandleFunc`.  These wrappers automatically start and end transactions with
+the request and response writer.  See [instrumentation.go](instrumentation.go).
 
 ```go
 http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 ```
 
-You may then access the transaction in your handlers using type assertion on the
-response writer.
+To access the transaction in your handler, use type assertion on the response
+writer passed to the handler.
 
 ```go
-if txn, ok := responseWriter.(newrelic.Transaction); ok {
-	txn.SetName("otherName")
+func myHandler(w http.ResponseWriter, r *http.Request) {
+	if txn, ok := w.(newrelic.Transaction); ok {
+		txn.NoticeError(errors.New("my error message"))
+	}
 }
 ```
 
