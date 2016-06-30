@@ -196,7 +196,7 @@ resp, err := client.Get("http://example.com/")
 Attributes add context to errors and allow you to filter performance data
 in Insights.
 
-* [More info on Insights attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
+* [More info on Insights Attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
 
 ```go
 txn.AddAttribute("key", "value")
