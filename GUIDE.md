@@ -196,7 +196,7 @@ resp, err := client.Get("http://example.com/")
 Attributes add context to errors and allow you to filter performance data
 in Insights.
 
-* [More info on Insights Attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
+You may add them using the `Transaction.AddAttribute` method.
 
 ```go
 txn.AddAttribute("key", "value")
@@ -205,18 +205,23 @@ txn.AddAttribute("price", 19.99)
 txn.AddAttribute("importantCustomer", true)
 ```
 
-Some attributes are recorded automatically.  They are listed here:
+* [More info on Custom Attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
+
+Some attributes are recorded automatically.  These are called agent attributes.
+They are listed here:
 
 * [api/attributes.go](api/attributes.go)
 
-To disable one of these attributes, `RequestHeadersUserAgent` for example,
-modify the config like this:
+To disable one of these agents attributes, `RequestHeadersUserAgent` for
+example, modify the config like this:
 
 ```go
-// needs import "github.com/newrelic/go-agent/api/attributes"
+// requires import of "github.com/newrelic/go-agent/api/attributes"
 config.Attributes.Exclude = append(config.Attributes.Exclude,
 	attributes.RequestHeadersUserAgent)
 ```
+
+* [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)
 
 ## Custom Events
 
