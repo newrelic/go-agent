@@ -1,4 +1,12 @@
-# Go Agent Guide
+# New Relic Go Agent Guide
+
+* [Config and Application](#config-and-application)
+* [Transactions](#transactions)
+* [Segments](#segments)
+  * [Datastore Segments](#datastore-segments)
+  * [External Segments](#external-segments)
+* [Attributes](#attributes)
+* [Request Queuing](#request-queuing)
 
 ## Installation
 
