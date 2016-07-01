@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/api"
 	"github.com/newrelic/go-agent/api/datastore"
 	"github.com/newrelic/go-agent/internal"
 )
@@ -108,6 +109,21 @@ func TestTraceSegmentInvalidToken(t *testing.T) {
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	token := txn.StartSegment()
 	token++
+	txn.EndSegment(token, "segment")
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{"WebTransaction/Go/myName", "", true, nil},
+		{"WebTransaction", "", true, nil},
+		{"HttpDispatcher", "", true, nil},
+		{"Apdex", "", true, nil},
+		{"Apdex/Go/myName", "", false, nil},
+	})
+}
+
+func TestTraceSegmentDefaultToken(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	var token api.Token
 	txn.EndSegment(token, "segment")
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
