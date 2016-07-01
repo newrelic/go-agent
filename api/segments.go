@@ -30,7 +30,9 @@ type SegmentTracer interface {
 	EndSegment(token Token, name string)
 
 	// EndExternal should be used in place of EndSegment when the segment
-	// represents an external request.
+	// represents an external request.  The host will be parsed out of the
+	// url and used in the metrics created.  The host will appear as
+	// "unknown" if the url is an empty string or cannot be parsed.
 	//
 	//  defer txn.EndExternal(txn.StartSegment(), "http://example.com")
 	EndExternal(token Token, url string)
