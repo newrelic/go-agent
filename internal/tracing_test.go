@@ -79,8 +79,9 @@ func TestTracerRealloc(t *testing.T) {
 		}
 	}
 	rootChildren := time.Duration(2*max) * time.Second
-	if tr.children != rootChildren {
-		t.Error(tr.children, rootChildren)
+	children := tracerRootChildren(tr)
+	if children != rootChildren {
+		t.Error(children, rootChildren)
 	}
 }
 
@@ -109,8 +110,9 @@ func TestMultipleChildren(t *testing.T) {
 	if end4.duration != end4.exclusive || end4.duration != time.Second {
 		t.Error(end4)
 	}
-	if tr.children != 6*time.Second {
-		t.Error(tr.children)
+	children := tracerRootChildren(tr)
+	if children != 6*time.Second {
+		t.Error(children)
 	}
 }
 
@@ -183,30 +185,84 @@ func TestSegmentOutOfOrder(t *testing.T) {
 	if !end4.valid || end4.duration != end4.exclusive || end4.duration != 1*time.Second {
 		t.Error(end4)
 	}
-
 }
 
-func TestSegmentBasic(t *testing.T) {
+//                                          |-t3-|    |-t4-|
+//                           |-t2-|    |-never-finished----------
+//            |-t1-|    |--never-finished------------------------
+//       |-------alpha------------------------------------------|
+//  0    1    2    3    4    5    6    7    8    9    10   11   12
+func TestLostChildren(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &tracer{}
 
-	t1 := startSegment(tr, start.Add(1*time.Second))
-	t2 := startSegment(tr, start.Add(2*time.Second))
-	endBasicSegment(tr, t2, start.Add(3*time.Second), "f2")
-	endBasicSegment(tr, t1, start.Add(4*time.Second), "f1")
-	t3 := startSegment(tr, start.Add(5*time.Second))
-	endBasicSegment(tr, t3, start.Add(6*time.Second), "f1")
-	t4 := startSegment(tr, start.Add(7*time.Second))
-	endBasicSegment(tr, t4+1, start.Add(8*time.Second), "invalid-token")
+	alpha := startSegment(tr, start.Add(1*time.Second))
+	t1 := startSegment(tr, start.Add(2*time.Second))
+	endBasicSegment(tr, t1, start.Add(3*time.Second), "t1")
+	startSegment(tr, start.Add(4*time.Second))
+	t2 := startSegment(tr, start.Add(5*time.Second))
+	endBasicSegment(tr, t2, start.Add(6*time.Second), "t2")
+	startSegment(tr, start.Add(7*time.Second))
+	t3 := startSegment(tr, start.Add(8*time.Second))
+	endBasicSegment(tr, t3, start.Add(9*time.Second), "t3")
+	t4 := startSegment(tr, start.Add(10*time.Second))
+	endBasicSegment(tr, t4, start.Add(11*time.Second), "t4")
+	endBasicSegment(tr, alpha, start.Add(12*time.Second), "alpha")
 
 	metrics := newMetricTable(100, time.Now())
 	scope := "WebTransaction/Go/zip"
 	mergeBreakdownMetrics(tr, metrics, scope, true)
 	expectMetrics(t, metrics, []WantMetric{
-		{"Custom/f1", "", false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Custom/f2", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/f1", scope, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Custom/f2", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/alpha", "", false, []float64{1, 11, 7, 11, 11, 121}},
+		{"Custom/t1", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t4", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/alpha", scope, false, []float64{1, 11, 7, 11, 11, 121}},
+		{"Custom/t1", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t2", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t4", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+	})
+}
+
+//                                          |-t3-|    |-t4-|
+//                           |-t2-|    |-never-finished----------
+//            |-t1-|    |--never-finished------------------------
+//  |-------root-------------------------------------------------
+//  0    1    2    3    4    5    6    7    8    9    10   11   12
+func TestLostChildrenRoot(t *testing.T) {
+	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &tracer{}
+
+	t1 := startSegment(tr, start.Add(2*time.Second))
+	endBasicSegment(tr, t1, start.Add(3*time.Second), "t1")
+	startSegment(tr, start.Add(4*time.Second))
+	t2 := startSegment(tr, start.Add(5*time.Second))
+	endBasicSegment(tr, t2, start.Add(6*time.Second), "t2")
+	startSegment(tr, start.Add(7*time.Second))
+	t3 := startSegment(tr, start.Add(8*time.Second))
+	endBasicSegment(tr, t3, start.Add(9*time.Second), "t3")
+	t4 := startSegment(tr, start.Add(10*time.Second))
+	endBasicSegment(tr, t4, start.Add(11*time.Second), "t4")
+
+	children := tracerRootChildren(tr)
+	if children != 4*time.Second {
+		t.Error(children)
+	}
+
+	metrics := newMetricTable(100, time.Now())
+	scope := "WebTransaction/Go/zip"
+	mergeBreakdownMetrics(tr, metrics, scope, true)
+	expectMetrics(t, metrics, []WantMetric{
+		{"Custom/t1", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t4", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t1", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t2", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t4", scope, false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 

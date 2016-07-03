@@ -54,16 +54,24 @@ type datastoreExternalTotals struct {
 }
 
 type tracer struct {
-	children     time.Duration
-	stamp        uint64
-	currentDepth int
-	stack        []segmentFrame
+	finishedChildren time.Duration
+	stamp            uint64
+	currentDepth     int
+	stack            []segmentFrame
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 
 	datastoreExternalTotals
+}
+
+func tracerRootChildren(t *tracer) time.Duration {
+	var lostChildren time.Duration
+	for i := 0; i < t.currentDepth; i++ {
+		lostChildren += t.stack[i].children
+	}
+	return t.finishedChildren + lostChildren
 }
 
 func startSegment(t *tracer, now time.Time) api.Token {
@@ -99,24 +107,33 @@ type segmentEnd struct {
 	exclusive time.Duration
 }
 
-func endSegment(t *tracer, token api.Token, now time.Time) segmentEnd {
+func endSegment(t *tracer, token api.Token, now time.Time) (s segmentEnd) {
 	depth, stamp := parseToken(token)
 	if 0 == stamp {
-		return segmentEnd{valid: false}
+		return
 	}
 	if depth >= t.currentDepth {
-		return segmentEnd{valid: false}
+		return
+	}
+	if depth < 0 {
+		return
 	}
 	if stamp != t.stack[depth].stamp {
-		return segmentEnd{valid: false}
+		return
 	}
 
-	stop := now
-	start := t.stack[depth].start
-	children := t.stack[depth].children
-	var duration time.Duration
-	if stop.After(start) {
-		duration = stop.Sub(start)
+	var children time.Duration
+	for i := depth; i < t.currentDepth; i++ {
+		children += t.stack[i].children
+	}
+	s.valid = true
+	s.stop = now
+	s.start = t.stack[depth].start
+	if s.stop.After(s.start) {
+		s.duration = s.stop.Sub(s.start)
+	}
+	if s.duration > children {
+		s.exclusive = s.duration - children
 	}
 
 	// Note that we expect (depth == (t.currentDepth - 1)).  However, if
@@ -125,23 +142,11 @@ func endSegment(t *tracer, token api.Token, now time.Time) segmentEnd {
 	t.currentDepth = depth
 
 	if 0 == t.currentDepth {
-		t.children += duration
+		t.finishedChildren += s.duration
 	} else {
-		t.stack[t.currentDepth-1].children += duration
+		t.stack[t.currentDepth-1].children += s.duration
 	}
-
-	var exclusive time.Duration
-	if duration > children {
-		exclusive = duration - children
-	}
-
-	return segmentEnd{
-		valid:     true,
-		start:     start,
-		stop:      stop,
-		duration:  duration,
-		exclusive: exclusive,
-	}
+	return
 }
 
 func endBasicSegment(t *tracer, token api.Token, now time.Time, name string) {
