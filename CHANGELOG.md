@@ -2,6 +2,8 @@
 
 * Introduced beta token to support our beta program.
 
+* Fixed a bug where exclusive time could be incorrect if segments were not ended.
+
 * Fix unit tests broken in 1.6.
 
 * In `Development` mode, the license must be the proper length or empty.

@@ -39,7 +39,7 @@ type txn struct {
 	attrs      *attributes
 
 	// Fields relating to tracing and breakdown metrics/segments.
-	tracer
+	tracer tracer
 
 	// wroteHeader prevents capturing multiple response code errors if the
 	// user erroneously calls WriteHeader multiple times.
@@ -111,8 +111,9 @@ func (txn *txn) getsApdex() bool {
 
 func (txn *txn) mergeIntoHarvest(h *harvest) {
 	exclusive := time.Duration(0)
-	if txn.duration > txn.children {
-		exclusive = txn.duration - txn.children
+	children := tracerRootChildren(&txn.tracer)
+	if txn.duration > children {
+		exclusive = txn.duration - children
 	}
 
 	h.createTxnMetrics(createTxnMetricsArgs{
@@ -139,7 +140,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 			queuing:   txn.queuing,
 			zone:      txn.zone,
 			attrs:     txn.attrs,
-			datastoreExternalTotals: txn.datastoreExternalTotals,
+			datastoreExternalTotals: txn.tracer.datastoreExternalTotals,
 		}
 		h.addTxnEvent(event)
 	}
@@ -161,7 +162,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 				duration: txn.duration,
 				queuing:  txn.queuing,
 				attrs:    txn.attrs,
-				datastoreExternalTotals: txn.datastoreExternalTotals,
+				datastoreExternalTotals: txn.tracer.datastoreExternalTotals,
 			})
 		}
 	}
