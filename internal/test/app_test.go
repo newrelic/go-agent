@@ -83,7 +83,7 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 func BenchmarkMuxDevelopmentMode(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := newrelic.NewApplication(cfg)
+	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}

@@ -6,12 +6,13 @@ import (
 	"github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/api"
 	"github.com/newrelic/go-agent/api/datastore"
+	"github.com/newrelic/go-agent/internal"
 )
 
 func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := newrelic.NewApplication(cfg)
+	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -29,7 +30,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := newrelic.NewApplication(cfg)
+	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 func BenchmarkDatastoreSegment(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := newrelic.NewApplication(cfg)
+	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -70,7 +71,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 func BenchmarkExternalSegment(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
 	cfg.Development = true
-	app, err := newrelic.NewApplication(cfg)
+	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
