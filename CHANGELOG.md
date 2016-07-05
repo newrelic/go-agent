@@ -1,6 +1,6 @@
 ## ChangeLog
 
-* Introduced beta token to to support our beta program.
+* Introduced beta token to support our beta program.
 
 * Fix unit tests broken in 1.6.
 
