@@ -38,6 +38,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
+			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Development":false,
 			"ErrorCollector":{
@@ -96,6 +97,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Development":false,
 			"ErrorCollector":{
