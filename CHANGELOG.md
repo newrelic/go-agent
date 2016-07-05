@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Introduced beta token to support our beta program.
+
 * Fix unit tests broken in 1.6.
 
 * In `Development` mode, the license must be the proper length or empty.

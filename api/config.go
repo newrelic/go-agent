@@ -20,6 +20,14 @@ type Config struct {
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/account-setup/license-key
 	License string
 
+	// BetaToken exists to ensure that you have signed the beta agreement
+	// available here:
+	//
+	//   http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
+	//
+	// This field will be removed once the Beta is complete.
+	BetaToken string
+
 	// Development determines whether the agent will communicate with the
 	// New Relic servers and spawn goroutines.  This can be useful in
 	// testing and staging situations.

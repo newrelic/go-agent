@@ -28,6 +28,7 @@ In your `main` function or in an `init` block:
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+config.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 app, err := newrelic.NewApplication(config)
 ```
 

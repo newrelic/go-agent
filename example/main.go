@@ -148,8 +148,14 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 }
 
 const (
-	licenseVar = "NEW_RELIC_LICENSE_KEY"
-	appname    = "My Go Application"
+	licenseVar   = "NEW_RELIC_LICENSE_KEY"
+	betaTokenVar = "NEW_RELIC_BETA_TOKEN"
+	appname      = "My Go Application"
+
+	betaTokenInstructions = `NEW_RELIC_BETA_TOKEN environment variable unset
+please assign it to the token emailed to you after signing the agreement here:
+  http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
+`
 )
 
 func main() {
@@ -160,6 +166,12 @@ func main() {
 	}
 
 	cfg := newrelic.NewConfig(appname, lic)
+
+	cfg.BetaToken = os.Getenv(betaTokenVar)
+	if "" == cfg.BetaToken {
+		fmt.Printf(betaTokenInstructions)
+		os.Exit(1)
+	}
 
 	var err error
 	app, err = newrelic.NewApplication(cfg)
