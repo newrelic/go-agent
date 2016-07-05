@@ -2,11 +2,15 @@
 
 * Introduced beta token to support our beta program.
 
-* Fixed a bug where exclusive time could be incorrect if segments were not ended.
+* Rename `Config.Development` to `Config.Enabled` (and change boolean
+  direction).
+
+* Fixed a bug where exclusive time could be incorrect if segments were not
+  ended.
 
 * Fix unit tests broken in 1.6.
 
-* In `Development` mode, the license must be the proper length or empty.
+* In `Config.Enabled = false` mode, the license must be the proper length or empty.
 
 * Added runtime statistics for CPU/memory usage, garbage collection, and number
   of goroutines.
