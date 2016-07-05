@@ -2,7 +2,6 @@ package test
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -103,8 +102,6 @@ func BenchmarkMuxDevelopmentMode(b *testing.B) {
 
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*api.Config), t testing.TB) internal.ExpectApp {
 	cfg := api.NewConfig("my app", "0123456789012345678901234567890123456789")
-
-	cfg.BetaToken = os.Getenv("NEW_RELIC_BETA_TOKEN")
 
 	if nil != cfgfn {
 		cfgfn(&cfg)

@@ -226,15 +226,7 @@ var (
 	errIncorrectBetaToken = errors.New("incorrect beta token: please contact New Relic")
 )
 
-// NewApp creates and returns an App or an error.
-func NewApp(c api.Config) (api.Application, error) {
-	if "" == c.BetaToken {
-		return nil, errMissingBetaToken
-	}
-	if b := makeSHA256(c.BetaToken); b != expectedTokenHash {
-		return nil, errIncorrectBetaToken
-	}
-
+func newAppInternal(c api.Config) (api.Application, error) {
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
@@ -280,6 +272,17 @@ func NewApp(c api.Config) (api.Application, error) {
 	return app, nil
 }
 
+// NewApp creates and returns an App or an error.
+func NewApp(c api.Config) (api.Application, error) {
+	if "" == c.BetaToken {
+		return nil, errMissingBetaToken
+	}
+	if b := makeSHA256(c.BetaToken); b != expectedTokenHash {
+		return nil, errIncorrectBetaToken
+	}
+	return newAppInternal(c)
+}
+
 // ExpectApp exposes captured data for testing in the internal/test package.
 type ExpectApp interface {
 	Expect
@@ -289,7 +292,7 @@ type ExpectApp interface {
 // NewTestApp returns an ExpectApp for testing in the internal/test package.
 func NewTestApp(replyfn func(*ConnectReply), cfg api.Config) (ExpectApp, error) {
 	cfg.Development = true
-	application, err := NewApp(cfg)
+	application, err := newAppInternal(cfg)
 	if nil != err {
 		return nil, err
 	}
