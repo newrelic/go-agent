@@ -15,6 +15,8 @@ Forum](https://discuss.newrelic.com/c/language-agents/go-agent-beta) to tell us
 how the Go Agent works for you, what you'd like to see and how we can improve
 it.  We're eager to hear your feedback!
 
+Breaking changes may be made before release 1.0.
+
 ## Description
 
 The New Relic Go Agent allows you to monitor your Go applications with New
