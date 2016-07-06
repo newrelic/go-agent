@@ -247,12 +247,12 @@ func NewAppInternal(c api.Config) (api.Application, error) {
 	}
 
 	log.Info("application created", log.Context{
-		"app":         app.config.AppName,
-		"version":     version.Version,
-		"development": app.config.Development,
+		"app":     app.config.AppName,
+		"version": version.Version,
+		"enabled": app.config.Enabled,
 	})
 
-	if app.config.Development {
+	if !app.config.Enabled {
 		return app, nil
 	}
 
@@ -288,7 +288,7 @@ type ExpectApp interface {
 
 // NewTestApp returns an ExpectApp for testing in the internal/test package.
 func NewTestApp(replyfn func(*ConnectReply), cfg api.Config) (ExpectApp, error) {
-	cfg.Development = true
+	cfg.Enabled = false
 	application, err := NewAppInternal(cfg)
 	if nil != err {
 		return nil, err

@@ -11,7 +11,7 @@ import (
 
 func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
@@ -29,7 +29,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 
 func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
@@ -48,7 +48,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 
 func BenchmarkDatastoreSegment(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)
@@ -70,7 +70,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 
 func BenchmarkExternalSegment(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)

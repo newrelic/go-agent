@@ -267,7 +267,7 @@ func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
 func testConnectHelper(transport http.RoundTripper) (string, *ConnectReply, error) {
 	lic := "0123456789012345678901234567890123456789"
 	cfg := api.NewConfig("my appname", lic)
-	cfg.Development = true
+	cfg.Enabled = false
 	cfg.Utilization.DetectAWS = false
 	cfg.Utilization.DetectDocker = false
 	cfg.Transport = transport

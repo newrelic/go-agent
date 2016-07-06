@@ -37,7 +37,7 @@ var (
 
 func TestNewApplicationNil(t *testing.T) {
 	cfg := api.NewConfig("appname", "wrong length")
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := newrelic.NewApplication(cfg)
 	if nil == err {
 		t.Error("error expected when license key is short")
@@ -80,9 +80,9 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 	}
 }
 
-func BenchmarkMuxDevelopmentMode(b *testing.B) {
+func BenchmarkMuxDisabledMode(b *testing.B) {
 	cfg := newrelic.NewConfig("my app", sampleLicense)
-	cfg.Development = true
+	cfg.Enabled = false
 	app, err := internal.NewAppInternal(cfg)
 	if nil != err {
 		b.Fatal(err)

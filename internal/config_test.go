@@ -40,7 +40,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
 			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
-			"Development":false,
+			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
@@ -99,7 +99,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
-			"Development":false,
+			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"CaptureEvents":true,
@@ -143,21 +143,31 @@ func TestValidate(t *testing.T) {
 	c := api.Config{
 		License: "0123456789012345678901234567890123456789",
 		AppName: "my app",
+		Enabled: true,
 	}
 	if err := c.Validate(); nil != err {
 		t.Error(err)
 	}
-	c = api.Config{License: "", AppName: "my app"}
+	c = api.Config{
+		License: "",
+		AppName: "my app",
+		Enabled: true,
+	}
 	if err := c.Validate(); err != api.ErrLicenseLen {
 		t.Error(err)
 	}
-	c = api.Config{License: "", AppName: "my app", Development: true}
+	c = api.Config{
+		License: "",
+		AppName: "my app",
+		Enabled: false,
+	}
 	if err := c.Validate(); nil != err {
 		t.Error(err)
 	}
 	c = api.Config{
 		License: "wronglength",
 		AppName: "my app",
+		Enabled: true,
 	}
 	if err := c.Validate(); err != api.ErrLicenseLen {
 		t.Error(err)
@@ -165,6 +175,7 @@ func TestValidate(t *testing.T) {
 	c = api.Config{
 		License: "0123456789012345678901234567890123456789",
 		AppName: "too;many;app;names",
+		Enabled: true,
 	}
 	if err := c.Validate(); err != api.ErrAppNameLimit {
 		t.Error(err)
@@ -172,6 +183,7 @@ func TestValidate(t *testing.T) {
 	c = api.Config{
 		License: "0123456789012345678901234567890123456789",
 		AppName: "",
+		Enabled: true,
 	}
 	if err := c.Validate(); err != api.ErrAppNameMissing {
 		t.Error(err)
@@ -179,6 +191,7 @@ func TestValidate(t *testing.T) {
 	c = api.Config{
 		License:      "0123456789012345678901234567890123456789",
 		AppName:      "my app",
+		Enabled:      true,
 		HighSecurity: true,
 	}
 	if err := c.Validate(); err != api.ErrHighSecurityTLS {
@@ -187,6 +200,7 @@ func TestValidate(t *testing.T) {
 	c = api.Config{
 		License:      "0123456789012345678901234567890123456789",
 		AppName:      "my app",
+		Enabled:      true,
 		UseTLS:       true,
 		HighSecurity: true,
 	}

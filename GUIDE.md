@@ -38,12 +38,12 @@ and CPU usage.
 
 If you are working in a development environment or running unit tests, you may
 not want the Go Agent to spawn goroutines or report to New Relic.  You're in
-luck!  Set the config's `Development` field to true.  This makes the license key
+luck!  Set the config's `Enabled` field to false.  This makes the license key
 optional.
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "")
-config.Development = true
+config.Enabled = false
 app, err := newrelic.NewApplication(config)
 ```
 

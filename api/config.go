@@ -28,10 +28,10 @@ type Config struct {
 	// This field will be removed once the Beta is complete.
 	BetaToken string
 
-	// Development determines whether the agent will communicate with the
-	// New Relic servers and spawn goroutines.  This can be useful in
-	// testing and staging situations.
-	Development bool
+	// Enabled determines whether the agent will communicate with the New
+	// Relic servers and spawn goroutines.  Setting this to be false can be
+	// useful in testing and staging situations.
+	Enabled bool
 
 	// Labels are key value pairs used to roll up applications into specific
 	// categories.
@@ -133,6 +133,7 @@ func NewConfig(appname, license string) Config {
 
 	c.AppName = appname
 	c.License = license
+	c.Enabled = true
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
@@ -169,10 +170,15 @@ var (
 // Validate checks the config for improper fields.  If the config is invalid,
 // newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
-	// In development mode, the License may be empty.
-	if !((len(c.License) == licenseLength) ||
-		(c.Development && len(c.License) == 0)) {
-		return ErrLicenseLen
+	if c.Enabled {
+		if len(c.License) != licenseLength {
+			return ErrLicenseLen
+		}
+	} else {
+		// The License may be empty when the agent is not enabled.
+		if len(c.License) != licenseLength && len(c.License) != 0 {
+			return ErrLicenseLen
+		}
 	}
 	if c.HighSecurity && !c.UseTLS {
 		return ErrHighSecurityTLS
