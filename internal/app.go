@@ -47,10 +47,6 @@ type App struct {
 	sync.RWMutex
 }
 
-func (app *App) String() string {
-	return app.config.AppName
-}
-
 var (
 	placeholderRun = &appRun{
 		ConnectReply: connectReplyDefaults(),
