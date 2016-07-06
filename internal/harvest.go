@@ -80,33 +80,33 @@ type createTxnMetricsArgs struct {
 	errorsSeen     uint64
 }
 
-func (h *harvest) createTxnMetrics(args createTxnMetricsArgs) {
+func createTxnMetrics(args createTxnMetricsArgs, metrics *metricTable) {
 	// Duration Metrics
 	rollup := backgroundRollup
 	if args.isWeb {
 		rollup = webRollup
-		h.metrics.addDuration(dispatcherMetric, "", args.duration, 0, forced)
+		metrics.addDuration(dispatcherMetric, "", args.duration, 0, forced)
 	}
 
-	h.metrics.addDuration(args.name, "", args.duration, args.exclusive, forced)
-	h.metrics.addDuration(rollup, "", args.duration, args.exclusive, forced)
+	metrics.addDuration(args.name, "", args.duration, args.exclusive, forced)
+	metrics.addDuration(rollup, "", args.duration, args.exclusive, forced)
 
 	// Apdex Metrics
 	if args.zone != apdexNone {
-		h.metrics.addApdex(apdexRollup, "", args.apdexThreshold, args.zone, forced)
+		metrics.addApdex(apdexRollup, "", args.apdexThreshold, args.zone, forced)
 
 		mname := apdexPrefix + removeFirstSegment(args.name)
-		h.metrics.addApdex(mname, "", args.apdexThreshold, args.zone, unforced)
+		metrics.addApdex(mname, "", args.apdexThreshold, args.zone, unforced)
 	}
 
 	// Error Metrics
 	if args.errorsSeen > 0 {
-		h.metrics.addSingleCount(errorsAll, forced)
+		metrics.addSingleCount(errorsAll, forced)
 		if args.isWeb {
-			h.metrics.addSingleCount(errorsWeb, forced)
+			metrics.addSingleCount(errorsWeb, forced)
 		} else {
-			h.metrics.addSingleCount(errorsBackground, forced)
+			metrics.addSingleCount(errorsBackground, forced)
 		}
-		h.metrics.addSingleCount(errorsPrefix+args.name, forced)
+		metrics.addSingleCount(errorsPrefix+args.name, forced)
 	}
 }

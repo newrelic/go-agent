@@ -116,7 +116,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 		exclusive = txn.duration - children
 	}
 
-	h.createTxnMetrics(createTxnMetricsArgs{
+	createTxnMetrics(createTxnMetricsArgs{
 		isWeb:          txn.isWeb,
 		duration:       txn.duration,
 		exclusive:      exclusive,
@@ -124,7 +124,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 		zone:           txn.zone,
 		apdexThreshold: txn.apdexThreshold,
 		errorsSeen:     txn.errorsSeen,
-	})
+	}, h.metrics)
 
 	if txn.queuing > 0 {
 		h.metrics.addDuration(queueMetric, "", txn.queuing, txn.queuing, forced)

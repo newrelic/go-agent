@@ -68,9 +68,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.isWeb = true
 	args.errorsSeen = 1
 	args.zone = apdexTolerating
-	h := newHarvest(time.Now())
-	h.createTxnMetrics(args)
-	expectMetrics(t, h.metrics, []WantMetric{
+	metrics := newMetricTable(100, time.Now())
+	createTxnMetrics(args, metrics)
+	expectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
@@ -85,9 +85,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.isWeb = true
 	args.errorsSeen = 0
 	args.zone = apdexTolerating
-	h = newHarvest(time.Now())
-	h.createTxnMetrics(args)
-	expectMetrics(t, h.metrics, []WantMetric{
+	metrics = newMetricTable(100, time.Now())
+	createTxnMetrics(args, metrics)
+	expectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
@@ -99,9 +99,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.isWeb = false
 	args.errorsSeen = 1
 	args.zone = apdexNone
-	h = newHarvest(time.Now())
-	h.createTxnMetrics(args)
-	expectMetrics(t, h.metrics, []WantMetric{
+	metrics = newMetricTable(100, time.Now())
+	createTxnMetrics(args, metrics)
+	expectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{errorsAll, "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -113,9 +113,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.isWeb = false
 	args.errorsSeen = 0
 	args.zone = apdexNone
-	h = newHarvest(time.Now())
-	h.createTxnMetrics(args)
-	expectMetrics(t, h.metrics, []WantMetric{
+	metrics = newMetricTable(100, time.Now())
+	createTxnMetrics(args, metrics)
+	expectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 	})
