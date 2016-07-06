@@ -133,7 +133,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 	mergeBreakdownMetrics(&txn.tracer, h.metrics, txn.finalName, txn.isWeb)
 
 	if txn.txnEventsEnabled() {
-		event := &txnEvent{
+		h.txnEvents.AddTxnEvent(&txnEvent{
 			Name:      txn.finalName,
 			Timestamp: txn.start,
 			Duration:  txn.duration,
@@ -141,8 +141,7 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 			zone:      txn.zone,
 			attrs:     txn.attrs,
 			datastoreExternalTotals: txn.tracer.datastoreExternalTotals,
-		}
-		h.addTxnEvent(event)
+		})
 	}
 
 	requestURI := ""

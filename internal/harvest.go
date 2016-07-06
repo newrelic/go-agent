@@ -59,10 +59,6 @@ func (h *harvest) applyMetricRules(rules metricRules) {
 	h.metrics = h.metrics.applyRules(rules)
 }
 
-func (h *harvest) addTxnEvent(t *txnEvent) {
-	h.txnEvents.AddTxnEvent(t)
-}
-
 type payloadCreator interface {
 	// In the event of a rpm request failure (hopefully simply an
 	// intermittent collector issue) the payload may be merged into the next
