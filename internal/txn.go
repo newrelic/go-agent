@@ -109,6 +109,47 @@ func (txn *txn) getsApdex() bool {
 	return txn.isWeb
 }
 
+type createTxnMetricsArgs struct {
+	isWeb          bool
+	duration       time.Duration
+	exclusive      time.Duration
+	name           string
+	zone           apdexZone
+	apdexThreshold time.Duration
+	errorsSeen     uint64
+}
+
+func createTxnMetrics(args createTxnMetricsArgs, metrics *metricTable) {
+	// Duration Metrics
+	rollup := backgroundRollup
+	if args.isWeb {
+		rollup = webRollup
+		metrics.addDuration(dispatcherMetric, "", args.duration, 0, forced)
+	}
+
+	metrics.addDuration(args.name, "", args.duration, args.exclusive, forced)
+	metrics.addDuration(rollup, "", args.duration, args.exclusive, forced)
+
+	// Apdex Metrics
+	if args.zone != apdexNone {
+		metrics.addApdex(apdexRollup, "", args.apdexThreshold, args.zone, forced)
+
+		mname := apdexPrefix + removeFirstSegment(args.name)
+		metrics.addApdex(mname, "", args.apdexThreshold, args.zone, unforced)
+	}
+
+	// Error Metrics
+	if args.errorsSeen > 0 {
+		metrics.addSingleCount(errorsAll, forced)
+		if args.isWeb {
+			metrics.addSingleCount(errorsWeb, forced)
+		} else {
+			metrics.addSingleCount(errorsBackground, forced)
+		}
+		metrics.addSingleCount(errorsPrefix+args.name, forced)
+	}
+}
+
 func (txn *txn) mergeIntoHarvest(h *harvest) {
 	exclusive := time.Duration(0)
 	children := tracerRootChildren(&txn.tracer)
