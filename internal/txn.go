@@ -117,13 +117,13 @@ func (txn *txn) mergeIntoHarvest(h *harvest) {
 	}
 
 	h.createTxnMetrics(createTxnMetricsArgs{
-		IsWeb:          txn.isWeb,
-		Duration:       txn.duration,
-		Exclusive:      exclusive,
-		Name:           txn.finalName,
-		Zone:           txn.zone,
-		ApdexThreshold: txn.apdexThreshold,
-		ErrorsSeen:     txn.errorsSeen,
+		isWeb:          txn.isWeb,
+		duration:       txn.duration,
+		exclusive:      exclusive,
+		name:           txn.finalName,
+		zone:           txn.zone,
+		apdexThreshold: txn.apdexThreshold,
+		errorsSeen:     txn.errorsSeen,
 	})
 
 	if txn.queuing > 0 {

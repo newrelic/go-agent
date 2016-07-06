@@ -59,15 +59,15 @@ func TestCreateTxnMetrics(t *testing.T) {
 	webName := "WebTransaction/zip/zap"
 	backgroundName := "OtherTransaction/zip/zap"
 	args := createTxnMetricsArgs{
-		Duration:       123 * time.Second,
-		Exclusive:      109 * time.Second,
-		ApdexThreshold: 2 * time.Second,
+		duration:       123 * time.Second,
+		exclusive:      109 * time.Second,
+		apdexThreshold: 2 * time.Second,
 	}
 
-	args.Name = webName
-	args.IsWeb = true
-	args.ErrorsSeen = 1
-	args.Zone = apdexTolerating
+	args.name = webName
+	args.isWeb = true
+	args.errorsSeen = 1
+	args.zone = apdexTolerating
 	h := newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
@@ -81,10 +81,10 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
 	})
 
-	args.Name = webName
-	args.IsWeb = true
-	args.ErrorsSeen = 0
-	args.Zone = apdexTolerating
+	args.name = webName
+	args.isWeb = true
+	args.errorsSeen = 0
+	args.zone = apdexTolerating
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
@@ -95,10 +95,10 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
 	})
 
-	args.Name = backgroundName
-	args.IsWeb = false
-	args.ErrorsSeen = 1
-	args.Zone = apdexNone
+	args.name = backgroundName
+	args.isWeb = false
+	args.errorsSeen = 1
+	args.zone = apdexNone
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{
@@ -109,10 +109,10 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
-	args.Name = backgroundName
-	args.IsWeb = false
-	args.ErrorsSeen = 0
-	args.Zone = apdexNone
+	args.name = backgroundName
+	args.isWeb = false
+	args.errorsSeen = 0
+	args.zone = apdexNone
 	h = newHarvest(time.Now())
 	h.createTxnMetrics(args)
 	expectMetrics(t, h.metrics, []WantMetric{

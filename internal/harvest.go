@@ -71,42 +71,42 @@ type payloadCreator interface {
 }
 
 type createTxnMetricsArgs struct {
-	IsWeb          bool
-	Duration       time.Duration
-	Exclusive      time.Duration
-	Name           string
-	Zone           apdexZone
-	ApdexThreshold time.Duration
-	ErrorsSeen     uint64
+	isWeb          bool
+	duration       time.Duration
+	exclusive      time.Duration
+	name           string
+	zone           apdexZone
+	apdexThreshold time.Duration
+	errorsSeen     uint64
 }
 
 func (h *harvest) createTxnMetrics(args createTxnMetricsArgs) {
 	// Duration Metrics
 	rollup := backgroundRollup
-	if args.IsWeb {
+	if args.isWeb {
 		rollup = webRollup
-		h.metrics.addDuration(dispatcherMetric, "", args.Duration, 0, forced)
+		h.metrics.addDuration(dispatcherMetric, "", args.duration, 0, forced)
 	}
 
-	h.metrics.addDuration(args.Name, "", args.Duration, args.Exclusive, forced)
-	h.metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
+	h.metrics.addDuration(args.name, "", args.duration, args.exclusive, forced)
+	h.metrics.addDuration(rollup, "", args.duration, args.exclusive, forced)
 
 	// Apdex Metrics
-	if args.Zone != apdexNone {
-		h.metrics.addApdex(apdexRollup, "", args.ApdexThreshold, args.Zone, forced)
+	if args.zone != apdexNone {
+		h.metrics.addApdex(apdexRollup, "", args.apdexThreshold, args.zone, forced)
 
-		mname := apdexPrefix + removeFirstSegment(args.Name)
-		h.metrics.addApdex(mname, "", args.ApdexThreshold, args.Zone, unforced)
+		mname := apdexPrefix + removeFirstSegment(args.name)
+		h.metrics.addApdex(mname, "", args.apdexThreshold, args.zone, unforced)
 	}
 
 	// Error Metrics
-	if args.ErrorsSeen > 0 {
+	if args.errorsSeen > 0 {
 		h.metrics.addSingleCount(errorsAll, forced)
-		if args.IsWeb {
+		if args.isWeb {
 			h.metrics.addSingleCount(errorsWeb, forced)
 		} else {
 			h.metrics.addSingleCount(errorsBackground, forced)
 		}
-		h.metrics.addSingleCount(errorsPrefix+args.Name, forced)
+		h.metrics.addSingleCount(errorsPrefix+args.name, forced)
 	}
 }
