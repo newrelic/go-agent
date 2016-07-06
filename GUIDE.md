@@ -13,6 +13,7 @@
 ## Beta
 
 During the beta period, a beta token is required. To obtain a token:
+
 1. Agree to the click-through [Beta Agreement](http://goo.gl/forms/Rcv1b10Qvt1ENLlr1)
 2. Once your account is approved, we will email you a beta token, usually
    within the same business day.
