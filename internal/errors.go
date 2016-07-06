@@ -112,13 +112,17 @@ func harvestErrorFromTxnError(e *txnError, txnName string, requestURI string, at
 	}
 }
 
+func addTxnError(errors *harvestErrors, e *txnError, txnName string, requestURI string, attrs *attributes) {
+	he := harvestErrorFromTxnError(e, txnName, requestURI, attrs)
+	errors.errors = append(errors.errors, he)
+}
+
 func mergeTxnErrors(errors *harvestErrors, errs txnErrors, txnName string, requestURI string, attrs *attributes) {
 	for _, e := range errs {
 		if len(errors.errors) == cap(errors.errors) {
 			return
 		}
-		he := harvestErrorFromTxnError(e, txnName, requestURI, attrs)
-		errors.errors = append(errors.errors, he)
+		addTxnError(errors, e, txnName, requestURI, attrs)
 	}
 }
 
