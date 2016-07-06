@@ -107,19 +107,20 @@ type segmentEnd struct {
 	exclusive time.Duration
 }
 
-func endSegment(t *tracer, token api.Token, now time.Time) (s segmentEnd) {
+func endSegment(t *tracer, token api.Token, now time.Time) segmentEnd {
+	var s segmentEnd
 	depth, stamp := parseToken(token)
 	if 0 == stamp {
-		return
+		return s
 	}
 	if depth >= t.currentDepth {
-		return
+		return s
 	}
 	if depth < 0 {
-		return
+		return s
 	}
 	if stamp != t.stack[depth].stamp {
-		return
+		return s
 	}
 
 	var children time.Duration
@@ -146,7 +147,7 @@ func endSegment(t *tracer, token api.Token, now time.Time) (s segmentEnd) {
 	} else {
 		t.stack[t.currentDepth-1].children += s.duration
 	}
-	return
+	return s
 }
 
 func endBasicSegment(t *tracer, token api.Token, now time.Time, name string) {
