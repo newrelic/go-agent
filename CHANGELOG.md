@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.6.0
+
 * Introduced beta token to support our beta program.
 
 * Rename `Config.Development` to `Config.Enabled` (and change boolean
