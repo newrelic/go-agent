@@ -1,5 +1,7 @@
 # New Relic Go Agent Guide
 
+* [Beta](#beta)
+* [Installation](#installation)
 * [Config and Application](#config-and-application)
 * [Transactions](#transactions)
 * [Segments](#segments)
