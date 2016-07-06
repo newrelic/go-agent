@@ -266,6 +266,34 @@ func TestLostChildrenRoot(t *testing.T) {
 	})
 }
 
+func TestSegmentBasic(t *testing.T) {
+	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &tracer{}
+
+	t1 := startSegment(tr, start.Add(1*time.Second))
+	t2 := startSegment(tr, start.Add(2*time.Second))
+	endBasicSegment(tr, t2, start.Add(3*time.Second), "t2")
+	endBasicSegment(tr, t1, start.Add(4*time.Second), "t1")
+	t3 := startSegment(tr, start.Add(5*time.Second))
+	t4 := startSegment(tr, start.Add(6*time.Second))
+	endBasicSegment(tr, t3, start.Add(7*time.Second), "t3")
+	endBasicSegment(tr, t4, start.Add(8*time.Second), "out-of-order")
+	t5 := startSegment(tr, start.Add(9*time.Second))
+	endBasicSegment(tr, t5, start.Add(10*time.Second), "t1")
+
+	metrics := newMetricTable(100, time.Now())
+	scope := "WebTransaction/Go/zip"
+	mergeBreakdownMetrics(tr, metrics, scope, true)
+	expectMetrics(t, metrics, []WantMetric{
+		{"Custom/t1", "", false, []float64{2, 4, 3, 1, 3, 10}},
+		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", "", false, []float64{1, 2, 2, 2, 2, 4}},
+		{"Custom/t1", scope, false, []float64{2, 4, 3, 1, 3, 10}},
+		{"Custom/t2", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Custom/t3", scope, false, []float64{1, 2, 2, 2, 2, 4}},
+	})
+}
+
 func TestSegmentExternal(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &tracer{}
