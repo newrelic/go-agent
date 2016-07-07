@@ -330,6 +330,7 @@ func (txn *txn) End() error {
 			"name":        txn.finalName,
 			"duration_ms": txn.duration.Seconds() * 1000.0,
 			"ignored":     txn.ignore,
+			"run":         txn.Reply.RunID,
 		})
 	}
 
