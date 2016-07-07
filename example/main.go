@@ -12,6 +12,7 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/api/datastore"
 	"github.com/newrelic/go-agent/log"
+	"github.com/newrelic/go-agent/version"
 
 	// "github.com/Sirupsen/logrus"
 	// _ "github.com/newrelic/go-agent/log/_nrlogrus"
@@ -29,6 +30,10 @@ func init() {
 
 func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "hello world")
+}
+
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "New Relic Go Agent Version: "+version.Version)
 }
 
 func noticeError(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +186,7 @@ func main() {
 	}
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error", noticeError))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
