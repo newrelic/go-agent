@@ -56,6 +56,5 @@ func TestMetricsCreatedEmpty(t *testing.T) {
 		{"CPU/System/Utilization", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Go/Runtime/Goroutines", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"GC/System/Pause Fraction", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"GC/System/Pauses", "", true, []float64{0, 0, 0, 0, 0, 0}},
 	})
 }
