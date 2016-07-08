@@ -98,14 +98,18 @@ func getStats(ss samples) stats {
 
 	// GC Pauses
 	if deltaNumGC := cur.memStats.NumGC - prev.memStats.NumGC; deltaNumGC > 0 {
-		var maxPauseNs uint64
-		var minPauseNs uint64
+		// In case more than 256 pauses have happened between samples
+		// and we are examining a subset of the pauses, we ensure that
+		// the min and max are not on the same side of the average by
+		// using the average as the starting min and max.
+		maxPauseNs := deltaPauseTotalNs / uint64(deltaNumGC)
+		minPauseNs := deltaPauseTotalNs / uint64(deltaNumGC)
 		for i := prev.memStats.NumGC + 1; i <= cur.memStats.NumGC; i++ {
 			pause := cur.memStats.PauseNs[(i+255)%256]
 			if pause > maxPauseNs {
 				maxPauseNs = pause
 			}
-			if 0 == minPauseNs || pause < minPauseNs {
+			if pause < minPauseNs {
 				minPauseNs = pause
 			}
 		}
