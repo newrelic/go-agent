@@ -83,7 +83,7 @@ func (events *analyticsEvents) AddEvent(e analyticsEvent) {
 
 func (events *analyticsEvents) MergeFailed(other *analyticsEvents) {
 	fails := other.failedHarvests + 1
-	if fails > failedEventsAttemptsLimit {
+	if fails >= failedEventsAttemptsLimit {
 		log.Warn("discarding events", log.Context{"harvest_attempts": fails})
 		return
 	}

@@ -104,7 +104,7 @@ func (mt *metricTable) mergeMetric(id metricID, m metric) {
 
 func (mt *metricTable) mergeFailed(from *metricTable) {
 	fails := from.failedHarvests + 1
-	if fails > failedMetricAttemptsLimit {
+	if fails >= failedMetricAttemptsLimit {
 		log.Warn("discarding metrics", log.Context{"harvest_attempts": fails})
 		return
 	}
