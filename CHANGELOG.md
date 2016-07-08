@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.6.1
+
 * No longer create "GC/System/Pauses" metric if no GC pauses happened.
 
 ## 0.6.0
