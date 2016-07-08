@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* No longer create "GC/System/Pauses" metric if no GC pauses happened.
+
 ## 0.6.0
 
 * Introduced beta token to support our beta program.
