@@ -126,14 +126,16 @@ func (s stats) mergeIntoHarvest(h *harvest) {
 	h.metrics.addValue(cpuUserTime, "", s.user.used.Seconds(), forced)
 	h.metrics.addValue(cpuSystemTime, "", s.system.used.Seconds(), forced)
 	h.metrics.addValueExclusive(gcPauseFraction, "", s.gcPauseFraction, 0, forced)
-	h.metrics.add(gcPauses, "", metricData{
-		countSatisfied:  float64(s.deltaNumGC),
-		totalTolerated:  s.deltaPauseTotal.Seconds(),
-		exclusiveFailed: 0,
-		min:             s.minPause.Seconds(),
-		max:             s.maxPause.Seconds(),
-		sumSquares:      s.deltaPauseTotal.Seconds() * s.deltaPauseTotal.Seconds(),
-	}, forced)
+	if s.deltaNumGC > 0 {
+		h.metrics.add(gcPauses, "", metricData{
+			countSatisfied:  float64(s.deltaNumGC),
+			totalTolerated:  s.deltaPauseTotal.Seconds(),
+			exclusiveFailed: 0,
+			min:             s.minPause.Seconds(),
+			max:             s.maxPause.Seconds(),
+			sumSquares:      s.deltaPauseTotal.Seconds() * s.deltaPauseTotal.Seconds(),
+		}, forced)
+	}
 }
 
 func runSampler(app *App, period time.Duration) {
