@@ -570,7 +570,7 @@ func TestPanicError(t *testing.T) {
 	e := myError{}
 	r := deferEndPanic(txn, e)
 	if r != e {
-		t.Error("panic not propogated", r)
+		t.Error("panic not propagated", r)
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
@@ -601,7 +601,7 @@ func TestPanicString(t *testing.T) {
 	e := "my string"
 	r := deferEndPanic(txn, e)
 	if r != e {
-		t.Error("panic not propogated", r)
+		t.Error("panic not propagated", r)
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
@@ -632,7 +632,7 @@ func TestPanicInt(t *testing.T) {
 	e := 22
 	r := deferEndPanic(txn, e)
 	if r != e {
-		t.Error("panic not propogated", r)
+		t.Error("panic not propagated", r)
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{

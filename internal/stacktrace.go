@@ -32,7 +32,7 @@ func pcToFunc(pc uintptr) (*runtime.Func, uintptr) {
 	// then pc[i] is the program counter of a faulting instruction and
 	// should be used without any subtraction."
 	//
-	// TODO: Fully understand when this substraction is necessary.
+	// TODO: Fully understand when this subtraction is necessary.
 	place := pc - 1
 	return runtime.FuncForPC(place), place
 }

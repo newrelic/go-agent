@@ -339,7 +339,7 @@ func (txn *txn) End() error {
 	}
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not
-	// propogate.
+	// propagate.
 	if nil != r {
 		panic(r)
 	}

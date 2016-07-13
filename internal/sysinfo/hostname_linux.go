@@ -33,7 +33,7 @@ func Hostname() (string, error) {
 		// suggesting that as long as the buffer given is valid, the
 		// call will never fail. Return the original error in the hope
 		// it provides more relevant information about why the hostname
-		// can't be retreived.
+		// can't be retrieved.
 		return "", err
 	}
 
