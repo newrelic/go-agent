@@ -32,13 +32,12 @@ func getSample(now time.Time) *sample {
 		numCPU:       runtime.NumCPU(),
 	}
 
-	ru := syscall.Rusage{}
-	err := syscall.Getrusage(syscall.RUSAGE_SELF, &ru)
+	sys, user, err := getProcessTimes()
 	if nil == err {
-		s.userTime = timevalToDuration(ru.Utime)
-		s.systemTime = timevalToDuration(ru.Stime)
+		s.userTime = user
+		s.systemTime = sys
 	} else {
-		log.Warn("unable to getrusage", log.Context{
+		log.Warn("unable to getProcessTimes", log.Context{
 			"error": err.Error(),
 		})
 	}
