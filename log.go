@@ -6,8 +6,9 @@ import (
 	"github.com/newrelic/go-agent/internal/logger"
 )
 
-// Logger is interface that groups the logging methods used in the go-agent.
-// Loggers must be safe for use in multiple goroutines.
+// Logger is the interface that is used for logging in the go-agent.  Assign the
+// Config.Logger field to the Logger you wish to use.  Loggers must be safe for
+// use in multiple goroutines.
 //
 // For an example implementation, see: _integrations/nrlogrus/nrlogrus.go
 type Logger interface {

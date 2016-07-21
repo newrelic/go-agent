@@ -72,15 +72,15 @@ implementation is included.
 To log at debug level to standard out, set:
 
 ```go
-cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+config.Logger = newrelic.NewDebugLogger(os.Stdout)
 ```
 
 To log at info level to a file, set:
 
 ```go
-w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 if nil == err {
-  cfg.Logger = newrelic.NewLogger(w)
+  config.Logger = newrelic.NewLogger(w)
 }
 ```
 
@@ -88,12 +88,12 @@ if nil == err {
 
 * [_integrations/nrlogrus/nrlogrus.go](_integrations/nrlogrus/nrlogrus.go)
 
-If you are using `logrus` would like to send the agent's log messages to it,
-include the `github.com/newrelic/go-agent/_integrations/nrlogrus` package, then
-set:
+If you are using `logrus` and would like to send the agent's log messages to its
+standard logger, import the
+`github.com/newrelic/go-agent/_integrations/nrlogrus` package, then set:
 
 ```go
-cfg.Logger = nrlogrus.StandardLogger()
+config.Logger = nrlogrus.StandardLogger()
 ```
 
 ## Transactions
