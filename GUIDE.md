@@ -93,7 +93,7 @@ include the `github.com/newrelic/go-agent/_integrations/nrlogrus` package, then
 set:
 
 ```go
-cfg.Logger = nrlogrus.New()
+cfg.Logger = nrlogrus.StandardLogger()
 ```
 
 ## Transactions
