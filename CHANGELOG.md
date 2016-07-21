@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.7.0
+
 * Eliminated `api`, `version`, and `log` packages.  `Version`, `Config`,
   `Application`, and `Transaction` now live in the top level `newrelic` package.
   If you imported the  `attributes` or `datastore` packages then you will need
