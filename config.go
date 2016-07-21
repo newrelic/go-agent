@@ -1,4 +1,4 @@
-package api
+package newrelic
 
 import (
 	"errors"
@@ -19,6 +19,9 @@ type Config struct {
 	//
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/account-setup/license-key
 	License string
+
+	// Logger controls go-agent logging.  See log.go.
+	Logger Logger
 
 	// BetaToken exists to ensure that you have signed the beta agreement
 	// available here:
@@ -127,7 +130,8 @@ type AttributeDestinationConfig struct {
 	Exclude []string
 }
 
-// NewConfig returns a Config with proper defaults.
+// NewConfig creates an Config populated with the given appname, license,
+// and expected default values.
 func NewConfig(appname, license string) Config {
 	c := Config{}
 
@@ -161,10 +165,10 @@ const (
 
 // The following errors will be returned if your Config fails to validate.
 var (
-	ErrLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
-	ErrHighSecurityTLS = errors.New("high security requires TLS")
-	ErrAppNameMissing  = errors.New("AppName required")
-	ErrAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
+	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
+	errHighSecurityTLS = errors.New("high security requires TLS")
+	errAppNameMissing  = errors.New("AppName required")
+	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
 // Validate checks the config for improper fields.  If the config is invalid,
@@ -172,22 +176,22 @@ var (
 func (c Config) Validate() error {
 	if c.Enabled {
 		if len(c.License) != licenseLength {
-			return ErrLicenseLen
+			return errLicenseLen
 		}
 	} else {
 		// The License may be empty when the agent is not enabled.
 		if len(c.License) != licenseLength && len(c.License) != 0 {
-			return ErrLicenseLen
+			return errLicenseLen
 		}
 	}
 	if c.HighSecurity && !c.UseTLS {
-		return ErrHighSecurityTLS
+		return errHighSecurityTLS
 	}
 	if "" == c.AppName {
-		return ErrAppNameMissing
+		return errAppNameMissing
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {
-		return ErrAppNameLimit
+		return errAppNameLimit
 	}
 	return nil
 }

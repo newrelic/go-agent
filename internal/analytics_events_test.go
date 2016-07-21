@@ -27,9 +27,9 @@ func sampleAnalyticsEvent(stamp int) analyticsEvent {
 
 func TestBasic(t *testing.T) {
 	events := newAnalyticsEvents(10)
-	events.AddEvent(sampleAnalyticsEvent(1))
-	events.AddEvent(sampleAnalyticsEvent(1))
-	events.AddEvent(sampleAnalyticsEvent(1))
+	events.addEvent(sampleAnalyticsEvent(1))
+	events.addEvent(sampleAnalyticsEvent(1))
+	events.addEvent(sampleAnalyticsEvent(1))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -68,12 +68,12 @@ func TestEmpty(t *testing.T) {
 
 func TestSampling(t *testing.T) {
 	events := newAnalyticsEvents(3)
-	events.AddEvent(sampleAnalyticsEvent(10))
-	events.AddEvent(sampleAnalyticsEvent(1))
-	events.AddEvent(sampleAnalyticsEvent(9))
-	events.AddEvent(sampleAnalyticsEvent(2))
-	events.AddEvent(sampleAnalyticsEvent(8))
-	events.AddEvent(sampleAnalyticsEvent(3))
+	events.addEvent(sampleAnalyticsEvent(10))
+	events.addEvent(sampleAnalyticsEvent(1))
+	events.addEvent(sampleAnalyticsEvent(9))
+	events.addEvent(sampleAnalyticsEvent(2))
+	events.addEvent(sampleAnalyticsEvent(8))
+	events.addEvent(sampleAnalyticsEvent(3))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -113,14 +113,14 @@ func TestMergeFull(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.AddEvent(sampleAnalyticsEvent(5))
-	e1.AddEvent(sampleAnalyticsEvent(10))
-	e1.AddEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(5))
+	e1.addEvent(sampleAnalyticsEvent(10))
+	e1.addEvent(sampleAnalyticsEvent(15))
 
-	e2.AddEvent(sampleAnalyticsEvent(6))
-	e2.AddEvent(sampleAnalyticsEvent(12))
-	e2.AddEvent(sampleAnalyticsEvent(18))
-	e2.AddEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(6))
+	e2.addEvent(sampleAnalyticsEvent(12))
+	e2.addEvent(sampleAnalyticsEvent(18))
+	e2.addEvent(sampleAnalyticsEvent(24))
 
 	e1.Merge(e2)
 	json, err := e1.CollectorJSON(agentRunID)
@@ -142,16 +142,16 @@ func TestAnalyticsEventMergeFailedSuccess(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.AddEvent(sampleAnalyticsEvent(5))
-	e1.AddEvent(sampleAnalyticsEvent(10))
-	e1.AddEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(5))
+	e1.addEvent(sampleAnalyticsEvent(10))
+	e1.addEvent(sampleAnalyticsEvent(15))
 
-	e2.AddEvent(sampleAnalyticsEvent(6))
-	e2.AddEvent(sampleAnalyticsEvent(12))
-	e2.AddEvent(sampleAnalyticsEvent(18))
-	e2.AddEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(6))
+	e2.addEvent(sampleAnalyticsEvent(12))
+	e2.addEvent(sampleAnalyticsEvent(18))
+	e2.addEvent(sampleAnalyticsEvent(24))
 
-	e1.MergeFailed(e2)
+	e1.mergeFailed(e2)
 
 	json, err := e1.CollectorJSON(agentRunID)
 	if nil != err {
@@ -175,18 +175,18 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.AddEvent(sampleAnalyticsEvent(5))
-	e1.AddEvent(sampleAnalyticsEvent(10))
-	e1.AddEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(5))
+	e1.addEvent(sampleAnalyticsEvent(10))
+	e1.addEvent(sampleAnalyticsEvent(15))
 
-	e2.AddEvent(sampleAnalyticsEvent(6))
-	e2.AddEvent(sampleAnalyticsEvent(12))
-	e2.AddEvent(sampleAnalyticsEvent(18))
-	e2.AddEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(6))
+	e2.addEvent(sampleAnalyticsEvent(12))
+	e2.addEvent(sampleAnalyticsEvent(18))
+	e2.addEvent(sampleAnalyticsEvent(24))
 
 	e2.failedHarvests = failedEventsAttemptsLimit
 
-	e1.MergeFailed(e2)
+	e1.mergeFailed(e2)
 
 	json, err := e1.CollectorJSON(agentRunID)
 	if nil != err {
@@ -210,7 +210,7 @@ func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 	events := newAnalyticsEvents(maxTxnEvents)
 	event := analyticsEvent{eventStamp(1), w}
 	for n := 0; n < maxTxnEvents; n++ {
-		events.AddEvent(event)
+		events.addEvent(event)
 	}
 
 	b.ReportAllocs()
@@ -225,20 +225,20 @@ func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 }
 
 func BenchmarkTxnEventsCollectorJSON(b *testing.B) {
-	event := &txnEvent{
+	event := &TxnEvent{
 		Name:      "WebTransaction/Go/zip/zap",
 		Timestamp: time.Now(),
 		Duration:  2 * time.Second,
-		queuing:   1 * time.Second,
-		zone:      apdexSatisfying,
-		attrs:     nil,
+		Queuing:   1 * time.Second,
+		Zone:      ApdexSatisfying,
+		Attrs:     nil,
 	}
 	analyticsEventBenchmarkHelper(b, event)
 }
 
 func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 	now := time.Now()
-	ce, err := createCustomEvent("myEventType", map[string]interface{}{
+	ce, err := CreateCustomEvent("myEventType", map[string]interface{}{
 		"string": "myString",
 		"bool":   true,
 		"int64":  int64(123),
@@ -251,18 +251,18 @@ func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 }
 
 func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
-	e := txnErrorFromError(errors.New("my error"))
-	e.when = time.Now()
-	e.stack = getStackTrace(0)
+	e := TxnErrorFromError(errors.New("my error"))
+	e.When = time.Now()
+	e.Stack = GetStackTrace(0)
 
 	txnName := "WebTransaction/Go/zip/zap"
-	event := &errorEvent{
-		klass:    e.klass,
-		msg:      e.msg,
-		when:     e.when,
-		txnName:  txnName,
-		duration: 3 * time.Second,
-		attrs:    nil,
+	event := &ErrorEvent{
+		Klass:    e.Klass,
+		Msg:      e.Msg,
+		When:     e.When,
+		TxnName:  txnName,
+		Duration: 3 * time.Second,
+		Attrs:    nil,
 	}
 	analyticsEventBenchmarkHelper(b, event)
 }

@@ -9,23 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-agent/api"
-)
-
-var (
-	actualData = "my_data"
-	call       = rpmCmd{
-		Name:      "error_data",
-		UseTLS:    true,
-		Collector: "the-collector.com",
-		License:   "12345",
-		RunID:     "db97531",
-		Data:      []byte(actualData),
-	}
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
 func TestLicenseInvalid(t *testing.T) {
-	r := compactJSONString(`{
+	r := CompactJSONString(`{
 		"exception":{
 			"message":"Invalid license key, please contact support@newrelic.com",
 			"error_type":"NewRelic::Agent::LicenseException"
@@ -35,7 +23,7 @@ func TestLicenseInvalid(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !isLicenseException(err) {
+	if !IsLicenseException(err) {
 		t.Fatal(err)
 	}
 }
@@ -149,7 +137,7 @@ func TestClientError(t *testing.T) {
 func TestForceRestartException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := compactJSONString(`{
+	r := CompactJSONString(`{
 		"exception":{
 			"message":"something",
 			"error_type":"NewRelic::Agent::ForceRestartException"
@@ -159,7 +147,7 @@ func TestForceRestartException(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !isRestartException(err) {
+	if !IsRestartException(err) {
 		t.Fatal(err)
 	}
 }
@@ -167,7 +155,7 @@ func TestForceRestartException(t *testing.T) {
 func TestForceDisconnectException(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
-	r := compactJSONString(`{
+	r := CompactJSONString(`{
 		"exception":{
 			"message":"something",
 			"error_type":"NewRelic::Agent::ForceDisconnectException"
@@ -177,7 +165,7 @@ func TestForceDisconnectException(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !isDisconnect(err) {
+	if !IsDisconnect(err) {
 		t.Fatal(err)
 	}
 }
@@ -190,7 +178,7 @@ func TestRuntimeError(t *testing.T) {
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
-	if !isRuntime(err) {
+	if !IsRuntime(err) {
 		t.Fatal(err)
 	}
 }
@@ -207,21 +195,30 @@ func TestUnknownError(t *testing.T) {
 }
 
 func TestUrl(t *testing.T) {
-	cmd := rpmCmd{
+	cmd := RpmCmd{
 		Name:      "foo_method",
 		Collector: "example.com",
-		License:   "123abc",
+	}
+	cs := RpmControls{
+		UseTLS:       true,
+		License:      "123abc",
+		Client:       nil,
+		Logger:       nil,
+		AgentVersion: "1",
 	}
 
-	out := cmd.url()
+	out := rpmURL(cmd, cs)
 	u, err := url.Parse(out)
 	if err != nil {
 		t.Fatalf("url.Parse(%q) = %q", out, err)
 	}
 
 	got := u.Query().Get("license_key")
-	if got != cmd.License {
-		t.Errorf("got=%q cmd.License=%q", got, cmd.License)
+	if got != cs.License {
+		t.Errorf("got=%q cmd.License=%q", got, cs.License)
+	}
+	if u.Scheme != "https" {
+		t.Error(u.Scheme)
 	}
 }
 
@@ -264,92 +261,93 @@ func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, err
 
 func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
 
-func testConnectHelper(transport http.RoundTripper) (string, *ConnectReply, error) {
-	lic := "0123456789012345678901234567890123456789"
-	cfg := api.NewConfig("my appname", lic)
-	cfg.Enabled = false
-	cfg.Utilization.DetectAWS = false
-	cfg.Utilization.DetectDocker = false
-	cfg.Transport = transport
-	client := &http.Client{Transport: cfg.Transport}
-	return connectAttempt(&cfg, client)
+func testConnectHelper(transport http.RoundTripper) (*AppRun, error) {
+	cs := RpmControls{
+		UseTLS:       true,
+		License:      "12345",
+		Client:       &http.Client{Transport: transport},
+		Logger:       logger.ShimLogger{},
+		AgentVersion: "1",
+	}
+
+	return ConnectAttempt([]byte(`"connect-json"`), "redirect-host", cs)
 }
 
 func TestConnectAttemptSuccess(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
-	if collector != "special_collector" {
-		t.Error(collector)
+	if nil == run || nil != err {
+		t.Fatal(run, err)
 	}
-	if nil == reply || reply.RunID != "my_agent_run_id" {
-		t.Error(reply)
+	if run.Collector != "special_collector" {
+		t.Error(run.Collector)
 	}
-	if nil != err {
-		t.Error(err)
+	if run.RunID != "my_agent_run_id" {
+		t.Error(run)
 	}
 }
 
 func TestConnectAttemptDisconnectOnRedirect(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, disconnectBody)},
 		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
-	if !isDisconnect(err) {
+	if !IsDisconnect(err) {
 		t.Fatal(err)
 	}
 }
 
 func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, disconnectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
-	if !isDisconnect(err) {
+	if !IsDisconnect(err) {
 		t.Fatal(err)
 	}
 }
 
 func TestConnectAttemptLicenseExceptionOnRedirect(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, licenseBody)},
 		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
-	if !isLicenseException(err) {
+	if !IsLicenseException(err) {
 		t.Fatal(err)
 	}
 }
 
 func TestConnectAttemptLicenseExceptionOnConnect(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, licenseBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
-	if !isLicenseException(err) {
+	if !IsLicenseException(err) {
 		t.Fatal(err)
 	}
 }
 
 func TestConnectAttemptInvalidJSON(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, malformedBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if nil == err {
 		t.Fatal("missing error")
@@ -357,12 +355,12 @@ func TestConnectAttemptInvalidJSON(t *testing.T) {
 }
 
 func TestConnectAttemptCollectorNotString(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, `{"return_value":123}`)},
 		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if nil == err {
 		t.Fatal("missing error")
@@ -370,12 +368,12 @@ func TestConnectAttemptCollectorNotString(t *testing.T) {
 }
 
 func TestConnectAttempt413(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(413, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if err != ErrPayloadTooLarge {
 		t.Fatal(err)
@@ -383,12 +381,12 @@ func TestConnectAttempt413(t *testing.T) {
 }
 
 func TestConnectAttempt415(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(415, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if err != ErrUnsupportedMedia {
 		t.Fatal(err)
@@ -396,12 +394,12 @@ func TestConnectAttempt415(t *testing.T) {
 }
 
 func TestConnectAttemptUnexpectedCode(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(404, connectBody)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if _, ok := err.(unexpectedStatusCodeErr); !ok {
 		t.Fatal(err)
@@ -409,12 +407,12 @@ func TestConnectAttemptUnexpectedCode(t *testing.T) {
 }
 
 func TestConnectAttemptUnexpectedError(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{err: errors.New("unexpected error")},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if nil == err {
 		t.Fatal("missing error")
@@ -422,12 +420,12 @@ func TestConnectAttemptUnexpectedError(t *testing.T) {
 }
 
 func TestConnectAttemptMissingRunID(t *testing.T) {
-	collector, reply, err := testConnectHelper(connectMockRoundTripper{
+	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, `{"return_value":{}}`)},
 	})
-	if "" != collector || nil != reply {
-		t.Error(collector, reply)
+	if nil != run {
+		t.Error(run)
 	}
 	if nil == err {
 		t.Fatal("missing error")

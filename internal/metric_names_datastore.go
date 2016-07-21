@@ -1,6 +1,6 @@
 package internal
 
-import "github.com/newrelic/go-agent/api/datastore"
+import "github.com/newrelic/go-agent/datastore"
 
 var (
 	datastoreProductMetricsCache = map[datastore.Product]datastoreProductMetrics{

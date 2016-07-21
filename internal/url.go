@@ -2,7 +2,8 @@ package internal
 
 import "net/url"
 
-func safeURL(u *url.URL) string {
+// SafeURL removes sensitive information from a URL.
+func SafeURL(u *url.URL) string {
 	if "" != u.Opaque {
 		// If the URL is opaque, we cannot be sure if it contains
 		// sensitive information.
@@ -18,15 +19,17 @@ func safeURL(u *url.URL) string {
 	return ur.String()
 }
 
-func safeURLFromString(rawurl string) string {
+// SafeURLFromString removes sensitive information from a URL.
+func SafeURLFromString(rawurl string) string {
 	u, err := url.Parse(rawurl)
 	if nil != err {
 		return ""
 	}
-	return safeURL(u)
+	return SafeURL(u)
 }
 
-func hostFromExternalURL(rawurl string) string {
+// HostFromExternalURL returns the URL's host.
+func HostFromExternalURL(rawurl string) string {
 	u, err := url.Parse(rawurl)
 	if nil != err {
 		return ""

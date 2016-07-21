@@ -2,7 +2,7 @@ package newrelic
 
 import "net/http"
 
-// instrumentation.go contains helpers built on the lower level API.
+// instrumentation.go contains helpers built on the lower level api.
 
 // WrapHandle facilitates instrumentation of handlers registered with an
 // http.ServeMux.  For example, to instrument this code:

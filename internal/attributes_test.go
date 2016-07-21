@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-agent/api"
 	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
@@ -37,7 +36,7 @@ type AttributeTestcase struct {
 
 var (
 	destTranslate = map[string]destinationSet{
-		"attributes":         destAll,
+		"attributes":         DestAll,
 		"transaction_events": destTxnEvent,
 		"transaction_tracer": destTxnTrace,
 		"error_collector":    destError,
@@ -94,35 +93,35 @@ func runAttributeTestcase(t *testing.T, js json.RawMessage) {
 		return
 	}
 
-	input := attributeConfigInput{
-		attributes: api.AttributeDestinationConfig{
+	input := AttributeConfigInput{
+		Attributes: AttributeDestinationConfig{
 			Enabled: tc.Config.AttributesEnabled,
 			Include: tc.Config.AttributesInclude,
 			Exclude: tc.Config.AttributesExclude,
 		},
-		errorCollector: api.AttributeDestinationConfig{
+		ErrorCollector: AttributeDestinationConfig{
 			Enabled: tc.Config.ErrorAttributesEnabled,
 			Include: tc.Config.ErrorAttributesInclude,
 			Exclude: tc.Config.ErrorAttributesExclude,
 		},
-		transactionEvents: api.AttributeDestinationConfig{
+		TransactionEvents: AttributeDestinationConfig{
 			Enabled: tc.Config.EventsAttributesEnabled,
 			Include: tc.Config.EventsAttributesInclude,
 			Exclude: tc.Config.EventsAttributesExclude,
 		},
-		browserMonitoring: api.AttributeDestinationConfig{
+		browserMonitoring: AttributeDestinationConfig{
 			Enabled: tc.Config.BrowserAttributesEnabled,
 			Include: tc.Config.BrowserAttributesInclude,
 			Exclude: tc.Config.BrowserAttributesExclude,
 		},
-		transactionTracer: api.AttributeDestinationConfig{
+		transactionTracer: AttributeDestinationConfig{
 			Enabled: tc.Config.TracerAttributesEnabled,
 			Include: tc.Config.TracerAttributesInclude,
 			Exclude: tc.Config.TracerAttributesExclude,
 		},
 	}
 
-	cfg := createAttributeConfig(input)
+	cfg := CreateAttributeConfig(input)
 
 	inputDests := destinationsFromArray(tc.InputDestinations)
 	expectedDests := destinationsFromArray(tc.ExpectedDestinations)
@@ -195,55 +194,55 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 }
 
 func TestUserAttributeValLength(t *testing.T) {
-	cfg := createAttributeConfig(sampleAttributeConfigInput)
-	attrs := newAttributes(cfg)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	attrs := NewAttributes(cfg)
 
 	atLimit := strings.Repeat("a", attributeValueLengthLimit)
 	tooLong := atLimit + "a"
 
-	err := addUserAttribute(attrs, `escape\me`, tooLong, destAll)
+	err := AddUserAttribute(attrs, `escape\me`, tooLong, DestAll)
 	if err != nil {
 		t.Error(err)
 	}
-	js := userAttributesStringJSON(attrs, destAll)
+	js := userAttributesStringJSON(attrs, DestAll)
 	if `{"escape\\me":"`+atLimit+`"}` != string(js) {
 		t.Error(js)
 	}
 }
 
 func TestUserAttributeKeyLength(t *testing.T) {
-	cfg := createAttributeConfig(sampleAttributeConfigInput)
-	attrs := newAttributes(cfg)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	attrs := NewAttributes(cfg)
 
 	lengthyKey := strings.Repeat("a", attributeKeyLengthLimit+1)
-	err := addUserAttribute(attrs, lengthyKey, 123, destAll)
+	err := AddUserAttribute(attrs, lengthyKey, 123, DestAll)
 	if _, ok := err.(invalidAttributeKeyErr); !ok {
 		t.Error(err)
 	}
-	js := userAttributesStringJSON(attrs, destAll)
+	js := userAttributesStringJSON(attrs, DestAll)
 	if `{}` != string(js) {
 		t.Error(js)
 	}
 }
 
 func TestNumUserAttributesLimit(t *testing.T) {
-	cfg := createAttributeConfig(sampleAttributeConfigInput)
-	attrs := newAttributes(cfg)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	attrs := NewAttributes(cfg)
 
 	for i := 0; i < attributeUserLimit; i++ {
 		s := strconv.Itoa(i)
-		err := addUserAttribute(attrs, s, s, destAll)
+		err := AddUserAttribute(attrs, s, s, DestAll)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	err := addUserAttribute(attrs, "cant_add_me", 123, destAll)
+	err := AddUserAttribute(attrs, "cant_add_me", 123, DestAll)
 	if _, ok := err.(userAttributeLimitErr); !ok {
 		t.Fatal(err)
 	}
 
-	js := userAttributesStringJSON(attrs, destAll)
+	js := userAttributesStringJSON(attrs, DestAll)
 	var out map[string]string
 	err = json.Unmarshal([]byte(js), &out)
 	if nil != err {
@@ -257,11 +256,11 @@ func TestNumUserAttributesLimit(t *testing.T) {
 	}
 
 	// Now test that replacement works when the limit is reached.
-	err = addUserAttribute(attrs, "0", "BEEN_REPLACED", destAll)
+	err = AddUserAttribute(attrs, "0", "BEEN_REPLACED", DestAll)
 	if nil != err {
 		t.Fatal(err)
 	}
-	js = userAttributesStringJSON(attrs, destAll)
+	js = userAttributesStringJSON(attrs, DestAll)
 	if !strings.Contains(string(js), "BEEN_REPLACED") {
 		t.Fatal(js)
 	}

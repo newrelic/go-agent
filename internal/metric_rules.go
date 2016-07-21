@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	"github.com/newrelic/go-agent/log"
 )
 
 type ruleResult int
@@ -60,18 +58,20 @@ func (rules *metricRules) UnmarshalJSON(data []byte) (err error) {
 	for _, r := range raw {
 		re, err := regexp.Compile("(?i)" + r.RawExpr)
 		if err != nil {
-			log.Warn("unable to compile rule", log.Context{
-				"match_expression": r.RawExpr,
-				"error":            err.Error(),
-			})
+			// TODO
+			// Warn("unable to compile rule", {
+			// 	"match_expression": r.RawExpr,
+			// 	"error":            err.Error(),
+			// })
 			continue
 		}
 
 		if transformReplacementAmbiguous.MatchString(r.OriginalReplacement) {
-			log.Warn("unable to transform replacement", log.Context{
-				"match_expression": r.RawExpr,
-				"replacement":      r.OriginalReplacement,
-			})
+			// TODO
+			// Warn("unable to transform replacement", {
+			// 	"match_expression": r.RawExpr,
+			// 	"replacement":      r.OriginalReplacement,
+			// })
 			continue
 		}
 

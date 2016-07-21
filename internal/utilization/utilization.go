@@ -5,8 +5,8 @@ package utilization
 import (
 	"runtime"
 
+	"github.com/newrelic/go-agent/internal/logger"
 	"github.com/newrelic/go-agent/internal/sysinfo"
-	"github.com/newrelic/go-agent/log"
 )
 
 const metadataVersion = 1
@@ -49,7 +49,7 @@ type vendors struct {
 }
 
 // Gather gathers system utilization data.
-func Gather(config Config) *Data {
+func Gather(config Config, lg logger.Logger) *Data {
 	uDat := Data{
 		MetadataVersion:   metadataVersion,
 		Vendors:           &vendors{},
@@ -61,7 +61,7 @@ func Gather(config Config) *Data {
 		if err != nil &&
 			err != sysinfo.ErrDockerUnsupported &&
 			err != sysinfo.ErrDockerNotFound {
-			log.Warn("error gathering Docker information", log.Context{
+			lg.Warn("error gathering Docker information", map[string]interface{}{
 				"error": err.Error(),
 			})
 		} else if id != "" {
@@ -74,7 +74,7 @@ func Gather(config Config) *Data {
 		if nil == err {
 			uDat.Vendors.AWS = aws
 		} else if isAWSValidationError(err) {
-			log.Warn("AWS validation error", log.Context{
+			lg.Warn("AWS validation error", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}
@@ -88,7 +88,7 @@ func Gather(config Config) *Data {
 	if nil == err {
 		uDat.Hostname = host
 	} else {
-		log.Warn("error getting hostname", log.Context{
+		lg.Warn("error getting hostname", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -98,7 +98,7 @@ func Gather(config Config) *Data {
 		mib := sysinfo.BytesToMebibytes(bts)
 		uDat.RAMMib = &mib
 	} else {
-		log.Warn("error getting memory", log.Context{
+		lg.Warn("error getting memory", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}

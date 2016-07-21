@@ -1,9 +1,9 @@
-package api
+package newrelic
 
 import (
 	"net/http"
 
-	"github.com/newrelic/go-agent/api/datastore"
+	"github.com/newrelic/go-agent/datastore"
 )
 
 // SegmentTracer times blocks of code.  It is embedded into Transaction.

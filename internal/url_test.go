@@ -36,7 +36,7 @@ func TestSafeURL(t *testing.T) {
 				t.Error(tc.Testname, tc.Input, err)
 				continue
 			}
-			out := safeURL(u)
+			out := SafeURL(u)
 			if out != tc.Expect {
 				t.Error(tc.Testname, tc.Input, tc.Expect)
 			}
@@ -45,26 +45,26 @@ func TestSafeURL(t *testing.T) {
 }
 
 func TestSafeURLFromString(t *testing.T) {
-	out := safeURLFromString(`http://localhost:8000/hello?zip=zap`)
+	out := SafeURLFromString(`http://localhost:8000/hello?zip=zap`)
 	if `http://localhost:8000/hello` != out {
 		t.Error(out)
 	}
-	out = safeURLFromString("?????")
+	out = SafeURLFromString("?????")
 	if "" != out {
 		t.Error(out)
 	}
 }
 
 func TestHostFromExternalURL(t *testing.T) {
-	host := hostFromExternalURL("http://example.com/zip/zap?secret=shh")
+	host := HostFromExternalURL("http://example.com/zip/zap?secret=shh")
 	if host != "example.com" {
 		t.Error(host)
 	}
-	host = hostFromExternalURL("")
+	host = HostFromExternalURL("")
 	if host != "" {
 		t.Error(host)
 	}
-	host = hostFromExternalURL("not-a-url")
+	host = HostFromExternalURL("not-a-url")
 	if host != "" {
 		t.Error(host)
 	}

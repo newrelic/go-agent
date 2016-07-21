@@ -27,7 +27,7 @@ var (
 // ordering.
 
 func TestCreateCustomEventSuccess(t *testing.T) {
-	event, err := createCustomEvent("myEvent", map[string]interface{}{"alpha": 1}, now)
+	event, err := CreateCustomEvent("myEvent", map[string]interface{}{"alpha": 1}, now)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestCreateCustomEventSuccess(t *testing.T) {
 }
 
 func TestInvalidEventTypeCharacter(t *testing.T) {
-	event, err := createCustomEvent("myEvent!", map[string]interface{}{"alpha": 1}, now)
+	event, err := CreateCustomEvent("myEvent!", map[string]interface{}{"alpha": 1}, now)
 	if err != ErrEventTypeRegex {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestInvalidEventTypeCharacter(t *testing.T) {
 }
 
 func TestLongEventType(t *testing.T) {
-	event, err := createCustomEvent(strLen512, map[string]interface{}{"alpha": 1}, now)
+	event, err := CreateCustomEvent(strLen512, map[string]interface{}{"alpha": 1}, now)
 	if err != errEventTypeLength {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestLongEventType(t *testing.T) {
 }
 
 func TestNilParams(t *testing.T) {
-	event, err := createCustomEvent("myEvent", nil, now)
+	event, err := CreateCustomEvent("myEvent", nil, now)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestNilParams(t *testing.T) {
 }
 
 func TestMissingEventType(t *testing.T) {
-	event, err := createCustomEvent("", map[string]interface{}{"alpha": 1}, now)
+	event, err := CreateCustomEvent("", map[string]interface{}{"alpha": 1}, now)
 	if err != ErrEventTypeRegex {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestMissingEventType(t *testing.T) {
 }
 
 func TestEmptyParams(t *testing.T) {
-	event, err := createCustomEvent("myEvent", map[string]interface{}{}, now)
+	event, err := CreateCustomEvent("myEvent", map[string]interface{}{}, now)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestEmptyParams(t *testing.T) {
 }
 
 func TestTruncatedStringValue(t *testing.T) {
-	event, err := createCustomEvent("myEvent", map[string]interface{}{"alpha": strLen512}, now)
+	event, err := CreateCustomEvent("myEvent", map[string]interface{}{"alpha": strLen512}, now)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestTruncatedStringValue(t *testing.T) {
 }
 
 func TestInvalidValueType(t *testing.T) {
-	event, err := createCustomEvent("myEvent", map[string]interface{}{"alpha": []string{}}, now)
+	event, err := CreateCustomEvent("myEvent", map[string]interface{}{"alpha": []string{}}, now)
 	if _, ok := err.(ErrInvalidAttribute); !ok {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestInvalidValueType(t *testing.T) {
 }
 
 func TestInvalidCustomAttributeKey(t *testing.T) {
-	event, err := createCustomEvent("myEvent", map[string]interface{}{strLen512: 1}, now)
+	event, err := CreateCustomEvent("myEvent", map[string]interface{}{strLen512: 1}, now)
 	if nil == err {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestTooManyAttributes(t *testing.T) {
 	for i := 0; i < customEventAttributeLimit+1; i++ {
 		params[strconv.Itoa(i)] = i
 	}
-	event, err := createCustomEvent("myEvent", params, now)
+	event, err := CreateCustomEvent("myEvent", params, now)
 	if errNumAttributes != err {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestCustomEventAttributeTypes(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		event, err := createCustomEvent("myEvent", map[string]interface{}{"key": tc.val}, now)
+		event, err := CreateCustomEvent("myEvent", map[string]interface{}{"key": tc.val}, now)
 		if nil != err {
 			t.Fatal(err)
 		}
@@ -190,7 +190,7 @@ func TestCustomEventAttributeTypes(t *testing.T) {
 
 func TestCustomParamsCopied(t *testing.T) {
 	params := map[string]interface{}{"alpha": 1}
-	event, err := createCustomEvent("myEvent", params, now)
+	event, err := CreateCustomEvent("myEvent", params, now)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestCustomParamsCopied(t *testing.T) {
 
 func TestMultipleAttributeJSON(t *testing.T) {
 	params := map[string]interface{}{"alpha": 1, "beta": 2}
-	event, err := createCustomEvent("myEvent", params, now)
+	event, err := CreateCustomEvent("myEvent", params, now)
 	if nil != err {
 		t.Fatal(err)
 	}

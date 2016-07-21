@@ -24,13 +24,15 @@ var (
 		customEventAttributeLimit)
 )
 
-type customEvent struct {
+// CustomEvent is a custom event.
+type CustomEvent struct {
 	eventType       string
 	timestamp       time.Time
 	truncatedParams map[string]interface{}
 }
 
-func (e *customEvent) WriteJSON(buf *bytes.Buffer) {
+// WriteJSON prepares JSON in the format expected by the collector.
+func (e *CustomEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('[')
 	buf.WriteByte('{')
 	buf.WriteString(`"type":`)
@@ -61,7 +63,8 @@ func (e *customEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(']')
 }
 
-func (e *customEvent) MarshalJSON() ([]byte, error) {
+// MarshalJSON is used for testing.
+func (e *CustomEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
 
 	e.WriteJSON(buf)
@@ -79,7 +82,8 @@ func eventTypeValidate(eventType string) error {
 	return nil
 }
 
-func createCustomEvent(eventType string, params map[string]interface{}, now time.Time) (*customEvent, error) {
+// CreateCustomEvent creates a custom event.
+func CreateCustomEvent(eventType string, params map[string]interface{}, now time.Time) (*CustomEvent, error) {
 	if err := eventTypeValidate(eventType); nil != err {
 		return nil, err
 	}
@@ -102,13 +106,14 @@ func createCustomEvent(eventType string, params map[string]interface{}, now time
 		truncatedParams[key] = val
 	}
 
-	return &customEvent{
+	return &CustomEvent{
 		eventType:       eventType,
 		timestamp:       now,
 		truncatedParams: truncatedParams,
 	}, nil
 }
 
-func (e *customEvent) mergeIntoHarvest(h *harvest) {
-	h.customEvents.Add(e)
+// MergeIntoHarvest implements Harvestable.
+func (e *CustomEvent) MergeIntoHarvest(h *Harvest) {
+	h.CustomEvents.Add(e)
 }

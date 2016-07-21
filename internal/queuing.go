@@ -50,7 +50,8 @@ func parseQueueTime(s string) time.Time {
 	return time.Time{}
 }
 
-func queueDuration(hdr http.Header, txnStart time.Time) time.Duration {
+// QueueDuration TODO
+func QueueDuration(hdr http.Header, txnStart time.Time) time.Duration {
 	s := hdr.Get(xQueueStart)
 	if "" == s {
 		s = hdr.Get(xRequestStart)

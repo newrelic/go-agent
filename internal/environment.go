@@ -6,7 +6,8 @@ import (
 	"runtime"
 )
 
-type environment struct {
+// Environment describes the application's environment.
+type Environment struct {
 	Compiler string `env:"Compiler"`
 	GOARCH   string `env:"GOARCH"`
 	GOOS     string `env:"GOOS"`
@@ -14,7 +15,8 @@ type environment struct {
 }
 
 var (
-	sampleEnvironment = environment{
+	// SampleEnvironment is useful for testing.
+	SampleEnvironment = Environment{
 		Compiler: "comp",
 		GOARCH:   "arch",
 		GOOS:     "goos",
@@ -22,8 +24,9 @@ var (
 	}
 )
 
-func newEnvironment() environment {
-	return environment{
+// NewEnvironment returns a new Environment.
+func NewEnvironment() Environment {
+	return Environment{
 		Compiler: runtime.Compiler,
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
@@ -31,7 +34,9 @@ func newEnvironment() environment {
 	}
 }
 
-func (e environment) MarshalJSON() ([]byte, error) {
+// MarshalJSON prepares Environment JSON in the format expected by the collector
+// during the connect command.
+func (e Environment) MarshalJSON() ([]byte, error) {
 	var arr [][]interface{}
 
 	val := reflect.ValueOf(e)

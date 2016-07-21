@@ -5,29 +5,29 @@ import (
 	"testing"
 	"time"
 
-	ats "github.com/newrelic/go-agent/api/attributes"
+	ats "github.com/newrelic/go-agent/attributes"
 )
 
-func testErrorEventJSON(t *testing.T, e *errorEvent, expect string) {
+func testErrorEventJSON(t *testing.T, e *ErrorEvent, expect string) {
 	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
 		return
 	}
-	expect = compactJSONString(expect)
+	expect = CompactJSONString(expect)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
 }
 
 func TestErrorEventMarshal(t *testing.T) {
-	testErrorEventJSON(t, &errorEvent{
-		klass:    "*errors.errorString",
-		msg:      "hello",
-		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		txnName:  "myName",
-		duration: 3 * time.Second,
-		attrs:    nil,
+	testErrorEventJSON(t, &ErrorEvent{
+		Klass:    "*errors.errorString",
+		Msg:      "hello",
+		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnName:  "myName",
+		Duration: 3 * time.Second,
+		Attrs:    nil,
 	}, `[
 		{
 			"type":"TransactionError",
@@ -40,14 +40,14 @@ func TestErrorEventMarshal(t *testing.T) {
 		{},
 		{}
 	]`)
-	testErrorEventJSON(t, &errorEvent{
-		klass:    "*errors.errorString",
-		msg:      "hello",
-		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		txnName:  "myName",
-		duration: 3 * time.Second,
-		queuing:  5 * time.Second,
-		attrs:    nil,
+	testErrorEventJSON(t, &ErrorEvent{
+		Klass:    "*errors.errorString",
+		Msg:      "hello",
+		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnName:  "myName",
+		Duration: 3 * time.Second,
+		Queuing:  5 * time.Second,
+		Attrs:    nil,
 	}, `[
 		{
 			"type":"TransactionError",
@@ -61,14 +61,14 @@ func TestErrorEventMarshal(t *testing.T) {
 		{},
 		{}
 	]`)
-	testErrorEventJSON(t, &errorEvent{
-		klass:    "*errors.errorString",
-		msg:      "hello",
-		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		txnName:  "myName",
-		duration: 3 * time.Second,
-		queuing:  5 * time.Second,
-		datastoreExternalTotals: datastoreExternalTotals{
+	testErrorEventJSON(t, &ErrorEvent{
+		Klass:    "*errors.errorString",
+		Msg:      "hello",
+		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnName:  "myName",
+		Duration: 3 * time.Second,
+		Queuing:  5 * time.Second,
+		DatastoreExternalTotals: DatastoreExternalTotals{
 			externalCallCount:  22,
 			externalDuration:   1122334 * time.Millisecond,
 			datastoreCallCount: 33,
@@ -95,22 +95,22 @@ func TestErrorEventMarshal(t *testing.T) {
 
 func TestErrorEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
-	aci.errorCollector.Exclude = append(aci.errorCollector.Exclude, "zap")
-	aci.errorCollector.Exclude = append(aci.errorCollector.Exclude, ats.HostDisplayName)
-	cfg := createAttributeConfig(aci)
-	attr := newAttributes(cfg)
-	attr.agent.HostDisplayName = "exclude me"
-	attr.agent.RequestMethod = "GET"
-	addUserAttribute(attr, "zap", 123, destAll)
-	addUserAttribute(attr, "zip", 456, destAll)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, ats.HostDisplayName)
+	cfg := CreateAttributeConfig(aci)
+	attr := NewAttributes(cfg)
+	attr.Agent.HostDisplayName = "exclude me"
+	attr.Agent.RequestMethod = "GET"
+	AddUserAttribute(attr, "zap", 123, DestAll)
+	AddUserAttribute(attr, "zip", 456, DestAll)
 
-	testErrorEventJSON(t, &errorEvent{
-		klass:    "*errors.errorString",
-		msg:      "hello",
-		when:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		txnName:  "myName",
-		duration: 3 * time.Second,
-		attrs:    attr,
+	testErrorEventJSON(t, &ErrorEvent{
+		Klass:    "*errors.errorString",
+		Msg:      "hello",
+		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnName:  "myName",
+		Duration: 3 * time.Second,
+		Attrs:    attr,
 	}, `[
 		{
 			"type":"TransactionError",

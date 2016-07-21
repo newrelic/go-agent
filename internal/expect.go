@@ -5,24 +5,15 @@ import (
 	"time"
 )
 
-type validator interface {
+// Validator is used for testing.
+type Validator interface {
 	Error(...interface{})
 }
 
-func validateStringField(v validator, fieldName, v1, v2 string) {
+func validateStringField(v Validator, fieldName, v1, v2 string) {
 	if v1 != v2 {
 		v.Error(fieldName, v1, v2)
 	}
-}
-
-type addValidatorField struct {
-	field    interface{}
-	original validator
-}
-
-func (a addValidatorField) Error(fields ...interface{}) {
-	fields = append([]interface{}{a.field}, fields...)
-	a.original.Error(fields...)
 }
 
 // WantMetric is a metric expectation.  If Data is nil, then any data values are
@@ -77,45 +68,21 @@ type WantTxnEvent struct {
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
-	ExpectCustomEvents(t validator, want []WantCustomEvent)
-	ExpectErrors(t validator, want []WantError)
-	ExpectErrorEvents(t validator, want []WantErrorEvent)
-	ExpectTxnEvents(t validator, want []WantTxnEvent)
-	ExpectMetrics(t validator, want []WantMetric)
+	ExpectCustomEvents(t Validator, want []WantCustomEvent)
+	ExpectErrors(t Validator, want []WantError)
+	ExpectErrorEvents(t Validator, want []WantErrorEvent)
+	ExpectTxnEvents(t Validator, want []WantTxnEvent)
+	ExpectMetrics(t Validator, want []WantMetric)
 }
 
-// ExpectCustomEvents implement Expect's ExpectCustomEvents.
-func (app *App) ExpectCustomEvents(t validator, want []WantCustomEvent) {
-	expectCustomEvents(addValidatorField{`custom events:`, t}, app.testHarvest.customEvents, want)
-}
-
-// ExpectErrors implement Expect's ExpectErrors.
-func (app *App) ExpectErrors(t validator, want []WantError) {
-	expectErrors(addValidatorField{`traced errors:`, t}, app.testHarvest.errorTraces, want)
-}
-
-// ExpectErrorEvents implement Expect's ExpectErrorEvents.
-func (app *App) ExpectErrorEvents(t validator, want []WantErrorEvent) {
-	expectErrorEvents(addValidatorField{`error events:`, t}, app.testHarvest.errorEvents, want)
-}
-
-// ExpectTxnEvents implement Expect's ExpectTxnEvents.
-func (app *App) ExpectTxnEvents(t validator, want []WantTxnEvent) {
-	expectTxnEvents(addValidatorField{`txn events:`, t}, app.testHarvest.txnEvents, want)
-}
-
-// ExpectMetrics implement Expect's ExpectMetrics.
-func (app *App) ExpectMetrics(t validator, want []WantMetric) {
-	expectMetrics(addValidatorField{`metrics:`, t}, app.testHarvest.metrics, want)
-}
-
-func expectMetricField(t validator, id metricID, v1, v2 float64, fieldName string) {
+func expectMetricField(t Validator, id metricID, v1, v2 float64, fieldName string) {
 	if v1 != v2 {
 		t.Error("metric fields do not match", id, v1, v2, fieldName)
 	}
 }
 
-func expectMetrics(t validator, mt *metricTable, expect []WantMetric) {
+// ExpectMetrics allows testing of metrics.
+func ExpectMetrics(t Validator, mt *metricTable, expect []WantMetric) {
 	if len(mt.metrics) != len(expect) {
 		t.Error("metric counts do not match expectations", len(mt.metrics), len(expect))
 	}
@@ -149,7 +116,7 @@ func expectMetrics(t validator, mt *metricTable, expect []WantMetric) {
 	}
 }
 
-func expectAttributes(v validator, exists map[string]interface{}, expect map[string]interface{}) {
+func expectAttributes(v Validator, exists map[string]interface{}, expect map[string]interface{}) {
 	// TODO: This params comparison can be made smarter: Alert differences
 	// based on sub/super set behavior.
 	if len(exists) != len(expect) {
@@ -171,7 +138,7 @@ func expectAttributes(v validator, exists map[string]interface{}, expect map[str
 	}
 }
 
-func expectCustomEvent(v validator, event *customEvent, expect WantCustomEvent) {
+func expectCustomEvent(v Validator, event *CustomEvent, expect WantCustomEvent) {
 	if event.eventType != expect.Type {
 		v.Error("type mismatch", event.eventType, expect.Type)
 	}
@@ -183,14 +150,15 @@ func expectCustomEvent(v validator, event *customEvent, expect WantCustomEvent) 
 	expectAttributes(v, event.truncatedParams, expect.Params)
 }
 
-func expectCustomEvents(v validator, cs *customEvents, expect []WantCustomEvent) {
+// ExpectCustomEvents allows testing of custom events.
+func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent) {
 	if len(*cs.events.events) != len(expect) {
 		v.Error("number of custom events does not match", len(*cs.events.events),
 			len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*cs.events.events)[i].jsonWriter.(*customEvent)
+		event, ok := (*cs.events.events)[i].jsonWriter.(*CustomEvent)
 		if !ok {
 			v.Error("wrong custom event")
 		} else {
@@ -199,18 +167,18 @@ func expectCustomEvents(v validator, cs *customEvents, expect []WantCustomEvent)
 	}
 }
 
-func expectErrorEvent(v validator, err *errorEvent, expect WantErrorEvent) {
-	validateStringField(v, "txnName", expect.TxnName, err.txnName)
-	validateStringField(v, "klass", expect.Klass, err.klass)
-	validateStringField(v, "msg", expect.Msg, err.msg)
-	if (0 != err.queuing) != expect.Queuing {
-		v.Error("queuing", err.queuing)
+func expectErrorEvent(v Validator, err *ErrorEvent, expect WantErrorEvent) {
+	validateStringField(v, "txnName", expect.TxnName, err.TxnName)
+	validateStringField(v, "klass", expect.Klass, err.Klass)
+	validateStringField(v, "msg", expect.Msg, err.Msg)
+	if (0 != err.Queuing) != expect.Queuing {
+		v.Error("queuing", err.Queuing)
 	}
 	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
+		expectAttributes(v, getUserAttributes(err.Attrs, destError), expect.UserAttributes)
 	}
 	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(err.attrs, destError), expect.AgentAttributes)
+		expectAttributes(v, getAgentAttributes(err.Attrs, destError), expect.AgentAttributes)
 	}
 	if expect.ExternalCallCount != err.externalCallCount {
 		v.Error("external call count", expect.ExternalCallCount, err.externalCallCount)
@@ -226,14 +194,15 @@ func expectErrorEvent(v validator, err *errorEvent, expect WantErrorEvent) {
 	}
 }
 
-func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent) {
+// ExpectErrorEvents allows testing of error events.
+func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent) {
 	if len(*events.events.events) != len(expect) {
 		v.Error("number of custom events does not match",
 			len(*events.events.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].jsonWriter.(*errorEvent)
+		event, ok := (*events.events.events)[i].jsonWriter.(*ErrorEvent)
 		if !ok {
 			v.Error("wrong error event")
 		} else {
@@ -242,20 +211,20 @@ func expectErrorEvents(v validator, events *errorEvents, expect []WantErrorEvent
 	}
 }
 
-func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
-	validateStringField(v, "apdex zone", expect.Zone, e.zone.label())
+func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
+	validateStringField(v, "apdex zone", expect.Zone, e.Zone.label())
 	validateStringField(v, "name", expect.Name, e.Name)
 	if 0 == e.Duration {
 		v.Error("zero duration", e.Duration)
 	}
-	if (0 != e.queuing) != expect.Queuing {
-		v.Error("queuing", e.queuing)
+	if (0 != e.Queuing) != expect.Queuing {
+		v.Error("queuing", e.Queuing)
 	}
 	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(e.attrs, destTxnEvent), expect.UserAttributes)
+		expectAttributes(v, getUserAttributes(e.Attrs, destTxnEvent), expect.UserAttributes)
 	}
 	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(e.attrs, destTxnEvent), expect.AgentAttributes)
+		expectAttributes(v, getAgentAttributes(e.Attrs, destTxnEvent), expect.AgentAttributes)
 	}
 	if expect.ExternalCallCount != e.externalCallCount {
 		v.Error("external call count", expect.ExternalCallCount, e.externalCallCount)
@@ -271,14 +240,15 @@ func expectTxnEvent(v validator, e *txnEvent, expect WantTxnEvent) {
 	}
 }
 
-func expectTxnEvents(v validator, events *txnEvents, expect []WantTxnEvent) {
+// ExpectTxnEvents allows testing of txn events.
+func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantTxnEvent) {
 	if len(*events.events.events) != len(expect) {
 		v.Error("number of txn events does not match",
 			len(*events.events.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].jsonWriter.(*txnEvent)
+		event, ok := (*events.events.events)[i].jsonWriter.(*TxnEvent)
 		if !ok {
 			v.Error("wrong txn event")
 		} else {
@@ -287,12 +257,12 @@ func expectTxnEvents(v validator, events *txnEvents, expect []WantTxnEvent) {
 	}
 }
 
-func expectError(v validator, err *harvestError, expect WantError) {
-	caller := topCallerNameBase(err.txnError.stack)
+func expectError(v Validator, err *harvestError, expect WantError) {
+	caller := topCallerNameBase(err.TxnError.Stack)
 	validateStringField(v, "caller", expect.Caller, caller)
 	validateStringField(v, "txnName", expect.TxnName, err.txnName)
-	validateStringField(v, "klass", expect.Klass, err.txnError.klass)
-	validateStringField(v, "msg", expect.Msg, err.txnError.msg)
+	validateStringField(v, "klass", expect.Klass, err.TxnError.Klass)
+	validateStringField(v, "msg", expect.Msg, err.TxnError.Msg)
 	validateStringField(v, "URL", expect.URL, err.requestURI)
 	if nil != expect.UserAttributes {
 		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
@@ -302,7 +272,8 @@ func expectError(v validator, err *harvestError, expect WantError) {
 	}
 }
 
-func expectErrors(v validator, errors *harvestErrors, expect []WantError) {
+// ExpectErrors allows testing of errors.
+func ExpectErrors(v Validator, errors *harvestErrors, expect []WantError) {
 	if len(errors.errors) != len(expect) {
 		v.Error("number of errors mismatch", len(errors.errors), len(expect))
 		return

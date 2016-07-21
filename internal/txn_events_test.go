@@ -5,28 +5,28 @@ import (
 	"testing"
 	"time"
 
-	ats "github.com/newrelic/go-agent/api/attributes"
+	ats "github.com/newrelic/go-agent/attributes"
 )
 
-func testTxnEventJSON(t *testing.T, e *txnEvent, expect string) {
+func testTxnEventJSON(t *testing.T, e *TxnEvent, expect string) {
 	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
 		return
 	}
-	expect = compactJSONString(expect)
+	expect = CompactJSONString(expect)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
 }
 
 func TestTxnEventMarshal(t *testing.T) {
-	testTxnEventJSON(t, &txnEvent{
+	testTxnEventJSON(t, &TxnEvent{
 		Name:      "myName",
 		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
-		zone:      apdexNone,
-		attrs:     nil,
+		Zone:      ApdexNone,
+		Attrs:     nil,
 	}, `[
 	{
 		"type":"Transaction",
@@ -36,12 +36,12 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &txnEvent{
+	testTxnEventJSON(t, &TxnEvent{
 		Name:      "myName",
 		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
-		zone:      apdexFailing,
-		attrs:     nil,
+		Zone:      ApdexFailing,
+		Attrs:     nil,
 	}, `[
 	{
 		"type":"Transaction",
@@ -52,13 +52,13 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &txnEvent{
+	testTxnEventJSON(t, &TxnEvent{
 		Name:      "myName",
 		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
-		queuing:   5 * time.Second,
-		zone:      apdexNone,
-		attrs:     nil,
+		Queuing:   5 * time.Second,
+		Zone:      ApdexNone,
+		Attrs:     nil,
 	}, `[
 	{
 		"type":"Transaction",
@@ -69,14 +69,14 @@ func TestTxnEventMarshal(t *testing.T) {
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &txnEvent{
+	testTxnEventJSON(t, &TxnEvent{
 		Name:      "myName",
 		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
-		queuing:   5 * time.Second,
-		zone:      apdexNone,
-		attrs:     nil,
-		datastoreExternalTotals: datastoreExternalTotals{
+		Queuing:   5 * time.Second,
+		Zone:      ApdexNone,
+		Attrs:     nil,
+		DatastoreExternalTotals: DatastoreExternalTotals{
 			externalCallCount:  22,
 			externalDuration:   1122334 * time.Millisecond,
 			datastoreCallCount: 33,
@@ -100,21 +100,21 @@ func TestTxnEventMarshal(t *testing.T) {
 
 func TestTxnEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
-	aci.transactionEvents.Exclude = append(aci.transactionEvents.Exclude, "zap")
-	aci.transactionEvents.Exclude = append(aci.transactionEvents.Exclude, ats.HostDisplayName)
-	cfg := createAttributeConfig(aci)
-	attr := newAttributes(cfg)
-	attr.agent.HostDisplayName = "exclude me"
-	attr.agent.RequestMethod = "GET"
-	addUserAttribute(attr, "zap", 123, destAll)
-	addUserAttribute(attr, "zip", 456, destAll)
+	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, "zap")
+	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, ats.HostDisplayName)
+	cfg := CreateAttributeConfig(aci)
+	attr := NewAttributes(cfg)
+	attr.Agent.HostDisplayName = "exclude me"
+	attr.Agent.RequestMethod = "GET"
+	AddUserAttribute(attr, "zap", 123, DestAll)
+	AddUserAttribute(attr, "zip", 456, DestAll)
 
-	testTxnEventJSON(t, &txnEvent{
+	testTxnEventJSON(t, &TxnEvent{
 		Name:      "myName",
 		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
-		zone:      apdexNone,
-		attrs:     attr,
+		Zone:      ApdexNone,
+		Attrs:     attr,
 	}, `[
 	{
 		"type":"Transaction",

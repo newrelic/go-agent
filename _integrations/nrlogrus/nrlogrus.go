@@ -1,0 +1,40 @@
+// Package nrlogrus forwards go-agent log messages to logrus.  If you are using
+// logrus for your application and would like the go-agent log messages to end
+// up in the same place, modify your config as follows:
+//
+//    cfg.Logger = nrlogrus.New()
+package nrlogrus
+
+import (
+	"github.com/Sirupsen/logrus"
+	newrelic "github.com/newrelic/go-agent"
+)
+
+type shim struct{ e *logrus.Entry }
+
+func (s *shim) Error(msg string, c map[string]interface{}) {
+	s.e.WithFields(c).Error(msg)
+}
+func (s *shim) Warn(msg string, c map[string]interface{}) {
+	s.e.WithFields(c).Warn(msg)
+}
+func (s *shim) Info(msg string, c map[string]interface{}) {
+	s.e.WithFields(c).Info(msg)
+}
+func (s *shim) Debug(msg string, c map[string]interface{}) {
+	s.e.WithFields(c).Info(msg)
+}
+func (s *shim) DebugEnabled() bool {
+	lvl := logrus.GetLevel()
+	return lvl >= logrus.DebugLevel
+}
+
+// New returns a newrelic.Logger which forwards agent log messages to the logrus
+// package-level exported logger.
+func New() newrelic.Logger {
+	return &shim{
+		e: logrus.WithFields(logrus.Fields{
+			"component": "newrelic",
+		}),
+	}
+}

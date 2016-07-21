@@ -3,6 +3,8 @@
 * [Beta](#beta)
 * [Installation](#installation)
 * [Config and Application](#config-and-application)
+* [Logging](#logging)
+  * [logrus](#logrus)
 * [Transactions](#transactions)
 * [Segments](#segments)
   * [Datastore Segments](#datastore-segments)
@@ -32,8 +34,8 @@ Then import the `github.com/newrelic/go-agent` package in your application.
 
 ## Config and Application
 
-* [config.go](api/config.go)
-* [application.go](api/application.go)
+* [config.go](config.go)
+* [application.go](application.go)
 
 In your `main` function or in an `init` block:
 
@@ -58,9 +60,45 @@ config.Enabled = false
 app, err := newrelic.NewApplication(config)
 ```
 
+## Logging
+
+* [log.go](log.go)
+
+The agent's logging system is designed to be easily extensible.  By default, no
+logging will occur.  To enable logging, assign the `Config.Logger` field to
+something implementing the `Logger` interface.  A basic logging
+implementation is included.
+
+To log at debug level to standard out, set:
+
+```go
+cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+```
+
+To log at info level to a file, set:
+
+```go
+w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+if nil == err {
+  cfg.Logger = newrelic.NewLogger(w)
+}
+```
+
+### logrus
+
+* [_integrations/nrlogrus/nrlogrus.go](_integrations/nrlogrus/nrlogrus.go)
+
+If you are using `logrus` would like to send the agent's log messages to it,
+include the `github.com/newrelic/go-agent/_integrations/nrlogrus` package, then
+set:
+
+```go
+cfg.Logger = nrlogrus.New()
+```
+
 ## Transactions
 
-* [transaction.go](api/transaction.go)
+* [transaction.go](transaction.go)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
 Transactions time requests and background tasks.  Each transaction should only
@@ -84,7 +122,7 @@ defer txn.End()
 ```
 
 The transaction has helpful methods like `NoticeError` and `SetName`.
-See more in [transaction.go](api/transaction.go).
+See more in [transaction.go](transaction.go).
 
 If you are using the `http` standard library package, use `WrapHandle` and
 `WrapHandleFunc`.  These wrappers automatically start and end transactions with
@@ -107,7 +145,7 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Segments
 
-* [segments.go](api/segments.go)
+* [segments.go](segments.go)
 
 Find out where the time in your transactions is being spent!  Each transaction
 should only track segments in a single goroutine.
@@ -148,15 +186,15 @@ txn.EndSegment(token1, "outerSegment")
 
 Datastore segments appear in the transaction "Breakdown table" and in the
 "Databases" tab.  They are finished using `EndDatastore`.  This requires
-importing the `api/datastore` subpackage.
+importing the `datastore` subpackage.
 
-* [datastore.go](api/datastore/datastore.go)
+* [datastore.go](datastore/datastore.go)
 * [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 ```go
 defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
 	// Product is the datastore type.
-	// See the constants in api/datastore/datastore.go.
+	// See the constants in datastore/datastore.go.
 	Product: datastore.MySQL,
 	// Collection is the table or group.
 	Collection: "my_table",
@@ -222,13 +260,13 @@ txn.AddAttribute("importantCustomer", true)
 Some attributes are recorded automatically.  These are called agent attributes.
 They are listed here:
 
-* [api/attributes/attributes.go](api/attributes/attributes.go)
+* [attributes/attributes.go](attributes/attributes.go)
 
 To disable one of these agents attributes, `RequestHeadersUserAgent` for
 example, modify the config like this:
 
 ```go
-// requires import of "github.com/newrelic/go-agent/api/attributes"
+// requires import of "github.com/newrelic/go-agent/attributes"
 config.Attributes.Exclude = append(config.Attributes.Exclude,
 	attributes.RequestHeadersUserAgent)
 ```

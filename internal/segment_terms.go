@@ -5,8 +5,6 @@ package internal
 import (
 	"encoding/json"
 	"strings"
-
-	"github.com/newrelic/go-agent/log"
 )
 
 const (
@@ -44,14 +42,16 @@ func (rules *segmentRules) UnmarshalJSON(b []byte) error {
 	for _, rule := range raw {
 		prefix := strings.TrimSuffix(rule.Prefix, "/")
 		if len(strings.Split(prefix, "/")) != 2 {
-			log.Warn("invalid segment term rule prefix",
-				log.Context{"prefix": rule.Prefix})
+			// TODO
+			// Warn("invalid segment term rule prefix",
+			// 	{"prefix": rule.Prefix})
 			continue
 		}
 
 		if nil == rule.Terms {
-			log.Warn("segment term rule has missing terms",
-				log.Context{"prefix": rule.Prefix})
+			// TODO
+			// Warn("segment term rule has missing terms",
+			// 	{"prefix": rule.Prefix})
 			continue
 		}
 
@@ -96,7 +96,7 @@ func (rule *segmentRule) apply(name string) string {
 	return rule.Prefix + leadingSlash + s
 }
 
-func (rules segmentRules) Apply(name string) string {
+func (rules segmentRules) apply(name string) string {
 	if nil == rules {
 		return name
 	}

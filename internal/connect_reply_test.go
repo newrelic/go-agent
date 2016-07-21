@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreateFullTxnNameBasic(t *testing.T) {
-	emptyReply := connectReplyDefaults()
+	emptyReply := ConnectReplyDefaults()
 
 	tcs := []struct {
 		input      string
@@ -37,7 +37,7 @@ func TestCreateFullTxnNameURLRulesIgnore(t *testing.T) {
 		"match_expression":".*zip.*$",
 		"ignore":true
 	}]`
-	reply := connectReplyDefaults()
+	reply := ConnectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply.URLRules)
 	if nil != err {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestCreateFullTxnNameTxnRulesIgnore(t *testing.T) {
 		"match_expression":"^WebTransaction/Go/zap/zip/zep$",
 		"ignore":true
 	}]`
-	reply := connectReplyDefaults()
+	reply := ConnectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply.TxnNameRules)
 	if nil != err {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 			 "terms": ["zyp", "zoop", "zap"]}
 		]
 	}`
-	reply := connectReplyDefaults()
+	reply := ConnectReplyDefaults()
 	err := json.Unmarshal([]byte(js), &reply)
 	if nil != err {
 		t.Fatal(err)
@@ -87,23 +87,23 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 }
 
 func TestCalculateApdexThreshold(t *testing.T) {
-	reply := connectReplyDefaults()
-	threshold := calculateApdexThreshold(reply, "WebTransaction/Go/hello")
+	reply := ConnectReplyDefaults()
+	threshold := CalculateApdexThreshold(reply, "WebTransaction/Go/hello")
 	if threshold != 500*time.Millisecond {
 		t.Error("default apdex threshold", threshold)
 	}
 
-	reply = connectReplyDefaults()
+	reply = ConnectReplyDefaults()
 	reply.ApdexThresholdSeconds = 1.3
 	reply.KeyTxnApdex = map[string]float64{
 		"WebTransaction/Go/zip": 2.2,
 		"WebTransaction/Go/zap": 2.3,
 	}
-	threshold = calculateApdexThreshold(reply, "WebTransaction/Go/hello")
+	threshold = CalculateApdexThreshold(reply, "WebTransaction/Go/hello")
 	if threshold != 1300*time.Millisecond {
 		t.Error(threshold)
 	}
-	threshold = calculateApdexThreshold(reply, "WebTransaction/Go/zip")
+	threshold = CalculateApdexThreshold(reply, "WebTransaction/Go/zip")
 	if threshold != 2200*time.Millisecond {
 		t.Error(threshold)
 	}

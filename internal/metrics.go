@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal/jsonx"
-	"github.com/newrelic/go-agent/log"
 )
 
 type metricForce int
@@ -105,7 +104,6 @@ func (mt *metricTable) mergeMetric(id metricID, m metric) {
 func (mt *metricTable) mergeFailed(from *metricTable) {
 	fails := from.failedHarvests + 1
 	if fails >= failedMetricAttemptsLimit {
-		log.Warn("discarding metrics", log.Context{"harvest_attempts": fails})
 		return
 	}
 	if from.metricPeriodStart.Before(mt.metricPeriodStart) {
@@ -159,16 +157,16 @@ func (mt *metricTable) addValue(name, scope string, total float64, force metricF
 	mt.addValueExclusive(name, scope, total, total, force)
 }
 
-func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone apdexZone, force metricForce) {
+func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration, zone ApdexZone, force metricForce) {
 	apdexSeconds := apdexThreshold.Seconds()
 	data := metricData{min: apdexSeconds, max: apdexSeconds}
 
 	switch zone {
-	case apdexSatisfying:
+	case ApdexSatisfying:
 		data.countSatisfied = 1
-	case apdexTolerating:
+	case ApdexTolerating:
 		data.totalTolerated = 1
-	case apdexFailing:
+	case ApdexFailing:
 		data.exclusiveFailed = 1
 	}
 
@@ -229,11 +227,11 @@ func (mt *metricTable) CollectorJSON(agentRunID string, now time.Time) ([]byte, 
 func (mt *metricTable) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
 	return mt.CollectorJSON(agentRunID, harvestStart)
 }
-func (mt *metricTable) mergeIntoHarvest(h *harvest) {
-	h.metrics.mergeFailed(mt)
+func (mt *metricTable) MergeIntoHarvest(h *Harvest) {
+	h.Metrics.mergeFailed(mt)
 }
 
-func (mt *metricTable) applyRules(rules metricRules) *metricTable {
+func (mt *metricTable) ApplyRules(rules metricRules) *metricTable {
 	if nil == rules {
 		return mt
 	}

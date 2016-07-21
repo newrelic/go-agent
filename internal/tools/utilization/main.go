@@ -3,18 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
+	"github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal/utilization"
-	"github.com/newrelic/go-agent/log"
 )
 
 func main() {
-	log.SetFile("stdout", log.LevelDebug)
-
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    true,
 		DetectDocker: true,
-	})
+	}, newrelic.NewDebugLogger(os.Stdout))
 
 	js, err := json.MarshalIndent(util, "", "\t")
 	if err != nil {

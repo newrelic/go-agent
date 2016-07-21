@@ -24,41 +24,48 @@ func panicValueMsg(v interface{}) string {
 	}
 }
 
-func txnErrorFromPanic(v interface{}) txnError {
-	return txnError{
-		msg:   panicValueMsg(v),
-		klass: PanicErrorKlass,
+// TxnErrorFromPanic creates a new TxnError from a panic.
+func TxnErrorFromPanic(v interface{}) TxnError {
+	return TxnError{
+		Msg:   panicValueMsg(v),
+		Klass: PanicErrorKlass,
 	}
 }
 
-func txnErrorFromError(err error) txnError {
-	return txnError{
-		msg:   err.Error(),
-		klass: reflect.TypeOf(err).String(),
+// TxnErrorFromError creates a new TxnError from an error.
+func TxnErrorFromError(err error) TxnError {
+	return TxnError{
+		Msg:   err.Error(),
+		Klass: reflect.TypeOf(err).String(),
 	}
 }
 
-func txnErrorFromResponseCode(code int) txnError {
-	return txnError{
-		msg:   http.StatusText(code),
-		klass: strconv.Itoa(code),
+// TxnErrorFromResponseCode creates a new TxnError from an http response code.
+func TxnErrorFromResponseCode(code int) TxnError {
+	return TxnError{
+		Msg:   http.StatusText(code),
+		Klass: strconv.Itoa(code),
 	}
 }
 
-type txnError struct {
-	when  time.Time
-	stack *stackTrace
-	msg   string
-	klass string
+// TxnError is an error captured in a Transaction.
+type TxnError struct {
+	When  time.Time
+	Stack *StackTrace
+	Msg   string
+	Klass string
 }
 
-type txnErrors []*txnError
+// TxnErrors is a set of errors captured in a Transaction.
+type TxnErrors []*TxnError
 
-func newTxnErrors(max int) txnErrors {
-	return make([]*txnError, 0, max)
+// NewTxnErrors returns a new empty TxnErrors.
+func NewTxnErrors(max int) TxnErrors {
+	return make([]*TxnError, 0, max)
 }
 
-func (errors *txnErrors) Add(e *txnError) {
+// Add adds a TxnError.
+func (errors *TxnErrors) Add(e *TxnError) {
 	if len(*errors) < cap(*errors) {
 		*errors = append(*errors, e)
 	}
@@ -67,18 +74,18 @@ func (errors *txnErrors) Add(e *txnError) {
 func (h *harvestError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
 		[]interface{}{
-			timeToFloatMilliseconds(h.when),
+			timeToFloatMilliseconds(h.When),
 			h.txnName,
-			h.msg,
-			h.klass,
+			h.Msg,
+			h.Klass,
 			struct {
-				Stack      *stackTrace `json:"stack_trace"`
+				Stack      *StackTrace `json:"stack_trace"`
 				Agent      JSONString  `json:"agentAttributes"`
 				User       JSONString  `json:"userAttributes"`
 				Intrinsics struct{}    `json:"intrinsics"`
 				RequestURI string      `json:"request_uri,omitempty"`
 			}{
-				Stack:      h.stack,
+				Stack:      h.Stack,
 				User:       userAttributesStringJSON(h.attrs, destError),
 				Agent:      agentAttributesStringJSON(h.attrs, destError),
 				RequestURI: h.requestURI,
@@ -87,10 +94,10 @@ func (h *harvestError) MarshalJSON() ([]byte, error) {
 }
 
 type harvestError struct {
-	txnError
+	TxnError
 	txnName    string
 	requestURI string
-	attrs      *attributes
+	attrs      *Attributes
 }
 
 type harvestErrors struct {
@@ -103,21 +110,22 @@ func newHarvestErrors(max int) *harvestErrors {
 	}
 }
 
-func harvestErrorFromTxnError(e *txnError, txnName string, requestURI string, attrs *attributes) *harvestError {
+func harvestErrorFromTxnError(e *TxnError, txnName string, requestURI string, attrs *Attributes) *harvestError {
 	return &harvestError{
-		txnError:   *e,
+		TxnError:   *e,
 		txnName:    txnName,
 		requestURI: requestURI,
 		attrs:      attrs,
 	}
 }
 
-func addTxnError(errors *harvestErrors, e *txnError, txnName string, requestURI string, attrs *attributes) {
+func addTxnError(errors *harvestErrors, e *TxnError, txnName string, requestURI string, attrs *Attributes) {
 	he := harvestErrorFromTxnError(e, txnName, requestURI, attrs)
 	errors.errors = append(errors.errors, he)
 }
 
-func mergeTxnErrors(errors *harvestErrors, errs txnErrors, txnName string, requestURI string, attrs *attributes) {
+// MergeTxnErrors merges a transaction's errors into the harvest's errors.
+func MergeTxnErrors(errors *harvestErrors, errs TxnErrors, txnName string, requestURI string, attrs *Attributes) {
 	for _, e := range errs {
 		if len(errors.errors) == cap(errors.errors) {
 			return
@@ -133,4 +141,4 @@ func (errors *harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]
 	return json.Marshal([]interface{}{agentRunID, errors.errors})
 }
 
-func (errors *harvestErrors) mergeIntoHarvest(h *harvest) {}
+func (errors *harvestErrors) MergeIntoHarvest(h *Harvest) {}

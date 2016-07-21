@@ -1,4 +1,4 @@
-package version
+package newrelic
 
 const (
 	major = "0"

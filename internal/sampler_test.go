@@ -7,9 +7,9 @@ import (
 
 func TestMetricsCreated(t *testing.T) {
 	now := time.Now()
-	h := newHarvest(now)
+	h := NewHarvest(now)
 
-	stats := stats{
+	stats := Stats{
 		numGoroutine: 23,
 		allocBytes:   37 * 1024 * 1024,
 		user: cpuStats{
@@ -27,9 +27,9 @@ func TestMetricsCreated(t *testing.T) {
 		maxPause:        400 * time.Microsecond,
 	}
 
-	stats.mergeIntoHarvest(h)
+	stats.MergeIntoHarvest(h)
 
-	expectMetrics(t, h.metrics, []WantMetric{
+	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{"Memory/Physical", "", true, []float64{1, 37, 0, 37, 37, 1369}},
 		{"CPU/User Time", "", true, []float64{1, 0.02, 0.02, 0.02, 0.02, 0.0004}},
 		{"CPU/System Time", "", true, []float64{1, 0.04, 0.04, 0.04, 0.04, 0.0016}},
@@ -43,12 +43,12 @@ func TestMetricsCreated(t *testing.T) {
 
 func TestMetricsCreatedEmpty(t *testing.T) {
 	now := time.Now()
-	h := newHarvest(now)
-	stats := stats{}
+	h := NewHarvest(now)
+	stats := Stats{}
 
-	stats.mergeIntoHarvest(h)
+	stats.MergeIntoHarvest(h)
 
-	expectMetrics(t, h.metrics, []WantMetric{
+	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{"Memory/Physical", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"CPU/User Time", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"CPU/System Time", "", true, []float64{1, 0, 0, 0, 0, 0}},

@@ -56,14 +56,15 @@ func compactJSON(js []byte) []byte {
 	return buf.Bytes()
 }
 
-func compactJSONString(js string) string {
+// CompactJSONString removes the whitespace from a JSON string.
+func CompactJSONString(js string) string {
 	out := compactJSON([]byte(js))
 	return string(out)
 }
 
-// stringLengthByteLimit truncates strings using a byte-limit boundary and
+// StringLengthByteLimit truncates strings using a byte-limit boundary and
 // avoids terminating in the middle of a multibyte character.
-func stringLengthByteLimit(str string, byteLimit int) string {
+func StringLengthByteLimit(str string, byteLimit int) string {
 	if len(str) <= byteLimit {
 		return str
 	}
