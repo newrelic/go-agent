@@ -2,7 +2,11 @@
 // logrus for your application and would like the go-agent log messages to end
 // up in the same place, modify your config as follows:
 //
-//    cfg.Logger = nrlogrus.New()
+//    cfg.Logger = nrlogrus.StandardLogger()
+//
+// Only logrus' StandardLogger is supported since there is no method (as of July
+// 2016) to get the level of a logrus.Logger. See
+// https://github.com/Sirupsen/logrus/issues/241
 package nrlogrus
 
 import (
@@ -29,9 +33,9 @@ func (s *shim) DebugEnabled() bool {
 	return lvl >= logrus.DebugLevel
 }
 
-// New returns a newrelic.Logger which forwards agent log messages to the logrus
-// package-level exported logger.
-func New() newrelic.Logger {
+// StandardLogger returns a newrelic.Logger which forwards agent log messages to
+// the logrus package-level exported logger.
+func StandardLogger() newrelic.Logger {
 	return &shim{
 		e: logrus.WithFields(logrus.Fields{
 			"component": "newrelic",
