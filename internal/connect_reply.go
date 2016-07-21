@@ -12,6 +12,14 @@ func (id AgentRunID) String() string {
 	return string(id)
 }
 
+// AppRun contains information regarding a single connection session with the
+// collector.  It is created upon application connect and is afterwards
+// immutable.
+type AppRun struct {
+	*ConnectReply
+	Collector string
+}
+
 // ConnectReply contains all of the settings and state send down from the
 // collector.  It should not be modified after creation.
 type ConnectReply struct {
@@ -44,9 +52,17 @@ type ConnectReply struct {
 	AppID       string `json:"application_id"`
 	ErrorBeacon string `json:"error_beacon"`
 	JSAgentFile string `json:"js_agent_file"`
+
+	Messages []struct {
+		Message string `json:"message"`
+		Level   string `json:"level"`
+	} `json:"messages"`
 }
 
-func connectReplyDefaults() *ConnectReply {
+// ConnectReplyDefaults returns a newly allocated ConnectReply with the proper
+// default settings.  A pointer to a global is not used to prevent consumers
+// from changing the default settings.
+func ConnectReplyDefaults() *ConnectReply {
 	return &ConnectReply{
 		ApdexThresholdSeconds:  0.5,
 		CollectAnalyticsEvents: true,
@@ -57,7 +73,8 @@ func connectReplyDefaults() *ConnectReply {
 	}
 }
 
-func calculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
+// CalculateApdexThreshold calculates the apdex threshold.
+func CalculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 	if t, ok := c.KeyTxnApdex[txnName]; ok {
 		return floatSecondsToDuration(t)
 	}
@@ -93,5 +110,5 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 		return ""
 	}
 
-	return reply.SegmentTerms.Apply(afterNameRules)
+	return reply.SegmentTerms.apply(afterNameRules)
 }

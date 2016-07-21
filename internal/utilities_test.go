@@ -62,7 +62,7 @@ func TestTimeToFloatMilliseconds(t *testing.T) {
 func TestCompactJSON(t *testing.T) {
 	in := `
 	{   "zip":	1}`
-	out := compactJSONString(in)
+	out := CompactJSONString(in)
 	if out != `{"zip":1}` {
 		t.Fatal(in, out)
 	}
@@ -91,7 +91,7 @@ func TestStringLengthByteLimit(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		out := stringLengthByteLimit(tc.input, tc.limit)
+		out := StringLengthByteLimit(tc.input, tc.limit)
 		if out != tc.expect {
 			t.Error(tc.input, tc.limit, tc.expect, out)
 		}

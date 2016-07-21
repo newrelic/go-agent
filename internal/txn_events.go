@@ -8,32 +8,43 @@ import (
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
+// DatastoreExternalTotals contains overview of external and datastore calls
+// made during a transaction.
+type DatastoreExternalTotals struct {
+	externalCallCount  uint64
+	externalDuration   time.Duration
+	datastoreCallCount uint64
+	datastoreDuration  time.Duration
+}
+
+// TxnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
-type txnEvent struct {
+type TxnEvent struct {
 	Name      string
 	Timestamp time.Time
 	Duration  time.Duration
-	queuing   time.Duration
-	zone      apdexZone
-	attrs     *attributes
-	datastoreExternalTotals
+	Queuing   time.Duration
+	Zone      ApdexZone
+	Attrs     *Attributes
+	DatastoreExternalTotals
 }
 
-func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
+// WriteJSON prepares JSON in the format expected by the collector.
+func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`[{"type":"Transaction","name":`)
 	jsonx.AppendString(buf, e.Name)
 	buf.WriteString(`,"timestamp":`)
 	jsonx.AppendFloat(buf, timeToFloatSeconds(e.Timestamp))
 	buf.WriteString(`,"duration":`)
 	jsonx.AppendFloat(buf, e.Duration.Seconds())
-	if apdexNone != e.zone {
+	if ApdexNone != e.Zone {
 		buf.WriteString(`,"nr.apdexPerfZone":`)
-		jsonx.AppendString(buf, e.zone.label())
+		jsonx.AppendString(buf, e.Zone.label())
 	}
-	if e.queuing > 0 {
+	if e.Queuing > 0 {
 		buf.WriteString(`,"queueDuration":`)
-		jsonx.AppendFloat(buf, e.queuing.Seconds())
+		jsonx.AppendFloat(buf, e.Queuing.Seconds())
 	}
 	if e.externalCallCount > 0 {
 		buf.WriteString(`,"externalCallCount":`)
@@ -51,13 +62,14 @@ func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
-	userAttributesJSON(e.attrs, buf, destTxnEvent)
+	userAttributesJSON(e.Attrs, buf, destTxnEvent)
 	buf.WriteByte(',')
-	agentAttributesJSON(e.attrs, buf, destTxnEvent)
+	agentAttributesJSON(e.Attrs, buf, destTxnEvent)
 	buf.WriteByte(']')
 }
 
-func (e *txnEvent) MarshalJSON() ([]byte, error) {
+// MarshalJSON is used for testing.
+func (e *TxnEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
 
 	e.WriteJSON(buf)
@@ -75,13 +87,13 @@ func newTxnEvents(max int) *txnEvents {
 	}
 }
 
-func (events *txnEvents) AddTxnEvent(e *txnEvent) {
+func (events *txnEvents) AddTxnEvent(e *TxnEvent) {
 	stamp := eventStamp(rand.Float32())
-	events.events.AddEvent(analyticsEvent{stamp, e})
+	events.events.addEvent(analyticsEvent{stamp, e})
 }
 
-func (events *txnEvents) mergeIntoHarvest(h *harvest) {
-	h.txnEvents.events.MergeFailed(events.events)
+func (events *txnEvents) MergeIntoHarvest(h *Harvest) {
+	h.TxnEvents.events.mergeFailed(events.events)
 }
 
 func (events *txnEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {

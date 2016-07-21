@@ -6,22 +6,22 @@ import (
 	"testing"
 	"time"
 
-	ats "github.com/newrelic/go-agent/api/attributes"
+	ats "github.com/newrelic/go-agent/attributes"
 )
 
 func TestErrorTraceMarshal(t *testing.T) {
-	e := &txnError{
-		when:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		stack: nil,
-		msg:   "my_msg",
-		klass: "my_class",
+	e := &TxnError{
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Stack: nil,
+		Msg:   "my_msg",
+		Klass: "my_class",
 	}
 	he := harvestErrorFromTxnError(e, "my_txn_name", "my_request_uri", nil)
 	js, err := json.Marshal(he)
 	if nil != err {
 		t.Error(err)
 	}
-	expect := compactJSONString(`
+	expect := CompactJSONString(`
 	[
 		1.41713646e+12,
 		"my_txn_name",
@@ -42,27 +42,27 @@ func TestErrorTraceMarshal(t *testing.T) {
 
 func TestErrorTraceAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
-	aci.errorCollector.Exclude = append(aci.errorCollector.Exclude, "zap")
-	aci.errorCollector.Exclude = append(aci.errorCollector.Exclude, ats.HostDisplayName)
-	cfg := createAttributeConfig(aci)
-	attr := newAttributes(cfg)
-	attr.agent.HostDisplayName = "exclude me"
-	attr.agent.RequestMethod = "GET"
-	addUserAttribute(attr, "zap", 123, destAll)
-	addUserAttribute(attr, "zip", 456, destAll)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, ats.HostDisplayName)
+	cfg := CreateAttributeConfig(aci)
+	attr := NewAttributes(cfg)
+	attr.Agent.HostDisplayName = "exclude me"
+	attr.Agent.RequestMethod = "GET"
+	AddUserAttribute(attr, "zap", 123, DestAll)
+	AddUserAttribute(attr, "zip", 456, DestAll)
 
-	e := &txnError{
-		when:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		stack: nil,
-		msg:   "my_msg",
-		klass: "my_class",
+	e := &TxnError{
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		Stack: nil,
+		Msg:   "my_msg",
+		Klass: "my_class",
 	}
 	he := harvestErrorFromTxnError(e, "my_txn_name", "my_request_uri", attr)
 	js, err := json.Marshal(he)
 	if nil != err {
 		t.Error(err)
 	}
-	expect := compactJSONString(`
+	expect := CompactJSONString(`
 	[
 		1.41713646e+12,
 		"my_txn_name",
@@ -82,21 +82,21 @@ func TestErrorTraceAttributes(t *testing.T) {
 }
 
 func TestErrorsLifecycle(t *testing.T) {
-	ers := newTxnErrors(5)
+	ers := NewTxnErrors(5)
 
 	when := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	e1 := txnErrorFromError(errors.New("hello"))
-	e2 := txnErrorFromResponseCode(400)
-	e3 := txnErrorFromPanic(errors.New("oh no panic"))
-	e4 := txnErrorFromPanic(123)
-	e5 := txnErrorFromError(errors.New("too many errors, dropped in harvest"))
-	e6 := txnErrorFromError(errors.New("too many errors, dropped in transaction"))
-	e1.when = when
-	e2.when = when
-	e3.when = when
-	e4.when = when
-	e5.when = when
-	e6.when = when
+	e1 := TxnErrorFromError(errors.New("hello"))
+	e2 := TxnErrorFromResponseCode(400)
+	e3 := TxnErrorFromPanic(errors.New("oh no panic"))
+	e4 := TxnErrorFromPanic(123)
+	e5 := TxnErrorFromError(errors.New("too many errors, dropped in harvest"))
+	e6 := TxnErrorFromError(errors.New("too many errors, dropped in transaction"))
+	e1.When = when
+	e2.When = when
+	e3.When = when
+	e4.When = when
+	e5.When = when
+	e6.When = when
 	ers.Add(&e1)
 	ers.Add(&e2)
 	ers.Add(&e3)
@@ -105,12 +105,12 @@ func TestErrorsLifecycle(t *testing.T) {
 	ers.Add(&e6)
 
 	he := newHarvestErrors(4)
-	mergeTxnErrors(he, ers, "txnName", "requestURI", nil)
+	MergeTxnErrors(he, ers, "txnName", "requestURI", nil)
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
 		t.Error(err)
 	}
-	expect := compactJSONString(`
+	expect := CompactJSONString(`
 [
    "agentRunID",
    [

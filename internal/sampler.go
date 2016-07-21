@@ -5,10 +5,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/newrelic/go-agent/log"
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
-type sample struct {
+// Sample is a system/runtime snapshot.
+type Sample struct {
 	when         time.Time
 	memStats     runtime.MemStats
 	userTime     time.Duration
@@ -25,8 +26,9 @@ func bytesToMebibytesFloat(bts uint64) float64 {
 	return float64(bts) / (1024 * 1024)
 }
 
-func getSample(now time.Time) *sample {
-	s := sample{
+// GetSample gathers a new Sample.
+func GetSample(now time.Time, lg logger.Logger) *Sample {
+	s := Sample{
 		when:         now,
 		numGoroutine: runtime.NumGoroutine(),
 		numCPU:       runtime.NumCPU(),
@@ -38,7 +40,7 @@ func getSample(now time.Time) *sample {
 		s.userTime = timevalToDuration(ru.Utime)
 		s.systemTime = timevalToDuration(ru.Stime)
 	} else {
-		log.Warn("unable to getrusage", log.Context{
+		lg.Warn("unable to getrusage", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -48,17 +50,13 @@ func getSample(now time.Time) *sample {
 	return &s
 }
 
-type samples struct {
-	previous *sample
-	current  *sample
-}
-
 type cpuStats struct {
 	used     time.Duration
 	fraction float64 // used / (elapsed * numCPU)
 }
 
-type stats struct {
+// Stats contains system information for a period of time.
+type Stats struct {
 	numGoroutine    int
 	allocBytes      uint64
 	user            cpuStats
@@ -70,12 +68,20 @@ type stats struct {
 	maxPause        time.Duration
 }
 
-func getStats(ss samples) stats {
-	cur := ss.current
-	prev := ss.previous
+// Samples is used as the parameter to GetStats to avoid mixing up the previous
+// and current sample.
+type Samples struct {
+	Previous *Sample
+	Current  *Sample
+}
+
+// GetStats combines two Samples into a Stats.
+func GetStats(ss Samples) Stats {
+	cur := ss.Current
+	prev := ss.Previous
 	elapsed := cur.when.Sub(prev.when)
 
-	s := stats{
+	s := Stats{
 		numGoroutine: cur.numGoroutine,
 		allocBytes:   cur.memStats.Alloc,
 	}
@@ -122,16 +128,17 @@ func getStats(ss samples) stats {
 	return s
 }
 
-func (s stats) mergeIntoHarvest(h *harvest) {
-	h.metrics.addValue(runGoroutine, "", float64(s.numGoroutine), forced)
-	h.metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocBytes), 0, forced)
-	h.metrics.addValueExclusive(cpuUserUtilization, "", s.user.fraction, 0, forced)
-	h.metrics.addValueExclusive(cpuSystemUtilization, "", s.system.fraction, 0, forced)
-	h.metrics.addValue(cpuUserTime, "", s.user.used.Seconds(), forced)
-	h.metrics.addValue(cpuSystemTime, "", s.system.used.Seconds(), forced)
-	h.metrics.addValueExclusive(gcPauseFraction, "", s.gcPauseFraction, 0, forced)
+// MergeIntoHarvest implements Harvestable.
+func (s Stats) MergeIntoHarvest(h *Harvest) {
+	h.Metrics.addValue(runGoroutine, "", float64(s.numGoroutine), forced)
+	h.Metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocBytes), 0, forced)
+	h.Metrics.addValueExclusive(cpuUserUtilization, "", s.user.fraction, 0, forced)
+	h.Metrics.addValueExclusive(cpuSystemUtilization, "", s.system.fraction, 0, forced)
+	h.Metrics.addValue(cpuUserTime, "", s.user.used.Seconds(), forced)
+	h.Metrics.addValue(cpuSystemTime, "", s.system.used.Seconds(), forced)
+	h.Metrics.addValueExclusive(gcPauseFraction, "", s.gcPauseFraction, 0, forced)
 	if s.deltaNumGC > 0 {
-		h.metrics.add(gcPauses, "", metricData{
+		h.Metrics.add(gcPauses, "", metricData{
 			countSatisfied:  float64(s.deltaNumGC),
 			totalTolerated:  s.deltaPauseTotal.Seconds(),
 			exclusiveFailed: 0,
@@ -139,20 +146,5 @@ func (s stats) mergeIntoHarvest(h *harvest) {
 			max:             s.maxPause.Seconds(),
 			sumSquares:      s.deltaPauseTotal.Seconds() * s.deltaPauseTotal.Seconds(),
 		}, forced)
-	}
-}
-
-func runSampler(app *App, period time.Duration) {
-	previous := getSample(time.Now())
-
-	for now := range time.Tick(period) {
-		current := getSample(now)
-
-		run := app.getRun()
-		app.consume(run.RunID, getStats(samples{
-			previous: previous,
-			current:  current,
-		}))
-		previous = current
 	}
 }

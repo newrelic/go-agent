@@ -12,7 +12,6 @@ import (
 func fail(reason string) {
 	fmt.Println(reason)
 	os.Exit(1)
-
 }
 
 func main() {

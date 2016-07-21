@@ -7,7 +7,7 @@ import (
 )
 
 func TestMarshalEnvironment(t *testing.T) {
-	js, err := json.Marshal(&sampleEnvironment)
+	js, err := json.Marshal(&SampleEnvironment)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestMarshalEnvironment(t *testing.T) {
 }
 
 func TestEnvironmentFields(t *testing.T) {
-	env := newEnvironment()
+	env := NewEnvironment()
 	if env.Compiler != runtime.Compiler {
 		t.Error(env.Compiler, runtime.Compiler)
 	}

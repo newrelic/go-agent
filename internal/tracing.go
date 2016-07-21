@@ -3,26 +3,28 @@ package internal
 import (
 	"time"
 
-	"github.com/newrelic/go-agent/api"
-	"github.com/newrelic/go-agent/api/datastore"
+	"github.com/newrelic/go-agent/datastore"
 )
+
+// Token tracks segments.
+type Token uint64
 
 const (
 	// Maximum number of traced function calls is 2^tokenStampBits.
 	// Maximum number stack depth is 2^(64-tokenStampBits)
 	tokenStampBits          = 40
-	invalidToken            = api.Token(0)
+	invalidToken            = Token(0)
 	startingStackDepthAlloc = 128
 
 	datastoreProductUnknown = datastore.Product("Unknown")
 )
 
-func createToken(depth int, stamp uint64) api.Token {
+func createToken(depth int, stamp uint64) Token {
 	token := (uint64(depth) << tokenStampBits) | stamp
-	return api.Token(token)
+	return Token(token)
 }
 
-func parseToken(token api.Token) (depth int, stamp uint64) {
+func parseToken(token Token) (depth int, stamp uint64) {
 	stamp = uint64((1<<tokenStampBits)-1) & uint64(token)
 	depth = int(token >> tokenStampBits)
 	return
@@ -34,26 +36,8 @@ type segmentFrame struct {
 	children time.Duration
 }
 
-type datastoreMetricKey struct {
-	Product    datastore.Product
-	Collection string
-	Operation  string
-}
-
-type externalMetricKey struct {
-	Host                    string
-	ExternalCrossProcessID  string
-	ExternalTransactionName string
-}
-
-type datastoreExternalTotals struct {
-	externalCallCount  uint64
-	externalDuration   time.Duration
-	datastoreCallCount uint64
-	datastoreDuration  time.Duration
-}
-
-type tracer struct {
+// Tracer tracks segments.
+type Tracer struct {
 	finishedChildren time.Duration
 	stamp            uint64
 	currentDepth     int
@@ -63,10 +47,11 @@ type tracer struct {
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 
-	datastoreExternalTotals
+	DatastoreExternalTotals
 }
 
-func tracerRootChildren(t *tracer) time.Duration {
+// TracerRootChildren is used to calculate a transaction's exclusive duration.
+func TracerRootChildren(t *Tracer) time.Duration {
 	var lostChildren time.Duration
 	for i := 0; i < t.currentDepth; i++ {
 		lostChildren += t.stack[i].children
@@ -74,7 +59,8 @@ func tracerRootChildren(t *tracer) time.Duration {
 	return t.finishedChildren + lostChildren
 }
 
-func startSegment(t *tracer, now time.Time) api.Token {
+// StartSegment begins a segment.
+func StartSegment(t *Tracer, now time.Time) Token {
 	if nil == t.stack {
 		t.stack = make([]segmentFrame, startingStackDepthAlloc)
 	}
@@ -107,7 +93,7 @@ type segmentEnd struct {
 	exclusive time.Duration
 }
 
-func endSegment(t *tracer, token api.Token, now time.Time) segmentEnd {
+func endSegment(t *Tracer, token Token, now time.Time) segmentEnd {
 	var s segmentEnd
 	depth, stamp := parseToken(token)
 	if 0 == stamp {
@@ -150,7 +136,8 @@ func endSegment(t *tracer, token api.Token, now time.Time) segmentEnd {
 	return s
 }
 
-func endBasicSegment(t *tracer, token api.Token, now time.Time, name string) {
+// EndBasicSegment ends a basic segment.
+func EndBasicSegment(t *Tracer, token Token, now time.Time, name string) {
 	end := endSegment(t, token, now)
 	if !end.valid {
 		return
@@ -170,7 +157,8 @@ func endBasicSegment(t *tracer, token api.Token, now time.Time, name string) {
 	}
 }
 
-func endExternalSegment(t *tracer, token api.Token, now time.Time, host string) {
+// EndExternalSegment ends an external segment.
+func EndExternalSegment(t *Tracer, token Token, now time.Time, host string) {
 	end := endSegment(t, token, now)
 	if !end.valid {
 		return
@@ -200,7 +188,8 @@ func endExternalSegment(t *tracer, token api.Token, now time.Time, host string) 
 	}
 }
 
-func endDatastoreSegment(t *tracer, token api.Token, now time.Time, s datastore.Segment) {
+// EndDatastoreSegment ends a datastore segment.
+func EndDatastoreSegment(t *Tracer, token Token, now time.Time, s datastore.Segment) {
 	end := endSegment(t, token, now)
 	if !end.valid {
 		return
@@ -233,7 +222,8 @@ func endDatastoreSegment(t *tracer, token api.Token, now time.Time, s datastore.
 	}
 }
 
-func mergeBreakdownMetrics(t *tracer, metrics *metricTable, scope string, isWeb bool) {
+// MergeBreakdownMetrics creates segment metrics.
+func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb bool) {
 	// Custom Segment Metrics
 	for key, data := range t.customSegments {
 		name := customSegmentPrefix + key

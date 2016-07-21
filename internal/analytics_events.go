@@ -5,7 +5,6 @@ import (
 	"container/heap"
 
 	"github.com/newrelic/go-agent/internal/jsonx"
-	"github.com/newrelic/go-agent/log"
 )
 
 // eventStamp allows for uniform random sampling of events.  When an event is
@@ -59,7 +58,7 @@ func newAnalyticsEvents(max int) *analyticsEvents {
 	}
 }
 
-func (events *analyticsEvents) AddEvent(e analyticsEvent) {
+func (events *analyticsEvents) addEvent(e analyticsEvent) {
 	events.numSeen++
 
 	if len(*events.events) < cap(*events.events) {
@@ -81,10 +80,9 @@ func (events *analyticsEvents) AddEvent(e analyticsEvent) {
 	heap.Push(events.events, e)
 }
 
-func (events *analyticsEvents) MergeFailed(other *analyticsEvents) {
+func (events *analyticsEvents) mergeFailed(other *analyticsEvents) {
 	fails := other.failedHarvests + 1
 	if fails >= failedEventsAttemptsLimit {
-		log.Warn("discarding events", log.Context{"harvest_attempts": fails})
 		return
 	}
 	events.failedHarvests = fails
@@ -95,7 +93,7 @@ func (events *analyticsEvents) Merge(other *analyticsEvents) {
 	allSeen := events.numSeen + other.numSeen
 
 	for _, e := range *other.events {
-		events.AddEvent(e)
+		events.addEvent(e)
 	}
 	events.numSeen = allSeen
 }

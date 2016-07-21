@@ -10,30 +10,19 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/api/datastore"
-	"github.com/newrelic/go-agent/log"
-	"github.com/newrelic/go-agent/version"
-
-	// "github.com/Sirupsen/logrus"
-	// _ "github.com/newrelic/go-agent/log/_nrlogrus"
+	"github.com/newrelic/go-agent/datastore"
 )
 
 var (
 	app newrelic.Application
 )
 
-func init() {
-	log.SetFile("stdout", log.LevelDebug)
-	// logrus.SetOutput(os.Stdout)
-	// logrus.SetLevel(logrus.DebugLevel)
-}
-
 func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "hello world")
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "New Relic Go Agent Version: "+version.Version)
+	io.WriteString(w, "New Relic Go Agent Version: "+newrelic.Version)
 }
 
 func noticeError(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +166,8 @@ func main() {
 		fmt.Printf(betaTokenInstructions)
 		os.Exit(1)
 	}
+
+	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 
 	var err error
 	app, err = newrelic.NewApplication(cfg)

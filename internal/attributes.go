@@ -4,15 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
-	"github.com/newrelic/go-agent/api"
-	ats "github.com/newrelic/go-agent/api/attributes"
+	ats "github.com/newrelic/go-agent/attributes"
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Agent-Attributes-PORTED.md
+
+// AttributeDestinationConfig matches newrelic.AttributeDestinationConfig to
+// avoid circular dependency issues.
+type AttributeDestinationConfig struct {
+	Enabled bool
+	Include []string
+	Exclude []string
+}
 
 type destinationSet int
 
@@ -25,7 +34,8 @@ const (
 
 const (
 	destNone destinationSet = 0
-	destAll  destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser
+	// DestAll contains all destinations.
+	DestAll destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser
 )
 
 const (
@@ -43,7 +53,9 @@ func (m byMatch) Len() int           { return len(m) }
 func (m byMatch) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m byMatch) Less(i, j int) bool { return m[i].match < m[j].match }
 
-type attributeConfig struct {
+// AttributeConfig is created at application creation and shared between all
+// transactions.
+type AttributeConfig struct {
 	disabledDestinations destinationSet
 	exactMatchModifiers  map[string]*attributeModifier
 	// Once attributeConfig is constructed, wildcardModifiers is sorted in
@@ -65,7 +77,7 @@ func modifierApply(m *attributeModifier, d destinationSet) destinationSet {
 	return d
 }
 
-func applyAttributeConfig(c *attributeConfig, key string, d destinationSet) destinationSet {
+func applyAttributeConfig(c *AttributeConfig, key string, d destinationSet) destinationSet {
 	// Important: The wildcard modifiers must be applied before the exact
 	// match modifiers, and the slice must be iterated in a forward
 	// direction.
@@ -84,7 +96,7 @@ func applyAttributeConfig(c *attributeConfig, key string, d destinationSet) dest
 	return d
 }
 
-func addModifier(c *attributeConfig, match string, d includeExclude) {
+func addModifier(c *AttributeConfig, match string, d includeExclude) {
 	if "" == match {
 		return
 	}
@@ -120,7 +132,7 @@ func addModifier(c *attributeConfig, match string, d includeExclude) {
 	}
 }
 
-func processDest(c *attributeConfig, dc *api.AttributeDestinationConfig, d destinationSet) {
+func processDest(c *AttributeConfig, dc *AttributeDestinationConfig, d destinationSet) {
 	if !dc.Enabled {
 		c.disabledDestinations |= d
 	}
@@ -132,31 +144,34 @@ func processDest(c *attributeConfig, dc *api.AttributeDestinationConfig, d desti
 	}
 }
 
-type attributeConfigInput struct {
-	attributes        api.AttributeDestinationConfig
-	errorCollector    api.AttributeDestinationConfig
-	transactionEvents api.AttributeDestinationConfig
-	browserMonitoring api.AttributeDestinationConfig
-	transactionTracer api.AttributeDestinationConfig
+// AttributeConfigInput is used as the input to CreateAttributeConfig:  it
+// transforms newrelic.Config settings into an AttributeConfig.
+type AttributeConfigInput struct {
+	Attributes        AttributeDestinationConfig
+	ErrorCollector    AttributeDestinationConfig
+	TransactionEvents AttributeDestinationConfig
+	browserMonitoring AttributeDestinationConfig
+	transactionTracer AttributeDestinationConfig
 }
 
 var (
-	sampleAttributeConfigInput = attributeConfigInput{
-		attributes:        api.AttributeDestinationConfig{Enabled: true},
-		errorCollector:    api.AttributeDestinationConfig{Enabled: true},
-		transactionEvents: api.AttributeDestinationConfig{Enabled: true},
+	sampleAttributeConfigInput = AttributeConfigInput{
+		Attributes:        AttributeDestinationConfig{Enabled: true},
+		ErrorCollector:    AttributeDestinationConfig{Enabled: true},
+		TransactionEvents: AttributeDestinationConfig{Enabled: true},
 	}
 )
 
-func createAttributeConfig(input attributeConfigInput) *attributeConfig {
-	c := &attributeConfig{
+// CreateAttributeConfig creates a new AttributeConfig.
+func CreateAttributeConfig(input AttributeConfigInput) *AttributeConfig {
+	c := &AttributeConfig{
 		exactMatchModifiers: make(map[string]*attributeModifier),
 		wildcardModifiers:   make([]*attributeModifier, 0, 64),
 	}
 
-	processDest(c, &input.attributes, destAll)
-	processDest(c, &input.errorCollector, destError)
-	processDest(c, &input.transactionEvents, destTxnEvent)
+	processDest(c, &input.Attributes, DestAll)
+	processDest(c, &input.ErrorCollector, destError)
+	processDest(c, &input.TransactionEvents, destTxnEvent)
 	processDest(c, &input.transactionTracer, destTxnTrace)
 	processDest(c, &input.browserMonitoring, destBrowser)
 
@@ -172,10 +187,11 @@ type userAttribute struct {
 	dests destinationSet
 }
 
-type attributes struct {
-	config *attributeConfig
+// Attributes are key value pairs attached to the various collected data types.
+type Attributes struct {
+	config *AttributeConfig
 	user   map[string]userAttribute
-	agent  agentAttributes
+	Agent  agentAttributes
 }
 
 // New agent attributes must be added in the following places:
@@ -213,8 +229,8 @@ type agentAttributeDests struct {
 	ResponseCode                 destinationSet
 }
 
-func calculateAgentAttributeDests(c *attributeConfig) agentAttributeDests {
-	usual := destAll &^ destBrowser
+func calculateAgentAttributeDests(c *AttributeConfig) agentAttributeDests {
+	usual := DestAll &^ destBrowser
 	traces := destTxnTrace | destError
 	return agentAttributeDests{
 		HostDisplayName:              applyAttributeConfig(c, ats.HostDisplayName, usual),
@@ -284,10 +300,11 @@ func writeAgentAttributes(buf *bytes.Buffer, d destinationSet, values agentAttri
 	buf.WriteByte('}')
 }
 
-func newAttributes(config *attributeConfig) *attributes {
-	return &attributes{
+// NewAttributes creates a new Attributes.
+func NewAttributes(config *AttributeConfig) *Attributes {
+	return &Attributes{
 		config: config,
-		agent: agentAttributes{
+		Agent: agentAttributes{
 			RequestContentLength:         -1,
 			ResponseHeadersContentLength: -1,
 		},
@@ -340,7 +357,7 @@ func validAttributeKey(key string) error {
 
 func truncateStringValueIfLong(val string) string {
 	if len(val) > attributeValueLengthLimit {
-		return stringLengthByteLimit(val, attributeValueLengthLimit)
+		return StringLengthByteLimit(val, attributeValueLengthLimit)
 	}
 	return val
 }
@@ -352,7 +369,8 @@ func truncateStringValueIfLongInterface(val interface{}) interface{} {
 	return val
 }
 
-func addUserAttribute(a *attributes, key string, val interface{}, d destinationSet) error {
+// AddUserAttribute adds a user attribute.
+func AddUserAttribute(a *Attributes, key string, val interface{}, d destinationSet) error {
 	val = truncateStringValueIfLongInterface(val)
 	if err := valueIsValid(val); nil != err {
 		return err
@@ -423,15 +441,15 @@ func writeAttributeValueJSON(buf *bytes.Buffer, val interface{}) {
 	}
 }
 
-func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
+func agentAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
 	if nil == a {
 		buf.WriteString("{}")
 		return
 	}
-	writeAgentAttributes(buf, d, a.agent, a.config.agentDests)
+	writeAgentAttributes(buf, d, a.Agent, a.config.agentDests)
 }
 
-func userAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
+func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
 	buf.WriteByte('{')
 	if nil != a {
 		first := true
@@ -451,7 +469,7 @@ func userAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
 	buf.WriteByte('}')
 }
 
-func userAttributesStringJSON(a *attributes, d destinationSet) JSONString {
+func userAttributesStringJSON(a *Attributes, d destinationSet) JSONString {
 	if nil == a {
 		return JSONString("{}")
 	}
@@ -462,7 +480,7 @@ func userAttributesStringJSON(a *attributes, d destinationSet) JSONString {
 	return JSONString(bs)
 }
 
-func agentAttributesStringJSON(a *attributes, d destinationSet) JSONString {
+func agentAttributesStringJSON(a *Attributes, d destinationSet) JSONString {
 	if nil == a {
 		return JSONString("{}")
 	}
@@ -472,14 +490,70 @@ func agentAttributesStringJSON(a *attributes, d destinationSet) JSONString {
 	return JSONString(buf.Bytes())
 }
 
-func getUserAttributes(a *attributes, d destinationSet) map[string]interface{} {
+func getUserAttributes(a *Attributes, d destinationSet) map[string]interface{} {
 	v := make(map[string]interface{})
 	json.Unmarshal([]byte(userAttributesStringJSON(a, d)), &v)
 	return v
 }
 
-func getAgentAttributes(a *attributes, d destinationSet) map[string]interface{} {
+func getAgentAttributes(a *Attributes, d destinationSet) map[string]interface{} {
 	v := make(map[string]interface{})
 	json.Unmarshal([]byte(agentAttributesStringJSON(a, d)), &v)
 	return v
+}
+
+// RequestAgentAttributes gathers agent attributes out of the request.
+func RequestAgentAttributes(a *Attributes, r *http.Request) {
+	a.Agent.RequestMethod = r.Method
+
+	h := r.Header
+	if nil == h {
+		return
+	}
+	a.Agent.RequestAcceptHeader = h.Get("Accept")
+	a.Agent.RequestContentType = h.Get("Content-Type")
+	a.Agent.RequestHeadersHost = h.Get("Host")
+	a.Agent.RequestHeadersUserAgent = h.Get("User-Agent")
+	a.Agent.RequestHeadersReferer = SafeURLFromString(h.Get("Referer"))
+
+	if cl := h.Get("Content-Length"); "" != cl {
+		if x, err := strconv.Atoi(cl); nil == err {
+			a.Agent.RequestContentLength = x
+		}
+	}
+}
+
+// ResponseHeaderAttributes gather agent attributes from the response headers.
+func ResponseHeaderAttributes(a *Attributes, h http.Header) {
+	if nil == h {
+		return
+	}
+	a.Agent.ResponseHeadersContentType = h.Get("Content-Type")
+	if val := h.Get("Content-Length"); "" != val {
+		if x, err := strconv.Atoi(val); nil == err {
+			a.Agent.ResponseHeadersContentLength = x
+		}
+	}
+}
+
+var (
+	// statusCodeLookup avoids a strconv.Itoa call.
+	statusCodeLookup = map[int]string{
+		100: "100", 101: "101",
+		200: "200", 201: "201", 202: "202", 203: "203", 204: "204", 205: "205", 206: "206",
+		300: "300", 301: "301", 302: "302", 303: "303", 304: "304", 305: "305", 307: "307",
+		400: "400", 401: "401", 402: "402", 403: "403", 404: "404", 405: "405", 406: "406",
+		407: "407", 408: "408", 409: "409", 410: "410", 411: "411", 412: "412", 413: "413",
+		414: "414", 415: "415", 416: "416", 417: "417", 418: "418", 428: "428", 429: "429",
+		431: "431", 451: "451",
+		500: "500", 501: "501", 502: "502", 503: "503", 504: "504", 505: "505", 511: "511",
+	}
+)
+
+// ResponseCodeAttribute sets the response code agent attribute.
+func ResponseCodeAttribute(a *Attributes, code int) {
+	a.Agent.ResponseCode = statusCodeLookup[code]
+	if a.Agent.ResponseCode == "" {
+		a.Agent.ResponseCode = strconv.Itoa(code)
+	}
 }

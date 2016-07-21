@@ -1,4 +1,4 @@
-package api
+package newrelic
 
 import "net/http"
 
@@ -27,4 +27,15 @@ type Application interface {
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 	RecordCustomEvent(eventType string, params map[string]interface{}) error
+}
+
+// NewApplication creates an Application and spawns goroutines to manage the
+// aggregation and harvesting of data.  On success, a non-nil Application and a
+// nil error are returned. On failure, a nil Application and a non-nil error
+// are returned.
+//
+// Applications do not share global state (other than the shared log.Logger).
+// Therefore, it is safe to create multiple applications.
+func NewApplication(c Config) (Application, error) {
+	return newApp(c)
 }

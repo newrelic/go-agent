@@ -15,13 +15,13 @@ func newCustomEvents(max int) *customEvents {
 	}
 }
 
-func (cs *customEvents) Add(e *customEvent) {
+func (cs *customEvents) Add(e *CustomEvent) {
 	stamp := eventStamp(rand.Float32())
-	cs.events.AddEvent(analyticsEvent{stamp, e})
+	cs.events.addEvent(analyticsEvent{stamp, e})
 }
 
-func (cs *customEvents) mergeIntoHarvest(h *harvest) {
-	h.customEvents.events.MergeFailed(cs.events)
+func (cs *customEvents) MergeIntoHarvest(h *Harvest) {
+	h.CustomEvents.events.mergeFailed(cs.events)
 }
 
 func (cs *customEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {

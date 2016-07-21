@@ -3,6 +3,8 @@ package utilization
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
 func TestJSONMarshalling(t *testing.T) {
@@ -82,7 +84,7 @@ func TestUtilizationHash(t *testing.T) {
 		Config{DetectAWS: false, DetectDocker: false},
 	}
 	for _, c := range config {
-		u := Gather(c)
+		u := Gather(c, logger.ShimLogger{})
 		js, err := json.Marshal(u)
 		if err != nil {
 			t.Error(err)

@@ -8,18 +8,20 @@ import (
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
-type errorEvent struct {
-	klass    string
-	msg      string
-	when     time.Time
-	txnName  string
-	duration time.Duration
-	queuing  time.Duration
-	attrs    *attributes
-	datastoreExternalTotals
+// ErrorEvent is an error event.
+type ErrorEvent struct {
+	Klass    string
+	Msg      string
+	When     time.Time
+	TxnName  string
+	Duration time.Duration
+	Queuing  time.Duration
+	Attrs    *Attributes
+	DatastoreExternalTotals
 }
 
-func (e *errorEvent) MarshalJSON() ([]byte, error) {
+// MarshalJSON is used for testing.
+func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
 
 	e.WriteJSON(buf)
@@ -27,26 +29,27 @@ func (e *errorEvent) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// WriteJSON prepares JSON in the format expected by the collector.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Error-Events.md
-func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
+func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteString(`[{"type":"TransactionError","error.class":`)
-	jsonx.AppendString(buf, e.klass)
+	jsonx.AppendString(buf, e.Klass)
 
 	buf.WriteString(`,"error.message":`)
-	jsonx.AppendString(buf, e.msg)
+	jsonx.AppendString(buf, e.Msg)
 
 	buf.WriteString(`,"timestamp":`)
-	jsonx.AppendFloat(buf, timeToFloatSeconds(e.when))
+	jsonx.AppendFloat(buf, timeToFloatSeconds(e.When))
 
 	buf.WriteString(`,"transactionName":`)
-	jsonx.AppendString(buf, e.txnName)
+	jsonx.AppendString(buf, e.TxnName)
 
 	buf.WriteString(`,"duration":`)
-	jsonx.AppendFloat(buf, e.duration.Seconds())
+	jsonx.AppendFloat(buf, e.Duration.Seconds())
 
-	if e.queuing > 0 {
+	if e.Queuing > 0 {
 		buf.WriteString(`,"queueDuration":`)
-		jsonx.AppendFloat(buf, e.queuing.Seconds())
+		jsonx.AppendFloat(buf, e.Queuing.Seconds())
 	}
 
 	if e.externalCallCount > 0 {
@@ -67,9 +70,9 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 
 	buf.WriteByte('}')
 	buf.WriteByte(',')
-	userAttributesJSON(e.attrs, buf, destError)
+	userAttributesJSON(e.Attrs, buf, destError)
 	buf.WriteByte(',')
-	agentAttributesJSON(e.attrs, buf, destError)
+	agentAttributesJSON(e.Attrs, buf, destError)
 	buf.WriteByte(']')
 }
 
@@ -83,13 +86,13 @@ func newErrorEvents(max int) *errorEvents {
 	}
 }
 
-func (events *errorEvents) Add(e *errorEvent) {
+func (events *errorEvents) Add(e *ErrorEvent) {
 	stamp := eventStamp(rand.Float32())
-	events.events.AddEvent(analyticsEvent{stamp, e})
+	events.events.addEvent(analyticsEvent{stamp, e})
 }
 
-func (events *errorEvents) mergeIntoHarvest(h *harvest) {
-	h.errorEvents.events.MergeFailed(events.events)
+func (events *errorEvents) MergeIntoHarvest(h *Harvest) {
+	h.ErrorEvents.events.mergeFailed(events.events)
 }
 
 func (events *errorEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {

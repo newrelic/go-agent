@@ -1,5 +1,7 @@
 package internal
 
+import "github.com/newrelic/go-agent/datastore"
+
 const (
 	apdexRollup = "Apdex"
 	apdexPrefix = "Apdex/"
@@ -61,6 +63,18 @@ const (
 	gcPauseFraction      = "GC/System/Pause Fraction"
 	gcPauses             = "GC/System/Pauses"
 )
+
+type datastoreMetricKey struct {
+	Product    datastore.Product
+	Collection string
+	Operation  string
+}
+
+type externalMetricKey struct {
+	Host                    string
+	ExternalCrossProcessID  string
+	ExternalTransactionName string
+}
 
 type datastoreProductMetrics struct {
 	All   string // Datastore/{datastore}/all

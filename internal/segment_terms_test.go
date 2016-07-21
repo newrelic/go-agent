@@ -25,7 +25,7 @@ func TestCrossAgentSegmentTerms(t *testing.T) {
 
 	for _, tc := range tcs {
 		for _, test := range tc.Tests {
-			out := tc.Rules.Apply(test.Input)
+			out := tc.Rules.apply(test.Input)
 			if out != test.Expected {
 				t.Fatal(tc.Testname, test.Input, out, test.Expected)
 			}
@@ -54,7 +54,7 @@ func TestSegmentTerms(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := rules.Apply("WebTransaction/Uri/pen/two/pencil/dev/paper")
+	out := rules.apply("WebTransaction/Uri/pen/two/pencil/dev/paper")
 	if out != "WebTransaction/Uri/*/two/*/dev/*" {
 		t.Fatal(out)
 	}
@@ -64,7 +64,7 @@ func TestEmptySegmentTerms(t *testing.T) {
 	var rules segmentRules
 
 	input := "my/name"
-	out := rules.Apply(input)
+	out := rules.apply(input)
 	if out != input {
 		t.Error(input, out)
 	}
@@ -97,7 +97,7 @@ func BenchmarkSegmentTerms(b *testing.B) {
 	input := "WebTransaction/Uri/pen/two/pencil/dev/paper"
 	expected := "WebTransaction/Uri/*/two/*/dev/*"
 	for i := 0; i < b.N; i++ {
-		out := rules.Apply(input)
+		out := rules.apply(input)
 		if out != expected {
 			b.Fatal(out, expected)
 		}

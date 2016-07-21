@@ -1,5 +1,15 @@
 ## ChangeLog
 
+* Eliminated `api`, `version`, and `log` packages.  `Version`, `Config`,
+  `Application`, and `Transaction` now live in the top level `newrelic` package.
+
+* Breaking Logging Changes
+
+Logging is no longer a global.  Instead, logging is configured on a
+per-application basis with the new `Config.Logger` field.  The logger is
+an interface described in [log.go](log.go).  See
+[GUIDE.md#logging](GUIDE.md#logging).
+
 ## 0.6.1
 
 * No longer create "GC/System/Pauses" metric if no GC pauses happened.

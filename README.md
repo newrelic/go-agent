@@ -56,8 +56,8 @@ config.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 app, err := newrelic.NewApplication(config)
 ```
 
-[more info](GUIDE.md#config-and-application), [application.go](api/application.go),
-[config.go](api/config.go)
+[more info](GUIDE.md#config-and-application), [application.go](application.go),
+[config.go](config.go)
 
 #### Step 2: Add Transactions
 
@@ -77,7 +77,7 @@ txn := app.StartTransaction("myTxn", optionalResponseWriter, optionalRequest)
 defer txn.End()
 ```
 
-[more info](GUIDE.md#transactions), [transaction.go](api/transaction.go)
+[more info](GUIDE.md#transactions), [transaction.go](transaction.go)
 
 #### Step 3: Instrument Segments
 
@@ -88,7 +88,7 @@ beginning of important functions, add:
 defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
 ```
 
-[more info](GUIDE.md#segments), [segments.go](api/segments.go)
+[more info](GUIDE.md#segments), [segments.go](segments.go)
 
 ## Runnable Example
 
