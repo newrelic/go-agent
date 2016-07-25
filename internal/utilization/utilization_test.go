@@ -80,8 +80,8 @@ func TestJSONMarshalling(t *testing.T) {
 
 func TestUtilizationHash(t *testing.T) {
 	config := []Config{
-		Config{DetectAWS: true, DetectDocker: true},
-		Config{DetectAWS: false, DetectDocker: false},
+		{DetectAWS: true, DetectDocker: true},
+		{DetectAWS: false, DetectDocker: false},
 	}
 	for _, c := range config {
 		u := Gather(c, logger.ShimLogger{})
