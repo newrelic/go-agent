@@ -150,49 +150,59 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 Find out where the time in your transactions is being spent!  Each transaction
 should only track segments in a single goroutine.
 
-`Transaction` has methods to time external calls, datastore calls, functions,
-and arbitrary blocks of code.  
-
 To time a function, add the following line to the beginning of that function:
 
 ```go
-defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
+defer newrelic.StartSegment(txn, "mySegmentName").End()
 ```
 
-The `defer` pattern will execute the `txn.StartSegment()` when this line is
-encountered and the `EndSegment()` method when this function returns.  More
-information can be found on `defer` [here](https://gobyexample.com/defer).
+`StartSegment` is safe even if the transaction is nil.
 
 To time a block of code, use the following pattern:
 
 ```go
-token := txn.StartSegment()
+segment := newrelic.StartSegment(txn, "mySegmentName")
 // ... code you want to time here ...
-txn.EndSegment(token, "mySegmentName")
+segment.End()
 ```
 
 Segments may be nested.  The segment being ended must be the most recently
 started segment.
 
 ```go
-token1 := txn.StartSegment()
-token2 := txn.StartSegment()
-// token2 must be ended before token1
-txn.EndSegment(token2, "innerSegment")
-txn.EndSegment(token1, "outerSegment")
+s1 := newrelic.StartSegment(txn, "outerSegment")
+s2 := newrelic.StartSegment(txn, "innerSegment")
+// s2 must be ended before s1
+s2.End()
+s1.End()
+```
+
+A zero value segment may safely be ended.  Therefore, the following code
+is safe even if the conditional fails:
+
+```go
+var s newrelic.Segment
+if txn, ok := w.(newrelic.Transaction); ok {
+	s.StartTime = newrelic.StartSegmentNow(txn),
+}
+// ... code you wish to time here ...
+s.End()
 ```
 
 ### Datastore Segments
 
 Datastore segments appear in the transaction "Breakdown table" and in the
-"Databases" tab.  They are finished using `EndDatastore`.  This requires
-importing the `datastore` subpackage.
+"Databases" tab.
 
 * [datastore.go](datastore/datastore.go)
 * [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
+To instrument a datastore call that spans an entire function call, add this
+to the beginning to the function:
+
 ```go
-defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
+defer newrelic.DatastoreSegment{
+	StartTime: newrelic.StartSegmentNow(txn),
 	// Product is the datastore type.
 	// See the constants in datastore/datastore.go.
 	Product: datastore.MySQL,
@@ -200,7 +210,7 @@ defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
 	Collection: "my_table",
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
 	Operation: "SELECT",
-})
+}).End()
 ```
 
 ### External Segments
@@ -210,30 +220,37 @@ External segments appear in the transaction "Breakdown table" and in the
 
 * [More info on External Services tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
 
-There are a couple of ways to instrument external
-segments.  The simplest way is to use `EndExternal`:
+Populate either the `URL` or `Request` field of the `ExternalSegment` parameter
+to indicate the endpoint.
 
 ```go
-func externalCall(url string, txn newrelic.Transaction) (*http.Response, error) {
-	defer txn.EndExternal(txn.StartSegment(), url)
+func external(txn newrelic.Transaction, url string) (*http.Response, error) {
+	defer newrelic.ExternalFields{
+		Start: newrelic.StartSegmentNow(txn),
+		URL:   url,
+	}).End()
 
 	return http.Get(url)
 }
 ```
 
-The functions `PrepareRequest` and `EndRequest` are recommended since they will
-be used in the future to trace activity between distributed applications using
-headers.
+We recommend using the `Request` and `Response` fields of `ExternalFields` since
+they will be used in the future to trace activity between your New Relic
+applications using headers.  `Request` is populated automatically by the
+`StartExternalSegment` helper.
 
 ```go
-token := txn.StartSegment()
-txn.PrepareRequest(token, request)
-response, err := client.Do(request)
-txn.EndRequest(token, request, response)
+func external(txn newrelic.Transaction, req *http.Request) (*http.Response, error) {
+	s := newrelic.StartExternalSegment(txn, req)
+	response, err := http.DefaultClient.Do(req)
+	s.Response = response
+	s.End()
+	return response, err
+}
 ```
 
-`NewRoundTripper` is a helper built on top of `PrepareRequest` and `EndRequest`.
-This round tripper **must** be used the same goroutine as the transaction.
+`NewRoundTripper` is another useful helper.  The round tripper returned **must**
+only be used the same goroutine as the transaction.
 
 ```go
 client := &http.Client{}

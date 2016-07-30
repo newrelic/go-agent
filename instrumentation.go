@@ -49,15 +49,16 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 //
 func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
-		token := txn.StartSegment()
-		txn.PrepareRequest(token, request)
+		segment := StartExternalSegment(txn, request)
 
 		if nil == original {
 			original = http.DefaultTransport
 		}
 		response, err := original.RoundTrip(request)
 
-		txn.EndRequest(token, request, response)
+		segment.Response = response
+		segment.End()
+
 		return response, err
 	})
 }

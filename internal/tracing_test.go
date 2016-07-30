@@ -341,17 +341,17 @@ func TestSegmentDatastore(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
-	allDatastoreFields := datastore.Segment{
+	allDatastoreFields := DatastoreMetricKey{
 		Product:    datastore.MySQL,
 		Operation:  "SELECT",
 		Collection: "my_table",
 	}
-	missingCollection := datastore.Segment{
+	missingCollection := DatastoreMetricKey{
 		Product:   datastore.MySQL,
 		Operation: "SELECT",
 	}
-	emptyDatastore := datastore.Segment{}
-	invalidTokenOperation := datastore.Segment{
+	emptyDatastore := DatastoreMetricKey{}
+	invalidTokenOperation := DatastoreMetricKey{
 		Product:   datastore.MySQL,
 		Operation: "invalid-token",
 	}

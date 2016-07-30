@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-agent/datastore"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/logger"
 	"github.com/newrelic/go-agent/internal/utilization"
@@ -483,49 +482,72 @@ func (txn *txn) Ignore() error {
 	return nil
 }
 
-func (txn *txn) StartSegment() Token {
-	token := Token(0)
+func (txn *txn) StartSegmentNow() SegmentStartTime {
+	token := internal.Token(0)
 	txn.Lock()
 	if !txn.finished {
-		token = Token(internal.StartSegment(&txn.tracer, time.Now()))
+		token = internal.StartSegment(&txn.tracer, time.Now())
 	}
 	txn.Unlock()
-	return token
+	return SegmentStartTime{
+		segment: segment{
+			token: token,
+			txn:   txn,
+		},
+	}
 }
 
-func (txn *txn) EndSegment(token Token, name string) {
+type segment struct {
+	token internal.Token
+	txn   *txn
+}
+
+func endSegment(s Segment) {
+	txn := s.StartTime.txn
+	if nil == txn {
+		return
+	}
 	txn.Lock()
 	if !txn.finished {
-		internal.EndBasicSegment(&txn.tracer, internal.Token(token), time.Now(), name)
+		internal.EndBasicSegment(&txn.tracer, s.StartTime.token, time.Now(), s.Name)
 	}
 	txn.Unlock()
 }
 
-func (txn *txn) EndDatastore(token Token, s datastore.Segment) {
+func endDatastore(s DatastoreSegment) {
+	txn := s.StartTime.txn
+	if nil == txn {
+		return
+	}
 	txn.Lock()
 	defer txn.Unlock()
 
 	if txn.finished {
 		return
 	}
-	internal.EndDatastoreSegment(&txn.tracer, internal.Token(token), time.Now(), s)
+	internal.EndDatastoreSegment(&txn.tracer, s.StartTime.token, time.Now(), internal.DatastoreMetricKey{
+		Product:    s.Product,
+		Collection: s.Collection,
+		Operation:  s.Operation,
+	})
 }
 
-func (txn *txn) EndExternal(token Token, url string) {
+func endExternal(s ExternalSegment) {
+	txn := s.StartTime.txn
+	if nil == txn {
+		return
+	}
 	txn.Lock()
 	defer txn.Unlock()
 
 	if txn.finished {
 		return
 	}
-	internal.EndExternalSegment(&txn.tracer, internal.Token(token), time.Now(), internal.HostFromExternalURL(url))
-}
-
-func (txn *txn) PrepareRequest(token Token, request *http.Request) {
-	txn.Lock()
-	defer txn.Unlock()
-
-	// TODO: handle request CAT headers
+	host := hostFromRequestResponse(s.Request, s.Response)
+	if "" != s.URL {
+		host = internal.HostFromExternalURL(s.URL)
+	}
+	internal.EndExternalSegment(&txn.tracer, s.StartTime.token, time.Now(), host)
 }
 
 func hostFromRequestResponse(request *http.Request, response *http.Response) string {
@@ -539,20 +561,6 @@ func hostFromRequestResponse(request *http.Request, response *http.Response) str
 		return "opaque"
 	}
 	return request.URL.Host
-}
-
-func (txn *txn) EndRequest(token Token, request *http.Request, response *http.Response) {
-	txn.Lock()
-	defer txn.Unlock()
-
-	if txn.finished {
-		return
-	}
-
-	// TODO: handle response CAT headers
-
-	host := hostFromRequestResponse(request, response)
-	internal.EndExternalSegment(&txn.tracer, internal.Token(token), time.Now(), host)
 }
 
 type appData struct {
