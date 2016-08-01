@@ -97,7 +97,7 @@ type Config struct {
 
 	// Transport customizes http.Client communication with New Relic
 	// servers.  This may be used to configure a proxy.
-	Transport http.RoundTripper
+	Transport http.RoundTripper `json:"-"`
 
 	// Utilization controls the detection and gathering of system
 	// information.

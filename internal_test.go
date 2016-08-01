@@ -2276,6 +2276,64 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	}
 }
 
+func TestSerializeConfigWithHttpTransport(t *testing.T) {
+	cfg := NewConfig("my appname", "0123456789012345678901234567890123456789")
+	cfg.Labels = nil
+	cfg.ErrorCollector.IgnoreStatusCodes = nil
+	cfg.Transport = &http.Transport{}
+
+	expect := internal.CompactJSONString(`[
+	{
+		"pid":123,
+		"language":"go",
+		"agent_version":"0.2.2",
+		"host":"my-hostname",
+		"settings":{
+			"AppName":"my appname",
+			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+			"BetaToken":"",
+			"CustomInsightsEvents":{"Enabled":true},
+			"Enabled":true,
+			"ErrorCollector":{
+				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+				"CaptureEvents":true,
+				"Enabled":true,
+				"IgnoreStatusCodes":null
+			},
+			"HighSecurity":false,
+			"HostDisplayName":"",
+			"Labels":null,
+			"Logger":null,
+			"RuntimeSampler":{"Enabled":true},
+			"TransactionEvents":{
+				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+				"Enabled":true
+			},
+			"Transport":"*http.Transport",
+			"UseTLS":true,
+			"Utilization":{"DetectAWS":true,"DetectDocker":true}
+		},
+		"app_name":["my appname"],
+		"high_security":false,
+		"environment":[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"]],
+		"identifier":"my appname",
+		"utilization":{
+			"metadata_version":1,
+			"logical_processors":16,
+			"total_ram_mib":1024,
+			"hostname":"my-hostname"
+		}
+	}]`)
+
+	js, err := configConnectJSONInternal(&cfg, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
+	if nil != err {
+		t.Fatal(err)
+	}
+	if string(js) != expect {
+		t.Error(string(js))
+	}
+}
+
 func TestValidate(t *testing.T) {
 	c := Config{
 		License: "0123456789012345678901234567890123456789",
