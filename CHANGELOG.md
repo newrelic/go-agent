@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.7.1
+
 * Fixed a bug causing the `Config` to fail to serialize into JSON when the
   `Transport` field was populated.
 
