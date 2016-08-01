@@ -83,14 +83,14 @@ func ignore(w http.ResponseWriter, r *http.Request) {
 }
 
 func segments(w http.ResponseWriter, r *http.Request) {
+	txn, _ := w.(newrelic.Transaction)
+
 	func() {
-		if txn, ok := w.(newrelic.Transaction); ok {
-			defer txn.EndSegment(txn.StartSegment(), "f1")
-		}
+		defer newrelic.StartSegment(txn, "f1").End()
+
 		func() {
-			if txn, ok := w.(newrelic.Transaction); ok {
-				defer txn.EndSegment(txn.StartSegment(), "f2")
-			}
+			defer newrelic.StartSegment(txn, "f2").End()
+
 			io.WriteString(w, "segments!")
 			time.Sleep(10 * time.Millisecond)
 		}()
@@ -100,13 +100,13 @@ func segments(w http.ResponseWriter, r *http.Request) {
 }
 
 func mysql(w http.ResponseWriter, r *http.Request) {
-	if txn, ok := w.(newrelic.Transaction); ok {
-		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
-			Product:    datastore.MySQL,
-			Collection: "my_table",
-			Operation:  "SELECT",
-		})
-	}
+	txn, _ := w.(newrelic.Transaction)
+	defer newrelic.DatastoreSegment{
+		StartTime:  newrelic.StartSegmentNow(txn),
+		Product:    datastore.MySQL,
+		Collection: "my_table",
+		Operation:  "SELECT",
+	}.End()
 
 	time.Sleep(20 * time.Millisecond)
 	io.WriteString(w, `performing fake query "SELECT * from my_table"`)
@@ -114,9 +114,15 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 
 func external(w http.ResponseWriter, r *http.Request) {
 	url := "http://example.com/"
-	if txn, ok := w.(newrelic.Transaction); ok {
-		defer txn.EndExternal(txn.StartSegment(), url)
-	}
+	txn, _ := w.(newrelic.Transaction)
+	// This demonstrates an external segment where only the URL is known. If
+	// an http.Request is accessible then `StartExternalSegment` is
+	// recommended. See the implementation of `NewRoundTripper` for an
+	// example.
+	defer newrelic.ExternalSegment{
+		StartTime: newrelic.StartSegmentNow(txn),
+		URL:       url,
+	}.End()
 
 	resp, err := http.Get(url)
 	if nil != err {
@@ -129,9 +135,8 @@ func external(w http.ResponseWriter, r *http.Request) {
 
 func roundtripper(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
-	if txn, ok := w.(newrelic.Transaction); ok {
-		client.Transport = newrelic.NewRoundTripper(txn, nil)
-	}
+	txn, _ := w.(newrelic.Transaction)
+	client.Transport = newrelic.NewRoundTripper(txn, nil)
 	resp, err := client.Get("http://example.com/")
 	if nil != err {
 		io.WriteString(w, err.Error())

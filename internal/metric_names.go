@@ -64,7 +64,9 @@ const (
 	gcPauses             = "GC/System/Pauses"
 )
 
-type datastoreMetricKey struct {
+// DatastoreMetricKey contains the fields by which datastore metrics are
+// aggregated.
+type DatastoreMetricKey struct {
 	Product    datastore.Product
 	Collection string
 	Operation  string
@@ -82,7 +84,7 @@ type datastoreProductMetrics struct {
 	Other string // Datastore/{datastore}/allOther
 }
 
-func datastoreProductMetric(key datastoreMetricKey) datastoreProductMetrics {
+func datastoreProductMetric(key DatastoreMetricKey) datastoreProductMetrics {
 	d, ok := datastoreProductMetricsCache[key.Product]
 	if ok {
 		return d
@@ -95,13 +97,13 @@ func datastoreProductMetric(key datastoreMetricKey) datastoreProductMetrics {
 }
 
 // Datastore/operation/{datastore}/{operation}
-func datastoreOperationMetric(key datastoreMetricKey) string {
+func datastoreOperationMetric(key DatastoreMetricKey) string {
 	return "Datastore/operation/" + string(key.Product) +
 		"/" + key.Operation
 }
 
 // Datastore/statement/{datastore}/{table}/{operation}
-func datastoreStatementMetric(key datastoreMetricKey) string {
+func datastoreStatementMetric(key DatastoreMetricKey) string {
 	return "Datastore/statement/" + string(key.Product) +
 		"/" + key.Collection +
 		"/" + key.Operation

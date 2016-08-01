@@ -44,7 +44,7 @@ type Tracer struct {
 	stack            []segmentFrame
 
 	customSegments    map[string]*metricData
-	datastoreSegments map[datastoreMetricKey]*metricData
+	datastoreSegments map[DatastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 
 	DatastoreExternalTotals
@@ -189,15 +189,10 @@ func EndExternalSegment(t *Tracer, token Token, now time.Time, host string) {
 }
 
 // EndDatastoreSegment ends a datastore segment.
-func EndDatastoreSegment(t *Tracer, token Token, now time.Time, s datastore.Segment) {
+func EndDatastoreSegment(t *Tracer, token Token, now time.Time, key DatastoreMetricKey) {
 	end := endSegment(t, token, now)
 	if !end.valid {
 		return
-	}
-	key := datastoreMetricKey{
-		Product:    s.Product,
-		Collection: s.Collection,
-		Operation:  s.Operation,
 	}
 	if key.Operation == "" {
 		key.Operation = "other"
@@ -206,7 +201,7 @@ func EndDatastoreSegment(t *Tracer, token Token, now time.Time, s datastore.Segm
 		key.Product = datastoreProductUnknown
 	}
 	if nil == t.datastoreSegments {
-		t.datastoreSegments = make(map[datastoreMetricKey]*metricData)
+		t.datastoreSegments = make(map[DatastoreMetricKey]*metricData)
 	}
 	t.datastoreCallCount++
 	t.datastoreDuration += end.duration

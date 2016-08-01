@@ -36,8 +36,10 @@ type Transaction interface {
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 	AddAttribute(key string, value interface{}) error
 
-	// SegmentTracer allows the timing of functions, external calls, and
-	// datastore calls.  These methods MUST be used in a single goroutine.
+	// StartSegmentNow allows the timing of functions, external calls, and
+	// datastore calls.  The segments of each transaction MUST be used in a
+	// single goroutine.  Consumers are encouraged to use the
+	// `StartSegmentNow` functions which checks if the Transaction is nil.
 	// See segments.go
-	SegmentTracer
+	StartSegmentNow() SegmentStartTime
 }

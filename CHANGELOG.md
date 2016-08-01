@@ -1,5 +1,12 @@
 ## ChangeLog
 
+* Breaking Segments Refactor:  The segments API has been rewritten with the goal
+  of being easier to use.  See:
+
+  * [segments.go](segments.go)
+  * [example/main.go](example/main.go)
+  * [GUIDE.md#segments](GUIDE.md#segments)
+
 ## 0.7.1
 
 * Fixed a bug causing the `Config` to fail to serialize into JSON when the

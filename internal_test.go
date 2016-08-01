@@ -989,11 +989,28 @@ func TestHostFromRequestResponse(t *testing.T) {
 	}
 }
 
+func TestZeroSegmentsSafe(t *testing.T) {
+	s := Segment{}
+	s.End()
+
+	StartSegmentNow(nil)
+
+	ds := DatastoreSegment{}
+	ds.End()
+
+	es := ExternalSegment{}
+	es.End()
+
+	StartSegment(nil, "").End()
+
+	StartExternalSegment(nil, nil).End()
+}
+
 func TestTraceSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	func() {
-		defer txn.EndSegment(txn.StartSegment(), "segment")
+		defer StartSegment(txn, "segment").End()
 	}()
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -1012,7 +1029,7 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	txn.End()
 	func() {
-		defer txn.EndSegment(txn.StartSegment(), "segment")
+		defer StartSegment(txn, "segment").End()
 	}()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1026,9 +1043,9 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
-	token := txn.StartSegment()
+	s := StartSegment(txn, "segment")
 	txn.End()
-	txn.EndSegment(token, "segment")
+	s.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1048,22 +1065,22 @@ func TestTraceSegmentPanic(t *testing.T) {
 		}()
 
 		func() {
-			defer txn.EndSegment(txn.StartSegment(), "f1")
+			defer StartSegment(txn, "f1").End()
 
 			func() {
-				t := txn.StartSegment()
+				t := StartSegment(txn, "f2")
 
 				func() {
-					defer txn.EndSegment(txn.StartSegment(), "f3")
+					defer StartSegment(txn, "f3").End()
 
 					func() {
-						txn.StartSegment()
+						StartSegment(txn, "f4")
 
 						panic(nil)
 					}()
 				}()
 
-				txn.EndSegment(t, "f2")
+				t.End()
 			}()
 		}()
 	}()
@@ -1082,27 +1099,11 @@ func TestTraceSegmentPanic(t *testing.T) {
 	})
 }
 
-func TestTraceSegmentInvalidToken(t *testing.T) {
+func TestTraceSegmentNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
-	token := txn.StartSegment()
-	token++
-	txn.EndSegment(token, "segment")
-	txn.End()
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-	})
-}
-
-func TestTraceSegmentDefaultToken(t *testing.T) {
-	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("myName", nil, helloRequest)
-	var token Token
-	txn.EndSegment(token, "segment")
+	s := Segment{Name: "hello"}
+	s.End()
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1117,11 +1118,12 @@ func TestTraceDatastore(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	func() {
-		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
-			Product:    datastore.MySQL,
-			Collection: "my_table",
-			Operation:  "SELECT",
-		})
+		s := DatastoreSegment{}
+		s.StartTime = txn.StartSegmentNow()
+		s.Product = datastore.MySQL
+		s.Collection = "my_table"
+		s.Operation = "SELECT"
+		defer s.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1159,11 +1161,12 @@ func TestTraceDatastoreBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	func() {
-		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
+		defer DatastoreSegment{
+			StartTime:  txn.StartSegmentNow(),
 			Product:    datastore.MySQL,
 			Collection: "my_table",
 			Operation:  "SELECT",
-		})
+		}.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1198,7 +1201,9 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	func() {
-		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{})
+		defer DatastoreSegment{
+			StartTime: txn.StartSegmentNow(),
+		}.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1231,16 +1236,14 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 	}})
 }
 
-func TestTraceDatastoreInvalidToken(t *testing.T) {
+func TestTraceDatastoreNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
-	token := txn.StartSegment()
-	token++
-	txn.EndDatastore(token, datastore.Segment{
-		Product:    datastore.MySQL,
-		Collection: "my_table",
-		Operation:  "SELECT",
-	})
+	var s DatastoreSegment
+	s.Product = datastore.MySQL
+	s.Collection = "my_table"
+	s.Operation = "SELECT"
+	s.End()
 	txn.NoticeError(myError{})
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -1268,13 +1271,14 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	txn.NoticeError(myError{})
-	token := txn.StartSegment()
-	txn.End()
-	txn.EndDatastore(token, datastore.Segment{
+	s := DatastoreSegment{
+		StartTime:  txn.StartSegmentNow(),
 		Product:    datastore.MySQL,
 		Collection: "my_table",
 		Operation:  "SELECT",
-	})
+	}
+	txn.End()
+	s.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1301,7 +1305,10 @@ func TestTraceExternal(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	func() {
-		defer txn.EndExternal(txn.StartSegment(), "http://example.com/")
+		defer ExternalSegment{
+			StartTime: txn.StartSegmentNow(),
+			URL:       "http://example.com/",
+		}.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1336,7 +1343,10 @@ func TestTraceExternalBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, nil)
 	func() {
-		defer txn.EndExternal(txn.StartSegment(), "http://example.com/")
+		defer ExternalSegment{
+			StartTime: txn.StartSegmentNow(),
+			URL:       "http://example.com/",
+		}.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1368,7 +1378,9 @@ func TestTraceExternalMissingURL(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	func() {
-		defer txn.EndExternal(txn.StartSegment(), "")
+		defer ExternalSegment{
+			StartTime: txn.StartSegmentNow(),
+		}.End()
 	}()
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1399,13 +1411,12 @@ func TestTraceExternalMissingURL(t *testing.T) {
 	}})
 }
 
-func TestTraceExternalInvalidToken(t *testing.T) {
+func TestTraceExternalNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	txn.NoticeError(myError{})
-	token := txn.StartSegment()
-	token++
-	txn.EndExternal(token, "http://example.com/")
+	var s ExternalSegment
+	s.End()
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1432,9 +1443,12 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	txn.NoticeError(myError{})
-	token := txn.StartSegment()
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       "http://example.com/",
+	}
 	txn.End()
-	txn.EndExternal(token, "http://example.com/")
+	s.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"WebTransaction/Go/myName", "", true, nil},
@@ -1509,7 +1523,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func() {
-		defer txn.EndSegment(txn.StartSegment(), "alpha")
+		defer StartSegment(txn, "alpha").End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -1527,8 +1541,8 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func() {
-		token := txn.StartSegment()
-		txn.EndSegment(token, "alpha")
+		s := StartSegment(txn, "alpha")
+		s.End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -1546,11 +1560,12 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func(txn Transaction) {
-		defer txn.EndDatastore(txn.StartSegment(), datastore.Segment{
+		defer DatastoreSegment{
+			StartTime:  txn.StartSegmentNow(),
 			Product:    datastore.MySQL,
 			Collection: "my_table",
-			Operation:  "SELECT",
-		})
+			Operation:  "Select",
+		}.End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -1568,7 +1583,10 @@ func BenchmarkExternalSegment(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func(txn Transaction) {
-		defer txn.EndExternal(txn.StartSegment(), "http://example.com/")
+		defer ExternalSegment{
+			StartTime: txn.StartSegmentNow(),
+			URL:       "http://example.com/",
+		}.End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -1585,8 +1603,7 @@ func BenchmarkTxnWithSegment(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn", nil, nil)
-		token := txn.StartSegment()
-		txn.EndSegment(token, "myFunction")
+		StartSegment(txn, "myFunction").End()
 		txn.End()
 	}
 }
@@ -1599,12 +1616,12 @@ func BenchmarkTxnWithDatastore(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn", nil, nil)
-		token := txn.StartSegment()
-		txn.EndDatastore(token, datastore.Segment{
+		DatastoreSegment{
+			StartTime:  txn.StartSegmentNow(),
 			Product:    datastore.MySQL,
 			Collection: "my_table",
-			Operation:  "SELECT",
-		})
+			Operation:  "Select",
+		}.End()
 		txn.End()
 	}
 }
@@ -1617,8 +1634,10 @@ func BenchmarkTxnWithExternal(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn", nil, nil)
-		token := txn.StartSegment()
-		txn.EndExternal(token, "http://example.com")
+		ExternalSegment{
+			StartTime: txn.StartSegmentNow(),
+			URL:       "http://example.com",
+		}.End()
 		txn.End()
 	}
 }

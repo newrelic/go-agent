@@ -85,7 +85,7 @@ Segments show you where time in your transactions is being spent.  At the
 beginning of important functions, add:
 
 ```go
-defer txn.EndSegment(txn.StartSegment(), "mySegmentName")
+defer newrelic.StartSegment(txn, "mySegmentName").End()
 ```
 
 [more info](GUIDE.md#segments), [segments.go](segments.go)
