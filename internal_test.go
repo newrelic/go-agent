@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	ats "github.com/newrelic/go-agent/attributes"
@@ -2149,6 +2150,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionEvents.Attributes.Exclude = append(cfg.TransactionEvents.Attributes.Exclude, "4")
 	cfg.ErrorCollector.Attributes.Include = append(cfg.ErrorCollector.Attributes.Include, "5")
 	cfg.ErrorCollector.Attributes.Exclude = append(cfg.ErrorCollector.Attributes.Exclude, "6")
+	cfg.Transport = &http.Transport{}
+	cfg.Logger = NewLogger(os.Stdout)
 
 	cp := copyConfigReferenceFields(cfg)
 
@@ -2182,13 +2185,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"HighSecurity":false,
 			"HostDisplayName":"",
 			"Labels":{"zip":"zap"},
-			"Logger":null,
+			"Logger":"*logger.logFile",
 			"RuntimeSampler":{"Enabled":true},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true
 			},
-			"Transport":null,
+			"Transport":"*http.Transport",
 			"UseTLS":true,
 			"Utilization":{"DetectAWS":true,"DetectDocker":true}
 		},
@@ -2205,7 +2208,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -2264,7 +2267,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(&cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
 	if nil != err {
 		t.Fatal(err)
 	}

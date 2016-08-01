@@ -645,7 +645,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *inte
 }
 
 func connectAttempt(app *app) (*internal.AppRun, error) {
-	js, e := configConnectJSON(&app.config)
+	js, e := configConnectJSON(app.config)
 	if nil != e {
 		return nil, e
 	}
@@ -1060,8 +1060,13 @@ const (
 
 type settings Config
 
-func (s *settings) MarshalJSON() ([]byte, error) {
-	c := (*Config)(s)
+func (s settings) MarshalJSON() ([]byte, error) {
+	c := Config(s)
+	transport := c.Transport
+	c.Transport = nil
+	logger := c.Logger
+	c.Logger = nil
+
 	js, err := json.Marshal(c)
 	if nil != err {
 		return nil, err
@@ -1074,12 +1079,12 @@ func (s *settings) MarshalJSON() ([]byte, error) {
 	// The License field is not simply ignored by adding the `json:"-"` tag
 	// to it since we want to allow consumers to populate Config from JSON.
 	delete(fields, `License`)
-	fields[`Transport`] = transportSetting(c.Transport)
-	fields[`Logger`] = loggerSetting(c.Logger)
+	fields[`Transport`] = transportSetting(transport)
+	fields[`Logger`] = loggerSetting(logger)
 	return json.Marshal(fields)
 }
 
-func configConnectJSONInternal(c *Config, pid int, util *utilization.Data, e internal.Environment, version string) ([]byte, error) {
+func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e internal.Environment, version string) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid             int                  `json:"pid"`
 		Language        string               `json:"language"`
@@ -1099,7 +1104,7 @@ func configConnectJSONInternal(c *Config, pid int, util *utilization.Data, e int
 		Version:         version,
 		Host:            internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
 		HostDisplayName: internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
-		Settings:        (*settings)(c),
+		Settings:        (settings)(c),
 		AppName:         strings.Split(c.AppName, ";"),
 		HighSecurity:    c.HighSecurity,
 		Labels:          internal.Labels(c.Labels),
@@ -1120,7 +1125,7 @@ func configConnectJSONInternal(c *Config, pid int, util *utilization.Data, e int
 	}})
 }
 
-func configConnectJSON(c *Config) ([]byte, error) {
+func configConnectJSON(c Config) ([]byte, error) {
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    c.Utilization.DetectAWS,
