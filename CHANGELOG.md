@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Fixed a bug causing the `Config` to fail to serialize into JSON when the
+  `Transport` field was populated.
+
 ## 0.7.0
 
 * Eliminated `api`, `version`, and `log` packages.  `Version`, `Config`,
