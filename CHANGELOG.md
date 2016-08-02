@@ -7,6 +7,8 @@
   * [example/main.go](example/main.go)
   * [GUIDE.md#segments](GUIDE.md#segments)
 
+* Update LICENSE.txt with contribution information.
+
 ## 0.7.1
 
 * Fixed a bug causing the `Config` to fail to serialize into JSON when the
