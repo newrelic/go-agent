@@ -2212,7 +2212,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"Transport":"*http.Transport",
 			"UseTLS":true,
-			"Utilization":{"DetectAWS":true,"DetectDocker":true}
+			"Utilization":{
+				"BillingHostname":"",
+				"DetectAWS":true,
+				"DetectDocker":true,
+				"LogicalProcessors":0,
+				"TotalRAMMIB":0
+			}
 		},
 		"app_name":["my appname"],
 		"high_security":false,
@@ -2220,7 +2226,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"environment":[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"]],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":1,
+			"metadata_version":2,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
@@ -2272,14 +2278,20 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"Transport":null,
 			"UseTLS":true,
-			"Utilization":{"DetectAWS":true,"DetectDocker":true}
+			"Utilization":{
+				"BillingHostname":"",
+				"DetectAWS":true,
+				"DetectDocker":true,
+				"LogicalProcessors":0,
+				"TotalRAMMIB":0
+			}
 		},
 		"app_name":["my appname"],
 		"high_security":false,
 		"environment":[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"]],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":1,
+			"metadata_version":2,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"

@@ -9,21 +9,31 @@ import (
 	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
-const metadataVersion = 1
+const metadataVersion = 2
 
 // Config controls the behavior of utilization information capture.
 type Config struct {
-	DetectAWS    bool
-	DetectDocker bool
+	DetectAWS         bool
+	DetectDocker      bool
+	LogicalProcessors int
+	TotalRAMMIB       int
+	BillingHostname   string
+}
+
+type override struct {
+	LogicalProcessors *int   `json:"logical_processors,omitempty"`
+	TotalRAMMIB       *int   `json:"total_ram_mib,omitempty"`
+	BillingHostname   string `json:"hostname,omitempty"`
 }
 
 // Data contains utilization system information.
 type Data struct {
-	MetadataVersion   int      `json:"metadata_version"`
-	LogicalProcessors int      `json:"logical_processors"`
-	RAMMib            *uint64  `json:"total_ram_mib"`
-	Hostname          string   `json:"hostname"`
-	Vendors           *vendors `json:"vendors,omitempty"`
+	MetadataVersion   int       `json:"metadata_version"`
+	LogicalProcessors int       `json:"logical_processors"`
+	RAMMib            *uint64   `json:"total_ram_mib"`
+	Hostname          string    `json:"hostname"`
+	Vendors           *vendors  `json:"vendors,omitempty"`
+	Config            *override `json:"config,omitempty"`
 }
 
 var (
@@ -46,6 +56,27 @@ type vendor struct {
 type vendors struct {
 	AWS    *vendor `json:"aws,omitempty"`
 	Docker *vendor `json:"docker,omitempty"`
+}
+
+func overrideFromConfig(config Config) *override {
+	ov := &override{}
+
+	if 0 != config.LogicalProcessors {
+		x := config.LogicalProcessors
+		ov.LogicalProcessors = &x
+	}
+	if 0 != config.TotalRAMMIB {
+		x := config.TotalRAMMIB
+		ov.TotalRAMMIB = &x
+	}
+	ov.BillingHostname = config.BillingHostname
+
+	if "" == ov.BillingHostname &&
+		nil == ov.LogicalProcessors &&
+		nil == ov.TotalRAMMIB {
+		ov = nil
+	}
+	return ov
 }
 
 // Gather gathers system utilization data.
@@ -102,6 +133,8 @@ func Gather(config Config, lg logger.Logger) *Data {
 			"error": err.Error(),
 		})
 	}
+
+	uDat.Config = overrideFromConfig(config)
 
 	return &uDat
 }

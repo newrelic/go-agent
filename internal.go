@@ -1136,8 +1136,11 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 func configConnectJSON(c Config) ([]byte, error) {
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
-		DetectAWS:    c.Utilization.DetectAWS,
-		DetectDocker: c.Utilization.DetectDocker,
+		DetectAWS:         c.Utilization.DetectAWS,
+		DetectDocker:      c.Utilization.DetectDocker,
+		LogicalProcessors: c.Utilization.LogicalProcessors,
+		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
+		BillingHostname:   c.Utilization.BillingHostname,
 	}, c.Logger)
 	return configConnectJSONInternal(c, os.Getpid(), util, env, Version)
 }
