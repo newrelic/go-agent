@@ -108,6 +108,12 @@ type Config struct {
 		// DetectDocker controls whether the Application attempts to
 		// detect Docker.
 		DetectDocker bool
+
+		// These settings provide system information when custom values
+		// are required.
+		LogicalProcessors int
+		TotalRAMMIB       int
+		BillingHostname   string
 	}
 
 	// Attributes controls the attributes included with errors and
