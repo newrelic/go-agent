@@ -152,13 +152,13 @@ func expectCustomEvent(v Validator, event *CustomEvent, expect WantCustomEvent) 
 
 // ExpectCustomEvents allows testing of custom events.
 func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent) {
-	if len(*cs.events.events) != len(expect) {
-		v.Error("number of custom events does not match", len(*cs.events.events),
+	if len(cs.events.events) != len(expect) {
+		v.Error("number of custom events does not match", len(cs.events.events),
 			len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*cs.events.events)[i].jsonWriter.(*CustomEvent)
+		event, ok := cs.events.events[i].jsonWriter.(*CustomEvent)
 		if !ok {
 			v.Error("wrong custom event")
 		} else {
@@ -196,13 +196,13 @@ func expectErrorEvent(v Validator, err *ErrorEvent, expect WantErrorEvent) {
 
 // ExpectErrorEvents allows testing of error events.
 func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent) {
-	if len(*events.events.events) != len(expect) {
+	if len(events.events.events) != len(expect) {
 		v.Error("number of custom events does not match",
-			len(*events.events.events), len(expect))
+			len(events.events.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].jsonWriter.(*ErrorEvent)
+		event, ok := events.events.events[i].jsonWriter.(*ErrorEvent)
 		if !ok {
 			v.Error("wrong error event")
 		} else {
@@ -242,13 +242,13 @@ func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
 
 // ExpectTxnEvents allows testing of txn events.
 func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantTxnEvent) {
-	if len(*events.events.events) != len(expect) {
+	if len(events.events.events) != len(expect) {
 		v.Error("number of txn events does not match",
-			len(*events.events.events), len(expect))
+			len(events.events.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := (*events.events.events)[i].jsonWriter.(*TxnEvent)
+		event, ok := events.events.events[i].jsonWriter.(*TxnEvent)
 		if !ok {
 			v.Error("wrong txn event")
 		} else {
