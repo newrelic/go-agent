@@ -6,18 +6,28 @@ import (
 	"github.com/newrelic/go-agent/datastore"
 )
 
-// SegmentStartTime is created by Transaction.StartSegment and marks the
-// beginning of a segment.  A segment with a zero-valued SegmentStart may safely
-// be ended.
+// SegmentStartTime is created by Transaction.StartSegmentNow and marks the
+// beginning of a segment.  A segment with a zero-valued SegmentStartTime may
+// safely be ended.
 type SegmentStartTime struct{ segment }
 
-// Segment represents a function, method, or any block of code.
+// Segment is used to instrument functions, methods, and blocks of code.  The
+// easiest way use Segment is the StartSegment function.
 type Segment struct {
 	Name      string
 	StartTime SegmentStartTime
 }
 
-// DatastoreSegment represents a call to a database or object store.
+// DatastoreSegment is used to instrument calls to databases and object stores.
+// Here is an example:
+//
+// 	defer newrelic.DatastoreSegment{
+// 		StartTime:  newrelic.StartSegmentNow(txn),
+// 		Product:    datastore.MySQL,
+// 		Collection: "my_table",
+// 		Operation:  "SELECT",
+// 	}.End()
+//
 type DatastoreSegment struct {
 	// Product is the datastore type.  See the constants in
 	// datastore/datastore.go.
@@ -29,12 +39,13 @@ type DatastoreSegment struct {
 	StartTime SegmentStartTime
 }
 
-// ExternalSegment represents an external call.
+// ExternalSegment is used to instrument external calls.  StartExternalSegment
+// is recommended when you have access to an http.Request.
 type ExternalSegment struct {
 	Request  *http.Request
 	Response *http.Response
-	// URL should be populated if Request is not populated.  Populating
-	// Request is recommended.
+	// If you do not have access to the request, this URL field should be
+	// used to indicate the endpoint.
 	URL       string
 	StartTime SegmentStartTime
 }
@@ -56,9 +67,19 @@ func StartSegmentNow(txn Transaction) SegmentStartTime {
 	return SegmentStartTime{}
 }
 
-// StartSegment makes it easier to instrument basic segments.
+// StartSegment makes it easy to instrument segments.  To time a function, do
+// the following:
 //
-//    defer newrelic.StartSegment(txn, "foo").End()
+//	func timeMe(txn newrelic.Transaction) {
+//		defer newrelic.StartSegment(txn, "timeMe").End()
+//		// ... function code here ...
+//	}
+//
+// To time a block of code, do the following:
+//
+//	segment := StartSegment(txn, "myBlock")
+//	// ... code you want to time here ...
+//	segment.End()
 //
 func StartSegment(txn Transaction, name string) Segment {
 	return Segment{
@@ -70,9 +91,9 @@ func StartSegment(txn Transaction, name string) Segment {
 // StartExternalSegment makes it easier to instrument external calls.
 //
 //    segment := newrelic.StartExternalSegment(txn, request)
-//    defer segment.End()
 //    resp, err := client.Do(request)
 //    segment.Response = resp
+//    segment.End()
 //
 func StartExternalSegment(txn Transaction, request *http.Request) ExternalSegment {
 	return ExternalSegment{

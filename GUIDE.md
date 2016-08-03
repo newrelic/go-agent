@@ -150,20 +150,31 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 Find out where the time in your transactions is being spent!  Each transaction
 should only track segments in a single goroutine.
 
-To time a function, add the following line to the beginning of that function:
+`Segment` is used to instrument functions, methods, and blocks of code. A
+segment begins when its `StartTime` field is populated, and finishes when its
+`End` method is called.
 
 ```go
-defer newrelic.StartSegment(txn, "mySegmentName").End()
+segment := newrelic.Segment{}
+segment.Name = "mySegmentName"
+segment.StartTime = newrelic.StartSegmentNow(txn)
+// ... code you want to time here ...
+segment.End()
 ```
 
-`StartSegment` is safe even if the transaction is nil.
-
-To time a block of code, use the following pattern:
+`StartSegment` is a convenient helper.  It creates a segment and starts it:
 
 ```go
 segment := newrelic.StartSegment(txn, "mySegmentName")
 // ... code you want to time here ...
 segment.End()
+```
+
+Timing a function is easy using `StartSegment` and `defer`.  Just add the
+following line to the beginning of that function:
+
+```go
+defer newrelic.StartSegment(txn, "mySegmentName").End()
 ```
 
 Segments may be nested.  The segment being ended must be the most recently
@@ -197,12 +208,12 @@ Datastore segments appear in the transaction "Breakdown table" and in the
 * [datastore.go](datastore/datastore.go)
 * [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
-To instrument a datastore call that spans an entire function call, add this
-to the beginning to the function:
+Datastore segments are instrumented using `DatastoreSegment`.  Just like basic
+segments, datastore segments begin when the `StartTime` field is populated and
+finish when the `End` method is called.  Here is an example:
 
 ```go
-defer newrelic.DatastoreSegment{
-	StartTime: newrelic.StartSegmentNow(txn),
+s := newrelic.DatastoreSegment{
 	// Product is the datastore type.
 	// See the constants in datastore/datastore.go.
 	Product: datastore.MySQL,
@@ -210,6 +221,21 @@ defer newrelic.DatastoreSegment{
 	Collection: "my_table",
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
 	Operation: "SELECT",
+}
+s.StartTime = newrelic.StartSegmentNow(txn)
+// ... make the datastore call
+s.End()
+```
+
+This may be combined into a single line when instrumenting a datastore call
+that spans an entire function call:
+
+```go
+defer newrelic.DatastoreSegment{
+	StartTime:  newrelic.StartSegmentNow(txn),
+	Product:    datastore.MySQL,
+	Collection: "my_table",
+	Operation:  "SELECT",
 }).End()
 ```
 
@@ -220,12 +246,12 @@ External segments appear in the transaction "Breakdown table" and in the
 
 * [More info on External Services tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
 
-Populate either the `URL` or `Request` field of the `ExternalSegment` parameter
-to indicate the endpoint.
+External segments are instrumented using `ExternalSegment`.  Populate either the
+`URL` or `Request` field to indicate the endpoint.  Here is an example:
 
 ```go
 func external(txn newrelic.Transaction, url string) (*http.Response, error) {
-	defer newrelic.ExternalFields{
+	defer newrelic.ExternalSegment{
 		Start: newrelic.StartSegmentNow(txn),
 		URL:   url,
 	}).End()
@@ -234,10 +260,11 @@ func external(txn newrelic.Transaction, url string) (*http.Response, error) {
 }
 ```
 
-We recommend using the `Request` and `Response` fields of `ExternalFields` since
-they will be used in the future to trace activity between your New Relic
-applications using headers.  `Request` is populated automatically by the
-`StartExternalSegment` helper.
+We recommend using the `Request` and `Response` fields since they provide more
+information about the external call.  The `StartExternalSegment` helper is
+useful when the request is available.  This function may be modified in the
+future to add headers that will trace activity between applications that are
+instrumented by New Relic.
 
 ```go
 func external(txn newrelic.Transaction, req *http.Request) (*http.Response, error) {
@@ -249,8 +276,8 @@ func external(txn newrelic.Transaction, req *http.Request) (*http.Response, erro
 }
 ```
 
-`NewRoundTripper` is another useful helper.  The round tripper returned **must**
-only be used the same goroutine as the transaction.
+`NewRoundTripper` is another useful helper.  As with all segments, the round
+tripper returned **must** only be used the same goroutine as the transaction.
 
 ```go
 client := &http.Client{}
