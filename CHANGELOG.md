@@ -1,13 +1,13 @@
 ## ChangeLog
 
-* Breaking Segments Refactor:  The segments API has been rewritten with the goal
-  of being easier to use.  See:
+* Breaking Segments API Changes:  The segments API has been rewritten with the
+  goal of being easier to use and to avoid nil Transaction checks.  See:
 
   * [segments.go](segments.go)
   * [example/main.go](example/main.go)
   * [GUIDE.md#segments](GUIDE.md#segments)
 
-* Update LICENSE.txt with contribution information.
+* Updated LICENSE.txt with contribution information.
 
 ## 0.7.1
 
