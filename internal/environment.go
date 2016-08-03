@@ -12,6 +12,7 @@ type Environment struct {
 	GOARCH   string `env:"GOARCH"`
 	GOOS     string `env:"GOOS"`
 	Version  string `env:"Version"`
+	NumCPU   string `env:"NumCPU"`
 }
 
 var (
@@ -21,6 +22,7 @@ var (
 		GOARCH:   "arch",
 		GOOS:     "goos",
 		Version:  "vers",
+		NumCPU:   "numCPU",
 	}
 )
 
@@ -31,6 +33,7 @@ func NewEnvironment() Environment {
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
 		Version:  runtime.Version(),
+		NumCPU:   runtime.NumCPU(),
 	}
 }
 
