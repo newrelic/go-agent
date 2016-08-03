@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 0.8.0
+
 * Breaking Segments API Changes:  The segments API has been rewritten with the
   goal of being easier to use and to avoid nil Transaction checks.  See:
 
