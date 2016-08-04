@@ -34,11 +34,10 @@ func GetSample(now time.Time, lg logger.Logger) *Sample {
 		numCPU:       runtime.NumCPU(),
 	}
 
-	ru := syscall.Rusage{}
-	err := syscall.Getrusage(syscall.RUSAGE_SELF, &ru)
+	sys, user, err := getProcessTimes()
 	if nil == err {
-		s.userTime = timevalToDuration(ru.Utime)
-		s.systemTime = timevalToDuration(ru.Stime)
+		s.userTime = user
+		s.systemTime = sys
 	} else {
 		lg.Warn("unable to getrusage", map[string]interface{}{
 			"error": err.Error(),
