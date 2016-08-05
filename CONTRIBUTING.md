@@ -6,4 +6,4 @@ code, algorithms, patents, and ideas in that code in our products if we so
 choose.  You also agree the code is provided as-is and you provide no warranties
 as to its fitness or correctness for any purpose.
 
-* [LICENSE.txt](license.txt)
+* [LICENSE.txt](LICENSE.txt)
