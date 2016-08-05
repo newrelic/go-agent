@@ -294,12 +294,11 @@ They are listed here:
 
 * [attributes.go](attributes.go)
 
-To disable one of these agents attributes, `RequestHeadersUserAgent` for
+To disable one of these agents attributes, `AttributeResponseCode` for
 example, modify the config like this:
 
 ```go
-config.Attributes.Exclude = append(config.Attributes.Exclude,
-	newrelic.AttributeRequestHeadersUserAgent)
+config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.AttributeResponseCode)
 ```
 
 * [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)

@@ -16,27 +16,27 @@ const (
 	AttributeResponseCode = "httpResponseCode"
 	// AttributeRequestMethod is the request's method.
 	AttributeRequestMethod = "request.method"
-	// AttributeRequestAcceptHeader is the request's "Accept" header.
-	AttributeRequestAcceptHeader = "request.headers.accept"
+	// AttributeRequestAccept is the request's "Accept" header.
+	AttributeRequestAccept = "request.headers.accept"
 	// AttributeRequestContentType is the request's "Content-Type" header.
 	AttributeRequestContentType = "request.headers.contentType"
 	// AttributeRequestContentLength is the request's "Content-Length" header.
 	AttributeRequestContentLength = "request.headers.contentLength"
-	// AttributeRequestHeadersHost is the request's "Host" header.
-	AttributeRequestHeadersHost = "request.headers.host"
-	// AttributeResponseHeadersContentType is the response "Content-Type" header.
-	AttributeResponseHeadersContentType = "response.headers.contentType"
-	// AttributeResponseHeadersContentLength is the response "Content-Length" header.
-	AttributeResponseHeadersContentLength = "response.headers.contentLength"
+	// AttributeRequestHost is the request's "Host" header.
+	AttributeRequestHost = "request.headers.host"
+	// AttributeResponseContentType is the response "Content-Type" header.
+	AttributeResponseContentType = "response.headers.contentType"
+	// AttributeResponseContentLength is the response "Content-Length" header.
+	AttributeResponseContentLength = "response.headers.contentLength"
 	// AttributeHostDisplayName contains the value of Config.HostDisplayName.
 	AttributeHostDisplayName = "host.displayName"
 )
 
 // Attributes destined for Errors:
 const (
-	// AttributeRequestHeadersUserAgent is the request's "User-Agent" header.
-	AttributeRequestHeadersUserAgent = "request.headers.User-Agent"
-	// AttributeRequestHeadersReferer is the request's "Referer" header.  Query
+	// AttributeRequestUserAgent is the request's "User-Agent" header.
+	AttributeRequestUserAgent = "request.headers.User-Agent"
+	// AttributeRequestReferer is the request's "Referer" header.  Query
 	// string parameters are removed.
-	AttributeRequestHeadersReferer = "request.headers.referer"
+	AttributeRequestReferer = "request.headers.referer"
 )
