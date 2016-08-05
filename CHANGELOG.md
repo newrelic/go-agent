@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Removed `BetaToken` from the `Config` structure.
+
 * Added "runtime.NumCPU" to the environment tab.  Thanks sergeylanzman for the
   contribution.
 

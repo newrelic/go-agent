@@ -1,22 +1,5 @@
 # New Relic Go Agent
 
-## Beta
-
-This is beta software.  The Go Agent requires a beta token.  Getting a token is
-easy!
-
-1. Agree to the click-through [Beta Agreement](http://goo.gl/forms/Rcv1b10Qvt1ENLlr1)
-2. Once your account is approved, we will email you a beta token, usually
-   within the same business day.
-3. Add the beta token to your config (see below for details).
-
-Please join our [Go Agent Beta
-Forum](https://discuss.newrelic.com/c/language-agents/go-agent-beta) to tell us
-how the Go Agent works for you, what you'd like to see and how we can improve
-it.  We're eager to hear your feedback!
-
-Breaking changes may be made before release 1.0.
-
 ## Description
 
 The New Relic Go Agent allows you to monitor your Go applications with New
@@ -52,7 +35,6 @@ In your `main` function or an `init` block:
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-config.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 app, err := newrelic.NewApplication(config)
 ```
 
@@ -149,10 +131,6 @@ func main() {
 	// Create a config.  You need to provide the desired application name
 	// and your New Relic license key.
 	cfg := newrelic.NewConfig("My Go Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-
-	// Add the beta token emailed to you after signing:
-	//   http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
-	cfg.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 
 	// Create an application.  This represents an application in the New
 	// Relic UI.

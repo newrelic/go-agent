@@ -1,6 +1,5 @@
 # New Relic Go Agent Guide
 
-* [Beta](#beta)
 * [Installation](#installation)
 * [Config and Application](#config-and-application)
 * [Logging](#logging)
@@ -11,15 +10,6 @@
   * [External Segments](#external-segments)
 * [Attributes](#attributes)
 * [Request Queuing](#request-queuing)
-
-## Beta
-
-During the beta period, a beta token is required. To obtain a token:
-
-1. Agree to the click-through [Beta Agreement](http://goo.gl/forms/Rcv1b10Qvt1ENLlr1)
-2. Once your account is approved, we will email you a beta token, usually
-   within the same business day.
-3. Add the beta token to your config (see below for details).
 
 ## Installation
 
@@ -41,7 +31,6 @@ In your `main` function or in an `init` block:
 
 ```go
 config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-config.BetaToken = "__YOUR_NEW_RELIC_BETA_TOKEN__"
 app, err := newrelic.NewApplication(config)
 ```
 
