@@ -7,7 +7,8 @@
 
 * Breaking Attributes Change:  `attributes` package contents moved to top
   level `newrelic` package.  `attributes.ResponseCode` has become
-  `newrelic.AttributeResponseCode`.
+  `newrelic.AttributeResponseCode`.  Some attribute name constants have been
+  shortened.
 
 * Added "runtime.NumCPU" to the environment tab.  Thanks sergeylanzman for the
   contribution.

@@ -20,17 +20,17 @@ import (
 // * calculateAgentAttributeDests
 // * writeAgentAttributes
 const (
-	responseCode                 = "httpResponseCode"
-	requestMethod                = "request.method"
-	requestAcceptHeader          = "request.headers.accept"
-	requestContentType           = "request.headers.contentType"
-	requestContentLength         = "request.headers.contentLength"
-	requestHeadersHost           = "request.headers.host"
-	responseHeadersContentType   = "response.headers.contentType"
-	responseHeadersContentLength = "response.headers.contentLength"
-	hostDisplayName              = "host.displayName"
-	requestHeadersUserAgent      = "request.headers.User-Agent"
-	requestHeadersReferer        = "request.headers.referer"
+	responseCode          = "httpResponseCode"
+	requestMethod         = "request.method"
+	requestAccept         = "request.headers.accept"
+	requestContentType    = "request.headers.contentType"
+	requestContentLength  = "request.headers.contentLength"
+	requestHost           = "request.headers.host"
+	responseContentType   = "response.headers.contentType"
+	responseContentLength = "response.headers.contentLength"
+	hostDisplayName       = "host.displayName"
+	requestUserAgent      = "request.headers.User-Agent"
+	requestReferer        = "request.headers.referer"
 )
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Agent-Attributes-PORTED.md
@@ -248,14 +248,14 @@ func calculateAgentAttributeDests(c *AttributeConfig) agentAttributeDests {
 	return agentAttributeDests{
 		HostDisplayName:              applyAttributeConfig(c, hostDisplayName, usual),
 		RequestMethod:                applyAttributeConfig(c, requestMethod, usual),
-		RequestAcceptHeader:          applyAttributeConfig(c, requestAcceptHeader, usual),
+		RequestAcceptHeader:          applyAttributeConfig(c, requestAccept, usual),
 		RequestContentType:           applyAttributeConfig(c, requestContentType, usual),
 		RequestContentLength:         applyAttributeConfig(c, requestContentLength, usual),
-		RequestHeadersHost:           applyAttributeConfig(c, requestHeadersHost, usual),
-		RequestHeadersUserAgent:      applyAttributeConfig(c, requestHeadersUserAgent, traces),
-		RequestHeadersReferer:        applyAttributeConfig(c, requestHeadersReferer, traces),
-		ResponseHeadersContentType:   applyAttributeConfig(c, responseHeadersContentType, usual),
-		ResponseHeadersContentLength: applyAttributeConfig(c, responseHeadersContentLength, usual),
+		RequestHeadersHost:           applyAttributeConfig(c, requestHost, usual),
+		RequestHeadersUserAgent:      applyAttributeConfig(c, requestUserAgent, traces),
+		RequestHeadersReferer:        applyAttributeConfig(c, requestReferer, traces),
+		ResponseHeadersContentType:   applyAttributeConfig(c, responseContentType, usual),
+		ResponseHeadersContentLength: applyAttributeConfig(c, responseContentLength, usual),
 		ResponseCode:                 applyAttributeConfig(c, responseCode, usual),
 	}
 }
@@ -301,14 +301,14 @@ func writeAgentAttributes(buf *bytes.Buffer, d destinationSet, values agentAttri
 	buf.WriteByte('{')
 	w.writeString(hostDisplayName, values.HostDisplayName, dests.HostDisplayName)
 	w.writeString(requestMethod, values.RequestMethod, dests.RequestMethod)
-	w.writeString(requestAcceptHeader, values.RequestAcceptHeader, dests.RequestAcceptHeader)
+	w.writeString(requestAccept, values.RequestAcceptHeader, dests.RequestAcceptHeader)
 	w.writeString(requestContentType, values.RequestContentType, dests.RequestContentType)
 	w.writeInt(requestContentLength, values.RequestContentLength, dests.RequestContentLength)
-	w.writeString(requestHeadersHost, values.RequestHeadersHost, dests.RequestHeadersHost)
-	w.writeString(requestHeadersUserAgent, values.RequestHeadersUserAgent, dests.RequestHeadersUserAgent)
-	w.writeString(requestHeadersReferer, values.RequestHeadersReferer, dests.RequestHeadersReferer)
-	w.writeString(responseHeadersContentType, values.ResponseHeadersContentType, dests.ResponseHeadersContentType)
-	w.writeInt(responseHeadersContentLength, values.ResponseHeadersContentLength, dests.ResponseHeadersContentLength)
+	w.writeString(requestHost, values.RequestHeadersHost, dests.RequestHeadersHost)
+	w.writeString(requestUserAgent, values.RequestHeadersUserAgent, dests.RequestHeadersUserAgent)
+	w.writeString(requestReferer, values.RequestHeadersReferer, dests.RequestHeadersReferer)
+	w.writeString(responseContentType, values.ResponseHeadersContentType, dests.ResponseHeadersContentType)
+	w.writeInt(responseContentLength, values.ResponseHeadersContentLength, dests.ResponseHeadersContentLength)
 	w.writeString(responseCode, values.ResponseCode, dests.ResponseCode)
 	buf.WriteByte('}')
 }
