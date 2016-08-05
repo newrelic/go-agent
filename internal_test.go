@@ -7,8 +7,6 @@ import (
 	"os"
 	"testing"
 
-	ats "github.com/newrelic/go-agent/attributes"
-	"github.com/newrelic/go-agent/datastore"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/utilization"
 )
@@ -1120,7 +1118,7 @@ func TestTraceDatastore(t *testing.T) {
 	func() {
 		s := DatastoreSegment{}
 		s.StartTime = txn.StartSegmentNow()
-		s.Product = datastore.MySQL
+		s.Product = DatastoreMySQL
 		s.Collection = "my_table"
 		s.Operation = "SELECT"
 		defer s.End()
@@ -1163,7 +1161,7 @@ func TestTraceDatastoreBackground(t *testing.T) {
 	func() {
 		defer DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
-			Product:    datastore.MySQL,
+			Product:    DatastoreMySQL,
 			Collection: "my_table",
 			Operation:  "SELECT",
 		}.End()
@@ -1240,7 +1238,7 @@ func TestTraceDatastoreNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("myName", nil, helloRequest)
 	var s DatastoreSegment
-	s.Product = datastore.MySQL
+	s.Product = DatastoreMySQL
 	s.Collection = "my_table"
 	s.Operation = "SELECT"
 	s.End()
@@ -1273,7 +1271,7 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 	txn.NoticeError(myError{})
 	s := DatastoreSegment{
 		StartTime:  txn.StartSegmentNow(),
-		Product:    datastore.MySQL,
+		Product:    DatastoreMySQL,
 		Collection: "my_table",
 		Operation:  "SELECT",
 	}
@@ -1562,7 +1560,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 	fn := func(txn Transaction) {
 		defer DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
-			Product:    datastore.MySQL,
+			Product:    DatastoreMySQL,
 			Collection: "my_table",
 			Operation:  "Select",
 		}.End()
@@ -1618,7 +1616,7 @@ func BenchmarkTxnWithDatastore(b *testing.B) {
 		txn := app.StartTransaction("my txn", nil, nil)
 		DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
-			Product:    datastore.MySQL,
+			Product:    DatastoreMySQL,
 			Collection: "my_table",
 			Operation:  "Select",
 		}.End()
@@ -1759,15 +1757,15 @@ func TestAgentAttributes(t *testing.T) {
 
 	userAttributes := map[string]interface{}{}
 	agentAttributes := map[string]interface{}{
-		ats.HostDisplayName:              `my\host\display\name`,
-		ats.ResponseCode:                 `404`,
-		ats.ResponseHeadersContentType:   `text/plain; charset=us-ascii`,
-		ats.ResponseHeadersContentLength: 345,
-		ats.RequestMethod:                "GET",
-		ats.RequestAcceptHeader:          "text/plain",
-		ats.RequestContentType:           "text/html; charset=utf-8",
-		ats.RequestContentLength:         753,
-		ats.RequestHeadersHost:           "my_domain.com",
+		AttributeHostDisplayName:              `my\host\display\name`,
+		AttributeResponseCode:                 `404`,
+		AttributeResponseHeadersContentType:   `text/plain; charset=us-ascii`,
+		AttributeResponseHeadersContentLength: 345,
+		AttributeRequestMethod:                "GET",
+		AttributeRequestAcceptHeader:          "text/plain",
+		AttributeRequestContentType:           "text/html; charset=utf-8",
+		AttributeRequestContentLength:         753,
+		AttributeRequestHeadersHost:           "my_domain.com",
 	}
 
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
@@ -1777,8 +1775,8 @@ func TestAgentAttributes(t *testing.T) {
 		UserAttributes:  userAttributes,
 	}})
 
-	agentAttributes[ats.RequestHeadersUserAgent] = "Mozilla/5.0"
-	agentAttributes[ats.RequestHeadersReferer] = "http://en.wikipedia.org/zip"
+	agentAttributes[AttributeRequestHeadersUserAgent] = "Mozilla/5.0"
+	agentAttributes[AttributeRequestHeadersReferer] = "http://en.wikipedia.org/zip"
 
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:         "WebTransaction/Go/hello",
@@ -1854,12 +1852,12 @@ func TestDefaultResponseCode(t *testing.T) {
 
 	userAttributes := map[string]interface{}{}
 	agentAttributes := map[string]interface{}{
-		ats.ResponseCode:         `200`,
-		ats.RequestMethod:        "GET",
-		ats.RequestAcceptHeader:  "text/plain",
-		ats.RequestContentType:   "text/html; charset=utf-8",
-		ats.RequestContentLength: 753,
-		ats.RequestHeadersHost:   "my_domain.com",
+		AttributeResponseCode:         `200`,
+		AttributeRequestMethod:        "GET",
+		AttributeRequestAcceptHeader:  "text/plain",
+		AttributeRequestContentType:   "text/html; charset=utf-8",
+		AttributeRequestContentLength: 753,
+		AttributeRequestHeadersHost:   "my_domain.com",
 	}
 
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
@@ -1869,8 +1867,8 @@ func TestDefaultResponseCode(t *testing.T) {
 		UserAttributes:  userAttributes,
 	}})
 
-	agentAttributes[ats.RequestHeadersUserAgent] = "Mozilla/5.0"
-	agentAttributes[ats.RequestHeadersReferer] = "http://en.wikipedia.org/zip"
+	agentAttributes[AttributeRequestHeadersUserAgent] = "Mozilla/5.0"
+	agentAttributes[AttributeRequestHeadersReferer] = "http://en.wikipedia.org/zip"
 
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:         "WebTransaction/Go/hello",
@@ -1906,12 +1904,12 @@ func TestTxnEventAttributesDisabled(t *testing.T) {
 		"myStr": "hello",
 	}
 	agentAttributes := map[string]interface{}{
-		ats.ResponseCode:         `200`,
-		ats.RequestMethod:        "GET",
-		ats.RequestAcceptHeader:  "text/plain",
-		ats.RequestContentType:   "text/html; charset=utf-8",
-		ats.RequestContentLength: 753,
-		ats.RequestHeadersHost:   "my_domain.com",
+		AttributeResponseCode:         `200`,
+		AttributeRequestMethod:        "GET",
+		AttributeRequestAcceptHeader:  "text/plain",
+		AttributeRequestContentType:   "text/html; charset=utf-8",
+		AttributeRequestContentLength: 753,
+		AttributeRequestHeadersHost:   "my_domain.com",
 	}
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",
@@ -1920,8 +1918,8 @@ func TestTxnEventAttributesDisabled(t *testing.T) {
 		UserAttributes:  map[string]interface{}{},
 	}})
 
-	agentAttributes[ats.RequestHeadersUserAgent] = "Mozilla/5.0"
-	agentAttributes[ats.RequestHeadersReferer] = "http://en.wikipedia.org/zip"
+	agentAttributes[AttributeRequestHeadersUserAgent] = "Mozilla/5.0"
+	agentAttributes[AttributeRequestHeadersReferer] = "http://en.wikipedia.org/zip"
 
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:         "WebTransaction/Go/hello",
@@ -1957,12 +1955,12 @@ func TestErrorAttributesDisabled(t *testing.T) {
 		"myStr": "hello",
 	}
 	agentAttributes := map[string]interface{}{
-		ats.ResponseCode:         `200`,
-		ats.RequestMethod:        "GET",
-		ats.RequestAcceptHeader:  "text/plain",
-		ats.RequestContentType:   "text/html; charset=utf-8",
-		ats.RequestContentLength: 753,
-		ats.RequestHeadersHost:   "my_domain.com",
+		AttributeResponseCode:         `200`,
+		AttributeRequestMethod:        "GET",
+		AttributeRequestAcceptHeader:  "text/plain",
+		AttributeRequestContentType:   "text/html; charset=utf-8",
+		AttributeRequestContentLength: 753,
+		AttributeRequestHeadersHost:   "my_domain.com",
 	}
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",
@@ -1990,17 +1988,17 @@ func TestErrorAttributesDisabled(t *testing.T) {
 
 var (
 	allAgentAttributeNames = []string{
-		ats.ResponseCode,
-		ats.RequestMethod,
-		ats.RequestAcceptHeader,
-		ats.RequestContentType,
-		ats.RequestContentLength,
-		ats.RequestHeadersHost,
-		ats.ResponseHeadersContentType,
-		ats.ResponseHeadersContentLength,
-		ats.HostDisplayName,
-		ats.RequestHeadersUserAgent,
-		ats.RequestHeadersReferer,
+		AttributeResponseCode,
+		AttributeRequestMethod,
+		AttributeRequestAcceptHeader,
+		AttributeRequestContentType,
+		AttributeRequestContentLength,
+		AttributeRequestHeadersHost,
+		AttributeResponseHeadersContentType,
+		AttributeResponseHeadersContentLength,
+		AttributeHostDisplayName,
+		AttributeRequestHeadersUserAgent,
+		AttributeRequestHeadersReferer,
 	}
 )
 
@@ -2069,15 +2067,15 @@ func TestAgentAttributesExcludedFromErrors(t *testing.T) {
 
 	userAttributes := map[string]interface{}{}
 	agentAttributes := map[string]interface{}{
-		ats.HostDisplayName:              `my\host\display\name`,
-		ats.ResponseCode:                 `404`,
-		ats.ResponseHeadersContentType:   `text/plain; charset=us-ascii`,
-		ats.ResponseHeadersContentLength: 345,
-		ats.RequestMethod:                "GET",
-		ats.RequestAcceptHeader:          "text/plain",
-		ats.RequestContentType:           "text/html; charset=utf-8",
-		ats.RequestContentLength:         753,
-		ats.RequestHeadersHost:           "my_domain.com",
+		AttributeHostDisplayName:              `my\host\display\name`,
+		AttributeResponseCode:                 `404`,
+		AttributeResponseHeadersContentType:   `text/plain; charset=us-ascii`,
+		AttributeResponseHeadersContentLength: 345,
+		AttributeRequestMethod:                "GET",
+		AttributeRequestAcceptHeader:          "text/plain",
+		AttributeRequestContentType:           "text/html; charset=utf-8",
+		AttributeRequestContentLength:         753,
+		AttributeRequestHeadersHost:           "my_domain.com",
 	}
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",
@@ -2123,17 +2121,17 @@ func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 
 	userAttributes := map[string]interface{}{}
 	agentAttributes := map[string]interface{}{
-		ats.HostDisplayName:              `my\host\display\name`,
-		ats.ResponseCode:                 `404`,
-		ats.ResponseHeadersContentType:   `text/plain; charset=us-ascii`,
-		ats.ResponseHeadersContentLength: 345,
-		ats.RequestMethod:                "GET",
-		ats.RequestAcceptHeader:          "text/plain",
-		ats.RequestContentType:           "text/html; charset=utf-8",
-		ats.RequestContentLength:         753,
-		ats.RequestHeadersHost:           "my_domain.com",
-		ats.RequestHeadersUserAgent:      "Mozilla/5.0",
-		ats.RequestHeadersReferer:        "http://en.wikipedia.org/zip",
+		AttributeHostDisplayName:              `my\host\display\name`,
+		AttributeResponseCode:                 `404`,
+		AttributeResponseHeadersContentType:   `text/plain; charset=us-ascii`,
+		AttributeResponseHeadersContentLength: 345,
+		AttributeRequestMethod:                "GET",
+		AttributeRequestAcceptHeader:          "text/plain",
+		AttributeRequestContentType:           "text/html; charset=utf-8",
+		AttributeRequestContentLength:         753,
+		AttributeRequestHeadersHost:           "my_domain.com",
+		AttributeRequestHeadersUserAgent:      "Mozilla/5.0",
+		AttributeRequestHeadersReferer:        "http://en.wikipedia.org/zip",
 	}
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",

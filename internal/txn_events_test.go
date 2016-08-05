@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
-
-	ats "github.com/newrelic/go-agent/attributes"
 )
 
 func testTxnEventJSON(t *testing.T, e *TxnEvent, expect string) {
@@ -101,7 +99,7 @@ func TestTxnEventMarshal(t *testing.T) {
 func TestTxnEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, "zap")
-	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, ats.HostDisplayName)
+	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, hostDisplayName)
 	cfg := CreateAttributeConfig(aci)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"

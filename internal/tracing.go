@@ -2,8 +2,6 @@ package internal
 
 import (
 	"time"
-
-	"github.com/newrelic/go-agent/datastore"
 )
 
 // Token tracks segments.
@@ -16,7 +14,7 @@ const (
 	invalidToken            = Token(0)
 	startingStackDepthAlloc = 128
 
-	datastoreProductUnknown = datastore.Product("Unknown")
+	datastoreProductUnknown = "Unknown"
 )
 
 func createToken(depth int, stamp uint64) Token {

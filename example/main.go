@@ -10,7 +10,6 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/datastore"
 )
 
 var (
@@ -103,7 +102,7 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 	txn, _ := w.(newrelic.Transaction)
 	defer newrelic.DatastoreSegment{
 		StartTime:  newrelic.StartSegmentNow(txn),
-		Product:    datastore.MySQL,
+		Product:    newrelic.DatastoreMySQL,
 		Collection: "my_table",
 		Operation:  "SELECT",
 	}.End()

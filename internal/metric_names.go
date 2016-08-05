@@ -1,7 +1,5 @@
 package internal
 
-import "github.com/newrelic/go-agent/datastore"
-
 const (
 	apdexRollup = "Apdex"
 	apdexPrefix = "Apdex/"
@@ -67,7 +65,7 @@ const (
 // DatastoreMetricKey contains the fields by which datastore metrics are
 // aggregated.
 type DatastoreMetricKey struct {
-	Product    datastore.Product
+	Product    string
 	Collection string
 	Operation  string
 }

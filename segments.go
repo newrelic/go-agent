@@ -1,10 +1,6 @@
 package newrelic
 
-import (
-	"net/http"
-
-	"github.com/newrelic/go-agent/datastore"
-)
+import "net/http"
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
@@ -23,15 +19,14 @@ type Segment struct {
 //
 // 	defer newrelic.DatastoreSegment{
 // 		StartTime:  newrelic.StartSegmentNow(txn),
-// 		Product:    datastore.MySQL,
+// 		Product:    newrelic.DatastoreMySQL,
 // 		Collection: "my_table",
 // 		Operation:  "SELECT",
 // 	}.End()
 //
 type DatastoreSegment struct {
-	// Product is the datastore type.  See the constants in
-	// datastore/datastore.go.
-	Product datastore.Product
+	// Product is the datastore type.  See the constants in datastore.go.
+	Product DatastoreProduct
 	// Collection is the table or group.
 	Collection string
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
