@@ -23,14 +23,6 @@ type Config struct {
 	// Logger controls go-agent logging.  See log.go.
 	Logger Logger
 
-	// BetaToken exists to ensure that you have signed the beta agreement
-	// available here:
-	//
-	//   http://goo.gl/forms/Rcv1b10Qvt1ENLlr1
-	//
-	// This field will be removed once the Beta is complete.
-	BetaToken string
-
 	// Enabled determines whether the agent will communicate with the New
 	// Relic servers and spawn goroutines.  Setting this to be false can be
 	// useful in testing and staging situations.

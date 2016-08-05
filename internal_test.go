@@ -123,7 +123,7 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 func BenchmarkMuxDisabledMode(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
-	app, err := newAppInternal(cfg)
+	app, err := newApp(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -1517,7 +1517,7 @@ func TestRoundTripper(t *testing.T) {
 func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
-	app, err := newAppInternal(cfg)
+	app, err := newApp(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -1535,7 +1535,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
-	app, err := newAppInternal(cfg)
+	app, err := newApp(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -1554,7 +1554,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 func BenchmarkDatastoreSegment(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
-	app, err := newAppInternal(cfg)
+	app, err := newApp(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -1577,7 +1577,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 func BenchmarkExternalSegment(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
-	app, err := newAppInternal(cfg)
+	app, err := newApp(cfg)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -2192,7 +2192,6 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
-			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Enabled":true,
 			"ErrorCollector":{
@@ -2264,7 +2263,6 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
-			"BetaToken":"",
 			"CustomInsightsEvents":{"Enabled":true},
 			"Enabled":true,
 			"ErrorCollector":{

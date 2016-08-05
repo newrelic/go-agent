@@ -166,12 +166,6 @@ func main() {
 
 	cfg := newrelic.NewConfig(appname, lic)
 
-	cfg.BetaToken = os.Getenv(betaTokenVar)
-	if "" == cfg.BetaToken {
-		fmt.Printf(betaTokenInstructions)
-		os.Exit(1)
-	}
-
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 
 	var err error

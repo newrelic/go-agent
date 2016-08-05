@@ -247,12 +247,6 @@ const (
 	expectedTokenHash = "vZi2AtjcnOh2fbhrybZsDIeJa8JfJiWWEOK6zXhPG2E="
 )
 
-var (
-	betaURL               = "http://goo.gl/forms/Rcv1b10Qvt1ENLlr1"
-	errMissingBetaToken   = errors.New("missing beta token: please sign the Beta Agreement:  " + betaURL)
-	errIncorrectBetaToken = errors.New("incorrect beta token: please contact New Relic")
-)
-
 func convertAttributeDestinationConfig(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
 	return internal.AttributeDestinationConfig{
 		Enabled: c.Enabled,
@@ -276,7 +270,7 @@ func runSampler(app *app, period time.Duration) {
 	}
 }
 
-func newAppInternal(c Config) (Application, error) {
+func newApp(c Config) (Application, error) {
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
@@ -330,16 +324,6 @@ func newAppInternal(c Config) (Application, error) {
 	return app, nil
 }
 
-func newApp(c Config) (Application, error) {
-	if "" == c.BetaToken {
-		return nil, errMissingBetaToken
-	}
-	if b := makeSHA256(c.BetaToken); b != expectedTokenHash {
-		return nil, errIncorrectBetaToken
-	}
-	return newAppInternal(c)
-}
-
 type expectApp interface {
 	internal.Expect
 	Application
@@ -347,7 +331,7 @@ type expectApp interface {
 
 func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, error) {
 	cfg.Enabled = false
-	application, err := newAppInternal(cfg)
+	application, err := newApp(cfg)
 	if nil != err {
 		return nil, err
 	}
