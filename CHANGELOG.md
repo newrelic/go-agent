@@ -1,5 +1,11 @@
 ## ChangeLog
 
+* Added "runtime.NumCPU" to the environment tab.  Thanks sergeylanzman for the
+  contribution.
+
+* Prefixed the environment tab values "Compiler", "GOARCH", "GOOS", and
+  "Version" with "runtime.".
+
 ## 0.8.0
 
 * Breaking Segments API Changes:  The segments API has been rewritten with the

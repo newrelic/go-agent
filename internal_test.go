@@ -2223,7 +2223,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"app_name":["my appname"],
 		"high_security":false,
 		"labels":[{"label_type":"zip","label_value":"zap"}],
-		"environment":[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"]],
+		"environment":[
+			["runtime.Compiler","comp"],
+			["runtime.GOARCH","arch"],
+			["runtime.GOOS","goos"],
+			["runtime.Version","vers"],
+			["runtime.NumCPU",8]
+		],
 		"identifier":"my appname",
 		"utilization":{
 			"metadata_version":2,
@@ -2288,7 +2294,13 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		},
 		"app_name":["my appname"],
 		"high_security":false,
-		"environment":[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"]],
+		"environment":[
+			["runtime.Compiler","comp"],
+			["runtime.GOARCH","arch"],
+			["runtime.GOOS","goos"],
+			["runtime.Version","vers"],
+			["runtime.NumCPU",8]
+		],
 		"identifier":"my appname",
 		"utilization":{
 			"metadata_version":2,

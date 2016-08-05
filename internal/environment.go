@@ -8,10 +8,11 @@ import (
 
 // Environment describes the application's environment.
 type Environment struct {
-	Compiler string `env:"Compiler"`
-	GOARCH   string `env:"GOARCH"`
-	GOOS     string `env:"GOOS"`
-	Version  string `env:"Version"`
+	Compiler string `env:"runtime.Compiler"`
+	GOARCH   string `env:"runtime.GOARCH"`
+	GOOS     string `env:"runtime.GOOS"`
+	Version  string `env:"runtime.Version"`
+	NumCPU   int    `env:"runtime.NumCPU"`
 }
 
 var (
@@ -21,6 +22,7 @@ var (
 		GOARCH:   "arch",
 		GOOS:     "goos",
 		Version:  "vers",
+		NumCPU:   8,
 	}
 )
 
@@ -31,6 +33,7 @@ func NewEnvironment() Environment {
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
 		Version:  runtime.Version(),
+		NumCPU:   runtime.NumCPU(),
 	}
 }
 
