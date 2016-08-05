@@ -11,7 +11,12 @@ func TestMarshalEnvironment(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	expect := `[["Compiler","comp"],["GOARCH","arch"],["GOOS","goos"],["Version","vers"],["NumCPU","numCPU"]]`
+	expect := CompactJSONString(`[
+		["runtime.Compiler","comp"],
+		["runtime.GOARCH","arch"],
+		["runtime.GOOS","goos"],
+		["runtime.Version","vers"],
+		["runtime.NumCPU",8]]`)
 	if string(js) != expect {
 		t.Fatal(string(js))
 	}
