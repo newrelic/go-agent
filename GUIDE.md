@@ -224,7 +224,7 @@ defer newrelic.DatastoreSegment{
 	Product:    newrelic.DatastoreMySQL,
 	Collection: "my_table",
 	Operation:  "SELECT",
-}).End()
+}.End()
 ```
 
 ### External Segments
@@ -242,7 +242,7 @@ func external(txn newrelic.Transaction, url string) (*http.Response, error) {
 	defer newrelic.ExternalSegment{
 		Start: newrelic.StartSegmentNow(txn),
 		URL:   url,
-	}).End()
+	}.End()
 
 	return http.Get(url)
 }
