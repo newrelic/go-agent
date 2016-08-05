@@ -79,7 +79,6 @@ Application" in your New Relic applications list.  To run it:
 
 ```
 env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
-    NEW_RELIC_BETA_TOKEN=__YOUR_NEW_RELIC_BETA_TOKEN__ \
     go run example/main.go
 ```
 
