@@ -5,8 +5,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	ats "github.com/newrelic/go-agent/attributes"
 )
 
 func TestErrorTraceMarshal(t *testing.T) {
@@ -43,7 +41,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 func TestErrorTraceAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
-	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, ats.HostDisplayName)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
 	cfg := CreateAttributeConfig(aci)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"

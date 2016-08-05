@@ -2,6 +2,13 @@
 
 * Removed `BetaToken` from the `Config` structure.
 
+* Breaking Datastore Change:  `datastore` package contents moved to top level
+  `newrelic` package.  `datastore.MySQL` has become `newrelic.DatastoreMySQL`.
+
+* Breaking Attributes Change:  `attributes` package contents moved to top
+  level `newrelic` package.  `attributes.ResponseCode` has become
+  `newrelic.AttributeResponseCode`.
+
 * Added "runtime.NumCPU" to the environment tab.  Thanks sergeylanzman for the
   contribution.
 

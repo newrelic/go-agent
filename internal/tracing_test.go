@@ -3,8 +3,6 @@ package internal
 import (
 	"testing"
 	"time"
-
-	"github.com/newrelic/go-agent/datastore"
 )
 
 func TestCreateParseToken(t *testing.T) {
@@ -342,17 +340,17 @@ func TestSegmentDatastore(t *testing.T) {
 	tr := &Tracer{}
 
 	allDatastoreFields := DatastoreMetricKey{
-		Product:    datastore.MySQL,
+		Product:    "MySQL",
 		Operation:  "SELECT",
 		Collection: "my_table",
 	}
 	missingCollection := DatastoreMetricKey{
-		Product:   datastore.MySQL,
+		Product:   "MySQL",
 		Operation: "SELECT",
 	}
 	emptyDatastore := DatastoreMetricKey{}
 	invalidTokenOperation := DatastoreMetricKey{
-		Product:   datastore.MySQL,
+		Product:   "MySQL",
 		Operation: "invalid-token",
 	}
 

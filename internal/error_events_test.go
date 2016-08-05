@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
-
-	ats "github.com/newrelic/go-agent/attributes"
 )
 
 func testErrorEventJSON(t *testing.T, e *ErrorEvent, expect string) {
@@ -96,7 +94,7 @@ func TestErrorEventMarshal(t *testing.T) {
 func TestErrorEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
-	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, ats.HostDisplayName)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
 	cfg := CreateAttributeConfig(aci)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"

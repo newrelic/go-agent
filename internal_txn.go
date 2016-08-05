@@ -388,7 +388,7 @@ func endDatastore(s DatastoreSegment) {
 		return
 	}
 	internal.EndDatastoreSegment(&txn.tracer, s.StartTime.token, time.Now(), internal.DatastoreMetricKey{
-		Product:    s.Product,
+		Product:    string(s.Product),
 		Collection: s.Collection,
 		Operation:  s.Operation,
 	})

@@ -194,7 +194,7 @@ s.End()
 Datastore segments appear in the transaction "Breakdown table" and in the
 "Databases" tab.
 
-* [datastore.go](datastore/datastore.go)
+* [datastore.go](datastore.go)
 * [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 Datastore segments are instrumented using `DatastoreSegment`.  Just like basic
@@ -203,9 +203,8 @@ finish when the `End` method is called.  Here is an example:
 
 ```go
 s := newrelic.DatastoreSegment{
-	// Product is the datastore type.
-	// See the constants in datastore/datastore.go.
-	Product: datastore.MySQL,
+	// Product is the datastore type.  See the constants in datastore.go.
+	Product: newrelic.DatastoreMySQL,
 	// Collection is the table or group.
 	Collection: "my_table",
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
@@ -222,7 +221,7 @@ that spans an entire function call:
 ```go
 defer newrelic.DatastoreSegment{
 	StartTime:  newrelic.StartSegmentNow(txn),
-	Product:    datastore.MySQL,
+	Product:    newrelic.DatastoreMySQL,
 	Collection: "my_table",
 	Operation:  "SELECT",
 }).End()
@@ -293,15 +292,14 @@ txn.AddAttribute("importantCustomer", true)
 Some attributes are recorded automatically.  These are called agent attributes.
 They are listed here:
 
-* [attributes/attributes.go](attributes/attributes.go)
+* [attributes.go](attributes.go)
 
 To disable one of these agents attributes, `RequestHeadersUserAgent` for
 example, modify the config like this:
 
 ```go
-// requires import of "github.com/newrelic/go-agent/attributes"
 config.Attributes.Exclude = append(config.Attributes.Exclude,
-	attributes.RequestHeadersUserAgent)
+	newrelic.AttributeRequestHeadersUserAgent)
 ```
 
 * [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)

@@ -9,8 +9,28 @@ import (
 	"strconv"
 	"strings"
 
-	ats "github.com/newrelic/go-agent/attributes"
 	"github.com/newrelic/go-agent/internal/jsonx"
+)
+
+// New agent attributes must be added in the following places:
+// * Constants here.
+// * Top level attributes.go file.
+// * agentAttributes
+// * agentAttributeDests
+// * calculateAgentAttributeDests
+// * writeAgentAttributes
+const (
+	responseCode                 = "httpResponseCode"
+	requestMethod                = "request.method"
+	requestAcceptHeader          = "request.headers.accept"
+	requestContentType           = "request.headers.contentType"
+	requestContentLength         = "request.headers.contentLength"
+	requestHeadersHost           = "request.headers.host"
+	responseHeadersContentType   = "response.headers.contentType"
+	responseHeadersContentLength = "response.headers.contentLength"
+	hostDisplayName              = "host.displayName"
+	requestHeadersUserAgent      = "request.headers.User-Agent"
+	requestHeadersReferer        = "request.headers.referer"
 )
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Agent-Attributes-PORTED.md
@@ -194,13 +214,6 @@ type Attributes struct {
 	Agent  agentAttributes
 }
 
-// New agent attributes must be added in the following places:
-// * attributes/attributes.go
-// * agentAttributes
-// * agentAttributeDests
-// * calculateAgentAttributeDests
-// * writeAgentAttributes
-
 type agentAttributes struct {
 	HostDisplayName              string
 	RequestMethod                string
@@ -233,17 +246,17 @@ func calculateAgentAttributeDests(c *AttributeConfig) agentAttributeDests {
 	usual := DestAll &^ destBrowser
 	traces := destTxnTrace | destError
 	return agentAttributeDests{
-		HostDisplayName:              applyAttributeConfig(c, ats.HostDisplayName, usual),
-		RequestMethod:                applyAttributeConfig(c, ats.RequestMethod, usual),
-		RequestAcceptHeader:          applyAttributeConfig(c, ats.RequestAcceptHeader, usual),
-		RequestContentType:           applyAttributeConfig(c, ats.RequestContentType, usual),
-		RequestContentLength:         applyAttributeConfig(c, ats.RequestContentLength, usual),
-		RequestHeadersHost:           applyAttributeConfig(c, ats.RequestHeadersHost, usual),
-		RequestHeadersUserAgent:      applyAttributeConfig(c, ats.RequestHeadersUserAgent, traces),
-		RequestHeadersReferer:        applyAttributeConfig(c, ats.RequestHeadersReferer, traces),
-		ResponseHeadersContentType:   applyAttributeConfig(c, ats.ResponseHeadersContentType, usual),
-		ResponseHeadersContentLength: applyAttributeConfig(c, ats.ResponseHeadersContentLength, usual),
-		ResponseCode:                 applyAttributeConfig(c, ats.ResponseCode, usual),
+		HostDisplayName:              applyAttributeConfig(c, hostDisplayName, usual),
+		RequestMethod:                applyAttributeConfig(c, requestMethod, usual),
+		RequestAcceptHeader:          applyAttributeConfig(c, requestAcceptHeader, usual),
+		RequestContentType:           applyAttributeConfig(c, requestContentType, usual),
+		RequestContentLength:         applyAttributeConfig(c, requestContentLength, usual),
+		RequestHeadersHost:           applyAttributeConfig(c, requestHeadersHost, usual),
+		RequestHeadersUserAgent:      applyAttributeConfig(c, requestHeadersUserAgent, traces),
+		RequestHeadersReferer:        applyAttributeConfig(c, requestHeadersReferer, traces),
+		ResponseHeadersContentType:   applyAttributeConfig(c, responseHeadersContentType, usual),
+		ResponseHeadersContentLength: applyAttributeConfig(c, responseHeadersContentLength, usual),
+		ResponseCode:                 applyAttributeConfig(c, responseCode, usual),
 	}
 }
 
@@ -286,17 +299,17 @@ func writeAgentAttributes(buf *bytes.Buffer, d destinationSet, values agentAttri
 		d:          d,
 	}
 	buf.WriteByte('{')
-	w.writeString(ats.HostDisplayName, values.HostDisplayName, dests.HostDisplayName)
-	w.writeString(ats.RequestMethod, values.RequestMethod, dests.RequestMethod)
-	w.writeString(ats.RequestAcceptHeader, values.RequestAcceptHeader, dests.RequestAcceptHeader)
-	w.writeString(ats.RequestContentType, values.RequestContentType, dests.RequestContentType)
-	w.writeInt(ats.RequestContentLength, values.RequestContentLength, dests.RequestContentLength)
-	w.writeString(ats.RequestHeadersHost, values.RequestHeadersHost, dests.RequestHeadersHost)
-	w.writeString(ats.RequestHeadersUserAgent, values.RequestHeadersUserAgent, dests.RequestHeadersUserAgent)
-	w.writeString(ats.RequestHeadersReferer, values.RequestHeadersReferer, dests.RequestHeadersReferer)
-	w.writeString(ats.ResponseHeadersContentType, values.ResponseHeadersContentType, dests.ResponseHeadersContentType)
-	w.writeInt(ats.ResponseHeadersContentLength, values.ResponseHeadersContentLength, dests.ResponseHeadersContentLength)
-	w.writeString(ats.ResponseCode, values.ResponseCode, dests.ResponseCode)
+	w.writeString(hostDisplayName, values.HostDisplayName, dests.HostDisplayName)
+	w.writeString(requestMethod, values.RequestMethod, dests.RequestMethod)
+	w.writeString(requestAcceptHeader, values.RequestAcceptHeader, dests.RequestAcceptHeader)
+	w.writeString(requestContentType, values.RequestContentType, dests.RequestContentType)
+	w.writeInt(requestContentLength, values.RequestContentLength, dests.RequestContentLength)
+	w.writeString(requestHeadersHost, values.RequestHeadersHost, dests.RequestHeadersHost)
+	w.writeString(requestHeadersUserAgent, values.RequestHeadersUserAgent, dests.RequestHeadersUserAgent)
+	w.writeString(requestHeadersReferer, values.RequestHeadersReferer, dests.RequestHeadersReferer)
+	w.writeString(responseHeadersContentType, values.ResponseHeadersContentType, dests.ResponseHeadersContentType)
+	w.writeInt(responseHeadersContentLength, values.ResponseHeadersContentLength, dests.ResponseHeadersContentLength)
+	w.writeString(responseCode, values.ResponseCode, dests.ResponseCode)
 	buf.WriteByte('}')
 }
 
