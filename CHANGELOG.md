@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.0.0
+
 * Removed `BetaToken` from the `Config` structure.
 
 * Breaking Datastore Change:  `datastore` package contents moved to top level
