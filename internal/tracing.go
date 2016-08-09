@@ -220,7 +220,7 @@ func EndDatastoreSegment(t *Tracer, start SegmentStartTime, now time.Time, key D
 func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb bool) {
 	// Custom Segment Metrics
 	for key, data := range t.customSegments {
-		name := customSegmentPrefix + key
+		name := customSegmentMetric(key)
 		// Unscoped
 		metrics.add(name, "", *data, unforced)
 		// Scoped

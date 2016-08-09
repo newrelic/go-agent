@@ -37,8 +37,6 @@ const (
 
 	supportabilityDropped = "Supportability/MetricsDropped"
 
-	customSegmentPrefix = "Custom/"
-
 	// source.datanerd.us/agents/agent-specs/blob/master/Datastore-Metrics-PORTED.md
 	datastoreAll   = "Datastore/all"
 	datastoreWeb   = "Datastore/allWeb"
@@ -61,6 +59,10 @@ const (
 	gcPauseFraction      = "GC/System/Pause Fraction"
 	gcPauses             = "GC/System/Pauses"
 )
+
+func customSegmentMetric(s string) string {
+	return "Custom/" + s
+}
 
 // DatastoreMetricKey contains the fields by which datastore metrics are
 // aggregated.
