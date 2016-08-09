@@ -4,40 +4,37 @@ import (
 	"time"
 )
 
-// Token tracks segments.
-type Token uint64
+type segmentStamp uint64
 
-const (
-	// Maximum number of traced function calls is 2^tokenStampBits.
-	// Maximum number stack depth is 2^(64-tokenStampBits)
-	tokenStampBits          = 40
-	invalidToken            = Token(0)
-	startingStackDepthAlloc = 128
-
-	datastoreProductUnknown = "Unknown"
-)
-
-func createToken(depth int, stamp uint64) Token {
-	token := (uint64(depth) << tokenStampBits) | stamp
-	return Token(token)
+type segmentTime struct {
+	Stamp segmentStamp
+	Time  time.Time
 }
 
-func parseToken(token Token) (depth int, stamp uint64) {
-	stamp = uint64((1<<tokenStampBits)-1) & uint64(token)
-	depth = int(token >> tokenStampBits)
-	return
+// SegmentStartTime is embedded into the top level segments (rather than
+// segmentTime) to minimize the structure sizes to minimize allocations.
+type SegmentStartTime struct {
+	Stamp segmentStamp
+	Depth int
 }
 
 type segmentFrame struct {
-	stamp    uint64
-	start    time.Time
+	segmentTime
 	children time.Duration
+}
+
+type segmentEnd struct {
+	valid     bool
+	start     segmentTime
+	stop      segmentTime
+	duration  time.Duration
+	exclusive time.Duration
 }
 
 // Tracer tracks segments.
 type Tracer struct {
 	finishedChildren time.Duration
-	stamp            uint64
+	stamp            segmentStamp
 	currentDepth     int
 	stack            []segmentFrame
 
@@ -46,6 +43,20 @@ type Tracer struct {
 	externalSegments  map[externalMetricKey]*metricData
 
 	DatastoreExternalTotals
+}
+
+const (
+	startingStackDepthAlloc = 128
+	datastoreProductUnknown = "Unknown"
+)
+
+func (t *Tracer) time(now time.Time) segmentTime {
+	// Update the stamp before using it so that a 0 stamp can be special.
+	t.stamp++
+	return segmentTime{
+		Time:  now,
+		Stamp: t.stamp,
+	}
 }
 
 // TracerRootChildren is used to calculate a transaction's exclusive duration.
@@ -58,7 +69,7 @@ func TracerRootChildren(t *Tracer) time.Duration {
 }
 
 // StartSegment begins a segment.
-func StartSegment(t *Tracer, now time.Time) Token {
+func StartSegment(t *Tracer, now time.Time) SegmentStartTime {
 	if nil == t.stack {
 		t.stack = make([]segmentFrame, startingStackDepthAlloc)
 	}
@@ -69,53 +80,43 @@ func StartSegment(t *Tracer, now time.Time) Token {
 		t.stack = newStack
 	}
 
-	// Update the stamp before using it so that a 0 stamp can be special.
-	t.stamp++
+	tm := t.time(now)
 
-	idx := t.currentDepth
-	stamp := t.stamp
+	depth := t.currentDepth
 	t.currentDepth++
+	t.stack[depth].children = 0
+	t.stack[depth].segmentTime = tm
 
-	t.stack[idx].start = now
-	t.stack[idx].children = 0
-	t.stack[idx].stamp = stamp
-
-	return createToken(idx, stamp)
+	return SegmentStartTime{
+		Stamp: tm.Stamp,
+		Depth: depth,
+	}
 }
 
-type segmentEnd struct {
-	valid     bool
-	start     time.Time
-	stop      time.Time
-	duration  time.Duration
-	exclusive time.Duration
-}
-
-func endSegment(t *Tracer, token Token, now time.Time) segmentEnd {
+func endSegment(t *Tracer, start SegmentStartTime, now time.Time) segmentEnd {
 	var s segmentEnd
-	depth, stamp := parseToken(token)
-	if 0 == stamp {
+	if 0 == start.Stamp {
 		return s
 	}
-	if depth >= t.currentDepth {
+	if start.Depth >= t.currentDepth {
 		return s
 	}
-	if depth < 0 {
+	if start.Depth < 0 {
 		return s
 	}
-	if stamp != t.stack[depth].stamp {
+	if start.Stamp != t.stack[start.Depth].Stamp {
 		return s
 	}
 
 	var children time.Duration
-	for i := depth; i < t.currentDepth; i++ {
+	for i := start.Depth; i < t.currentDepth; i++ {
 		children += t.stack[i].children
 	}
 	s.valid = true
-	s.stop = now
-	s.start = t.stack[depth].start
-	if s.stop.After(s.start) {
-		s.duration = s.stop.Sub(s.start)
+	s.stop = t.time(now)
+	s.start = t.stack[start.Depth].segmentTime
+	if s.stop.Time.After(s.start.Time) {
+		s.duration = s.stop.Time.Sub(s.start.Time)
 	}
 	if s.duration > children {
 		s.exclusive = s.duration - children
@@ -124,7 +125,7 @@ func endSegment(t *Tracer, token Token, now time.Time) segmentEnd {
 	// Note that we expect (depth == (t.currentDepth - 1)).  However, if
 	// (depth < (t.currentDepth - 1)), that's ok: could be a panic popped
 	// some stack frames (and the consumer was not using defer).
-	t.currentDepth = depth
+	t.currentDepth = start.Depth
 
 	if 0 == t.currentDepth {
 		t.finishedChildren += s.duration
@@ -135,8 +136,8 @@ func endSegment(t *Tracer, token Token, now time.Time) segmentEnd {
 }
 
 // EndBasicSegment ends a basic segment.
-func EndBasicSegment(t *Tracer, token Token, now time.Time, name string) {
-	end := endSegment(t, token, now)
+func EndBasicSegment(t *Tracer, start SegmentStartTime, now time.Time, name string) {
+	end := endSegment(t, start, now)
 	if !end.valid {
 		return
 	}
@@ -156,8 +157,8 @@ func EndBasicSegment(t *Tracer, token Token, now time.Time, name string) {
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *Tracer, token Token, now time.Time, host string) {
-	end := endSegment(t, token, now)
+func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, host string) {
+	end := endSegment(t, start, now)
 	if !end.valid {
 		return
 	}
@@ -187,8 +188,8 @@ func EndExternalSegment(t *Tracer, token Token, now time.Time, host string) {
 }
 
 // EndDatastoreSegment ends a datastore segment.
-func EndDatastoreSegment(t *Tracer, token Token, now time.Time, key DatastoreMetricKey) {
-	end := endSegment(t, token, now)
+func EndDatastoreSegment(t *Tracer, start SegmentStartTime, now time.Time, key DatastoreMetricKey) {
+	end := endSegment(t, start, now)
 	if !end.valid {
 		return
 	}

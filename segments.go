@@ -10,8 +10,8 @@ type SegmentStartTime struct{ segment }
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the StartSegment function.
 type Segment struct {
-	Name      string
 	StartTime SegmentStartTime
+	Name      string
 }
 
 // DatastoreSegment is used to instrument calls to databases and object stores.
@@ -25,24 +25,24 @@ type Segment struct {
 // 	}.End()
 //
 type DatastoreSegment struct {
+	StartTime SegmentStartTime
 	// Product is the datastore type.  See the constants in datastore.go.
 	Product DatastoreProduct
 	// Collection is the table or group.
 	Collection string
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
 	Operation string
-	StartTime SegmentStartTime
 }
 
 // ExternalSegment is used to instrument external calls.  StartExternalSegment
 // is recommended when you have access to an http.Request.
 type ExternalSegment struct {
-	Request  *http.Request
-	Response *http.Response
+	StartTime SegmentStartTime
+	Request   *http.Request
+	Response  *http.Response
 	// If you do not have access to the request, this URL field should be
 	// used to indicate the endpoint.
-	URL       string
-	StartTime SegmentStartTime
+	URL string
 }
 
 // End finishes the segment.

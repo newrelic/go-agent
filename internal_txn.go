@@ -345,22 +345,22 @@ func (txn *txn) Ignore() error {
 }
 
 func (txn *txn) StartSegmentNow() SegmentStartTime {
-	token := internal.Token(0)
+	var s internal.SegmentStartTime
 	txn.Lock()
 	if !txn.finished {
-		token = internal.StartSegment(&txn.tracer, time.Now())
+		s = internal.StartSegment(&txn.tracer, time.Now())
 	}
 	txn.Unlock()
 	return SegmentStartTime{
 		segment: segment{
-			token: token,
+			start: s,
 			txn:   txn,
 		},
 	}
 }
 
 type segment struct {
-	token internal.Token
+	start internal.SegmentStartTime
 	txn   *txn
 }
 
@@ -371,7 +371,7 @@ func endSegment(s Segment) {
 	}
 	txn.Lock()
 	if !txn.finished {
-		internal.EndBasicSegment(&txn.tracer, s.StartTime.token, time.Now(), s.Name)
+		internal.EndBasicSegment(&txn.tracer, s.StartTime.start, time.Now(), s.Name)
 	}
 	txn.Unlock()
 }
@@ -387,7 +387,7 @@ func endDatastore(s DatastoreSegment) {
 	if txn.finished {
 		return
 	}
-	internal.EndDatastoreSegment(&txn.tracer, s.StartTime.token, time.Now(), internal.DatastoreMetricKey{
+	internal.EndDatastoreSegment(&txn.tracer, s.StartTime.start, time.Now(), internal.DatastoreMetricKey{
 		Product:    string(s.Product),
 		Collection: s.Collection,
 		Operation:  s.Operation,
@@ -409,7 +409,7 @@ func endExternal(s ExternalSegment) {
 	if "" != s.URL {
 		host = internal.HostFromExternalURL(s.URL)
 	}
-	internal.EndExternalSegment(&txn.tracer, s.StartTime.token, time.Now(), host)
+	internal.EndExternalSegment(&txn.tracer, s.StartTime.start, time.Now(), host)
 }
 
 func hostFromRequestResponse(request *http.Request, response *http.Response) string {

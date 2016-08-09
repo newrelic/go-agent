@@ -5,17 +5,6 @@ import (
 	"time"
 )
 
-func TestCreateParseToken(t *testing.T) {
-	token := createToken(1122334, 123456789012)
-	depth, stamp := parseToken(token)
-	if depth != 1122334 {
-		t.Error(depth)
-	}
-	if stamp != 123456789012 {
-		t.Error(stamp)
-	}
-}
-
 func TestStartEndSegment(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 
@@ -32,10 +21,10 @@ func TestStartEndSegment(t *testing.T) {
 	if end.duration != 1*time.Second {
 		t.Error(end.duration)
 	}
-	if end.start != start {
+	if end.start.Time != start {
 		t.Error(end.start, start)
 	}
-	if end.stop != stop {
+	if end.stop.Time != stop {
 		t.Error(end.stop, stop)
 	}
 }
@@ -44,17 +33,17 @@ func TestTracerRealloc(t *testing.T) {
 	max := 3 * startingStackDepthAlloc
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	now := start
-	tokenStack := make([]Token, max)
+	startStack := make([]SegmentStartTime, max)
 
 	tr := &Tracer{}
 	for i := 0; i < max; i++ {
-		tokenStack[i] = StartSegment(tr, now)
+		startStack[i] = StartSegment(tr, now)
 		now = now.Add(time.Second)
 	}
 
 	for i := max - 1; i >= 0; i-- {
 		now = now.Add(time.Second)
-		end := endSegment(tr, tokenStack[i], now)
+		end := endSegment(tr, startStack[i], now)
 
 		if !end.valid {
 			t.Error(end.valid)
@@ -67,11 +56,11 @@ func TestTracerRealloc(t *testing.T) {
 			t.Error(end.duration, expectDuration)
 		}
 		expectStart := start.Add(time.Duration(i) * time.Second)
-		if end.start != expectStart {
+		if end.start.Time != expectStart {
 			t.Error(end.start, expectStart)
 		}
 		expectStop := expectStart.Add(expectDuration)
-		if end.stop != expectStop {
+		if end.stop.Time != expectStop {
 			t.Error(end.stop, expectStop)
 		}
 	}
@@ -113,16 +102,16 @@ func TestMultipleChildren(t *testing.T) {
 	}
 }
 
-func TestInvalidToken(t *testing.T) {
+func TestInvalidStart(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
-	end := endSegment(tr, invalidToken, start.Add(1*time.Second))
+	end := endSegment(tr, SegmentStartTime{}, start.Add(1*time.Second))
 	if end.valid {
 		t.Error(end.valid)
 	}
 	StartSegment(tr, start.Add(2*time.Second))
-	end = endSegment(tr, invalidToken, start.Add(3*time.Second))
+	end = endSegment(tr, SegmentStartTime{}, start.Add(3*time.Second))
 	if end.valid {
 		t.Error(end.valid)
 	}
@@ -143,12 +132,36 @@ func TestSegmentAlreadyEnded(t *testing.T) {
 	}
 }
 
-func TestSegmentBadToken(t *testing.T) {
+func TestSegmentBadStamp(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
-	t1++
+	t1.Stamp++
+	end := endSegment(tr, t1, start.Add(2*time.Second))
+	if end.valid {
+		t.Error(end)
+	}
+}
+
+func TestSegmentBadDepth(t *testing.T) {
+	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &Tracer{}
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	t1.Depth++
+	end := endSegment(tr, t1, start.Add(2*time.Second))
+	if end.valid {
+		t.Error(end)
+	}
+}
+
+func TestSegmentNegativeDepth(t *testing.T) {
+	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &Tracer{}
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	t1.Depth = -1
 	end := endSegment(tr, t1, start.Add(2*time.Second))
 	if end.valid {
 		t.Error(end)
@@ -302,7 +315,8 @@ func TestSegmentExternal(t *testing.T) {
 	t3 := StartSegment(tr, start.Add(5*time.Second))
 	EndExternalSegment(tr, t3, start.Add(6*time.Second), "f1.com")
 	t4 := StartSegment(tr, start.Add(7*time.Second))
-	EndExternalSegment(tr, t4+1, start.Add(8*time.Second), "invalid-token.com")
+	t4.Stamp++
+	EndExternalSegment(tr, t4, start.Add(8*time.Second), "invalid-token.com")
 
 	if tr.externalCallCount != 3 {
 		t.Error(tr.externalCallCount)
@@ -361,7 +375,8 @@ func TestSegmentDatastore(t *testing.T) {
 	t3 := StartSegment(tr, start.Add(5*time.Second))
 	EndDatastoreSegment(tr, t3, start.Add(6*time.Second), missingCollection)
 	t4 := StartSegment(tr, start.Add(7*time.Second))
-	EndDatastoreSegment(tr, t4+1, start.Add(8*time.Second), invalidTokenOperation)
+	t4.Stamp++
+	EndDatastoreSegment(tr, t4, start.Add(8*time.Second), invalidTokenOperation)
 	t5 := StartSegment(tr, start.Add(9*time.Second))
 	EndDatastoreSegment(tr, t5, start.Add(10*time.Second), emptyDatastore)
 
