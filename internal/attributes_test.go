@@ -149,44 +149,47 @@ func TestCrossAgentAttributes(t *testing.T) {
 
 func TestWriteAttributeValueJSON(t *testing.T) {
 	buf := &bytes.Buffer{}
+	w := jsonFieldsWriter{buf: buf}
 
-	buf.WriteByte('[')
-	writeAttributeValueJSON(buf, nil)
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, `escape\me!`)
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, true)
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, false)
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uint8(1))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uint16(2))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uint32(3))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uint64(4))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uint(5))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, uintptr(6))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, int8(-1))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, int16(-2))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, int32(-3))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, int64(-4))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, int(-5))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, float32(1.5))
-	buf.WriteByte(',')
-	writeAttributeValueJSON(buf, float64(4.56))
-	buf.WriteByte(']')
+	buf.WriteByte('{')
+	writeAttributeValueJSON(&w, "a", nil)
+	writeAttributeValueJSON(&w, "a", `escape\me!`)
+	writeAttributeValueJSON(&w, "a", true)
+	writeAttributeValueJSON(&w, "a", false)
+	writeAttributeValueJSON(&w, "a", uint8(1))
+	writeAttributeValueJSON(&w, "a", uint16(2))
+	writeAttributeValueJSON(&w, "a", uint32(3))
+	writeAttributeValueJSON(&w, "a", uint64(4))
+	writeAttributeValueJSON(&w, "a", uint(5))
+	writeAttributeValueJSON(&w, "a", uintptr(6))
+	writeAttributeValueJSON(&w, "a", int8(-1))
+	writeAttributeValueJSON(&w, "a", int16(-2))
+	writeAttributeValueJSON(&w, "a", int32(-3))
+	writeAttributeValueJSON(&w, "a", int64(-4))
+	writeAttributeValueJSON(&w, "a", int(-5))
+	writeAttributeValueJSON(&w, "a", float32(1.5))
+	writeAttributeValueJSON(&w, "a", float64(4.56))
+	buf.WriteByte('}')
 
-	expect := `[null,"escape\\me!",true,false,1,2,3,4,5,6,-1,-2,-3,-4,-5,1.5,4.56]`
+	expect := CompactJSONString(`{
+		"a":null,
+		"a":"escape\\me!",
+		"a":true,
+		"a":false,
+		"a":1,
+		"a":2,
+		"a":3,
+		"a":4,
+		"a":5,
+		"a":6,
+		"a":-1,
+		"a":-2,
+		"a":-3,
+		"a":-4,
+		"a":-5,
+		"a":1.5,
+		"a":4.56
+		}`)
 	js := string(buf.Bytes())
 	if js != expect {
 		t.Error(js, expect)

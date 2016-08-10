@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"math/rand"
 	"time"
-
-	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // DatastoreExternalTotals contains overview of external and datastore calls
@@ -32,33 +30,28 @@ type TxnEvent struct {
 
 // WriteJSON prepares JSON in the format expected by the collector.
 func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
-	buf.WriteString(`[{"type":"Transaction","name":`)
-	jsonx.AppendString(buf, e.Name)
-	buf.WriteString(`,"timestamp":`)
-	jsonx.AppendFloat(buf, timeToFloatSeconds(e.Timestamp))
-	buf.WriteString(`,"duration":`)
-	jsonx.AppendFloat(buf, e.Duration.Seconds())
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('[')
+	buf.WriteByte('{')
+	w.stringField("type", "Transaction")
+	w.stringField("name", e.Name)
+	w.floatField("timestamp", timeToFloatSeconds(e.Timestamp))
+	w.floatField("duration", e.Duration.Seconds())
 	if ApdexNone != e.Zone {
-		buf.WriteString(`,"nr.apdexPerfZone":`)
-		jsonx.AppendString(buf, e.Zone.label())
+		w.stringField("nr.apdexPerfZone", e.Zone.label())
 	}
 	if e.Queuing > 0 {
-		buf.WriteString(`,"queueDuration":`)
-		jsonx.AppendFloat(buf, e.Queuing.Seconds())
+		w.floatField("queueDuration", e.Queuing.Seconds())
 	}
 	if e.externalCallCount > 0 {
-		buf.WriteString(`,"externalCallCount":`)
-		jsonx.AppendInt(buf, int64(e.externalCallCount))
-		buf.WriteString(`,"externalDuration":`)
-		jsonx.AppendFloat(buf, e.externalDuration.Seconds())
+		w.intField("externalCallCount", int64(e.externalCallCount))
+		w.floatField("externalDuration", e.externalDuration.Seconds())
 	}
 	if e.datastoreCallCount > 0 {
 		// Note that "database" is used for the keys here instead of
 		// "datastore" for historical reasons.
-		buf.WriteString(`,"databaseCallCount":`)
-		jsonx.AppendInt(buf, int64(e.datastoreCallCount))
-		buf.WriteString(`,"databaseDuration":`)
-		jsonx.AppendFloat(buf, e.datastoreDuration.Seconds())
+		w.intField("databaseCallCount", int64(e.datastoreCallCount))
+		w.floatField("databaseDuration", e.datastoreDuration.Seconds())
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')

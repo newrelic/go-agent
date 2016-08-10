@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // New agent attributes must be added in the following places:
@@ -261,42 +259,26 @@ func calculateAgentAttributeDests(c *AttributeConfig) agentAttributeDests {
 }
 
 type agentAttributeWriter struct {
-	needsComma bool
-	buf        *bytes.Buffer
-	d          destinationSet
-}
-
-func (w *agentAttributeWriter) writePrefix(name string, d destinationSet) bool {
-	if 0 != w.d&d {
-		if w.needsComma {
-			w.buf.WriteByte(',')
-		} else {
-			w.needsComma = true
-		}
-		jsonx.AppendString(w.buf, name)
-		w.buf.WriteByte(':')
-		return true
-	}
-	return false
+	jsonFieldsWriter
+	d destinationSet
 }
 
 func (w *agentAttributeWriter) writeString(name string, val string, d destinationSet) {
-	if "" != val && w.writePrefix(name, d) {
-		jsonx.AppendString(w.buf, truncateStringValueIfLong(val))
+	if "" != val && 0 != w.d&d {
+		w.stringField(name, truncateStringValueIfLong(val))
 	}
 }
 
 func (w *agentAttributeWriter) writeInt(name string, val int, d destinationSet) {
-	if val >= 0 && w.writePrefix(name, d) {
-		jsonx.AppendInt(w.buf, int64(val))
+	if val >= 0 && 0 != w.d&d {
+		w.intField(name, int64(val))
 	}
 }
 
 func writeAgentAttributes(buf *bytes.Buffer, d destinationSet, values agentAttributes, dests agentAttributeDests) {
 	w := &agentAttributeWriter{
-		needsComma: false,
-		buf:        buf,
-		d:          d,
+		jsonFieldsWriter: jsonFieldsWriter{buf: buf},
+		d:                d,
 	}
 	buf.WriteByte('{')
 	w.writeString(hostDisplayName, values.HostDisplayName, dests.HostDisplayName)
@@ -411,46 +393,46 @@ func AddUserAttribute(a *Attributes, key string, val interface{}, d destinationS
 	return nil
 }
 
-func writeAttributeValueJSON(buf *bytes.Buffer, val interface{}) {
+func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	switch v := val.(type) {
 	case nil:
-		buf.WriteString(`null`)
+		w.rawField(key, `null`)
 	case string:
-		jsonx.AppendString(buf, v)
+		w.stringField(key, v)
 	case bool:
 		if v {
-			buf.WriteString(`true`)
+			w.rawField(key, `true`)
 		} else {
-			buf.WriteString(`false`)
+			w.rawField(key, `false`)
 		}
 	case uint8:
-		jsonx.AppendUint(buf, uint64(v))
+		w.intField(key, int64(v))
 	case uint16:
-		jsonx.AppendUint(buf, uint64(v))
+		w.intField(key, int64(v))
 	case uint32:
-		jsonx.AppendUint(buf, uint64(v))
+		w.intField(key, int64(v))
 	case uint64:
-		jsonx.AppendUint(buf, v)
+		w.intField(key, int64(v))
 	case uint:
-		jsonx.AppendUint(buf, uint64(v))
+		w.intField(key, int64(v))
 	case uintptr:
-		jsonx.AppendUint(buf, uint64(v))
+		w.intField(key, int64(v))
 	case int8:
-		jsonx.AppendInt(buf, int64(v))
+		w.intField(key, int64(v))
 	case int16:
-		jsonx.AppendInt(buf, int64(v))
+		w.intField(key, int64(v))
 	case int32:
-		jsonx.AppendInt(buf, int64(v))
+		w.intField(key, int64(v))
 	case int64:
-		jsonx.AppendInt(buf, v)
+		w.intField(key, v)
 	case int:
-		jsonx.AppendInt(buf, int64(v))
+		w.intField(key, int64(v))
 	case float32:
-		jsonx.AppendFloat(buf, float64(v))
+		w.floatField(key, float64(v))
 	case float64:
-		jsonx.AppendFloat(buf, v)
+		w.floatField(key, v)
 	default:
-		jsonx.AppendString(buf, fmt.Sprintf("%T", v))
+		w.stringField(key, fmt.Sprintf("%T", v))
 	}
 }
 
@@ -465,17 +447,10 @@ func agentAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
 func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
 	buf.WriteByte('{')
 	if nil != a {
-		first := true
+		w := jsonFieldsWriter{buf: buf}
 		for name, atr := range a.user {
 			if 0 != atr.dests&d {
-				if first {
-					first = false
-				} else {
-					buf.WriteByte(',')
-				}
-				jsonx.AppendString(buf, name)
-				buf.WriteByte(':')
-				writeAttributeValueJSON(buf, atr.value)
+				writeAttributeValueJSON(&w, name, atr.value)
 			}
 		}
 	}
