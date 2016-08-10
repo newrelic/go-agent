@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"time"
-
-	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // https://newrelic.atlassian.net/wiki/display/eng/Custom+Events+in+New+Relic+Agents
@@ -33,27 +31,18 @@ type CustomEvent struct {
 
 // WriteJSON prepares JSON in the format expected by the collector.
 func (e *CustomEvent) WriteJSON(buf *bytes.Buffer) {
+	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('[')
 	buf.WriteByte('{')
-	buf.WriteString(`"type":`)
-	jsonx.AppendString(buf, e.eventType)
-	buf.WriteByte(',')
-	buf.WriteString(`"timestamp":`)
-	jsonx.AppendFloat(buf, timeToFloatSeconds(e.timestamp))
+	w.stringField("type", e.eventType)
+	w.floatField("timestamp", timeToFloatSeconds(e.timestamp))
 	buf.WriteByte('}')
 
 	buf.WriteByte(',')
 	buf.WriteByte('{')
-	first := true
+	w = jsonFieldsWriter{buf: buf}
 	for key, val := range e.truncatedParams {
-		if first {
-			first = false
-		} else {
-			buf.WriteByte(',')
-		}
-		jsonx.AppendString(buf, key)
-		buf.WriteByte(':')
-		writeAttributeValueJSON(buf, val)
+		writeAttributeValueJSON(&w, key, val)
 	}
 	buf.WriteByte('}')
 
