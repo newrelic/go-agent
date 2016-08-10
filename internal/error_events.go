@@ -30,10 +30,9 @@ func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
 // WriteJSON prepares JSON in the format expected by the collector.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Error-Events.md
 func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
+	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('[')
 	buf.WriteByte('{')
-
-	w := jsonFieldsWriter{buf: buf}
 	w.stringField("type", "TransactionError")
 	w.stringField("error.class", e.Klass)
 	w.stringField("error.message", e.Msg)

@@ -30,10 +30,9 @@ type TxnEvent struct {
 
 // WriteJSON prepares JSON in the format expected by the collector.
 func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
+	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('[')
 	buf.WriteByte('{')
-
-	w := jsonFieldsWriter{buf: buf}
 	w.stringField("type", "Transaction")
 	w.stringField("name", e.Name)
 	w.floatField("timestamp", timeToFloatSeconds(e.Timestamp))
