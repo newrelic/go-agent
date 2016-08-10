@@ -261,42 +261,26 @@ func calculateAgentAttributeDests(c *AttributeConfig) agentAttributeDests {
 }
 
 type agentAttributeWriter struct {
-	needsComma bool
-	buf        *bytes.Buffer
-	d          destinationSet
-}
-
-func (w *agentAttributeWriter) writePrefix(name string, d destinationSet) bool {
-	if 0 != w.d&d {
-		if w.needsComma {
-			w.buf.WriteByte(',')
-		} else {
-			w.needsComma = true
-		}
-		jsonx.AppendString(w.buf, name)
-		w.buf.WriteByte(':')
-		return true
-	}
-	return false
+	jsonFieldsWriter
+	d destinationSet
 }
 
 func (w *agentAttributeWriter) writeString(name string, val string, d destinationSet) {
-	if "" != val && w.writePrefix(name, d) {
-		jsonx.AppendString(w.buf, truncateStringValueIfLong(val))
+	if "" != val && 0 != w.d&d {
+		w.stringField(name, truncateStringValueIfLong(val))
 	}
 }
 
 func (w *agentAttributeWriter) writeInt(name string, val int, d destinationSet) {
-	if val >= 0 && w.writePrefix(name, d) {
-		jsonx.AppendInt(w.buf, int64(val))
+	if val >= 0 && 0 != w.d&d {
+		w.intField(name, int64(val))
 	}
 }
 
 func writeAgentAttributes(buf *bytes.Buffer, d destinationSet, values agentAttributes, dests agentAttributeDests) {
 	w := &agentAttributeWriter{
-		needsComma: false,
-		buf:        buf,
-		d:          d,
+		jsonFieldsWriter: jsonFieldsWriter{buf: buf},
+		d:                d,
 	}
 	buf.WriteByte('{')
 	w.writeString(hostDisplayName, values.HostDisplayName, dests.HostDisplayName)
