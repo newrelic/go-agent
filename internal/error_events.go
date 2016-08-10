@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"math/rand"
 	"time"
-
-	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // ErrorEvent is an error event.
@@ -32,42 +30,29 @@ func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
 // WriteJSON prepares JSON in the format expected by the collector.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Error-Events.md
 func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
-	buf.WriteString(`[{"type":"TransactionError","error.class":`)
-	jsonx.AppendString(buf, e.Klass)
+	buf.WriteByte('[')
+	buf.WriteByte('{')
 
-	buf.WriteString(`,"error.message":`)
-	jsonx.AppendString(buf, e.Msg)
-
-	buf.WriteString(`,"timestamp":`)
-	jsonx.AppendFloat(buf, timeToFloatSeconds(e.When))
-
-	buf.WriteString(`,"transactionName":`)
-	jsonx.AppendString(buf, e.TxnName)
-
-	buf.WriteString(`,"duration":`)
-	jsonx.AppendFloat(buf, e.Duration.Seconds())
-
+	w := jsonFieldsWriter{buf: buf}
+	w.stringField("type", "TransactionError")
+	w.stringField("error.class", e.Klass)
+	w.stringField("error.message", e.Msg)
+	w.floatField("timestamp", timeToFloatSeconds(e.When))
+	w.stringField("transactionName", e.TxnName)
+	w.floatField("duration", e.Duration.Seconds())
 	if e.Queuing > 0 {
-		buf.WriteString(`,"queueDuration":`)
-		jsonx.AppendFloat(buf, e.Queuing.Seconds())
+		w.floatField("queueDuration", e.Queuing.Seconds())
 	}
-
 	if e.externalCallCount > 0 {
-		buf.WriteString(`,"externalCallCount":`)
-		jsonx.AppendInt(buf, int64(e.externalCallCount))
-		buf.WriteString(`,"externalDuration":`)
-		jsonx.AppendFloat(buf, e.externalDuration.Seconds())
+		w.intField("externalCallCount", int64(e.externalCallCount))
+		w.floatField("externalDuration", e.externalDuration.Seconds())
 	}
-
 	if e.datastoreCallCount > 0 {
 		// Note that "database" is used for the keys here instead of
 		// "datastore" for historical reasons.
-		buf.WriteString(`,"databaseCallCount":`)
-		jsonx.AppendInt(buf, int64(e.datastoreCallCount))
-		buf.WriteString(`,"databaseDuration":`)
-		jsonx.AppendFloat(buf, e.datastoreDuration.Seconds())
+		w.intField("databaseCallCount", int64(e.datastoreCallCount))
+		w.floatField("databaseDuration", e.datastoreDuration.Seconds())
 	}
-
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	userAttributesJSON(e.Attrs, buf, destError)
