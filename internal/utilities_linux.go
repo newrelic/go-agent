@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-func timevalToDuration(tv syscall.Timeval) time.Duration {
-	return time.Duration(tv.Nano()) * time.Nanosecond
-}
-
 //Get the current process kerneltime usertime
 func getProcessTimes() (time.Duration, time.Duration, error) {
 	ru := syscall.Rusage{}
