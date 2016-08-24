@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/newrelic/go-agent/internal"
-	"github.com/newrelic/go-agent/internal/utilization"
+	"github.com/VadimBelov/go-agent/internal"
+	"github.com/VadimBelov/go-agent/internal/utilization"
 )
 
 // compatibleResponseRecorder wraps ResponseRecorder to ensure consistent behavior
@@ -169,6 +169,19 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 		t.Error(err)
 	}
 	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+}
+
+func TestRecordCustomEventHighSecurityEnabledOverride(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.HighSecurity = true
+		cfg.HighSecurityOverride = EnabledCustomEvents
+	}
+	app := testApp(nil, cfgfn, t)
+	err := app.RecordCustomEvent("myType", validParams)
+	if err != nil {
+		t.Error(err)
+	}
+	app.ExpectCustomEvents(t, []internal.WantCustomEvent{{"myType", validParams}})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
@@ -2199,6 +2212,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"IgnoreStatusCodes":[404,405]
 			},
 			"HighSecurity":false,
+			"HighSecurityOverride":0,
 			"HostDisplayName":"",
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
@@ -2219,6 +2233,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		},
 		"app_name":["my appname"],
 		"high_security":false,
+		"high_security_override":0,
 		"labels":[{"label_type":"zip","label_value":"zap"}],
 		"environment":[
 			["runtime.Compiler","comp"],
@@ -2270,6 +2285,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"IgnoreStatusCodes":null
 			},
 			"HighSecurity":false,
+			"HighSecurityOverride":0,
 			"HostDisplayName":"",
 			"Labels":null,
 			"Logger":null,
@@ -2290,6 +2306,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		},
 		"app_name":["my appname"],
 		"high_security":false,
+		"high_security_override":0,
 		"environment":[
 			["runtime.Compiler","comp"],
 			["runtime.GOARCH","arch"],
