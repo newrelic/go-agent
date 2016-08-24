@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
-//
+// Flags for features of High Security mode (as described here:
+// https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/high-security-mode#version2description)
+// 
+// When a flag is turned on - the relevant feature is enabled despite
+// High Security mode being set
 type HighSecurityFeature uint16
 const (
 	EnabledHttpParam HighSecurityFeature = 1 << iota	// 1
