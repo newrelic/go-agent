@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-agent/internal"
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/VadimBelov/go-agent/internal"
+	"github.com/VadimBelov/go-agent/internal/logger"
 )
 
 var (
@@ -385,7 +385,9 @@ var (
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
-	if app.config.HighSecurity {
+
+	if app.config.HighSecurity &&
+		EnabledCustomEvents != app.config.HighSecurityOverride & EnabledCustomEvents {
 		return errHighSecurityEnabled
 	}
 

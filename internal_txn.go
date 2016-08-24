@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-agent/internal"
+	"github.com/VadimBelov/go-agent/internal"
 )
 
 type txnInput struct {

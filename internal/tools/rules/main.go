@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/newrelic/go-agent/internal"
+	"github.com/VadimBelov/go-agent/internal"
 )
 
 func fail(reason string) {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/newrelic/go-agent/internal/jsonx"
+	"github.com/VadimBelov/go-agent/internal/jsonx"
 )
 
 // New agent attributes must be added in the following places:

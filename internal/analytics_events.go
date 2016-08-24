@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"container/heap"
 
-	"github.com/newrelic/go-agent/internal/jsonx"
+	"github.com/VadimBelov/go-agent/internal/jsonx"
 )
 
 // eventStamp allows for uniform random sampling of events.  When an event is
