@@ -174,7 +174,7 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 func TestRecordCustomEventHighSecurityEnabledOverride(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.HighSecurity = true
-		cfg.HighSecurityOverride = EnabledCustomEvents
+		cfg.HighSecurityOverride |= EnabledCustomEvents
 	}
 	app := testApp(nil, cfgfn, t)
 	err := app.RecordCustomEvent("myType", validParams)
