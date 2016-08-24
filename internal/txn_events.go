@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/newrelic/go-agent/internal/jsonx"
+	"github.com/VadimBelov/go-agent/internal/jsonx"
 )
 
 // DatastoreExternalTotals contains overview of external and datastore calls

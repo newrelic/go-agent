@@ -5,7 +5,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/VadimBelov/go-agent/internal/logger"
 )
 
 // Sample is a system/runtime snapshot.

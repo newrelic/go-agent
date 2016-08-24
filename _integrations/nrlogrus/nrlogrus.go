@@ -11,7 +11,7 @@ package nrlogrus
 
 import (
 	"github.com/Sirupsen/logrus"
-	newrelic "github.com/newrelic/go-agent"
+	newrelic "github.com/VadimBelov/go-agent"
 )
 
 type shim struct{ e *logrus.Entry }
