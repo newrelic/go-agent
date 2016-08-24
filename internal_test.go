@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/VadimBelov/go-agent/internal"
-	"github.com/VadimBelov/go-agent/internal/utilization"
+	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/utilization"
 )
 
 // compatibleResponseRecorder wraps ResponseRecorder to ensure consistent behavior
