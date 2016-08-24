@@ -7,6 +7,21 @@ import (
 	"strings"
 )
 
+// Flags for features of High Security mode (as described here:
+// https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/high-security-mode#version2description)
+// 
+// When a flag is turned on - the relevant feature is enabled despite
+// High Security mode being set
+type HighSecurityFeature uint16
+const (
+	EnabledHttpParam HighSecurityFeature = 1 << iota	// 1
+	EnabledMessageQueueParam				// 2
+	EnabledRawQueryStatement				// 4
+	EnabledUserAttribute					// 8
+	EnabledNoticeErrorAttribute				// 16
+	EnabledCustomEvents					// 32
+)
+
 // Config contains Application and Transaction behavior settings.
 // Use NewConfig to create a Config with proper defaults.
 type Config struct {
@@ -40,6 +55,11 @@ type Config struct {
 	//
 	// https://docs.newrelic.com/docs/accounts-partnerships/accounts/security/high-security
 	HighSecurity bool
+
+	// HighSecurityOverride is an addition to HighSecurity flag providing
+	// control of which feature should be allowed despite HighSecurity
+	// being set
+	HighSecurityOverride HighSecurityFeature
 
 	// CustomInsightsEvents controls the behavior of
 	// Application.RecordCustomEvent.
@@ -141,6 +161,7 @@ func NewConfig(appname, license string) Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.HighSecurity = false
+	c.HighSecurityOverride = 0 // all features are disabled by default
 	c.UseTLS = true
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true

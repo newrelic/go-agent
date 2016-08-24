@@ -100,29 +100,31 @@ func (s settings) MarshalJSON() ([]byte, error) {
 
 func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e internal.Environment, version string) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
-		Pid             int                  `json:"pid"`
-		Language        string               `json:"language"`
-		Version         string               `json:"agent_version"`
-		Host            string               `json:"host"`
-		HostDisplayName string               `json:"display_host,omitempty"`
-		Settings        interface{}          `json:"settings"`
-		AppName         []string             `json:"app_name"`
-		HighSecurity    bool                 `json:"high_security"`
-		Labels          internal.Labels      `json:"labels,omitempty"`
-		Environment     internal.Environment `json:"environment"`
-		Identifier      string               `json:"identifier"`
-		Util            *utilization.Data    `json:"utilization"`
+		Pid                  int                  `json:"pid"`
+		Language             string               `json:"language"`
+		Version              string               `json:"agent_version"`
+		Host                 string               `json:"host"`
+		HostDisplayName      string               `json:"display_host,omitempty"`
+		Settings             interface{}          `json:"settings"`
+		AppName              []string             `json:"app_name"`
+		HighSecurity         bool                 `json:"high_security"`
+		HighSecurityOverride HighSecurityFeature  `json:"high_security_override"`
+		Labels               internal.Labels      `json:"labels,omitempty"`
+		Environment          internal.Environment `json:"environment"`
+		Identifier           string               `json:"identifier"`
+		Util                 *utilization.Data    `json:"utilization"`
 	}{
-		Pid:             pid,
-		Language:        agentLanguage,
-		Version:         version,
-		Host:            internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
-		HostDisplayName: internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
-		Settings:        (settings)(c),
-		AppName:         strings.Split(c.AppName, ";"),
-		HighSecurity:    c.HighSecurity,
-		Labels:          internal.Labels(c.Labels),
-		Environment:     e,
+		Pid:                  pid,
+		Language:             agentLanguage,
+		Version:              version,
+		Host:                 internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
+		HostDisplayName:      internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
+		Settings:             (settings)(c),
+		AppName:              strings.Split(c.AppName, ";"),
+		HighSecurity:         c.HighSecurity,
+		HighSecurityOverride: c.HighSecurityOverride,
+		Labels:               internal.Labels(c.Labels),
+		Environment:          e,
 		// This identifier field is provided to avoid:
 		// https://newrelic.atlassian.net/browse/DSCORE-778
 		//
