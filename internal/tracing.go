@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"net/url"
 	"time"
 )
 
@@ -157,11 +158,12 @@ func EndBasicSegment(t *Tracer, start SegmentStartTime, now time.Time, name stri
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, host string) {
+func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url.URL) {
 	end := endSegment(t, start, now)
 	if !end.valid {
 		return
 	}
+	host := HostFromURL(u)
 	if "" == host {
 		host = "unknown"
 	}

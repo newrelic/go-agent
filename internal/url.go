@@ -28,14 +28,13 @@ func SafeURLFromString(rawurl string) string {
 	return SafeURL(u)
 }
 
-// HostFromExternalURL returns the URL's host.
-func HostFromExternalURL(rawurl string) string {
-	u, err := url.Parse(rawurl)
-	if nil != err {
+// HostFromURL returns the URL's host.
+func HostFromURL(u *url.URL) string {
+	if nil == u {
 		return ""
 	}
 	if "" != u.Opaque {
-		return ""
+		return "opaque"
 	}
 	return u.Host
 }

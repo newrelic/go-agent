@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"net/url"
 	"testing"
 	"time"
 )
@@ -304,19 +305,24 @@ func TestSegmentBasic(t *testing.T) {
 	})
 }
 
+func parseURL(raw string) *url.URL {
+	u, _ := url.Parse(raw)
+	return u
+}
+
 func TestSegmentExternal(t *testing.T) {
 	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
-	EndExternalSegment(tr, t2, start.Add(3*time.Second), "")
-	EndExternalSegment(tr, t1, start.Add(4*time.Second), "f1.com")
+	EndExternalSegment(tr, t2, start.Add(3*time.Second), nil)
+	EndExternalSegment(tr, t1, start.Add(4*time.Second), parseURL("http://f1.com"))
 	t3 := StartSegment(tr, start.Add(5*time.Second))
-	EndExternalSegment(tr, t3, start.Add(6*time.Second), "f1.com")
+	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://f1.com"))
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t4.Stamp++
-	EndExternalSegment(tr, t4, start.Add(8*time.Second), "invalid-token.com")
+	EndExternalSegment(tr, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"))
 
 	if tr.externalCallCount != 3 {
 		t.Error(tr.externalCallCount)

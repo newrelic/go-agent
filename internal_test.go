@@ -908,31 +908,54 @@ func TestResponseCodeIsError(t *testing.T) {
 	}
 }
 
-func TestHostFromRequestResponse(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/", nil)
+func TestExternalSegmentURL(t *testing.T) {
+	rawURL := "http://url.com"
+	req, err := http.NewRequest("GET", "http://request.com/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	host := hostFromRequestResponse(req, &http.Response{Request: req})
-	if host != "example.com" {
-		t.Error("normal usage", host)
+	responsereq, err := http.NewRequest("GET", "http://response.com/", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	host = hostFromRequestResponse(nil, &http.Response{Request: req})
-	if host != "example.com" {
-		t.Error("missing request", host)
+	response := &http.Response{Request: responsereq}
+
+	// empty segment
+	host := internal.HostFromURL(externalSegmentURL(ExternalSegment{}))
+	if "" != host {
+		t.Error(host)
 	}
-	host = hostFromRequestResponse(req, nil)
-	if host != "example.com" {
-		t.Error("missing response", host)
+	// segment only containing url
+	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{URL: rawURL}))
+	if "url.com" != host {
+		t.Error(host)
 	}
-	host = hostFromRequestResponse(nil, nil)
-	if host != "" {
-		t.Error("missing request and response", host)
+	// segment only containing request
+	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{Request: req}))
+	if "request.com" != host {
+		t.Error(host)
 	}
-	req.URL = nil
-	host = hostFromRequestResponse(req, nil)
-	if host != "" {
-		t.Error("missing URL", host)
+	// segment only containing response
+	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{Response: response}))
+	if "response.com" != host {
+		t.Error(host)
+	}
+	// segment containing request and response
+	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{
+		Request:  req,
+		Response: response,
+	}))
+	if "response.com" != host {
+		t.Error(host)
+	}
+	// segment containing url, request, and response
+	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{
+		URL:      rawURL,
+		Request:  req,
+		Response: response,
+	}))
+	if "url.com" != host {
+		t.Error(host)
 	}
 }
 

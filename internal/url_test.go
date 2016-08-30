@@ -55,17 +55,25 @@ func TestSafeURLFromString(t *testing.T) {
 	}
 }
 
-func TestHostFromExternalURL(t *testing.T) {
-	host := HostFromExternalURL("http://example.com/zip/zap?secret=shh")
+func TestHostFromURL(t *testing.T) {
+	u, err := url.Parse("http://example.com/zip/zap?secret=shh")
+	if nil != err {
+		t.Fatal(err)
+	}
+	host := HostFromURL(u)
 	if host != "example.com" {
 		t.Error(host)
 	}
-	host = HostFromExternalURL("")
+	host = HostFromURL(nil)
 	if host != "" {
 		t.Error(host)
 	}
-	host = HostFromExternalURL("not-a-url")
-	if host != "" {
+	u, err = url.Parse("scheme:opaque")
+	if nil != err {
+		t.Fatal(err)
+	}
+	host = HostFromURL(u)
+	if host != "opaque" {
 		t.Error(host)
 	}
 }

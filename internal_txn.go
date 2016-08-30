@@ -3,6 +3,7 @@ package newrelic
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -394,6 +395,21 @@ func endDatastore(s DatastoreSegment) {
 	})
 }
 
+func externalSegmentURL(s ExternalSegment) *url.URL {
+	if "" != s.URL {
+		u, _ := url.Parse(s.URL)
+		return u
+	}
+	r := s.Request
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+	}
+	if r != nil {
+		return r.URL
+	}
+	return nil
+}
+
 func endExternal(s ExternalSegment) {
 	txn := s.StartTime.txn
 	if nil == txn {
@@ -405,22 +421,5 @@ func endExternal(s ExternalSegment) {
 	if txn.finished {
 		return
 	}
-	host := hostFromRequestResponse(s.Request, s.Response)
-	if "" != s.URL {
-		host = internal.HostFromExternalURL(s.URL)
-	}
-	internal.EndExternalSegment(&txn.tracer, s.StartTime.start, time.Now(), host)
-}
-
-func hostFromRequestResponse(request *http.Request, response *http.Response) string {
-	if nil != response && nil != response.Request {
-		request = response.Request
-	}
-	if nil == request || nil == request.URL {
-		return ""
-	}
-	if "" != request.URL.Opaque {
-		return "opaque"
-	}
-	return request.URL.Host
+	internal.EndExternalSegment(&txn.tracer, s.StartTime.start, time.Now(), externalSegmentURL(s))
 }
