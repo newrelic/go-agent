@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Stack trace filenames have been shortened: Any thing preceding the first
+  `/src/` is now removed.
+
 ## 1.0.0
 
 * Removed `BetaToken` from the `Config` structure.

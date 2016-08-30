@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"runtime"
+	"strings"
 
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
@@ -49,6 +50,17 @@ func topCallerNameBase(st *StackTrace) string {
 	return path.Base(f.Name())
 }
 
+// simplifyStackTraceFilename makes stack traces smaller and more readable by
+// removing anything preceding the first occurrence of `/src/`.  This is
+// intended to remove the $GOROOT and the $GOPATH.
+func simplifyStackTraceFilename(raw string) string {
+	idx := strings.Index(raw, "/src/")
+	if idx < 0 {
+		return raw
+	}
+	return raw[idx+5:]
+}
+
 // WriteJSON adds the stack trace to the buffer in the JSON form expected by the
 // collector.
 func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
@@ -63,7 +75,8 @@ func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
 			// Format designed to match the Ruby agent.
 			name := path.Base(f.Name())
 			file, line := f.FileLine(place)
-			str = fmt.Sprintf("%s:%d:in `%s'", file, line, name)
+			str = fmt.Sprintf("%s:%d:in `%s'",
+				simplifyStackTraceFilename(file), line, name)
 		}
 		jsonx.AppendString(buf, str)
 	}
