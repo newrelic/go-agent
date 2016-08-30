@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+// BenchmarkMuxWithoutNewRelic acts as a control against the other mux
+// benchmarks.
 func BenchmarkMuxWithoutNewRelic(b *testing.B) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(helloPath, handler)
@@ -19,6 +21,10 @@ func BenchmarkMuxWithoutNewRelic(b *testing.B) {
 	}
 }
 
+// BenchmarkMuxWithNewRelic shows the approximate overhead of instrumenting a
+// request.  The numbers here are approximate since this is a test app: rather
+// than putting the transaction into a channel to be processed by another
+// goroutine, the transaction is merged directly into a harvest.
 func BenchmarkMuxWithNewRelic(b *testing.B) {
 	app := testApp(nil, nil, b)
 	mux := http.NewServeMux()
@@ -34,6 +40,8 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 	}
 }
 
+// BenchmarkMuxWithNewRelic shows the overhead of instrumenting a request when
+// the agent is disabled.
 func BenchmarkMuxDisabledMode(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
@@ -54,6 +62,9 @@ func BenchmarkMuxDisabledMode(b *testing.B) {
 	}
 }
 
+// BenchmarkTraceSegmentWithDefer shows the overhead of instrumenting a segment
+// using defer.  This and BenchmarkTraceSegmentNoDefer are extremely important:
+// Timing functions and blocks of code should have minimal cost.
 func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false
