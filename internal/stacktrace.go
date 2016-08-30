@@ -1,10 +1,12 @@
 package internal
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"path"
 	"runtime"
+
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // StackTrace is a stack trace.
@@ -47,11 +49,14 @@ func topCallerNameBase(st *StackTrace) string {
 	return path.Base(f.Name())
 }
 
-// MarshalJSON prepares JSON in the format expected by the collector.
-func (st *StackTrace) MarshalJSON() ([]byte, error) {
-	lines := make([]string, 0, len(st.callers))
-
-	for _, pc := range st.callers {
+// WriteJSON adds the stack trace to the buffer in the JSON form expected by the
+// collector.
+func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
+	buf.WriteByte('[')
+	for i, pc := range st.callers {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
 		f, place := pcToFunc(pc)
 		str := "unknown"
 		if nil != f {
@@ -60,9 +65,17 @@ func (st *StackTrace) MarshalJSON() ([]byte, error) {
 			file, line := f.FileLine(place)
 			str = fmt.Sprintf("%s:%d:in `%s'", file, line, name)
 		}
-
-		lines = append(lines, str)
+		jsonx.AppendString(buf, str)
 	}
+	buf.WriteByte(']')
+}
 
-	return json.Marshal(lines)
+// MarshalJSON prepares JSON in the format expected by the collector.
+func (st *StackTrace) MarshalJSON() ([]byte, error) {
+	estimate := 256 * len(st.callers)
+	buf := bytes.NewBuffer(make([]byte, 0, estimate))
+
+	st.WriteJSON(buf)
+
+	return buf.Bytes(), nil
 }
