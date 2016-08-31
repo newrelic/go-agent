@@ -8,6 +8,12 @@ import (
 	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
+func TestSafeURLNil(t *testing.T) {
+	if out := SafeURL(nil); "" != out {
+		t.Error(out)
+	}
+}
+
 func TestSafeURL(t *testing.T) {
 	var testcases []struct {
 		Testname string `json:"testname"`

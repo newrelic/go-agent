@@ -4,6 +4,9 @@ import "net/url"
 
 // SafeURL removes sensitive information from a URL.
 func SafeURL(u *url.URL) string {
+	if nil == u {
+		return ""
+	}
 	if "" != u.Opaque {
 		// If the URL is opaque, we cannot be sure if it contains
 		// sensitive information.
