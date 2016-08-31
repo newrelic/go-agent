@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/VadimBelov/go-agent/internal"
-	"github.com/VadimBelov/go-agent/internal/utilization"
+	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/utilization"
 )
 
 // compatibleResponseRecorder wraps ResponseRecorder to ensure consistent behavior
@@ -169,19 +169,6 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 		t.Error(err)
 	}
 	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
-}
-
-func TestRecordCustomEventHighSecurityEnabledOverride(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.HighSecurity = true
-		cfg.HighSecurityOverride |= EnabledCustomEvents
-	}
-	app := testApp(nil, cfgfn, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != nil {
-		t.Error(err)
-	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{{"myType", validParams}})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
