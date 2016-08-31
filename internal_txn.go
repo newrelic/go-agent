@@ -215,6 +215,9 @@ func (txn *txn) End() error {
 		e := internal.TxnErrorFromPanic(r)
 		e.Stack = internal.GetStackTrace(0)
 		txn.noticeErrorInternal(e)
+		if !txn.Config.ErrorCollector.Enabled {
+			txn.ignore = true
+		}
 	}
 
 	txn.stop = time.Now()
