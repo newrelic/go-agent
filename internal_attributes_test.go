@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal"
@@ -77,15 +78,11 @@ func TestUserAttributeConfiguration(t *testing.T) {
 	}
 	txn.End()
 
-	agentAttributes := map[string]interface{}{}
-	errorUserAttributes := map[string]interface{}{"only_errors": 1}
-	txnEventUserAttributes := map[string]interface{}{"only_txn_events": 2}
-
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "OtherTransaction/Go/hello",
 		Zone:            "",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  txnEventUserAttributes,
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{"only_txn_events": 2},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:         "OtherTransaction/Go/hello",
@@ -93,37 +90,33 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		Klass:           "*errors.errorString",
 		Caller:          "go-agent.TestUserAttributeConfiguration",
 		URL:             "",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  errorUserAttributes,
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName:         "OtherTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  errorUserAttributes,
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
 }
 
-func TestAgentAttributes(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.HostDisplayName = `my\host\display\name`
+// Second attributes have priority.
+func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
+	a := make(map[string]interface{})
+	for k, v := range a1 {
+		a[k] = v
 	}
+	for k, v := range a2 {
+		a[k] = v
+	}
+	return a
+}
 
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-
-	hdr := txn.Header()
-	hdr.Set("Content-Type", `text/plain; charset=us-ascii`)
-	hdr.Set("Content-Length", `345`)
-
-	txn.WriteHeader(404)
-	txn.End()
-
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{
+var (
+	// Agent attributes expected in txn events from usualAttributeTestTransaction.
+	agent1 = map[string]interface{}{
 		AttributeHostDisplayName:       `my\host\display\name`,
 		AttributeResponseCode:          `404`,
 		AttributeResponseContentType:   `text/plain; charset=us-ascii`,
@@ -134,42 +127,24 @@ func TestAgentAttributes(t *testing.T) {
 		AttributeRequestContentLength:  753,
 		AttributeRequestHost:           "my_domain.com",
 	}
-
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-
-	agentAttributes[AttributeRequestUserAgent] = "Mozilla/5.0"
-	agentAttributes[AttributeRequestReferer] = "http://en.wikipedia.org/zip"
-
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAgentAttributes",
-		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-}
-
-func TestAttributesDisabled(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.Attributes.Enabled = false
-		cfg.HostDisplayName = `my\host\display\name`
+	// Agent attributes expected in errors and traces from usualAttributeTestTransaction.
+	agent2 = mergeAttributes(agent1, map[string]interface{}{
+		AttributeRequestUserAgent: "Mozilla/5.0",
+		AttributeRequestReferer:   "http://en.wikipedia.org/zip",
+	})
+	// User attributes expected from usualAttributeTestTransaction.
+	user1 = map[string]interface{}{
+		"myStr": "hello",
 	}
+)
 
-	app := testApp(nil, cfgfn, t)
+func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeExpect) {
+	app := testApp(nil, func(cfg *Config) {
+		cfg.HostDisplayName = `my\host\display\name`
+		if nil != cfgfn {
+			cfgfn(cfg)
+		}
+	}, t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 	txn.NoticeError(errors.New("zap"))
@@ -179,178 +154,121 @@ func TestAttributesDisabled(t *testing.T) {
 	hdr.Set("Content-Length", `345`)
 
 	txn.WriteHeader(404)
-	txn.AddAttribute("my_attribute", "zip")
-	txn.End()
+	txn.AddAttribute("myStr", "hello")
 
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{}
+	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",
 		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
+		AgentAttributes: e.TxnEvent.Agent,
+		UserAttributes:  e.TxnEvent.User,
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAttributesDisabled",
+		Caller:          "go-agent.agentAttributeTestcase",
 		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
+		AgentAttributes: e.Error.Agent,
+		UserAttributes:  e.Error.User,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
+		AgentAttributes: e.Error.Agent,
+		UserAttributes:  e.Error.User,
 	}})
+}
+
+type UserAgent struct {
+	User  map[string]interface{}
+	Agent map[string]interface{}
+}
+
+type AttributeExpect struct {
+	TxnEvent UserAgent
+	Error    UserAgent
+}
+
+func TestAgentAttributes(t *testing.T) {
+	agentAttributeTestcase(t, nil, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: agent1,
+			User:  user1},
+		Error: UserAgent{
+			Agent: agent2,
+			User:  user1},
+	})
+}
+
+func TestAttributesDisabled(t *testing.T) {
+	agentAttributeTestcase(t, func(cfg *Config) {
+		cfg.Attributes.Enabled = false
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+	})
 }
 
 func TestDefaultResponseCode(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
+	txn := app.StartTransaction("hello", w, &http.Request{})
 	txn.Write([]byte("hello"))
 	txn.End()
 
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{
-		AttributeResponseCode:         `200`,
-		AttributeRequestMethod:        "GET",
-		AttributeRequestAccept:        "text/plain",
-		AttributeRequestContentType:   "text/html; charset=utf-8",
-		AttributeRequestContentLength: 753,
-		AttributeRequestHost:          "my_domain.com",
-	}
+	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
+		Name:            "WebTransaction/Go/hello",
+		Zone:            "S",
+		AgentAttributes: map[string]interface{}{AttributeResponseCode: 200},
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestNoResponseCode(t *testing.T) {
+	app := testApp(nil, nil, t)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello", w, &http.Request{})
+	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
 		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-
-	agentAttributes[AttributeRequestUserAgent] = "Mozilla/5.0"
-	agentAttributes[AttributeRequestReferer] = "http://en.wikipedia.org/zip"
-
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestDefaultResponseCode",
-		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
+		Zone:            "S",
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{},
 	}})
 }
 
 func TestTxnEventAttributesDisabled(t *testing.T) {
-	cfgfn := func(cfg *Config) {
+	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionEvents.Attributes.Enabled = false
-	}
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-	txn.AddAttribute("myStr", "hello")
-	txn.Write([]byte("hello"))
-	txn.End()
-
-	userAttributes := map[string]interface{}{
-		"myStr": "hello",
-	}
-	agentAttributes := map[string]interface{}{
-		AttributeResponseCode:         `200`,
-		AttributeRequestMethod:        "GET",
-		AttributeRequestAccept:        "text/plain",
-		AttributeRequestContentType:   "text/html; charset=utf-8",
-		AttributeRequestContentLength: 753,
-		AttributeRequestHost:          "my_domain.com",
-	}
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  map[string]interface{}{},
-	}})
-
-	agentAttributes[AttributeRequestUserAgent] = "Mozilla/5.0"
-	agentAttributes[AttributeRequestReferer] = "http://en.wikipedia.org/zip"
-
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestTxnEventAttributesDisabled",
-		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+		Error: UserAgent{
+			Agent: agent2,
+			User:  user1},
+	})
 }
 
 func TestErrorAttributesDisabled(t *testing.T) {
-	cfgfn := func(cfg *Config) {
+	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.ErrorCollector.Attributes.Enabled = false
-	}
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-	txn.AddAttribute("myStr", "hello")
-	txn.Write([]byte("hello"))
-	txn.End()
-
-	userAttributes := map[string]interface{}{
-		"myStr": "hello",
-	}
-	agentAttributes := map[string]interface{}{
-		AttributeResponseCode:         `200`,
-		AttributeRequestMethod:        "GET",
-		AttributeRequestAccept:        "text/plain",
-		AttributeRequestContentType:   "text/html; charset=utf-8",
-		AttributeRequestContentLength: 753,
-		AttributeRequestHost:          "my_domain.com",
-	}
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestErrorAttributesDisabled",
-		URL:             "/hello",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  map[string]interface{}{},
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  map[string]interface{}{},
-	}})
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: agent1,
+			User:  user1},
+		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+	})
 }
 
 var (
@@ -370,156 +288,40 @@ var (
 )
 
 func TestAgentAttributesExcluded(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.HostDisplayName = `my\host\display\name`
+	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.Attributes.Exclude = allAgentAttributeNames
-	}
-
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-
-	hdr := txn.Header()
-	hdr.Set("Content-Type", `text/plain; charset=us-ascii`)
-	hdr.Set("Content-Length", `345`)
-
-	txn.WriteHeader(404)
-	txn.End()
-
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{}
-
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAgentAttributesExcluded",
-		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  user1},
+		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  user1},
+	})
 }
 
 func TestAgentAttributesExcludedFromErrors(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.HostDisplayName = `my\host\display\name`
+	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.ErrorCollector.Attributes.Exclude = allAgentAttributeNames
-	}
-
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-
-	hdr := txn.Header()
-	hdr.Set("Content-Type", `text/plain; charset=us-ascii`)
-	hdr.Set("Content-Length", `345`)
-
-	txn.WriteHeader(404)
-	txn.End()
-
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{
-		AttributeHostDisplayName:       `my\host\display\name`,
-		AttributeResponseCode:          `404`,
-		AttributeResponseContentType:   `text/plain; charset=us-ascii`,
-		AttributeResponseContentLength: 345,
-		AttributeRequestMethod:         "GET",
-		AttributeRequestAccept:         "text/plain",
-		AttributeRequestContentType:    "text/html; charset=utf-8",
-		AttributeRequestContentLength:  753,
-		AttributeRequestHost:           "my_domain.com",
-	}
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAgentAttributesExcludedFromErrors",
-		URL:             "/hello",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  userAttributes,
-	}})
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: agent1,
+			User:  user1},
+		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  user1},
+	})
 }
 
 func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
-	cfgfn := func(cfg *Config) {
-		cfg.HostDisplayName = `my\host\display\name`
+	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionEvents.Attributes.Exclude = allAgentAttributeNames
-	}
-
-	app := testApp(nil, cfgfn, t)
-	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
-	txn.NoticeError(errors.New("zap"))
-
-	hdr := txn.Header()
-	hdr.Set("Content-Type", `text/plain; charset=us-ascii`)
-	hdr.Set("Content-Length", `345`)
-
-	txn.WriteHeader(404)
-	txn.End()
-
-	userAttributes := map[string]interface{}{}
-	agentAttributes := map[string]interface{}{
-		AttributeHostDisplayName:       `my\host\display\name`,
-		AttributeResponseCode:          `404`,
-		AttributeResponseContentType:   `text/plain; charset=us-ascii`,
-		AttributeResponseContentLength: 345,
-		AttributeRequestMethod:         "GET",
-		AttributeRequestAccept:         "text/plain",
-		AttributeRequestContentType:    "text/html; charset=utf-8",
-		AttributeRequestContentLength:  753,
-		AttributeRequestHost:           "my_domain.com",
-		AttributeRequestUserAgent:      "Mozilla/5.0",
-		AttributeRequestReferer:        "http://en.wikipedia.org/zip",
-	}
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
-		AgentAttributes: map[string]interface{}{},
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAgentAttributesExcludedFromTxnEvents",
-		URL:             "/hello",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
-		AgentAttributes: agentAttributes,
-		UserAttributes:  userAttributes,
-	}})
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  user1},
+		Error: UserAgent{
+			Agent: agent2,
+			User:  user1},
+	})
 }
