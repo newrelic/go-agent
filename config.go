@@ -141,7 +141,6 @@ func NewConfig(appname, license string) Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.HighSecurity = false
-	c.HighSecurityOverride = 0 // all features are disabled by default
 	c.UseTLS = true
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true

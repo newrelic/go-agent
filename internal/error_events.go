@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/VadimBelov/go-agent/internal/jsonx"
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // ErrorEvent is an error event.

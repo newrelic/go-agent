@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	newrelic "github.com/VadimBelov/go-agent"
+	newrelic "github.com/newrelic/go-agent"
 )
 
 var (

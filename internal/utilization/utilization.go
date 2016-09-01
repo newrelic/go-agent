@@ -5,8 +5,8 @@ package utilization
 import (
 	"runtime"
 
-	"github.com/VadimBelov/go-agent/internal/logger"
-	"github.com/VadimBelov/go-agent/internal/sysinfo"
+	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 const metadataVersion = 2
