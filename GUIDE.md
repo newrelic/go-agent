@@ -240,8 +240,8 @@ External segments are instrumented using `ExternalSegment`.  Populate either the
 ```go
 func external(txn newrelic.Transaction, url string) (*http.Response, error) {
 	defer newrelic.ExternalSegment{
-		Start: newrelic.StartSegmentNow(txn),
-		URL:   url,
+		StartTime: newrelic.StartSegmentNow(txn),
+		URL:       url,
 	}.End()
 
 	return http.Get(url)
