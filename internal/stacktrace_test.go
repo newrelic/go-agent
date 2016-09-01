@@ -2,7 +2,6 @@ package internal
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 )
 
@@ -15,7 +14,6 @@ func TestGetStackTrace(t *testing.T) {
 	if nil == js {
 		t.Fatal(string(js))
 	}
-	fmt.Println(string(js))
 }
 
 func TestSimplifyStackTraceFilename(t *testing.T) {
