@@ -7,7 +7,7 @@ import (
 )
 
 func TestStartEndSegment(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 
 	tr := &Tracer{}
 	token := StartSegment(tr, start)
@@ -32,7 +32,7 @@ func TestStartEndSegment(t *testing.T) {
 
 func TestTracerRealloc(t *testing.T) {
 	max := 3 * startingStackDepthAlloc
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	now := start
 	startStack := make([]SegmentStartTime, max)
 
@@ -73,7 +73,7 @@ func TestTracerRealloc(t *testing.T) {
 }
 
 func TestMultipleChildren(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -104,7 +104,7 @@ func TestMultipleChildren(t *testing.T) {
 }
 
 func TestInvalidStart(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	end := endSegment(tr, SegmentStartTime{}, start.Add(1*time.Second))
@@ -119,7 +119,7 @@ func TestInvalidStart(t *testing.T) {
 }
 
 func TestSegmentAlreadyEnded(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -134,7 +134,7 @@ func TestSegmentAlreadyEnded(t *testing.T) {
 }
 
 func TestSegmentBadStamp(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -146,7 +146,7 @@ func TestSegmentBadStamp(t *testing.T) {
 }
 
 func TestSegmentBadDepth(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -158,7 +158,7 @@ func TestSegmentBadDepth(t *testing.T) {
 }
 
 func TestSegmentNegativeDepth(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -170,7 +170,7 @@ func TestSegmentNegativeDepth(t *testing.T) {
 }
 
 func TestSegmentOutOfOrder(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -204,7 +204,7 @@ func TestSegmentOutOfOrder(t *testing.T) {
 //       |-------alpha------------------------------------------|
 //  0    1    2    3    4    5    6    7    8    9    10   11   12
 func TestLostChildren(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	alpha := StartSegment(tr, start.Add(1*time.Second))
@@ -243,7 +243,7 @@ func TestLostChildren(t *testing.T) {
 //  |-------root-------------------------------------------------
 //  0    1    2    3    4    5    6    7    8    9    10   11   12
 func TestLostChildrenRoot(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(2*time.Second))
@@ -278,7 +278,7 @@ func TestLostChildrenRoot(t *testing.T) {
 }
 
 func TestSegmentBasic(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -311,7 +311,7 @@ func parseURL(raw string) *url.URL {
 }
 
 func TestSegmentExternal(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -356,7 +356,7 @@ func TestSegmentExternal(t *testing.T) {
 }
 
 func TestSegmentDatastore(t *testing.T) {
-	start = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
 	allDatastoreFields := DatastoreMetricKey{
