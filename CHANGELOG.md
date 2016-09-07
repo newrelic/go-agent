@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.1.0
+
 * Added support for Transaction Traces.
 
 * Stack trace filenames have been shortened: Any thing preceding the first
