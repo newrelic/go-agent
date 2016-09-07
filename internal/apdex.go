@@ -13,6 +13,12 @@ const (
 	ApdexFailing
 )
 
+// ApdexFailingThreshold calculates the threshold at which the transaction is
+// considered a failure.
+func ApdexFailingThreshold(threshold time.Duration) time.Duration {
+	return 4 * threshold
+}
+
 // CalculateApdexZone calculates the apdex based on the transaction duration and
 // threshold.
 //
@@ -22,7 +28,7 @@ func CalculateApdexZone(threshold, duration time.Duration) ApdexZone {
 	if duration <= threshold {
 		return ApdexSatisfying
 	}
-	if duration <= (4 * threshold) {
+	if duration <= ApdexFailingThreshold(threshold) {
 		return ApdexTolerating
 	}
 	return ApdexFailing

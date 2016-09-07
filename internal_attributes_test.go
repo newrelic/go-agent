@@ -54,12 +54,20 @@ func TestUserAttributeBasics(t *testing.T) {
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:      "OtherTransaction/Go/hello",
+		CleanURL:        "",
+		NumSegments:     0,
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
 }
 
 func TestUserAttributeConfiguration(t *testing.T) {
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionEvents.Attributes.Exclude = []string{"only_errors"}
-		cfg.ErrorCollector.Attributes.Exclude = []string{"only_txn_events"}
+		cfg.TransactionEvents.Attributes.Exclude = []string{"only_errors", "only_txn_traces"}
+		cfg.ErrorCollector.Attributes.Exclude = []string{"only_txn_events", "only_txn_traces"}
+		cfg.TransactionTracer.Attributes.Exclude = []string{"only_txn_events", "only_errors"}
 		cfg.Attributes.Exclude = []string{"completed_excluded"}
 	}
 	app := testApp(nil, cfgfn, t)
@@ -73,7 +81,10 @@ func TestUserAttributeConfiguration(t *testing.T) {
 	if err := txn.AddAttribute("only_txn_events", 2); nil != err {
 		t.Error(err)
 	}
-	if err := txn.AddAttribute("completed_excluded", 3); nil != err {
+	if err := txn.AddAttribute("only_txn_traces", 3); nil != err {
+		t.Error(err)
+	}
+	if err := txn.AddAttribute("completed_excluded", 4); nil != err {
 		t.Error(err)
 	}
 	txn.End()
@@ -99,6 +110,13 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		Klass:           "*errors.errorString",
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_errors": 1},
+	}})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:      "OtherTransaction/Go/hello",
+		CleanURL:        "",
+		NumSegments:     0,
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{"only_txn_traces": 3},
 	}})
 }
 
@@ -141,6 +159,8 @@ var (
 func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeExpect) {
 	app := testApp(nil, func(cfg *Config) {
 		cfg.HostDisplayName = `my\host\display\name`
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
 		if nil != cfgfn {
 			cfgfn(cfg)
 		}
@@ -180,6 +200,13 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		AgentAttributes: e.Error.Agent,
 		UserAttributes:  e.Error.User,
 	}})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		CleanURL:        "/hello",
+		NumSegments:     0,
+		AgentAttributes: e.TxnTrace.Agent,
+		UserAttributes:  e.TxnTrace.User,
+	}})
 }
 
 type UserAgent struct {
@@ -190,6 +217,7 @@ type UserAgent struct {
 type AttributeExpect struct {
 	TxnEvent UserAgent
 	Error    UserAgent
+	TxnTrace UserAgent
 }
 
 func TestAgentAttributes(t *testing.T) {
@@ -211,6 +239,9 @@ func TestAttributesDisabled(t *testing.T) {
 			Agent: map[string]interface{}{},
 			User:  map[string]interface{}{}},
 		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+		TxnTrace: UserAgent{
 			Agent: map[string]interface{}{},
 			User:  map[string]interface{}{}},
 	})
@@ -255,6 +286,9 @@ func TestTxnEventAttributesDisabled(t *testing.T) {
 		Error: UserAgent{
 			Agent: agent2,
 			User:  user1},
+		TxnTrace: UserAgent{
+			Agent: agent2,
+			User:  user1},
 	})
 }
 
@@ -266,6 +300,25 @@ func TestErrorAttributesDisabled(t *testing.T) {
 			Agent: agent1,
 			User:  user1},
 		Error: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  map[string]interface{}{}},
+		TxnTrace: UserAgent{
+			Agent: agent2,
+			User:  user1},
+	})
+}
+
+func TestTxnTraceAttributesDisabled(t *testing.T) {
+	agentAttributeTestcase(t, func(cfg *Config) {
+		cfg.TransactionTracer.Attributes.Enabled = false
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: agent1,
+			User:  user1},
+		Error: UserAgent{
+			Agent: agent2,
+			User:  user1},
+		TxnTrace: UserAgent{
 			Agent: map[string]interface{}{},
 			User:  map[string]interface{}{}},
 	})
@@ -297,6 +350,9 @@ func TestAgentAttributesExcluded(t *testing.T) {
 		Error: UserAgent{
 			Agent: map[string]interface{}{},
 			User:  user1},
+		TxnTrace: UserAgent{
+			Agent: map[string]interface{}{},
+			User:  user1},
 	})
 }
 
@@ -310,6 +366,9 @@ func TestAgentAttributesExcludedFromErrors(t *testing.T) {
 		Error: UserAgent{
 			Agent: map[string]interface{}{},
 			User:  user1},
+		TxnTrace: UserAgent{
+			Agent: agent2,
+			User:  user1},
 	})
 }
 
@@ -322,6 +381,25 @@ func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 			User:  user1},
 		Error: UserAgent{
 			Agent: agent2,
+			User:  user1},
+		TxnTrace: UserAgent{
+			Agent: agent2,
+			User:  user1},
+	})
+}
+
+func TestAgentAttributesExcludedFromTxnTraces(t *testing.T) {
+	agentAttributeTestcase(t, func(cfg *Config) {
+		cfg.TransactionTracer.Attributes.Exclude = allAgentAttributeNames
+	}, AttributeExpect{
+		TxnEvent: UserAgent{
+			Agent: agent1,
+			User:  user1},
+		Error: UserAgent{
+			Agent: agent2,
+			User:  user1},
+		TxnTrace: UserAgent{
+			Agent: map[string]interface{}{},
 			User:  user1},
 	})
 }

@@ -169,7 +169,7 @@ type AttributeConfigInput struct {
 	ErrorCollector    AttributeDestinationConfig
 	TransactionEvents AttributeDestinationConfig
 	browserMonitoring AttributeDestinationConfig
-	transactionTracer AttributeDestinationConfig
+	TransactionTracer AttributeDestinationConfig
 }
 
 var (
@@ -177,6 +177,7 @@ var (
 		Attributes:        AttributeDestinationConfig{Enabled: true},
 		ErrorCollector:    AttributeDestinationConfig{Enabled: true},
 		TransactionEvents: AttributeDestinationConfig{Enabled: true},
+		TransactionTracer: AttributeDestinationConfig{Enabled: true},
 	}
 )
 
@@ -190,7 +191,7 @@ func CreateAttributeConfig(input AttributeConfigInput) *AttributeConfig {
 	processDest(c, &input.Attributes, DestAll)
 	processDest(c, &input.ErrorCollector, destError)
 	processDest(c, &input.TransactionEvents, destTxnEvent)
-	processDest(c, &input.transactionTracer, destTxnTrace)
+	processDest(c, &input.TransactionTracer, destTxnTrace)
 	processDest(c, &input.browserMonitoring, destBrowser)
 
 	sort.Sort(byMatch(c.wildcardModifiers))

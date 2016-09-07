@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -76,6 +77,34 @@ type Config struct {
 		// turned into errors.
 		IgnoreStatusCodes []int
 		// Attributes controls the attributes included with errors.
+		Attributes AttributeDestinationConfig
+	}
+
+	// TransactionTracer controls the capture of transaction traces.
+	TransactionTracer struct {
+		// Enabled controls whether transaction traces are captured.
+		Enabled bool
+		// Threshold controls whether a transaction trace will be
+		// considered for capture.  Of the traces exceeding the
+		// threshold, the slowest trace every minute is captured.
+		Threshold struct {
+			// If IsApdexFailing is true then the trace threshold is
+			// four times the apdex threshold.
+			IsApdexFailing bool
+			// If IsApdexFailing is false then this field is the
+			// threshold, otherwise it is ignored.
+			Duration time.Duration
+		}
+		// SegmentThreshold is the threshold at which segments will be
+		// added to the trace.  Lowering this setting may increase
+		// overhead.
+		SegmentThreshold time.Duration
+		// StackTraceThreshold is the threshold at which segments will
+		// be given a stack trace in the transaction trace.  Lowering
+		// this setting will drastically increase overhead.
+		StackTraceThreshold time.Duration
+		// Attributes controls the attributes included with transaction
+		// traces.
 		Attributes AttributeDestinationConfig
 	}
 
@@ -152,6 +181,13 @@ func NewConfig(appname, license string) Config {
 	c.Utilization.DetectDocker = true
 	c.Attributes.Enabled = true
 	c.RuntimeSampler.Enabled = true
+
+	c.TransactionTracer.Enabled = true
+	c.TransactionTracer.Threshold.IsApdexFailing = true
+	c.TransactionTracer.Threshold.Duration = 500 * time.Millisecond
+	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
+	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
+	c.TransactionTracer.Attributes.Enabled = true
 
 	return c
 }

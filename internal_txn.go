@@ -64,8 +64,16 @@ func newTxn(input txnInput, name string) *txn {
 		internal.RequestAgentAttributes(txn.attrs, input.Request)
 	}
 	txn.attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
+	txn.tracer.Enabled = txn.txnTracesEnabled()
+	txn.tracer.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
+	txn.tracer.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
 
 	return txn
+}
+
+func (txn *txn) txnTracesEnabled() bool {
+	return txn.Config.TransactionTracer.Enabled &&
+		txn.Reply.CollectTraces
 }
 
 func (txn *txn) txnEventsEnabled() bool {
@@ -91,6 +99,18 @@ func (txn *txn) freezeName() {
 
 func (txn *txn) getsApdex() bool {
 	return txn.isWeb
+}
+
+func (txn *txn) txnTraceThreshold() time.Duration {
+	if txn.Config.TransactionTracer.Threshold.IsApdexFailing {
+		return internal.ApdexFailingThreshold(txn.apdexThreshold)
+	}
+	return txn.Config.TransactionTracer.Threshold.Duration
+}
+
+func (txn *txn) shouldSaveTrace() bool {
+	return txn.txnTracesEnabled() &&
+		(txn.duration >= txn.txnTraceThreshold())
 }
 
 func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
@@ -145,6 +165,20 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 				DatastoreExternalTotals: txn.tracer.DatastoreExternalTotals,
 			})
 		}
+	}
+
+	if txn.shouldSaveTrace() {
+		h.TxnTraces.Witness(internal.HarvestTrace{
+			Start:                txn.start,
+			Duration:             txn.duration,
+			MetricName:           txn.finalName,
+			CleanURL:             requestURI,
+			Trace:                txn.tracer.TxnTrace,
+			ForcePersist:         false,
+			GUID:                 "",
+			SyntheticsResourceID: "",
+			Attrs:                txn.attrs,
+		})
 	}
 }
 

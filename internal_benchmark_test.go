@@ -102,6 +102,26 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	}
 }
 
+func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
+	cfg := NewConfig("my app", sampleLicense)
+	cfg.Enabled = false
+	cfg.TransactionTracer.SegmentThreshold = 0
+	app, err := newApp(cfg)
+	if nil != err {
+		b.Fatal(err)
+	}
+	txn := app.StartTransaction("my txn", nil, nil)
+	fn := func() {
+		s := StartSegment(txn, "alpha")
+		s.End()
+	}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		fn()
+	}
+}
+
 func BenchmarkDatastoreSegment(b *testing.B) {
 	cfg := NewConfig("my app", sampleLicense)
 	cfg.Enabled = false

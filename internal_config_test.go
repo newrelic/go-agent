@@ -19,6 +19,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionEvents.Attributes.Exclude = append(cfg.TransactionEvents.Attributes.Exclude, "4")
 	cfg.ErrorCollector.Attributes.Include = append(cfg.ErrorCollector.Attributes.Include, "5")
 	cfg.ErrorCollector.Attributes.Exclude = append(cfg.ErrorCollector.Attributes.Exclude, "6")
+	cfg.TransactionTracer.Attributes.Include = append(cfg.TransactionTracer.Attributes.Include, "7")
+	cfg.TransactionTracer.Attributes.Exclude = append(cfg.TransactionTracer.Attributes.Exclude, "8")
 	cfg.Transport = &http.Transport{}
 	cfg.Logger = NewLogger(os.Stdout)
 
@@ -32,6 +34,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionEvents.Attributes.Exclude[0] = "zap"
 	cfg.ErrorCollector.Attributes.Include[0] = "zap"
 	cfg.ErrorCollector.Attributes.Exclude[0] = "zap"
+	cfg.TransactionTracer.Attributes.Include[0] = "zap"
+	cfg.TransactionTracer.Attributes.Exclude[0] = "zap"
 
 	expect := internal.CompactJSONString(`[
 	{
@@ -58,6 +62,16 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true
+			},
+			"TransactionTracer":{
+				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
+				"Enabled":true,
+				"SegmentThreshold":2e+06,
+				"StackTraceThreshold":5e+08,
+				"Threshold":{
+					"Duration":5e+08,
+					"IsApdexFailing":true
+				}
 			},
 			"Transport":"*http.Transport",
 			"UseTLS":true,
@@ -129,6 +143,16 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true
+			},
+			"TransactionTracer":{
+				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+				"Enabled":true,
+				"SegmentThreshold":2e+06,
+				"StackTraceThreshold":5e+08,
+				"Threshold":{
+					"Duration":5e+08,
+					"IsApdexFailing":true
+				}
 			},
 			"Transport":null,
 			"UseTLS":true,

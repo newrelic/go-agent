@@ -65,6 +65,15 @@ type WantTxnEvent struct {
 	AgentAttributes    map[string]interface{}
 }
 
+// WantTxnTrace is a transaction trace expectation.
+type WantTxnTrace struct {
+	MetricName      string
+	CleanURL        string
+	NumSegments     int
+	UserAttributes  map[string]interface{}
+	AgentAttributes map[string]interface{}
+}
+
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
@@ -73,6 +82,7 @@ type Expect interface {
 	ExpectErrorEvents(t Validator, want []WantErrorEvent)
 	ExpectTxnEvents(t Validator, want []WantTxnEvent)
 	ExpectMetrics(t Validator, want []WantMetric)
+	ExpectTxnTraces(t Validator, want []WantTxnTrace)
 }
 
 func expectMetricField(t Validator, id metricID, v1, v2 float64, fieldName string) {
@@ -280,5 +290,39 @@ func ExpectErrors(v Validator, errors *harvestErrors, expect []WantError) {
 	}
 	for i, e := range expect {
 		expectError(v, errors.errors[i], e)
+	}
+}
+
+func expectTxnTrace(v Validator, trace *HarvestTrace, expect WantTxnTrace) {
+	if 0 == trace.Duration {
+		v.Error("zero trace duration")
+	}
+	validateStringField(v, "metric name", expect.MetricName, trace.MetricName)
+	validateStringField(v, "request url", expect.CleanURL, trace.CleanURL)
+	if nil != expect.UserAttributes {
+		expectAttributes(v, getUserAttributes(trace.Attrs, destTxnTrace), expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectAttributes(v, getAgentAttributes(trace.Attrs, destTxnTrace), expect.AgentAttributes)
+	}
+	if expect.NumSegments != len(trace.Trace.nodes) {
+		v.Error("wrong number of segments", expect.NumSegments, len(trace.Trace.nodes))
+	}
+}
+
+// ExpectTxnTraces allows testing of transaction traces.
+func ExpectTxnTraces(v Validator, traces *harvestTraces, want []WantTxnTrace) {
+	if len(want) == 0 {
+		if nil != traces.trace {
+			v.Error("trace exists when not expected")
+		}
+	} else if len(want) > 1 {
+		v.Error("too many traces expected")
+	} else {
+		if nil == traces.trace {
+			v.Error("missing expected trace")
+		} else {
+			expectTxnTrace(v, traces.trace, want[0])
+		}
 	}
 }

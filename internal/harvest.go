@@ -14,6 +14,7 @@ type Harvest struct {
 	TxnEvents    *txnEvents
 	ErrorEvents  *errorEvents
 	ErrorTraces  *harvestErrors
+	TxnTraces    *harvestTraces
 }
 
 // Payloads returns a map from expected collector method name to data type.
@@ -24,6 +25,7 @@ func (h *Harvest) Payloads() map[string]PayloadCreator {
 		cmdTxnEvents:    h.TxnEvents,
 		cmdErrorEvents:  h.ErrorEvents,
 		cmdErrorData:    h.ErrorTraces,
+		cmdTxnTraces:    h.TxnTraces,
 	}
 }
 
@@ -35,6 +37,7 @@ func NewHarvest(now time.Time) *Harvest {
 		TxnEvents:    newTxnEvents(maxTxnEvents),
 		ErrorEvents:  newErrorEvents(maxErrorEvents),
 		ErrorTraces:  newHarvestErrors(maxHarvestErrors),
+		TxnTraces:    newHarvestTraces(),
 	}
 }
 
