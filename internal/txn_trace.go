@@ -10,6 +10,8 @@ import (
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
+// See https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Trace-LEGACY.md
+
 type traceNodeHeap []traceNode
 
 type traceNode struct {
