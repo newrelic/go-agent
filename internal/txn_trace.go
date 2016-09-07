@@ -113,7 +113,7 @@ var (
 )
 
 func printNodeStart(buf *bytes.Buffer, n nodeDetails) {
-	// time.Seconds() is internationally not used here.  Millisecond
+	// time.Seconds() is intentionally not used here.  Millisecond
 	// precision is enough.
 	relativeStartMillis := n.relativeStart.Nanoseconds() / (1000 * 1000)
 	relativeStopMillis := n.relativeStop.Nanoseconds() / (1000 * 1000)
