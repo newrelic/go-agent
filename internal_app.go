@@ -284,6 +284,7 @@ func newApp(c Config) (Application, error) {
 			Attributes:        convertAttributeDestinationConfig(c.Attributes),
 			ErrorCollector:    convertAttributeDestinationConfig(c.ErrorCollector.Attributes),
 			TransactionEvents: convertAttributeDestinationConfig(c.TransactionEvents.Attributes),
+			TransactionTracer: convertAttributeDestinationConfig(c.TransactionTracer.Attributes),
 		}),
 
 		connectChan:        make(chan *internal.AppRun),
@@ -453,4 +454,8 @@ func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantTxnEve
 
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
 	internal.ExpectMetrics(addValidatorField{`metrics:`, t}, app.testHarvest.Metrics, want)
+}
+
+func (app *app) ExpectTxnTraces(t internal.Validator, want []internal.WantTxnTrace) {
+	internal.ExpectTxnTraces(addValidatorField{`txn traces:`, t}, app.testHarvest.TxnTraces, want)
 }

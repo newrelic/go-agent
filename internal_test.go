@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/internal"
 )
@@ -1481,5 +1482,116 @@ func TestRoundTripper(t *testing.T) {
 		Name:              "OtherTransaction/Go/myName",
 		Zone:              "",
 		ExternalCallCount: 1,
+	}})
+}
+
+func TestTraceBelowThreshold(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
+func TestTraceNoSegments(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "WebTransaction/Go/myName",
+		CleanURL:    "/hello",
+		NumSegments: 0,
+	}})
+}
+
+func TestTraceDisabledLocally(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Enabled = false
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
+func TestTraceDisabledRemotely(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.CollectTraces = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
+func TestTraceWithSegments(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	s1 := StartSegment(txn, "s1")
+	s1.End()
+	s2 := ExternalSegment{
+		StartTime: StartSegmentNow(txn),
+		URL:       "http://example.com",
+	}
+	s2.End()
+	s3 := DatastoreSegment{
+		StartTime:  StartSegmentNow(txn),
+		Product:    DatastoreMySQL,
+		Collection: "my_table",
+		Operation:  "SELECT",
+	}
+	s3.End()
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "WebTransaction/Go/myName",
+		CleanURL:    "/hello",
+		NumSegments: 3,
+	}})
+}
+
+func TestTraceSegmentsBelowThreshold(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 1 * time.Hour
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("myName", nil, helloRequest)
+	s1 := StartSegment(txn, "s1")
+	s1.End()
+	s2 := ExternalSegment{
+		StartTime: StartSegmentNow(txn),
+		URL:       "http://example.com",
+	}
+	s2.End()
+	s3 := DatastoreSegment{
+		StartTime:  StartSegmentNow(txn),
+		Product:    DatastoreMySQL,
+		Collection: "my_table",
+		Operation:  "SELECT",
+	}
+	s3.End()
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "WebTransaction/Go/myName",
+		CleanURL:    "/hello",
+		NumSegments: 0,
 	}})
 }

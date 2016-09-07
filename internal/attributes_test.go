@@ -114,7 +114,7 @@ func runAttributeTestcase(t *testing.T, js json.RawMessage) {
 			Include: tc.Config.BrowserAttributesInclude,
 			Exclude: tc.Config.BrowserAttributesExclude,
 		},
-		transactionTracer: AttributeDestinationConfig{
+		TransactionTracer: AttributeDestinationConfig{
 			Enabled: tc.Config.TracerAttributesEnabled,
 			Include: tc.Config.TracerAttributesInclude,
 			Exclude: tc.Config.TracerAttributesExclude,

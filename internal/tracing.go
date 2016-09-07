@@ -44,6 +44,8 @@ type Tracer struct {
 	externalSegments  map[externalMetricKey]*metricData
 
 	DatastoreExternalTotals
+
+	TxnTrace
 }
 
 const (
@@ -156,6 +158,10 @@ func EndBasicSegment(t *Tracer, start SegmentStartTime, now time.Time, name stri
 		*cpy = m
 		t.customSegments[name] = cpy
 	}
+
+	if t.TxnTrace.considerNode(end) {
+		t.TxnTrace.witnessNode(end, customSegmentMetric(name), nil)
+	}
 }
 
 // EndExternalSegment ends an external segment.
@@ -188,6 +194,12 @@ func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url
 		*cpy = m
 		t.externalSegments[key] = cpy
 	}
+
+	if t.TxnTrace.considerNode(end) {
+		t.TxnTrace.witnessNode(end, externalHostMetric(key), map[string]interface{}{
+			"uri": SafeURL(u),
+		})
+	}
 }
 
 // EndDatastoreSegment ends a datastore segment.
@@ -216,6 +228,16 @@ func EndDatastoreSegment(t *Tracer, start SegmentStartTime, now time.Time, key D
 		cpy := new(metricData)
 		*cpy = m
 		t.datastoreSegments[key] = cpy
+	}
+
+	if t.TxnTrace.considerNode(end) {
+		var name string
+		if "" != key.Collection {
+			name = datastoreStatementMetric(key)
+		} else {
+			name = datastoreOperationMetric(key)
+		}
+		t.TxnTrace.witnessNode(end, name, nil)
 	}
 }
 

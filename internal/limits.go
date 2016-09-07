@@ -23,7 +23,8 @@ const (
 	maxStackTraceFrames = 100
 	// MaxTxnErrors is the maximum number of errors captured per
 	// transaction.
-	MaxTxnErrors = 5
+	MaxTxnErrors     = 5
+	maxTxnTraceNodes = 256
 
 	// harvest data
 	maxMetrics       = 2 * 1000
