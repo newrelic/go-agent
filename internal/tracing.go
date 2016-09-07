@@ -47,8 +47,9 @@ type Tracer struct {
 }
 
 const (
-	startingStackDepthAlloc = 128
-	datastoreProductUnknown = "Unknown"
+	startingStackDepthAlloc   = 128
+	datastoreProductUnknown   = "Unknown"
+	datastoreOperationUnknown = "other"
 )
 
 func (t *Tracer) time(now time.Time) segmentTime {
@@ -196,7 +197,7 @@ func EndDatastoreSegment(t *Tracer, start SegmentStartTime, now time.Time, key D
 		return
 	}
 	if key.Operation == "" {
-		key.Operation = "other"
+		key.Operation = datastoreOperationUnknown
 	}
 	if key.Product == "" {
 		key.Product = datastoreProductUnknown
