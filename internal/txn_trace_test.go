@@ -63,7 +63,7 @@ func TestTxnTrace(t *testing.T) {
 				[9000,10000,"Custom/t6",{},[]]
 			]],
 			[12000,13000,"Datastore/operation/MySQL/SELECT",{},[]],
-			[14000,15000,"External/unknown/all",{"uri":""},[]]
+			[14000,15000,"External/unknown/all",{},[]]
 		]]
 	]]]],
 	{
@@ -303,22 +303,16 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 	t3 := StartSegment(tr, start.Add(4*time.Second))
 	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"))
 
-	if nil != tr.TxnTrace.nodes[0].params {
-		t.Fatal(tr.TxnTrace.nodes[0].params)
+	p := tr.TxnTrace.nodes[0].params
+	if nil != p {
+		t.Error(p)
 	}
-	if 1 != len(tr.TxnTrace.nodes[1].params) {
-		t.Fatal(tr.TxnTrace.nodes[1].params)
+	p = tr.TxnTrace.nodes[1].params
+	if nil == p || nil == p.StackTrace || "" != p.CleanURL {
+		t.Error(p)
 	}
-	if _, ok := tr.TxnTrace.nodes[1].params["backtrace"]; !ok {
-		t.Fatal(tr.TxnTrace.nodes[1].params)
-	}
-	if 2 != len(tr.TxnTrace.nodes[2].params) {
-		t.Fatal(tr.TxnTrace.nodes[2].params)
-	}
-	if _, ok := tr.TxnTrace.nodes[2].params["backtrace"]; !ok {
-		t.Fatal(tr.TxnTrace.nodes[2].params)
-	}
-	if _, ok := tr.TxnTrace.nodes[2].params["uri"]; !ok {
-		t.Fatal(tr.TxnTrace.nodes[2].params)
+	p = tr.TxnTrace.nodes[2].params
+	if nil == p || nil == p.StackTrace || "http://example.com/zip/zap" != p.CleanURL {
+		t.Error(p)
 	}
 }

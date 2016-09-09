@@ -196,8 +196,8 @@ func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		t.TxnTrace.witnessNode(end, externalHostMetric(key), map[string]interface{}{
-			"uri": SafeURL(u),
+		t.TxnTrace.witnessNode(end, externalHostMetric(key), &traceNodeParams{
+			CleanURL: SafeURL(u),
 		})
 	}
 }
