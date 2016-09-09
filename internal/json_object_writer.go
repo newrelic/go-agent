@@ -6,6 +6,10 @@ import (
 	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
+type jsonWriter interface {
+	WriteJSON(buf *bytes.Buffer)
+}
+
 type jsonFieldsWriter struct {
 	buf        *bytes.Buffer
 	needsComma bool
@@ -40,4 +44,9 @@ func (w *jsonFieldsWriter) floatField(key string, val float64) {
 func (w *jsonFieldsWriter) rawField(key string, val JSONString) {
 	w.addKey(key)
 	w.buf.WriteString(string(val))
+}
+
+func (w *jsonFieldsWriter) writerField(key string, val jsonWriter) {
+	w.addKey(key)
+	val.WriteJSON(w.buf)
 }
