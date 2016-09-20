@@ -26,15 +26,14 @@ type txn struct {
 	sync.Mutex
 	// finished indicates whether or not End() has been called.  After
 	// finished has been set to true, no recording should occur.
-	finished   bool
-	queuing    time.Duration
-	start      time.Time
-	name       string // Work in progress name
-	isWeb      bool
-	ignore     bool
-	errors     internal.TxnErrors // Lazily initialized.
-	errorsSeen uint64
-	attrs      *internal.Attributes
+	finished bool
+	queuing  time.Duration
+	start    time.Time
+	name     string // Work in progress name
+	isWeb    bool
+	ignore   bool
+	errors   internal.TxnErrors // Lazily initialized.
+	attrs    *internal.Attributes
 
 	// Fields relating to tracing and breakdown metrics/segments.
 	tracer internal.Tracer
@@ -113,6 +112,10 @@ func (txn *txn) shouldSaveTrace() bool {
 		(txn.duration >= txn.txnTraceThreshold())
 }
 
+func (txn *txn) hasErrors() bool {
+	return len(txn.errors) > 0
+}
+
 func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	exclusive := time.Duration(0)
 	children := internal.TracerRootChildren(&txn.tracer)
@@ -127,7 +130,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		Name:           txn.finalName,
 		Zone:           txn.zone,
 		ApdexThreshold: txn.apdexThreshold,
-		ErrorsSeen:     txn.errorsSeen,
+		HasErrors:      txn.hasErrors(),
 		Queueing:       txn.queuing,
 	}, h.Metrics)
 
@@ -258,7 +261,7 @@ func (txn *txn) End() error {
 	txn.freezeName()
 	if txn.getsApdex() {
 		txn.apdexThreshold = internal.CalculateApdexThreshold(txn.Reply, txn.finalName)
-		if txn.errorsSeen > 0 {
+		if txn.hasErrors() {
 			txn.zone = internal.ApdexFailing
 		} else {
 			txn.zone = internal.CalculateApdexZone(txn.apdexThreshold, txn.duration)
@@ -312,10 +315,6 @@ const (
 )
 
 func (txn *txn) noticeErrorInternal(err internal.TxnError) error {
-	// Increment errorsSeen even if errors are disabled:  Error metrics do
-	// not depend on whether or not errors are enabled.
-	txn.errorsSeen++
-
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsLocallyDisabled
 	}

@@ -307,9 +307,6 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
-		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -327,9 +324,6 @@ func TestNoticeErrorRemotelyDisabled(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{"OtherTransaction/Go/myName", "", true, nil},
 		{"OtherTransaction/all", "", true, nil},
-		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
-		{"Errors/OtherTransaction/Go/myName", "", true, []float64{1, 0, 0, 0, 0, 0, 0}},
 	})
 }
 
