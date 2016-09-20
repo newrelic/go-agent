@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Error metrics are no longer created when `ErrorCollector.Enabled = false`.
+
 ## 1.1.0
 
 * Added support for Transaction Traces.

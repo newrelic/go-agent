@@ -79,7 +79,7 @@ type CreateTxnMetricsArgs struct {
 	Name           string
 	Zone           ApdexZone
 	ApdexThreshold time.Duration
-	ErrorsSeen     uint64
+	HasErrors      bool
 	Queueing       time.Duration
 }
 
@@ -104,7 +104,7 @@ func CreateTxnMetrics(args CreateTxnMetricsArgs, metrics *metricTable) {
 	}
 
 	// Error Metrics
-	if args.ErrorsSeen > 0 {
+	if args.HasErrors {
 		metrics.addSingleCount(errorsAll, forced)
 		if args.IsWeb {
 			metrics.addSingleCount(errorsWeb, forced)

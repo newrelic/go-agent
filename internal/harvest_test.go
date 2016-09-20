@@ -182,7 +182,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 	args.Name = webName
 	args.IsWeb = true
-	args.ErrorsSeen = 1
+	args.HasErrors = true
 	args.Zone = ApdexTolerating
 	metrics := newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -199,7 +199,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 	args.Name = webName
 	args.IsWeb = true
-	args.ErrorsSeen = 0
+	args.HasErrors = false
 	args.Zone = ApdexTolerating
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -213,7 +213,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 	args.Name = backgroundName
 	args.IsWeb = false
-	args.ErrorsSeen = 1
+	args.HasErrors = true
 	args.Zone = ApdexNone
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -227,7 +227,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 	args.Name = backgroundName
 	args.IsWeb = false
-	args.ErrorsSeen = 0
+	args.HasErrors = false
 	args.Zone = ApdexNone
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
