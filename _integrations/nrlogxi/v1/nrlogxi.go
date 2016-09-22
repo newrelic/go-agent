@@ -1,9 +1,9 @@
-// Package nrlogxi forwards go-agent log messages to mgutz/logxi.  If you
-// are using mgutz/logxi for your application and would like the go-agent log
-// messages to end up in the same place, create a new logging.Logger and
-// initialize the  NR integration.
+// Package nrlogxi forwards go-agent log messages to mgutz/logxi.  If you would
+// like to use mgutz/logxi for go-agent log messages, wrap your logxi Logger
+// using nrlogxi.New to create a newrelic.Logger.
 //
-//  l := log.New("newrelic")
+//	l := log.New("newrelic")
+//	l.SetLevel(log.LevelInfo)
 //	cfg.Logger = nrlogxi.New(l)
 //
 package nrlogxi
@@ -18,29 +18,23 @@ type shim struct {
 }
 
 func (l *shim) Error(msg string, context map[string]interface{}) {
-	c := convert(context)
-	l.e.Error(msg, c...)
+	l.e.Error(msg, convert(context)...)
 }
 func (l *shim) Warn(msg string, context map[string]interface{}) {
-	c := convert(context)
-	l.e.Warn(msg, c...)
+	l.e.Warn(msg, convert(context)...)
 }
 func (l *shim) Info(msg string, context map[string]interface{}) {
-	c := convert(context)
-	l.e.Info(msg, c...)
+	l.e.Info(msg, convert(context)...)
 }
 func (l *shim) Debug(msg string, context map[string]interface{}) {
-	c := convert(context)
-	l.e.Debug(msg, c...)
+	l.e.Debug(msg, convert(context)...)
 }
 func (l *shim) DebugEnabled() bool {
 	return l.e.IsDebug()
 }
 
-// With the context provided by the agent, convert to key/value and
-// append to a slice of interfaces.
-func convert(c map[string]interface{}) (output []interface{}) {
-	output = make([]interface{}, 0, len(c))
+func convert(c map[string]interface{}) []interface{} {
+	output := make([]interface{}, 0, 2*len(c))
 	for k, v := range c {
 		output = append(output, k, v)
 	}
@@ -48,7 +42,7 @@ func convert(c map[string]interface{}) (output []interface{}) {
 }
 
 // New returns a newrelic.Logger which forwards agent log messages to the
-// logging package-level exported logger.
+// provided logxi Logger.
 func New(l log.Logger) newrelic.Logger {
 	return &shim{
 		e: l,
