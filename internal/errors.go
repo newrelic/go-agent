@@ -25,24 +25,27 @@ func panicValueMsg(v interface{}) string {
 }
 
 // TxnErrorFromPanic creates a new TxnError from a panic.
-func TxnErrorFromPanic(v interface{}) TxnError {
+func TxnErrorFromPanic(now time.Time, v interface{}) TxnError {
 	return TxnError{
+		When:  now,
 		Msg:   panicValueMsg(v),
 		Klass: PanicErrorKlass,
 	}
 }
 
 // TxnErrorFromError creates a new TxnError from an error.
-func TxnErrorFromError(err error) TxnError {
+func TxnErrorFromError(now time.Time, err error) TxnError {
 	return TxnError{
+		When:  now,
 		Msg:   err.Error(),
 		Klass: reflect.TypeOf(err).String(),
 	}
 }
 
 // TxnErrorFromResponseCode creates a new TxnError from an http response code.
-func TxnErrorFromResponseCode(code int) TxnError {
+func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
 	return TxnError{
+		When:  now,
 		Msg:   http.StatusText(code),
 		Klass: strconv.Itoa(code),
 	}
@@ -65,9 +68,9 @@ func NewTxnErrors(max int) TxnErrors {
 }
 
 // Add adds a TxnError.
-func (errors *TxnErrors) Add(e *TxnError) {
+func (errors *TxnErrors) Add(e TxnError) {
 	if len(*errors) < cap(*errors) {
-		*errors = append(*errors, e)
+		*errors = append(*errors, &e)
 	}
 }
 
