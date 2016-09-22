@@ -210,7 +210,7 @@ func headersJustWritten(txn *txn, code int) {
 	internal.ResponseCodeAttribute(txn.attrs, code)
 
 	if responseCodeIsError(&txn.Config, code) {
-		e := internal.TxnErrorFromResponseCode(code)
+		e := internal.TxnErrorFromResponseCode(time.Now(), code)
 		e.Stack = internal.GetStackTrace(1)
 		txn.noticeErrorInternal(e)
 	}
@@ -250,7 +250,7 @@ func (txn *txn) End() error {
 
 	r := recover()
 	if nil != r {
-		e := internal.TxnErrorFromPanic(r)
+		e := internal.TxnErrorFromPanic(time.Now(), r)
 		e.Stack = internal.GetStackTrace(0)
 		txn.noticeErrorInternal(e)
 	}
@@ -331,9 +331,7 @@ func (txn *txn) noticeErrorInternal(err internal.TxnError) error {
 		err.Msg = highSecurityErrorMsg
 	}
 
-	err.When = time.Now()
-
-	txn.errors.Add(&err)
+	txn.errors.Add(err)
 
 	return nil
 }
@@ -350,7 +348,7 @@ func (txn *txn) NoticeError(err error) error {
 		return errNilError
 	}
 
-	e := internal.TxnErrorFromError(err)
+	e := internal.TxnErrorFromError(time.Now(), err)
 	e.Stack = internal.GetStackTrace(2)
 	return txn.noticeErrorInternal(e)
 }
