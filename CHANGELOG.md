@@ -2,6 +2,9 @@
 
 * Error metrics are no longer created when `ErrorCollector.Enabled = false`.
 
+* Added support for [github.com/mgutz/logxi](github.com/mgutz/logxi).  See
+  [_integrations/nrlogxi/v1/nrlogxi.go](_integrations/nrlogxi/v1/nrlogxi.go).
+
 ## 1.1.0
 
 * Added support for Transaction Traces.
