@@ -1,8 +1,6 @@
 package newrelic
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -237,15 +235,6 @@ func (app *app) process() {
 		}
 	}
 }
-
-func makeSHA256(key string) string {
-	sum := sha256.Sum256([]byte(key))
-	return base64.StdEncoding.EncodeToString(sum[:])
-}
-
-const (
-	expectedTokenHash = "vZi2AtjcnOh2fbhrybZsDIeJa8JfJiWWEOK6zXhPG2E="
-)
 
 func convertAttributeDestinationConfig(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
 	return internal.AttributeDestinationConfig{
