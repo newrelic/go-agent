@@ -1,12 +1,14 @@
 package internal
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 const (
@@ -74,26 +76,42 @@ func (errors *TxnErrors) Add(e TxnError) {
 	}
 }
 
+func (h *harvestError) WriteJSON(buf *bytes.Buffer) {
+	buf.WriteByte('[')
+	jsonx.AppendFloat(buf, timeToFloatMilliseconds(h.When))
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, h.txnName)
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, h.Msg)
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, h.Klass)
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+	w := jsonFieldsWriter{buf: buf}
+	if nil != h.Stack {
+		w.writerField("stack_trace", h.Stack)
+	}
+	w.writerField("agentAttributes", agentAttributesJSONWriter{
+		attributes: h.attrs,
+		dest:       destError,
+	})
+	w.writerField("userAttributes", userAttributesJSONWriter{
+		attributes: h.attrs,
+		dest:       destError,
+	})
+	w.rawField("intrinsics", JSONString("{}"))
+	if h.requestURI != "" {
+		w.stringField("request_uri", h.requestURI)
+	}
+	buf.WriteByte('}')
+	buf.WriteByte(']')
+}
+
+// MarshalJSON is used for testing.
 func (h *harvestError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(
-		[]interface{}{
-			timeToFloatMilliseconds(h.When),
-			h.txnName,
-			h.Msg,
-			h.Klass,
-			struct {
-				Stack      *StackTrace `json:"stack_trace"`
-				Agent      JSONString  `json:"agentAttributes"`
-				User       JSONString  `json:"userAttributes"`
-				Intrinsics struct{}    `json:"intrinsics"`
-				RequestURI string      `json:"request_uri,omitempty"`
-			}{
-				Stack:      h.Stack,
-				User:       userAttributesStringJSON(h.attrs, destError),
-				Agent:      agentAttributesStringJSON(h.attrs, destError),
-				RequestURI: h.requestURI,
-			},
-		})
+	buf := &bytes.Buffer{}
+	h.WriteJSON(buf)
+	return buf.Bytes(), nil
 }
 
 type harvestError struct {
@@ -141,7 +159,21 @@ func (errors *harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]
 	if 0 == len(errors.errors) {
 		return nil, nil
 	}
-	return json.Marshal([]interface{}{agentRunID, errors.errors})
+	estimate := 1024 * len(errors.errors)
+	buf := bytes.NewBuffer(make([]byte, 0, estimate))
+	buf.WriteByte('[')
+	jsonx.AppendString(buf, agentRunID)
+	buf.WriteByte(',')
+	buf.WriteByte('[')
+	for i, e := range errors.errors {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		e.WriteJSON(buf)
+	}
+	buf.WriteByte(']')
+	buf.WriteByte(']')
+	return buf.Bytes(), nil
 }
 
 func (errors *harvestErrors) MergeIntoHarvest(h *Harvest) {}
