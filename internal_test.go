@@ -1486,6 +1486,13 @@ func TestTraceBelowThreshold(t *testing.T) {
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
 
+func TestTraceBelowThresholdBackground(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("myName", nil, nil)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
 func TestTraceNoSegments(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
