@@ -9,7 +9,11 @@ import (
 )
 
 func TestUserAttributeBasics(t *testing.T) {
-	app := testApp(nil, nil, t)
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+	}
+	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
 
 	txn.NoticeError(errors.New("zap"))
@@ -69,6 +73,8 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		cfg.ErrorCollector.Attributes.Exclude = []string{"only_txn_events", "only_txn_traces"}
 		cfg.TransactionTracer.Attributes.Exclude = []string{"only_txn_events", "only_errors"}
 		cfg.Attributes.Exclude = []string{"completed_excluded"}
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
