@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -37,18 +38,36 @@ type app struct {
 	rpmControls internal.RpmControls
 	testHarvest *internal.Harvest
 
-	harvestTicker      *time.Ticker
-	harvestChan        <-chan time.Time
+	// initiateShutdown is used to tell the processor to shutdown.
+	initiateShutdown chan struct{}
+
+	// shutdownStarted and shutdownComplete are closed by the processor
+	// goroutine to indicate the shutdown status.  Two channels are used so
+	// that the call of app.Shutdown() can block until shutdown has
+	// completed but other goroutines can exit when shutdown has started.
+	// This is not just an optimization:  This prevents a deadlock if
+	// harvesting data during the shutdown fails and the data tries to be
+	// merge back.
+	shutdownStarted  chan struct{}
+	shutdownComplete chan struct{}
+
+	// Sends to these channels should not occur without a <-shutdownStarted
+	// select option to prevent deadlock.
 	dataChan           chan appData
 	collectorErrorChan chan error
 	connectChan        chan *internal.AppRun
 
-	// run is non-nil when the app is successfully connected.  It is
-	// immutable.  It is assigned by the processor goroutine and accessed by
-	// goroutines calling app API methods.  It should be accessed using
-	// getRun and SetRun.
-	run *internal.AppRun
+	harvestTicker *time.Ticker
+
+	// This mutex protects both `run` and `err`, both of which should only
+	// be accessed using getState and setState.
 	sync.RWMutex
+	// run is non-nil when the app is successfully connected.  It is
+	// immutable.
+	run *internal.AppRun
+	// err is non-nil if the application will never be connected again
+	// (disconnect, license exception, shutdown).
+	err error
 }
 
 var (
@@ -100,7 +119,10 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *inte
 		}
 
 		if isFatalHarvestError(err) {
-			app.collectorErrorChan <- err
+			select {
+			case app.collectorErrorChan <- err:
+			case <-app.shutdownStarted:
+			}
 			return
 		}
 
@@ -127,12 +149,18 @@ func (app *app) connectRoutine() {
 	for {
 		run, err := connectAttempt(app)
 		if nil == err {
-			app.connectChan <- run
+			select {
+			case app.connectChan <- run:
+			case <-app.shutdownStarted:
+			}
 			return
 		}
 
 		if internal.IsDisconnect(err) || internal.IsLicenseException(err) {
-			app.collectorErrorChan <- err
+			select {
+			case app.collectorErrorChan <- err:
+			case <-app.shutdownStarted:
+			}
 			return
 		}
 
@@ -187,33 +215,47 @@ func processConnectMessages(run *internal.AppRun, lg Logger) {
 }
 
 func (app *app) process() {
+	// Both the harvest and the run are non-nil when the app is connected,
+	// and nil otherwise.
 	var h *internal.Harvest
+	var run *internal.AppRun
 
 	for {
 		select {
-		case <-app.harvestChan:
-			run := app.getRun()
-			if "" != run.RunID && nil != h {
+		case <-app.harvestTicker.C:
+			if nil != run {
 				now := time.Now()
 				go app.doHarvest(h, now, run)
 				h = internal.NewHarvest(now)
 			}
 		case d := <-app.dataChan:
-			run := app.getRun()
-			if "" != d.id && nil != h && run.RunID == d.id {
+			if nil != run && run.RunID == d.id {
 				d.data.MergeIntoHarvest(h)
 			}
+		case <-app.initiateShutdown:
+			close(app.shutdownStarted)
 
+			app.harvestTicker.Stop()
+			app.setState(nil, errors.New("application shut down"))
+			if nil != run {
+				app.doHarvest(h, time.Now(), run)
+			}
+
+			close(app.shutdownComplete)
+			return
 		case err := <-app.collectorErrorChan:
+			run = nil
 			h = nil
-			app.setRun(nil)
+			app.setState(nil, nil)
 
 			switch {
 			case internal.IsDisconnect(err):
+				app.setState(nil, err)
 				app.config.Logger.Error("application disconnected by New Relic", map[string]interface{}{
 					"app": app.config.AppName,
 				})
 			case internal.IsLicenseException(err):
+				app.setState(nil, err)
 				app.config.Logger.Error("invalid license", map[string]interface{}{
 					"app":     app.config.AppName,
 					"license": app.config.License,
@@ -224,16 +266,33 @@ func (app *app) process() {
 				})
 				go app.connectRoutine()
 			}
-		case r := <-app.connectChan:
+		case run = <-app.connectChan:
 			h = internal.NewHarvest(time.Now())
-			app.setRun(r)
+			app.setState(run, nil)
+
 			app.config.Logger.Info("application connected", map[string]interface{}{
 				"app": app.config.AppName,
-				"run": r.RunID.String(),
+				"run": run.RunID.String(),
 			})
-			processConnectMessages(r, app.config.Logger)
+			processConnectMessages(run, app.config.Logger)
 		}
 	}
+}
+
+func (app *app) Shutdown() {
+	if !app.config.Enabled {
+		return
+	}
+	select {
+	case app.initiateShutdown <- struct{}{}:
+	case <-app.shutdownStarted:
+		return
+	}
+	// Block until shutdown is done.
+	<-app.shutdownComplete
+	app.config.Logger.Info("application shutdown", map[string]interface{}{
+		"app": app.config.AppName,
+	})
 }
 
 func convertAttributeDestinationConfig(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
@@ -246,16 +305,43 @@ func convertAttributeDestinationConfig(c AttributeDestinationConfig) internal.At
 
 func runSampler(app *app, period time.Duration) {
 	previous := internal.GetSample(time.Now(), app.config.Logger)
+	t := time.NewTicker(period)
+	for {
+		select {
+		case now := <-t.C:
+			current := internal.GetSample(now, app.config.Logger)
+			run, _ := app.getState()
+			app.Consume(run.RunID, internal.GetStats(internal.Samples{
+				Previous: previous,
+				Current:  current,
+			}))
+			previous = current
+		case <-app.shutdownStarted:
+			t.Stop()
+			return
+		}
+	}
+}
 
-	for now := range time.Tick(period) {
-		current := internal.GetSample(now, app.config.Logger)
+func (app *app) WaitForConnection(timeout time.Duration) error {
+	if !app.config.Enabled {
+		return nil
+	}
+	deadline := time.Now().Add(timeout)
+	pollPeriod := 50 * time.Millisecond
 
-		run := app.getRun()
-		app.Consume(run.RunID, internal.GetStats(internal.Samples{
-			Previous: previous,
-			Current:  current,
-		}))
-		previous = current
+	for {
+		run, err := app.getState()
+		if nil != err {
+			return err
+		}
+		if run.RunID != "" {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout out after %s", timeout.String())
+		}
+		time.Sleep(pollPeriod)
 	}
 }
 
@@ -276,8 +362,11 @@ func newApp(c Config) (Application, error) {
 			TransactionTracer: convertAttributeDestinationConfig(c.TransactionTracer.Attributes),
 		}),
 
-		connectChan:        make(chan *internal.AppRun),
-		collectorErrorChan: make(chan error),
+		initiateShutdown:   make(chan struct{}),
+		shutdownStarted:    make(chan struct{}),
+		shutdownComplete:   make(chan struct{}),
+		connectChan:        make(chan *internal.AppRun, 1),
+		collectorErrorChan: make(chan error, 1),
 		dataChan:           make(chan appData, internal.AppDataChanSize),
 		rpmControls: internal.RpmControls{
 			UseTLS:  c.UseTLS,
@@ -302,7 +391,6 @@ func newApp(c Config) (Application, error) {
 	}
 
 	app.harvestTicker = time.NewTicker(internal.HarvestPeriod)
-	app.harvestChan = app.harvestTicker.C
 
 	go app.process()
 	go app.connectRoutine()
@@ -329,7 +417,7 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, er
 	if nil != replyfn {
 		reply := internal.ConnectReplyDefaults()
 		replyfn(reply)
-		app.setRun(&internal.AppRun{ConnectReply: reply})
+		app.setState(&internal.AppRun{ConnectReply: reply}, nil)
 	}
 
 	app.testHarvest = internal.NewHarvest(time.Now())
@@ -337,17 +425,18 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, er
 	return app, nil
 }
 
-func (app *app) getRun() *internal.AppRun {
+func (app *app) getState() (*internal.AppRun, error) {
 	app.RLock()
 	defer app.RUnlock()
 
-	if nil == app.run {
-		return placeholderRun
+	run := app.run
+	if nil == run {
+		run = placeholderRun
 	}
-	return app.run
+	return run, app.err
 }
 
-func (app *app) setRun(run *internal.AppRun) {
+func (app *app) setState(run *internal.AppRun, err error) {
 	app.Lock()
 	defer app.Unlock()
 
@@ -356,7 +445,7 @@ func (app *app) setRun(run *internal.AppRun) {
 
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
-	run := app.getRun()
+	run, _ := app.getState()
 	return upgradeTxn(newTxn(txnInput{
 		Config:     app.config,
 		Reply:      run.ConnectReply,
@@ -388,7 +477,7 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 		return e
 	}
 
-	run := app.getRun()
+	run, _ := app.getState()
 	if !run.CollectCustomEvents {
 		return errCustomEventsRemoteDisabled
 	}
@@ -412,7 +501,10 @@ func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 		return
 	}
 
-	app.dataChan <- appData{id, data}
+	select {
+	case app.dataChan <- appData{id, data}:
+	case <-app.shutdownStarted:
+	}
 }
 
 type addValidatorField struct {

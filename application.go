@@ -1,6 +1,9 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // Application represents your application.
 type Application interface {
@@ -27,6 +30,19 @@ type Application interface {
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 	RecordCustomEvent(eventType string, params map[string]interface{}) error
+
+	// WaitForConnection blocks until the application is connected, is
+	// incapable of being connected, or the timeout has been reached.  This
+	// method is useful for short lived processes since the application will
+	// not gather data until it is connected.  nil is returned if the
+	// application is connected successfully.
+	WaitForConnection(timeout time.Duration) error
+
+	// Shutdown flushes data to New Relics servers and stops all goroutines
+	// managing this application.  After Shutdown is called, the application
+	// is disabled and no more data will be collected.  This method will
+	// block until all final data is sent to New Relic.
+	Shutdown()
 }
 
 // NewApplication creates an Application and spawns goroutines to manage the
