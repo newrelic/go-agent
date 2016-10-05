@@ -39,7 +39,7 @@
   goal of being easier to use and to avoid nil Transaction checks.  See:
 
   * [segments.go](segments.go)
-  * [example/main.go](example/main.go)
+  * [examples/server/main.go](examples/server/main.go)
   * [GUIDE.md#segments](GUIDE.md#segments)
 
 * Updated LICENSE.txt with contribution information.
