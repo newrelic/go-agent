@@ -259,8 +259,12 @@ func (txn *txn) End() error {
 	txn.duration = txn.stop.Sub(txn.start)
 
 	txn.freezeName()
+
+	// Assign apdexThreshold regardless of whether or not the transaction
+	// gets apdex since it may be used to calculate the trace threshold.
+	txn.apdexThreshold = internal.CalculateApdexThreshold(txn.Reply, txn.finalName)
+
 	if txn.getsApdex() {
-		txn.apdexThreshold = internal.CalculateApdexThreshold(txn.Reply, txn.finalName)
 		if txn.hasErrors() {
 			txn.zone = internal.ApdexFailing
 		} else {

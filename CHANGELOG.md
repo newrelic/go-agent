@@ -5,6 +5,9 @@
 * Added support for [github.com/mgutz/logxi](github.com/mgutz/logxi).  See
   [_integrations/nrlogxi/v1/nrlogxi.go](_integrations/nrlogxi/v1/nrlogxi.go).
 
+* Fixed bug where Transaction Trace thresholds based upon Apdex were not being
+  applied to background transactions.
+
 ## 1.1.0
 
 * Added support for Transaction Traces.
