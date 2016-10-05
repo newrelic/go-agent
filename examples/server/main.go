@@ -145,11 +145,6 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-func shutdown(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, `shutting down the application"`)
-	app.Shutdown()
-}
-
 const (
 	licenseVar = "NEW_RELIC_LICENSE_KEY"
 	appname    = "My Go Application"
@@ -185,7 +180,6 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc("/background", background)
-	http.HandleFunc("/shutdown", shutdown)
 
 	http.ListenAndServe(":8000", nil)
 }
