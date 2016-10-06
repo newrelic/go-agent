@@ -1,5 +1,14 @@
 ## ChangeLog
 
+* Added support for instrumenting short-lived processes:
+  * The new `Application.Shutdown` method allows applications to report
+    data to New Relic without waiting a full minute.
+  * The new `Application.WaitForConnection` method allows your process to
+    defer instrumentation until the application is connected and ready to
+    gather data.
+  * Full documentation here: [application.go](application.go)
+  * Example short-lived process: [examples/short-lived-process/main.go](examples/short-lived-process/main.go)
+
 * Error metrics are no longer created when `ErrorCollector.Enabled = false`.
 
 * Added support for [github.com/mgutz/logxi](github.com/mgutz/logxi).  See
