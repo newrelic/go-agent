@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.2.0
+
 * Added support for instrumenting short-lived processes:
   * The new `Application.Shutdown` method allows applications to report
     data to New Relic without waiting a full minute.
