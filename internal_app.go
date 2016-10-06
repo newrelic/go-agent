@@ -46,8 +46,8 @@ type app struct {
 	// that the call of app.Shutdown() can block until shutdown has
 	// completed but other goroutines can exit when shutdown has started.
 	// This is not just an optimization:  This prevents a deadlock if
-	// harvesting data during the shutdown fails and the data tries to be
-	// merge back.
+	// harvesting data during the shutdown fails and an attempt is made to
+	// merge the data into the next harvest.
 	shutdownStarted  chan struct{}
 	shutdownComplete chan struct{}
 
@@ -235,9 +235,22 @@ func (app *app) process() {
 		case <-app.initiateShutdown:
 			close(app.shutdownStarted)
 
-			app.harvestTicker.Stop()
+			// Remove the run before merging any final data to
+			// ensure a bounded number of receives from dataChan.
 			app.setState(nil, errors.New("application shut down"))
+			app.harvestTicker.Stop()
+
 			if nil != run {
+				for done := false; !done; {
+					select {
+					case d := <-app.dataChan:
+						if run.RunID == d.id {
+							d.data.MergeIntoHarvest(h)
+						}
+					default:
+						done = true
+					}
+				}
 				app.doHarvest(h, time.Now(), run)
 			}
 
@@ -283,11 +296,12 @@ func (app *app) Shutdown() {
 	if !app.config.Enabled {
 		return
 	}
+
 	select {
 	case app.initiateShutdown <- struct{}{}:
-	case <-app.shutdownStarted:
-		return
+	default:
 	}
+
 	// Block until shutdown is done.
 	<-app.shutdownComplete
 	app.config.Logger.Info("application shutdown", map[string]interface{}{
@@ -362,7 +376,10 @@ func newApp(c Config) (Application, error) {
 			TransactionTracer: convertAttributeDestinationConfig(c.TransactionTracer.Attributes),
 		}),
 
-		initiateShutdown:   make(chan struct{}),
+		// This channel must be buffered since Shutdown makes a
+		// non-blocking send attempt.
+		initiateShutdown: make(chan struct{}, 1),
+
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		connectChan:        make(chan *internal.AppRun, 1),
