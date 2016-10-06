@@ -441,6 +441,7 @@ func (app *app) setState(run *internal.AppRun, err error) {
 	defer app.Unlock()
 
 	app.run = run
+	app.err = err
 }
 
 // StartTransaction implements newrelic.Application's StartTransaction.
