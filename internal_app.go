@@ -292,7 +292,7 @@ func (app *app) process() {
 	}
 }
 
-func (app *app) Shutdown() {
+func (app *app) Shutdown(timeout time.Duration) {
 	if !app.config.Enabled {
 		return
 	}
@@ -302,8 +302,14 @@ func (app *app) Shutdown() {
 	default:
 	}
 
-	// Block until shutdown is done.
-	<-app.shutdownComplete
+	// Block until shutdown is done or timeout occurs.
+	t := time.NewTimer(timeout)
+	select {
+	case <-app.shutdownComplete:
+	case <-t.C:
+	}
+	t.Stop()
+
 	app.config.Logger.Info("application shutdown", map[string]interface{}{
 		"app": app.config.AppName,
 	})
