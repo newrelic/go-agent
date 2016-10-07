@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.3.0
+
 * Breaking Change: Added a timeout parameter to the `Application.Shutdown` method.
 
 ## 1.2.0
