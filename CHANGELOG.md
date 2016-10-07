@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Breaking Change: Added a timeout parameter to the `Application.Shutdown` method.
+
 ## 1.2.0
 
 * Added support for instrumenting short-lived processes:

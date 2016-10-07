@@ -46,5 +46,5 @@ func main() {
 	}
 
 	// Shut down the application to flush data to New Relic.
-	app.Shutdown()
+	app.Shutdown(10 * time.Second)
 }

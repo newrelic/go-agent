@@ -42,8 +42,8 @@ type Application interface {
 	// agent-related goroutines managing this application.  After Shutdown
 	// is called, the application is disabled and no more data will be
 	// collected.  This method will block until all final data is sent to
-	// New Relic.
-	Shutdown()
+	// New Relic or the timeout has elapsed.
+	Shutdown(timeout time.Duration)
 }
 
 // NewApplication creates an Application and spawns goroutines to manage the
