@@ -531,36 +531,36 @@ func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	}
 }
 
-type addValidatorField struct {
-	field    interface{}
-	original internal.Validator
-}
-
-func (a addValidatorField) Error(fields ...interface{}) {
-	fields = append([]interface{}{a.field}, fields...)
-	a.original.Error(fields...)
-}
-
 func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantCustomEvent) {
-	internal.ExpectCustomEvents(addValidatorField{`custom events:`, t}, app.testHarvest.CustomEvents, want)
+	internal.ExpectCustomEvents(internal.ExtendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
 }
 
 func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {
-	internal.ExpectErrors(addValidatorField{`traced errors:`, t}, app.testHarvest.ErrorTraces, want)
+	t = internal.ExtendValidator(t, "traced errors")
+	internal.ExpectErrors(t, app.testHarvest.ErrorTraces, want)
 }
 
 func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantErrorEvent) {
-	internal.ExpectErrorEvents(addValidatorField{`error events:`, t}, app.testHarvest.ErrorEvents, want)
+	t = internal.ExtendValidator(t, "error events")
+	internal.ExpectErrorEvents(t, app.testHarvest.ErrorEvents, want)
 }
 
 func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantTxnEvent) {
-	internal.ExpectTxnEvents(addValidatorField{`txn events:`, t}, app.testHarvest.TxnEvents, want)
+	t = internal.ExtendValidator(t, "txn events")
+	internal.ExpectTxnEvents(t, app.testHarvest.TxnEvents, want)
 }
 
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
-	internal.ExpectMetrics(addValidatorField{`metrics:`, t}, app.testHarvest.Metrics, want)
+	t = internal.ExtendValidator(t, "metrics")
+	internal.ExpectMetrics(t, app.testHarvest.Metrics, want)
 }
 
 func (app *app) ExpectTxnTraces(t internal.Validator, want []internal.WantTxnTrace) {
-	internal.ExpectTxnTraces(addValidatorField{`txn traces:`, t}, app.testHarvest.TxnTraces, want)
+	t = internal.ExtendValidator(t, "txn traces")
+	internal.ExpectTxnTraces(t, app.testHarvest.TxnTraces, want)
+}
+
+func (app *app) ExpectSlowQueries(t internal.Validator, want []internal.WantSlowQuery) {
+	t = internal.ExtendValidator(t, "slow queries")
+	internal.ExpectSlowQueries(t, app.testHarvest.SlowSQLs, want)
 }

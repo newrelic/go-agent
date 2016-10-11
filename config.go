@@ -137,6 +137,26 @@ type Config struct {
 		BillingHostname   string
 	}
 
+	// DatastoreTracer controls behavior relating to datastore segments.
+	DatastoreTracer struct {
+		InstanceReporting struct {
+			Enabled bool
+		}
+		DatabaseNameReporting struct {
+			Enabled bool
+		}
+		QueryParameters struct {
+			Enabled bool
+		}
+		// SlowQuery controls the capture of slow query traces.  Slow
+		// query traces show you instances of your slowest datastore
+		// segments.
+		SlowQuery struct {
+			Enabled   bool
+			Threshold time.Duration
+		}
+	}
+
 	// Attributes controls the attributes included with errors and
 	// transaction events.
 	Attributes AttributeDestinationConfig
@@ -188,6 +208,12 @@ func NewConfig(appname, license string) Config {
 	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
 	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
+
+	c.DatastoreTracer.InstanceReporting.Enabled = true
+	c.DatastoreTracer.DatabaseNameReporting.Enabled = true
+	c.DatastoreTracer.QueryParameters.Enabled = true
+	c.DatastoreTracer.SlowQuery.Enabled = true
+	c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
 
 	return c
 }

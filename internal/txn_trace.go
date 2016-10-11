@@ -20,8 +20,13 @@ type traceNodeHeap []traceNode
 // start using a map.  This struct is not embedded into traceNode to minimize
 // the size of traceNode:  Not all nodes will have parameters.
 type traceNodeParams struct {
-	StackTrace *StackTrace
-	CleanURL   string
+	StackTrace      *StackTrace
+	CleanURL        string
+	Database        string
+	Host            string
+	PortPathOrID    string
+	Query           string
+	queryParameters queryParameters
 }
 
 func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
@@ -32,6 +37,21 @@ func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
 	}
 	if "" != p.CleanURL {
 		w.stringField("uri", p.CleanURL)
+	}
+	if "" != p.Database {
+		w.stringField("database_name", p.Database)
+	}
+	if "" != p.Host {
+		w.stringField("host", p.Host)
+	}
+	if "" != p.PortPathOrID {
+		w.stringField("port_path_or_id", p.PortPathOrID)
+	}
+	if "" != p.Query {
+		w.stringField("query", p.Query)
+	}
+	if nil != p.queryParameters {
+		w.writerField("query_parameters", p.queryParameters)
 	}
 	buf.WriteByte('}')
 }

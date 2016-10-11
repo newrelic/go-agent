@@ -2,8 +2,12 @@ package internal
 
 import (
 	"net/url"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 func TestStartEndSegment(t *testing.T) {
@@ -359,32 +363,49 @@ func TestSegmentDatastore(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &Tracer{}
 
-	allDatastoreFields := DatastoreMetricKey{
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	t2 := StartSegment(tr, start.Add(2*time.Second))
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:     tr,
+		Start:      t2,
+		Now:        start.Add(3 * time.Second),
 		Product:    "MySQL",
 		Operation:  "SELECT",
 		Collection: "my_table",
-	}
-	missingCollection := DatastoreMetricKey{
+	})
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:    tr,
+		Start:     t1,
+		Now:       start.Add(4 * time.Second),
 		Product:   "MySQL",
 		Operation: "SELECT",
-	}
-	emptyDatastore := DatastoreMetricKey{}
-	invalidTokenOperation := DatastoreMetricKey{
-		Product:   "MySQL",
-		Operation: "invalid-token",
-	}
-
-	t1 := StartSegment(tr, start.Add(1*time.Second))
-	t2 := StartSegment(tr, start.Add(2*time.Second))
-	EndDatastoreSegment(tr, t2, start.Add(3*time.Second), allDatastoreFields)
-	EndDatastoreSegment(tr, t1, start.Add(4*time.Second), missingCollection)
+		// missing collection
+	})
 	t3 := StartSegment(tr, start.Add(5*time.Second))
-	EndDatastoreSegment(tr, t3, start.Add(6*time.Second), missingCollection)
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:    tr,
+		Start:     t3,
+		Now:       start.Add(6 * time.Second),
+		Product:   "MySQL",
+		Operation: "SELECT",
+		// missing collection
+	})
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t4.Stamp++
-	EndDatastoreSegment(tr, t4, start.Add(8*time.Second), invalidTokenOperation)
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:    tr,
+		Start:     t4,
+		Now:       start.Add(8 * time.Second),
+		Product:   "MySQL",
+		Operation: "invalid-token",
+	})
 	t5 := StartSegment(tr, start.Add(9*time.Second))
-	EndDatastoreSegment(tr, t5, start.Add(10*time.Second), emptyDatastore)
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer: tr,
+		Start:  t5,
+		Now:    start.Add(10 * time.Second),
+		// missing datastore, collection, and operation
+	})
 
 	if tr.datastoreCallCount != 4 {
 		t.Error(tr.datastoreCallCount)
@@ -408,6 +429,8 @@ func TestSegmentDatastore(t *testing.T) {
 		{"Datastore/operation/Unknown/other", scope, false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Datastore/instance/MySQL/unknown/unknown", "", false, []float64{3, 5, 4, 1, 3, 11}},
+		{"Datastore/instance/Unknown/unknown/unknown", "", false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 
 	metrics = newMetricTable(100, time.Now())
@@ -426,5 +449,71 @@ func TestSegmentDatastore(t *testing.T) {
 		{"Datastore/operation/Unknown/other", scope, false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", scope, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"Datastore/instance/MySQL/unknown/unknown", "", false, []float64{3, 5, 4, 1, 3, 11}},
+		{"Datastore/instance/Unknown/unknown/unknown", "", false, []float64{1, 1, 1, 1, 1, 1}},
 	})
+}
+
+func TestDatastoreInstancesCrossAgent(t *testing.T) {
+	var testcases []struct {
+		Name           string `json:"name"`
+		SystemHostname string `json:"system_hostname"`
+		DBHostname     string `json:"db_hostname"`
+		Product        string `json:"product"`
+		Port           int    `json:"port"`
+		Socket         string `json:"unix_socket"`
+		DatabasePath   string `json:"database_path"`
+		ExpectedMetric string `json:"expected_instance_metric"`
+	}
+
+	err := crossagent.ReadJSON("datastores/datastore_instances.json", &testcases)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+
+	for _, tc := range testcases {
+		portPathOrID := ""
+		if 0 != tc.Port {
+			portPathOrID = strconv.Itoa(tc.Port)
+		} else if "" != tc.Socket {
+			portPathOrID = tc.Socket
+		} else if "" != tc.DatabasePath {
+			portPathOrID = tc.DatabasePath
+			// These tests makes weird assumptions.
+			tc.DBHostname = "localhost"
+		}
+
+		tr := &Tracer{}
+		s := StartSegment(tr, start)
+		EndDatastoreSegment(EndDatastoreParams{
+			Tracer:       tr,
+			Start:        s,
+			Now:          start.Add(1 * time.Second),
+			Product:      tc.Product,
+			Operation:    "SELECT",
+			Collection:   "my_table",
+			PortPathOrID: portPathOrID,
+			Host:         tc.DBHostname,
+		})
+
+		expect := strings.Replace(tc.ExpectedMetric,
+			tc.SystemHostname, thisHost, -1)
+
+		metrics := newMetricTable(100, time.Now())
+		scope := "OtherTransaction/Go/zip"
+		MergeBreakdownMetrics(tr, metrics, scope, false)
+		data := []float64{1, 1, 1, 1, 1, 1}
+		ExpectMetrics(ExtendValidator(t, tc.Name), metrics, []WantMetric{
+			{"Datastore/all", "", true, data},
+			{"Datastore/allOther", "", true, data},
+			{"Datastore/" + tc.Product + "/all", "", true, data},
+			{"Datastore/" + tc.Product + "/allOther", "", true, data},
+			{"Datastore/operation/" + tc.Product + "/SELECT", "", false, data},
+			{"Datastore/statement/" + tc.Product + "/my_table/SELECT", "", false, data},
+			{"Datastore/statement/" + tc.Product + "/my_table/SELECT", scope, false, data},
+			{expect, "", false, data},
+		})
+	}
 }

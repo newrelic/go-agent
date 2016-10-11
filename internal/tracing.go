@@ -1,8 +1,11 @@
 package internal
 
 import (
+	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 type segmentStamp uint64
@@ -46,6 +49,12 @@ type Tracer struct {
 	DatastoreExternalTotals
 
 	TxnTrace
+
+	SlowQueriesEnabled bool
+	SlowQueryThreshold time.Duration
+	SlowQueries        *slowQueries
+
+	InstanceReportingDisabled bool
 }
 
 const (
@@ -202,42 +211,140 @@ func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url
 	}
 }
 
+// EndDatastoreParams contains the parameters for EndDatastoreSegment.
+type EndDatastoreParams struct {
+	Tracer             *Tracer
+	Start              SegmentStartTime
+	Now                time.Time
+	Product            string
+	Collection         string
+	Operation          string
+	ParameterizedQuery string
+	QueryParameters    map[string]interface{}
+	Host               string
+	PortPathOrID       string
+	Database           string
+}
+
+const (
+	unknownDatastoreHost         = "unknown"
+	unknownDatastorePortPathOrID = "unknown"
+)
+
+var (
+	thisHost = func() string {
+		if h, err := sysinfo.Hostname(); nil == err {
+			return h
+		}
+		return unknownDatastoreHost
+	}()
+	hostsToReplace = map[string]struct{}{
+		"localhost":       struct{}{},
+		"127.0.0.1":       struct{}{},
+		"0.0.0.0":         struct{}{},
+		"0:0:0:0:0:0:0:1": struct{}{},
+		"::1":             struct{}{},
+		"0:0:0:0:0:0:0:0": struct{}{},
+		"::":              struct{}{},
+	}
+)
+
+func (t Tracer) slowQueryWorthy(d time.Duration) bool {
+	return t.SlowQueriesEnabled && (d >= t.SlowQueryThreshold)
+}
+
 // EndDatastoreSegment ends a datastore segment.
-func EndDatastoreSegment(t *Tracer, start SegmentStartTime, now time.Time, key DatastoreMetricKey) {
-	end := endSegment(t, start, now)
+func EndDatastoreSegment(p EndDatastoreParams) {
+	end := endSegment(p.Tracer, p.Start, p.Now)
 	if !end.valid {
 		return
 	}
-	if key.Operation == "" {
-		key.Operation = datastoreOperationUnknown
+	if p.Operation == "" {
+		p.Operation = datastoreOperationUnknown
 	}
-	if key.Product == "" {
-		key.Product = datastoreProductUnknown
+	if p.Product == "" {
+		p.Product = datastoreProductUnknown
 	}
-	if nil == t.datastoreSegments {
-		t.datastoreSegments = make(map[DatastoreMetricKey]*metricData)
+	if p.Tracer.InstanceReportingDisabled {
+		p.Host = ""
+		p.PortPathOrID = ""
+	} else {
+		if p.PortPathOrID == "" {
+			p.PortPathOrID = unknownDatastorePortPathOrID
+		}
+		if p.Host == "" {
+			p.Host = unknownDatastoreHost
+		} else if _, ok := hostsToReplace[p.Host]; ok {
+			p.Host = thisHost
+		}
 	}
-	t.datastoreCallCount++
-	t.datastoreDuration += end.duration
+
+	// We still want to create a slowQuery if the consumer has not provided
+	// a Query string since the stack trace has value.
+	if p.ParameterizedQuery == "" {
+		collection := p.Collection
+		if "" == collection {
+			collection = "unknown"
+		}
+		p.ParameterizedQuery = fmt.Sprintf(`'%s' on '%s' using '%s'`,
+			p.Operation, collection, p.Product)
+	}
+
+	key := DatastoreMetricKey{
+		Product:      p.Product,
+		Collection:   p.Collection,
+		Operation:    p.Operation,
+		Host:         p.Host,
+		PortPathOrID: p.PortPathOrID,
+	}
+	if nil == p.Tracer.datastoreSegments {
+		p.Tracer.datastoreSegments = make(map[DatastoreMetricKey]*metricData)
+	}
+	p.Tracer.datastoreCallCount++
+	p.Tracer.datastoreDuration += end.duration
 	m := metricDataFromDuration(end.duration, end.exclusive)
-	if data, ok := t.datastoreSegments[key]; ok {
+	if data, ok := p.Tracer.datastoreSegments[key]; ok {
 		data.aggregate(m)
 	} else {
 		// Use `new` in place of &m so that m is not
 		// automatically moved to the heap.
 		cpy := new(metricData)
 		*cpy = m
-		t.datastoreSegments[key] = cpy
+		p.Tracer.datastoreSegments[key] = cpy
 	}
 
-	if t.TxnTrace.considerNode(end) {
-		var name string
-		if "" != key.Collection {
-			name = datastoreStatementMetric(key)
-		} else {
-			name = datastoreOperationMetric(key)
+	scopedMetric := datastoreScopedMetric(key)
+	queryParams := vetQueryParameters(p.QueryParameters)
+
+	if p.Tracer.TxnTrace.considerNode(end) {
+		p.Tracer.TxnTrace.witnessNode(end, scopedMetric, &traceNodeParams{
+			Host:            p.Host,
+			PortPathOrID:    p.PortPathOrID,
+			Database:        p.Database,
+			Query:           p.ParameterizedQuery,
+			queryParameters: queryParams,
+		})
+	}
+
+	if p.Tracer.slowQueryWorthy(end.duration) {
+		if nil == p.Tracer.SlowQueries {
+			p.Tracer.SlowQueries = newSlowQueries(maxTxnSlowQueries)
 		}
-		t.TxnTrace.witnessNode(end, name, nil)
+		// Frames to skip:
+		//   this function
+		//   endDatastore
+		//   DatastoreSegment.End
+		skipFrames := 3
+		p.Tracer.SlowQueries.observeInstance(slowQueryInstance{
+			Duration:           end.duration,
+			DatastoreMetric:    scopedMetric,
+			ParameterizedQuery: p.ParameterizedQuery,
+			QueryParameters:    queryParams,
+			Host:               p.Host,
+			PortPathOrID:       p.PortPathOrID,
+			DatabaseName:       p.Database,
+			StackTrace:         GetStackTrace(skipFrames),
+		})
 	}
 }
 
@@ -289,6 +396,11 @@ func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb 
 		} else {
 			metrics.add(datastoreOther, "", *data, forced)
 			metrics.add(product.Other, "", *data, forced)
+		}
+
+		if !t.InstanceReportingDisabled {
+			instance := datastoreInstanceMetric(key)
+			metrics.add(instance, "", *data, unforced)
 		}
 
 		operation := datastoreOperationMetric(key)
