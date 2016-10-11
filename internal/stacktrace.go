@@ -61,6 +61,10 @@ func simplifyStackTraceFilename(raw string) string {
 	return raw[idx+5:]
 }
 
+const (
+	unknownStackTraceFunc = "unknown"
+)
+
 // WriteJSON adds the stack trace to the buffer in the JSON form expected by the
 // collector.
 func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
@@ -70,7 +74,7 @@ func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
 			buf.WriteByte(',')
 		}
 		f, place := pcToFunc(pc)
-		str := "unknown"
+		str := unknownStackTraceFunc
 		if nil != f {
 			// Format designed to match the Ruby agent.
 			name := path.Base(f.Name())

@@ -67,9 +67,11 @@ func customSegmentMetric(s string) string {
 // DatastoreMetricKey contains the fields by which datastore metrics are
 // aggregated.
 type DatastoreMetricKey struct {
-	Product    string
-	Collection string
-	Operation  string
+	Product      string
+	Collection   string
+	Operation    string
+	Host         string
+	PortPathOrID string
 }
 
 type externalMetricKey struct {
@@ -84,29 +86,43 @@ type datastoreProductMetrics struct {
 	Other string // Datastore/{datastore}/allOther
 }
 
+func datastoreScopedMetric(key DatastoreMetricKey) string {
+	if "" != key.Collection {
+		return datastoreStatementMetric(key)
+	}
+	return datastoreOperationMetric(key)
+}
+
 func datastoreProductMetric(key DatastoreMetricKey) datastoreProductMetrics {
 	d, ok := datastoreProductMetricsCache[key.Product]
 	if ok {
 		return d
 	}
 	return datastoreProductMetrics{
-		All:   "Datastore/" + string(key.Product) + "/all",
-		Web:   "Datastore/" + string(key.Product) + "/allWeb",
-		Other: "Datastore/" + string(key.Product) + "/allOther",
+		All:   "Datastore/" + key.Product + "/all",
+		Web:   "Datastore/" + key.Product + "/allWeb",
+		Other: "Datastore/" + key.Product + "/allOther",
 	}
 }
 
 // Datastore/operation/{datastore}/{operation}
 func datastoreOperationMetric(key DatastoreMetricKey) string {
-	return "Datastore/operation/" + string(key.Product) +
+	return "Datastore/operation/" + key.Product +
 		"/" + key.Operation
 }
 
 // Datastore/statement/{datastore}/{table}/{operation}
 func datastoreStatementMetric(key DatastoreMetricKey) string {
-	return "Datastore/statement/" + string(key.Product) +
+	return "Datastore/statement/" + key.Product +
 		"/" + key.Collection +
 		"/" + key.Operation
+}
+
+// Datastore/instance/{datastore}/{host}/{port_path_or_id}
+func datastoreInstanceMetric(key DatastoreMetricKey) string {
+	return "Datastore/instance/" + key.Product +
+		"/" + key.Host +
+		"/" + key.PortPathOrID
 }
 
 // External/{host}/all

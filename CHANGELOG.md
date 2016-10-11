@@ -1,5 +1,17 @@
 ## ChangeLog
 
+* Added support for slow query traces.  Datastore segments which exceed the new
+  `Config.DatastoreTracer.SlowQuery.Threshold` will generate slow query traces
+  viewable on the datastore tab.
+
+[Slow Query Documentation](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/viewing-slow-query-details)
+
+* Added new
+[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
+fields `ParameterizedQuery`, `QueryParameters`, `Host`, `PortPathOrID`, and
+`DatabaseName`.  These fields will be shown in transaction traces and in slow
+query traces.
+
 ## 1.3.0
 
 * Breaking Change: Added a timeout parameter to the `Application.Shutdown` method.

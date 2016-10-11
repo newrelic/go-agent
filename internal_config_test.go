@@ -47,6 +47,15 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
 			"CustomInsightsEvents":{"Enabled":true},
+			"DatastoreTracer":{
+				"DatabaseNameReporting":{"Enabled":true},
+				"InstanceReporting":{"Enabled":true},
+				"QueryParameters":{"Enabled":true},
+				"SlowQuery":{
+					"Enabled":true,
+					"Threshold":1e+07
+				}
+			},
 			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
@@ -128,6 +137,15 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 			"CustomInsightsEvents":{"Enabled":true},
+			"DatastoreTracer":{
+				"DatabaseNameReporting":{"Enabled":true},
+				"InstanceReporting":{"Enabled":true},
+				"QueryParameters":{"Enabled":true},
+				"SlowQuery":{
+					"Enabled":true,
+					"Threshold":1e+07
+				}
+			},
 			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},

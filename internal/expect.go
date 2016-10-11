@@ -16,6 +16,24 @@ func validateStringField(v Validator, fieldName, v1, v2 string) {
 	}
 }
 
+type addValidatorField struct {
+	field    interface{}
+	original Validator
+}
+
+func (a addValidatorField) Error(fields ...interface{}) {
+	fields = append([]interface{}{a.field}, fields...)
+	a.original.Error(fields...)
+}
+
+// ExtendValidator is used to add more context to a validator.
+func ExtendValidator(v Validator, field interface{}) Validator {
+	return addValidatorField{
+		field:    field,
+		original: v,
+	}
+}
+
 // WantMetric is a metric expectation.  If Data is nil, then any data values are
 // acceptable.
 type WantMetric struct {
@@ -74,6 +92,19 @@ type WantTxnTrace struct {
 	AgentAttributes map[string]interface{}
 }
 
+// WantSlowQuery is a slowQuery expectation.
+type WantSlowQuery struct {
+	Count        int32
+	MetricName   string
+	Query        string
+	TxnName      string
+	TxnURL       string
+	DatabaseName string
+	Host         string
+	PortPathOrID string
+	Params       map[string]interface{}
+}
+
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
@@ -83,6 +114,7 @@ type Expect interface {
 	ExpectTxnEvents(t Validator, want []WantTxnEvent)
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectTxnTraces(t Validator, want []WantTxnTrace)
+	ExpectSlowQueries(t Validator, want []WantSlowQuery)
 }
 
 func expectMetricField(t Validator, id metricID, v1, v2 float64, fieldName string) {
@@ -324,5 +356,36 @@ func ExpectTxnTraces(v Validator, traces *harvestTraces, want []WantTxnTrace) {
 		} else {
 			expectTxnTrace(v, traces.trace, want[0])
 		}
+	}
+}
+
+func expectSlowQuery(t Validator, slowQuery *slowQuery, want WantSlowQuery) {
+	if slowQuery.Count != want.Count {
+		t.Error("wrong Count field", slowQuery.Count, want.Count)
+	}
+	validateStringField(t, "MetricName", slowQuery.DatastoreMetric, want.MetricName)
+	validateStringField(t, "Query", slowQuery.ParameterizedQuery, want.Query)
+	validateStringField(t, "TxnName", slowQuery.TxnName, want.TxnName)
+	validateStringField(t, "TxnURL", slowQuery.TxnURL, want.TxnURL)
+	validateStringField(t, "DatabaseName", slowQuery.DatabaseName, want.DatabaseName)
+	validateStringField(t, "Host", slowQuery.Host, want.Host)
+	validateStringField(t, "PortPathOrID", slowQuery.PortPathOrID, want.PortPathOrID)
+	expectAttributes(t, map[string]interface{}(slowQuery.QueryParameters), want.Params)
+}
+
+// ExpectSlowQueries allows testing of slow queries.
+func ExpectSlowQueries(t Validator, slowQueries *slowQueries, want []WantSlowQuery) {
+	if len(want) != len(slowQueries.priorityQueue) {
+		t.Error("wrong number of slow queries",
+			"expected", len(want), "got", len(slowQueries.priorityQueue))
+		return
+	}
+	for _, s := range want {
+		idx, ok := slowQueries.lookup[s.Query]
+		if !ok {
+			t.Error("unable to find slow query", s.Query)
+			continue
+		}
+		expectSlowQuery(t, slowQueries.priorityQueue[idx], s)
 	}
 }

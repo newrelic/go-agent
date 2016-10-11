@@ -32,6 +32,21 @@ type DatastoreSegment struct {
 	Collection string
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
 	Operation string
+	// ParameterizedQuery may be set to the query being performed.  It must
+	// not contain any raw parameters, only placeholders.
+	ParameterizedQuery string
+	// QueryParameters may be used to provide query parameters.  Care should
+	// be taken to only provide parameters which are not sensitive.
+	// QueryParameters are ignored in high security mode.
+	QueryParameters map[string]interface{}
+	// Host is the name of the server hosting the datastore.
+	Host string
+	// PortPathOrID can represent either the port, path, or id of the
+	// datastore being connected to.
+	PortPathOrID string
+	// DatabaseName is name of database where the current query is being
+	// executed.
+	DatabaseName string
 }
 
 // ExternalSegment is used to instrument external calls.  StartExternalSegment

@@ -66,8 +66,16 @@ func newTxn(input txnInput, name string) *txn {
 	txn.tracer.Enabled = txn.txnTracesEnabled()
 	txn.tracer.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
 	txn.tracer.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
+	txn.tracer.SlowQueriesEnabled = txn.slowQueriesEnabled()
+	txn.tracer.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
+	txn.tracer.InstanceReportingDisabled = !txn.Config.DatastoreTracer.InstanceReporting.Enabled
 
 	return txn
+}
+
+func (txn *txn) slowQueriesEnabled() bool {
+	return txn.Config.DatastoreTracer.SlowQuery.Enabled &&
+		txn.Reply.CollectTraces
 }
 
 func (txn *txn) txnTracesEnabled() bool {
@@ -182,6 +190,10 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 			SyntheticsResourceID: "",
 			Attrs:                txn.attrs,
 		})
+	}
+
+	if nil != txn.tracer.SlowQueries {
+		h.SlowSQLs.Merge(txn.tracer.SlowQueries, txn.finalName, requestURI)
 	}
 }
 
@@ -423,10 +435,27 @@ func endDatastore(s DatastoreSegment) {
 	if txn.finished {
 		return
 	}
-	internal.EndDatastoreSegment(&txn.tracer, s.StartTime.start, time.Now(), internal.DatastoreMetricKey{
-		Product:    string(s.Product),
-		Collection: s.Collection,
-		Operation:  s.Operation,
+	if txn.Config.HighSecurity {
+		s.QueryParameters = nil
+	}
+	if !txn.Config.DatastoreTracer.QueryParameters.Enabled {
+		s.QueryParameters = nil
+	}
+	if !txn.Config.DatastoreTracer.DatabaseNameReporting.Enabled {
+		s.DatabaseName = ""
+	}
+	internal.EndDatastoreSegment(internal.EndDatastoreParams{
+		Tracer:             &txn.tracer,
+		Start:              s.StartTime.start,
+		Now:                time.Now(),
+		Product:            string(s.Product),
+		Collection:         s.Collection,
+		Operation:          s.Operation,
+		ParameterizedQuery: s.ParameterizedQuery,
+		QueryParameters:    s.QueryParameters,
+		Host:               s.Host,
+		PortPathOrID:       s.PortPathOrID,
+		Database:           s.DatabaseName,
 	})
 }
 

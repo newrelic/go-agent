@@ -15,10 +15,18 @@ func TestTxnTrace(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
-	EndDatastoreSegment(tr, t2, start.Add(3*time.Second), DatastoreMetricKey{
-		Product:    "MySQL",
-		Collection: "my_table",
-		Operation:  "SELECT",
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:             tr,
+		Start:              t2,
+		Now:                start.Add(3 * time.Second),
+		Product:            "MySQL",
+		Operation:          "SELECT",
+		Collection:         "my_table",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		QueryParameters:    vetQueryParameters(map[string]interface{}{"zip": 1}),
+		Database:           "my_db",
+		Host:               "db-server-1",
+		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(tr, start.Add(4*time.Second))
 	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"))
@@ -29,9 +37,13 @@ func TestTxnTrace(t *testing.T) {
 	EndBasicSegment(tr, t6, start.Add(10*time.Second), "t6")
 	EndBasicSegment(tr, t5, start.Add(11*time.Second), "t5")
 	t7 := StartSegment(tr, start.Add(12*time.Second))
-	EndDatastoreSegment(tr, t7, start.Add(13*time.Second), DatastoreMetricKey{
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:    tr,
+		Start:     t7,
+		Now:       start.Add(13 * time.Second),
 		Product:   "MySQL",
 		Operation: "SELECT",
+		// no collection
 	})
 	t8 := StartSegment(tr, start.Add(14*time.Second))
 	EndExternalSegment(tr, t8, start.Add(15*time.Second), nil)
@@ -55,14 +67,24 @@ func TestTxnTrace(t *testing.T) {
 [0,{},{},
 	[0,20000,"ROOT",{},[[0,20000,"WebTransaction/Go/hello",{},[
 		[1000,6000,"Custom/t1",{},[
-			[2000,3000,"Datastore/statement/MySQL/my_table/SELECT",{},[]],
+			[2000,3000,"Datastore/statement/MySQL/my_table/SELECT",{
+				"database_name":"my_db",
+				"host":"db-server-1",
+				"port_path_or_id":"3306",
+				"query":"INSERT INTO users (name, age) VALUES ($1, $2)",
+				"query_parameters":{"zip":1}
+			},[]],
 			[4000,5000,"External/example.com/all",{"uri":"http://example.com/zip/zap"},[]]
 		]],
 		[7000,16000,"Custom/t4",{},[
 			[8000,11000,"Custom/t5",{},[
 				[9000,10000,"Custom/t6",{},[]]
 			]],
-			[12000,13000,"Datastore/operation/MySQL/SELECT",{},[]],
+			[12000,13000,"Datastore/operation/MySQL/SELECT",{
+				"host":"unknown",
+				"port_path_or_id":"unknown",
+				"query":"'SELECT' on 'unknown' using 'MySQL'"
+			},[]],
 			[14000,15000,"External/unknown/all",{},[]]
 		]]
 	]]]],
@@ -293,7 +315,10 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// not above stack trace threshold w/out params
 	t2 := StartSegment(tr, start.Add(2*time.Second))
-	EndDatastoreSegment(tr, t2, start.Add(4*time.Second), DatastoreMetricKey{
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:     tr,
+		Start:      t2,
+		Now:        start.Add(4 * time.Second),
 		Product:    "MySQL",
 		Collection: "my_table",
 		Operation:  "SELECT",
