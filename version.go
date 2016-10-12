@@ -2,7 +2,7 @@ package newrelic
 
 const (
 	major = "1"
-	minor = "3"
+	minor = "4"
 	patch = "0"
 
 	// Version is the full string version of this Go Agent.
