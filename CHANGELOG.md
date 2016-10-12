@@ -1,10 +1,9 @@
 ## ChangeLog
 
-* Added support for slow query traces.  Datastore segments which exceed the new
-  `Config.DatastoreTracer.SlowQuery.Threshold` will generate slow query traces
-  viewable on the datastore tab.
-
-[Slow Query Documentation](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/viewing-slow-query-details)
+* Added support for slow query traces.  Slow datastore segments will now
+ generate slow query traces viewable on the datastore tab.  These traces include
+ a stack trace and help you to debug slow datastore activity.
+ [Slow Query Documentation](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/viewing-slow-query-details)
 
 * Added new
 [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
