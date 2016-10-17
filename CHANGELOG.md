@@ -1,5 +1,9 @@
 ## ChangeLog
 
+* If [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
+  fields `Host` and `PortPathOrID` are not provided, they will no longer appear
+  as `"unknown"` in transaction traces and slow query traces.
+
 ## 1.4.0
 
 * Added support for slow query traces.  Slow datastore segments will now

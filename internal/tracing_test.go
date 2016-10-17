@@ -429,8 +429,6 @@ func TestSegmentDatastore(t *testing.T) {
 		{"Datastore/operation/Unknown/other", scope, false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", scope, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/instance/MySQL/unknown/unknown", "", false, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/instance/Unknown/unknown/unknown", "", false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 
 	metrics = newMetricTable(100, time.Now())
@@ -449,8 +447,6 @@ func TestSegmentDatastore(t *testing.T) {
 		{"Datastore/operation/Unknown/other", scope, false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
 		{"Datastore/statement/MySQL/my_table/SELECT", scope, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/instance/MySQL/unknown/unknown", "", false, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/instance/Unknown/unknown/unknown", "", false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
