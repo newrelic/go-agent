@@ -39,7 +39,7 @@ func ExtendValidator(v Validator, field interface{}) Validator {
 type WantMetric struct {
 	Name   string
 	Scope  string
-	Forced bool
+	Forced interface{} // true, false, or nil
 	Data   []float64
 }
 
@@ -138,8 +138,10 @@ func ExpectMetrics(t Validator, mt *metricTable, expect []WantMetric) {
 			continue
 		}
 
-		if e.Forced != (forced == m.forced) {
-			t.Error("metric forced incorrect", e.Forced, m.forced, id)
+		if b, ok := e.Forced.(bool); ok {
+			if b != (forced == m.forced) {
+				t.Error("metric forced incorrect", b, m.forced, id)
+			}
 		}
 
 		if nil != e.Data {

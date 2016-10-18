@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 func TestSlowQueryBasic(t *testing.T) {
@@ -642,4 +643,127 @@ func TestSlowQueryDatabaseNameDisabled(t *testing.T) {
 		Host:         "",
 		PortPathOrID: "",
 	}})
+}
+
+func TestDatastoreAPICrossAgent(t *testing.T) {
+	var testcases []struct {
+		TestName string `json:"test_name"`
+		Input    struct {
+			Parameters struct {
+				Product      string `json:"product"`
+				Collection   string `json:"collection"`
+				Operation    string `json:"operation"`
+				Host         string `json:"host"`
+				PortPathOrID string `json:"port_path_or_id"`
+				DatabaseName string `json:"database_name"`
+			} `json:"parameters"`
+			IsWeb          bool   `json:"is_web"`
+			SystemHostname string `json:"system_hostname"`
+			Configuration  struct {
+				InstanceEnabled bool `json:"datastore_tracer.instance_reporting.enabled"`
+				DatabaseEnabled bool `json:"datastore_tracer.database_name_reporting.enabled"`
+			}
+		}
+		Expectation struct {
+			MetricsScoped   []string `json:"metrics_scoped"`
+			MetricsUnscoped []string `json:"metrics_unscoped"`
+			Trace           struct {
+				MetricName   string `json:"metric_name"`
+				Host         string `json:"host"`
+				PortPathOrID string `json:"port_path_or_id"`
+				DatabaseName string `json:"database_name"`
+			} `json:"transaction_segment_and_slow_query_trace"`
+		}
+	}
+
+	err := crossagent.ReadJSON("datastores/datastore_api.json", &testcases)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range testcases {
+		query := "my query"
+		cfgfn := func(cfg *Config) {
+			cfg.DatastoreTracer.SlowQuery.Threshold = 0
+			cfg.DatastoreTracer.InstanceReporting.Enabled =
+				tc.Input.Configuration.InstanceEnabled
+			cfg.DatastoreTracer.DatabaseNameReporting.Enabled =
+				tc.Input.Configuration.DatabaseEnabled
+		}
+		app := testApp(nil, cfgfn, t)
+		var txn Transaction
+		var txnUrl string
+		if tc.Input.IsWeb {
+			txnUrl = helloPath
+			txn = app.StartTransaction("myName", nil, helloRequest)
+		} else {
+			txn = app.StartTransaction("myName", nil, nil)
+		}
+		DatastoreSegment{
+			StartTime:          StartSegmentNow(txn),
+			Product:            DatastoreProduct(tc.Input.Parameters.Product),
+			Operation:          tc.Input.Parameters.Operation,
+			Collection:         tc.Input.Parameters.Collection,
+			PortPathOrID:       tc.Input.Parameters.PortPathOrID,
+			Host:               tc.Input.Parameters.Host,
+			DatabaseName:       tc.Input.Parameters.DatabaseName,
+			ParameterizedQuery: query,
+		}.End()
+		txn.End()
+
+		var metrics []internal.WantMetric
+		var scope string
+		if tc.Input.IsWeb {
+			scope = "WebTransaction/Go/myName"
+			metrics = []internal.WantMetric{
+				{"WebTransaction/Go/myName", "", true, nil},
+				{"WebTransaction", "", true, nil},
+				{"HttpDispatcher", "", true, nil},
+				{"Apdex", "", true, nil},
+				{"Apdex/Go/myName", "", false, nil},
+			}
+		} else {
+			scope = "OtherTransaction/Go/myName"
+			metrics = []internal.WantMetric{
+				{"OtherTransaction/Go/myName", "", true, nil},
+				{"OtherTransaction/all", "", true, nil},
+			}
+		}
+
+		for _, m := range tc.Expectation.MetricsScoped {
+			metrics = append(metrics, internal.WantMetric{
+				Name: m, Scope: scope, Forced: nil, Data: nil,
+			})
+		}
+		for _, m := range tc.Expectation.MetricsUnscoped {
+			metrics = append(metrics, internal.WantMetric{
+				Name: m, Scope: "", Forced: nil, Data: nil,
+			})
+		}
+
+		expectTraceHost := tc.Expectation.Trace.Host
+		if tc.Input.SystemHostname != "" {
+			for i, _ := range metrics {
+				metrics[i].Name = strings.Replace(metrics[i].Name,
+					tc.Input.SystemHostname,
+					internal.ThisHost, -1)
+			}
+			expectTraceHost = strings.Replace(expectTraceHost,
+				tc.Input.SystemHostname,
+				internal.ThisHost, -1)
+		}
+
+		tt := internal.ExtendValidator(t, tc.TestName)
+		app.ExpectMetrics(tt, metrics)
+		app.ExpectSlowQueries(tt, []internal.WantSlowQuery{{
+			Count:        1,
+			MetricName:   tc.Expectation.Trace.MetricName,
+			TxnName:      scope,
+			DatabaseName: tc.Expectation.Trace.DatabaseName,
+			Host:         expectTraceHost,
+			PortPathOrID: tc.Expectation.Trace.PortPathOrID,
+			TxnURL:       txnUrl,
+			Query:        query,
+		}})
+	}
 }

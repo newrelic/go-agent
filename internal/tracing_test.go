@@ -495,7 +495,7 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 		})
 
 		expect := strings.Replace(tc.ExpectedMetric,
-			tc.SystemHostname, thisHost, -1)
+			tc.SystemHostname, ThisHost, -1)
 
 		metrics := newMetricTable(100, time.Now())
 		scope := "OtherTransaction/Go/zip"
