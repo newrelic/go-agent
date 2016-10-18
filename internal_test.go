@@ -1108,7 +1108,6 @@ func TestTraceDatastore(t *testing.T) {
 		{"Datastore/operation/MySQL/SELECT", "", false, nil},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, nil},
 		{"Datastore/statement/MySQL/my_table/SELECT", "WebTransaction/Go/myName", false, nil},
-		{"Datastore/instance/MySQL/unknown/unknown", "", false, nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName:            "WebTransaction/Go/myName",
@@ -1149,7 +1148,6 @@ func TestTraceDatastoreBackground(t *testing.T) {
 		{"Datastore/operation/MySQL/SELECT", "", false, nil},
 		{"Datastore/statement/MySQL/my_table/SELECT", "", false, nil},
 		{"Datastore/statement/MySQL/my_table/SELECT", "OtherTransaction/Go/myName", false, nil},
-		{"Datastore/instance/MySQL/unknown/unknown", "", false, nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName:            "OtherTransaction/Go/myName",
@@ -1189,7 +1187,6 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 		{"Datastore/Unknown/allWeb", "", true, nil},
 		{"Datastore/operation/Unknown/other", "", false, nil},
 		{"Datastore/operation/Unknown/other", "WebTransaction/Go/myName", false, nil},
-		{"Datastore/instance/Unknown/unknown/unknown", "", false, nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
 		TxnName:            "WebTransaction/Go/myName",
