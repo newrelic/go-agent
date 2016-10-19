@@ -265,7 +265,7 @@ func external(txn newrelic.Transaction, req *http.Request) (*http.Response, erro
 ```
 
 `NewRoundTripper` is another useful helper.  As with all segments, the round
-tripper returned **must** only be used the same goroutine as the transaction.
+tripper returned **must** only be used in the same goroutine as the transaction.
 
 ```go
 client := &http.Client{}
