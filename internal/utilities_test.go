@@ -27,7 +27,7 @@ func TestRemoveFirstSegment(t *testing.T) {
 	}
 }
 
-func TestfloatSecondsToDuration(t *testing.T) {
+func TestFloatSecondsToDuration(t *testing.T) {
 	if d := floatSecondsToDuration(0.123); d != 123*time.Millisecond {
 		t.Error(d)
 	}
