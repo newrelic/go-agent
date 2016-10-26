@@ -155,19 +155,19 @@ func TestSlowQueryHostProvided(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
-		{"Datastore/instance/MySQL/db-server-1/unknown", "", false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/db-server-1/unknown", Scope: "", Forced: false, Data: nil},
 	})
 }
 
@@ -200,19 +200,19 @@ func TestSlowQueryPortProvided(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
-		{"Datastore/instance/MySQL/unknown/98021", "", false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/unknown/98021", Scope: "", Forced: false, Data: nil},
 	})
 }
 
@@ -246,19 +246,19 @@ func TestSlowQueryHostPortProvided(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
-		{"Datastore/instance/MySQL/db-server-1/98021", "", false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/db-server-1/98021", Scope: "", Forced: false, Data: nil},
 	})
 }
 
@@ -364,17 +364,17 @@ func TestSlowQueryMissingEverything(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/Unknown/all", "", true, nil},
-		{"Datastore/Unknown/allWeb", "", true, nil},
-		{"Datastore/operation/Unknown/other", "", false, nil},
-		{"Datastore/operation/Unknown/other", scope, false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/Unknown/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/Unknown/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/Unknown/other", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/Unknown/other", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
@@ -553,18 +553,18 @@ func TestSlowQueryInstanceDisabled(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
@@ -599,18 +599,18 @@ func TestSlowQueryInstanceDisabledLocalhost(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
