@@ -54,6 +54,8 @@ func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
+		// Implements the format documented here:
+		// https://source.datanerd.us/agents/agent-specs/blob/master/Stack-Traces.md
 		buf.WriteByte('{')
 		if f, place := pcToFunc(pc); nil != f {
 			name := path.Base(f.Name())
