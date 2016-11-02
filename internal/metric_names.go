@@ -51,6 +51,7 @@ const (
 
 	// Runtime/System Metrics
 	memoryPhysical       = "Memory/Physical"
+	heapObjectsAllocated = "Memory/Heap/AllocatedObjects"
 	cpuUserUtilization   = "CPU/User/Utilization"
 	cpuSystemUtilization = "CPU/System/Utilization"
 	cpuUserTime          = "CPU/User Time"

@@ -59,6 +59,7 @@ type cpuStats struct {
 type Stats struct {
 	numGoroutine    int
 	allocBytes      uint64
+	heapObjects     uint64
 	user            cpuStats
 	system          cpuStats
 	gcPauseFraction float64
@@ -84,6 +85,7 @@ func GetStats(ss Samples) Stats {
 	s := Stats{
 		numGoroutine: cur.numGoroutine,
 		allocBytes:   cur.memStats.Alloc,
+		heapObjects:  cur.memStats.HeapObjects,
 	}
 
 	// CPU Utilization
@@ -130,6 +132,7 @@ func GetStats(ss Samples) Stats {
 
 // MergeIntoHarvest implements Harvestable.
 func (s Stats) MergeIntoHarvest(h *Harvest) {
+	h.Metrics.addValue(heapObjectsAllocated, "", float64(s.heapObjects), forced)
 	h.Metrics.addValue(runGoroutine, "", float64(s.numGoroutine), forced)
 	h.Metrics.addValueExclusive(memoryPhysical, "", bytesToMebibytesFloat(s.allocBytes), 0, forced)
 	h.Metrics.addValueExclusive(cpuUserUtilization, "", s.user.fraction, 0, forced)
