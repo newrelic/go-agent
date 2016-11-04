@@ -4,6 +4,8 @@
   fields `Host` and `PortPathOrID` are not provided, they will no longer appear
   as `"unknown"` in transaction traces and slow query traces.
 
+* Stack traces will now be nicely aligned in the UI.
+
 ## 1.4.0
 
 * Added support for slow query traces.  Slow datastore segments will now
