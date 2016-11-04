@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* The number heap objects allocated is recorded and displayed on the "Go
+  runtime" page.
+
 * If [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
   fields `Host` and `PortPathOrID` are not provided, they will no longer appear
   as `"unknown"` in transaction traces and slow query traces.
