@@ -230,7 +230,8 @@ const (
 )
 
 var (
-	thisHost = func() string {
+	// ThisHost is the system hostname.
+	ThisHost = func() string {
 		if h, err := sysinfo.Hostname(); nil == err {
 			return h
 		}
@@ -270,7 +271,7 @@ func EndDatastoreSegment(p EndDatastoreParams) {
 		p.PortPathOrID = unknownDatastorePortPathOrID
 	}
 	if _, ok := hostsToReplace[p.Host]; ok {
-		p.Host = thisHost
+		p.Host = ThisHost
 	}
 
 	// We still want to create a slowQuery if the consumer has not provided
