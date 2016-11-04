@@ -62,6 +62,15 @@ func TrackUsage(s ...string) {
 	trackMetrics = append(trackMetrics, m)
 }
 
+func createTrackUsageMetrics(metrics *metricTable) {
+	trackMutex.Lock()
+	defer trackMutex.Unlock()
+
+	for _, m := range trackMetrics {
+		metrics.addSingleCount(m, forced)
+	}
+}
+
 // CreateFinalMetrics creates extra metrics at harvest time.
 func (h *Harvest) CreateFinalMetrics() {
 	h.Metrics.addSingleCount(instanceReporting, forced)
@@ -79,12 +88,7 @@ func (h *Harvest) CreateFinalMetrics() {
 		h.Metrics.addCount(supportabilityDropped, float64(h.Metrics.numDropped), forced)
 	}
 
-	trackMutex.Lock()
-	defer trackMutex.Unlock()
-
-	for _, m := range trackMetrics {
-		h.Metrics.addSingleCount(m, forced)
-	}
+	createTrackUsageMetrics(h.Metrics)
 }
 
 // PayloadCreator is a data type in the harvest.
