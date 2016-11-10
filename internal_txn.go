@@ -361,8 +361,7 @@ type stackTracer interface {
 	StackTrace() []StackFrame
 }
 
-// StackFrame represents a function within the call stack or a single error in
-// a stack of wrapped errors.
+// StackFrame represents a function within the call stack.
 type StackFrame struct {
 	File     string
 	Line     int
