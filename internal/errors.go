@@ -56,7 +56,7 @@ func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
 // TxnError is an error captured in a Transaction.
 type TxnError struct {
 	When  time.Time
-	Stack *StackTrace
+	Stack StackTrace
 	Msg   string
 	Klass string
 }

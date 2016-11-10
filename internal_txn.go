@@ -352,6 +352,23 @@ func (txn *txn) noticeErrorInternal(err internal.TxnError) error {
 	return nil
 }
 
+// A StackTracer is an error type that can return information about the
+// stacktrace at which it was created.
+//
+// The stackTracer interface is not exported by this package, but is considered
+// to be part of the stable public API.
+type stackTracer interface {
+	StackTrace() []StackFrame
+}
+
+// StackFrame represents a function within the call stack or a single error in
+// a stack of wrapped errors.
+type StackFrame struct {
+	File     string
+	Line     int
+	Function string
+}
+
 func (txn *txn) NoticeError(err error) error {
 	txn.Lock()
 	defer txn.Unlock()
@@ -365,7 +382,19 @@ func (txn *txn) NoticeError(err error) error {
 	}
 
 	e := internal.TxnErrorFromError(time.Now(), err)
-	e.Stack = internal.GetStackTrace(2)
+	if t, ok := err.(stackTracer); ok {
+		e.Stack = internal.StackTrace{}
+		for _, s := range t.StackTrace() {
+			e.Stack = append(e.Stack, internal.StackFrame{
+				File:     s.File,
+				Line:     s.Line,
+				Function: s.Function,
+			})
+		}
+	} else {
+		e.Stack = internal.GetStackTrace(2)
+	}
+
 	return txn.noticeErrorInternal(e)
 }
 
