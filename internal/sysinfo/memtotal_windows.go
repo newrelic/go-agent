@@ -6,14 +6,15 @@ import (
 )
 
 // PhysicalMemoryBytes returns the total amount of host memory.
-// https://msdn.microsoft.com/en-us/library/windows/desktop/cc300158(v=vs.85).aspx
 func PhysicalMemoryBytes() (uint64, error) {
-	var mod = syscall.NewLazyDLL("kernel32.dll")
-	var proc = mod.NewProc("GetPhysicallyInstalledSystemMemory")
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/cc300158(v=vs.85).aspx
+	// http://stackoverflow.com/questions/30743070/query-total-physical-memory-in-windows-with-golang
+	mod := syscall.NewLazyDLL("kernel32.dll")
+	proc := mod.NewProc("GetPhysicallyInstalledSystemMemory")
 	var memkb uint64
 
 	ret, _, err := proc.Call(uintptr(unsafe.Pointer(&memkb)))
-	//return value TRUE(1) succeeds, FAILED(0) fails
+	// return value TRUE(1) succeeds, FAILED(0) fails
 	if ret != 1 {
 		return 0, err
 	}
