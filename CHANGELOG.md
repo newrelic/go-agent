@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Added support for Windows.  Thanks to @ianomad and @lvxv for the contributions.
+
 * The number of heap objects allocated is recorded in the
   `Memory/Heap/AllocatedObjects` metric.  This will soon be displayed on the "Go
   runtime" page.

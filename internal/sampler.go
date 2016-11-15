@@ -2,24 +2,19 @@ package internal
 
 import (
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 // Sample is a system/runtime snapshot.
 type Sample struct {
 	when         time.Time
 	memStats     runtime.MemStats
-	userTime     time.Duration
-	systemTime   time.Duration
+	usage        sysinfo.Usage
 	numGoroutine int
 	numCPU       int
-}
-
-func timevalToDuration(tv syscall.Timeval) time.Duration {
-	return time.Duration(tv.Nano()) * time.Nanosecond
 }
 
 func bytesToMebibytesFloat(bts uint64) float64 {
@@ -34,13 +29,10 @@ func GetSample(now time.Time, lg logger.Logger) *Sample {
 		numCPU:       runtime.NumCPU(),
 	}
 
-	ru := syscall.Rusage{}
-	err := syscall.Getrusage(syscall.RUSAGE_SELF, &ru)
-	if nil == err {
-		s.userTime = timevalToDuration(ru.Utime)
-		s.systemTime = timevalToDuration(ru.Stime)
+	if usage, err := sysinfo.GetUsage(); err == nil {
+		s.usage = usage
 	} else {
-		lg.Warn("unable to getrusage", map[string]interface{}{
+		lg.Warn("unable to usage", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -90,12 +82,12 @@ func GetStats(ss Samples) Stats {
 
 	// CPU Utilization
 	totalCPUSeconds := elapsed.Seconds() * float64(cur.numCPU)
-	if prev.userTime != 0 && cur.userTime > prev.userTime {
-		s.user.used = cur.userTime - prev.userTime
+	if prev.usage.User != 0 && cur.usage.User > prev.usage.User {
+		s.user.used = cur.usage.User - prev.usage.User
 		s.user.fraction = s.user.used.Seconds() / totalCPUSeconds
 	}
-	if prev.systemTime != 0 && cur.systemTime > prev.systemTime {
-		s.system.used = cur.systemTime - prev.systemTime
+	if prev.usage.System != 0 && cur.usage.System > prev.usage.System {
+		s.system.used = cur.usage.System - prev.usage.System
 		s.system.fraction = s.system.used.Seconds() / totalCPUSeconds
 	}
 

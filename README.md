@@ -11,7 +11,7 @@ garbage collection, goroutine activity, and memory use.
 
 Go 1.3+ is required, due to the use of http.Client's Timeout field.
 
-Linux and OS X are supported.
+Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
 ## Getting Started
 
