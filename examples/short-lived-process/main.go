@@ -8,19 +8,15 @@ import (
 	"github.com/newrelic/go-agent"
 )
 
-const (
-	licenseVar = "NEW_RELIC_LICENSE_KEY"
-	appname    = "Short Lived Process Application"
-)
+func mustGetEnv(key string) string {
+	if val := os.Getenv(key); "" != val {
+		return val
+	}
+	panic(fmt.Sprintf("environment variable %s unset", key))
+}
 
 func main() {
-	lic := os.Getenv(licenseVar)
-	if "" == lic {
-		fmt.Printf("environment variable %s unset\n", licenseVar)
-		os.Exit(1)
-	}
-
-	cfg := newrelic.NewConfig(appname, lic)
+	cfg := newrelic.NewConfig("Short Lived App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
