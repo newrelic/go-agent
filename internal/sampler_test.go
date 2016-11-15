@@ -3,7 +3,29 @@ package internal
 import (
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/internal/logger"
 )
+
+func TestGetSample(t *testing.T) {
+	now := time.Now()
+	sample := GetSample(now, logger.ShimLogger{})
+	if nil == sample {
+		t.Fatal(sample)
+	}
+	if now != sample.when {
+		t.Error(now, sample.when)
+	}
+	if sample.numGoroutine <= 0 {
+		t.Error(sample.numGoroutine)
+	}
+	if sample.numCPU <= 0 {
+		t.Error(sample.numCPU)
+	}
+	if sample.memStats.HeapObjects == 0 {
+		t.Error(sample.memStats.HeapObjects)
+	}
+}
 
 func TestMetricsCreated(t *testing.T) {
 	now := time.Now()
