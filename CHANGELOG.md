@@ -1,6 +1,7 @@
 ## ChangeLog
 
-* The number heap objects allocated is recorded and displayed on the "Go
+* The number of heap objects allocated is recorded in the
+  `Memory/Heap/AllocatedObjects` metric.  This will soon be displayed on the "Go
   runtime" page.
 
 * If [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
