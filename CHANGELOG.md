@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.5.0
+
 * Added support for Windows.  Thanks to @ianomad and @lvxv for the contributions.
 
 * The number of heap objects allocated is recorded in the
