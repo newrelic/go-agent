@@ -8,11 +8,11 @@
   `Memory/Heap/AllocatedObjects` metric.  This will soon be displayed on the "Go
   runtime" page.
 
-* If [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
+* If the [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
   fields `Host` and `PortPathOrID` are not provided, they will no longer appear
   as `"unknown"` in transaction traces and slow query traces.
 
-* Stack traces will now be nicely aligned in the UI.
+* Stack traces will now be nicely aligned in the APM UI.
 
 ## 1.4.0
 
