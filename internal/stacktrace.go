@@ -60,33 +60,6 @@ func topCallerNameBase(st StackTrace) string {
 	return path.Base(st[0].Function)
 }
 
-// simplifyStackTraceFilename makes stack traces smaller and more readable by
-// removing anything preceding the first occurrence of `/src/`.  This is
-// intended to remove the $GOROOT and the $GOPATH.
-func simplifyStackTraceFilename(raw string) string {
-	idx := strings.Index(raw, "/src/")
-	if idx < 0 {
-		return raw
-	}
-	return raw[idx+5:]
-}
-
-const (
-	unknownStackTraceFunc = "unknown"
-)
-
-// String returns a textual representation of f.
-// The format is designed to match the Ruby agent.
-func (f StackFrame) String() string {
-	if f.Function == "" {
-		return unknownStackTraceFunc
-	}
-
-	file := simplifyStackTraceFilename(f.File)
-	name := path.Base(f.Function)
-	return fmt.Sprintf("%s:%d:in `%s'", file, f.Line, name)
-}
-
 // WriteJSON adds the stack trace to the buffer in the JSON form expected by the
 // collector.
 func (st StackTrace) WriteJSON(buf *bytes.Buffer) {
@@ -95,7 +68,15 @@ func (st StackTrace) WriteJSON(buf *bytes.Buffer) {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		jsonx.AppendString(buf, frame.String())
+
+		buf.WriteByte('{')
+
+		w := jsonFieldsWriter{buf: buf}
+		w.stringField("filepath", frame.File)
+		w.stringField("name", frame.Function)
+		w.intField("line", int64(frame.Line))
+
+		buf.WriteByte('}')
 	}
 	buf.WriteByte(']')
 }
