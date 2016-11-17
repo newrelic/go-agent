@@ -68,14 +68,13 @@ func (st StackTrace) WriteJSON(buf *bytes.Buffer) {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-
+		// Implements the format documented here:
+		// https://source.datanerd.us/agents/agent-specs/blob/master/Stack-Traces.md
 		buf.WriteByte('{')
-
 		w := jsonFieldsWriter{buf: buf}
 		w.stringField("filepath", frame.File)
 		w.stringField("name", frame.Function)
 		w.intField("line", int64(frame.Line))
-
 		buf.WriteByte('}')
 	}
 	buf.WriteByte(']')
