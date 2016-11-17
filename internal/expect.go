@@ -2,7 +2,16 @@ package internal
 
 import (
 	"fmt"
+	"runtime"
 	"time"
+)
+
+var (
+	// Unfortunately, the resolution of time.Now() on Windows is coarse: Two
+	// sequential calls to time.Now() may return the same value, and tests
+	// which expect non-zero durations may fail.  To avoid adding sleep
+	// statements or mocking time.Now(), those tests are skipped on Windows.
+	doDurationTests = runtime.GOOS != `windows`
 )
 
 // Validator is used for testing.
@@ -39,7 +48,7 @@ func ExtendValidator(v Validator, field interface{}) Validator {
 type WantMetric struct {
 	Name   string
 	Scope  string
-	Forced bool
+	Forced interface{} // true, false, or nil
 	Data   []float64
 }
 
@@ -138,8 +147,10 @@ func ExpectMetrics(t Validator, mt *metricTable, expect []WantMetric) {
 			continue
 		}
 
-		if e.Forced != (forced == m.forced) {
-			t.Error("metric forced incorrect", e.Forced, m.forced, id)
+		if b, ok := e.Forced.(bool); ok {
+			if b != (forced == m.forced) {
+				t.Error("metric forced incorrect", b, m.forced, id)
+			}
 		}
 
 		if nil != e.Data {
@@ -225,13 +236,13 @@ func expectErrorEvent(v Validator, err *ErrorEvent, expect WantErrorEvent) {
 	if expect.ExternalCallCount != err.externalCallCount {
 		v.Error("external call count", expect.ExternalCallCount, err.externalCallCount)
 	}
-	if (0 == expect.ExternalCallCount) != (err.externalDuration == 0) {
+	if doDurationTests && (0 == expect.ExternalCallCount) != (err.externalDuration == 0) {
 		v.Error("external duration", err.externalDuration)
 	}
 	if expect.DatastoreCallCount != err.datastoreCallCount {
 		v.Error("datastore call count", expect.DatastoreCallCount, err.datastoreCallCount)
 	}
-	if (0 == expect.DatastoreCallCount) != (err.datastoreDuration == 0) {
+	if doDurationTests && (0 == expect.DatastoreCallCount) != (err.datastoreDuration == 0) {
 		v.Error("datastore duration", err.datastoreDuration)
 	}
 }
@@ -256,7 +267,7 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent
 func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
 	validateStringField(v, "apdex zone", expect.Zone, e.Zone.label())
 	validateStringField(v, "name", expect.Name, e.Name)
-	if 0 == e.Duration {
+	if doDurationTests && 0 == e.Duration {
 		v.Error("zero duration", e.Duration)
 	}
 	if (0 != e.Queuing) != expect.Queuing {
@@ -271,13 +282,13 @@ func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
 	if expect.ExternalCallCount != e.externalCallCount {
 		v.Error("external call count", expect.ExternalCallCount, e.externalCallCount)
 	}
-	if (0 == expect.ExternalCallCount) != (e.externalDuration == 0) {
+	if doDurationTests && (0 == expect.ExternalCallCount) != (e.externalDuration == 0) {
 		v.Error("external duration", e.externalDuration)
 	}
 	if expect.DatastoreCallCount != e.datastoreCallCount {
 		v.Error("datastore call count", expect.DatastoreCallCount, e.datastoreCallCount)
 	}
-	if (0 == expect.DatastoreCallCount) != (e.datastoreDuration == 0) {
+	if doDurationTests && (0 == expect.DatastoreCallCount) != (e.datastoreDuration == 0) {
 		v.Error("datastore duration", e.datastoreDuration)
 	}
 }
@@ -326,7 +337,7 @@ func ExpectErrors(v Validator, errors *harvestErrors, expect []WantError) {
 }
 
 func expectTxnTrace(v Validator, trace *HarvestTrace, expect WantTxnTrace) {
-	if 0 == trace.Duration {
+	if doDurationTests && 0 == trace.Duration {
 		v.Error("zero trace duration")
 	}
 	validateStringField(v, "metric name", expect.MetricName, trace.MetricName)

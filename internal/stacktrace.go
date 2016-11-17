@@ -2,12 +2,8 @@ package internal
 
 import (
 	"bytes"
-	"fmt"
 	"path"
 	"runtime"
-	"strings"
-
-	"github.com/newrelic/go-agent/internal/jsonx"
 )
 
 // StackTrace is a list of nested StackFrames at a certain point in time.

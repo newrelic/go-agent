@@ -3,13 +3,36 @@ package internal
 import (
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/internal/logger"
 )
+
+func TestGetSample(t *testing.T) {
+	now := time.Now()
+	sample := GetSample(now, logger.ShimLogger{})
+	if nil == sample {
+		t.Fatal(sample)
+	}
+	if now != sample.when {
+		t.Error(now, sample.when)
+	}
+	if sample.numGoroutine <= 0 {
+		t.Error(sample.numGoroutine)
+	}
+	if sample.numCPU <= 0 {
+		t.Error(sample.numCPU)
+	}
+	if sample.memStats.HeapObjects == 0 {
+		t.Error(sample.memStats.HeapObjects)
+	}
+}
 
 func TestMetricsCreated(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now)
 
 	stats := Stats{
+		heapObjects:  5 * 1000,
 		numGoroutine: 23,
 		allocBytes:   37 * 1024 * 1024,
 		user: cpuStats{
@@ -30,6 +53,7 @@ func TestMetricsCreated(t *testing.T) {
 	stats.MergeIntoHarvest(h)
 
 	ExpectMetrics(t, h.Metrics, []WantMetric{
+		{"Memory/Heap/AllocatedObjects", "", true, []float64{1, 5000, 5000, 5000, 5000, 25000000}},
 		{"Memory/Physical", "", true, []float64{1, 37, 0, 37, 37, 1369}},
 		{"CPU/User Time", "", true, []float64{1, 0.02, 0.02, 0.02, 0.02, 0.0004}},
 		{"CPU/System Time", "", true, []float64{1, 0.04, 0.04, 0.04, 0.04, 0.0016}},
@@ -49,6 +73,7 @@ func TestMetricsCreatedEmpty(t *testing.T) {
 	stats.MergeIntoHarvest(h)
 
 	ExpectMetrics(t, h.Metrics, []WantMetric{
+		{"Memory/Heap/AllocatedObjects", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Memory/Physical", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"CPU/User Time", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"CPU/System Time", "", true, []float64{1, 0, 0, 0, 0, 0}},

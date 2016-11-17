@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
 func TestSlowQueryBasic(t *testing.T) {
@@ -31,8 +32,8 @@ func TestSlowQueryBasic(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}})
 }
 
@@ -121,8 +122,8 @@ func TestSlowQueryDatabaseProvided(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "my_database",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}})
 }
 
@@ -153,6 +154,22 @@ func TestSlowQueryHostProvided(t *testing.T) {
 		Host:         "db-server-1",
 		PortPathOrID: "unknown",
 	}})
+	scope := "WebTransaction/Go/myName"
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/db-server-1/unknown", Scope: "", Forced: false, Data: nil},
+	})
 }
 
 func TestSlowQueryPortProvided(t *testing.T) {
@@ -182,6 +199,22 @@ func TestSlowQueryPortProvided(t *testing.T) {
 		Host:         "unknown",
 		PortPathOrID: "98021",
 	}})
+	scope := "WebTransaction/Go/myName"
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/unknown/98021", Scope: "", Forced: false, Data: nil},
+	})
 }
 
 func TestSlowQueryHostPortProvided(t *testing.T) {
@@ -214,19 +247,19 @@ func TestSlowQueryHostPortProvided(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
-		{"Datastore/instance/MySQL/db-server-1/98021", "", false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
+		{Name: "Datastore/instance/MySQL/db-server-1/98021", Scope: "", Forced: false, Data: nil},
 	})
 }
 
@@ -266,8 +299,8 @@ func TestSlowQueryAggregation(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}, {
 		Count:        1,
 		MetricName:   "Datastore/statement/Postgres/products/INSERT",
@@ -275,8 +308,8 @@ func TestSlowQueryAggregation(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	},
 	})
 }
@@ -303,8 +336,8 @@ func TestSlowQueryMissingQuery(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}})
 }
 
@@ -327,23 +360,22 @@ func TestSlowQueryMissingEverything(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/Unknown/all", "", true, nil},
-		{"Datastore/Unknown/allWeb", "", true, nil},
-		{"Datastore/operation/Unknown/other", "", false, nil},
-		{"Datastore/operation/Unknown/other", scope, false, nil},
-		{"Datastore/instance/Unknown/unknown/unknown", "", false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/Unknown/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/Unknown/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/Unknown/other", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/Unknown/other", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
@@ -375,8 +407,8 @@ func TestSlowQueryWithQueryParameters(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 		Params:       params,
 	}})
 }
@@ -410,8 +442,8 @@ func TestSlowQueryHighSecurity(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 		Params:       nil,
 	}})
 }
@@ -447,8 +479,8 @@ func TestSlowQueryInvalidParameters(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 		Params: map[string]interface{}{
 			"str":      "zap",
 			"int":      123,
@@ -486,13 +518,13 @@ func TestSlowQueryParametersDisabled(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 		Params:       nil,
 	}})
 }
 
-func TestSlowQueryInstanceDisabledUnknown(t *testing.T) {
+func TestSlowQueryInstanceDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.InstanceReporting.Enabled = false
@@ -505,6 +537,7 @@ func TestSlowQueryInstanceDisabledUnknown(t *testing.T) {
 		Collection:         "users",
 		Operation:          "INSERT",
 		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		Host:               "db-server-1",
 	}
 	s1.End()
 	txn.End()
@@ -521,18 +554,18 @@ func TestSlowQueryInstanceDisabledUnknown(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
@@ -567,18 +600,18 @@ func TestSlowQueryInstanceDisabledLocalhost(t *testing.T) {
 	}})
 	scope := "WebTransaction/Go/myName"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{"WebTransaction/Go/myName", "", true, nil},
-		{"WebTransaction", "", true, nil},
-		{"HttpDispatcher", "", true, nil},
-		{"Apdex", "", true, nil},
-		{"Apdex/Go/myName", "", false, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allWeb", "", true, nil},
-		{"Datastore/MySQL/all", "", true, nil},
-		{"Datastore/MySQL/allWeb", "", true, nil},
-		{"Datastore/operation/MySQL/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", "", false, nil},
-		{"Datastore/statement/MySQL/users/INSERT", scope, false, nil},
+		{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/operation/MySQL/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MySQL/users/INSERT", Scope: scope, Forced: false, Data: nil},
 	})
 }
 
@@ -607,7 +640,130 @@ func TestSlowQueryDatabaseNameDisabled(t *testing.T) {
 		TxnName:      "WebTransaction/Go/myName",
 		TxnURL:       "/hello",
 		DatabaseName: "",
-		Host:         "unknown",
-		PortPathOrID: "unknown",
+		Host:         "",
+		PortPathOrID: "",
 	}})
+}
+
+func TestDatastoreAPICrossAgent(t *testing.T) {
+	var testcases []struct {
+		TestName string `json:"test_name"`
+		Input    struct {
+			Parameters struct {
+				Product      string `json:"product"`
+				Collection   string `json:"collection"`
+				Operation    string `json:"operation"`
+				Host         string `json:"host"`
+				PortPathOrID string `json:"port_path_or_id"`
+				DatabaseName string `json:"database_name"`
+			} `json:"parameters"`
+			IsWeb          bool   `json:"is_web"`
+			SystemHostname string `json:"system_hostname"`
+			Configuration  struct {
+				InstanceEnabled bool `json:"datastore_tracer.instance_reporting.enabled"`
+				DatabaseEnabled bool `json:"datastore_tracer.database_name_reporting.enabled"`
+			}
+		}
+		Expectation struct {
+			MetricsScoped   []string `json:"metrics_scoped"`
+			MetricsUnscoped []string `json:"metrics_unscoped"`
+			Trace           struct {
+				MetricName   string `json:"metric_name"`
+				Host         string `json:"host"`
+				PortPathOrID string `json:"port_path_or_id"`
+				DatabaseName string `json:"database_name"`
+			} `json:"transaction_segment_and_slow_query_trace"`
+		}
+	}
+
+	err := crossagent.ReadJSON("datastores/datastore_api.json", &testcases)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range testcases {
+		query := "my query"
+		cfgfn := func(cfg *Config) {
+			cfg.DatastoreTracer.SlowQuery.Threshold = 0
+			cfg.DatastoreTracer.InstanceReporting.Enabled =
+				tc.Input.Configuration.InstanceEnabled
+			cfg.DatastoreTracer.DatabaseNameReporting.Enabled =
+				tc.Input.Configuration.DatabaseEnabled
+		}
+		app := testApp(nil, cfgfn, t)
+		var txn Transaction
+		var txnUrl string
+		if tc.Input.IsWeb {
+			txnUrl = helloPath
+			txn = app.StartTransaction("myName", nil, helloRequest)
+		} else {
+			txn = app.StartTransaction("myName", nil, nil)
+		}
+		DatastoreSegment{
+			StartTime:          StartSegmentNow(txn),
+			Product:            DatastoreProduct(tc.Input.Parameters.Product),
+			Operation:          tc.Input.Parameters.Operation,
+			Collection:         tc.Input.Parameters.Collection,
+			PortPathOrID:       tc.Input.Parameters.PortPathOrID,
+			Host:               tc.Input.Parameters.Host,
+			DatabaseName:       tc.Input.Parameters.DatabaseName,
+			ParameterizedQuery: query,
+		}.End()
+		txn.End()
+
+		var metrics []internal.WantMetric
+		var scope string
+		if tc.Input.IsWeb {
+			scope = "WebTransaction/Go/myName"
+			metrics = []internal.WantMetric{
+				{"WebTransaction/Go/myName", "", true, nil},
+				{"WebTransaction", "", true, nil},
+				{"HttpDispatcher", "", true, nil},
+				{"Apdex", "", true, nil},
+				{"Apdex/Go/myName", "", false, nil},
+			}
+		} else {
+			scope = "OtherTransaction/Go/myName"
+			metrics = []internal.WantMetric{
+				{"OtherTransaction/Go/myName", "", true, nil},
+				{"OtherTransaction/all", "", true, nil},
+			}
+		}
+
+		for _, m := range tc.Expectation.MetricsScoped {
+			metrics = append(metrics, internal.WantMetric{
+				Name: m, Scope: scope, Forced: nil, Data: nil,
+			})
+		}
+		for _, m := range tc.Expectation.MetricsUnscoped {
+			metrics = append(metrics, internal.WantMetric{
+				Name: m, Scope: "", Forced: nil, Data: nil,
+			})
+		}
+
+		expectTraceHost := tc.Expectation.Trace.Host
+		if tc.Input.SystemHostname != "" {
+			for i, _ := range metrics {
+				metrics[i].Name = strings.Replace(metrics[i].Name,
+					tc.Input.SystemHostname,
+					internal.ThisHost, -1)
+			}
+			expectTraceHost = strings.Replace(expectTraceHost,
+				tc.Input.SystemHostname,
+				internal.ThisHost, -1)
+		}
+
+		tt := internal.ExtendValidator(t, tc.TestName)
+		app.ExpectMetrics(tt, metrics)
+		app.ExpectSlowQueries(tt, []internal.WantSlowQuery{{
+			Count:        1,
+			MetricName:   tc.Expectation.Trace.MetricName,
+			TxnName:      scope,
+			DatabaseName: tc.Expectation.Trace.DatabaseName,
+			Host:         expectTraceHost,
+			PortPathOrID: tc.Expectation.Trace.PortPathOrID,
+			TxnURL:       txnUrl,
+			Query:        query,
+		}})
+	}
 }

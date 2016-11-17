@@ -1,6 +1,10 @@
 package internal
 
-import "time"
+import (
+	"strings"
+	"sync"
+	"time"
+)
 
 // Harvestable is something that can be merged into a Harvest.
 type Harvestable interface {
@@ -44,6 +48,29 @@ func NewHarvest(now time.Time) *Harvest {
 	}
 }
 
+var (
+	trackMutex   sync.Mutex
+	trackMetrics []string
+)
+
+// TrackUsage helps track which integration packages are used.
+func TrackUsage(s ...string) {
+	trackMutex.Lock()
+	defer trackMutex.Unlock()
+
+	m := "Supportability/" + strings.Join(s, "/")
+	trackMetrics = append(trackMetrics, m)
+}
+
+func createTrackUsageMetrics(metrics *metricTable) {
+	trackMutex.Lock()
+	defer trackMutex.Unlock()
+
+	for _, m := range trackMetrics {
+		metrics.addSingleCount(m, forced)
+	}
+}
+
 // CreateFinalMetrics creates extra metrics at harvest time.
 func (h *Harvest) CreateFinalMetrics() {
 	h.Metrics.addSingleCount(instanceReporting, forced)
@@ -60,6 +87,8 @@ func (h *Harvest) CreateFinalMetrics() {
 	if h.Metrics.numDropped > 0 {
 		h.Metrics.addCount(supportabilityDropped, float64(h.Metrics.numDropped), forced)
 	}
+
+	createTrackUsageMetrics(h.Metrics)
 }
 
 // PayloadCreator is a data type in the harvest.

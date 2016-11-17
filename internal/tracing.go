@@ -53,8 +53,6 @@ type Tracer struct {
 	SlowQueriesEnabled bool
 	SlowQueryThreshold time.Duration
 	SlowQueries        *slowQueries
-
-	InstanceReportingDisabled bool
 }
 
 const (
@@ -232,7 +230,8 @@ const (
 )
 
 var (
-	thisHost = func() string {
+	// ThisHost is the system hostname.
+	ThisHost = func() string {
 		if h, err := sysinfo.Hostname(); nil == err {
 			return h
 		}
@@ -265,18 +264,14 @@ func EndDatastoreSegment(p EndDatastoreParams) {
 	if p.Product == "" {
 		p.Product = datastoreProductUnknown
 	}
-	if p.Tracer.InstanceReportingDisabled {
-		p.Host = ""
-		p.PortPathOrID = ""
-	} else {
-		if p.PortPathOrID == "" {
-			p.PortPathOrID = unknownDatastorePortPathOrID
-		}
-		if p.Host == "" {
-			p.Host = unknownDatastoreHost
-		} else if _, ok := hostsToReplace[p.Host]; ok {
-			p.Host = thisHost
-		}
+	if p.Host == "" && p.PortPathOrID != "" {
+		p.Host = unknownDatastoreHost
+	}
+	if p.PortPathOrID == "" && p.Host != "" {
+		p.PortPathOrID = unknownDatastorePortPathOrID
+	}
+	if _, ok := hostsToReplace[p.Host]; ok {
+		p.Host = ThisHost
 	}
 
 	// We still want to create a slowQuery if the consumer has not provided
@@ -398,7 +393,7 @@ func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb 
 			metrics.add(product.Other, "", *data, forced)
 		}
 
-		if !t.InstanceReportingDisabled {
+		if key.Host != "" && key.PortPathOrID != "" {
 			instance := datastoreInstanceMetric(key)
 			metrics.add(instance, "", *data, unforced)
 		}

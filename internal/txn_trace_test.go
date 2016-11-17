@@ -81,8 +81,6 @@ func TestTxnTrace(t *testing.T) {
 				[9000,10000,"Custom/t6",{},[]]
 			]],
 			[12000,13000,"Datastore/operation/MySQL/SELECT",{
-				"host":"unknown",
-				"port_path_or_id":"unknown",
 				"query":"'SELECT' on 'unknown' using 'MySQL'"
 			},[]],
 			[14000,15000,"External/unknown/all",{},[]]

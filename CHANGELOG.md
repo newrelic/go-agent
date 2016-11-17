@@ -1,5 +1,19 @@
 ## ChangeLog
 
+## 1.5.0
+
+* Added support for Windows.  Thanks to @ianomad and @lvxv for the contributions.
+
+* The number of heap objects allocated is recorded in the
+  `Memory/Heap/AllocatedObjects` metric.  This will soon be displayed on the "Go
+  runtime" page.
+
+* If the [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)
+  fields `Host` and `PortPathOrID` are not provided, they will no longer appear
+  as `"unknown"` in transaction traces and slow query traces.
+
+* Stack traces will now be nicely aligned in the APM UI.
+
 ## 1.4.0
 
 * Added support for slow query traces.  Slow datastore segments will now

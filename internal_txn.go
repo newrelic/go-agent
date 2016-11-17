@@ -68,7 +68,6 @@ func newTxn(input txnInput, name string) *txn {
 	txn.tracer.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
 	txn.tracer.SlowQueriesEnabled = txn.slowQueriesEnabled()
 	txn.tracer.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
-	txn.tracer.InstanceReportingDisabled = !txn.Config.DatastoreTracer.InstanceReporting.Enabled
 
 	return txn
 }
@@ -444,6 +443,10 @@ func endDatastore(s DatastoreSegment) {
 	}
 	if !txn.Config.DatastoreTracer.DatabaseNameReporting.Enabled {
 		s.DatabaseName = ""
+	}
+	if !txn.Config.DatastoreTracer.InstanceReporting.Enabled {
+		s.Host = ""
+		s.PortPathOrID = ""
 	}
 	internal.EndDatastoreSegment(internal.EndDatastoreParams{
 		Tracer:             &txn.tracer,

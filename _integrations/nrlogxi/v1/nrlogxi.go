@@ -11,7 +11,10 @@ package nrlogxi
 import (
 	"github.com/mgutz/logxi/v1"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
+
+func init() { internal.TrackUsage("integration", "logging", "logxi", "v1") }
 
 type shim struct {
 	e log.Logger

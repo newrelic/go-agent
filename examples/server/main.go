@@ -154,20 +154,15 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-const (
-	licenseVar = "NEW_RELIC_LICENSE_KEY"
-	appname    = "My Go Application"
-)
+func mustGetEnv(key string) string {
+	if val := os.Getenv(key); "" != val {
+		return val
+	}
+	panic(fmt.Sprintf("environment variable %s unset", key))
+}
 
 func main() {
-	lic := os.Getenv(licenseVar)
-	if "" == lic {
-		fmt.Printf("environment variable %s unset\n", licenseVar)
-		os.Exit(1)
-	}
-
-	cfg := newrelic.NewConfig(appname, lic)
-
+	cfg := newrelic.NewConfig("Example App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 
 	var err error
