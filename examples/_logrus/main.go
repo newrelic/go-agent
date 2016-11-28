@@ -11,20 +11,15 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrlogrus"
 )
 
-const (
-	licenseVar = "NEW_RELIC_LICENSE_KEY"
-	appname    = "My Go Application"
-)
+func mustGetEnv(key string) string {
+	if val := os.Getenv(key); "" != val {
+		return val
+	}
+	panic(fmt.Sprintf("environment variable %s unset", key))
+}
 
 func main() {
-	lic := os.Getenv(licenseVar)
-	if "" == lic {
-		fmt.Printf("environment variable %s unset\n", licenseVar)
-		os.Exit(1)
-	}
-
-	cfg := newrelic.NewConfig(appname, lic)
-
+	cfg := newrelic.NewConfig("Logrus App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	logrus.SetLevel(logrus.DebugLevel)
 	cfg.Logger = nrlogrus.StandardLogger()
 
