@@ -74,8 +74,8 @@ defer newrelic.StartSegment(txn, "mySegmentName").End()
 
 ## Runnable Example
 
-[examples/server/main.go](./examples/server/main.go) is an example that will appear as "My Go
-Application" in your New Relic applications list.  To run it:
+[examples/server/main.go](./examples/server/main.go) is an example that will
+appear as "Example App" in your New Relic applications list.  To run it:
 
 ```
 env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
