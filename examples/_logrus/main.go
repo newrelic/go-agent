@@ -19,7 +19,7 @@ func mustGetEnv(key string) string {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("logrus App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
+	cfg := newrelic.NewConfig("Logrus App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	logrus.SetLevel(logrus.DebugLevel)
 	cfg.Logger = nrlogrus.StandardLogger()
 
