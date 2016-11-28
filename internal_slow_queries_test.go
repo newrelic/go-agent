@@ -716,17 +716,17 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		if tc.Input.IsWeb {
 			scope = "WebTransaction/Go/myName"
 			metrics = []internal.WantMetric{
-				{"WebTransaction/Go/myName", "", true, nil},
-				{"WebTransaction", "", true, nil},
-				{"HttpDispatcher", "", true, nil},
-				{"Apdex", "", true, nil},
-				{"Apdex/Go/myName", "", false, nil},
+				{Name: "WebTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+				{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+				{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+				{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+				{Name: "Apdex/Go/myName", Scope: "", Forced: false, Data: nil},
 			}
 		} else {
 			scope = "OtherTransaction/Go/myName"
 			metrics = []internal.WantMetric{
-				{"OtherTransaction/Go/myName", "", true, nil},
-				{"OtherTransaction/all", "", true, nil},
+				{Name: "OtherTransaction/Go/myName", Scope: "", Forced: true, Data: nil},
+				{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 			}
 		}
 
