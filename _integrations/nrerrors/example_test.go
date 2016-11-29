@@ -1,9 +1,10 @@
-package errors
+package nrerrors_test
 
 import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/newrelic/go-agent/_integrations/nrerrors"
 	"github.com/pkg/errors"
 )
 
@@ -17,9 +18,9 @@ func Example() {
 	err := doSomething()
 	if err != nil {
 		fmt.Println("ERROR:", err)
-		err = WithStackTrace(err)
+		err = nrerrors.WithStackTrace(err)
 		// at this point we would usually call txn.Notice(err)
-		st := err.(*StackTracer).StackTrace()
+		st := err.(*nrerrors.StackTracer).StackTrace()
 		for _, f := range st[:3] {
 			fmt.Printf("%v:%v %v\n", filepath.Base(f.File), f.Line, f.Function)
 		}
@@ -27,9 +28,9 @@ func Example() {
 
 	// Output:
 	// ERROR: it failed: something went wrong
-	// example_test.go:40 anotherFunction
-	// example_test.go:36 doSomething
-	// example_test.go:17 Example
+	// example_test.go:41 anotherFunction
+	// example_test.go:37 doSomething
+	// example_test.go:18 Example
 }
 
 func doSomething() error {
