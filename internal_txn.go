@@ -364,7 +364,8 @@ func (txn *txn) NoticeError(err error) error {
 	}
 
 	e := internal.TxnErrorFromError(time.Now(), err)
-	e.Stack = internal.GetStackTrace(2)
+	e.Stack = stackTrace(err, 2)
+
 	return txn.noticeErrorInternal(e)
 }
 

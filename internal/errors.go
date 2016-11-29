@@ -35,13 +35,28 @@ func TxnErrorFromPanic(now time.Time, v interface{}) TxnError {
 	}
 }
 
+// errorClasser is an error type that has a custom error class on New Relic.
+//
+// The errorClasser interface is not exported by this package, but is considered
+// to be part of the stable public API.
+type errorClasser interface {
+	ErrorClass() string
+}
+
 // TxnErrorFromError creates a new TxnError from an error.
 func TxnErrorFromError(now time.Time, err error) TxnError {
-	return TxnError{
-		When:  now,
-		Msg:   err.Error(),
-		Klass: reflect.TypeOf(err).String(),
+	txnErr := TxnError{
+		When: now,
+		Msg:  err.Error(),
 	}
+
+	if ec, ok := err.(errorClasser); ok {
+		txnErr.Klass = ec.ErrorClass()
+	} else {
+		txnErr.Klass = reflect.TypeOf(err).String()
+	}
+
+	return txnErr
 }
 
 // TxnErrorFromResponseCode creates a new TxnError from an http response code.
@@ -56,7 +71,7 @@ func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
 // TxnError is an error captured in a Transaction.
 type TxnError struct {
 	When  time.Time
-	Stack *StackTrace
+	Stack StackTrace
 	Msg   string
 	Klass string
 }

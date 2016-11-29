@@ -6,24 +6,38 @@ import (
 	"runtime"
 )
 
-// StackTrace is a stack trace.
-type StackTrace struct {
-	callers []uintptr
-	written int
+// StackTrace is a list of nested StackFrames at a certain point in time.
+// The frames in a StackTrace are ordered by nesting depth with the outermost
+// function being at the last position of the list.
+type StackTrace []StackFrame
+
+// StackFrame represents a function call in a stack trace.
+type StackFrame struct {
+	File     string
+	Line     int
+	Function string
 }
 
 // GetStackTrace returns a new StackTrace.
-func GetStackTrace(skipFrames int) *StackTrace {
-	st := &StackTrace{}
+func GetStackTrace(skipFrames int) StackTrace {
+	frames := make([]uintptr, maxStackTraceFrames)
 
-	skip := 2 // skips runtime.Callers and this function
-	skip += skipFrames
+	// skips runtime.Callers and this function
+	n := runtime.Callers(skipFrames+2, frames)
 
-	st.callers = make([]uintptr, maxStackTraceFrames)
-	st.written = runtime.Callers(skip, st.callers)
-	st.callers = st.callers[0:st.written]
+	trace := make([]StackFrame, n)
+	for i, pc := range frames[0:n] {
+		f := StackFrame{}
+		fun, place := pcToFunc(pc)
+		if nil != fun {
+			f.Function = fun.Name()
+			f.File, f.Line = fun.FileLine(place)
+		}
 
-	return st
+		trace[i] = f
+	}
+
+	return StackTrace(trace)
 }
 
 func pcToFunc(pc uintptr) (*runtime.Func, uintptr) {
@@ -38,42 +52,37 @@ func pcToFunc(pc uintptr) (*runtime.Func, uintptr) {
 	return runtime.FuncForPC(place), place
 }
 
-func topCallerNameBase(st *StackTrace) string {
-	f, _ := pcToFunc(st.callers[0])
-	if nil == f {
+func topCallerNameBase(st StackTrace) string {
+	if len(st) == 0 {
 		return ""
 	}
-	return path.Base(f.Name())
+
+	return path.Base(st[0].Function)
 }
 
 // WriteJSON adds the stack trace to the buffer in the JSON form expected by the
 // collector.
-func (st *StackTrace) WriteJSON(buf *bytes.Buffer) {
+func (st StackTrace) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('[')
-	for i, pc := range st.callers {
+	for i, frame := range st {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
 		// Implements the format documented here:
 		// https://source.datanerd.us/agents/agent-specs/blob/master/Stack-Traces.md
 		buf.WriteByte('{')
-		if f, place := pcToFunc(pc); nil != f {
-			name := path.Base(f.Name())
-			file, line := f.FileLine(place)
-
-			w := jsonFieldsWriter{buf: buf}
-			w.stringField("filepath", file)
-			w.stringField("name", name)
-			w.intField("line", int64(line))
-		}
+		w := jsonFieldsWriter{buf: buf}
+		w.stringField("filepath", frame.File)
+		w.stringField("name", frame.Function)
+		w.intField("line", int64(frame.Line))
 		buf.WriteByte('}')
 	}
 	buf.WriteByte(']')
 }
 
 // MarshalJSON prepares JSON in the format expected by the collector.
-func (st *StackTrace) MarshalJSON() ([]byte, error) {
-	estimate := 256 * len(st.callers)
+func (st StackTrace) MarshalJSON() ([]byte, error) {
+	estimate := 256 * len(st)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
 	st.WriteJSON(buf)
