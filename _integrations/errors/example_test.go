@@ -16,6 +16,7 @@ import (
 func Example() {
 	err := doSomething()
 	if err != nil {
+		fmt.Println("ERROR:", err)
 		err = WithStackTrace(err)
 		// at this point we would usually call txn.Notice(err)
 		st := err.(*StackTracer).StackTrace()
@@ -25,8 +26,9 @@ func Example() {
 	}
 
 	// Output:
-	// example_test.go:38 anotherFunction
-	// example_test.go:34 doSomething
+	// ERROR: it failed: something went wrong
+	// example_test.go:40 anotherFunction
+	// example_test.go:36 doSomething
 	// example_test.go:17 Example
 }
 
