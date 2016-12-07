@@ -1,5 +1,11 @@
 # New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent)
 
+## Pre-Release
+
+WARNING: THIS CODE IS IN DEVELOPMENT.  IT IS NOT A FINAL NEW RELIC PRODUCT OR
+OFFERING. DO NOT USE IN PRODUCTION. USE AT YOUR OWN RISK. TERMS AND CONDITIONS
+APPLY - SEE LICENSE FILE.
+
 ## Description
 
 The New Relic Go Agent allows you to monitor your Go applications with New
