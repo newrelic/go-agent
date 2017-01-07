@@ -692,9 +692,9 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		}
 		app := testApp(nil, cfgfn, t)
 		var txn Transaction
-		var txnUrl string
+		var txnURL string
 		if tc.Input.IsWeb {
-			txnUrl = helloPath
+			txnURL = helloPath
 			txn = app.StartTransaction("myName", nil, helloRequest)
 		} else {
 			txn = app.StartTransaction("myName", nil, nil)
@@ -743,7 +743,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 
 		expectTraceHost := tc.Expectation.Trace.Host
 		if tc.Input.SystemHostname != "" {
-			for i, _ := range metrics {
+			for i := range metrics {
 				metrics[i].Name = strings.Replace(metrics[i].Name,
 					tc.Input.SystemHostname,
 					internal.ThisHost, -1)
@@ -762,7 +762,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 			DatabaseName: tc.Expectation.Trace.DatabaseName,
 			Host:         expectTraceHost,
 			PortPathOrID: tc.Expectation.Trace.PortPathOrID,
-			TxnURL:       txnUrl,
+			TxnURL:       txnURL,
 			Query:        query,
 		}})
 	}
