@@ -15,3 +15,26 @@ func TestGetStackTrace(t *testing.T) {
 		t.Fatal(string(js))
 	}
 }
+
+func TestLongStackTrace(t *testing.T) {
+	st := StackTrace(make([]uintptr, maxStackTraceFrames+20))
+	js, err := json.Marshal(st)
+	if nil != err {
+		t.Fatal(err)
+	}
+	expect := `[
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{}
+	]`
+	if string(js) != CompactJSONString(expect) {
+		t.Error(string(js))
+	}
+}

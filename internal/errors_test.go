@@ -3,7 +3,6 @@ package internal
 import (
 	"encoding/json"
 	"errors"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -82,14 +81,12 @@ func TestErrorsLifecycle(t *testing.T) {
 	ers := NewTxnErrors(5)
 
 	when := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	ers.Add(TxnErrorFromError(when, errors.New("hello")))
 	ers.Add(TxnErrorFromResponseCode(when, 400))
 	ers.Add(TxnErrorFromPanic(when, errors.New("oh no panic")))
 	ers.Add(TxnErrorFromPanic(when, 123))
-	ers.Add(TxnErrorFromError(when, errors.New("too many errors, dropped in harvest")))
-	ers.Add(TxnErrorFromError(when, errors.New("too many errors, dropped in transaction")))
+	ers.Add(TxnErrorFromPanic(when, 123))
 
-	he := newHarvestErrors(4)
+	he := newHarvestErrors(3)
 	MergeTxnErrors(he, ers, "txnName", "requestURI", nil)
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
@@ -99,18 +96,6 @@ func TestErrorsLifecycle(t *testing.T) {
 [
    "agentRunID",
    [
-      [
-         1.41713646e+12,
-         "txnName",
-         "hello",
-         "*errors.errorString",
-         {
-            "agentAttributes":{},
-            "userAttributes":{},
-            "intrinsics":{},
-            "request_uri":"requestURI"
-         }
-      ],
       [
          1.41713646e+12,
          "txnName",
@@ -160,7 +145,11 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	ers := NewTxnErrors(max)
 
 	for i := 0; i < max; i++ {
-		ers.Add(TxnErrorFromError(when, errors.New(strconv.Itoa(i))))
+		ers.Add(TxnError{
+			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+			Msg:   "error message",
+			Klass: "error class",
+		})
 	}
 
 	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
