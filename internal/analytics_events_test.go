@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"errors"
 	"strconv"
 	"testing"
 	"time"
@@ -251,7 +250,7 @@ func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 }
 
 func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
-	e := TxnErrorFromError(time.Now(), errors.New("my error"))
+	e := TxnErrorFromResponseCode(time.Now(), 503)
 	e.Stack = GetStackTrace(0)
 
 	txnName := "WebTransaction/Go/zip/zap"
