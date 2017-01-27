@@ -44,6 +44,13 @@ func endpointNotFound(c *gin.Context) {
 	c.Writer.WriteString("there's no endpoint for that!")
 }
 
+func endpointAccessTransaction(c *gin.Context) {
+	if txn := nrgin.Transaction(c); nil != txn {
+		txn.SetName("custom-name")
+	}
+	c.Writer.WriteString("changed the name of the transaction!")
+}
+
 func mustGetEnv(key string) string {
 	if val := os.Getenv(key); "" != val {
 		return val
@@ -66,6 +73,7 @@ func main() {
 	router.GET("/404", endpoint404)
 	router.GET("/change", endpointChangeCode)
 	router.GET("/headers", endpointResponseHeaders)
+	router.GET("/txn", endpointAccessTransaction)
 
 	// Since the handler function name is used as the transaction name,
 	// anonymous functions do not get usefully named.  We encourage

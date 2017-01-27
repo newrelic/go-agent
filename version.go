@@ -6,5 +6,5 @@ const (
 	patch = "0"
 
 	// Version is the full string version of this Go Agent.
-	Version = major + "." + minor + "." + patch + "-gin.0"
+	Version = major + "." + minor + "." + patch + "-gin.1"
 )
