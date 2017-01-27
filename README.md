@@ -129,7 +129,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	// Create a config.  You need to provide the desired application name
 	// and your New Relic license key.
-	cfg := newrelic.NewConfig("My Go Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+	cfg := newrelic.NewConfig("Example App", "__YOUR_NEW_RELIC_LICENSE_KEY__")
 
 	// Create an application.  This represents an application in the New
 	// Relic UI.
