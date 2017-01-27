@@ -61,6 +61,21 @@ func (w *replacementResponseWriter) WriteHeaderNow() {
 	w.ResponseWriter.WriteHeaderNow()
 }
 
+var (
+	ctxKey = "newRelicTransaction"
+)
+
+// Transaction returns the transaction stored inside the context, or nil if not
+// found.
+func Transaction(c *gin.Context) newrelic.Transaction {
+	if v, exists := c.Get(ctxKey); exists {
+		if txn, ok := v.(newrelic.Transaction); ok {
+			return txn
+		}
+	}
+	return nil
+}
+
 // Middleware creates Gin middleware that instruments requests.
 //
 //	router := gin.Default()
@@ -78,6 +93,7 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 			txn:            txn,
 			code:           http.StatusOK,
 		}
+		c.Set(ctxKey, txn)
 		c.Next()
 	}
 }
