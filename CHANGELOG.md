@@ -1,5 +1,7 @@
 ## ChangeLog
 
+* Fixed tests for Go 1.8.
+
 ## 1.5.0
 
 * Added support for Windows.  Thanks to @ianomad and @lvxv for the contributions.
