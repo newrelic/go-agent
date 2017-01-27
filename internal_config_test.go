@@ -3,11 +3,31 @@ package newrelic
 import (
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/utilization"
 )
+
+var (
+	fixRegex = regexp.MustCompile(`e\+\d+`)
+)
+
+// In Go 1.8 Marshalling of numbers was changed:
+// Before: "StackTraceThreshold":5e+08
+// After:  "StackTraceThreshold":500000000
+func standardizeNumbers(input string) string {
+	return fixRegex.ReplaceAllStringFunc(input, func(s string) string {
+		n, err := strconv.Atoi(s[2:])
+		if nil != err {
+			return s
+		}
+		return strings.Repeat("0", n)
+	})
+}
 
 func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg := NewConfig("my appname", "0123456789012345678901234567890123456789")
@@ -53,7 +73,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"QueryParameters":{"Enabled":true},
 				"SlowQuery":{
 					"Enabled":true,
-					"Threshold":1e+07
+					"Threshold":10000000
 				}
 			},
 			"Enabled":true,
@@ -75,10 +95,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
 				"Enabled":true,
-				"SegmentThreshold":2e+06,
-				"StackTraceThreshold":5e+08,
+				"SegmentThreshold":2000000,
+				"StackTraceThreshold":500000000,
 				"Threshold":{
-					"Duration":5e+08,
+					"Duration":500000000,
 					"IsApdexFailing":true
 				}
 			},
@@ -115,8 +135,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != expect {
-		t.Error(string(js))
+	out := standardizeNumbers(string(js))
+	if out != expect {
+		t.Error(out)
 	}
 }
 
@@ -143,7 +164,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"QueryParameters":{"Enabled":true},
 				"SlowQuery":{
 					"Enabled":true,
-					"Threshold":1e+07
+					"Threshold":10000000
 				}
 			},
 			"Enabled":true,
@@ -165,10 +186,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true,
-				"SegmentThreshold":2e+06,
-				"StackTraceThreshold":5e+08,
+				"SegmentThreshold":2000000,
+				"StackTraceThreshold":500000000,
 				"Threshold":{
-					"Duration":5e+08,
+					"Duration":500000000,
 					"IsApdexFailing":true
 				}
 			},
@@ -204,7 +225,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != expect {
+	out := standardizeNumbers(string(js))
+	if out != expect {
 		t.Error(string(js))
 	}
 }
