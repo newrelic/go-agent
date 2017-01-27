@@ -50,7 +50,7 @@ func main() {
 
 	txn := app.StartTransaction("has-error", nil, nil)
 	e := gamma()
-	txn.NoticeError(nrpkgerrors.Transform(e))
+	txn.NoticeError(nrpkgerrors.Wrap(e))
 	txn.End()
 
 	app.Shutdown(10 * time.Second)

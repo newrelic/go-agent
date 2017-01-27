@@ -5,8 +5,11 @@ import (
 	"fmt"
 
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 	"github.com/pkg/errors"
 )
+
+func init() { internal.TrackUsage("integration", "pkg-errors") }
 
 type nrpkgerror struct {
 	error
@@ -66,8 +69,8 @@ func (e nrpkgerror) ErrorClass() string {
 	return fmt.Sprintf("%T", cause)
 }
 
-// Transform wraps an error from github.com/pkg/errors so that the stacktrace
+// Wrap wraps an error from github.com/pkg/errors so that the stacktrace
 // provided by the error matches the format expected by the newrelic package.
-func Transform(e error) error {
+func Wrap(e error) error {
 	return nrpkgerror{e}
 }
