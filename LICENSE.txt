@@ -5,46 +5,235 @@ under the following BSD license:
 
 -------------------------------------------------------------------------------
 
-All components of this product are Copyright (c) 2016 New Relic, Inc.  All
-rights reserved.
+New Relic Pre-Release Program Terms
 
-Certain inventions disclosed in this file may be claimed within patents owned or
-patent applications filed by New Relic, Inc. or third parties.
+These terms apply to the associated software. By downloading or installing the
+software, you signify that you have read, understood, and accept these terms
+(the “Agreement”) governing your participation in New Relic’s program for making
+beta and pre-release versions of its software, services, and features available
+for testing and evaluation purposes (the “Pre-Release Program”). This Agreement
+is entered into by and between New Relic, Inc. (“New Relic”) and you on behalf
+of yourself or the entity associated with your New Relic account (collectively
+referred to herein as “you” or “your,”) as of the date you download the
+applicable software (the “Effective Date”). You represent and warrant that you
+have the legal authority to enter into this Agreement personally or on behalf of
+the company or organization associated with your New Relic account and such
+Agreement shall be valid and binding on such company or organization (“Eligible
+Organizations”).
 
-Subject to the terms of this notice, New Relic grants you a nonexclusive,
-nontransferable license, without the right to sublicense, to (a) install and
-execute one copy of these files on any number of workstations owned or
-controlled by you and (b) distribute verbatim copies of these files to third
-parties.  You may install, execute, and distribute these files and their
-contents only in conjunction with your direct use of New Relic’s services.
-These files and their contents shall not be used in conjunction with any other
-product or software, including but not limited to those that may compete with
-any New Relic product, feature, or software.  As a condition to the foregoing
-grant, you must provide this notice along with each copy you distribute and you
-must not remove, alter, or obscure this notice.  In the event you submit or
-provide any feedback, code, pull requests, or suggestions to New Relic you
-hereby grant New Relic a worldwide, non-exclusive, irrevocable, transferrable,
-fully paid-up license to use the code, algorithms, patents, and ideas therein in
-our products.
+IF YOU DO NOT AGREE TO THESE TERMS OR CANNOT AGREE TO THESE TERMS ON BEHALF OF
+AN ELIGIBLE ORGANIZATION, DO NOT USE THE SOFTWARE AND/OR BETA SERVICE.
 
-All other use, reproduction, modification, distribution, or other exploitation
-of these files is strictly prohibited, except as may be set forth in a separate
-written license agreement between you and New Relic.  The terms of any such
-license agreement will control over this notice.  The license stated above will
-be automatically terminated and revoked if you exceed its scope or violate any
-of the terms of this notice.
+1. Introduction.
 
-This License does not grant permission to use the trade names, trademarks,
-service marks, or product names of New Relic, except as required for reasonable
-and customary use in describing the origin of this file and reproducing the
-content of this notice.  You may not mark or brand this file with any trade
-name, trademarks, service marks, or product names other than the original brand
-(if any) provided by New Relic.
+The Pre-Release Program enables you to test experimental features and products
+before they are made generally available. New Relic reserves the right to
+withhold or discontinue any software, features, and/or related materials which
+are designated as a beta, pilot, limited release, developer preview, technology
+preview, non-production, evaluation, or by a similar description (each, a “Beta
+Service” and collectively the “Beta Services”) in its sole discretion and
+provides no guarantee that any Beta Service will eventually be made commercially
+or generally available.
 
-Unless otherwise expressly agreed by New Relic in a separate written license
-agreement, these files are provided AS IS, WITHOUT WARRANTY OF ANY KIND,
-including without any implied warranties of MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE, TITLE, or NON-INFRINGEMENT.  As a condition to your use of
-these files, you are solely responsible for such use. New Relic will have no
-liability to you for direct, indirect, consequential, incidental, special, or
-punitive damages or for lost profits or data.
+Beta Services are pre-release versions and may have bugs, stability issues, or
+other problems. Use of the Beta Services may result in unexpected results, loss
+of data, outages, or other damage to your systems or networks. New Relic advises
+against using the Beta Services in production. No support is offered with or for
+Beta Services. Beta Services are provided “AS IS” and you hereby release New
+Relic from any liability arising from or related to your use of the Beta
+Services. NEW RELIC MAKES NO WARRANTY THAT BETA SERVICES WILL MEET YOUR
+REQUIREMENTS OR WILL BE ACCURATE, RELIABLE, ERROR-FREE, UNINTERRUPTED, TIMELY,
+OR SECURE. NEW RELIC DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, REGARDING THE
+BETA SERVICES. YOUR USE OF BETA SERVICES IS AT YOUR OWN RISK.
+
+2. Rights and Restrictions.
+
+2.1 Evaluation License. Subject to your compliance with the Agreement, New Relic
+hereby grants you a limited, nonexclusive, non-transferable, revocable license,
+during the applicable Beta Period (defined below), to use the Beta Service(s)
+solely for the purpose of internal evaluation and supplying Feedback to New
+Relic.
+
+2.2 License Restrictions. The rights granted herein are subject to the following
+restrictions: You may not (and may not authorize or enable a third party to):
+(i) reverse engineer, decompile, disassemble, or otherwise attempt to discover
+source code or other trade secrets in the Beta Services; (ii) access the Beta
+Services in order to build a similar or competitive application, service,
+feature or other competitive purpose; (iii) remove or destroy any copyright
+notices or other proprietary marks contained on or in the Beta Services; (iv)
+use the Beta Services for any benchmarking purposes or in connection with a
+service bureau, timeshare, service provider, or like activity where you operate
+the Beta Services on behalf of a third party; (v) mirror, frame, copy, modify,
+host, rent, lease, sell, commercialize, sublicense, assign or otherwise transfer
+the Beta Services, use of the Beta Services, or access to the Beta Services;
+(vi) use the Beta Services in a manner that may violate or infringe the
+intellectual property, data protection, or other proprietary right of a third
+party; (vii) use or access the Beta Services in an unauthorized manner and/or in
+a manner that violates any applicable law, rule, contract, or guideline
+(including but not limited to our Community Guidelines); (viii) use the Beta
+Services to transmit worms, viruses, malicious code, security vulnerabilities,
+or otherwise negatively impact network operations, third parties, or New Relic;
+(ix) use any data mining or similar data gathering and extraction methods in
+connection with the Beta Services; (x) use the Beta Services to process
+sensitive personal information, e.g., “personal information” of children as
+defined by the Children’s Online Privacy Protection Act, “protected health
+information” as defined by the Health Insurance Portability and Accountability
+Act of 1996, government issued identification numbers, financial account
+information, payment card data, “special categories of data” as described in
+Article 8 of EU Directive 95/46/EC, or other information subject to regulatory,
+statutory, or contractual restrictions. New Relic reserves the right, but not
+the obligation, to monitor or review your use of the Beta Services at any time
+and may investigate any suspected violations of this Agreement.
+
+2.3 Intellectual Property Rights. You acknowledge and agree that, as between you
+and New Relic, New Relic owns all right, title, and interest in and to the Beta
+Services, Confidential Information, and Feedback, including but not limited to
+all intellectual property and proprietary rights therein. New Relic and its
+licensors reserve all rights and licenses not expressly granted herein. Software
+included in a Beta Service may be governed by an open source license; if there
+is a conflict between those terms and this Agreement, those terms shall govern
+for that software.
+
+2.4 Feedback. As a participant in the Pre-Release Program, you may provide
+feedback, comments, and/or suggestions based on or relating to the Beta Services
+(“Feedback”). You acknowledge and agree that all Feedback will be the sole and
+exclusive property of New Relic. You hereby irrevocably transfer and assign to
+New Relic all right, title, and interest in all Feedback, including but not
+limited to all intellectual property and proprietary rights therein. At New
+Relic’s request and expense, you agree to execute documents and take such
+further acts as New Relic may reasonably request to assist New Relic to acquire,
+perfect, and maintain such rights in the Feedback.
+
+3. Confidential Information. “Confidential Information” includes the Beta
+Services and any related non-public information, including without limitation
+features, functionality, designs, user interface, capabilities, specifications,
+architectural diagrams, usage data, APIs, deployment schedules, email lists, bug
+databases, know how, source code, potential features, Feedback, and information
+related to any business or technical information of New Relic, including without
+limitation product plans, costs, prices, finances, marketing plans, business
+opportunities, research, development, negotiations. You will not use or disclose
+any Confidential Information, except as necessary for the performance of this
+Agreement, and you will use reasonable efforts to protect Confidential
+Information from unauthorized use or disclosure. You may disclose Confidential
+Information only to those employees with a bona fide need to know, provided that
+each employee has signed a written agreement with nondisclosure restrictions at
+least as protective of the Confidential Information as those set forth herein.
+For the purposes of this section, information will not be deemed Confidential
+Information if it (a) is or becomes generally known to the public through no
+fault or breach of this Agreement; (b) is rightfully known by you at the time of
+disclosure without an obligation of confidentiality; (c) is independently
+developed by you without access to or use of the Confidential Information; or
+(d) is rightfully obtained by you from a third party without restriction on use
+or disclosure. Upon New Relic’s request, you agree to return all Confidential
+Information to New Relic. You also agree to destroy all version of the
+Confidential Information in your possession within 30 days of New Relic’s
+commercial release of the applicable Beta Service or immediately upon
+termination of this Agreement.
+
+4. Disclaimers & Acknowledgement
+
+4.1 Warranty Disclaimers. You acknowledge that Beta Services are provided “AS
+IS.” TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEW RELIC DISCLAIMS ALL
+WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES
+REGARDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT,
+SECURITY, AND ANY WARRANTIES ARISING OUT OF THE COURSE OF DEALING OR USAGE OF
+TRADE.
+
+4.2 Acknowledgement of Beta Services. You acknowledge and agree that (a) the
+Beta Service is not an official product and has not been commercially released
+for sale by New Relic; (b) the Beta Service may not operate properly, be in
+final form, or fully function; (c) the Beta Service may contain errors, design
+flaws, security vulnerabilities, or other problems; (d) it may not be possible
+to make the Beta Service fully functional or secure; (e) the information
+obtained using the Beta Services may not be accurate; (f) use of the Beta
+Service may result in unexpected results, vulnerabilities, loss of data, project
+delays, or other unpredictable damage or loss; (g) New Relic is under no
+obligation to release a commercial or generally available version of the Beta
+Service; and (h) New Relic has the right unilaterally to abandon development of
+the Beta Service at ay time and without any obligation or liability to you.
+
+4.3 Your Data. You acknowledge and agree that you should not rely on the Beta
+Service for any reason. You further acknowledge and agree that you are solely
+responsible for maintaining and protecting all data and information that is
+stored, retrieved, or otherwise processed by the Beta Service in accordance with
+your contractual obligations and requirements under applicable law. Without
+limiting the foregoing, you are responsible for all costs and expenses required
+to backup and restore any data and information that is lost or corrupted as a
+result of your use of the Beta Services. You understand and agree that your Data
+may be transferred to the United States for storage, processing, and use by New
+Relic to provide the Beta Services. For any data that you process using the Beta
+Services, you represent and warrant that you have all necessary rights and
+consent to do so. New Relic has no obligation to store any data you process
+using the Beta Services and shall have no liability for the deletion or accuracy
+of such data.
+
+5. Limitation of Liability. TO THE EXTENT PERMITTED BY APPLICABLE LAW, IN NO
+EVENT WILL NEW RELIC BE LIABLE TO YOU OR ANY THIRD PARTY FOR DAMAGES OF ANY
+KIND, INCLUDING, WITHOUT LIMITATION, DIRECT, INDIRECT, SPECIAL, INCIDENTAL,
+PUNITIVE OR CONSEQUENTIAL DAMAGES (INCLUDING LOSS OF USE, DATA, BUSINESS, OR
+PROFITS) ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT OR IN CONNECTION
+WITH THE INSTALLATION, USE, OR INABILITY TO USE THE BETA SERVICES OR FOR ANY
+ERROR OR DEFECT IN THE BETA SERVICES, WHETHER SUCH LIABILITY ARISES FROM A CLAIM
+BASED UPON CONTRACT, WARRANTY, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR
+OTHERWISE, AND WHETHER OR NOT NEW RELIC HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH LOSS OR DAMAGES. THE PARTIES HAVE AGREED THAT THESE LIMITATIONS WILL
+SURVIVE AND APPLY EVEN IF ANY LIMITED REMEDY SPECIFIED IN THIS AGREEMENT IS
+FOUND TO HAVE FAILED OF ITS ESSENTIAL PURPOSE.
+
+6. Indemnity. You agree to indemnify and hold New Relic, its parents,
+subsidiaries, affiliates, officers, agents, employees, and licensors harmless
+from any claims, fees, fines, demands, losses, liabilities, damages, and costs,
+including reasonable attorney’s fees, arising from or related to your use of the
+Beta Services or Pre-Release Program, including but not limited to allegations
+arising from your breach of any terms herein and/or allegations that data
+processed by the Beta Services violates or infringes the privacy, data
+protection, or intellectual property rights of a third party.
+
+7. Export Restrictions. You acknowledge that the software in the Beta Services
+licensed hereunder may be subject to the export control laws and regulations of
+the U.S. and other countries. You agree that you will not export or re-export
+the Beta Service, any part thereof, or any process or service that is the direct
+product of the Beta Service to any country, person or entity subject to U.S.
+export restrictions.
+
+8. Term and Termination. This Agreement shall commence upon the Effective Date
+and shall remain in effect until terminated by New Relic. The start date and end
+date of availability for any particular Beta Service (the “Beta Period”) shall
+be determined at the sole discretion of New Relic. The license granted in
+Section 2.1 with respect to a particular Beta Service shall terminate upon the
+earliest of: (i) New Relic making the Beta Service or a successor version of the
+Beta Service generally available or available for commercial release, (ii) New
+Relic ceasing to make the Beta Service available to you, or (iii) New Relic
+terminating this Agreement. New Relic may terminate this Agreement for any
+reason upon notice to you. Sections 2.3, 2.4, 3, 4, 5, 6, 8 and 9 will survive
+any termination or expiration of this Agreement.
+
+9. General. This Agreement will be governed by and construed in accordance with
+the laws of the State of California. The parties expressly agree that the United
+Nations Convention on Contracts for the International Sale of Goods will not
+apply. Any legal action or proceeding arising under this Agreement, will be
+brought exclusively in the federal or state courts located in San Francisco
+County, California and the parties hereby irrevocably consent to the personal
+jurisdiction and venue. If any provision of this Agreement is held invalid or
+unenforceable by a court of competent jurisdiction, such provision will be
+construed so as to be enforceable to the maximum extent permissible by law, and
+the remaining provisions of the Agreement will remain in full force and effect.
+You may not assign this Agreement, by operation of law or otherwise, without the
+prior written consent of New Relic. Any attempted assignment without such
+consent will be void and of no effect. Your obligations under this Agreement
+shall survive termination of the Agreement and shall be binding upon your
+agents, representatives, heirs, successors and assigns. All notices or reports
+to New Relic as permitted or required under this Agreement shall be in writing
+and must be received at New Relic Inc., 188 Spear Street, Suite 1200, ATTN:
+General Counsel, San Francisco, CA 95105, USA by personal delivery or by
+certified or registered mail, return receipt requested, and shall be deemed
+given upon personal delivery to or if sent by certified or registered mail,
+three (3) days after the date of mailing. All notices or reports to you shall be
+delivered by posting a notice, message, banner, or other form of alert to your
+New Relic account, by email, or by facsimile transmission. This Agreement
+constitutes the entire agreement between the parties pertaining to the subject
+matter hereof, and supersedes any and all prior agreements, communications and
+understandings (both written and oral) regarding such subject matter. For
+clarity, in the event of any inconsistency, conflict, or ambiguity between this
+Agreement and any other contract agreement between the parties, as it relates to
+Beta Services and/or the Pre-Release Program, this Agreement shall govern.
