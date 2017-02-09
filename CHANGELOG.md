@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.6.0
+
 * Added support for custom error messages and stack traces.  Errors provided
   to `Transaction.NoticeError` will now be checked to see if
   they implement [ErrorClasser](https://godoc.org/github.com/newrelic/go-agent#ErrorClasser)
