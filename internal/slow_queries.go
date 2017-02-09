@@ -53,7 +53,7 @@ type slowQueryInstance struct {
 	Host               string
 	PortPathOrID       string
 	DatabaseName       string
-	StackTrace         *StackTrace
+	StackTrace         StackTrace
 
 	// Fields populated when merging into the harvest:
 

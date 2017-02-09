@@ -20,7 +20,7 @@ type traceNodeHeap []traceNode
 // start using a map.  This struct is not embedded into traceNode to minimize
 // the size of traceNode:  Not all nodes will have parameters.
 type traceNodeParams struct {
-	StackTrace      *StackTrace
+	StackTrace      StackTrace
 	CleanURL        string
 	Database        string
 	Host            string

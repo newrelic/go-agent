@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -35,15 +34,6 @@ func TxnErrorFromPanic(now time.Time, v interface{}) TxnError {
 	}
 }
 
-// TxnErrorFromError creates a new TxnError from an error.
-func TxnErrorFromError(now time.Time, err error) TxnError {
-	return TxnError{
-		When:  now,
-		Msg:   err.Error(),
-		Klass: reflect.TypeOf(err).String(),
-	}
-}
-
 // TxnErrorFromResponseCode creates a new TxnError from an http response code.
 func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
 	return TxnError{
@@ -56,7 +46,7 @@ func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
 // TxnError is an error captured in a Transaction.
 type TxnError struct {
 	When  time.Time
-	Stack *StackTrace
+	Stack StackTrace
 	Msg   string
 	Klass string
 }

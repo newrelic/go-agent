@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sync"
 	"time"
 
@@ -363,8 +364,25 @@ func (txn *txn) NoticeError(err error) error {
 		return errNilError
 	}
 
-	e := internal.TxnErrorFromError(time.Now(), err)
-	e.Stack = internal.GetStackTrace(2)
+	e := internal.TxnError{
+		When: time.Now(),
+		Msg:  err.Error(),
+	}
+	if ec, ok := err.(ErrorClasser); ok {
+		e.Klass = ec.ErrorClass()
+	}
+	if "" == e.Klass {
+		e.Klass = reflect.TypeOf(err).String()
+	}
+	if st, ok := err.(StackTracer); ok {
+		e.Stack = st.StackTrace()
+		// Note that if the provided stack trace is excessive in length,
+		// it will be truncated during JSON creation.
+	}
+	if nil == e.Stack {
+		e.Stack = internal.GetStackTrace(2)
+	}
+
 	return txn.noticeErrorInternal(e)
 }
 
