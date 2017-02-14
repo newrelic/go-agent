@@ -7,10 +7,7 @@ const (
 	webRollup        = "WebTransaction"
 	backgroundRollup = "OtherTransaction/all"
 
-	errorsAll        = "Errors/all"
-	errorsWeb        = "Errors/allWeb"
-	errorsBackground = "Errors/allOther"
-	errorsPrefix     = "Errors/"
+	errorsPrefix = "Errors/"
 
 	// "HttpDispatcher" metric is used for the overview graph, and
 	// therefore should only be made for web transactions.
@@ -37,18 +34,6 @@ const (
 
 	supportabilityDropped = "Supportability/MetricsDropped"
 
-	// source.datanerd.us/agents/agent-specs/blob/master/Datastore-Metrics-PORTED.md
-	datastoreAll   = "Datastore/all"
-	datastoreWeb   = "Datastore/allWeb"
-	datastoreOther = "Datastore/allOther"
-
-	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_segment.md
-	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_cat.md
-	// source.datanerd.us/agents/agent-specs/blob/master/Cross-Application-Tracing-PORTED.md
-	externalAll   = "External/all"
-	externalWeb   = "External/allWeb"
-	externalOther = "External/allOther"
-
 	// Runtime/System Metrics
 	memoryPhysical       = "Memory/Physical"
 	heapObjectsAllocated = "Memory/Heap/AllocatedObjects"
@@ -59,6 +44,60 @@ const (
 	runGoroutine         = "Go/Runtime/Goroutines"
 	gcPauseFraction      = "GC/System/Pause Fraction"
 	gcPauses             = "GC/System/Pauses"
+)
+
+type rollupMetric struct {
+	all      string
+	allWeb   string
+	allOther string
+}
+
+func newRollupMetric(s string) rollupMetric {
+	return rollupMetric{
+		all:      s + "all",
+		allWeb:   s + "allWeb",
+		allOther: s + "allOther",
+	}
+}
+
+func (r rollupMetric) webOrOther(isWeb bool) string {
+	if isWeb {
+		return r.allWeb
+	}
+	return r.allOther
+}
+
+var (
+	errorsRollupMetric = newRollupMetric("Errors/")
+
+	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_segment.md
+	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_cat.md
+	// source.datanerd.us/agents/agent-specs/blob/master/Cross-Application-Tracing-PORTED.md
+	externalRollupMetric = newRollupMetric("External/")
+
+	// source.datanerd.us/agents/agent-specs/blob/master/Datastore-Metrics-PORTED.md
+	datastoreRollupMetric = newRollupMetric("Datastore/")
+
+	datastoreProductMetricsCache = map[string]rollupMetric{
+		"Cassandra":     newRollupMetric("Datastore/Cassandra/"),
+		"Derby":         newRollupMetric("Datastore/Derby/"),
+		"Elasticsearch": newRollupMetric("Datastore/Elasticsearch/"),
+		"Firebird":      newRollupMetric("Datastore/Firebird/"),
+		"IBMDB2":        newRollupMetric("Datastore/IBMDB2/"),
+		"Informix":      newRollupMetric("Datastore/Informix/"),
+		"Memcached":     newRollupMetric("Datastore/Memcached/"),
+		"MongoDB":       newRollupMetric("Datastore/MongoDB/"),
+		"MySQL":         newRollupMetric("Datastore/MySQL/"),
+		"MSSQL":         newRollupMetric("Datastore/MSSQL/"),
+		"Oracle":        newRollupMetric("Datastore/Oracle/"),
+		"Postgres":      newRollupMetric("Datastore/Postgres/"),
+		"Redis":         newRollupMetric("Datastore/Redis/"),
+		"Solr":          newRollupMetric("Datastore/Solr/"),
+		"SQLite":        newRollupMetric("Datastore/SQLite/"),
+		"CouchDB":       newRollupMetric("Datastore/CouchDB/"),
+		"Riak":          newRollupMetric("Datastore/Riak/"),
+		"VoltDB":        newRollupMetric("Datastore/VoltDB/"),
+	}
 )
 
 func customSegmentMetric(s string) string {
@@ -81,12 +120,6 @@ type externalMetricKey struct {
 	ExternalTransactionName string
 }
 
-type datastoreProductMetrics struct {
-	All   string // Datastore/{datastore}/all
-	Web   string // Datastore/{datastore}/allWeb
-	Other string // Datastore/{datastore}/allOther
-}
-
 func datastoreScopedMetric(key DatastoreMetricKey) string {
 	if "" != key.Collection {
 		return datastoreStatementMetric(key)
@@ -94,16 +127,13 @@ func datastoreScopedMetric(key DatastoreMetricKey) string {
 	return datastoreOperationMetric(key)
 }
 
-func datastoreProductMetric(key DatastoreMetricKey) datastoreProductMetrics {
+// Datastore/{datastore}/*
+func datastoreProductMetric(key DatastoreMetricKey) rollupMetric {
 	d, ok := datastoreProductMetricsCache[key.Product]
 	if ok {
 		return d
 	}
-	return datastoreProductMetrics{
-		All:   "Datastore/" + key.Product + "/all",
-		Web:   "Datastore/" + key.Product + "/allWeb",
-		Other: "Datastore/" + key.Product + "/allOther",
-	}
+	return newRollupMetric("Datastore/" + key.Product + "/")
 }
 
 // Datastore/operation/{datastore}/{operation}

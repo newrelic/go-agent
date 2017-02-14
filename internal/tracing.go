@@ -356,12 +356,9 @@ func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb 
 
 	// External Segment Metrics
 	for key, data := range t.externalSegments {
-		metrics.add(externalAll, "", *data, forced)
-		if isWeb {
-			metrics.add(externalWeb, "", *data, forced)
-		} else {
-			metrics.add(externalOther, "", *data, forced)
-		}
+		metrics.add(externalRollupMetric.all, "", *data, forced)
+		metrics.add(externalRollupMetric.webOrOther(isWeb), "", *data, forced)
+
 		hostMetric := externalHostMetric(key)
 		metrics.add(hostMetric, "", *data, unforced)
 		if "" != key.ExternalCrossProcessID && "" != key.ExternalTransactionName {
@@ -381,17 +378,12 @@ func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb 
 
 	// Datastore Segment Metrics
 	for key, data := range t.datastoreSegments {
-		metrics.add(datastoreAll, "", *data, forced)
+		metrics.add(datastoreRollupMetric.all, "", *data, forced)
+		metrics.add(datastoreRollupMetric.webOrOther(isWeb), "", *data, forced)
 
 		product := datastoreProductMetric(key)
-		metrics.add(product.All, "", *data, forced)
-		if isWeb {
-			metrics.add(datastoreWeb, "", *data, forced)
-			metrics.add(product.Web, "", *data, forced)
-		} else {
-			metrics.add(datastoreOther, "", *data, forced)
-			metrics.add(product.Other, "", *data, forced)
-		}
+		metrics.add(product.all, "", *data, forced)
+		metrics.add(product.webOrOther(isWeb), "", *data, forced)
 
 		if key.Host != "" && key.PortPathOrID != "" {
 			instance := datastoreInstanceMetric(key)
