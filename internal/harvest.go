@@ -137,12 +137,8 @@ func CreateTxnMetrics(args CreateTxnMetricsArgs, metrics *metricTable) {
 
 	// Error Metrics
 	if args.HasErrors {
-		metrics.addSingleCount(errorsAll, forced)
-		if args.IsWeb {
-			metrics.addSingleCount(errorsWeb, forced)
-		} else {
-			metrics.addSingleCount(errorsBackground, forced)
-		}
+		metrics.addSingleCount(errorsRollupMetric.all, forced)
+		metrics.addSingleCount(errorsRollupMetric.webOrOther(args.IsWeb), forced)
 		metrics.addSingleCount(errorsPrefix+args.Name, forced)
 	}
 

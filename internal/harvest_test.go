@@ -190,8 +190,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{errorsAll, "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{errorsWeb, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Errors/" + webName, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
@@ -220,8 +220,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
-		{errorsAll, "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{errorsBackground, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
