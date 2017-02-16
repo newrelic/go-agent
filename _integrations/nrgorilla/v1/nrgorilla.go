@@ -1,4 +1,4 @@
-// Package nrgin introduces to support for the gorilla/mux framework.  See
+// Package nrgorilla introduces to support for the gorilla/mux framework.  See
 // examples/_gorilla/main.go for an example.
 package nrgorilla
 
