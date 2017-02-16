@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.7.0
+
 * Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`
   package.
   * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
