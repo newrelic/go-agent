@@ -1,5 +1,10 @@
 ## ChangeLog
 
+* Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`
+  package.
+  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
+  * [Example](examples/_gorilla/main.go)
+
 ## 1.6.0
 
 * Added support for custom error messages and stack traces.  Errors provided
