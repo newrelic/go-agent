@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Fixed incorrect metric rule application when the metric rule is flagged to
+  terminate and matches but the name is unchanged.
+
 ## 1.7.0
 
 * Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`

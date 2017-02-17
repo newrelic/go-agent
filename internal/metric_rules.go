@@ -10,8 +10,8 @@ import (
 type ruleResult int
 
 const (
-	ruleChanged ruleResult = iota
-	ruleUnchanged
+	ruleMatched ruleResult = iota
+	ruleUnmatched
 	ruleIgnore
 )
 
@@ -99,16 +99,16 @@ func (rules metricRules) Swap(i, j int) {
 	rules[i], rules[j] = rules[j], rules[i]
 }
 
-func replaceFirst(re *regexp.Regexp, s string, replacement string) string {
+func replaceFirst(re *regexp.Regexp, s string, replacement string) (ruleResult, string) {
 	// Note that ReplaceAllStringFunc cannot be used here since it does
 	// not replace $1 placeholders.
 	loc := re.FindStringIndex(s)
 	if nil == loc {
-		return s
+		return ruleUnmatched, s
 	}
 	firstMatch := s[loc[0]:loc[1]]
 	firstMatchReplaced := re.ReplaceAllString(firstMatch, replacement)
-	return s[0:loc[0]] + firstMatchReplaced + s[loc[1]:]
+	return ruleMatched, s[0:loc[0]] + firstMatchReplaced + s[loc[1]:]
 }
 
 func (r *metricRule) apply(s string) (ruleResult, string) {
@@ -120,28 +120,29 @@ func (r *metricRule) apply(s string) (ruleResult, string) {
 		if r.re.MatchString(s) {
 			return ruleIgnore, ""
 		}
-		return ruleUnchanged, s
+		return ruleUnmatched, s
 	}
 
-	var out string
-
 	if r.ReplaceAll {
-		out = r.re.ReplaceAllString(s, r.TransformedReplacement)
+		if r.re.MatchString(s) {
+			return ruleMatched, r.re.ReplaceAllString(s, r.TransformedReplacement)
+		}
+		return ruleUnmatched, s
 	} else if r.EachSegment {
 		segments := strings.Split(string(s), "/")
 		applied := make([]string, len(segments))
+		result := ruleUnmatched
 		for i, segment := range segments {
-			applied[i] = replaceFirst(r.re, segment, r.TransformedReplacement)
+			var segmentMatched ruleResult
+			segmentMatched, applied[i] = replaceFirst(r.re, segment, r.TransformedReplacement)
+			if segmentMatched == ruleMatched {
+				result = ruleMatched
+			}
 		}
-		out = strings.Join(applied, "/")
+		return result, strings.Join(applied, "/")
 	} else {
-		out = replaceFirst(r.re, s, r.TransformedReplacement)
+		return replaceFirst(r.re, s, r.TransformedReplacement)
 	}
-
-	if out == s {
-		return ruleUnchanged, out
-	}
-	return ruleChanged, out
 }
 
 func (rules metricRules) Apply(input string) string {
@@ -154,7 +155,7 @@ func (rules metricRules) Apply(input string) string {
 		if ruleIgnore == res {
 			return ""
 		}
-		if (ruleChanged == res) && rule.Terminate {
+		if (ruleMatched == res) && rule.Terminate {
 			break
 		}
 	}
