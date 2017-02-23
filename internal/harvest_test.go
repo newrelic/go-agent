@@ -72,8 +72,8 @@ func TestMergeFailedHarvest(t *testing.T) {
 	h := NewHarvest(start1)
 	h.Metrics.addCount("zip", 1, forced)
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
-		Name:      "finalName",
-		Timestamp: time.Now(),
+		FinalName: "finalName",
+		Start:     time.Now(),
 		Duration:  1 * time.Second,
 	})
 	customEventParams := map[string]interface{}{"zip": 1}
@@ -83,11 +83,13 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}
 	h.CustomEvents.Add(ce)
 	h.ErrorEvents.Add(&ErrorEvent{
-		Klass:    "klass",
-		Msg:      "msg",
-		When:     time.Now(),
-		TxnName:  "finalName",
-		Duration: 1 * time.Second,
+		Klass: "klass",
+		Msg:   "msg",
+		When:  time.Now(),
+		TxnEvent: TxnEvent{
+			FinalName: "finalName",
+			Duration:  1 * time.Second,
+		},
 	})
 	e := &TxnError{
 		When:  time.Now(),
@@ -172,17 +174,18 @@ func TestMergeFailedHarvest(t *testing.T) {
 }
 
 func TestCreateTxnMetrics(t *testing.T) {
+	txnErr := &TxnError{}
+	txnErrors := []*TxnError{txnErr}
 	webName := "WebTransaction/zip/zap"
 	backgroundName := "OtherTransaction/zip/zap"
-	args := CreateTxnMetricsArgs{
-		Duration:       123 * time.Second,
-		Exclusive:      109 * time.Second,
-		ApdexThreshold: 2 * time.Second,
-	}
+	args := &TxnData{}
+	args.Duration = 123 * time.Second
+	args.Exclusive = 109 * time.Second
+	args.ApdexThreshold = 2 * time.Second
 
-	args.Name = webName
+	args.FinalName = webName
 	args.IsWeb = true
-	args.HasErrors = true
+	args.Errors = txnErrors
 	args.Zone = ApdexTolerating
 	metrics := newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -197,9 +200,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
 	})
 
-	args.Name = webName
+	args.FinalName = webName
 	args.IsWeb = true
-	args.HasErrors = false
+	args.Errors = nil
 	args.Zone = ApdexTolerating
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -211,9 +214,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
 	})
 
-	args.Name = backgroundName
+	args.FinalName = backgroundName
 	args.IsWeb = false
-	args.HasErrors = true
+	args.Errors = txnErrors
 	args.Zone = ApdexNone
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
@@ -225,9 +228,9 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
-	args.Name = backgroundName
+	args.FinalName = backgroundName
 	args.IsWeb = false
-	args.HasErrors = false
+	args.Errors = nil
 	args.Zone = ApdexNone
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)

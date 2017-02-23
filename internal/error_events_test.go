@@ -20,12 +20,14 @@ func testErrorEventJSON(t *testing.T, e *ErrorEvent, expect string) {
 
 func TestErrorEventMarshal(t *testing.T) {
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass:    "*errors.errorString",
-		Msg:      "hello",
-		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		TxnName:  "myName",
-		Duration: 3 * time.Second,
-		Attrs:    nil,
+		Klass: "*errors.errorString",
+		Msg:   "hello",
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Attrs:     nil,
+		},
 	}, `[
 		{
 			"type":"TransactionError",
@@ -39,13 +41,15 @@ func TestErrorEventMarshal(t *testing.T) {
 		{}
 	]`)
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass:    "*errors.errorString",
-		Msg:      "hello",
-		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		TxnName:  "myName",
-		Duration: 3 * time.Second,
-		Queuing:  5 * time.Second,
-		Attrs:    nil,
+		Klass: "*errors.errorString",
+		Msg:   "hello",
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Queuing:   5 * time.Second,
+			Attrs:     nil,
+		},
 	}, `[
 		{
 			"type":"TransactionError",
@@ -60,17 +64,19 @@ func TestErrorEventMarshal(t *testing.T) {
 		{}
 	]`)
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass:    "*errors.errorString",
-		Msg:      "hello",
-		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		TxnName:  "myName",
-		Duration: 3 * time.Second,
-		Queuing:  5 * time.Second,
-		DatastoreExternalTotals: DatastoreExternalTotals{
-			externalCallCount:  22,
-			externalDuration:   1122334 * time.Millisecond,
-			datastoreCallCount: 33,
-			datastoreDuration:  5566778 * time.Millisecond,
+		Klass: "*errors.errorString",
+		Msg:   "hello",
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Queuing:   5 * time.Second,
+			DatastoreExternalTotals: DatastoreExternalTotals{
+				externalCallCount:  22,
+				externalDuration:   1122334 * time.Millisecond,
+				datastoreCallCount: 33,
+				datastoreDuration:  5566778 * time.Millisecond,
+			},
 		},
 	}, `[
 		{
@@ -103,12 +109,14 @@ func TestErrorEventAttributes(t *testing.T) {
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass:    "*errors.errorString",
-		Msg:      "hello",
-		When:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		TxnName:  "myName",
-		Duration: 3 * time.Second,
-		Attrs:    attr,
+		Klass: "*errors.errorString",
+		Msg:   "hello",
+		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Attrs:     attr,
+		},
 	}, `[
 		{
 			"type":"TransactionError",

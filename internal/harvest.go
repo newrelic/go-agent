@@ -103,20 +103,8 @@ type PayloadCreator interface {
 	Data(agentRunID string, harvestStart time.Time) ([]byte, error)
 }
 
-// CreateTxnMetricsArgs contains the parameters to CreateTxnMetrics.
-type CreateTxnMetricsArgs struct {
-	IsWeb          bool
-	Duration       time.Duration
-	Exclusive      time.Duration
-	Name           string
-	Zone           ApdexZone
-	ApdexThreshold time.Duration
-	HasErrors      bool
-	Queueing       time.Duration
-}
-
 // CreateTxnMetrics creates metrics for a transaction.
-func CreateTxnMetrics(args CreateTxnMetricsArgs, metrics *metricTable) {
+func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	// Duration Metrics
 	rollup := backgroundRollup
 	if args.IsWeb {
@@ -124,26 +112,26 @@ func CreateTxnMetrics(args CreateTxnMetricsArgs, metrics *metricTable) {
 		metrics.addDuration(dispatcherMetric, "", args.Duration, 0, forced)
 	}
 
-	metrics.addDuration(args.Name, "", args.Duration, args.Exclusive, forced)
+	metrics.addDuration(args.FinalName, "", args.Duration, args.Exclusive, forced)
 	metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
 
 	// Apdex Metrics
 	if args.Zone != ApdexNone {
 		metrics.addApdex(apdexRollup, "", args.ApdexThreshold, args.Zone, forced)
 
-		mname := apdexPrefix + removeFirstSegment(args.Name)
+		mname := apdexPrefix + removeFirstSegment(args.FinalName)
 		metrics.addApdex(mname, "", args.ApdexThreshold, args.Zone, unforced)
 	}
 
 	// Error Metrics
-	if args.HasErrors {
+	if args.HasErrors() {
 		metrics.addSingleCount(errorsRollupMetric.all, forced)
 		metrics.addSingleCount(errorsRollupMetric.webOrOther(args.IsWeb), forced)
-		metrics.addSingleCount(errorsPrefix+args.Name, forced)
+		metrics.addSingleCount(errorsPrefix+args.FinalName, forced)
 	}
 
 	// Queueing Metrics
-	if args.Queueing > 0 {
-		metrics.addDuration(queueMetric, "", args.Queueing, args.Queueing, forced)
+	if args.Queuing > 0 {
+		metrics.addDuration(queueMetric, "", args.Queuing, args.Queuing, forced)
 	}
 }

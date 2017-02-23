@@ -20,8 +20,8 @@ func testTxnEventJSON(t *testing.T, e *TxnEvent, expect string) {
 
 func TestTxnEventMarshal(t *testing.T) {
 	testTxnEventJSON(t, &TxnEvent{
-		Name:      "myName",
-		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		FinalName: "myName",
+		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
 		Zone:      ApdexNone,
 		Attrs:     nil,
@@ -35,8 +35,8 @@ func TestTxnEventMarshal(t *testing.T) {
 	{},
 	{}]`)
 	testTxnEventJSON(t, &TxnEvent{
-		Name:      "myName",
-		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		FinalName: "myName",
+		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
 		Zone:      ApdexFailing,
 		Attrs:     nil,
@@ -51,8 +51,8 @@ func TestTxnEventMarshal(t *testing.T) {
 	{},
 	{}]`)
 	testTxnEventJSON(t, &TxnEvent{
-		Name:      "myName",
-		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		FinalName: "myName",
+		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
 		Queuing:   5 * time.Second,
 		Zone:      ApdexNone,
@@ -68,8 +68,8 @@ func TestTxnEventMarshal(t *testing.T) {
 	{},
 	{}]`)
 	testTxnEventJSON(t, &TxnEvent{
-		Name:      "myName",
-		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		FinalName: "myName",
+		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
 		Queuing:   5 * time.Second,
 		Zone:      ApdexNone,
@@ -108,8 +108,8 @@ func TestTxnEventAttributes(t *testing.T) {
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
 	testTxnEventJSON(t, &TxnEvent{
-		Name:      "myName",
-		Timestamp: time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		FinalName: "myName",
+		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 		Duration:  2 * time.Second,
 		Zone:      ApdexNone,
 		Attrs:     attr,

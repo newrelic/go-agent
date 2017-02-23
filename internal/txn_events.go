@@ -15,27 +15,14 @@ type DatastoreExternalTotals struct {
 	datastoreDuration  time.Duration
 }
 
-// TxnEvent represents a transaction.
-// https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
-// https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
-type TxnEvent struct {
-	Name      string
-	Timestamp time.Time
-	Duration  time.Duration
-	Queuing   time.Duration
-	Zone      ApdexZone
-	Attrs     *Attributes
-	DatastoreExternalTotals
-}
-
 // WriteJSON prepares JSON in the format expected by the collector.
 func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('[')
 	buf.WriteByte('{')
 	w.stringField("type", "Transaction")
-	w.stringField("name", e.Name)
-	w.floatField("timestamp", timeToFloatSeconds(e.Timestamp))
+	w.stringField("name", e.FinalName)
+	w.floatField("timestamp", timeToFloatSeconds(e.Start))
 	w.floatField("duration", e.Duration.Seconds())
 	if ApdexNone != e.Zone {
 		w.stringField("nr.apdexPerfZone", e.Zone.label())

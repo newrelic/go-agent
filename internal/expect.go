@@ -221,7 +221,7 @@ func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent)
 }
 
 func expectErrorEvent(v Validator, err *ErrorEvent, expect WantErrorEvent) {
-	validateStringField(v, "txnName", expect.TxnName, err.TxnName)
+	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
 	validateStringField(v, "klass", expect.Klass, err.Klass)
 	validateStringField(v, "msg", expect.Msg, err.Msg)
 	if (0 != err.Queuing) != expect.Queuing {
@@ -266,7 +266,7 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent
 
 func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
 	validateStringField(v, "apdex zone", expect.Zone, e.Zone.label())
-	validateStringField(v, "name", expect.Name, e.Name)
+	validateStringField(v, "name", expect.Name, e.FinalName)
 	if doDurationTests && 0 == e.Duration {
 		v.Error("zero duration", e.Duration)
 	}

@@ -8,7 +8,7 @@ import (
 
 func TestTxnTrace(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 0
@@ -100,7 +100,7 @@ func TestTxnTrace(t *testing.T) {
 
 func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 0
@@ -135,7 +135,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 
 func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 0
@@ -184,7 +184,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 
 func TestTxnTraceSegmentThreshold(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 7 * time.Second
@@ -240,7 +240,7 @@ func TestEmptyHarvestTraces(t *testing.T) {
 
 func TestLongestTraceSaved(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
@@ -301,7 +301,7 @@ func TestLongestTraceSaved(t *testing.T) {
 
 func TestTxnTraceStackTraceThreshold(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	tr := &Tracer{}
+	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 	tr.TxnTrace.StackTraceThreshold = 2 * time.Second
 	tr.TxnTrace.SegmentThreshold = 0

@@ -8,14 +8,10 @@ import (
 
 // ErrorEvent is an error event.
 type ErrorEvent struct {
-	Klass    string
-	Msg      string
-	When     time.Time
-	TxnName  string
-	Duration time.Duration
-	Queuing  time.Duration
-	Attrs    *Attributes
-	DatastoreExternalTotals
+	Klass string
+	Msg   string
+	When  time.Time
+	TxnEvent
 }
 
 // MarshalJSON is used for testing.
@@ -37,7 +33,7 @@ func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("error.class", e.Klass)
 	w.stringField("error.message", e.Msg)
 	w.floatField("timestamp", timeToFloatSeconds(e.When))
-	w.stringField("transactionName", e.TxnName)
+	w.stringField("transactionName", e.FinalName)
 	w.floatField("duration", e.Duration.Seconds())
 	if e.Queuing > 0 {
 		w.floatField("queueDuration", e.Queuing.Seconds())
