@@ -8,6 +8,44 @@ import (
 	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
+// TxnEvent represents a transaction.
+// https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
+// https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
+type TxnEvent struct {
+	FinalName string
+	Start     time.Time
+	Duration  time.Duration
+	Queuing   time.Duration
+	Zone      ApdexZone
+	Attrs     *Attributes
+	DatastoreExternalTotals
+}
+
+// TxnData contains the recorded data of a transaction.
+type TxnData struct {
+	TxnEvent
+	IsWeb          bool
+	Errors         TxnErrors // Lazily initialized.
+	Stop           time.Time
+	ApdexThreshold time.Duration
+	Exclusive      time.Duration
+
+	finishedChildren time.Duration
+	stamp            segmentStamp
+	currentDepth     int
+	stack            []segmentFrame
+
+	customSegments    map[string]*metricData
+	datastoreSegments map[DatastoreMetricKey]*metricData
+	externalSegments  map[externalMetricKey]*metricData
+
+	TxnTrace
+
+	SlowQueriesEnabled bool
+	SlowQueryThreshold time.Duration
+	SlowQueries        *slowQueries
+}
+
 type segmentStamp uint64
 
 type segmentTime struct {
@@ -35,33 +73,18 @@ type segmentEnd struct {
 	exclusive time.Duration
 }
 
-// Tracer tracks segments.
-type Tracer struct {
-	finishedChildren time.Duration
-	stamp            segmentStamp
-	currentDepth     int
-	stack            []segmentFrame
-
-	customSegments    map[string]*metricData
-	datastoreSegments map[DatastoreMetricKey]*metricData
-	externalSegments  map[externalMetricKey]*metricData
-
-	DatastoreExternalTotals
-
-	TxnTrace
-
-	SlowQueriesEnabled bool
-	SlowQueryThreshold time.Duration
-	SlowQueries        *slowQueries
-}
-
 const (
 	startingStackDepthAlloc   = 128
 	datastoreProductUnknown   = "Unknown"
 	datastoreOperationUnknown = "other"
 )
 
-func (t *Tracer) time(now time.Time) segmentTime {
+// HasErrors indicates whether the transaction had errors.
+func (t *TxnData) HasErrors() bool {
+	return len(t.Errors) > 0
+}
+
+func (t *TxnData) time(now time.Time) segmentTime {
 	// Update the stamp before using it so that a 0 stamp can be special.
 	t.stamp++
 	return segmentTime{
@@ -71,7 +94,7 @@ func (t *Tracer) time(now time.Time) segmentTime {
 }
 
 // TracerRootChildren is used to calculate a transaction's exclusive duration.
-func TracerRootChildren(t *Tracer) time.Duration {
+func TracerRootChildren(t *TxnData) time.Duration {
 	var lostChildren time.Duration
 	for i := 0; i < t.currentDepth; i++ {
 		lostChildren += t.stack[i].children
@@ -80,7 +103,7 @@ func TracerRootChildren(t *Tracer) time.Duration {
 }
 
 // StartSegment begins a segment.
-func StartSegment(t *Tracer, now time.Time) SegmentStartTime {
+func StartSegment(t *TxnData, now time.Time) SegmentStartTime {
 	if nil == t.stack {
 		t.stack = make([]segmentFrame, startingStackDepthAlloc)
 	}
@@ -104,7 +127,7 @@ func StartSegment(t *Tracer, now time.Time) SegmentStartTime {
 	}
 }
 
-func endSegment(t *Tracer, start SegmentStartTime, now time.Time) segmentEnd {
+func endSegment(t *TxnData, start SegmentStartTime, now time.Time) segmentEnd {
 	var s segmentEnd
 	if 0 == start.Stamp {
 		return s
@@ -147,7 +170,7 @@ func endSegment(t *Tracer, start SegmentStartTime, now time.Time) segmentEnd {
 }
 
 // EndBasicSegment ends a basic segment.
-func EndBasicSegment(t *Tracer, start SegmentStartTime, now time.Time, name string) {
+func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name string) {
 	end := endSegment(t, start, now)
 	if !end.valid {
 		return
@@ -172,7 +195,7 @@ func EndBasicSegment(t *Tracer, start SegmentStartTime, now time.Time, name stri
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url.URL) {
+func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL) {
 	end := endSegment(t, start, now)
 	if !end.valid {
 		return
@@ -211,7 +234,7 @@ func EndExternalSegment(t *Tracer, start SegmentStartTime, now time.Time, u *url
 
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
-	Tracer             *Tracer
+	Tracer             *TxnData
 	Start              SegmentStartTime
 	Now                time.Time
 	Product            string
@@ -248,7 +271,7 @@ var (
 	}
 )
 
-func (t Tracer) slowQueryWorthy(d time.Duration) bool {
+func (t TxnData) slowQueryWorthy(d time.Duration) bool {
 	return t.SlowQueriesEnabled && (d >= t.SlowQueryThreshold)
 }
 
@@ -344,7 +367,9 @@ func EndDatastoreSegment(p EndDatastoreParams) {
 }
 
 // MergeBreakdownMetrics creates segment metrics.
-func MergeBreakdownMetrics(t *Tracer, metrics *metricTable, scope string, isWeb bool) {
+func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
+	scope := t.FinalName
+	isWeb := t.IsWeb
 	// Custom Segment Metrics
 	for key, data := range t.customSegments {
 		name := customSegmentMetric(key)
