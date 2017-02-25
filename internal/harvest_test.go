@@ -120,12 +120,18 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectCustomEvents(t, h.CustomEvents, []WantCustomEvent{
 		{Type: "myEvent", Params: customEventParams},
 	})
-	ExpectErrorEvents(t, h.ErrorEvents, []WantErrorEvent{
-		{TxnName: "finalName", Msg: "msg", Klass: "klass"},
-	})
-	ExpectTxnEvents(t, h.TxnEvents, []WantTxnEvent{
-		{Name: "finalName"},
-	})
+	ExpectErrorEvents(t, h.ErrorEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "klass",
+			"error.message":   "msg",
+			"transactionName": "finalName",
+		},
+	}})
+	ExpectTxnEvents(t, h.TxnEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "finalName",
+		},
+	}})
 	ExpectErrors(t, h.ErrorTraces, []WantError{{
 		TxnName: "finalName",
 		Msg:     "msg",
@@ -164,12 +170,18 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectCustomEvents(t, nextHarvest.CustomEvents, []WantCustomEvent{
 		{Type: "myEvent", Params: customEventParams},
 	})
-	ExpectErrorEvents(t, nextHarvest.ErrorEvents, []WantErrorEvent{
-		{TxnName: "finalName", Msg: "msg", Klass: "klass"},
-	})
-	ExpectTxnEvents(t, nextHarvest.TxnEvents, []WantTxnEvent{
-		{Name: "finalName"},
-	})
+	ExpectErrorEvents(t, nextHarvest.ErrorEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "klass",
+			"error.message":   "msg",
+			"transactionName": "finalName",
+		},
+	}})
+	ExpectTxnEvents(t, nextHarvest.TxnEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "finalName",
+		},
+	}})
 	ExpectErrors(t, nextHarvest.ErrorTraces, []WantError{})
 }
 
