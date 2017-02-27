@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"time"
@@ -69,27 +70,21 @@ type WantError struct {
 	AgentAttributes map[string]interface{}
 }
 
-// WantErrorEvent is an error event expectation.
-type WantErrorEvent struct {
-	TxnName            string
-	Msg                string
-	Klass              string
-	Queuing            bool
-	ExternalCallCount  uint64
-	DatastoreCallCount uint64
-	UserAttributes     map[string]interface{}
-	AgentAttributes    map[string]interface{}
+func uniquePointer() *struct{} {
+	s := struct{}{}
+	return &s
 }
 
-// WantTxnEvent is a transaction event expectation.
-type WantTxnEvent struct {
-	Name               string
-	Zone               string
-	Queuing            bool
-	ExternalCallCount  uint64
-	DatastoreCallCount uint64
-	UserAttributes     map[string]interface{}
-	AgentAttributes    map[string]interface{}
+var (
+	// MatchAnything is for use when matching attributes.
+	MatchAnything = uniquePointer()
+)
+
+// WantEvent is a transaction or error event expectation.
+type WantEvent struct {
+	Intrinsics      map[string]interface{}
+	UserAttributes  map[string]interface{}
+	AgentAttributes map[string]interface{}
 }
 
 // WantTxnTrace is a transaction trace expectation.
@@ -119,8 +114,8 @@ type WantSlowQuery struct {
 type Expect interface {
 	ExpectCustomEvents(t Validator, want []WantCustomEvent)
 	ExpectErrors(t Validator, want []WantError)
-	ExpectErrorEvents(t Validator, want []WantErrorEvent)
-	ExpectTxnEvents(t Validator, want []WantTxnEvent)
+	ExpectErrorEvents(t Validator, want []WantEvent)
+	ExpectTxnEvents(t Validator, want []WantEvent)
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectTxnTraces(t Validator, want []WantTxnTrace)
 	ExpectSlowQueries(t Validator, want []WantSlowQuery)
@@ -173,20 +168,21 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 	// TODO: This params comparison can be made smarter: Alert differences
 	// based on sub/super set behavior.
 	if len(exists) != len(expect) {
-		v.Error("attributes length difference", exists, expect)
-		return
+		v.Error("attributes length difference", len(exists), len(expect))
 	}
 	for key, val := range expect {
 		found, ok := exists[key]
 		if !ok {
-			v.Error("missing key", key)
+			v.Error("expected attribute not found: ", key)
+			continue
+		}
+		if val == MatchAnything {
 			continue
 		}
 		v1 := fmt.Sprint(found)
 		v2 := fmt.Sprint(val)
 		if v1 != v2 {
-			v.Error("value difference", fmt.Sprintf("key=%s", key),
-				v1, v2)
+			v.Error("value difference", fmt.Sprintf("key=%s", key), v1, v2)
 		}
 	}
 }
@@ -220,35 +216,47 @@ func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent)
 	}
 }
 
-func expectErrorEvent(v Validator, err *ErrorEvent, expect WantErrorEvent) {
-	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
-	validateStringField(v, "klass", expect.Klass, err.Klass)
-	validateStringField(v, "msg", expect.Msg, err.Msg)
-	if (0 != err.Queuing) != expect.Queuing {
-		v.Error("queuing", err.Queuing)
+func expectEvent(v Validator, e json.Marshaler, expect WantEvent) {
+	js, err := e.MarshalJSON()
+	if nil != err {
+		v.Error("unable to marshal event", err)
+		return
+	}
+	var event []map[string]interface{}
+	err = json.Unmarshal(js, &event)
+	if nil != err {
+		v.Error("unable to parse event json", err)
+		return
+	}
+	intrinsics := event[0]
+	userAttributes := event[1]
+	agentAttributes := event[2]
+
+	if nil != expect.Intrinsics {
+		expectAttributes(v, intrinsics, expect.Intrinsics)
 	}
 	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(err.Attrs, destError), expect.UserAttributes)
+		expectAttributes(v, userAttributes, expect.UserAttributes)
 	}
 	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(err.Attrs, destError), expect.AgentAttributes)
-	}
-	if expect.ExternalCallCount != err.externalCallCount {
-		v.Error("external call count", expect.ExternalCallCount, err.externalCallCount)
-	}
-	if doDurationTests && (0 == expect.ExternalCallCount) != (err.externalDuration == 0) {
-		v.Error("external duration", err.externalDuration)
-	}
-	if expect.DatastoreCallCount != err.datastoreCallCount {
-		v.Error("datastore call count", expect.DatastoreCallCount, err.datastoreCallCount)
-	}
-	if doDurationTests && (0 == expect.DatastoreCallCount) != (err.datastoreDuration == 0) {
-		v.Error("datastore duration", err.datastoreDuration)
+		expectAttributes(v, agentAttributes, expect.AgentAttributes)
 	}
 }
 
+// Second attributes have priority.
+func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
+	a := make(map[string]interface{})
+	for k, v := range a1 {
+		a[k] = v
+	}
+	for k, v := range a2 {
+		a[k] = v
+	}
+	return a
+}
+
 // ExpectErrorEvents allows testing of error events.
-func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent) {
+func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
 	if len(events.events.events) != len(expect) {
 		v.Error("number of custom events does not match",
 			len(events.events.events), len(expect))
@@ -259,42 +267,22 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantErrorEvent
 		if !ok {
 			v.Error("wrong error event")
 		} else {
-			expectErrorEvent(v, event, e)
+			if nil != e.Intrinsics {
+				e.Intrinsics = mergeAttributes(map[string]interface{}{
+					// The following intrinsics should always be present in
+					// error events:
+					"type":      "TransactionError",
+					"timestamp": MatchAnything,
+					"duration":  MatchAnything,
+				}, e.Intrinsics)
+			}
+			expectEvent(v, event, e)
 		}
 	}
 }
 
-func expectTxnEvent(v Validator, e *TxnEvent, expect WantTxnEvent) {
-	validateStringField(v, "apdex zone", expect.Zone, e.Zone.label())
-	validateStringField(v, "name", expect.Name, e.FinalName)
-	if doDurationTests && 0 == e.Duration {
-		v.Error("zero duration", e.Duration)
-	}
-	if (0 != e.Queuing) != expect.Queuing {
-		v.Error("queuing", e.Queuing)
-	}
-	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(e.Attrs, destTxnEvent), expect.UserAttributes)
-	}
-	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(e.Attrs, destTxnEvent), expect.AgentAttributes)
-	}
-	if expect.ExternalCallCount != e.externalCallCount {
-		v.Error("external call count", expect.ExternalCallCount, e.externalCallCount)
-	}
-	if doDurationTests && (0 == expect.ExternalCallCount) != (e.externalDuration == 0) {
-		v.Error("external duration", e.externalDuration)
-	}
-	if expect.DatastoreCallCount != e.datastoreCallCount {
-		v.Error("datastore call count", expect.DatastoreCallCount, e.datastoreCallCount)
-	}
-	if doDurationTests && (0 == expect.DatastoreCallCount) != (e.datastoreDuration == 0) {
-		v.Error("datastore duration", e.datastoreDuration)
-	}
-}
-
 // ExpectTxnEvents allows testing of txn events.
-func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantTxnEvent) {
+func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 	if len(events.events.events) != len(expect) {
 		v.Error("number of txn events does not match",
 			len(events.events.events), len(expect))
@@ -305,7 +293,16 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantTxnEvent) {
 		if !ok {
 			v.Error("wrong txn event")
 		} else {
-			expectTxnEvent(v, event, e)
+			if nil != e.Intrinsics {
+				e.Intrinsics = mergeAttributes(map[string]interface{}{
+					// The following intrinsics should always be present in
+					// txn events:
+					"type":      "Transaction",
+					"timestamp": MatchAnything,
+					"duration":  MatchAnything,
+				}, e.Intrinsics)
+			}
+			expectEvent(v, event, e)
 		}
 	}
 }

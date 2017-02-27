@@ -36,9 +36,10 @@ func TestUserAttributeBasics(t *testing.T) {
 	agentAttributes := map[string]interface{}{}
 	userAttributes := map[string]interface{}{`int\key`: 1, `str\key`: `zip\zap`}
 
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "OtherTransaction/Go/hello",
-		Zone:            "",
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "OtherTransaction/Go/hello",
+		},
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
@@ -51,10 +52,12 @@ func TestUserAttributeBasics(t *testing.T) {
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "OtherTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "*errors.errorString",
+			"error.message":   "zap",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
@@ -95,9 +98,10 @@ func TestUserAttributeConfiguration(t *testing.T) {
 	}
 	txn.End()
 
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "OtherTransaction/Go/hello",
-		Zone:            "",
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "OtherTransaction/Go/hello",
+		},
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_txn_events": 2},
 	}})
@@ -110,10 +114,12 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "OtherTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "*errors.errorString",
+			"error.message":   "zap",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
@@ -184,9 +190,11 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 
 	txn.End()
 
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "F",
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
 		AgentAttributes: e.TxnEvent.Agent,
 		UserAttributes:  e.TxnEvent.User,
 	}})
@@ -199,10 +207,12 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		AgentAttributes: e.Error.Agent,
 		UserAttributes:  e.Error.User,
 	}})
-	app.ExpectErrorEvents(t, []internal.WantErrorEvent{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "zap",
-		Klass:           "*errors.errorString",
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "*errors.errorString",
+			"error.message":   "zap",
+			"transactionName": "WebTransaction/Go/hello",
+		},
 		AgentAttributes: e.Error.Agent,
 		UserAttributes:  e.Error.User,
 	}})
@@ -260,9 +270,11 @@ func TestDefaultResponseCode(t *testing.T) {
 	txn.Write([]byte("hello"))
 	txn.End()
 
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "S",
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "S",
+		},
 		AgentAttributes: map[string]interface{}{AttributeResponseCode: 200},
 		UserAttributes:  map[string]interface{}{},
 	}})
@@ -274,9 +286,11 @@ func TestNoResponseCode(t *testing.T) {
 	txn := app.StartTransaction("hello", w, &http.Request{})
 	txn.End()
 
-	app.ExpectTxnEvents(t, []internal.WantTxnEvent{{
-		Name:            "WebTransaction/Go/hello",
-		Zone:            "S",
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "S",
+		},
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{},
 	}})

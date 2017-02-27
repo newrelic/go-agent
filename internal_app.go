@@ -540,12 +540,12 @@ func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {
 	internal.ExpectErrors(t, app.testHarvest.ErrorTraces, want)
 }
 
-func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantErrorEvent) {
+func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantEvent) {
 	t = internal.ExtendValidator(t, "error events")
 	internal.ExpectErrorEvents(t, app.testHarvest.ErrorEvents, want)
 }
 
-func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantTxnEvent) {
+func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
 	t = internal.ExtendValidator(t, "txn events")
 	internal.ExpectTxnEvents(t, app.testHarvest.TxnEvents, want)
 }
