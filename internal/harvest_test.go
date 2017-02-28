@@ -117,9 +117,13 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{"zip", "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
-	ExpectCustomEvents(t, h.CustomEvents, []WantCustomEvent{
-		{Type: "myEvent", Params: customEventParams},
-	})
+	ExpectCustomEvents(t, h.CustomEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "myEvent",
+			"timestamp": MatchAnything,
+		},
+		UserAttributes: customEventParams,
+	}})
 	ExpectErrorEvents(t, h.ErrorEvents, []WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -167,9 +171,13 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectMetrics(t, nextHarvest.Metrics, []WantMetric{
 		{"zip", "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
-	ExpectCustomEvents(t, nextHarvest.CustomEvents, []WantCustomEvent{
-		{Type: "myEvent", Params: customEventParams},
-	})
+	ExpectCustomEvents(t, nextHarvest.CustomEvents, []WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "myEvent",
+			"timestamp": MatchAnything,
+		},
+		UserAttributes: customEventParams,
+	}})
 	ExpectErrorEvents(t, nextHarvest.ErrorEvents, []WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
