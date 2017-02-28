@@ -531,7 +531,7 @@ func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	}
 }
 
-func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantCustomEvent) {
+func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
 	internal.ExpectCustomEvents(internal.ExtendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
 }
 

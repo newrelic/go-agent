@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
-	"time"
 )
 
 var (
@@ -51,12 +50,6 @@ type WantMetric struct {
 	Scope  string
 	Forced interface{} // true, false, or nil
 	Data   []float64
-}
-
-// WantCustomEvent is a custom event expectation.
-type WantCustomEvent struct {
-	Type   string
-	Params map[string]interface{}
 }
 
 // WantError is a traced error expectation.
@@ -112,7 +105,7 @@ type WantSlowQuery struct {
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
-	ExpectCustomEvents(t Validator, want []WantCustomEvent)
+	ExpectCustomEvents(t Validator, want []WantEvent)
 	ExpectErrors(t Validator, want []WantError)
 	ExpectErrorEvents(t Validator, want []WantEvent)
 	ExpectTxnEvents(t Validator, want []WantEvent)
@@ -187,20 +180,8 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 	}
 }
 
-func expectCustomEvent(v Validator, event *CustomEvent, expect WantCustomEvent) {
-	if event.eventType != expect.Type {
-		v.Error("type mismatch", event.eventType, expect.Type)
-	}
-	now := time.Now()
-	diff := absTimeDiff(now, event.timestamp)
-	if diff > time.Hour {
-		v.Error("large timestamp difference", event.eventType, now, event.timestamp)
-	}
-	expectAttributes(v, event.truncatedParams, expect.Params)
-}
-
 // ExpectCustomEvents allows testing of custom events.
-func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent) {
+func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantEvent) {
 	if len(cs.events.events) != len(expect) {
 		v.Error("number of custom events does not match", len(cs.events.events),
 			len(expect))
@@ -211,7 +192,7 @@ func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantCustomEvent)
 		if !ok {
 			v.Error("wrong custom event")
 		} else {
-			expectCustomEvent(v, event, e)
+			expectEvent(v, event, e)
 		}
 	}
 }

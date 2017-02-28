@@ -133,9 +133,13 @@ func TestRecordCustomEventSuccess(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{
-		{Type: "myType", Params: validParams},
-	})
+	app.ExpectCustomEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "myType",
+			"timestamp": internal.MatchAnything,
+		},
+		UserAttributes: validParams,
+	}})
 }
 
 func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
@@ -145,7 +149,7 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 	if err != errHighSecurityEnabled {
 		t.Error(err)
 	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
@@ -155,7 +159,7 @@ func TestRecordCustomEventEventsDisabled(t *testing.T) {
 	if err != errCustomEventsDisabled {
 		t.Error(err)
 	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventBadInput(t *testing.T) {
@@ -164,7 +168,7 @@ func TestRecordCustomEventBadInput(t *testing.T) {
 	if err != internal.ErrEventTypeRegex {
 		t.Error(err)
 	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventRemoteDisable(t *testing.T) {
@@ -174,7 +178,7 @@ func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	if err != errCustomEventsRemoteDisabled {
 		t.Error(err)
 	}
-	app.ExpectCustomEvents(t, []internal.WantCustomEvent{})
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 type sampleResponseWriter struct {
