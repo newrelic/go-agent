@@ -36,11 +36,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.CustomEvents.Add(customE)
 
 	txnE := &TxnEvent{}
-	h.TxnEvents.AddTxnEvent(txnE)
-	h.TxnEvents.AddTxnEvent(txnE)
+	h.TxnEvents.AddTxnEvent(txnE, 0)
+	h.TxnEvents.AddTxnEvent(txnE, 0)
 
-	h.ErrorEvents.Add(&ErrorEvent{})
-	h.ErrorEvents.Add(&ErrorEvent{})
+	h.ErrorEvents.Add(&ErrorEvent{}, 0)
+	h.ErrorEvents.Add(&ErrorEvent{}, 0)
 
 	h.CreateFinalMetrics()
 	ExpectMetrics(t, h.Metrics, []WantMetric{
@@ -75,7 +75,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		FinalName: "finalName",
 		Start:     time.Now(),
 		Duration:  1 * time.Second,
-	})
+	}, 0)
 	customEventParams := map[string]interface{}{"zip": 1}
 	ce, err := CreateCustomEvent("myEvent", customEventParams, time.Now())
 	if nil != err {
@@ -92,7 +92,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 			FinalName: "finalName",
 			Duration:  1 * time.Second,
 		},
-	})
+	}, 0)
 
 	ers := NewTxnErrors(10)
 	ers.Add(ErrorData{
@@ -226,6 +226,10 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Errors/" + webName, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	args.FinalName = webName
@@ -240,6 +244,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
 		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
 	})
 
 	args.FinalName = backgroundName
@@ -254,6 +260,10 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	args.FinalName = backgroundName
@@ -265,6 +275,8 @@ func TestCreateTxnMetrics(t *testing.T) {
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
 	})
 
 }

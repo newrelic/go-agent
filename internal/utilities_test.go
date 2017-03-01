@@ -97,3 +97,15 @@ func TestStringLengthByteLimit(t *testing.T) {
 		}
 	}
 }
+
+func TestTimeToAndFromUnixMilliseconds(t *testing.T) {
+	t1 := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	millis := TimeToUnixMilliseconds(t1)
+	if millis != 1417136460000 {
+		t.Fatal(millis)
+	}
+	t2 := timeFromUnixMilliseconds(millis)
+	if t1.UnixNano() != t2.UnixNano() {
+		t.Fatal(t1, t2)
+	}
+}

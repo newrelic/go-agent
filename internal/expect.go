@@ -178,6 +178,11 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 			v.Error("value difference", fmt.Sprintf("key=%s", key), v1, v2)
 		}
 	}
+	for key := range exists {
+		if _, ok := expect[key]; !ok {
+			v.Error("existing attribute not in expectation: ", key)
+		}
+	}
 }
 
 // ExpectCustomEvents allows testing of custom events.
@@ -252,9 +257,13 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
 				e.Intrinsics = mergeAttributes(map[string]interface{}{
 					// The following intrinsics should always be present in
 					// error events:
-					"type":      "TransactionError",
-					"timestamp": MatchAnything,
-					"duration":  MatchAnything,
+					"type":               "TransactionError",
+					"timestamp":          MatchAnything,
+					"duration":           MatchAnything,
+					"nr.transactionGuid": MatchAnything,
+					"nr.tripId":          MatchAnything,
+					"nr.priority":        MatchAnything,
+					"nr.depth":           1,
 				}, e.Intrinsics)
 			}
 			expectEvent(v, event, e)
@@ -278,9 +287,13 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 				e.Intrinsics = mergeAttributes(map[string]interface{}{
 					// The following intrinsics should always be present in
 					// txn events:
-					"type":      "Transaction",
-					"timestamp": MatchAnything,
-					"duration":  MatchAnything,
+					"type":        "Transaction",
+					"timestamp":   MatchAnything,
+					"duration":    MatchAnything,
+					"nr.guid":     MatchAnything,
+					"nr.tripId":   MatchAnything,
+					"nr.priority": MatchAnything,
+					"nr.depth":    1,
 				}, e.Intrinsics)
 			}
 			expectEvent(v, event, e)

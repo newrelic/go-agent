@@ -228,7 +228,6 @@ func BenchmarkTxnEventsCollectorJSON(b *testing.B) {
 		FinalName: "WebTransaction/Go/zip/zap",
 		Start:     time.Now(),
 		Duration:  2 * time.Second,
-		Queuing:   1 * time.Second,
 		Zone:      ApdexSatisfying,
 		Attrs:     nil,
 	}

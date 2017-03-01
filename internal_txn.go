@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -19,6 +20,11 @@ type txnInput struct {
 	attrConfig *internal.AttributeConfig
 }
 
+func newTxnID() string {
+	bits := internal.RandUint64()
+	return fmt.Sprintf("%x", bits)
+}
+
 type txn struct {
 	txnInput
 	// This mutex is required since the consumer may call the public API
@@ -26,7 +32,9 @@ type txn struct {
 	sync.Mutex
 	// finished indicates whether or not End() has been called.  After
 	// finished has been set to true, no recording should occur.
-	finished bool
+	finished       bool
+	sequenceNum    uint32
+	payloadCreated bool
 
 	Name   string // Work in progress name
 	ignore bool
@@ -46,8 +54,10 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	txn.Name = name
 	txn.IsWeb = nil != req
 	txn.Attrs = internal.NewAttributes(input.attrConfig)
+	txn.Priority = internal.NewPriority(input.Reply.EncodingKeyHash)
+	txn.ID = newTxnID()
 	if nil != req {
-		txn.Queuing = internal.QueueDuration(req.Header, txn.Start)
+		txn.Proxies = internal.NewProxies(req.Header, txn.Start)
 		internal.RequestAgentAttributes(txn.Attrs, req)
 	}
 	txn.Attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
@@ -118,7 +128,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		// Allocate a new TxnEvent to prevent a reference to the large transaction.
 		alloc := new(internal.TxnEvent)
 		*alloc = txn.TxnData.TxnEvent
-		h.TxnEvents.AddTxnEvent(alloc)
+		h.TxnEvents.AddTxnEvent(alloc, txn.Priority.Value())
 	}
 
 	internal.MergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.TxnEvent)
@@ -132,7 +142,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 			// Since the stack trace is not used in error events, remove the reference
 			// to minimize memory.
 			errEvent.Stack = nil
-			h.ErrorEvents.Add(errEvent)
+			h.ErrorEvents.Add(errEvent, txn.Priority.Value())
 		}
 	}
 
@@ -468,4 +478,88 @@ func endExternal(s ExternalSegment) error {
 		return err
 	}
 	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u)
+}
+
+func (txn *txn) sequence() int {
+	s := txn.sequenceNum
+	txn.sequenceNum++
+	return int(s)
+}
+
+type shimPayload struct{}
+
+func (s shimPayload) Text() string     { return "" }
+func (s shimPayload) HTTPSafe() string { return "" }
+
+func (txn *txn) CreateDistributedTracePayload(u *url.URL) DistributedTracePayload {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return shimPayload{}
+	}
+
+	if "" == txn.Reply.AppID {
+		// Return a shimPayload if the application is not yet connected.
+		return shimPayload{}
+	}
+
+	txn.payloadCreated = true
+
+	var p internal.PayloadV1
+	p.Type = internal.CallerType
+	p.Account = txn.Reply.AccountID
+	p.App = txn.Reply.AppID
+	p.ID = txn.ID
+	p.Trip = txn.TripID()
+	p.Priority = txn.Priority.Input()
+	p.Sequence = txn.sequence()
+	p.Depth = txn.Depth() + 1
+	p.Time = time.Now()
+	p.TimeMS = internal.TimeToUnixMilliseconds(p.Time)
+	if u != nil {
+		p.Host = internal.HostFromURL(u)
+	}
+
+	return p
+}
+
+var (
+	errOutboundPayloadCreated = errors.New("outbound payload already created")
+	errPayloadUnknownType     = errors.New("payload of unknown type")
+)
+
+func (txn *txn) AcceptDistributedTracePayload(t TransportType, p interface{}) error {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	if txn.payloadCreated {
+		return errOutboundPayloadCreated
+	}
+
+	payload, err := internal.AcceptPayload(p)
+	if nil != payload {
+		if e := internal.ValidateInboundAccountID(txn.Reply, payload.Account); nil != e {
+			return e
+		}
+		if payload.Priority != "" {
+			priority, e := internal.PriorityFromInput(txn.Reply.EncodingKeyHash,
+				payload.Priority)
+			if nil != e {
+				return e
+			}
+			txn.Priority = priority
+		}
+		txn.Inbound = payload
+		txn.Inbound.TransportType = string(t)
+
+		if txn.Start.After(payload.Time) {
+			txn.Inbound.TransportDuration = txn.Start.Sub(payload.Time)
+		}
+	}
+	return err
 }

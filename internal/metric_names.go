@@ -173,3 +173,32 @@ func externalTransactionMetric(key externalMetricKey) string {
 		"/" + key.ExternalCrossProcessID +
 		"/" + key.ExternalTransactionName
 }
+
+func callerFields(c payloadCaller) string {
+	return "/" + c.Type +
+		"/" + c.Account +
+		"/" + c.App +
+		"/" + c.TransportType +
+		"/"
+}
+
+// DurationByCaller/{type}/{account}/{app}/{transport}/*
+func durationByCallerMetric(c payloadCaller) rollupMetric {
+	return newRollupMetric("DurationByCaller" + callerFields(c))
+}
+
+// ErrorsByCaller/{type}/{account}/{app}/{transport}/*
+func errorsByCallerMetric(c payloadCaller) rollupMetric {
+	return newRollupMetric("ErrorsByCaller" + callerFields(c))
+}
+
+// TransportDuration/{type}/{account}/{app}/{transport}/*
+func transportDurationMetric(c payloadCaller) rollupMetric {
+	return newRollupMetric("TransportDuration" + callerFields(c))
+}
+
+// IntermediaryTransportDuration/{type}/{account}/{app}/{transport}/{intermediary}/*
+func intermediaryMetric(c payloadCaller, intermediary string) rollupMetric {
+	return newRollupMetric("IntermediaryTransportDuration" + callerFields(c) +
+		intermediary + "/")
+}

@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"math/rand"
 	"time"
 )
 
@@ -23,13 +22,48 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("type", "Transaction")
 	w.stringField("name", e.FinalName)
 	w.floatField("timestamp", timeToFloatSeconds(e.Start))
-	w.floatField("duration", e.Duration.Seconds())
 	if ApdexNone != e.Zone {
 		w.stringField("nr.apdexPerfZone", e.Zone.label())
 	}
-	if e.Queuing > 0 {
-		w.floatField("queueDuration", e.Queuing.Seconds())
+	w.stringField("nr.guid", e.ID)
+	sharedEventIntrinsics(e, &w)
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	userAttributesJSON(e.Attrs, buf, destTxnEvent)
+	buf.WriteByte(',')
+	agentAttributesJSON(e.Attrs, buf, destTxnEvent)
+	buf.WriteByte(']')
+}
+
+// sharedEventIntrinsics creates intrinsics that belong in both txn events and error events.
+func sharedEventIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
+	e.Proxies.createIntrinsics(w)
+	if p := e.Inbound; nil != p {
+		w.stringField("caller.type", p.Type)
+		w.stringField("caller.app", p.App)
+		w.stringField("caller.account", p.Account)
+		w.stringField("caller.transportType", p.TransportType)
+		if "" != p.Host {
+			w.stringField("caller.host", p.Host)
+		}
+		w.floatField("caller.transportDuration", p.TransportDuration.Seconds())
+		if p.Sequence >= 0 {
+			w.intField("nr.sequence", int64(p.Sequence))
+		}
+		if "" != p.ID {
+			w.stringField("nr.referringTransactionGuid", p.ID)
+		}
+		if nil != p.Synthetics {
+			w.stringField("nr.syntheticsResourceId", p.Synthetics.Resource)
+			w.stringField("nr.syntheticsJobId", p.Synthetics.Job)
+			w.stringField("nr.syntheticsMonitorId", p.Synthetics.Monitor)
+		}
 	}
+	w.intField("nr.priority", int64(e.Priority.Value()))
+	w.intField("nr.depth", int64(e.Depth()))
+	w.stringField("nr.tripId", e.TripID())
+	w.floatField("duration", e.Duration.Seconds())
+
 	if e.externalCallCount > 0 {
 		w.intField("externalCallCount", int64(e.externalCallCount))
 		w.floatField("externalDuration", e.externalDuration.Seconds())
@@ -40,12 +74,6 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 		w.intField("databaseCallCount", int64(e.datastoreCallCount))
 		w.floatField("databaseDuration", e.datastoreDuration.Seconds())
 	}
-	buf.WriteByte('}')
-	buf.WriteByte(',')
-	userAttributesJSON(e.Attrs, buf, destTxnEvent)
-	buf.WriteByte(',')
-	agentAttributesJSON(e.Attrs, buf, destTxnEvent)
-	buf.WriteByte(']')
 }
 
 // MarshalJSON is used for testing.
@@ -67,9 +95,8 @@ func newTxnEvents(max int) *txnEvents {
 	}
 }
 
-func (events *txnEvents) AddTxnEvent(e *TxnEvent) {
-	stamp := eventStamp(rand.Float32())
-	events.events.addEvent(analyticsEvent{stamp, e})
+func (events *txnEvents) AddTxnEvent(e *TxnEvent, stamp uint32) {
+	events.events.addEvent(analyticsEvent{eventStamp(stamp), e})
 }
 
 func (events *txnEvents) MergeIntoHarvest(h *Harvest) {

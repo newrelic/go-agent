@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -18,75 +19,94 @@ func testTxnEventJSON(t *testing.T, e *TxnEvent, expect string) {
 	}
 }
 
-func TestTxnEventMarshal(t *testing.T) {
-	testTxnEventJSON(t, &TxnEvent{
+var (
+	sampleTxnEvent = TxnEvent{
 		FinalName: "myName",
-		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		ID:        "txn-id",
+		Priority:  Priority{priority: 12345},
+		Start:     timeFromUnixMilliseconds(1488393111000),
 		Duration:  2 * time.Second,
 		Zone:      ApdexNone,
 		Attrs:     nil,
-	}, `[
+	}
+)
+
+func TestTxnEventMarshal(t *testing.T) {
+	e := sampleTxnEvent
+	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.41713646e+09,
+		"timestamp":1.488393111e+09,
+		"nr.guid":"txn-id",
+		"nr.priority":12345,
+		"nr.depth":1,
+		"nr.tripId":"txn-id",
 		"duration":2
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &TxnEvent{
-		FinalName: "myName",
-		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Duration:  2 * time.Second,
-		Zone:      ApdexFailing,
-		Attrs:     nil,
-	}, `[
+}
+
+func TestTxnEventMarshalWithApdex(t *testing.T) {
+	e := sampleTxnEvent
+	e.Zone = ApdexFailing
+	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.41713646e+09,
-		"duration":2,
-		"nr.apdexPerfZone":"F"
+		"timestamp":1.488393111e+09,
+		"nr.apdexPerfZone":"F",
+		"nr.guid":"txn-id",
+		"nr.priority":12345,
+		"nr.depth":1,
+		"nr.tripId":"txn-id",
+		"duration":2
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &TxnEvent{
-		FinalName: "myName",
-		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Duration:  2 * time.Second,
-		Queuing:   5 * time.Second,
-		Zone:      ApdexNone,
-		Attrs:     nil,
-	}, `[
+}
+
+func TestTxnEventMarshalWithProxy(t *testing.T) {
+	e := sampleTxnEvent
+	hdr := make(http.Header)
+	hdr.Set("x-newrelic-timestamp-zap", "1488393108")
+	e.Proxies = NewProxies(hdr, e.Start)
+	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.41713646e+09,
-		"duration":2,
-		"queueDuration":5
+		"timestamp":1.488393111e+09,
+		"nr.guid":"txn-id",
+		"queueDuration":3,
+		"caller.transportDuration.Zap":3,
+		"nr.priority":12345,
+		"nr.depth":1,
+		"nr.tripId":"txn-id",
+		"duration":2
 	},
 	{},
 	{}]`)
-	testTxnEventJSON(t, &TxnEvent{
-		FinalName: "myName",
-		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Duration:  2 * time.Second,
-		Queuing:   5 * time.Second,
-		Zone:      ApdexNone,
-		Attrs:     nil,
-		DatastoreExternalTotals: DatastoreExternalTotals{
-			externalCallCount:  22,
-			externalDuration:   1122334 * time.Millisecond,
-			datastoreCallCount: 33,
-			datastoreDuration:  5566778 * time.Millisecond,
-		},
-	}, `[
+}
+
+func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
+	e := sampleTxnEvent
+	e.DatastoreExternalTotals = DatastoreExternalTotals{
+		externalCallCount:  22,
+		externalDuration:   1122334 * time.Millisecond,
+		datastoreCallCount: 33,
+		datastoreDuration:  5566778 * time.Millisecond,
+	}
+	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.41713646e+09,
+		"timestamp":1.488393111e+09,
+		"nr.guid":"txn-id",
+		"nr.priority":12345,
+		"nr.depth":1,
+		"nr.tripId":"txn-id",
 		"duration":2,
-		"queueDuration":5,
 		"externalCallCount":22,
 		"externalDuration":1122.334,
 		"databaseCallCount":33,
@@ -96,7 +116,46 @@ func TestTxnEventMarshal(t *testing.T) {
 	{}]`)
 }
 
-func TestTxnEventAttributes(t *testing.T) {
+func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
+	e := sampleTxnEvent
+	e.Inbound = &PayloadV1{
+		payloadCaller: payloadCaller{
+			TransportType: "HTTP",
+			Type:          "Browser",
+			App:           "caller-app",
+			Account:       "caller-account",
+		},
+		ID:                "caller-id",
+		Trip:              "trip-id",
+		Sequence:          22,
+		Depth:             3,
+		Host:              "caller-host",
+		TransportDuration: 2 * time.Second,
+	}
+	testTxnEventJSON(t, &e, `[
+	{
+		"type":"Transaction",
+		"name":"myName",
+		"timestamp":1.488393111e+09,
+		"nr.guid":"txn-id",
+		"caller.type":"Browser",
+		"caller.app":"caller-app",
+		"caller.account":"caller-account",
+		"caller.transportType":"HTTP",
+		"caller.host":"caller-host",
+		"caller.transportDuration":2,
+		"nr.sequence":22,
+		"nr.referringTransactionGuid":"caller-id",
+		"nr.priority":12345,
+		"nr.depth":3,
+		"nr.tripId":"trip-id",
+		"duration":2
+	},
+	{},
+	{}]`)
+}
+
+func TestTxnEventMarshalWithAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, "zap")
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, hostDisplayName)
@@ -106,18 +165,17 @@ func TestTxnEventAttributes(t *testing.T) {
 	attr.Agent.RequestMethod = "GET"
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
-
-	testTxnEventJSON(t, &TxnEvent{
-		FinalName: "myName",
-		Start:     time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Duration:  2 * time.Second,
-		Zone:      ApdexNone,
-		Attrs:     attr,
-	}, `[
+	e := sampleTxnEvent
+	e.Attrs = attr
+	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.41713646e+09,
+		"timestamp":1.488393111e+09,
+		"nr.guid":"txn-id",
+		"nr.priority":12345,
+		"nr.depth":1,
+		"nr.tripId":"txn-id",
 		"duration":2
 	},
 	{

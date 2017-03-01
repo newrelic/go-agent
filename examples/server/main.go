@@ -154,6 +154,13 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func payload(w http.ResponseWriter, r *http.Request) {
+	if txn, ok := w.(newrelic.Transaction); ok {
+		p := txn.CreateDistributedTracePayload(nil).Text()
+		io.WriteString(w, p)
+	}
+}
+
 func mustGetEnv(key string) string {
 	if val := os.Getenv(key); "" != val {
 		return val
@@ -184,6 +191,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc("/background", background)
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/payload", payload))
 
 	http.ListenAndServe(":8000", nil)
 }

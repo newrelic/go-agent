@@ -10,7 +10,7 @@ import (
 // eventStamp allows for uniform random sampling of events.  When an event is
 // created it is given an eventStamp.  Whenever an event pool is full and events
 // need to be dropped, the events with the lowest stamps are dropped.
-type eventStamp float32
+type eventStamp uint32
 
 func eventStampCmp(a, b eventStamp) bool {
 	return a < b

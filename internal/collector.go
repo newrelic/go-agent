@@ -270,5 +270,8 @@ func ConnectAttempt(js []byte, redirectHost string, cs RpmControls) (*AppRun, er
 		return nil, errors.New("connect reply missing agent run id")
 	}
 
+	reply.AccountID = accountFromCrossProcessID(reply.CrossProcessID)
+	reply.EncodingKeyHash = hashEncodingKey(reply.EncodingKey)
+
 	return &AppRun{reply, host}, nil
 }

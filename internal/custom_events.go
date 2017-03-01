@@ -1,9 +1,6 @@
 package internal
 
-import (
-	"math/rand"
-	"time"
-)
+import "time"
 
 type customEvents struct {
 	events *analyticsEvents
@@ -16,7 +13,7 @@ func newCustomEvents(max int) *customEvents {
 }
 
 func (cs *customEvents) Add(e *CustomEvent) {
-	stamp := eventStamp(rand.Float32())
+	stamp := eventStamp(RandUint32())
 	cs.events.addEvent(analyticsEvent{stamp, e})
 }
 

@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,6 +22,14 @@ type AppRun struct {
 	Collector string
 }
 
+func accountFromCrossProcessID(id string) string {
+	idx := strings.Index(id, "#")
+	if idx < 0 {
+		return ""
+	}
+	return id[:idx]
+}
+
 // ConnectReply contains all of the settings and state send down from the
 // collector.  It should not be modified after creation.
 type ConnectReply struct {
@@ -33,8 +43,11 @@ type ConnectReply struct {
 
 	// Cross Process
 	EncodingKey     string `json:"encoding_key"`
+	EncodingKeyHash uint32
 	CrossProcessID  string `json:"cross_process_id"`
 	TrustedAccounts []int  `json:"trusted_account_ids"`
+	// Fields derived from CrossProcessID
+	AccountID string
 
 	// Settings
 	KeyTxnApdex            map[string]float64 `json:"web_transactions_apdex"`
@@ -71,6 +84,28 @@ func ConnectReplyDefaults() *ConnectReply {
 		CollectErrors:          true,
 		CollectErrorEvents:     true,
 	}
+}
+
+// ErrUntrustedAccountID is the error returned by ValidateInboundAccountID when the id is not in the
+// valid list.
+type ErrUntrustedAccountID struct{ id int }
+
+func (e ErrUntrustedAccountID) Error() string {
+	return fmt.Sprintf("untrusted account id '%d'", e.id)
+}
+
+// ValidateInboundAccountID checks a payload account id against the valid list.
+func ValidateInboundAccountID(c *ConnectReply, inboundID string) error {
+	id, err := strconv.Atoi(inboundID)
+	if nil != err {
+		return err
+	}
+	for _, v := range c.TrustedAccounts {
+		if id == v {
+			return nil
+		}
+	}
+	return ErrUntrustedAccountID{id}
 }
 
 // CalculateApdexThreshold calculates the apdex threshold.

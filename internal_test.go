@@ -18,20 +18,28 @@ var (
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	}
 	webErrorMetrics = append([]internal.WantMetric{
 		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: singleCount},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: singleCount},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: singleCount},
 	}, webMetrics...)
 	backgroundMetrics = []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}
 	backgroundErrorMetrics = append([]internal.WantMetric{
 		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/OtherTransaction/Go/hello", Scope: "", Forced: true, Data: singleCount},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: singleCount},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: singleCount},
 	}, backgroundMetrics...)
 )
 
@@ -576,20 +584,24 @@ func TestQueueTime(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "newrelic.myError",
-			"error.message":   "my msg",
-			"transactionName": "WebTransaction/Go/hello",
-			"queueDuration":   internal.MatchAnything,
+			"error.class":                      "newrelic.myError",
+			"error.message":                    "my msg",
+			"transactionName":                  "WebTransaction/Go/hello",
+			"queueDuration":                    internal.MatchAnything,
+			"caller.transportDuration.Unknown": internal.MatchAnything,
 		},
 	}})
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "WebFrontend/QueueTime", Scope: "", Forced: true, Data: nil},
+		{Name: "IntermediaryTransportDuration/Unknown/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "IntermediaryTransportDuration/Unknown/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	}, webErrorMetrics...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
-			"nr.apdexPerfZone": "F",
-			"queueDuration":    internal.MatchAnything,
+			"name":                             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone":                 "F",
+			"queueDuration":                    internal.MatchAnything,
+			"caller.transportDuration.Unknown": internal.MatchAnything,
 		},
 		AgentAttributes: nil,
 	}})

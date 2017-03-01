@@ -115,6 +115,15 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	metrics.addDuration(args.FinalName, "", args.Duration, args.Exclusive, forced)
 	metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
 
+	// Caller Duration Metrics
+	caller := callerUnknown
+	if nil != args.Inbound {
+		caller = args.Inbound.payloadCaller
+	}
+	m := durationByCallerMetric(caller)
+	metrics.addDuration(m.all, "", args.Duration, args.Duration, unforced)
+	metrics.addDuration(m.webOrOther(args.IsWeb), "", args.Duration, args.Duration, unforced)
+
 	// Apdex Metrics
 	if args.Zone != ApdexNone {
 		metrics.addApdex(apdexRollup, "", args.ApdexThreshold, args.Zone, forced)
@@ -128,10 +137,19 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		metrics.addSingleCount(errorsRollupMetric.all, forced)
 		metrics.addSingleCount(errorsRollupMetric.webOrOther(args.IsWeb), forced)
 		metrics.addSingleCount(errorsPrefix+args.FinalName, forced)
+		m = errorsByCallerMetric(caller)
+		metrics.addSingleCount(m.all, unforced)
+		metrics.addSingleCount(m.webOrOther(args.IsWeb), unforced)
 	}
 
 	// Queueing Metrics
-	if args.Queuing > 0 {
-		metrics.addDuration(queueMetric, "", args.Queuing, args.Queuing, forced)
+	args.Proxies.createMetrics(metrics, caller, args.IsWeb)
+
+	// Transport Duration Metric
+	if nil != args.Inbound {
+		m = transportDurationMetric(caller)
+		d := args.Inbound.TransportDuration
+		metrics.addDuration(m.all, "", d, d, unforced)
+		metrics.addDuration(m.webOrOther(args.IsWeb), "", d, d, unforced)
 	}
 }

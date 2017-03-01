@@ -33,6 +33,10 @@ func TestErrorEventMarshal(t *testing.T) {
 			FinalName: "myName",
 			Duration:  3 * time.Second,
 			Attrs:     nil,
+			Priority: Priority{
+				priority: 12345,
+			},
+			ID: "txn-guid-id",
 		},
 	}, `[
 		{
@@ -41,62 +45,18 @@ func TestErrorEventMarshal(t *testing.T) {
 			"error.message":"hello",
 			"timestamp":1.41713646e+09,
 			"transactionName":"myName",
+			"nr.transactionGuid":"txn-guid-id",
+			"nr.priority":12345,
+			"nr.depth":1,
+			"nr.tripId":"txn-guid-id",
 			"duration":3
 		},
 		{},
 		{}
 	]`)
-	testErrorEventJSON(t, &ErrorEvent{
-		ErrorData: sampleErrorData,
-		TxnEvent: TxnEvent{
-			FinalName: "myName",
-			Duration:  3 * time.Second,
-			Queuing:   5 * time.Second,
-			Attrs:     nil,
-		},
-	}, `[
-		{
-			"type":"TransactionError",
-			"error.class":"*errors.errorString",
-			"error.message":"hello",
-			"timestamp":1.41713646e+09,
-			"transactionName":"myName",
-			"duration":3,
-			"queueDuration":5
-		},
-		{},
-		{}
-	]`)
-	testErrorEventJSON(t, &ErrorEvent{
-		ErrorData: sampleErrorData,
-		TxnEvent: TxnEvent{
-			FinalName: "myName",
-			Duration:  3 * time.Second,
-			Queuing:   5 * time.Second,
-			DatastoreExternalTotals: DatastoreExternalTotals{
-				externalCallCount:  22,
-				externalDuration:   1122334 * time.Millisecond,
-				datastoreCallCount: 33,
-				datastoreDuration:  5566778 * time.Millisecond,
-			},
-		},
-	}, `[
-		{
-			"type":"TransactionError",
-			"error.class":"*errors.errorString",
-			"error.message":"hello",
-			"timestamp":1.41713646e+09,
-			"transactionName":"myName",
-			"duration":3,
-			"queueDuration":5,
-			"externalCallCount":22,
-			"externalDuration":1122.334,
-			"databaseCallCount":33,
-			"databaseDuration":5566.778
-		},
-		{},
-		{}
-	]`)
+
+	// Many error event intrinsics are shared with txn events using sharedEventIntrinsics:  See
+	// the txn event tests.
 }
 
 func TestErrorEventAttributes(t *testing.T) {
@@ -124,6 +84,10 @@ func TestErrorEventAttributes(t *testing.T) {
 			"error.message":"hello",
 			"timestamp":1.41713646e+09,
 			"transactionName":"myName",
+			"nr.transactionGuid":"",
+			"nr.priority":0,
+			"nr.depth":1,
+			"nr.tripId":"",
 			"duration":3
 		},
 		{

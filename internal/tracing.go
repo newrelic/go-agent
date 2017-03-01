@@ -16,12 +16,31 @@ type TxnEvent struct {
 	FinalName string
 	Start     time.Time
 	Duration  time.Duration
-	Queuing   time.Duration
 	Zone      ApdexZone
 	Attrs     *Attributes
 	DatastoreExternalTotals
 	// CleanURL is not used in txn events, but is used in traced errors which embed TxnEvent.
 	CleanURL string
+	Proxies
+	Priority
+	Inbound *PayloadV1
+	ID      string
+}
+
+// TripID returns the trip id.
+func (e TxnEvent) TripID() string {
+	if nil != e.Inbound && "" != e.Inbound.Trip {
+		return e.Inbound.Trip
+	}
+	return e.ID
+}
+
+// Depth returns the depth.
+func (e TxnEvent) Depth() int {
+	if nil != e.Inbound && e.Inbound.Depth >= 0 {
+		return e.Inbound.Depth
+	}
+	return 1
 }
 
 // TxnData contains the recorded data of a transaction.

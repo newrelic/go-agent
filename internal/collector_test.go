@@ -444,3 +444,10 @@ func TestConnectAttemptMissingRunID(t *testing.T) {
 		t.Fatal("missing error")
 	}
 }
+
+func TestAccountFromCrossProcessID(t *testing.T) {
+	acct := accountFromCrossProcessID("12345#67890")
+	if acct != "12345" {
+		t.Error(acct)
+	}
+}
