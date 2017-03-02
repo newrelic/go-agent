@@ -8,13 +8,19 @@ import (
 )
 
 func TestErrorTraceMarshal(t *testing.T) {
-	e := &TxnError{
-		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Stack: nil,
-		Msg:   "my_msg",
-		Klass: "my_class",
+	he := &tracedError{
+		ErrorData: ErrorData{
+			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+			Stack: nil,
+			Msg:   "my_msg",
+			Klass: "my_class",
+		},
+		TxnEvent: TxnEvent{
+			FinalName: "my_txn_name",
+			CleanURL:  "my_request_uri",
+			Attrs:     nil,
+		},
 	}
-	he := harvestErrorFromTxnError(e, "my_txn_name", "my_request_uri", nil)
 	js, err := json.Marshal(he)
 	if nil != err {
 		t.Error(err)
@@ -48,13 +54,19 @@ func TestErrorTraceAttributes(t *testing.T) {
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
-	e := &TxnError{
-		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-		Stack: nil,
-		Msg:   "my_msg",
-		Klass: "my_class",
+	he := &tracedError{
+		ErrorData: ErrorData{
+			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+			Stack: nil,
+			Msg:   "my_msg",
+			Klass: "my_class",
+		},
+		TxnEvent: TxnEvent{
+			FinalName: "my_txn_name",
+			CleanURL:  "my_request_uri",
+			Attrs:     attr,
+		},
 	}
-	he := harvestErrorFromTxnError(e, "my_txn_name", "my_request_uri", attr)
 	js, err := json.Marshal(he)
 	if nil != err {
 		t.Error(err)
@@ -87,7 +99,11 @@ func TestErrorsLifecycle(t *testing.T) {
 	ers.Add(TxnErrorFromPanic(when, 123))
 
 	he := newHarvestErrors(3)
-	MergeTxnErrors(he, ers, "txnName", "requestURI", nil)
+	MergeTxnErrors(&he, ers, TxnEvent{
+		FinalName: "txnName",
+		CleanURL:  "requestURI",
+		Attrs:     nil,
+	})
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
 		t.Error(err)
@@ -145,7 +161,7 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	ers := NewTxnErrors(max)
 
 	for i := 0; i < max; i++ {
-		ers.Add(TxnError{
+		ers.Add(ErrorData{
 			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
 			Msg:   "error message",
 			Klass: "error class",
@@ -158,7 +174,11 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
 	he := newHarvestErrors(max)
-	MergeTxnErrors(he, ers, "WebTransaction/Go/hello", "/url", attr)
+	MergeTxnErrors(&he, ers, TxnEvent{
+		FinalName: "WebTransaction/Go/hello",
+		CleanURL:  "/url",
+		Attrs:     attr,
+	})
 
 	b.ReportAllocs()
 	b.ResetTimer()

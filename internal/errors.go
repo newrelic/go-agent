@@ -26,8 +26,8 @@ func panicValueMsg(v interface{}) string {
 }
 
 // TxnErrorFromPanic creates a new TxnError from a panic.
-func TxnErrorFromPanic(now time.Time, v interface{}) TxnError {
-	return TxnError{
+func TxnErrorFromPanic(now time.Time, v interface{}) ErrorData {
+	return ErrorData{
 		When:  now,
 		Msg:   panicValueMsg(v),
 		Klass: PanicErrorKlass,
@@ -35,42 +35,55 @@ func TxnErrorFromPanic(now time.Time, v interface{}) TxnError {
 }
 
 // TxnErrorFromResponseCode creates a new TxnError from an http response code.
-func TxnErrorFromResponseCode(now time.Time, code int) TxnError {
-	return TxnError{
+func TxnErrorFromResponseCode(now time.Time, code int) ErrorData {
+	return ErrorData{
 		When:  now,
 		Msg:   http.StatusText(code),
 		Klass: strconv.Itoa(code),
 	}
 }
 
-// TxnError is an error captured in a Transaction.
-type TxnError struct {
+// ErrorData contains the information about a recorded error.
+type ErrorData struct {
 	When  time.Time
 	Stack StackTrace
 	Msg   string
 	Klass string
 }
 
+// TxnError combines error data with information about a transaction.  TxnError is used for
+// both error events and traced errors.
+type TxnError struct {
+	ErrorData
+	TxnEvent
+}
+
+// ErrorEvent and tracedError are separate types so that error events and traced errors can have
+// different WriteJSON methods.
+type ErrorEvent TxnError
+
+type tracedError TxnError
+
 // TxnErrors is a set of errors captured in a Transaction.
-type TxnErrors []*TxnError
+type TxnErrors []*ErrorData
 
 // NewTxnErrors returns a new empty TxnErrors.
 func NewTxnErrors(max int) TxnErrors {
-	return make([]*TxnError, 0, max)
+	return make([]*ErrorData, 0, max)
 }
 
 // Add adds a TxnError.
-func (errors *TxnErrors) Add(e TxnError) {
+func (errors *TxnErrors) Add(e ErrorData) {
 	if len(*errors) < cap(*errors) {
 		*errors = append(*errors, &e)
 	}
 }
 
-func (h *harvestError) WriteJSON(buf *bytes.Buffer) {
+func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('[')
 	jsonx.AppendFloat(buf, timeToFloatMilliseconds(h.When))
 	buf.WriteByte(',')
-	jsonx.AppendString(buf, h.txnName)
+	jsonx.AppendString(buf, h.FinalName)
 	buf.WriteByte(',')
 	jsonx.AppendString(buf, h.Msg)
 	buf.WriteByte(',')
@@ -82,80 +95,58 @@ func (h *harvestError) WriteJSON(buf *bytes.Buffer) {
 		w.writerField("stack_trace", h.Stack)
 	}
 	w.writerField("agentAttributes", agentAttributesJSONWriter{
-		attributes: h.attrs,
+		attributes: h.Attrs,
 		dest:       destError,
 	})
 	w.writerField("userAttributes", userAttributesJSONWriter{
-		attributes: h.attrs,
+		attributes: h.Attrs,
 		dest:       destError,
 	})
 	w.rawField("intrinsics", JSONString("{}"))
-	if h.requestURI != "" {
-		w.stringField("request_uri", h.requestURI)
+	if h.CleanURL != "" {
+		w.stringField("request_uri", h.CleanURL)
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(']')
 }
 
 // MarshalJSON is used for testing.
-func (h *harvestError) MarshalJSON() ([]byte, error) {
+func (h *tracedError) MarshalJSON() ([]byte, error) {
 	buf := &bytes.Buffer{}
 	h.WriteJSON(buf)
 	return buf.Bytes(), nil
 }
 
-type harvestError struct {
-	TxnError
-	txnName    string
-	requestURI string
-	attrs      *Attributes
-}
+type harvestErrors []*tracedError
 
-type harvestErrors struct {
-	errors []*harvestError
-}
-
-func newHarvestErrors(max int) *harvestErrors {
-	return &harvestErrors{
-		errors: make([]*harvestError, 0, max),
-	}
-}
-
-func harvestErrorFromTxnError(e *TxnError, txnName string, requestURI string, attrs *Attributes) *harvestError {
-	return &harvestError{
-		TxnError:   *e,
-		txnName:    txnName,
-		requestURI: requestURI,
-		attrs:      attrs,
-	}
-}
-
-func addTxnError(errors *harvestErrors, e *TxnError, txnName string, requestURI string, attrs *Attributes) {
-	he := harvestErrorFromTxnError(e, txnName, requestURI, attrs)
-	errors.errors = append(errors.errors, he)
+func newHarvestErrors(max int) harvestErrors {
+	return make([]*tracedError, 0, max)
 }
 
 // MergeTxnErrors merges a transaction's errors into the harvest's errors.
-func MergeTxnErrors(errors *harvestErrors, errs TxnErrors, txnName string, requestURI string, attrs *Attributes) {
+func MergeTxnErrors(errors *harvestErrors, errs TxnErrors, txnEvent TxnEvent) {
 	for _, e := range errs {
-		if len(errors.errors) == cap(errors.errors) {
+		if len(*errors) == cap(*errors) {
 			return
 		}
-		addTxnError(errors, e, txnName, requestURI, attrs)
+		*errors = append(*errors, &tracedError{
+			TxnEvent:  txnEvent,
+			ErrorData: *e,
+		})
 	}
 }
 
-func (errors *harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	if 0 == len(errors.errors) {
+func (errors harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+	if 0 == len(errors) {
 		return nil, nil
 	}
-	estimate := 1024 * len(errors.errors)
+	estimate := 1024 * len(errors)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 	buf.WriteByte('[')
 	jsonx.AppendString(buf, agentRunID)
 	buf.WriteByte(',')
 	buf.WriteByte('[')
-	for i, e := range errors.errors {
+	for i, e := range errors {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
@@ -166,4 +157,4 @@ func (errors *harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]
 	return buf.Bytes(), nil
 }
 
-func (errors *harvestErrors) MergeIntoHarvest(h *Harvest) {}
+func (errors harvestErrors) MergeIntoHarvest(h *Harvest) {}

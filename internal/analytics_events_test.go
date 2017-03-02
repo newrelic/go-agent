@@ -255,9 +255,7 @@ func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
 
 	txnName := "WebTransaction/Go/zip/zap"
 	event := &ErrorEvent{
-		Klass: e.Klass,
-		Msg:   e.Msg,
-		When:  e.When,
+		ErrorData: e,
 		TxnEvent: TxnEvent{
 			FinalName: txnName,
 			Duration:  3 * time.Second,

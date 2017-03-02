@@ -18,11 +18,17 @@ func testErrorEventJSON(t *testing.T, e *ErrorEvent, expect string) {
 	}
 }
 
-func TestErrorEventMarshal(t *testing.T) {
-	testErrorEventJSON(t, &ErrorEvent{
+var (
+	sampleErrorData = ErrorData{
 		Klass: "*errors.errorString",
 		Msg:   "hello",
 		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+	}
+)
+
+func TestErrorEventMarshal(t *testing.T) {
+	testErrorEventJSON(t, &ErrorEvent{
+		ErrorData: sampleErrorData,
 		TxnEvent: TxnEvent{
 			FinalName: "myName",
 			Duration:  3 * time.Second,
@@ -41,9 +47,7 @@ func TestErrorEventMarshal(t *testing.T) {
 		{}
 	]`)
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass: "*errors.errorString",
-		Msg:   "hello",
-		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		ErrorData: sampleErrorData,
 		TxnEvent: TxnEvent{
 			FinalName: "myName",
 			Duration:  3 * time.Second,
@@ -64,9 +68,7 @@ func TestErrorEventMarshal(t *testing.T) {
 		{}
 	]`)
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass: "*errors.errorString",
-		Msg:   "hello",
-		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		ErrorData: sampleErrorData,
 		TxnEvent: TxnEvent{
 			FinalName: "myName",
 			Duration:  3 * time.Second,
@@ -109,9 +111,7 @@ func TestErrorEventAttributes(t *testing.T) {
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
 	testErrorEventJSON(t, &ErrorEvent{
-		Klass: "*errors.errorString",
-		Msg:   "hello",
-		When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+		ErrorData: sampleErrorData,
 		TxnEvent: TxnEvent{
 			FinalName: "myName",
 			Duration:  3 * time.Second,
