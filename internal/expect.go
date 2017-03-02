@@ -318,7 +318,7 @@ func expectTxnTrace(v Validator, trace *HarvestTrace, expect WantTxnTrace) {
 	if doDurationTests && 0 == trace.Duration {
 		v.Error("zero trace duration")
 	}
-	validateStringField(v, "metric name", expect.MetricName, trace.MetricName)
+	validateStringField(v, "metric name", expect.MetricName, trace.FinalName)
 	validateStringField(v, "request url", expect.CleanURL, trace.CleanURL)
 	if nil != expect.UserAttributes {
 		expectAttributes(v, getUserAttributes(trace.Attrs, destTxnTrace), expect.UserAttributes)
