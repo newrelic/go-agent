@@ -473,11 +473,10 @@ func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 	return upgradeTxn(newTxn(txnInput{
 		Config:     app.config,
 		Reply:      run.ConnectReply,
-		Request:    r,
 		W:          w,
 		Consumer:   app,
 		attrConfig: app.attrConfig,
-	}, name))
+	}, r, name))
 }
 
 var (
