@@ -32,6 +32,8 @@ var (
 	// ErrPayloadTooLarge is created in response to receiving a 413 response
 	// code.
 	ErrPayloadTooLarge = errors.New("payload too large")
+	// ErrUnauthorized is created in response to receiving a 401 response code.
+	ErrUnauthorized = errors.New("unauthorized")
 	// ErrUnsupportedMedia is created in response to receiving a 415
 	// response code.
 	ErrUnsupportedMedia = errors.New("unsupported media")
@@ -112,17 +114,18 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 
 	defer resp.Body.Close()
 
-	if 413 == resp.StatusCode {
+	switch resp.StatusCode {
+	case 200:
+		// Nothing to do.
+	case 401:
+		return nil, ErrUnauthorized
+	case 413:
 		return nil, ErrPayloadTooLarge
-	}
-
-	if 415 == resp.StatusCode {
+	case 415:
 		return nil, ErrUnsupportedMedia
-	}
-
-	// If the response code is not 200, then the collector may not return
-	// valid JSON.
-	if 200 != resp.StatusCode {
+	default:
+		// Saxon says that if the response code is not 200, then the collector
+		// may not return valid JSON
 		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
