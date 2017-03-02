@@ -6,14 +6,6 @@ import (
 	"time"
 )
 
-// ErrorEvent is an error event.
-type ErrorEvent struct {
-	Klass string
-	Msg   string
-	When  time.Time
-	TxnEvent
-}
-
 // MarshalJSON is used for testing.
 func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))

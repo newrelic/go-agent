@@ -288,29 +288,29 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 	}
 }
 
-func expectError(v Validator, err *harvestError, expect WantError) {
-	caller := topCallerNameBase(err.TxnError.Stack)
+func expectError(v Validator, err *tracedError, expect WantError) {
+	caller := topCallerNameBase(err.ErrorData.Stack)
 	validateStringField(v, "caller", expect.Caller, caller)
-	validateStringField(v, "txnName", expect.TxnName, err.txnName)
-	validateStringField(v, "klass", expect.Klass, err.TxnError.Klass)
-	validateStringField(v, "msg", expect.Msg, err.TxnError.Msg)
-	validateStringField(v, "URL", expect.URL, err.requestURI)
+	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
+	validateStringField(v, "klass", expect.Klass, err.Klass)
+	validateStringField(v, "msg", expect.Msg, err.Msg)
+	validateStringField(v, "URL", expect.URL, err.CleanURL)
 	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(err.attrs, destError), expect.UserAttributes)
+		expectAttributes(v, getUserAttributes(err.Attrs, destError), expect.UserAttributes)
 	}
 	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(err.attrs, destError), expect.AgentAttributes)
+		expectAttributes(v, getAgentAttributes(err.Attrs, destError), expect.AgentAttributes)
 	}
 }
 
 // ExpectErrors allows testing of errors.
-func ExpectErrors(v Validator, errors *harvestErrors, expect []WantError) {
-	if len(errors.errors) != len(expect) {
-		v.Error("number of errors mismatch", len(errors.errors), len(expect))
+func ExpectErrors(v Validator, errors harvestErrors, expect []WantError) {
+	if len(errors) != len(expect) {
+		v.Error("number of errors mismatch", len(errors), len(expect))
 		return
 	}
 	for i, e := range expect {
-		expectError(v, errors.errors[i], e)
+		expectError(v, errors[i], e)
 	}
 }
 

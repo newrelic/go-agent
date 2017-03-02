@@ -57,6 +57,9 @@ func newTxn(input txnInput, name string) *txn {
 	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
 	txn.SlowQueriesEnabled = txn.slowQueriesEnabled()
 	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
+	if nil != input.Request && nil != input.Request.URL {
+		txn.CleanURL = internal.SafeURL(input.Request.URL)
+	}
 
 	return txn
 }
@@ -119,21 +122,17 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		h.TxnEvents.AddTxnEvent(alloc)
 	}
 
-	requestURI := ""
-	if nil != txn.Request && nil != txn.Request.URL {
-		requestURI = internal.SafeURL(txn.Request.URL)
-	}
-
-	internal.MergeTxnErrors(h.ErrorTraces, txn.Errors, txn.FinalName, requestURI, txn.Attrs)
+	internal.MergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.TxnEvent)
 
 	if txn.errorEventsEnabled() {
 		for _, e := range txn.Errors {
 			errEvent := &internal.ErrorEvent{
-				Klass:    e.Klass,
-				Msg:      e.Msg,
-				When:     e.When,
-				TxnEvent: txn.TxnEvent,
+				ErrorData: *e,
+				TxnEvent:  txn.TxnEvent,
 			}
+			// Since the stack trace is not used in error events, remove the reference
+			// to minimize memory.
+			errEvent.Stack = nil
 			h.ErrorEvents.Add(errEvent)
 		}
 	}
@@ -143,7 +142,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 			Start:                txn.Start,
 			Duration:             txn.Duration,
 			MetricName:           txn.FinalName,
-			CleanURL:             requestURI,
+			CleanURL:             txn.CleanURL,
 			Trace:                txn.TxnTrace,
 			ForcePersist:         false,
 			GUID:                 "",
@@ -153,7 +152,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	}
 
 	if nil != txn.SlowQueries {
-		h.SlowSQLs.Merge(txn.SlowQueries, txn.FinalName, requestURI)
+		h.SlowSQLs.Merge(txn.SlowQueries, txn.FinalName, txn.CleanURL)
 	}
 }
 
@@ -293,7 +292,7 @@ const (
 	highSecurityErrorMsg = "message removed by high security setting"
 )
 
-func (txn *txn) noticeErrorInternal(err internal.TxnError) error {
+func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsLocallyDisabled
 	}
@@ -327,7 +326,7 @@ func (txn *txn) NoticeError(err error) error {
 		return errNilError
 	}
 
-	e := internal.TxnError{
+	e := internal.ErrorData{
 		When: time.Now(),
 		Msg:  err.Error(),
 	}

@@ -17,7 +17,7 @@ type Harvest struct {
 	CustomEvents *customEvents
 	TxnEvents    *txnEvents
 	ErrorEvents  *errorEvents
-	ErrorTraces  *harvestErrors
+	ErrorTraces  harvestErrors
 	TxnTraces    *harvestTraces
 	SlowSQLs     *slowQueries
 }

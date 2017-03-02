@@ -83,21 +83,29 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}
 	h.CustomEvents.Add(ce)
 	h.ErrorEvents.Add(&ErrorEvent{
-		Klass: "klass",
-		Msg:   "msg",
-		When:  time.Now(),
+		ErrorData: ErrorData{
+			Klass: "klass",
+			Msg:   "msg",
+			When:  time.Now(),
+		},
 		TxnEvent: TxnEvent{
 			FinalName: "finalName",
 			Duration:  1 * time.Second,
 		},
 	})
-	e := &TxnError{
+
+	ers := NewTxnErrors(10)
+	ers.Add(ErrorData{
 		When:  time.Now(),
 		Msg:   "msg",
 		Klass: "klass",
 		Stack: GetStackTrace(0),
-	}
-	addTxnError(h.ErrorTraces, e, "finalName", "requestURI", nil)
+	})
+	MergeTxnErrors(&h.ErrorTraces, ers, TxnEvent{
+		FinalName: "finalName",
+		CleanURL:  "requestURI",
+		Attrs:     nil,
+	})
 
 	if start1 != h.Metrics.metricPeriodStart {
 		t.Error(h.Metrics.metricPeriodStart)
@@ -194,8 +202,8 @@ func TestMergeFailedHarvest(t *testing.T) {
 }
 
 func TestCreateTxnMetrics(t *testing.T) {
-	txnErr := &TxnError{}
-	txnErrors := []*TxnError{txnErr}
+	txnErr := &ErrorData{}
+	txnErrors := []*ErrorData{txnErr}
 	webName := "WebTransaction/zip/zap"
 	backgroundName := "OtherTransaction/zip/zap"
 	args := &TxnData{}
