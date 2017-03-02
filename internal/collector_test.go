@@ -19,7 +19,7 @@ func TestLicenseInvalid(t *testing.T) {
 			"error_type":"NewRelic::Agent::LicenseException"
 		}
 	}`)
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
@@ -30,7 +30,7 @@ func TestLicenseInvalid(t *testing.T) {
 
 func TestRedirectSuccess(t *testing.T) {
 	r := `{"return_value":"staging-collector-101.newrelic.com"}`
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestRedirectSuccess(t *testing.T) {
 }
 
 func TestEmptyHash(t *testing.T) {
-	reply, err := parseResponse([]byte(`{}`))
+	reply, err := parseResponse(strings.NewReader(`{}`))
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestEmptyHash(t *testing.T) {
 }
 
 func TestReturnValueNull(t *testing.T) {
-	reply, err := parseResponse([]byte(`{"return_value":null}`))
+	reply, err := parseResponse(strings.NewReader(`{"return_value":null}`))
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestConnectSuccess(t *testing.T) {
 	"trusted_account_ids":[49402]
 }`
 	outer := `{"return_value":` + inner + `}`
-	reply, err := parseResponse([]byte(outer))
+	reply, err := parseResponse(strings.NewReader(outer))
 
 	if nil != err {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestConnectSuccess(t *testing.T) {
 
 func TestClientError(t *testing.T) {
 	r := `{"exception":{"message":"something","error_type":"my_error"}}`
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if nil == err || err.Error() != "my_error: something" {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestForceRestartException(t *testing.T) {
 			"error_type":"NewRelic::Agent::ForceRestartException"
 		}
 	}`)
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
@@ -161,7 +161,7 @@ func TestForceDisconnectException(t *testing.T) {
 			"error_type":"NewRelic::Agent::ForceDisconnectException"
 		}
 	}`)
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
@@ -174,7 +174,7 @@ func TestRuntimeError(t *testing.T) {
 	// NOTE: This string was generated manually, not taken from the actual
 	// collector.
 	r := `{"exception":{"message":"something","error_type":"RuntimeError"}}`
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if reply != nil {
 		t.Fatal(string(reply))
 	}
@@ -185,7 +185,7 @@ func TestRuntimeError(t *testing.T) {
 
 func TestUnknownError(t *testing.T) {
 	r := `{"exception":{"message":"something","error_type":"unknown_type"}}`
-	reply, err := parseResponse([]byte(r))
+	reply, err := parseResponse(strings.NewReader(r))
 	if reply != nil {
 		t.Fatal(string(reply))
 	}

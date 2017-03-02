@@ -1,11 +1,10 @@
 package internal
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -95,7 +94,7 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(deflated))
+	req, err := http.NewRequest("POST", url, deflated)
 	if nil != err {
 		return nil, err
 	}
@@ -126,11 +125,7 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
-	if nil != err {
-		return nil, err
-	}
-	return parseResponse(b)
+	return parseResponse(resp.Body)
 }
 
 // CollectorRequest makes a request to New Relic.
@@ -202,13 +197,18 @@ func IsRuntime(e error) bool { return hasType(e, runtimeType) }
 // IsDisconnect indicates if the error was a disconnect exception.
 func IsDisconnect(e error) bool { return hasType(e, disconnectType) }
 
-func parseResponse(b []byte) ([]byte, error) {
-	var r struct {
-		ReturnValue json.RawMessage `json:"return_value"`
-		Exception   *rpmException   `json:"exception"`
+type response struct {
+	ReturnValue json.RawMessage `json:"return_value"`
+	Exception   *rpmException   `json:"exception"`
+}
+
+func parseResponse(body io.Reader) ([]byte, error) {
+	if body == nil {
+		return nil, errors.New("unexpected end of JSON input")
 	}
 
-	err := json.Unmarshal(b, &r)
+	r := response{}
+	err := json.NewDecoder(body).Decode(&r)
 	if nil != err {
 		return nil, err
 	}
