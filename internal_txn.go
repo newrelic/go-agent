@@ -13,7 +13,6 @@ import (
 
 type txnInput struct {
 	W          http.ResponseWriter
-	Request    *http.Request
 	Config     Config
 	Reply      *internal.ConnectReply
 	Consumer   dataConsumer
@@ -39,17 +38,17 @@ type txn struct {
 	internal.TxnData
 }
 
-func newTxn(input txnInput, name string) *txn {
+func newTxn(input txnInput, req *http.Request, name string) *txn {
 	txn := &txn{
 		txnInput: input,
 	}
 	txn.Start = time.Now()
 	txn.Name = name
-	txn.IsWeb = nil != input.Request
+	txn.IsWeb = nil != req
 	txn.Attrs = internal.NewAttributes(input.attrConfig)
-	if nil != txn.Request {
-		txn.Queuing = internal.QueueDuration(input.Request.Header, txn.Start)
-		internal.RequestAgentAttributes(txn.Attrs, input.Request)
+	if nil != req {
+		txn.Queuing = internal.QueueDuration(req.Header, txn.Start)
+		internal.RequestAgentAttributes(txn.Attrs, req)
 	}
 	txn.Attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
 	txn.TxnTrace.Enabled = txn.txnTracesEnabled()
@@ -57,8 +56,8 @@ func newTxn(input txnInput, name string) *txn {
 	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
 	txn.SlowQueriesEnabled = txn.slowQueriesEnabled()
 	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
-	if nil != input.Request && nil != input.Request.URL {
-		txn.CleanURL = internal.SafeURL(input.Request.URL)
+	if nil != req && nil != req.URL {
+		txn.CleanURL = internal.SafeURL(req.URL)
 	}
 
 	return txn
