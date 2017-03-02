@@ -138,15 +138,8 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 
 	if txn.shouldSaveTrace() {
 		h.TxnTraces.Witness(internal.HarvestTrace{
-			Start:                txn.Start,
-			Duration:             txn.Duration,
-			MetricName:           txn.FinalName,
-			CleanURL:             txn.CleanURL,
-			Trace:                txn.TxnTrace,
-			ForcePersist:         false,
-			GUID:                 "",
-			SyntheticsResourceID: "",
-			Attrs:                txn.Attrs,
+			TxnEvent: txn.TxnEvent,
+			Trace:    txn.TxnTrace,
 		})
 	}
 

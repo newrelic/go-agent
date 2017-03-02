@@ -142,15 +142,8 @@ func (trace *TxnTrace) witnessNode(end segmentEnd, name string, params *traceNod
 // HarvestTrace contains a finished transaction trace ready for serialization to
 // the collector.
 type HarvestTrace struct {
-	Start                time.Time
-	Duration             time.Duration
-	MetricName           string
-	CleanURL             string
-	Trace                TxnTrace
-	ForcePersist         bool
-	GUID                 string
-	SyntheticsResourceID string
-	Attrs                *Attributes
+	TxnEvent
+	Trace TxnTrace
 }
 
 type nodeDetails struct {
@@ -237,7 +230,7 @@ func traceDataJSON(trace *HarvestTrace) []byte {
 	})
 
 	printNodeStart(buf, nodeDetails{ // begin inner root
-		name:          trace.MetricName,
+		name:          trace.FinalName,
 		relativeStart: 0,
 		relativeStop:  trace.Duration,
 	})
@@ -273,14 +266,14 @@ func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	return json.Marshal([]interface{}{
 		trace.Start.UnixNano() / 1000,
 		trace.Duration.Seconds() * 1000.0,
-		trace.MetricName,
+		trace.FinalName,
 		trace.CleanURL,
 		JSONString(traceDataJSON(trace)),
-		trace.GUID,
-		nil, // reserved for future use
-		trace.ForcePersist,
-		nil, // X-Ray sessions not supported
-		trace.SyntheticsResourceID,
+		"",    // GUID is not yet supported
+		nil,   // reserved for future use
+		false, // ForcePersist is not yet supported
+		nil,   // X-Ray sessions not supported
+		"",    // SyntheticsResourceID is not yet supported
 	})
 }
 

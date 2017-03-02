@@ -55,12 +55,14 @@ func TestTxnTrace(t *testing.T) {
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
 	ht := HarvestTrace{
-		Start:      start,
-		Duration:   20 * time.Second,
-		MetricName: "WebTransaction/Go/hello",
-		CleanURL:   "/url",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  20 * time.Second,
+			FinalName: "WebTransaction/Go/hello",
+			CleanURL:  "/url",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	}
 
 	expect := CompactJSONString(`
@@ -109,12 +111,14 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	attr := NewAttributes(acfg)
 
 	ht := HarvestTrace{
-		Start:      start,
-		Duration:   20 * time.Second,
-		MetricName: "WebTransaction/Go/hello",
-		CleanURL:   "/url",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  20 * time.Second,
+			FinalName: "WebTransaction/Go/hello",
+			CleanURL:  "/url",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	}
 
 	expect := CompactJSONString(`
@@ -153,12 +157,14 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	attr := NewAttributes(acfg)
 
 	ht := HarvestTrace{
-		Start:      start,
-		Duration:   123 * time.Second,
-		MetricName: "WebTransaction/Go/hello",
-		CleanURL:   "/url",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  123 * time.Second,
+			FinalName: "WebTransaction/Go/hello",
+			CleanURL:  "/url",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	}
 
 	expect := CompactJSONString(`
@@ -202,12 +208,14 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	attr := NewAttributes(acfg)
 
 	ht := HarvestTrace{
-		Start:      start,
-		Duration:   123 * time.Second,
-		MetricName: "WebTransaction/Go/hello",
-		CleanURL:   "/url",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  123 * time.Second,
+			FinalName: "WebTransaction/Go/hello",
+			CleanURL:  "/url",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	}
 
 	expect := CompactJSONString(`
@@ -248,28 +256,34 @@ func TestLongestTraceSaved(t *testing.T) {
 	ht := newHarvestTraces()
 
 	ht.Witness(HarvestTrace{
-		Start:      start,
-		Duration:   3 * time.Second,
-		MetricName: "WebTransaction/Go/3",
-		CleanURL:   "/url/3",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  3 * time.Second,
+			FinalName: "WebTransaction/Go/3",
+			CleanURL:  "/url/3",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	})
 	ht.Witness(HarvestTrace{
-		Start:      start,
-		Duration:   5 * time.Second,
-		MetricName: "WebTransaction/Go/5",
-		CleanURL:   "/url/5",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  5 * time.Second,
+			FinalName: "WebTransaction/Go/5",
+			CleanURL:  "/url/5",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	})
 	ht.Witness(HarvestTrace{
-		Start:      start,
-		Duration:   4 * time.Second,
-		MetricName: "WebTransaction/Go/4",
-		CleanURL:   "/url/4",
-		Trace:      tr.TxnTrace,
-		Attrs:      attr,
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  4 * time.Second,
+			FinalName: "WebTransaction/Go/4",
+			CleanURL:  "/url/4",
+			Attrs:     attr,
+		},
+		Trace: tr.TxnTrace,
 	})
 
 	expect := CompactJSONString(`
