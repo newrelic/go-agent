@@ -124,8 +124,8 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 	case 415:
 		return nil, ErrUnsupportedMedia
 	default:
-		// Saxon says that if the response code is not 200, then the collector
-		// may not return valid JSON
+		// If the response code is not 200, then the collector may not return
+		// valid JSON.
 		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
