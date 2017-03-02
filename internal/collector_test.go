@@ -367,6 +367,19 @@ func TestConnectAttemptCollectorNotString(t *testing.T) {
 	}
 }
 
+func TestConnectAttempt401(t *testing.T) {
+	run, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, redirectBody)},
+		connect:  endpointResult{response: makeResponse(401, connectBody)},
+	})
+	if nil != run {
+		t.Error(run)
+	}
+	if err != ErrUnauthorized {
+		t.Fatal(err)
+	}
+}
+
 func TestConnectAttempt413(t *testing.T) {
 	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
