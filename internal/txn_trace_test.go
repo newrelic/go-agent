@@ -65,36 +65,124 @@ func TestTxnTrace(t *testing.T) {
 		Trace: tr.TxnTrace,
 	}
 
-	expect := CompactJSONString(`
-[0,{},{},
-	[0,20000,"ROOT",{},[[0,20000,"WebTransaction/Go/hello",{},[
-		[1000,6000,"Custom/t1",{},[
-			[2000,3000,"Datastore/statement/MySQL/my_table/SELECT",{
-				"database_name":"my_db",
-				"host":"db-server-1",
-				"port_path_or_id":"3306",
-				"query":"INSERT INTO users (name, age) VALUES ($1, $2)",
-				"query_parameters":{"zip":1}
-			},[]],
-			[4000,5000,"External/example.com/all",{"uri":"http://example.com/zip/zap"},[]]
-		]],
-		[7000,16000,"Custom/t4",{},[
-			[8000,11000,"Custom/t5",{},[
-				[9000,10000,"Custom/t6",{},[]]
-			]],
-			[12000,13000,"Datastore/operation/MySQL/SELECT",{
-				"query":"'SELECT' on 'unknown' using 'MySQL'"
-			},[]],
-			[14000,15000,"External/unknown/all",{},[]]
-		]]
-	]]]],
-	{
-		"agentAttributes":{"request.method":"GET"},
-		"userAttributes":{"zap":123},
-		"intrinsics":{}
+	expect := `[
+	   1417136460000000,
+	   20000,
+	   "WebTransaction/Go/hello",
+	   "/url",
+	   [
+	      0,
+	      {},
+	      {},
+	      [
+	         0,
+	         20000,
+	         "ROOT",
+	         {},
+	         [
+	            [
+	               0,
+	               20000,
+	               "WebTransaction/Go/hello",
+	               {},
+	               [
+	                  [
+	                     1000,
+	                     6000,
+	                     "Custom/t1",
+	                     {},
+	                     [
+	                        [
+	                           2000,
+	                           3000,
+	                           "Datastore/statement/MySQL/my_table/SELECT",
+	                           {
+	                              "database_name":"my_db",
+	                              "host":"db-server-1",
+	                              "port_path_or_id":"3306",
+	                              "query":"INSERT INTO users (name, age) VALUES ($1, $2)",
+	                              "query_parameters":{
+	                                 "zip":1
+	                              }
+	                           },
+	                           []
+	                        ],
+	                        [
+	                           4000,
+	                           5000,
+	                           "External/example.com/all",
+	                           {
+	                              "uri":"http://example.com/zip/zap"
+	                           },
+	                           []
+	                        ]
+	                     ]
+	                  ],
+	                  [
+	                     7000,
+	                     16000,
+	                     "Custom/t4",
+	                     {},
+	                     [
+	                        [
+	                           8000,
+	                           11000,
+	                           "Custom/t5",
+	                           {},
+	                           [
+	                              [
+	                                 9000,
+	                                 10000,
+	                                 "Custom/t6",
+	                                 {},
+	                                 []
+	                              ]
+	                           ]
+	                        ],
+	                        [
+	                           12000,
+	                           13000,
+	                           "Datastore/operation/MySQL/SELECT",
+	                           {
+	                              "query":"'SELECT' on 'unknown' using 'MySQL'"
+	                           },
+	                           []
+	                        ],
+	                        [
+	                           14000,
+	                           15000,
+	                           "External/unknown/all",
+	                           {},
+	                           []
+	                        ]
+	                     ]
+	                  ]
+	               ]
+	            ]
+	         ]
+	      ],
+	      {
+	         "agentAttributes":{
+	            "request.method":"GET"
+	         },
+	         "userAttributes":{
+	            "zap":123
+	         },
+	         "intrinsics":{}
+	      }
+	   ],
+	   "",
+	   null,
+	   false,
+	   null,
+	   ""
+	]`
+
+	expect = CompactJSONString(expect)
+	js, err := ht.MarshalJSON()
+	if nil != err {
+		t.Fatal(err)
 	}
-]`)
-	js := traceDataJSON(&ht)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
@@ -121,17 +209,47 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 		Trace: tr.TxnTrace,
 	}
 
-	expect := CompactJSONString(`
-[0,{},{},
-	[0,20000,"ROOT",{},[[0,20000,"WebTransaction/Go/hello",{},[
-	]]]],
-	{
-		"agentAttributes":{},
-		"userAttributes":{},
-		"intrinsics":{}
+	expect := `[
+	   1417136460000000,
+	   20000,
+	   "WebTransaction/Go/hello",
+	   "/url",
+	   [
+	      0,
+	      {},
+	      {},
+	      [
+	         0,
+	         20000,
+	         "ROOT",
+	         {},
+	         [
+	            [
+	               0,
+	               20000,
+	               "WebTransaction/Go/hello",
+	               {},
+	               []
+	            ]
+	         ]
+	      ],
+	      {
+	         "agentAttributes":{},
+	         "userAttributes":{},
+	         "intrinsics":{}
+	      }
+	   ],
+	   "",
+	   null,
+	   false,
+	   null,
+	   ""
+	]`
+	expect = CompactJSONString(expect)
+	js, err := ht.MarshalJSON()
+	if nil != err {
+		t.Fatal(err)
 	}
-]`)
-	js := traceDataJSON(&ht)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
@@ -167,22 +285,83 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 		Trace: tr.TxnTrace,
 	}
 
-	expect := CompactJSONString(`
-[0,{},{},
-	[0,123000,"ROOT",{},[[0,123000,"WebTransaction/Go/hello",{},[
-		[0,5000,"Custom/5",{},[]],
-		[9000,15000,"Custom/6",{},[]],
-		[18000,25000,"Custom/7",{},[]],
-		[27000,35000,"Custom/8",{},[]],
-		[36000,45000,"Custom/9",{},[]]
-	]]]],
-	{
-		"agentAttributes":{},
-		"userAttributes":{},
-		"intrinsics":{}
+	expect := `[
+	   1417136460000000,
+	   123000,
+	   "WebTransaction/Go/hello",
+	   "/url",
+	   [
+	      0,
+	      {},
+	      {},
+	      [
+	         0,
+	         123000,
+	         "ROOT",
+	         {},
+	         [
+	            [
+	               0,
+	               123000,
+	               "WebTransaction/Go/hello",
+	               {},
+	               [
+	                  [
+	                     0,
+	                     5000,
+	                     "Custom/5",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     9000,
+	                     15000,
+	                     "Custom/6",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     18000,
+	                     25000,
+	                     "Custom/7",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     27000,
+	                     35000,
+	                     "Custom/8",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     36000,
+	                     45000,
+	                     "Custom/9",
+	                     {},
+	                     []
+	                  ]
+	               ]
+	            ]
+	         ]
+	      ],
+	      {
+	         "agentAttributes":{},
+	         "userAttributes":{},
+	         "intrinsics":{}
+	      }
+	   ],
+	   "",
+	   null,
+	   false,
+	   null,
+	   ""
+	]`
+	expect = CompactJSONString(expect)
+	js, err := ht.MarshalJSON()
+	if nil != err {
+		t.Fatal(err)
 	}
-]`)
-	js := traceDataJSON(&ht)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
@@ -218,20 +397,69 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 		Trace: tr.TxnTrace,
 	}
 
-	expect := CompactJSONString(`
-[0,{},{},
-	[0,123000,"ROOT",{},[[0,123000,"WebTransaction/Go/hello",{},[
-		[18000,25000,"Custom/7",{},[]],
-		[27000,35000,"Custom/8",{},[]],
-		[36000,45000,"Custom/9",{},[]]
-	]]]],
-	{
-		"agentAttributes":{},
-		"userAttributes":{},
-		"intrinsics":{}
+	expect := `[
+	   1417136460000000,
+	   123000,
+	   "WebTransaction/Go/hello",
+	   "/url",
+	   [
+	      0,
+	      {},
+	      {},
+	      [
+	         0,
+	         123000,
+	         "ROOT",
+	         {},
+	         [
+	            [
+	               0,
+	               123000,
+	               "WebTransaction/Go/hello",
+	               {},
+	               [
+	                  [
+	                     18000,
+	                     25000,
+	                     "Custom/7",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     27000,
+	                     35000,
+	                     "Custom/8",
+	                     {},
+	                     []
+	                  ],
+	                  [
+	                     36000,
+	                     45000,
+	                     "Custom/9",
+	                     {},
+	                     []
+	                  ]
+	               ]
+	            ]
+	         ]
+	      ],
+	      {
+	         "agentAttributes":{},
+	         "userAttributes":{},
+	         "intrinsics":{}
+	      }
+	   ],
+	   "",
+	   null,
+	   false,
+	   null,
+	   ""
+	]`
+	expect = CompactJSONString(expect)
+	js, err := ht.MarshalJSON()
+	if nil != err {
+		t.Fatal(err)
 	}
-]`)
-	js := traceDataJSON(&ht)
 	if string(js) != expect {
 		t.Error(string(js), expect)
 	}
