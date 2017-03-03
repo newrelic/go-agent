@@ -437,49 +437,25 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	}
 }
 
-type agentAttributesJSONWriter struct {
-	attributes *Attributes
-	dest       destinationSet
-}
-
-func (w agentAttributesJSONWriter) WriteJSON(buf *bytes.Buffer) {
-	if nil == w.attributes {
+func agentAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
+	if nil == a {
 		buf.WriteString("{}")
 		return
 	}
-	writeAgentAttributes(buf, w.dest, w.attributes.Agent, w.attributes.config.agentDests)
+	writeAgentAttributes(buf, d, a.Agent, a.config.agentDests)
 }
 
-func agentAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
-	agentAttributesJSONWriter{
-		attributes: a,
-		dest:       d,
-	}.WriteJSON(buf)
-}
-
-type userAttributesJSONWriter struct {
-	attributes *Attributes
-	dest       destinationSet
-}
-
-func (u userAttributesJSONWriter) WriteJSON(buf *bytes.Buffer) {
+func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
 	buf.WriteByte('{')
-	if nil != u.attributes {
+	if nil != a {
 		w := jsonFieldsWriter{buf: buf}
-		for name, atr := range u.attributes.user {
-			if 0 != atr.dests&u.dest {
+		for name, atr := range a.user {
+			if 0 != atr.dests&d {
 				writeAttributeValueJSON(&w, name, atr.value)
 			}
 		}
 	}
 	buf.WriteByte('}')
-}
-
-func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet) {
-	userAttributesJSONWriter{
-		attributes: a,
-		dest:       d,
-	}.WriteJSON(buf)
 }
 
 func userAttributesStringJSON(a *Attributes, d destinationSet) JSONString {
