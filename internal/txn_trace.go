@@ -202,7 +202,8 @@ func (s sortedTraceNodes) Len() int           { return len(s) }
 func (s sortedTraceNodes) Less(i, j int) bool { return s[i].start.Stamp < s[j].start.Stamp }
 func (s sortedTraceNodes) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-func traceDataJSON(trace *HarvestTrace) []byte {
+// MarshalJSON prepares the trace in the JSON expected by the collector.
+func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	estimate := 100 * len(trace.Trace.nodes)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
@@ -211,6 +212,17 @@ func traceDataJSON(trace *HarvestTrace) []byte {
 		nodes[i] = &trace.Trace.nodes[i]
 	}
 	sort.Sort(nodes)
+
+	buf.WriteByte('[') // begin trace
+
+	jsonx.AppendInt(buf, trace.Start.UnixNano()/1000)
+	buf.WriteByte(',')
+	jsonx.AppendFloat(buf, trace.Duration.Seconds()*1000.0)
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, trace.FinalName)
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, trace.CleanURL)
+	buf.WriteByte(',')
 
 	buf.WriteByte('[') // begin trace data
 
@@ -258,23 +270,21 @@ func traceDataJSON(trace *HarvestTrace) []byte {
 
 	buf.WriteByte(']') // end trace data
 
-	return buf.Bytes()
-}
+	buf.WriteByte(',')
+	buf.WriteString(`""`)    // GUID is not yet supported
+	buf.WriteByte(',')       //
+	buf.WriteString(`null`)  // reserved for future use
+	buf.WriteByte(',')       //
+	buf.WriteString(`false`) // ForcePersist is not yet supported
+	buf.WriteByte(',')       //
+	buf.WriteString(`null`)  // X-Ray sessions not supported
+	buf.WriteByte(',')       //
+	buf.WriteString(`""`)    // SyntheticsResourceID is not yet supported
 
-// MarshalJSON prepares the trace in the JSON expected by the collector.
-func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]interface{}{
-		trace.Start.UnixNano() / 1000,
-		trace.Duration.Seconds() * 1000.0,
-		trace.FinalName,
-		trace.CleanURL,
-		JSONString(traceDataJSON(trace)),
-		"",    // GUID is not yet supported
-		nil,   // reserved for future use
-		false, // ForcePersist is not yet supported
-		nil,   // X-Ray sessions not supported
-		"",    // SyntheticsResourceID is not yet supported
-	})
+	buf.WriteByte(']') // end trace
+
+	return buf.Bytes(), nil
+
 }
 
 type harvestTraces struct {
