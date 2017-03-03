@@ -89,24 +89,33 @@ func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	jsonx.AppendString(buf, h.Klass)
 	buf.WriteByte(',')
+
 	buf.WriteByte('{')
-	w := jsonFieldsWriter{buf: buf}
+	buf.WriteString(`"agentAttributes"`)
+	buf.WriteByte(':')
+	agentAttributesJSON(h.Attrs, buf, destError)
+	buf.WriteByte(',')
+	buf.WriteString(`"userAttributes"`)
+	buf.WriteByte(':')
+	userAttributesJSON(h.Attrs, buf, destError)
+	buf.WriteByte(',')
+	buf.WriteString(`"intrinsics"`)
+	buf.WriteByte(':')
+	buf.WriteString("{}")
 	if nil != h.Stack {
-		w.writerField("stack_trace", h.Stack)
+		buf.WriteByte(',')
+		buf.WriteString(`"stack_trace"`)
+		buf.WriteByte(':')
+		h.Stack.WriteJSON(buf)
 	}
-	w.writerField("agentAttributes", agentAttributesJSONWriter{
-		attributes: h.Attrs,
-		dest:       destError,
-	})
-	w.writerField("userAttributes", userAttributesJSONWriter{
-		attributes: h.Attrs,
-		dest:       destError,
-	})
-	w.rawField("intrinsics", JSONString("{}"))
 	if h.CleanURL != "" {
-		w.stringField("request_uri", h.CleanURL)
+		buf.WriteByte(',')
+		buf.WriteString(`"request_uri"`)
+		buf.WriteByte(':')
+		jsonx.AppendString(buf, h.CleanURL)
 	}
 	buf.WriteByte('}')
+
 	buf.WriteByte(']')
 }
 

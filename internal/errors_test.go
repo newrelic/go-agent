@@ -11,7 +11,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 	he := &tracedError{
 		ErrorData: ErrorData{
 			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
-			Stack: nil,
+			Stack: emptyStackTrace,
 			Msg:   "my_msg",
 			Klass: "my_class",
 		},
@@ -35,6 +35,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 			"agentAttributes":{},
 			"userAttributes":{},
 			"intrinsics":{},
+			"stack_trace":[],
 			"request_uri":"my_request_uri"
 		}
 	]`)
