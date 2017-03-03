@@ -9,10 +9,6 @@ import (
 // StackTrace is a stack trace.
 type StackTrace []uintptr
 
-var (
-	emptyStackTrace = make([]uintptr, 0)
-)
-
 // GetStackTrace returns a new StackTrace.
 func GetStackTrace(skipFrames int) StackTrace {
 	skip := 2 // skips runtime.Callers and this function

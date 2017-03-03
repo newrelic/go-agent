@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+var (
+	emptyStackTrace = make([]uintptr, 0)
+)
+
 func TestErrorTraceMarshal(t *testing.T) {
 	he := &tracedError{
 		ErrorData: ErrorData{
