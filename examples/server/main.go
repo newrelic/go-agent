@@ -171,6 +171,8 @@ func mustGetEnv(key string) string {
 func main() {
 	cfg := newrelic.NewConfig("Example App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+	cfg.TransactionTracer.Threshold.IsApdexFailing = false
+	cfg.TransactionTracer.Threshold.Duration = 0
 
 	var err error
 	app, err = newrelic.NewApplication(cfg)

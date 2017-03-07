@@ -74,6 +74,8 @@ type TxnData struct {
 	SlowQueries        *slowQueries
 }
 
+type payloadsCreated []uint32
+
 type segmentStamp uint64
 
 type segmentTime struct {
@@ -90,14 +92,16 @@ type SegmentStartTime struct {
 
 type segmentFrame struct {
 	segmentTime
-	children time.Duration
+	payloadsCreated payloadsCreated
+	children        time.Duration
 }
 
 type segmentEnd struct {
-	start     segmentTime
-	stop      segmentTime
-	duration  time.Duration
-	exclusive time.Duration
+	start           segmentTime
+	stop            segmentTime
+	duration        time.Duration
+	exclusive       time.Duration
+	payloadsCreated payloadsCreated
 }
 
 const (
@@ -142,6 +146,19 @@ func StartSegment(t *TxnData, now time.Time) SegmentStartTime {
 	}
 }
 
+// PayloadCreated should be called when a payload is created so that this
+// information can be used to link together transaction traces.
+func PayloadCreated(t *TxnData, payloadNum uint32) {
+	if nil == t.stack {
+		return
+	}
+	if len(t.stack) == 0 {
+		return
+	}
+	top := len(t.stack) - 1
+	t.stack[top].payloadsCreated = append(t.stack[top].payloadsCreated, payloadNum)
+}
+
 var (
 	errMalformedSegment = errors.New("segment identifier malformed: perhaps unsafe code has modified it?")
 	errSegmentOrder     = errors.New(`improper segment use: the Transaction must be used ` +
@@ -168,8 +185,9 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 		children += t.stack[i].children
 	}
 	s := segmentEnd{
-		stop:  t.time(now),
-		start: t.stack[start.Depth].segmentTime,
+		stop:            t.time(now),
+		start:           t.stack[start.Depth].segmentTime,
+		payloadsCreated: t.stack[start.Depth].payloadsCreated,
 	}
 	if s.stop.Time.After(s.start.Time) {
 		s.duration = s.stop.Time.Sub(s.start.Time)

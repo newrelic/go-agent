@@ -108,13 +108,14 @@ func StartSegment(txn Transaction, name string) Segment {
 //    segment.End()
 //
 func StartExternalSegment(txn Transaction, request *http.Request) ExternalSegment {
+	s := ExternalSegment{
+		StartTime: StartSegmentNow(txn),
+		Request:   request,
+	}
 	if nil != txn && nil != request {
 		if p := txn.CreateDistributedTracePayload(request.URL).HTTPSafe(); "" != p {
 			request.Header.Set(DistributedTracePayloadHeader, p)
 		}
 	}
-	return ExternalSegment{
-		StartTime: StartSegmentNow(txn),
-		Request:   request,
-	}
+	return s
 }

@@ -480,10 +480,13 @@ func endExternal(s ExternalSegment) error {
 	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u)
 }
 
-func (txn *txn) sequence() int {
+func (txn *txn) sequence() uint32 {
 	s := txn.sequenceNum
 	txn.sequenceNum++
-	return int(s)
+
+	internal.PayloadCreated(&txn.TxnData, s)
+
+	return s
 }
 
 type shimPayload struct{}
@@ -513,7 +516,7 @@ func (txn *txn) CreateDistributedTracePayload(u *url.URL) DistributedTracePayloa
 	p.ID = txn.ID
 	p.Trip = txn.TripID()
 	p.Priority = txn.Priority.Input()
-	p.Sequence = txn.sequence()
+	p.Order = int32(txn.sequence())
 	p.Depth = txn.Depth() + 1
 	p.Time = time.Now()
 	p.TimeMS = internal.TimeToUnixMilliseconds(p.Time)

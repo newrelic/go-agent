@@ -33,8 +33,11 @@ func TestTxnTrace(t *testing.T) {
 	EndBasicSegment(tr, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t5 := StartSegment(tr, start.Add(8*time.Second))
+	PayloadCreated(tr, 0)
 	t6 := StartSegment(tr, start.Add(9*time.Second))
+	PayloadCreated(tr, 1)
 	EndBasicSegment(tr, t6, start.Add(10*time.Second), "t6")
+	PayloadCreated(tr, 2)
 	EndBasicSegment(tr, t5, start.Add(11*time.Second), "t5")
 	t7 := StartSegment(tr, start.Add(12*time.Second))
 	EndDatastoreSegment(EndDatastoreParams{
@@ -133,13 +136,13 @@ func TestTxnTrace(t *testing.T) {
 	                           8000,
 	                           11000,
 	                           "Custom/t5",
-	                           {},
+	                           {"payloads_created":[0,2]},
 	                           [
 	                              [
 	                                 9000,
 	                                 10000,
 	                                 "Custom/t6",
-	                                 {},
+	                                 {"payloads_created":[1]},
 	                                 []
 	                              ]
 	                           ]
@@ -180,7 +183,7 @@ func TestTxnTrace(t *testing.T) {
 	            "caller.transportType":"HTTP",
 	            "caller.host":"myhost",
 	            "caller.transportDuration":0,
-	            "nr.sequence":12,
+	            "nr.order":12,
 	            "referring_transaction_guid":"myid",
 	            "nr.priority":1234,
 	            "nr.depth":34,
@@ -200,7 +203,7 @@ func TestTxnTrace(t *testing.T) {
 	      "caller.transportType":"HTTP",
 	      "caller.host":"myhost",
 	      "caller.transportDuration":0,
-	      "nr.sequence":12,
+	      "nr.order":12,
 	      "referring_transaction_guid":"myid",
 	      "nr.priority":1234,
 	      "nr.depth":34,

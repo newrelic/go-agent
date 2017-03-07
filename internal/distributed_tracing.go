@@ -49,7 +49,7 @@ type PayloadV1 struct {
 	ID                string             `json:"id"`
 	Trip              string             `json:"tr"`
 	Priority          string             `json:"pr"`
-	Sequence          int                `json:"se"`
+	Order             int32              `json:"or"`
 	Depth             int                `json:"de"`
 	Time              time.Time          `json:"-"`
 	TimeMS            uint64             `json:"ti"`
@@ -118,7 +118,7 @@ func AcceptPayload(p interface{}) (*PayloadV1, error) {
 				envelope.Version.major())
 		}
 		payload.Depth = -1
-		payload.Sequence = -1
+		payload.Order = -1
 		if err := json.Unmarshal(envelope.Data, &payload); nil != err {
 			return nil, err
 		}

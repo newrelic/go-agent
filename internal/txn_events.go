@@ -46,8 +46,8 @@ func sharedIntrinsics(e *TxnEvent, w *jsonFieldsWriter, isTrace bool) {
 			w.stringField("caller.host", p.Host)
 		}
 		w.floatField("caller.transportDuration", p.TransportDuration.Seconds())
-		if p.Sequence >= 0 {
-			w.intField("nr.sequence", int64(p.Sequence))
+		if p.Order >= 0 {
+			w.intField("nr.order", int64(p.Order))
 		}
 		if "" != p.ID {
 			if isTrace {

@@ -27,6 +27,18 @@ type traceNodeParams struct {
 	PortPathOrID    string
 	Query           string
 	queryParameters queryParameters
+	payloadsCreated payloadsCreated
+}
+
+func (p payloadsCreated) WriteJSON(buf *bytes.Buffer) {
+	buf.WriteByte('[')
+	for i, id := range p {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		jsonx.AppendInt(buf, int64(id))
+	}
+	buf.WriteByte(']')
 }
 
 func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
@@ -52,6 +64,9 @@ func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
 	}
 	if nil != p.queryParameters {
 		w.writerField("query_parameters", p.queryParameters)
+	}
+	if nil != p.payloadsCreated {
+		w.writerField("payloads_created", p.payloadsCreated)
 	}
 	buf.WriteByte('}')
 }
@@ -111,6 +126,13 @@ func (trace *TxnTrace) witnessNode(end segmentEnd, name string, params *traceNod
 			max = maxTxnTraceNodes
 		}
 		trace.nodes = make(traceNodeHeap, 0, max)
+	}
+	if end.payloadsCreated != nil {
+		if node.params == nil {
+			p := new(traceNodeParams)
+			node.params = p
+		}
+		node.params.payloadsCreated = end.payloadsCreated
 	}
 	if end.exclusive >= trace.StackTraceThreshold {
 		if node.params == nil {

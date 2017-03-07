@@ -16,7 +16,7 @@ var (
 		ID:       "myid",
 		Trip:     "mytrip",
 		Priority: "mypriority",
-		Sequence: 12,
+		Order:    12,
 		Depth:    34,
 		Time:     payloadTime,
 		TimeMS:   TimeToUnixMilliseconds(payloadTime),
