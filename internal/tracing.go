@@ -27,6 +27,13 @@ type TxnEvent struct {
 	ID      string
 }
 
+func (e TxnEvent) syntheticsResource() string {
+	if nil != e.Inbound && nil != e.Inbound.Synthetics {
+		return e.Inbound.Synthetics.Resource
+	}
+	return ""
+}
+
 // TripID returns the trip id.
 func (e TxnEvent) TripID() string {
 	if nil != e.Inbound && "" != e.Inbound.Trip {

@@ -101,7 +101,7 @@ func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	buf.WriteString(`"intrinsics"`)
 	buf.WriteByte(':')
-	buf.WriteString("{}")
+	traceIntrinsics(&h.TxnEvent, buf)
 	if nil != h.Stack {
 		buf.WriteByte(',')
 		buf.WriteString(`"stack_trace"`)

@@ -26,7 +26,7 @@ func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
 	w.floatField("timestamp", timeToFloatSeconds(e.When))
 	w.stringField("transactionName", e.FinalName)
 	w.stringField("nr.transactionGuid", e.ID)
-	sharedEventIntrinsics(&e.TxnEvent, &w)
+	sharedIntrinsics(&e.TxnEvent, &w, false)
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	userAttributesJSON(e.Attrs, buf, destError)

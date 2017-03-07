@@ -54,6 +54,8 @@ func TestTxnTrace(t *testing.T) {
 	attr.Agent.RequestMethod = "GET"
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
+	p := samplePayload
+	p.TransportType = "HTTP"
 	ht := HarvestTrace{
 		TxnEvent: TxnEvent{
 			Start:     start,
@@ -61,6 +63,9 @@ func TestTxnTrace(t *testing.T) {
 			FinalName: "WebTransaction/Go/hello",
 			CleanURL:  "/url",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
+			Inbound:   &p,
 		},
 		Trace: tr.TxnTrace,
 	}
@@ -168,14 +173,39 @@ func TestTxnTrace(t *testing.T) {
 	         "userAttributes":{
 	            "zap":123
 	         },
-	         "intrinsics":{}
+	         "intrinsics":{
+	            "caller.type":"App",
+	            "caller.app":"456",
+	            "caller.account":"123",
+	            "caller.transportType":"HTTP",
+	            "caller.host":"myhost",
+	            "caller.transportDuration":0,
+	            "nr.sequence":12,
+	            "referring_transaction_guid":"myid",
+	            "nr.priority":1234,
+	            "nr.depth":34,
+	            "nr.tripId":"mytrip"
+	         }
 	      }
 	   ],
-	   "",
+	   "txn-id",
 	   null,
 	   false,
 	   null,
-	   ""
+	   "",
+	   {
+	      "caller.type":"App",
+	      "caller.app":"456",
+	      "caller.account":"123",
+	      "caller.transportType":"HTTP",
+	      "caller.host":"myhost",
+	      "caller.transportDuration":0,
+	      "nr.sequence":12,
+	      "referring_transaction_guid":"myid",
+	      "nr.priority":1234,
+	      "nr.depth":34,
+	      "nr.tripId":"mytrip"
+	   }
 	]`
 
 	expect = CompactJSONString(expect)
@@ -205,6 +235,8 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 			FinalName: "WebTransaction/Go/hello",
 			CleanURL:  "/url",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	}
@@ -236,14 +268,23 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	      {
 	         "agentAttributes":{},
 	         "userAttributes":{},
-	         "intrinsics":{}
+	         "intrinsics":{
+	            "nr.priority":1234,
+	            "nr.depth":1,
+	            "nr.tripId":"txn-id"
+	         }
 	      }
 	   ],
-	   "",
+	   "txn-id",
 	   null,
 	   false,
 	   null,
-	   ""
+	   "",
+	   {
+	      "nr.priority":1234,
+	      "nr.depth":1,
+	      "nr.tripId":"txn-id"
+	   }
 	]`
 	expect = CompactJSONString(expect)
 	js, err := ht.MarshalJSON()
@@ -281,6 +322,8 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 			FinalName: "WebTransaction/Go/hello",
 			CleanURL:  "/url",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	}
@@ -348,14 +391,23 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	      {
 	         "agentAttributes":{},
 	         "userAttributes":{},
-	         "intrinsics":{}
+	         "intrinsics":{
+	            "nr.priority":1234,
+	            "nr.depth":1,
+	            "nr.tripId":"txn-id"
+	         }
 	      }
 	   ],
-	   "",
+	   "txn-id",
 	   null,
 	   false,
 	   null,
-	   ""
+	   "",
+	   {
+	      "nr.priority":1234,
+	      "nr.depth":1,
+	      "nr.tripId":"txn-id"
+	   }
 	]`
 	expect = CompactJSONString(expect)
 	js, err := ht.MarshalJSON()
@@ -393,6 +445,8 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 			FinalName: "WebTransaction/Go/hello",
 			CleanURL:  "/url",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	}
@@ -446,14 +500,23 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	      {
 	         "agentAttributes":{},
 	         "userAttributes":{},
-	         "intrinsics":{}
+	         "intrinsics":{
+	            "nr.priority":1234,
+	            "nr.depth":1,
+	            "nr.tripId":"txn-id"
+	         }
 	      }
 	   ],
-	   "",
+	   "txn-id",
 	   null,
 	   false,
 	   null,
-	   ""
+	   "",
+	   {
+	      "nr.priority":1234,
+	      "nr.depth":1,
+	      "nr.tripId":"txn-id"
+	   }
 	]`
 	expect = CompactJSONString(expect)
 	js, err := ht.MarshalJSON()
@@ -490,6 +553,8 @@ func TestLongestTraceSaved(t *testing.T) {
 			FinalName: "WebTransaction/Go/3",
 			CleanURL:  "/url/3",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	})
@@ -500,6 +565,8 @@ func TestLongestTraceSaved(t *testing.T) {
 			FinalName: "WebTransaction/Go/5",
 			CleanURL:  "/url/5",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	})
@@ -510,31 +577,63 @@ func TestLongestTraceSaved(t *testing.T) {
 			FinalName: "WebTransaction/Go/4",
 			CleanURL:  "/url/4",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 		Trace: tr.TxnTrace,
 	})
 
-	expect := CompactJSONString(`
-[
-	"12345",
-	[
-		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url/5",
-			[
-				0,{},{},
-				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{},[]]]
-				],
-				{
-					"agentAttributes":{},
-					"userAttributes":{},
-					"intrinsics":{}
-				}
-			],
-			"",null,false,null,""
-		]
-	]
-]`)
+	expect := `[
+	   "12345",
+	   [
+	      [
+	         1417136460000000,
+	         5000,
+	         "WebTransaction/Go/5",
+	         "/url/5",
+	         [
+	            0,
+	            {},
+	            {},
+	            [
+	               0,
+	               5000,
+	               "ROOT",
+	               {},
+	               [
+	                  [
+	                     0,
+	                     5000,
+	                     "WebTransaction/Go/5",
+	                     {},
+	                     []
+	                  ]
+	               ]
+	            ],
+	            {
+	               "agentAttributes":{},
+	               "userAttributes":{},
+	               "intrinsics":{
+	                  "nr.priority":1234,
+	                  "nr.depth":1,
+	                  "nr.tripId":"txn-id"
+	               }
+	            }
+	         ],
+	         "txn-id",
+	         null,
+	         false,
+	         null,
+	         "",
+	         {
+	            "nr.priority":1234,
+	            "nr.depth":1,
+	            "nr.tripId":"txn-id"
+	         }
+	      ]
+	   ]
+	]`
+	expect = CompactJSONString(expect)
 	js, err := ht.Data("12345", start)
 	if nil != err || string(js) != expect {
 		t.Error(err, string(js), expect)

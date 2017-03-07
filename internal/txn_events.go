@@ -26,7 +26,7 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 		w.stringField("nr.apdexPerfZone", e.Zone.label())
 	}
 	w.stringField("nr.guid", e.ID)
-	sharedEventIntrinsics(e, &w)
+	sharedIntrinsics(e, &w, false)
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	userAttributesJSON(e.Attrs, buf, destTxnEvent)
@@ -35,8 +35,7 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(']')
 }
 
-// sharedEventIntrinsics creates intrinsics that belong in both txn events and error events.
-func sharedEventIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
+func sharedIntrinsics(e *TxnEvent, w *jsonFieldsWriter, isTrace bool) {
 	e.Proxies.createIntrinsics(w)
 	if p := e.Inbound; nil != p {
 		w.stringField("caller.type", p.Type)
@@ -51,29 +50,48 @@ func sharedEventIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 			w.intField("nr.sequence", int64(p.Sequence))
 		}
 		if "" != p.ID {
-			w.stringField("nr.referringTransactionGuid", p.ID)
+			if isTrace {
+				w.stringField("referring_transaction_guid", p.ID)
+			} else {
+				w.stringField("nr.referringTransactionGuid", p.ID)
+			}
 		}
 		if nil != p.Synthetics {
-			w.stringField("nr.syntheticsResourceId", p.Synthetics.Resource)
-			w.stringField("nr.syntheticsJobId", p.Synthetics.Job)
-			w.stringField("nr.syntheticsMonitorId", p.Synthetics.Monitor)
+			if isTrace {
+				w.stringField("synthetics_resource_id", p.Synthetics.Resource)
+				w.stringField("synthetics_job_id", p.Synthetics.Job)
+				w.stringField("synthetics_monitor_id", p.Synthetics.Monitor)
+			} else {
+				w.stringField("nr.syntheticsResourceId", p.Synthetics.Resource)
+				w.stringField("nr.syntheticsJobId", p.Synthetics.Job)
+				w.stringField("nr.syntheticsMonitorId", p.Synthetics.Monitor)
+			}
 		}
 	}
 	w.intField("nr.priority", int64(e.Priority.Value()))
 	w.intField("nr.depth", int64(e.Depth()))
 	w.stringField("nr.tripId", e.TripID())
-	w.floatField("duration", e.Duration.Seconds())
 
-	if e.externalCallCount > 0 {
-		w.intField("externalCallCount", int64(e.externalCallCount))
-		w.floatField("externalDuration", e.externalDuration.Seconds())
+	if !isTrace {
+		w.floatField("duration", e.Duration.Seconds())
+		if e.externalCallCount > 0 {
+			w.intField("externalCallCount", int64(e.externalCallCount))
+			w.floatField("externalDuration", e.externalDuration.Seconds())
+		}
+		if e.datastoreCallCount > 0 {
+			// Note that "database" is used for the keys here instead of
+			// "datastore" for historical reasons.
+			w.intField("databaseCallCount", int64(e.datastoreCallCount))
+			w.floatField("databaseDuration", e.datastoreDuration.Seconds())
+		}
 	}
-	if e.datastoreCallCount > 0 {
-		// Note that "database" is used for the keys here instead of
-		// "datastore" for historical reasons.
-		w.intField("databaseCallCount", int64(e.datastoreCallCount))
-		w.floatField("databaseDuration", e.datastoreDuration.Seconds())
-	}
+}
+
+func traceIntrinsics(e *TxnEvent, buf *bytes.Buffer) {
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('{')
+	sharedIntrinsics(e, &w, true)
+	buf.WriteByte('}')
 }
 
 // MarshalJSON is used for testing.

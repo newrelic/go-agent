@@ -263,7 +263,8 @@ func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	buf.WriteString(`"userAttributes":`)
 	userAttributesJSON(trace.Attrs, buf, destTxnTrace)
 	buf.WriteByte(',')
-	buf.WriteString(`"intrinsics":{}`) // TODO intrinsics
+	buf.WriteString(`"intrinsics":`)
+	traceIntrinsics(&trace.TxnEvent, buf)
 	buf.WriteByte('}')
 
 	// If the trace string pool is used, end another array here.
@@ -271,17 +272,17 @@ func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	buf.WriteByte(']') // end trace data
 
 	buf.WriteByte(',')
-	buf.WriteString(`""`)    // GUID is not yet supported
-	buf.WriteByte(',')       //
-	buf.WriteString(`null`)  // reserved for future use
-	buf.WriteByte(',')       //
-	buf.WriteString(`false`) // ForcePersist is not yet supported
-	buf.WriteByte(',')       //
-	buf.WriteString(`null`)  // X-Ray sessions not supported
-	buf.WriteByte(',')       //
-	buf.WriteString(`""`)    // SyntheticsResourceID is not yet supported
-
-	// TODO intrinsics here
+	jsonx.AppendString(buf, trace.ID)                   //
+	buf.WriteByte(',')                                  //
+	buf.WriteString(`null`)                             // reserved for future use
+	buf.WriteByte(',')                                  //
+	buf.WriteString(`false`)                            // ForcePersist is not yet supported
+	buf.WriteByte(',')                                  //
+	buf.WriteString(`null`)                             // X-Ray sessions not supported
+	buf.WriteByte(',')                                  //
+	jsonx.AppendString(buf, trace.syntheticsResource()) // SyntheticsResourceID is not yet supported
+	buf.WriteByte(',')                                  //
+	traceIntrinsics(&trace.TxnEvent, buf)               // intrinsics are duplicated here
 
 	buf.WriteByte(']') // end trace
 

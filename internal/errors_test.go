@@ -23,6 +23,8 @@ func TestErrorTraceMarshal(t *testing.T) {
 			FinalName: "my_txn_name",
 			CleanURL:  "my_request_uri",
 			Attrs:     nil,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 	}
 	js, err := json.Marshal(he)
@@ -38,7 +40,11 @@ func TestErrorTraceMarshal(t *testing.T) {
 		{
 			"agentAttributes":{},
 			"userAttributes":{},
-			"intrinsics":{},
+			"intrinsics":{
+				"nr.priority":1234,
+				"nr.depth":1,
+				"nr.tripId":"txn-id"
+			},
 			"stack_trace":[],
 			"request_uri":"my_request_uri"
 		}
@@ -70,6 +76,8 @@ func TestErrorTraceAttributes(t *testing.T) {
 			FinalName: "my_txn_name",
 			CleanURL:  "my_request_uri",
 			Attrs:     attr,
+			ID:        "txn-id",
+			Priority:  Priority{priority: 1234},
 		},
 	}
 	js, err := json.Marshal(he)
@@ -85,7 +93,11 @@ func TestErrorTraceAttributes(t *testing.T) {
 		{
 			"agentAttributes":{"request.method":"GET"},
 			"userAttributes":{"zip":456},
-			"intrinsics":{},
+			"intrinsics":{
+				"nr.priority":1234,
+				"nr.depth":1,
+				"nr.tripId":"txn-id"
+			},
 			"request_uri":"my_request_uri"
 		}
 	]`)
@@ -108,6 +120,8 @@ func TestErrorsLifecycle(t *testing.T) {
 		FinalName: "txnName",
 		CleanURL:  "requestURI",
 		Attrs:     nil,
+		ID:        "txn-id",
+		Priority:  Priority{priority: 1234},
 	})
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
@@ -125,7 +139,11 @@ func TestErrorsLifecycle(t *testing.T) {
          {
             "agentAttributes":{},
             "userAttributes":{},
-            "intrinsics":{},
+            "intrinsics":{
+               "nr.priority":1234,
+               "nr.depth":1,
+               "nr.tripId":"txn-id"
+            },
             "request_uri":"requestURI"
          }
       ],
@@ -137,7 +155,11 @@ func TestErrorsLifecycle(t *testing.T) {
          {
             "agentAttributes":{},
             "userAttributes":{},
-            "intrinsics":{},
+            "intrinsics":{
+               "nr.priority":1234,
+               "nr.depth":1,
+               "nr.tripId":"txn-id"
+            },
             "request_uri":"requestURI"
          }
       ],
@@ -149,7 +171,11 @@ func TestErrorsLifecycle(t *testing.T) {
          {
             "agentAttributes":{},
             "userAttributes":{},
-            "intrinsics":{},
+            "intrinsics":{
+               "nr.priority":1234,
+               "nr.depth":1,
+               "nr.tripId":"txn-id"
+            },
             "request_uri":"requestURI"
          }
       ]
