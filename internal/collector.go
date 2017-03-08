@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -125,7 +125,16 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
-	return parseResponse(resp.Body)
+	// Read the entire response, rather than using resp.Body as input to json.NewDecoder to
+	// avoid the issue described here:
+	// https://github.com/google/go-github/pull/317
+	// https://ahmetalpbalkan.com/blog/golang-json-decoder-pitfalls/
+	// Also, collector JSON responses are expected to be quite small.
+	b, err := ioutil.ReadAll(resp.Body)
+	if nil != err {
+		return nil, err
+	}
+	return parseResponse(b)
 }
 
 // CollectorRequest makes a request to New Relic.
@@ -197,18 +206,13 @@ func IsRuntime(e error) bool { return hasType(e, runtimeType) }
 // IsDisconnect indicates if the error was a disconnect exception.
 func IsDisconnect(e error) bool { return hasType(e, disconnectType) }
 
-type response struct {
-	ReturnValue json.RawMessage `json:"return_value"`
-	Exception   *rpmException   `json:"exception"`
-}
-
-func parseResponse(body io.Reader) ([]byte, error) {
-	if body == nil {
-		return nil, errors.New("unexpected end of JSON input")
+func parseResponse(b []byte) ([]byte, error) {
+	var r struct {
+		ReturnValue json.RawMessage `json:"return_value"`
+		Exception   *rpmException   `json:"exception"`
 	}
 
-	r := response{}
-	err := json.NewDecoder(body).Decode(&r)
+	err := json.Unmarshal(b, &r)
 	if nil != err {
 		return nil, err
 	}
