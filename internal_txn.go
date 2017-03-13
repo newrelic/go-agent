@@ -383,28 +383,32 @@ type segment struct {
 	txn   *txn
 }
 
-func endSegment(s Segment) {
+func endSegment(s Segment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
-		return
+		return nil
 	}
+	var err error
 	txn.Lock()
-	if !txn.finished {
-		internal.EndBasicSegment(&txn.TxnData, s.StartTime.start, time.Now(), s.Name)
+	if txn.finished {
+		err = errAlreadyEnded
+	} else {
+		err = internal.EndBasicSegment(&txn.TxnData, s.StartTime.start, time.Now(), s.Name)
 	}
 	txn.Unlock()
+	return err
 }
 
-func endDatastore(s DatastoreSegment) {
+func endDatastore(s DatastoreSegment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
-		return
+		return nil
 	}
 	txn.Lock()
 	defer txn.Unlock()
 
 	if txn.finished {
-		return
+		return errAlreadyEnded
 	}
 	if txn.Config.HighSecurity {
 		s.QueryParameters = nil
@@ -419,7 +423,7 @@ func endDatastore(s DatastoreSegment) {
 		s.Host = ""
 		s.PortPathOrID = ""
 	}
-	internal.EndDatastoreSegment(internal.EndDatastoreParams{
+	return internal.EndDatastoreSegment(internal.EndDatastoreParams{
 		Tracer:             &txn.TxnData,
 		Start:              s.StartTime.start,
 		Now:                time.Now(),
@@ -434,31 +438,34 @@ func endDatastore(s DatastoreSegment) {
 	})
 }
 
-func externalSegmentURL(s ExternalSegment) *url.URL {
+func externalSegmentURL(s ExternalSegment) (*url.URL, error) {
 	if "" != s.URL {
-		u, _ := url.Parse(s.URL)
-		return u
+		return url.Parse(s.URL)
 	}
 	r := s.Request
 	if nil != s.Response && nil != s.Response.Request {
 		r = s.Response.Request
 	}
 	if r != nil {
-		return r.URL
+		return r.URL, nil
 	}
-	return nil
+	return nil, nil
 }
 
-func endExternal(s ExternalSegment) {
+func endExternal(s ExternalSegment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
-		return
+		return nil
 	}
 	txn.Lock()
 	defer txn.Unlock()
 
 	if txn.finished {
-		return
+		return errAlreadyEnded
 	}
-	internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), externalSegmentURL(s))
+	u, err := externalSegmentURL(s)
+	if nil != err {
+		return err
+	}
+	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u)
 }

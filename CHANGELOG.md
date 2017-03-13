@@ -3,6 +3,9 @@
 * Fixed incorrect metric rule application when the metric rule is flagged to
   terminate and matches but the name is unchanged.
 
+* `Segment.End()`, `DatastoreSegment.End()`, and `ExternalSegment.End()` methods now return an
+  error which may be helpful in diagnosing situations where segment data is unexpectedly missing.
+
 ## 1.7.0
 
 * Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`

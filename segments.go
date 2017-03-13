@@ -63,13 +63,13 @@ type ExternalSegment struct {
 }
 
 // End finishes the segment.
-func (s Segment) End() { endSegment(s) }
+func (s Segment) End() error { return endSegment(s) }
 
 // End finishes the datastore segment.
-func (s DatastoreSegment) End() { endDatastore(s) }
+func (s DatastoreSegment) End() error { return endDatastore(s) }
 
 // End finishes the external segment.
-func (s ExternalSegment) End() { endExternal(s) }
+func (s ExternalSegment) End() error { return endExternal(s) }
 
 // StartSegmentNow helps avoid Transaction nil checks.
 func StartSegmentNow(txn Transaction) SegmentStartTime {

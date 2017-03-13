@@ -16,9 +16,9 @@ func TestStartEndSegment(t *testing.T) {
 	tr := &TxnData{}
 	token := StartSegment(tr, start)
 	stop := start.Add(1 * time.Second)
-	end := endSegment(tr, token, stop)
-	if !end.valid {
-		t.Error(end.valid)
+	end, err := endSegment(tr, token, stop)
+	if nil != err {
+		t.Error(err)
 	}
 	if end.exclusive != end.duration {
 		t.Error(end.exclusive, end.duration)
@@ -48,10 +48,10 @@ func TestTracerRealloc(t *testing.T) {
 
 	for i := max - 1; i >= 0; i-- {
 		now = now.Add(time.Second)
-		end := endSegment(tr, startStack[i], now)
+		end, err := endSegment(tr, startStack[i], now)
 
-		if !end.valid {
-			t.Error(end.valid)
+		if nil != err {
+			t.Error(err)
 		}
 		if end.exclusive != 2*time.Second {
 			t.Error(end.exclusive)
@@ -82,24 +82,24 @@ func TestMultipleChildren(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
-	end2 := endSegment(tr, t2, start.Add(3*time.Second))
+	end2, err2 := endSegment(tr, t2, start.Add(3*time.Second))
 	t3 := StartSegment(tr, start.Add(4*time.Second))
-	end3 := endSegment(tr, t3, start.Add(5*time.Second))
-	end1 := endSegment(tr, t1, start.Add(6*time.Second))
+	end3, err3 := endSegment(tr, t3, start.Add(5*time.Second))
+	end1, err1 := endSegment(tr, t1, start.Add(6*time.Second))
 	t4 := StartSegment(tr, start.Add(7*time.Second))
-	end4 := endSegment(tr, t4, start.Add(8*time.Second))
+	end4, err4 := endSegment(tr, t4, start.Add(8*time.Second))
 
-	if end1.duration != 5*time.Second || end1.exclusive != 3*time.Second {
-		t.Error(end1)
+	if nil != err1 || end1.duration != 5*time.Second || end1.exclusive != 3*time.Second {
+		t.Error(end1, err1)
 	}
-	if end2.duration != end2.exclusive || end2.duration != time.Second {
-		t.Error(end2)
+	if nil != err2 || end2.duration != end2.exclusive || end2.duration != time.Second {
+		t.Error(end2, err2)
 	}
-	if end3.duration != end3.exclusive || end3.duration != time.Second {
-		t.Error(end3)
+	if nil != err3 || end3.duration != end3.exclusive || end3.duration != time.Second {
+		t.Error(end3, err3)
 	}
-	if end4.duration != end4.exclusive || end4.duration != time.Second {
-		t.Error(end4)
+	if nil != err4 || end4.duration != end4.exclusive || end4.duration != time.Second {
+		t.Error(end4, err4)
 	}
 	children := TracerRootChildren(tr)
 	if children != 6*time.Second {
@@ -111,14 +111,14 @@ func TestInvalidStart(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &TxnData{}
 
-	end := endSegment(tr, SegmentStartTime{}, start.Add(1*time.Second))
-	if end.valid {
-		t.Error(end.valid)
+	end, err := endSegment(tr, SegmentStartTime{}, start.Add(1*time.Second))
+	if err != errMalformedSegment {
+		t.Error(end, err)
 	}
 	StartSegment(tr, start.Add(2*time.Second))
-	end = endSegment(tr, SegmentStartTime{}, start.Add(3*time.Second))
-	if end.valid {
-		t.Error(end.valid)
+	end, err = endSegment(tr, SegmentStartTime{}, start.Add(3*time.Second))
+	if err != errMalformedSegment {
+		t.Error(end, err)
 	}
 }
 
@@ -127,13 +127,13 @@ func TestSegmentAlreadyEnded(t *testing.T) {
 	tr := &TxnData{}
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
-	end := endSegment(tr, t1, start.Add(2*time.Second))
-	if !end.valid {
-		t.Error(end)
+	end, err := endSegment(tr, t1, start.Add(2*time.Second))
+	if err != nil {
+		t.Error(end, err)
 	}
-	end = endSegment(tr, t1, start.Add(3*time.Second))
-	if end.valid {
-		t.Error(end)
+	end, err = endSegment(tr, t1, start.Add(3*time.Second))
+	if err != errSegmentOrder {
+		t.Error(end, err)
 	}
 }
 
@@ -143,9 +143,9 @@ func TestSegmentBadStamp(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t1.Stamp++
-	end := endSegment(tr, t1, start.Add(2*time.Second))
-	if end.valid {
-		t.Error(end)
+	end, err := endSegment(tr, t1, start.Add(2*time.Second))
+	if err != errSegmentOrder {
+		t.Error(end, err)
 	}
 }
 
@@ -155,9 +155,9 @@ func TestSegmentBadDepth(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t1.Depth++
-	end := endSegment(tr, t1, start.Add(2*time.Second))
-	if end.valid {
-		t.Error(end)
+	end, err := endSegment(tr, t1, start.Add(2*time.Second))
+	if err != errSegmentOrder {
+		t.Error(end, err)
 	}
 }
 
@@ -167,9 +167,9 @@ func TestSegmentNegativeDepth(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t1.Depth = -1
-	end := endSegment(tr, t1, start.Add(2*time.Second))
-	if end.valid {
-		t.Error(end)
+	end, err := endSegment(tr, t1, start.Add(2*time.Second))
+	if err != errMalformedSegment {
+		t.Error(end, err)
 	}
 }
 
@@ -180,25 +180,25 @@ func TestSegmentOutOfOrder(t *testing.T) {
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
 	t3 := StartSegment(tr, start.Add(3*time.Second))
-	end2 := endSegment(tr, t2, start.Add(4*time.Second))
-	end3 := endSegment(tr, t3, start.Add(5*time.Second))
+	end2, err2 := endSegment(tr, t2, start.Add(4*time.Second))
+	end3, err3 := endSegment(tr, t3, start.Add(5*time.Second))
 	t4 := StartSegment(tr, start.Add(6*time.Second))
-	end4 := endSegment(tr, t4, start.Add(7*time.Second))
-	end1 := endSegment(tr, t1, start.Add(8*time.Second))
+	end4, err4 := endSegment(tr, t4, start.Add(7*time.Second))
+	end1, err1 := endSegment(tr, t1, start.Add(8*time.Second))
 
-	if !end1.valid ||
+	if nil != err1 ||
 		end1.duration != 7*time.Second ||
 		end1.exclusive != 4*time.Second {
-		t.Error(end1)
+		t.Error(end1, err1)
 	}
-	if !end2.valid || end2.duration != end2.exclusive || end2.duration != 2*time.Second {
-		t.Error(end2)
+	if nil != err2 || end2.duration != end2.exclusive || end2.duration != 2*time.Second {
+		t.Error(end2, err2)
 	}
-	if end3.valid {
-		t.Error(end3)
+	if err3 != errSegmentOrder {
+		t.Error(end3, err3)
 	}
-	if !end4.valid || end4.duration != end4.exclusive || end4.duration != 1*time.Second {
-		t.Error(end4)
+	if nil != err4 || end4.duration != end4.exclusive || end4.duration != 1*time.Second {
+		t.Error(end4, err4)
 	}
 }
 
