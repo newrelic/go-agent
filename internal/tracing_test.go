@@ -34,48 +34,6 @@ func TestStartEndSegment(t *testing.T) {
 	}
 }
 
-func TestTracerRealloc(t *testing.T) {
-	max := 3 * startingStackDepthAlloc
-	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	now := start
-	startStack := make([]SegmentStartTime, max)
-
-	tr := &TxnData{}
-	for i := 0; i < max; i++ {
-		startStack[i] = StartSegment(tr, now)
-		now = now.Add(time.Second)
-	}
-
-	for i := max - 1; i >= 0; i-- {
-		now = now.Add(time.Second)
-		end, err := endSegment(tr, startStack[i], now)
-
-		if nil != err {
-			t.Error(err)
-		}
-		if end.exclusive != 2*time.Second {
-			t.Error(end.exclusive)
-		}
-		expectDuration := time.Duration((max-i)*2) * time.Second
-		if end.duration != expectDuration {
-			t.Error(end.duration, expectDuration)
-		}
-		expectStart := start.Add(time.Duration(i) * time.Second)
-		if end.start.Time != expectStart {
-			t.Error(end.start, expectStart)
-		}
-		expectStop := expectStart.Add(expectDuration)
-		if end.stop.Time != expectStop {
-			t.Error(end.stop, expectStop)
-		}
-	}
-	rootChildren := time.Duration(2*max) * time.Second
-	children := TracerRootChildren(tr)
-	if children != rootChildren {
-		t.Error(children, rootChildren)
-	}
-}
-
 func TestMultipleChildren(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &TxnData{}

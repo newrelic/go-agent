@@ -35,7 +35,6 @@ type TxnData struct {
 
 	finishedChildren time.Duration
 	stamp            segmentStamp
-	currentDepth     int
 	stack            []segmentFrame
 
 	customSegments    map[string]*metricData
@@ -76,7 +75,6 @@ type segmentEnd struct {
 }
 
 const (
-	startingStackDepthAlloc   = 128
 	datastoreProductUnknown   = "Unknown"
 	datastoreOperationUnknown = "other"
 )
@@ -98,7 +96,7 @@ func (t *TxnData) time(now time.Time) segmentTime {
 // TracerRootChildren is used to calculate a transaction's exclusive duration.
 func TracerRootChildren(t *TxnData) time.Duration {
 	var lostChildren time.Duration
-	for i := 0; i < t.currentDepth; i++ {
+	for i := 0; i < len(t.stack); i++ {
 		lostChildren += t.stack[i].children
 	}
 	return t.finishedChildren + lostChildren
@@ -106,26 +104,15 @@ func TracerRootChildren(t *TxnData) time.Duration {
 
 // StartSegment begins a segment.
 func StartSegment(t *TxnData, now time.Time) SegmentStartTime {
-	if nil == t.stack {
-		t.stack = make([]segmentFrame, startingStackDepthAlloc)
-	}
-	if cap(t.stack) == t.currentDepth {
-		newLimit := 2 * t.currentDepth
-		newStack := make([]segmentFrame, newLimit)
-		copy(newStack, t.stack)
-		t.stack = newStack
-	}
-
 	tm := t.time(now)
-
-	depth := t.currentDepth
-	t.currentDepth++
-	t.stack[depth].children = 0
-	t.stack[depth].segmentTime = tm
+	t.stack = append(t.stack, segmentFrame{
+		segmentTime: tm,
+		children:    0,
+	})
 
 	return SegmentStartTime{
 		Stamp: tm.Stamp,
-		Depth: depth,
+		Depth: len(t.stack) - 1,
 	}
 }
 
@@ -140,7 +127,7 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 	if 0 == start.Stamp {
 		return segmentEnd{}, errMalformedSegment
 	}
-	if start.Depth >= t.currentDepth {
+	if start.Depth >= len(t.stack) {
 		return segmentEnd{}, errSegmentOrder
 	}
 	if start.Depth < 0 {
@@ -151,7 +138,7 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 	}
 
 	var children time.Duration
-	for i := start.Depth; i < t.currentDepth; i++ {
+	for i := start.Depth; i < len(t.stack); i++ {
 		children += t.stack[i].children
 	}
 	s := segmentEnd{
@@ -165,16 +152,18 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 		s.exclusive = s.duration - children
 	}
 
-	// Note that we expect (depth == (t.currentDepth - 1)).  However, if
-	// (depth < (t.currentDepth - 1)), that's ok: could be a panic popped
+	// Note that we expect (depth == (len(t.stack) - 1)).  However, if
+	// (depth < (len(t.stack) - 1)), that's ok: could be a panic popped
 	// some stack frames (and the consumer was not using defer).
-	t.currentDepth = start.Depth
 
-	if 0 == t.currentDepth {
+	if 0 == start.Depth {
 		t.finishedChildren += s.duration
 	} else {
-		t.stack[t.currentDepth-1].children += s.duration
+		t.stack[start.Depth-1].children += s.duration
 	}
+
+	t.stack = t.stack[0:start.Depth]
+
 	return s, nil
 }
 
