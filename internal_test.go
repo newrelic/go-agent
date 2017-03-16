@@ -671,41 +671,47 @@ func TestExternalSegmentURL(t *testing.T) {
 	response := &http.Response{Request: responsereq}
 
 	// empty segment
-	host := internal.HostFromURL(externalSegmentURL(ExternalSegment{}))
-	if "" != host {
-		t.Error(host)
+	u, err := externalSegmentURL(ExternalSegment{})
+	host := internal.HostFromURL(u)
+	if nil != err || nil != u || "" != host {
+		t.Error(u, err, internal.HostFromURL(u))
 	}
 	// segment only containing url
-	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{URL: rawURL}))
-	if "url.com" != host {
-		t.Error(host)
+	u, err = externalSegmentURL(ExternalSegment{URL: rawURL})
+	host = internal.HostFromURL(u)
+	if nil != err || host != "url.com" {
+		t.Error(u, err, internal.HostFromURL(u))
 	}
 	// segment only containing request
-	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{Request: req}))
-	if "request.com" != host {
+	u, err = externalSegmentURL(ExternalSegment{Request: req})
+	host = internal.HostFromURL(u)
+	if nil != err || "request.com" != host {
 		t.Error(host)
 	}
 	// segment only containing response
-	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{Response: response}))
-	if "response.com" != host {
+	u, err = externalSegmentURL(ExternalSegment{Response: response})
+	host = internal.HostFromURL(u)
+	if nil != err || "response.com" != host {
 		t.Error(host)
 	}
 	// segment containing request and response
-	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{
+	u, err = externalSegmentURL(ExternalSegment{
 		Request:  req,
 		Response: response,
-	}))
-	if "response.com" != host {
+	})
+	host = internal.HostFromURL(u)
+	if nil != err || "response.com" != host {
 		t.Error(host)
 	}
 	// segment containing url, request, and response
-	host = internal.HostFromURL(externalSegmentURL(ExternalSegment{
+	u, err = externalSegmentURL(ExternalSegment{
 		URL:      rawURL,
 		Request:  req,
 		Response: response,
-	}))
-	if "url.com" != host {
-		t.Error(host)
+	})
+	host = internal.HostFromURL(u)
+	if nil != err || "url.com" != host {
+		t.Error(err, host)
 	}
 }
 
@@ -726,7 +732,7 @@ func TestZeroSegmentsSafe(t *testing.T) {
 	StartExternalSegment(nil, nil).End()
 }
 
-func TestTraceSegment(t *testing.T) {
+func TestTraceSegmentDefer(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	func() {
@@ -740,13 +746,51 @@ func TestTraceSegment(t *testing.T) {
 	}, webMetrics...))
 }
 
+func TestTraceSegmentNilErr(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	err := StartSegment(txn, "segment").End()
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	scope := "WebTransaction/Go/hello"
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/segment", Scope: scope, Forced: false, Data: nil},
+	}, webMetrics...))
+}
+
+func TestTraceSegmentOutOfOrder(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	s1 := StartSegment(txn, "s1")
+	s2 := StartSegment(txn, "s1")
+	err1 := s1.End()
+	err2 := s2.End()
+	if nil != err1 {
+		t.Error(err1)
+	}
+	if nil == err2 {
+		t.Error(err2)
+	}
+	txn.End()
+	scope := "WebTransaction/Go/hello"
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Custom/s1", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/s1", Scope: scope, Forced: false, Data: nil},
+	}, webMetrics...))
+}
+
 func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	txn.End()
-	func() {
-		defer StartSegment(txn, "segment").End()
-	}()
+	s := StartSegment(txn, "segment")
+	err := s.End()
+	if err != errAlreadyEnded {
+		t.Error(err)
+	}
 	app.ExpectMetrics(t, webMetrics)
 }
 
@@ -755,7 +799,10 @@ func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	s := StartSegment(txn, "segment")
 	txn.End()
-	s.End()
+	err := s.End()
+	if err != errAlreadyEnded {
+		t.Error(err)
+	}
 
 	app.ExpectMetrics(t, webMetrics)
 }
@@ -803,7 +850,10 @@ func TestTraceSegmentNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	s := Segment{Name: "hello"}
-	s.End()
+	err := s.End()
+	if err != nil {
+		t.Error(err)
+	}
 	txn.End()
 	app.ExpectMetrics(t, webMetrics)
 }
@@ -811,14 +861,15 @@ func TestTraceSegmentNilTxn(t *testing.T) {
 func TestTraceDatastore(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
-	func() {
-		s := DatastoreSegment{}
-		s.StartTime = txn.StartSegmentNow()
-		s.Product = DatastoreMySQL
-		s.Collection = "my_table"
-		s.Operation = "SELECT"
-		defer s.End()
-	}()
+	s := DatastoreSegment{}
+	s.StartTime = txn.StartSegmentNow()
+	s.Product = DatastoreMySQL
+	s.Collection = "my_table"
+	s.Operation = "SELECT"
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -853,14 +904,16 @@ func TestTraceDatastore(t *testing.T) {
 func TestTraceDatastoreBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
-	func() {
-		defer DatastoreSegment{
-			StartTime:  txn.StartSegmentNow(),
-			Product:    DatastoreMySQL,
-			Collection: "my_table",
-			Operation:  "SELECT",
-		}.End()
-	}()
+	s := DatastoreSegment{
+		StartTime:  txn.StartSegmentNow(),
+		Product:    DatastoreMySQL,
+		Collection: "my_table",
+		Operation:  "SELECT",
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "OtherTransaction/Go/hello"
@@ -894,11 +947,13 @@ func TestTraceDatastoreBackground(t *testing.T) {
 func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
-	func() {
-		defer DatastoreSegment{
-			StartTime: txn.StartSegmentNow(),
-		}.End()
-	}()
+	s := DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -936,7 +991,10 @@ func TestTraceDatastoreNilTxn(t *testing.T) {
 	s.Product = DatastoreMySQL
 	s.Collection = "my_table"
 	s.Operation = "SELECT"
-	s.End()
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -966,8 +1024,10 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 		Operation:  "SELECT",
 	}
 	txn.End()
-	s.End()
-
+	err := s.End()
+	if errAlreadyEnded != err {
+		t.Error(err)
+	}
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -987,12 +1047,14 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 func TestTraceExternal(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
-	func() {
-		defer ExternalSegment{
-			StartTime: txn.StartSegmentNow(),
-			URL:       "http://example.com/",
-		}.End()
-	}()
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       "http://example.com/",
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1021,15 +1083,46 @@ func TestTraceExternal(t *testing.T) {
 	}})
 }
 
+func TestTraceExternalBadURL(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       ":example.com/",
+	}
+	err := s.End()
+	if nil == err {
+		t.Error(err)
+	}
+	txn.NoticeError(myError{})
+	txn.End()
+	app.ExpectMetrics(t, webErrorMetrics)
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "newrelic.myError",
+			"error.message":   "my msg",
+			"transactionName": "WebTransaction/Go/hello",
+		},
+	}})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+	}})
+}
+
 func TestTraceExternalBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
-	func() {
-		defer ExternalSegment{
-			StartTime: txn.StartSegmentNow(),
-			URL:       "http://example.com/",
-		}.End()
-	}()
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       "http://example.com/",
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "OtherTransaction/Go/hello"
@@ -1060,11 +1153,13 @@ func TestTraceExternalBackground(t *testing.T) {
 func TestTraceExternalMissingURL(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
-	func() {
-		defer ExternalSegment{
-			StartTime: txn.StartSegmentNow(),
-		}.End()
-	}()
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1098,7 +1193,10 @@ func TestTraceExternalNilTxn(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	txn.NoticeError(myError{})
 	var s ExternalSegment
-	s.End()
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
 	txn.End()
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -1125,8 +1223,10 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 		URL:       "http://example.com/",
 	}
 	txn.End()
-	s.End()
-
+	err := s.End()
+	if err != errAlreadyEnded {
+		t.Error(err)
+	}
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

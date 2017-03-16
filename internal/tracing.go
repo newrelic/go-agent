@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -68,7 +69,6 @@ type segmentFrame struct {
 }
 
 type segmentEnd struct {
-	valid     bool
 	start     segmentTime
 	stop      segmentTime
 	duration  time.Duration
@@ -129,28 +129,35 @@ func StartSegment(t *TxnData, now time.Time) SegmentStartTime {
 	}
 }
 
-func endSegment(t *TxnData, start SegmentStartTime, now time.Time) segmentEnd {
-	var s segmentEnd
+var (
+	errMalformedSegment = errors.New("segment identifier malformed: perhaps unsafe code has modified it?")
+	errSegmentOrder     = errors.New(`improper segment use: the Transaction must be used ` +
+		`in a single goroutine and segments must be ended in "last started first ended" order: ` +
+		`see https://github.com/newrelic/go-agent/blob/master/GUIDE.md#segments`)
+)
+
+func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, error) {
 	if 0 == start.Stamp {
-		return s
+		return segmentEnd{}, errMalformedSegment
 	}
 	if start.Depth >= t.currentDepth {
-		return s
+		return segmentEnd{}, errSegmentOrder
 	}
 	if start.Depth < 0 {
-		return s
+		return segmentEnd{}, errMalformedSegment
 	}
 	if start.Stamp != t.stack[start.Depth].Stamp {
-		return s
+		return segmentEnd{}, errSegmentOrder
 	}
 
 	var children time.Duration
 	for i := start.Depth; i < t.currentDepth; i++ {
 		children += t.stack[i].children
 	}
-	s.valid = true
-	s.stop = t.time(now)
-	s.start = t.stack[start.Depth].segmentTime
+	s := segmentEnd{
+		stop:  t.time(now),
+		start: t.stack[start.Depth].segmentTime,
+	}
 	if s.stop.Time.After(s.start.Time) {
 		s.duration = s.stop.Time.Sub(s.start.Time)
 	}
@@ -168,14 +175,14 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) segmentEnd {
 	} else {
 		t.stack[t.currentDepth-1].children += s.duration
 	}
-	return s
+	return s, nil
 }
 
 // EndBasicSegment ends a basic segment.
-func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name string) {
-	end := endSegment(t, start, now)
-	if !end.valid {
-		return
+func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name string) error {
+	end, err := endSegment(t, start, now)
+	if nil != err {
+		return err
 	}
 	if nil == t.customSegments {
 		t.customSegments = make(map[string]*metricData)
@@ -194,13 +201,15 @@ func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name str
 	if t.TxnTrace.considerNode(end) {
 		t.TxnTrace.witnessNode(end, customSegmentMetric(name), nil)
 	}
+
+	return nil
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL) {
-	end := endSegment(t, start, now)
-	if !end.valid {
-		return
+func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL) error {
+	end, err := endSegment(t, start, now)
+	if nil != err {
+		return err
 	}
 	host := HostFromURL(u)
 	if "" == host {
@@ -232,6 +241,8 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 			CleanURL: SafeURL(u),
 		})
 	}
+
+	return nil
 }
 
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
@@ -278,10 +289,10 @@ func (t TxnData) slowQueryWorthy(d time.Duration) bool {
 }
 
 // EndDatastoreSegment ends a datastore segment.
-func EndDatastoreSegment(p EndDatastoreParams) {
-	end := endSegment(p.Tracer, p.Start, p.Now)
-	if !end.valid {
-		return
+func EndDatastoreSegment(p EndDatastoreParams) error {
+	end, err := endSegment(p.Tracer, p.Start, p.Now)
+	if nil != err {
+		return err
 	}
 	if p.Operation == "" {
 		p.Operation = datastoreOperationUnknown
@@ -366,6 +377,8 @@ func EndDatastoreSegment(p EndDatastoreParams) {
 			StackTrace:         GetStackTrace(skipFrames),
 		})
 	}
+
+	return nil
 }
 
 // MergeBreakdownMetrics creates segment metrics.
