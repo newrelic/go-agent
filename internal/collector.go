@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,7 +96,7 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(deflated))
+	req, err := http.NewRequest("POST", url, deflated)
 	if nil != err {
 		return nil, err
 	}
@@ -129,6 +128,11 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, unexpectedStatusCodeErr{code: resp.StatusCode}
 	}
 
+	// Read the entire response, rather than using resp.Body as input to json.NewDecoder to
+	// avoid the issue described here:
+	// https://github.com/google/go-github/pull/317
+	// https://ahmetalpbalkan.com/blog/golang-json-decoder-pitfalls/
+	// Also, collector JSON responses are expected to be quite small.
 	b, err := ioutil.ReadAll(resp.Body)
 	if nil != err {
 		return nil, err
