@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 1.8.0
+
 * Fixed incorrect metric rule application when the metric rule is flagged to
   terminate and matches but the name is unchanged.
 
