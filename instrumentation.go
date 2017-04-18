@@ -38,6 +38,29 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
+// HTTPHandler allows us to satisfy the HTTPHandler interface
+type HTTPHandler struct {
+	app             Application
+	OriginalHandler http.Handler
+}
+
+// ServeHTTP satisfies the interface, kicks off a new Transaction using the requested
+// path. The transaction is passed as the ResponseWriter.
+func (handler *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	txn := handler.app.StartTransaction(r.URL.Path, w, r)
+	defer txn.End()
+
+	handler.OriginalHandler.ServeHTTP(txn, r)
+}
+
+// WrapHTTPHandler allows wrapping a ListenAndServe call.
+func WrapHTTPHandler(app Application, handler http.Handler) http.Handler {
+	return &HTTPHandler{
+		app:             app,
+		OriginalHandler: handler,
+	}
+}
+
 // NewRoundTripper creates an http.RoundTripper to instrument external requests.
 // This RoundTripper must be used in same the goroutine as the other uses of the
 // Transaction's SegmentTracer methods.  http.DefaultTransport is used if an
