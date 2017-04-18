@@ -7,7 +7,7 @@ import (
 
 // PhysicalMemoryBytes returns the total amount of host memory.
 func PhysicalMemoryBytes() (uint64, error) {
-	mib := []int32{6 /* CTL_HW */, 24 /* HW_MEMSIZE */}
+	mib := []int32{6 /* CTL_HW */, 24 /* HW_MEMSIZE */,}
 
 	buf := make([]byte, 8)
 	bufLen := uintptr(8)
