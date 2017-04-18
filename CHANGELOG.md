@@ -1,5 +1,12 @@
 ## ChangeLog
 
+## 1.9.0
+
+* Added support for [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin)
+  in the new `nrgin` package.
+  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
+  * [Example](examples/_gin/main.go)
+
 ## 1.8.0
 
 * Fixed incorrect metric rule application when the metric rule is flagged to
