@@ -45,15 +45,11 @@ func New(logger log.Logger, debug bool) newrelic.Logger {
 	}
 }
 
-func StandardLogger(debug bool) newrelic.Logger {
+func StandardLogger() newrelic.Logger {
 	logger := log.New("component", "newrelic")
-
-	if debug {
-		logger.SetHandler(log.LvlFilterHandler(log.LvlDebug, logger.GetHandler()))
-	}
 
 	return &shim{
 		e:     logger,
-		debug: debug,
+		debug: true,
 	}
 }
