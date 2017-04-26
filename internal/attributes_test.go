@@ -207,7 +207,7 @@ func TestUserAttributeValLength(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	js := userAttributesStringJSON(attrs, DestAll)
+	js := userAttributesStringJSON(attrs, DestAll, nil)
 	if `{"escape\\me":"`+atLimit+`"}` != string(js) {
 		t.Error(js)
 	}
@@ -222,7 +222,7 @@ func TestUserAttributeKeyLength(t *testing.T) {
 	if _, ok := err.(invalidAttributeKeyErr); !ok {
 		t.Error(err)
 	}
-	js := userAttributesStringJSON(attrs, DestAll)
+	js := userAttributesStringJSON(attrs, DestAll, nil)
 	if `{}` != string(js) {
 		t.Error(js)
 	}
@@ -245,7 +245,7 @@ func TestNumUserAttributesLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	js := userAttributesStringJSON(attrs, DestAll)
+	js := userAttributesStringJSON(attrs, DestAll, nil)
 	var out map[string]string
 	err = json.Unmarshal([]byte(js), &out)
 	if nil != err {
@@ -263,7 +263,7 @@ func TestNumUserAttributesLimit(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	js = userAttributesStringJSON(attrs, DestAll)
+	js = userAttributesStringJSON(attrs, DestAll, nil)
 	if !strings.Contains(string(js), "BEEN_REPLACED") {
 		t.Fatal(js)
 	}

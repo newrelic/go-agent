@@ -261,7 +261,7 @@ func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	agentAttributesJSON(trace.Attrs, buf, destTxnTrace)
 	buf.WriteByte(',')
 	buf.WriteString(`"userAttributes":`)
-	userAttributesJSON(trace.Attrs, buf, destTxnTrace)
+	userAttributesJSON(trace.Attrs, buf, destTxnTrace, nil)
 	buf.WriteByte(',')
 	buf.WriteString(`"intrinsics":{}`) // TODO intrinsics
 	buf.WriteByte('}')
