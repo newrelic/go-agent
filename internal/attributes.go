@@ -453,10 +453,8 @@ func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet, extr
 		}
 		for name, atr := range a.user {
 			if 0 != atr.dests&d {
-				if nil != extraAttributes {
-					if _, found := extraAttributes[name]; found {
-						continue
-					}
+				if _, found := extraAttributes[name]; found {
+					continue
 				}
 				writeAttributeValueJSON(&w, name, atr.value)
 			}
