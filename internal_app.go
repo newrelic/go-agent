@@ -14,9 +14,17 @@ import (
 )
 
 var (
-	debugLogging = os.Getenv("NEW_RELIC_DEBUG_LOGGING")
+	// NEW_RELIC_HOST can be used to override the New Relic endpoint.  This
+	// is useful for testing against staging.
+	envHost = "NEW_RELIC_HOST"
+	// NEW_RELIC_DEBUG_LOGGING can be set to anything to enable additional
+	// debug logging: the agent will log every transaction's data at debug
+	// level.
+	envDebugLogging = "NEW_RELIC_DEBUG_LOGGING"
+
+	debugLogging = os.Getenv(envDebugLogging)
 	redirectHost = func() string {
-		if s := os.Getenv("NEW_RELIC_HOST"); "" != s {
+		if s := os.Getenv(envHost); "" != s {
 			return s
 		}
 		return "collector.newrelic.com"
