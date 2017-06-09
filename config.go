@@ -219,13 +219,13 @@ func NewConfig(appname, license string) Config {
 }
 
 const (
-	licenseLength = 40
+	minLicenseLength = 40
 	appNameLimit  = 3
 )
 
 // The following errors will be returned if your Config fails to validate.
 var (
-	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
+	errLicenseLen      = fmt.Errorf("license length is not at least %d", minLicenseLength)
 	errHighSecurityTLS = errors.New("high security requires TLS")
 	errAppNameMissing  = errors.New("AppName required")
 	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
@@ -235,12 +235,12 @@ var (
 // newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
 	if c.Enabled {
-		if len(c.License) != licenseLength {
+		if len(c.License) < minLicenseLength {
 			return errLicenseLen
 		}
 	} else {
 		// The License may be empty when the agent is not enabled.
-		if len(c.License) != licenseLength && len(c.License) != 0 {
+		if len(c.License) < minLicenseLength && len(c.License) != 0 {
 			return errLicenseLen
 		}
 	}
