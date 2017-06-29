@@ -18,7 +18,7 @@ var (
 	// is useful for testing against staging.
 	envHost = "NEW_RELIC_HOST"
 	// NEW_RELIC_DEBUG_LOGGING can be set to anything to enable additional
-	// debug logging: the agent will log every transaction's data at debug
+	// debug logging: the agent will log every transaction's data at info
 	// level.
 	envDebugLogging = "NEW_RELIC_DEBUG_LOGGING"
 
@@ -191,13 +191,13 @@ func debug(data internal.Harvestable, lg Logger) {
 			continue
 		}
 		if nil != err {
-			lg.Debug("integration", map[string]interface{}{
+			lg.Info("integration", map[string]interface{}{
 				"cmd":   cmd,
 				"error": err.Error(),
 			})
 			continue
 		}
-		lg.Debug("integration", map[string]interface{}{
+		lg.Info("integration", map[string]interface{}{
 			"cmd":  cmd,
 			"data": internal.JSONString(d),
 		})
