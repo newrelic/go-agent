@@ -10,9 +10,9 @@
 package nrlogrus
 
 import (
-	"github.com/Sirupsen/logrus"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/sirupsen/logrus"
 )
 
 func init() { internal.TrackUsage("integration", "logging", "logrus") }
