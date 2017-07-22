@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
+
+	http "github.com/newrelic/go-agent/http"
 )
 
 // New agent attributes must be added in the following places:
@@ -492,10 +493,10 @@ func getAgentAttributes(a *Attributes, d destinationSet) map[string]interface{} 
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
-func RequestAgentAttributes(a *Attributes, r *http.Request) {
-	a.Agent.RequestMethod = r.Method
+func RequestAgentAttributes(a *Attributes, r http.Request) {
+	a.Agent.RequestMethod = r.Method()
 
-	h := r.Header
+	h := r.Header()
 	if nil == h {
 		return
 	}

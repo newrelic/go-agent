@@ -1,6 +1,10 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+
+	nrhttp "github.com/newrelic/go-agent/http"
+)
 
 // Transaction represents a request or a background task.
 // Each Transaction should only be used in a single goroutine.
@@ -35,6 +39,11 @@ type Transaction interface {
 	// For more information, see:
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 	AddAttribute(key string, value interface{}) error
+
+	// Notifies the transaction that the response has just been written.
+	// This is automatically handled if a ResponseWriter as passed when creating
+	// the transaction.
+	ResponseSent(response nrhttp.Response)
 
 	// StartSegmentNow allows the timing of functions, external calls, and
 	// datastore calls.  The segments of each transaction MUST be used in a

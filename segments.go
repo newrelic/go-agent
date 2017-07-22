@@ -1,6 +1,6 @@
 package newrelic
 
-import "net/http"
+import "github.com/newrelic/go-agent/http"
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
@@ -53,8 +53,8 @@ type DatastoreSegment struct {
 // is recommended when you have access to an http.Request.
 type ExternalSegment struct {
 	StartTime SegmentStartTime
-	Request   *http.Request
-	Response  *http.Response
+	Request   http.Request
+	Response  http.Response
 	// If you do not have access to the request, this URL field should be
 	// used to indicate the endpoint.  NOTE: If non-empty, this field
 	// is parsed using url.Parse and therefore it MUST include the protocol
@@ -107,7 +107,7 @@ func StartSegment(txn Transaction, name string) Segment {
 //    segment.Response = resp
 //    segment.End()
 //
-func StartExternalSegment(txn Transaction, request *http.Request) ExternalSegment {
+func StartExternalSegment(txn Transaction, request http.Request) ExternalSegment {
 	return ExternalSegment{
 		StartTime: StartSegmentNow(txn),
 		Request:   request,

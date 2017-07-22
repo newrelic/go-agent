@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	nrhttp "github.com/newrelic/go-agent/http"
 	"github.com/newrelic/go-agent/internal"
 )
 
@@ -38,7 +39,7 @@ type txn struct {
 	internal.TxnData
 }
 
-func newTxn(input txnInput, req *http.Request, name string) *txn {
+func newTxn(input txnInput, req nrhttp.Request, name string) *txn {
 	txn := &txn{
 		txnInput: input,
 	}
@@ -47,7 +48,7 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	txn.IsWeb = nil != req
 	txn.Attrs = internal.NewAttributes(input.attrConfig)
 	if nil != req {
-		txn.Queuing = internal.QueueDuration(req.Header, txn.Start)
+		txn.Queuing = internal.QueueDuration(req.Header(), txn.Start)
 		internal.RequestAgentAttributes(txn.Attrs, req)
 	}
 	txn.Attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
@@ -56,8 +57,8 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
 	txn.SlowQueriesEnabled = txn.slowQueriesEnabled()
 	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
-	if nil != req && nil != req.URL {
-		txn.CleanURL = internal.SafeURL(req.URL)
+	if nil != req && nil != req.URL() {
+		txn.CleanURL = internal.SafeURL(req.URL())
 	}
 
 	return txn
@@ -148,6 +149,27 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	}
 }
 
+func (txn *txn) ResponseSent(response nrhttp.Response) {
+	if txn.finished {
+		return
+	}
+	if txn.wroteHeader {
+		return
+	}
+	txn.wroteHeader = true
+
+	code := response.Code()
+
+	internal.ResponseHeaderAttributes(txn.Attrs, response.Header())
+	internal.ResponseCodeAttribute(txn.Attrs, code)
+
+	if responseCodeIsError(&txn.Config, code) {
+		e := internal.TxnErrorFromResponseCode(time.Now(), code)
+		e.Stack = internal.GetStackTrace(1)
+		txn.noticeErrorInternal(e)
+	}
+}
+
 func responseCodeIsError(cfg *Config, code int) bool {
 	if code < http.StatusBadRequest { // 400
 		return false
@@ -160,25 +182,6 @@ func responseCodeIsError(cfg *Config, code int) bool {
 	return true
 }
 
-func headersJustWritten(txn *txn, code int) {
-	if txn.finished {
-		return
-	}
-	if txn.wroteHeader {
-		return
-	}
-	txn.wroteHeader = true
-
-	internal.ResponseHeaderAttributes(txn.Attrs, txn.W.Header())
-	internal.ResponseCodeAttribute(txn.Attrs, code)
-
-	if responseCodeIsError(&txn.Config, code) {
-		e := internal.TxnErrorFromResponseCode(time.Now(), code)
-		e.Stack = internal.GetStackTrace(1)
-		txn.noticeErrorInternal(e)
-	}
-}
-
 func (txn *txn) Header() http.Header { return txn.W.Header() }
 
 func (txn *txn) Write(b []byte) (int, error) {
@@ -187,7 +190,10 @@ func (txn *txn) Write(b []byte) (int, error) {
 	txn.Lock()
 	defer txn.Unlock()
 
-	headersJustWritten(txn, http.StatusOK)
+	txn.ResponseSent(simpleHttpResponse{
+		header:     txn.Header(),
+		statusCode: http.StatusOK,
+	})
 
 	return n, err
 }
@@ -198,7 +204,10 @@ func (txn *txn) WriteHeader(code int) {
 	txn.Lock()
 	defer txn.Unlock()
 
-	headersJustWritten(txn, code)
+	txn.ResponseSent(simpleHttpResponse{
+		header:     txn.Header(),
+		statusCode: code,
+	})
 }
 
 func (txn *txn) End() error {
@@ -443,11 +452,11 @@ func externalSegmentURL(s ExternalSegment) (*url.URL, error) {
 		return url.Parse(s.URL)
 	}
 	r := s.Request
-	if nil != s.Response && nil != s.Response.Request {
-		r = s.Response.Request
+	if nil != s.Response && nil != s.Response.Request() {
+		r = s.Response.Request()
 	}
 	if r != nil {
-		return r.URL, nil
+		return r.URL(), nil
 	}
 	return nil, nil
 }

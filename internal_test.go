@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	nrhttp "github.com/newrelic/go-agent/http"
 	"github.com/newrelic/go-agent/internal"
 )
 
@@ -683,21 +684,21 @@ func TestExternalSegmentURL(t *testing.T) {
 		t.Error(u, err, internal.HostFromURL(u))
 	}
 	// segment only containing request
-	u, err = externalSegmentURL(ExternalSegment{Request: req})
+	u, err = externalSegmentURL(ExternalSegment{Request: nrhttp.RequestWrapper{req}})
 	host = internal.HostFromURL(u)
 	if nil != err || "request.com" != host {
 		t.Error(host)
 	}
 	// segment only containing response
-	u, err = externalSegmentURL(ExternalSegment{Response: response})
+	u, err = externalSegmentURL(ExternalSegment{Response: nrhttp.ResponseWrapper{response}})
 	host = internal.HostFromURL(u)
 	if nil != err || "response.com" != host {
 		t.Error(host)
 	}
 	// segment containing request and response
 	u, err = externalSegmentURL(ExternalSegment{
-		Request:  req,
-		Response: response,
+		Request:  nrhttp.RequestWrapper{req},
+		Response: nrhttp.ResponseWrapper{response},
 	})
 	host = internal.HostFromURL(u)
 	if nil != err || "response.com" != host {
@@ -706,8 +707,8 @@ func TestExternalSegmentURL(t *testing.T) {
 	// segment containing url, request, and response
 	u, err = externalSegmentURL(ExternalSegment{
 		URL:      rawURL,
-		Request:  req,
-		Response: response,
+		Request:  nrhttp.RequestWrapper{req},
+		Response: nrhttp.ResponseWrapper{response},
 	})
 	host = internal.HostFromURL(u)
 	if nil != err || "url.com" != host {

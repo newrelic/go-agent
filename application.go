@@ -15,7 +15,7 @@ type Application interface {
 	// * If an http.ResponseWriter is provided then the Transaction can be
 	//   used in its place.  This allows instrumentation of the response
 	//   code and response headers.
-	StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction
+	StartTransaction(name string, w http.ResponseWriter, r interface{}) Transaction
 
 	// RecordCustomEvent adds a custom event to the application.  This
 	// feature is incompatible with high security mode.

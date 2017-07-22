@@ -1,6 +1,10 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+
+	nrhttp "github.com/newrelic/go-agent/http"
+)
 
 // instrumentation.go contains helpers built on the lower level api.
 
@@ -49,14 +53,18 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 //
 func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
-		segment := StartExternalSegment(txn, request)
+		req := nrhttp.RequestWrapper{request}
+		segment := StartExternalSegment(txn, req)
 
 		if nil == original {
 			original = http.DefaultTransport
 		}
 		response, err := original.RoundTrip(request)
 
-		segment.Response = response
+		if response != nil {
+			segment.Response = nrhttp.ResponseWrapper{response}
+		}
+
 		segment.End()
 
 		return response, err

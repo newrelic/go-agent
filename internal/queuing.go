@@ -1,10 +1,11 @@
 package internal
 
 import (
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/newrelic/go-agent/http"
 )
 
 const (

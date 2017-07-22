@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	nrhttp "github.com/newrelic/go-agent/http"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/logger"
 )
@@ -468,15 +469,25 @@ func (app *app) setState(run *internal.AppRun, err error) {
 }
 
 // StartTransaction implements newrelic.Application's StartTransaction.
-func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
+func (app *app) StartTransaction(name string, w http.ResponseWriter, r interface{}) Transaction {
+	var req nrhttp.Request
+
 	run, _ := app.getState()
+
+	switch r := r.(type) {
+	case nrhttp.Request:
+		req = r
+	case *http.Request:
+		req = nrhttp.RequestWrapper{r}
+	}
+
 	return upgradeTxn(newTxn(txnInput{
 		Config:     app.config,
 		Reply:      run.ConnectReply,
 		W:          w,
 		Consumer:   app,
 		attrConfig: app.attrConfig,
-	}, r, name))
+	}, req, name))
 }
 
 var (
