@@ -9,6 +9,7 @@
   * [Datastore Segments](#datastore-segments)
   * [External Segments](#external-segments)
 * [Attributes](#attributes)
+* [Custom Events](#custom-events)
 * [Request Queuing](#request-queuing)
 
 ## Installation
