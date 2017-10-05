@@ -1,5 +1,10 @@
 ## ChangeLog
 
+## In Progress
+
+* Fixed import needed for logrus.  The import Sirupsen/logrus had been renamed to sirupsen/logrus.
+  Thanks to @alfred-landrum for spotting this.
+
 ## 1.9.0
 
 * Added support for [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin)
