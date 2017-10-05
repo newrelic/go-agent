@@ -181,6 +181,18 @@ func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
+func TestRecordCustomMetricSuccess(t *testing.T) {
+	app := testApp(nil, nil, t)
+	err := app.RecordCustomMetric("myMetric", 123.0)
+	if nil != err {
+		t.Error(err)
+	}
+	expectData := []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
+	})
+}
+
 type sampleResponseWriter struct {
 	code    int
 	written int

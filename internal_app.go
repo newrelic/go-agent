@@ -518,6 +518,16 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 	return nil
 }
 
+// RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
+func (app *app) RecordCustomMetric(name string, value float64) error {
+	run, _ := app.getState()
+	app.Consume(run.RunID, internal.CustomMetric{
+		RawInputName: name,
+		Value:        value,
+	})
+	return nil
+}
+
 func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	if "" != debugLogging {
 		debug(data, app.config.Logger)
