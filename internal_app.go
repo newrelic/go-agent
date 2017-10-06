@@ -3,6 +3,7 @@ package newrelic
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -518,8 +519,23 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 	return nil
 }
 
+var (
+	errMetricInf       = errors.New("invalid metric value: inf")
+	errMetricNaN       = errors.New("invalid metric value: NaN")
+	errMetricNameEmpty = errors.New("missing metric name")
+)
+
 // RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
 func (app *app) RecordCustomMetric(name string, value float64) error {
+	if math.IsNaN(value) {
+		return errMetricNaN
+	}
+	if math.IsInf(value, 0) {
+		return errMetricInf
+	}
+	if "" == name {
+		return errMetricNameEmpty
+	}
 	run, _ := app.getState()
 	app.Consume(run.RunID, internal.CustomMetric{
 		RawInputName: name,

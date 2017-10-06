@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -191,6 +192,38 @@ func TestRecordCustomMetricSuccess(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
 	})
+}
+
+func TestRecordCustomMetricNameEmpty(t *testing.T) {
+	app := testApp(nil, nil, t)
+	err := app.RecordCustomMetric("", 123.0)
+	if err != errMetricNameEmpty {
+		t.Error(err)
+	}
+}
+
+func TestRecordCustomMetricNaN(t *testing.T) {
+	app := testApp(nil, nil, t)
+	err := app.RecordCustomMetric("myMetric", math.NaN())
+	if err != errMetricNaN {
+		t.Error(err)
+	}
+}
+
+func TestRecordCustomMetricPositiveInf(t *testing.T) {
+	app := testApp(nil, nil, t)
+	err := app.RecordCustomMetric("myMetric", math.Inf(0))
+	if err != errMetricInf {
+		t.Error(err)
+	}
+}
+
+func TestRecordCustomMetricNegativeInf(t *testing.T) {
+	app := testApp(nil, nil, t)
+	err := app.RecordCustomMetric("myMetric", math.Inf(-1))
+	if err != errMetricInf {
+		t.Error(err)
+	}
 }
 
 type sampleResponseWriter struct {
