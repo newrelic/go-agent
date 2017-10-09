@@ -362,6 +362,41 @@ func TestNewrelicErrorValidAttributes(t *testing.T) {
 	app.ExpectMetrics(t, backgroundErrorMetrics)
 }
 
+func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
+	extraAttributes := map[string]interface{}{
+		"zip": "zap",
+	}
+	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
+	app := testApp(nil, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(Error{
+		Message:    "my msg",
+		Class:      "my class",
+		Attributes: extraAttributes,
+	})
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:        "OtherTransaction/Go/hello",
+		Msg:            "message removed by high security setting",
+		Klass:          "my class",
+		Caller:         "go-agent.TestNewrelicErrorAttributesHighSecurity",
+		URL:            "",
+		UserAttributes: map[string]interface{}{},
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "my class",
+			"error.message":   "message removed by high security setting",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
+}
+
 func TestNewrelicErrorAttributeOverridesNormalAttribute(t *testing.T) {
 	extraAttributes := map[string]interface{}{
 		"zip": "zap",

@@ -343,7 +343,7 @@ func (txn *txn) NoticeError(err error) error {
 		e.Stack = internal.GetStackTrace(2)
 	}
 
-	if ea, ok := err.(ErrorAttributer); ok {
+	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity {
 		unvetted := ea.ErrorAttributes()
 		if len(unvetted) > internal.AttributeErrorLimit {
 			return errTooManyErrorAttributes
