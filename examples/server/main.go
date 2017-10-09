@@ -154,6 +154,17 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func customMetric(w http.ResponseWriter, r *http.Request) {
+	for _, vals := range r.Header {
+		for _, v := range vals {
+			// This custom metric will have the name
+			// "Custom/HeaderLength" in the New Relic UI.
+			app.RecordCustomMetric("HeaderLength", float64(len(v)))
+		}
+	}
+	io.WriteString(w, "custom metric recorded")
+}
+
 func mustGetEnv(key string) string {
 	if val := os.Getenv(key); "" != val {
 		return val
@@ -183,6 +194,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/mysql", mysql))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
 	http.HandleFunc("/background", background)
 
 	http.ListenAndServe(":8000", nil)

@@ -2,6 +2,11 @@
 
 ## In Progress
 
+* Added new `RecordCustomMetric` method to [Application](https://godoc.org/github.com/newrelic/go-agent#Application).
+  This functionality can be used to track averages or counters without using
+  custom events.
+  * [Custom Metric Documentation](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics)
+
 * Fixed import needed for logrus.  The import Sirupsen/logrus had been renamed to sirupsen/logrus.
   Thanks to @alfred-landrum for spotting this.
 
