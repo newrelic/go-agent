@@ -304,6 +304,19 @@ config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.Attribute
 
 * [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)
 
+## Custom Metrics
+
+You may [create custom metrics](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics) via the `RecordCustomMetric` method.
+
+```go
+app.RecordCustomMetric(
+    "CustomMetricName",         //name of your metric
+    132                         //time in ms
+);
+```
+
+**Note:** The Go Agent will automatically prepend the metric name you pass to `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.  This means the above code would produce a metric named `Custom/CustomMetricName`.
+
 ## Custom Events
 
 You may track arbitrary events using custom Insights events.
