@@ -309,7 +309,8 @@ config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.Attribute
 
 * [More info on Custom Metrics](https://docs.newrelic.com/docs/agents/go-agent/instrumentation/create-custom-metrics-go)
 
-You may [create custom metrics](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics) via the `RecordCustomMetric` method.
+You may [create custom metrics](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics) 
+via the `RecordCustomMetric` method.
 
 ```go
 app.RecordCustomMetric(
@@ -343,17 +344,32 @@ band on the application overview chart showing queue time.
 
 ## Naming Transactions and Metrics
 
-You'll want to think carefully about how you name your transactions and custom metrics.  If your program creates too many unique names, you may end up with a [Metric Grouping Issue (or MGI)](https://docs.newrelic.com/docs/agents/manage-apm-agents/troubleshooting/metric-grouping-issues). 
+You'll want to think carefully about how you name your transactions and custom
+metrics.  If your program creates too many unique names, you may end up with a
+[Metric Grouping Issue (or
+MGI)](https://docs.newrelic.com/docs/agents/manage-apm-agents/troubleshooting/
+metric-grouping-issues).
 
-MGIs occur when the granularity of names is too fine, resulting in hundreds or thousands of uniquely identified metrics and transactions.  One common cause of MGIs is relying on the full URL name for metric naming in web transactions.  A few major code paths may generate many different full URL paths to unique documents, articles, page, etc. If the unique element of the URL path is included in the metric name, each of these common paths will have its own unique metric name.
+MGIs occur when the granularity of names is too fine, resulting in hundreds or
+thousands of uniquely identified metrics and transactions.  One common cause of
+MGIs is relying on the full URL name for metric naming in web transactions.  A
+few major code paths may generate many different full URL paths to unique
+documents, articles, page, etc. If the unique element of the URL path is
+included in the metric name, each of these common paths will have its own unique
+metric name.
 
 
 ## For More Help
 
-There's a variety of places online to learn more about the Go Agent. 
+There's a variety of places online to learn more about the Go Agent.
 
-[The New Relic docs site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-new-relic-go) contains a number of useful code samples and more context about how to use the Go Agent.
+[The New Relic docs
+site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-
+new-relic-go) contains a number of useful code samples and more context about
+how to use the Go Agent.
 
-[New Relic's discussion forums](https://discuss.newrelic.com) have a dedicated public forum [for the Go Agent](https://discuss.newrelic.com/c/support-products-agents/go-agent). 
+[New Relic's discussion forums](https://discuss.newrelic.com) have a dedicated
+public forum [for the Go Agent](https://discuss.newrelic.com/c/support-products-agents/go-agent).
 
-When in doubt, [the New Relic support site](https://support.newrelic.com/) is the best place to get started troubleshooting an agent issue. 
+When in doubt, [the New Relic support site](https://support.newrelic.com/) is
+the best place to get started troubleshooting an agent issue. 
