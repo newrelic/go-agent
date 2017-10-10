@@ -349,3 +349,11 @@ MGIs occur when the granularity of names is too fine, resulting in hundreds or t
 
 
 ## For More Help
+
+There's a variety of places online to learn more about the Go Agent. 
+
+[The New Relic docs site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-new-relic-go) contains a number of useful code samples and more context about how to use the Go Agent.
+
+[New Relic's discussion forums](https://discuss.newrelic.com) have a dedicated public forum [for the Go Agent](https://discuss.newrelic.com/c/support-products-agents/go-agent). 
+
+When in doubt, [the New Relic support site](https://support.newrelic.com/) is the best place to get started troubleshooting an agent issue. 
