@@ -463,15 +463,11 @@ func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet, extr
 }
 
 // userAttributesStringJSON is only used for testing.
-func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes map[string]interface{}) JSONString {
-	if nil == a {
-		return JSONString("{}")
-	}
+func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes map[string]interface{}) string {
 	estimate := len(a.user) * 128
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 	userAttributesJSON(a, buf, d, extraAttributes)
-	bs := buf.Bytes()
-	return JSONString(bs)
+	return buf.String()
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
