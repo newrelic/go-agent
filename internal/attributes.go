@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -472,28 +471,6 @@ func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes m
 	userAttributesJSON(a, buf, d, extraAttributes)
 	bs := buf.Bytes()
 	return JSONString(bs)
-}
-
-func agentAttributesStringJSON(a *Attributes, d destinationSet) JSONString {
-	if nil == a {
-		return JSONString("{}")
-	}
-	estimate := 1024
-	buf := bytes.NewBuffer(make([]byte, 0, estimate))
-	agentAttributesJSON(a, buf, d)
-	return JSONString(buf.Bytes())
-}
-
-func getUserAttributes(a *Attributes, d destinationSet) map[string]interface{} {
-	v := make(map[string]interface{})
-	json.Unmarshal([]byte(userAttributesStringJSON(a, d, nil)), &v)
-	return v
-}
-
-func getAgentAttributes(a *Attributes, d destinationSet) map[string]interface{} {
-	v := make(map[string]interface{})
-	json.Unmarshal([]byte(agentAttributesStringJSON(a, d)), &v)
-	return v
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
