@@ -295,11 +295,26 @@ func expectError(v Validator, err *tracedError, expect WantError) {
 	validateStringField(v, "klass", expect.Klass, err.Klass)
 	validateStringField(v, "msg", expect.Msg, err.Msg)
 	validateStringField(v, "URL", expect.URL, err.CleanURL)
+	js, errr := err.MarshalJSON()
+	if nil != errr {
+		v.Error("unable to marshal error json", errr)
+		return
+	}
+	var unmarshalled []interface{}
+	errr = json.Unmarshal(js, &unmarshalled)
+	if nil != errr {
+		v.Error("unable to unmarshal error json", errr)
+		return
+	}
+	attributes := unmarshalled[4].(map[string]interface{})
+	agentAttributes := attributes["agentAttributes"].(map[string]interface{})
+	userAttributes := attributes["userAttributes"].(map[string]interface{})
+
 	if nil != expect.UserAttributes {
-		expectAttributes(v, getUserAttributes(err.Attrs, destError), expect.UserAttributes)
+		expectAttributes(v, userAttributes, expect.UserAttributes)
 	}
 	if nil != expect.AgentAttributes {
-		expectAttributes(v, getAgentAttributes(err.Attrs, destError), expect.AgentAttributes)
+		expectAttributes(v, agentAttributes, expect.AgentAttributes)
 	}
 }
 

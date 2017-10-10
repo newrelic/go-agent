@@ -32,6 +32,21 @@ func noticeError(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "noticing an error")
+
+	if txn, ok := w.(newrelic.Transaction); ok {
+		txn.NoticeError(newrelic.Error{
+			Message: "uh oh. something went very wrong",
+			Class:   "errors are aggregated by class",
+			Attributes: map[string]interface{}{
+				"important_number": 97232,
+				"relevant_string":  "zap",
+			},
+		})
+	}
+}
+
 func customEvent(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "recording a custom event")
 
@@ -186,6 +201,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error", noticeError))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error_with_attributes", noticeErrorWithAttributes))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_attribute", addAttribute))
