@@ -349,7 +349,7 @@ band on the application overview chart showing queue time.
 
 ## Errors Reporting
 
-You may track errors using the `NoticeError` method of the transaction object.  `NoticeError` works with two different sorts of errors.  First, if you're using the standard library's `errors` package, you can pass `NoticeError` a standard go error objet.
+You may track errors using the `NoticeError` method of the transaction object.  The easiest way to get started with `NoticeError` is with error's based on [Go's standard error type](https://blog.golang.org/error-handling-and-go).
 
 ```go
 import (  
@@ -362,7 +362,9 @@ import (
   txn.NoticeError(errors.New("my error message"))
 ```
 
-This is the simplest way to to have your program report an error to New Relic.  The Go-Agent also offers an New Relic `Error` type.
+`NoticeError` will work with *any* sort of object that implements Go's standard error type interface -- not just `errorStrings` created via `errors.New`.  
+
+The Go-Agent also offers an New Relic `Error` type/struct.
 
 ```go
     import (
@@ -382,9 +384,9 @@ This is the simplest way to to have your program report an error to New Relic.  
     
 ```
 
-Using the provided error type requires you to manually marshall your error data from your application's standard error handling.  However, the `Error` type also allows you to set an error `Class`, and error `Attributes`.  New Relic will use the error `Class` to aggregate error information, and attributes will be available in the Error Analytics UI.
+Using the `newrelic.Error` type/struct requires you to manually marshall your error data from your application's standard error handling.  However, the `Error` type also allows you to set an error `Class`, and error `Attributes`.  New Relic will use the error `Class` to aggregate error information, and attributes will be available in the Error Analytics UI.
 
-**Note**: When picking an error identifier to use with the `Class` property, you'll want to use the same guidlines as [naming transactions and metrics](#naming-transactions-and-metrics) in order to avoid possible MGIs. 
+**Note**: When picking an error identifier to use with the `Class` property, you'll want to use the same guidlines as [naming transactions and metrics](#naming-transactions-and-metrics) in order to avoid MGI-like grouping issues on the Error Analytics page. 
 
 ## Naming Transactions and Metrics
 
