@@ -284,7 +284,6 @@ func (trace *HarvestTrace) MarshalJSON() ([]byte, error) {
 	buf.WriteByte(']') // end trace
 
 	return buf.Bytes(), nil
-
 }
 
 type harvestTraces struct {
