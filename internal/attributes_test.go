@@ -190,7 +190,7 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 		"a":1.5,
 		"a":4.56
 		}`)
-	js := string(buf.Bytes())
+	js := buf.String()
 	if js != expect {
 		t.Error(js, expect)
 	}
