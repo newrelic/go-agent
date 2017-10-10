@@ -347,6 +347,45 @@ band on the application overview chart showing queue time.
 
 * [More info on Request Queuing](https://docs.newrelic.com/docs/apm/applications-menu/features/request-queuing-tracking-front-end-time)
 
+## Errors Reporting
+
+You may track errors using the `NoticeError` method of the transaction object.  `NoticeError` works with two different sorts of errors.  First, if you're using the standard library's `errors` package, you can pass `NoticeError` a standard go error objet.
+
+```go
+import (  
+  "errors"
+  /* ... other imports ... */
+)
+
+  /* ... */
+  
+  txn.NoticeError(errors.New("my error message"))
+```
+
+This is the simplest way to to have your program report an error to New Relic.  The Go-Agent also offers an New Relic `Error` type.
+
+```go
+    import (
+      /* ... other imports ... */
+      newrelic "github.com/newrelic/go-agent"
+    )
+    
+    /* ... */
+		txn.NoticeError(newrelic.Error{
+			Message: "my error message",
+			Class:   "IdentifierForError",
+			Attributes: map[string]interface{}{
+				"important_number": 97232,
+				"relevant_string":  "zap",
+			},
+		})    
+    
+```
+
+Using the provided error type requires you to manually marshall your error data from your application's standard error handling.  However, the `Error` type also allows you to set an error `Class`, and error `Attributes`.  New Relic will use the error `Class` to aggregate error information, and attributes will be available in the Error Analytics UI.
+
+**Note**: When picking an error identifier to use with the `Class` property, you'll want to use the same guidlines as [naming transactions and metrics](#naming-transactions-and-metrics) in order to avoid possible MGIs. 
+
 ## Naming Transactions and Metrics
 
 You'll want to think carefully about how you name your transactions and custom
