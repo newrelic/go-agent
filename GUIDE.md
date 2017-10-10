@@ -89,7 +89,7 @@ config.Logger = nrlogrus.StandardLogger()
 ## Transactions
 
 * [transaction.go](transaction.go)
-* [Naming Transactions](#transactions-and-metrics)
+* [Naming Transactions](#naming-transactions-and-metrics)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
 Transactions time requests and background tasks.  Each transaction should only
@@ -318,7 +318,7 @@ app.RecordCustomMetric(
 );
 ```
 
-**Note:** The Go Agent will automatically prepend the metric name you pass to `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.  This means the above code would produce a metric named `Custom/CustomMetricName`.  You'll also want to read over the [Naming Transactions and Metrics](#transactions-and-metrics) section below for advice on coming up with appropriate metric names. 
+**Note:** The Go Agent will automatically prepend the metric name you pass to `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.  This means the above code would produce a metric named `Custom/CustomMetricName`.  You'll also want to read over the [Naming Transactions and Metrics](#naming-transactions-and-metrics) section below for advice on coming up with appropriate metric names. 
 
 ## Custom Events
 
