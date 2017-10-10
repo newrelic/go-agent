@@ -462,6 +462,7 @@ func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet, extr
 	buf.WriteByte('}')
 }
 
+// userAttributesStringJSON is only used for testing.
 func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes map[string]interface{}) JSONString {
 	if nil == a {
 		return JSONString("{}")

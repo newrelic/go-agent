@@ -268,3 +268,31 @@ func TestNumUserAttributesLimit(t *testing.T) {
 		t.Fatal(js)
 	}
 }
+
+func TestExtraAttributesIncluded(t *testing.T) {
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	attrs := NewAttributes(cfg)
+
+	err := AddUserAttribute(attrs, "a", 1, DestAll)
+	if nil != err {
+		t.Error(err)
+	}
+	js := userAttributesStringJSON(attrs, DestAll, map[string]interface{}{"b": 2})
+	if `{"b":2,"a":1}` != string(js) {
+		t.Error(js)
+	}
+}
+
+func TestExtraAttributesPrecedence(t *testing.T) {
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	attrs := NewAttributes(cfg)
+
+	err := AddUserAttribute(attrs, "a", 1, DestAll)
+	if nil != err {
+		t.Error(err)
+	}
+	js := userAttributesStringJSON(attrs, DestAll, map[string]interface{}{"a": 2})
+	if `{"a":2}` != string(js) {
+		t.Error(js)
+	}
+}
