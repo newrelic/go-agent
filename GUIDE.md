@@ -386,8 +386,6 @@ The Go-Agent also offers an New Relic `Error` type/struct.
 
 Using the `newrelic.Error` type/struct requires you to manually marshall your error data from your application's standard error handling.  However, the `Error` type also allows you to set an error `Class`, and error `Attributes`.  New Relic will use the error `Class` to aggregate error information, and attributes will be available in the Error Analytics UI.
 
-**Note**: When picking an error identifier to use with the `Class` property, you'll want to use the same guidlines as [naming transactions and metrics](#naming-transactions-and-metrics) in order to avoid MGI-like grouping issues on the Error Analytics page. 
-
 ## Naming Transactions and Metrics
 
 You'll want to think carefully about how you name your transactions and custom
