@@ -319,7 +319,12 @@ app.RecordCustomMetric(
 );
 ```
 
-**Note:** The Go Agent will automatically prepend the metric name you pass to `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.  This means the above code would produce a metric named `Custom/CustomMetricName`.  You'll also want to read over the [Naming Transactions and Metrics](#naming-transactions-and-metrics) section below for advice on coming up with appropriate metric names. 
+**Note:** The Go Agent will automatically prepend the metric name you pass to
+`RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`. 
+This means the above code would produce a metric named
+`Custom/CustomMetricName`.  You'll also want to read over the 
+[Naming Transactions and Metrics](#naming-transactions-and-metrics) section below for
+advice on coming up with appropriate metric names. 
 
 ## Custom Events
 
@@ -346,9 +351,7 @@ band on the application overview chart showing queue time.
 
 You'll want to think carefully about how you name your transactions and custom
 metrics.  If your program creates too many unique names, you may end up with a
-[Metric Grouping Issue (or
-MGI)](https://docs.newrelic.com/docs/agents/manage-apm-agents/troubleshooting/
-metric-grouping-issues).
+[Metric Grouping Issue (or MGI)](https://docs.newrelic.com/docs/agents/manage-apm-agents/troubleshooting/metric-grouping-issues).
 
 MGIs occur when the granularity of names is too fine, resulting in hundreds or
 thousands of uniquely identified metrics and transactions.  One common cause of
@@ -363,10 +366,8 @@ metric name.
 
 There's a variety of places online to learn more about the Go Agent.
 
-[The New Relic docs
-site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-
-new-relic-go) contains a number of useful code samples and more context about
-how to use the Go Agent.
+[The New Relic docs site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-new-relic-go) 
+contains a number of useful code samples and more context about how to use the Go Agent.
 
 [New Relic's discussion forums](https://discuss.newrelic.com) have a dedicated
 public forum [for the Go Agent](https://discuss.newrelic.com/c/support-products-agents/go-agent).
