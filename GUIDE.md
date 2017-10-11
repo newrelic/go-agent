@@ -347,9 +347,9 @@ band on the application overview chart showing queue time.
 
 * [More info on Request Queuing](https://docs.newrelic.com/docs/apm/applications-menu/features/request-queuing-tracking-front-end-time)
 
-## Errors Reporting
+## Error Reporting
 
-You may track errors using the `NoticeError` method of the transaction object.  The easiest way to get started with `NoticeError` is with error's based on [Go's standard error type](https://blog.golang.org/error-handling-and-go).
+You may track errors using the `Transaction.NoticeError` method.  The easiest way to get started with `NoticeError` is to use errors based on [Go's standard error interface](https://blog.golang.org/error-handling-and-go).
 
 ```go
 import (  
@@ -364,28 +364,74 @@ import (
 
 `NoticeError` will work with *any* sort of object that implements Go's standard error type interface -- not just `errorStrings` created via `errors.New`.  
 
-The Go-Agent also offers an New Relic `Error` type/struct.
+If you're interested in sending more than an error *message* to New Relic, the Go Agent also offers a `newrelic.Error` struct.
 
 ```go
-    import (
-      /* ... other imports ... */
-      newrelic "github.com/newrelic/go-agent"
-    )
-    
-    /* ... */
-		txn.NoticeError(newrelic.Error{
-			Message: "my error message",
-			Class:   "IdentifierForError",
-			Attributes: map[string]interface{}{
-				"important_number": 97232,
-				"relevant_string":  "zap",
-			},
-		})    
-    
+  import (
+    /* ... other imports ... */
+    newrelic "github.com/newrelic/go-agent"
+  )
+  
+  /* ... */
+  txn.NoticeError(newrelic.Error{
+    Message: "my error message",
+    Class:   "IdentifierForError",
+    Attributes: map[string]interface{}{
+      "important_number": 97232,
+      "relevant_string":  "zap",
+    },
+  })        
 ```
 
-Using the `newrelic.Error` type/struct requires you to manually marshall your error data from your application's standard error handling.  However, the `Error` type also allows you to set an error `Class`, and error `Attributes`.  New Relic will use the error `Class` to aggregate error information, and attributes will be available in the Error Analytics UI.
+Using the `newrelic.Error` struct requires you to manually marshall your error data into the `Message`, `Class`, and `Attributes` fields.  However, there's two **advantages** to using the `newrelic.Error` struct. 
 
+First, by setting an error `Class`, New Relic will be able to aggregate errors in the *Error Analytics* section of APM.  Second, the `Attributes` field allows you to send through key/value pairs with additional error debugging information (also exposed in the *Error Analytics* section of APM). 
+
+## Advanced Error Reporting
+
+You're not limited to using Go's built-in error type or the provided `newrelic.Error` struct.  The Go Agent provides three error interfaces 
+
+```go
+  type StackTracer interface {
+    StackTrace() []uintptr
+  }
+
+  type ErrorClasser interface {
+    ErrorClass() string
+  }
+  
+  type ErrorAttributer interface {
+    ErrorAttributes() map[string]interface{}
+  }    
+```
+
+If you implement any of these on your own error structs, the `txn.NoticeError` method will recognize these methods and use their return values to provide error information. 
+
+For example, you could implement a custom error struct named `MyErrorWithClass`
+
+```go
+  type MyErrorWithClass struct {
+
+  }
+```
+
+Then, you could implement both an `Error` method (per Go's standard `error` interface) and an `ErrorClass` method (per the Go Agent `ErrorClasser` interface) for this struct.
+
+```go
+  func (e MyErrorWithClass) Error() string { return "A hard coded error message" }
+
+  // ErrorClass implements the ErrorClasser interface.
+  func (e MyErrorWithClass) ErrorClass() string { return "MyErrorClassForAggregation" }
+```
+
+Finally, you'd use your new error by creating a new instance of your struct and passing it to the `NoticeError` method
+
+```go
+  txn.NoticeError(MyErrorWithClass{})
+```
+    
+While this is an oversimplified example, these interfaces give you a great deal of control over what error information is available for your application.
+    
 ## Naming Transactions and Metrics
 
 You'll want to think carefully about how you name your transactions and custom
