@@ -63,14 +63,11 @@ type docker struct {
 
 type vendors struct {
 	AWS    *aws    `json:"aws,omitempty"`
-	Azure  *azure  `json:"azure,omitempty"`
-	GCP    *gcp    `json:"gcp,omitempty"`
-	PCF    *pcf    `json:"pcf,omitempty"`
 	Docker *docker `json:"docker,omitempty"`
 }
 
 func (v *vendors) isEmpty() bool {
-	return v.AWS == nil && v.Azure == nil && v.GCP == nil && v.PCF == nil && v.Docker == nil
+	return v.AWS == nil && v.Docker == nil
 }
 
 func overrideFromConfig(config Config) *override {
@@ -130,18 +127,6 @@ func Gather(config Config, lg logger.Logger) *Data {
 
 	if config.DetectAWS {
 		goGather(GatherAWS, uDat)
-	}
-
-	if config.DetectAzure {
-		goGather(GatherAzure, uDat)
-	}
-
-	if config.DetectGCP {
-		goGather(GatherGCP, uDat)
-	}
-
-	if config.DetectPCF {
-		goGather(GatherPCF, uDat)
 	}
 
 	// Now we wait for everything!
