@@ -124,7 +124,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":2,
+			"metadata_version":3,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
@@ -214,7 +214,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":2,
+			"metadata_version":3,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
