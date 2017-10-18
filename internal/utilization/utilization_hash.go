@@ -18,9 +18,6 @@ const (
 
 type Config struct {
 	DetectAWS         bool
-	DetectAzure       bool
-	DetectGCP         bool
-	DetectPCF         bool
 	DetectDocker      bool
 	LogicalProcessors int
 	TotalRamMIB       int
