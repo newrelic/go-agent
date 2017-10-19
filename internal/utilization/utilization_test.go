@@ -209,6 +209,7 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			InstanceType:     tc.AWSType,
 			AvailabilityZone: tc.AWSZone,
 		}
+		v.AWS.validate()
 	}
 
 	if tc.AzureLocation != "" && tc.AzureName != "" && tc.AzureID != "" && tc.AzureSize != "" {
@@ -218,6 +219,7 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			VMID:     tc.AzureID,
 			VMSize:   tc.AzureSize,
 		}
+		v.Azure.validate()
 	}
 
 	if tc.PCFIP != "" && tc.PCFGUID != "" && tc.PCFMemLimit != "" {
