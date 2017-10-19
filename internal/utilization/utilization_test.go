@@ -97,12 +97,14 @@ func TestUtilizationHash(t *testing.T) {
 		Config{
 			DetectAWS:    true,
 			DetectAzure:  true,
+			DetectGCP:    true,
 			DetectPCF:    true,
 			DetectDocker: true,
 		},
 		Config{
 			DetectAWS:    false,
 			DetectAzure:  false,
+			DetectGCP:    false,
 			DetectPCF:    false,
 			DetectDocker: false,
 		},
@@ -189,6 +191,10 @@ type utilizationCrossAgentTestcase struct {
 	AzureName         string          `json:"input_azure_name"`
 	AzureID           string          `json:"input_azure_id"`
 	AzureSize         string          `json:"input_azure_size"`
+	GCPID             json.Number     `json:"input_gcp_id"`
+	GCPType           string          `json:"input_gcp_type"`
+	GCPName           string          `json:"input_gcp_name"`
+	GCPZone           string          `json:"input_gcp_zone"`
 	PCFGUID           string          `json:"input_pcf_guid"`
 	PCFIP             string          `json:"input_pcf_ip"`
 	PCFMemLimit       string          `json:"input_pcf_mem_limit"`
@@ -220,6 +226,16 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			VMSize:   tc.AzureSize,
 		}
 		v.Azure.validate()
+	}
+
+	if tc.GCPID.String() != "" && tc.GCPType != "" && tc.GCPName != "" && tc.GCPZone != "" {
+		v.GCP = &gcp{
+			ID:          numericString(tc.GCPID.String()),
+			MachineType: tc.GCPType,
+			Name:        tc.GCPName,
+			Zone:        tc.GCPZone,
+		}
+		v.GCP.validate()
 	}
 
 	if tc.PCFIP != "" && tc.PCFGUID != "" && tc.PCFMemLimit != "" {

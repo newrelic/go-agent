@@ -13,6 +13,7 @@ func main() {
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    true,
 		DetectPCF:    true,
+		DetectGCP:    true,
 		DetectAzure:  true,
 		DetectDocker: true,
 	}, newrelic.NewDebugLogger(os.Stdout))

@@ -145,6 +145,46 @@
     }
   },
   {
+    "testname": "only agent derived data with gcp",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_gcp_id": "3161347020215157000",
+    "input_gcp_type": "projects/492690098729/machineTypes/custom-1-1024",
+    "input_gcp_name": "aef-default-20170501t160547-7gh8",
+    "input_gcp_zone": "projects/492690098729/zones/us-central1-c",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost",
+      "vendors": {
+        "gcp": {
+          "id": "3161347020215157000",
+          "machineType": "custom-1-1024",
+          "name": "aef-default-20170501t160547-7gh8",
+          "zone": "us-central1-c"
+        }
+      }
+    }
+  },
+  {
+    "testname": "invalid agent derived data with gcp",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_gcp_id": "3161347020215157000",
+    "input_gcp_type": "projects/492690098729/machineTypes/custom-1-1024",
+    "input_gcp_name": null,
+    "input_gcp_zone": "projects/492690098729/zones/us-central1-c",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost"
+    }
+  },
+  {
     "testname": "only agent derived data with pcf",
     "input_total_ram_mib": 2048,
     "input_logical_processors": 8,
