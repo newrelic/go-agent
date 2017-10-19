@@ -18,6 +18,7 @@ const (
 
 type Config struct {
 	DetectAWS         bool
+	DetectAzure       bool
 	DetectDocker      bool
 	LogicalProcessors int
 	TotalRamMIB       int
@@ -60,11 +61,12 @@ type docker struct {
 
 type vendors struct {
 	AWS    *aws    `json:"aws,omitempty"`
+	Azure  *azure  `json:"azure,omitempty"`
 	Docker *docker `json:"docker,omitempty"`
 }
 
 func (v *vendors) isEmpty() bool {
-	return v.AWS == nil && v.Docker == nil
+	return v.AWS == nil && v.Azure == nil && v.Docker == nil
 }
 
 func overrideFromConfig(config Config) *override {
@@ -124,6 +126,10 @@ func Gather(config Config, lg logger.Logger) *Data {
 
 	if config.DetectAWS {
 		goGather(GatherAWS, uDat)
+	}
+
+	if config.DetectAzure {
+		goGather(GatherAzure, uDat)
 	}
 
 	// Now we wait for everything!

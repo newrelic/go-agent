@@ -96,10 +96,12 @@ func TestUtilizationHash(t *testing.T) {
 	configs := []Config{
 		Config{
 			DetectAWS:    true,
+			DetectAzure:  true,
 			DetectDocker: true,
 		},
 		Config{
 			DetectAWS:    false,
+			DetectAzure:  false,
 			DetectDocker: false,
 		},
 	}
@@ -181,6 +183,10 @@ type utilizationCrossAgentTestcase struct {
 	AWSID             string          `json:"input_aws_id"`
 	AWSType           string          `json:"input_aws_type"`
 	AWSZone           string          `json:"input_aws_zone"`
+	AzureLocation     string          `json:"input_azure_location"`
+	AzureName         string          `json:"input_azure_name"`
+	AzureID           string          `json:"input_azure_id"`
+	AzureSize         string          `json:"input_azure_size"`
 	ExpectedOutput    json.RawMessage `json:"expected_output_json"`
 	Config            struct {
 		LogicalProcessors json.RawMessage `json:"NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS"`
@@ -197,6 +203,15 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			InstanceID:       tc.AWSID,
 			InstanceType:     tc.AWSType,
 			AvailabilityZone: tc.AWSZone,
+		}
+	}
+
+	if tc.AzureLocation != "" && tc.AzureName != "" && tc.AzureID != "" && tc.AzureSize != "" {
+		v.Azure = &azure{
+			Location: tc.AzureLocation,
+			Name:     tc.AzureName,
+			VMID:     tc.AzureID,
+			VMSize:   tc.AzureSize,
 		}
 	}
 

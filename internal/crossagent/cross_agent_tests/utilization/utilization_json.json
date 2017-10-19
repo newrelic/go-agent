@@ -143,5 +143,45 @@
       "total_ram_mib": 2048,
       "hostname": "myotherhost"
     }
+  },
+  {
+    "testname": "only agent derived data with azure",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_azure_location": "CentralUS",
+    "input_azure_name": "IMDSCanary",
+    "input_azure_id": "5c08b38e-4d57-4c23-ac45-aca61037f084",
+    "input_azure_size": "Standard_DS2",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost",
+      "vendors": {
+        "azure": {
+          "location": "CentralUS",
+          "name": "IMDSCanary",
+          "vmId": "5c08b38e-4d57-4c23-ac45-aca61037f084",
+          "vmSize": "Standard_DS2"
+        }
+      }
+    }
+  },
+  {
+    "testname": "invalid agent derived data with azure",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_azure_location": "CentralUS",
+    "input_azure_name": "IMDSCanary",
+    "input_azure_id": null,
+    "input_azure_size": "Standard_DS2",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost"
+    }
   }
 ]
