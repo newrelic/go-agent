@@ -145,6 +145,43 @@
     }
   },
   {
+    "testname": "only agent derived data with pcf",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_pcf_guid": "b977d090-83db-4bdb-793a-bb77",
+    "input_pcf_ip": "10.10.147.130",
+    "input_pcf_mem_limit": "1024m",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost",
+      "vendors": {
+        "pcf": {
+          "cf_instance_guid": "b977d090-83db-4bdb-793a-bb77",
+          "cf_instance_ip": "10.10.147.130",
+          "memory_limit": "1024m"
+        }
+      }
+    }
+  },
+  {
+    "testname": "invalid agent derived data with pcf",
+    "input_total_ram_mib": 2048,
+    "input_logical_processors": 8,
+    "input_hostname": "myotherhost",
+    "input_pcf_guid": null,
+    "input_pcf_ip": "10.10.147.130",
+    "input_pcf_mem_limit": "1024m",
+    "expected_output_json": {
+      "metadata_version": 3,
+      "logical_processors": 8,
+      "total_ram_mib": 2048,
+      "hostname": "myotherhost"
+    }
+  },
+  {
     "testname": "only agent derived data with azure",
     "input_total_ram_mib": 2048,
     "input_logical_processors": 8,

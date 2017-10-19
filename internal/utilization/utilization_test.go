@@ -97,11 +97,13 @@ func TestUtilizationHash(t *testing.T) {
 		Config{
 			DetectAWS:    true,
 			DetectAzure:  true,
+			DetectPCF:    true,
 			DetectDocker: true,
 		},
 		Config{
 			DetectAWS:    false,
 			DetectAzure:  false,
+			DetectPCF:    false,
 			DetectDocker: false,
 		},
 	}
@@ -187,6 +189,9 @@ type utilizationCrossAgentTestcase struct {
 	AzureName         string          `json:"input_azure_name"`
 	AzureID           string          `json:"input_azure_id"`
 	AzureSize         string          `json:"input_azure_size"`
+	PCFGUID           string          `json:"input_pcf_guid"`
+	PCFIP             string          `json:"input_pcf_ip"`
+	PCFMemLimit       string          `json:"input_pcf_mem_limit"`
 	ExpectedOutput    json.RawMessage `json:"expected_output_json"`
 	Config            struct {
 		LogicalProcessors json.RawMessage `json:"NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS"`
@@ -213,6 +218,15 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			VMID:     tc.AzureID,
 			VMSize:   tc.AzureSize,
 		}
+	}
+
+	if tc.PCFIP != "" && tc.PCFGUID != "" && tc.PCFMemLimit != "" {
+		v.PCF = &pcf{
+			InstanceGUID: tc.PCFGUID,
+			InstanceIP:   tc.PCFIP,
+			MemoryLimit:  tc.PCFMemLimit,
+		}
+		v.PCF.validate()
 	}
 
 	if v.isEmpty() {
