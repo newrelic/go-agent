@@ -146,7 +146,7 @@ func configConnectJSON(c Config) ([]byte, error) {
 		DetectAWS:         c.Utilization.DetectAWS,
 		DetectDocker:      c.Utilization.DetectDocker,
 		LogicalProcessors: c.Utilization.LogicalProcessors,
-		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
+		TotalRamMIB:       c.Utilization.TotalRAMMIB,
 		BillingHostname:   c.Utilization.BillingHostname,
 	}, c.Logger)
 	return configConnectJSONInternal(c, os.Getpid(), util, env, Version)
