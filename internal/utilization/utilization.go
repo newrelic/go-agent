@@ -107,8 +107,8 @@ func Gather(config Config, lg logger.Logger) *Data {
 		go func() {
 			defer wg.Done()
 			if err := gather(util); err != nil {
-				lg.Warn("%s", map[string]interface{}{
-					"error gathering data": err.Error(),
+				lg.Warn("error gathering utilization data", map[string]interface{}{
+					"error": err.Error(),
 				})
 			}
 		}()
