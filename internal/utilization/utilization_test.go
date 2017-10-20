@@ -17,7 +17,7 @@ func TestJSONMarshalling(t *testing.T) {
 	u := Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: &actualProcessors,
-		RamMiB:            ramInitializer,
+		RAMMiB:            ramInitializer,
 		Hostname:          "localhost",
 		Vendors: &vendors{
 			AWS: &aws{
@@ -61,7 +61,7 @@ func TestJSONMarshalling(t *testing.T) {
 	}
 
 	// Test that we marshal not-present values to nil.
-	u.RamMiB = nil
+	u.RAMMiB = nil
 	u.Hostname = ""
 	u.Config = nil
 	expect = `{
@@ -115,7 +115,7 @@ func TestUtilizationHash(t *testing.T) {
 			t.Errorf("Marshalling failed and shouldn't: %s", err)
 		}
 		if u.MetadataVersion == 0 || nil == u.LogicalProcessors ||
-			0 == *u.LogicalProcessors || u.RamMiB == nil || *u.RamMiB == 0 ||
+			0 == *u.LogicalProcessors || u.RAMMiB == nil || *u.RAMMiB == 0 ||
 			u.Hostname == "" {
 			t.Errorf("Emptiness in utilization hash: %s", j)
 		}
@@ -150,11 +150,11 @@ func TestOverrideFromConfig(t *testing.T) {
 	}{
 		{Config{}, `null`},
 		{Config{LogicalProcessors: 16}, `{"logical_processors":16}`},
-		{Config{TotalRamMIB: 1024}, `{"total_ram_mib":1024}`},
+		{Config{TotalRAMMIB: 1024}, `{"total_ram_mib":1024}`},
 		{Config{BillingHostname: "localhost"}, `{"hostname":"localhost"}`},
 		{Config{
 			LogicalProcessors: 16,
-			TotalRamMIB:       1024,
+			TotalRAMMIB:       1024,
 			BillingHostname:   "localhost",
 		}, `{"logical_processors":16,"total_ram_mib":1024,"hostname":"localhost"}`},
 	}
@@ -227,14 +227,14 @@ func runUtilizationCrossAgentTestcase(t *testing.T, tc utilizationCrossAgentTest
 
 	cfg := Config{
 		LogicalProcessors: ConfigLogicalProcessors,
-		TotalRamMIB:       ConfigRAWMMIB,
+		TotalRAMMIB:       ConfigRAWMMIB,
 		BillingHostname:   tc.Config.Hostname,
 	}
 
 	data := &Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: tc.LogicalProcessors,
-		RamMiB:            tc.RAMMIB,
+		RAMMiB:            tc.RAMMIB,
 		Hostname:          tc.Hostname,
 		BootID:            tc.BootID,
 		Vendors:           crossAgentVendors(tc),
