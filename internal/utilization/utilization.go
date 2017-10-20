@@ -45,15 +45,15 @@ type Data struct {
 }
 
 var (
-  sampleRAMMib = uint64(1024)
-  sampleLogicProc = int(16)
-  // SampleData contains sample utilization data useful for testing.
-  SampleData = Data{
-    MetadataVersion:   metadataVersion,
-    LogicalProcessors: &sampleLogicProc,
-    RamMiB:            &sampleRAMMib,
-    Hostname:          "my-hostname",
-  }
+	sampleRAMMib    = uint64(1024)
+	sampleLogicProc = int(16)
+	// SampleData contains sample utilization data useful for testing.
+	SampleData = Data{
+		MetadataVersion:   metadataVersion,
+		LogicalProcessors: &sampleLogicProc,
+		RamMiB:            &sampleRAMMib,
+		Hostname:          "my-hostname",
+	}
 )
 
 type docker struct {
@@ -108,9 +108,9 @@ func Gather(config Config, lg logger.Logger) *Data {
 		go func() {
 			defer wg.Done()
 			if err := gather(util); err != nil {
-        lg.Warn("%s", map[string]interface{}{
-          "error gathering data": err.Error(),
-        })
+				lg.Warn("%s", map[string]interface{}{
+					"error gathering data": err.Error(),
+				})
 			}
 		}()
 	}
