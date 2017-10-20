@@ -34,7 +34,7 @@ func TestCrossAgentPCF(t *testing.T) {
 			}
 
 			if pcf.InstanceGUID != testCase.ExpectedVendorsHash.PCF.InstanceGUID {
-				t.Fatalf("%s: InstanceGUID incorrect; expected: %d; got: %d", testCase.TestName, testCase.ExpectedVendorsHash.PCF.InstanceGUID, pcf.InstanceGUID)
+				t.Fatalf("%s: InstanceGUID incorrect; expected: %s; got: %s", testCase.TestName, testCase.ExpectedVendorsHash.PCF.InstanceGUID, pcf.InstanceGUID)
 			}
 
 			if pcf.InstanceIP != testCase.ExpectedVendorsHash.PCF.InstanceIP {

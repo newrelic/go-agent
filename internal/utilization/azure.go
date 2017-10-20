@@ -22,13 +22,12 @@ type azure struct {
 	client *http.Client
 }
 
-func GatherAzure(util *Data) error {
+func gatherAzure(util *Data) error {
 	az := newAzure()
 	if err := az.Gather(); err != nil {
 		return fmt.Errorf("Azure not detected: %s", err)
-	} else {
-		util.Vendors.Azure = az
 	}
+	util.Vendors.Azure = az
 
 	return nil
 }
@@ -75,23 +74,23 @@ func (az *azure) Gather() error {
 	return nil
 }
 
-func (azure *azure) validate() (err error) {
-	azure.Location, err = normalizeValue(azure.Location)
+func (az *azure) validate() (err error) {
+	az.Location, err = normalizeValue(az.Location)
 	if err != nil {
 		return fmt.Errorf("Invalid Azure location: %v", err)
 	}
 
-	azure.Name, err = normalizeValue(azure.Name)
+	az.Name, err = normalizeValue(az.Name)
 	if err != nil {
 		return fmt.Errorf("Invalid Azure name: %v", err)
 	}
 
-	azure.VMID, err = normalizeValue(azure.VMID)
+	az.VMID, err = normalizeValue(az.VMID)
 	if err != nil {
 		return fmt.Errorf("Invalid Azure VM ID: %v", err)
 	}
 
-	azure.VMSize, err = normalizeValue(azure.VMSize)
+	az.VMSize, err = normalizeValue(az.VMSize)
 	if err != nil {
 		return fmt.Errorf("Invalid Azure VM size: %v", err)
 	}

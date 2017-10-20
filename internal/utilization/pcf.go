@@ -15,13 +15,12 @@ type pcf struct {
 	environmentVariableGetter func(key string) string
 }
 
-func GatherPCF(util *Data) error {
+func gatherPCF(util *Data) error {
 	pcf := newPCF()
 	if err := pcf.Gather(); err != nil {
 		return fmt.Errorf("PCF not detected: %s", err)
-	} else {
-		util.Vendors.PCF = pcf
 	}
+	util.Vendors.PCF = pcf
 
 	return nil
 }

@@ -14,13 +14,12 @@ const (
 	gcpEndpoint     = "http://" + gcpHostname + gcpEndpointPath
 )
 
-func GatherGCP(util *Data) error {
+func gatherGCP(util *Data) error {
 	gcp := newGCP()
 	if err := gcp.Gather(); err != nil {
 		return fmt.Errorf("GCP not detected: %s", err)
-	} else {
-		util.Vendors.GCP = gcp
 	}
+	util.Vendors.GCP = gcp
 
 	return nil
 }
@@ -114,29 +113,29 @@ func (g *gcp) Gather() error {
 	return nil
 }
 
-func (gcp *gcp) validate() (err error) {
-	id, err := normalizeValue(gcp.ID.String())
+func (g *gcp) validate() (err error) {
+	id, err := normalizeValue(g.ID.String())
 	if err != nil {
 		return fmt.Errorf("Invalid GCP ID: %v", err)
 	}
-	gcp.ID = numericString(id)
+	g.ID = numericString(id)
 
-	mt, err := normalizeValue(gcp.MachineType)
+	mt, err := normalizeValue(g.MachineType)
 	if err != nil {
 		return fmt.Errorf("Invalid GCP machine type: %v", err)
 	}
-	gcp.MachineType = stripGCPPrefix(mt)
+	g.MachineType = stripGCPPrefix(mt)
 
-	gcp.Name, err = normalizeValue(gcp.Name)
+	g.Name, err = normalizeValue(g.Name)
 	if err != nil {
 		return fmt.Errorf("Invalid GCP name: %v", err)
 	}
 
-	zone, err := normalizeValue(gcp.Zone)
+	zone, err := normalizeValue(g.Zone)
 	if err != nil {
 		return fmt.Errorf("Invalid GCP zone: %v", err)
 	}
-	gcp.Zone = stripGCPPrefix(zone)
+	g.Zone = stripGCPPrefix(zone)
 
 	return
 }

@@ -31,7 +31,7 @@ func TestCrossAgentGCP(t *testing.T) {
 			}
 
 			if gcp.ID != testCase.ExpectedVendorsHash.GCP.ID {
-				t.Fatalf("%s: ID incorrect; expected: %d; got: %d", testCase.TestName, testCase.ExpectedVendorsHash.GCP.ID, gcp.ID)
+				t.Fatalf("%s: ID incorrect; expected: %s; got: %s", testCase.TestName, testCase.ExpectedVendorsHash.GCP.ID, gcp.ID)
 			}
 
 			if gcp.MachineType != testCase.ExpectedVendorsHash.GCP.MachineType {
