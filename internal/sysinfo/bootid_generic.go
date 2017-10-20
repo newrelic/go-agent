@@ -3,5 +3,5 @@
 package sysinfo
 
 func BootID() (string, error) {
-  return "", ErrFeatureUnsupported
+	return "", ErrFeatureUnsupported
 }
