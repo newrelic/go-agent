@@ -227,7 +227,7 @@ const (
 var (
 	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
 	errHighSecurityTLS = errors.New("high security requires TLS")
-	errAppNameMissing  = errors.New("AppName required")
+	errAppNameMissing  = errors.New("string AppName required")
 	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
