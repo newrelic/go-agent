@@ -132,7 +132,7 @@ func Gather(config Config, lg logger.Logger) *Data {
 	}
 
 	if config.DetectAzure {
-		goGather(GatherAzure, uDat)
+		goGather(gatherAzure, uDat)
 	}
 
 	// Now we wait for everything!

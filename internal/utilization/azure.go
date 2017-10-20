@@ -75,7 +75,7 @@ func (az *azure) Gather() error {
 }
 
 func (az *azure) validate() (err error) {
-	az.Location, err = normalizeValue(azure.Location)
+	az.Location, err = normalizeValue(az.Location)
 	if err != nil {
 		return fmt.Errorf("Invalid Azure location: %v", err)
 	}
