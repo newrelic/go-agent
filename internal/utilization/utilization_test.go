@@ -198,6 +198,7 @@ func crossAgentVendors(tc utilizationCrossAgentTestcase) *vendors {
 			InstanceType:     tc.AWSType,
 			AvailabilityZone: tc.AWSZone,
 		}
+		v.AWS.validate()
 	}
 
 	if v.isEmpty() {
