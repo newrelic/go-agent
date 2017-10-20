@@ -21,13 +21,12 @@ type aws struct {
 	client *http.Client
 }
 
-func GatherAWS(util *Data) error {
+func gatherAWS(util *Data) error {
 	aws := newAWS()
 	if err := aws.Gather(); err != nil {
 		return fmt.Errorf("AWS not detected: %s", err)
-	} else {
-		util.Vendors.AWS = aws
 	}
+	util.Vendors.AWS = aws
 
 	return nil
 }
@@ -66,18 +65,18 @@ func (a *aws) Gather() error {
 	return nil
 }
 
-func (aws *aws) validate() (err error) {
-	aws.InstanceID, err = normalizeValue(aws.InstanceID)
+func (a *aws) validate() (err error) {
+	a.InstanceID, err = normalizeValue(a.InstanceID)
 	if err != nil {
 		return fmt.Errorf("Invalid AWS instance ID: %v", err)
 	}
 
-	aws.InstanceType, err = normalizeValue(aws.InstanceType)
+	a.InstanceType, err = normalizeValue(a.InstanceType)
 	if err != nil {
 		return fmt.Errorf("Invalid AWS instance type: %v", err)
 	}
 
-	aws.AvailabilityZone, err = normalizeValue(aws.AvailabilityZone)
+	a.AvailabilityZone, err = normalizeValue(a.AvailabilityZone)
 	if err != nil {
 		return fmt.Errorf("Invalid AWS availability zone: %v", err)
 	}
