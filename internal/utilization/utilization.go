@@ -165,12 +165,13 @@ func gatherCPU(util *Data) error {
 func gatherDockerID(util *Data) error {
 	id, err := sysinfo.DockerID()
 	if err != nil {
-		if err != sysinfo.ErrFeatureUnsupported {
-			return fmt.Errorf("Did not detect Docker on this platform: %s", err)
+		if err == sysinfo.ErrFeatureUnsupported || err == sysinfo.ErrDockerNotFound {
+			return nil
 		}
-	} else {
-		util.Vendors.Docker = &docker{ID: id}
+		return fmt.Errorf("unable to detect Docker on this platform: %s", err)
 	}
+
+	util.Vendors.Docker = &docker{ID: id}
 
 	return nil
 }
