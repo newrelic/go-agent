@@ -102,7 +102,7 @@ func Gather(config Config, lg logger.Logger) *Data {
 	// This closure allows us to run each gather function in a separate goroutine
 	// and wait for them at the end by closing over the wg WaitGroup we
 	// instantiated at the start of the function.
-	goGather := func(gather func(util *Data) error, util *Data) {
+	goGather := func(gather func(*Data) error) {
 		wg.Add(1)
 		go func() {
 			// Note that locking around util is not neccesary since
@@ -111,7 +111,7 @@ func Gather(config Config, lg logger.Logger) *Data {
 			// Thus this code is fine as long as each routine is
 			// modifying a different field of util.
 			defer wg.Done()
-			if err := gather(util); err != nil {
+			if err := gather(uDat); err != nil {
 				lg.Warn("error gathering utilization data", map[string]interface{}{
 					"error": err.Error(),
 				})
@@ -120,18 +120,18 @@ func Gather(config Config, lg logger.Logger) *Data {
 	}
 
 	// System things we gather no matter what.
-	goGather(gatherBootID, uDat)
-	goGather(gatherCPU, uDat)
-	goGather(gatherHostname, uDat)
-	goGather(gatherMemory, uDat)
+	goGather(gatherBootID)
+	goGather(gatherCPU)
+	goGather(gatherHostname)
+	goGather(gatherMemory)
 
 	// Now things the user can turn off.
 	if config.DetectDocker {
-		goGather(gatherDockerID, uDat)
+		goGather(gatherDockerID)
 	}
 
 	if config.DetectAWS {
-		goGather(gatherAWS, uDat)
+		goGather(gatherAWS)
 	}
 
 	// Now we wait for everything!
