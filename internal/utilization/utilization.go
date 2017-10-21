@@ -105,6 +105,11 @@ func Gather(config Config, lg logger.Logger) *Data {
 	goGather := func(gather func(util *Data) error, util *Data) {
 		wg.Add(1)
 		go func() {
+			// Note that locking around util is not neccesary since
+			// WaitGroup provides acts as a memory barrier:
+			// https://groups.google.com/d/msg/golang-nuts/5oHzhzXCcmM/utEwIAApCQAJ
+			// Thus this code is fine as long as each routine is
+			// modifying a different field of util.
 			defer wg.Done()
 			if err := gather(util); err != nil {
 				lg.Warn("error gathering utilization data", map[string]interface{}{
