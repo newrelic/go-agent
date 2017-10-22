@@ -17,52 +17,44 @@ type aws struct {
 	InstanceID       string `json:"instanceId,omitempty"`
 	InstanceType     string `json:"instanceType,omitempty"`
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
-
-	client *http.Client
 }
 
-func gatherAWS(util *Data) error {
-	aws := newAWS()
-	if err := aws.Gather(); err != nil {
-		return fmt.Errorf("AWS not detected: %s", err)
+func gatherAWS(util *Data, client *http.Client) error {
+	aws, err := getAWS(client)
+	if err != nil {
+		// TODO only return an error if validation fails.
+		return err
 	}
 	util.Vendors.AWS = aws
 
 	return nil
 }
 
-func newAWS() *aws {
-	return &aws{
-		client: &http.Client{Timeout: providerTimeout},
-	}
-}
-
-func (a *aws) Gather() error {
-	response, err := a.client.Get(awsEndpoint)
+func getAWS(client *http.Client) (*aws, error) {
+	response, err := client.Get(awsEndpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return fmt.Errorf("got response code %d", response.StatusCode)
+		return nil, fmt.Errorf("got response code %d", response.StatusCode)
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	a := &aws{}
 	if err := json.Unmarshal(data, a); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := a.validate(); err != nil {
-		*a = aws{client: a.client}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return a, nil
 }
 
 func (a *aws) validate() (err error) {

@@ -4,6 +4,7 @@
 package utilization
 
 import (
+	"net/http"
 	"runtime"
 	"sync"
 
@@ -91,6 +92,13 @@ func overrideFromConfig(config Config) *override {
 
 // Gather gathers system utilization data.
 func Gather(config Config, lg logger.Logger) *Data {
+	client := &http.Client{
+		Timeout: providerTimeout,
+	}
+	return gatherWithClient(config, lg, client)
+}
+
+func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Data {
 	var wg sync.WaitGroup
 
 	cpu := runtime.NumCPU()
@@ -110,7 +118,7 @@ func Gather(config Config, lg logger.Logger) *Data {
 	// This closure allows us to run each gather function in a separate goroutine
 	// and wait for them at the end by closing over the wg WaitGroup we
 	// instantiated at the start of the function.
-	goGather := func(datatype string, gather func(*Data) error) {
+	goGather := func(datatype string, gather func(*Data, *http.Client) error) {
 		wg.Add(1)
 		go func() {
 			// Note that locking around util is not neccesary since
@@ -119,7 +127,7 @@ func Gather(config Config, lg logger.Logger) *Data {
 			// Thus this code is fine as long as each routine is
 			// modifying a different field of util.
 			defer wg.Done()
-			if err := gather(uDat); err != nil {
+			if err := gather(uDat, client); err != nil {
 				warnGatherError(datatype, err)
 			}
 		}()

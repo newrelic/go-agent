@@ -1,6 +1,7 @@
 package utilization
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -15,18 +16,21 @@ func TestCrossAgentAWS(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		aws := newAWS()
-		aws.client.Transport = &mockTransport{
-			t:         t,
-			responses: testCase.URIs,
+		client := &http.Client{
+			Transport: &mockTransport{
+				t:         t,
+				responses: testCase.URIs,
+			},
 		}
 
+		aws, err := getAWS(client)
+
 		if testCase.ExpectedVendorsHash.AWS == nil {
-			if err := aws.Gather(); err == nil {
+			if err == nil {
 				t.Fatalf("%s: expected error; got nil", testCase.TestName)
 			}
 		} else {
-			if err := aws.Gather(); err != nil {
+			if err != nil {
 				t.Fatalf("%s: expected no error; got %v", testCase.TestName, err)
 			}
 
