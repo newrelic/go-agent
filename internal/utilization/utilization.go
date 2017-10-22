@@ -4,7 +4,6 @@
 package utilization
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 
@@ -94,15 +93,24 @@ func overrideFromConfig(config Config) *override {
 func Gather(config Config, lg logger.Logger) *Data {
 	var wg sync.WaitGroup
 
+	cpu := runtime.NumCPU()
 	uDat := &Data{
-		MetadataVersion: metadataVersion,
-		Vendors:         &vendors{},
+		MetadataVersion:   metadataVersion,
+		LogicalProcessors: &cpu,
+		Vendors:           &vendors{},
+	}
+
+	warnGatherError := func(datatype string, err error) {
+		lg.Warn("error gathering utilization data", map[string]interface{}{
+			"error":    err.Error(),
+			"datatype": datatype,
+		})
 	}
 
 	// This closure allows us to run each gather function in a separate goroutine
 	// and wait for them at the end by closing over the wg WaitGroup we
 	// instantiated at the start of the function.
-	goGather := func(gather func(*Data) error) {
+	goGather := func(datatype string, gather func(*Data) error) {
 		wg.Add(1)
 		go func() {
 			// Note that locking around util is not neccesary since
@@ -112,26 +120,49 @@ func Gather(config Config, lg logger.Logger) *Data {
 			// modifying a different field of util.
 			defer wg.Done()
 			if err := gather(uDat); err != nil {
-				lg.Warn("error gathering utilization data", map[string]interface{}{
-					"error": err.Error(),
-				})
+				warnGatherError(datatype, err)
 			}
 		}()
 	}
 
-	// System things we gather no matter what.
-	goGather(gatherBootID)
-	goGather(gatherCPU)
-	goGather(gatherHostname)
-	goGather(gatherMemory)
-
-	// Now things the user can turn off.
-	if config.DetectDocker {
-		goGather(gatherDockerID)
-	}
+	// Kick off gathering which requires network calls in goroutines.
 
 	if config.DetectAWS {
-		goGather(gatherAWS)
+		goGather("aws", gatherAWS)
+	}
+
+	// Do non-network gathering sequentially since it is fast.
+
+	if id, err := sysinfo.BootID(); err != nil {
+		if err != sysinfo.ErrFeatureUnsupported {
+			warnGatherError("bootid", err)
+		}
+	} else {
+		uDat.BootID = id
+	}
+
+	if config.DetectDocker {
+		if id, err := sysinfo.DockerID(); err != nil {
+			if err != sysinfo.ErrFeatureUnsupported &&
+				err != sysinfo.ErrDockerNotFound {
+				warnGatherError("docker", err)
+			}
+		} else {
+			uDat.Vendors.Docker = &docker{ID: id}
+		}
+	}
+
+	if hostname, err := sysinfo.Hostname(); nil == err {
+		uDat.Hostname = hostname
+	} else {
+		warnGatherError("hostname", err)
+	}
+
+	if bts, err := sysinfo.PhysicalMemoryBytes(); nil == err {
+		mib := sysinfo.BytesToMebibytes(bts)
+		uDat.RAMMiB = &mib
+	} else {
+		warnGatherError("memory", err)
 	}
 
 	// Now we wait for everything!
@@ -146,60 +177,4 @@ func Gather(config Config, lg logger.Logger) *Data {
 	}
 
 	return uDat
-}
-
-func gatherBootID(util *Data) error {
-	id, err := sysinfo.BootID()
-	if err != nil {
-		if err != sysinfo.ErrFeatureUnsupported {
-			return fmt.Errorf("Invalid boot ID detected: %s", err)
-		}
-	} else {
-		util.BootID = id
-	}
-
-	return nil
-}
-
-func gatherCPU(util *Data) error {
-	cpu := runtime.NumCPU()
-	util.LogicalProcessors = &cpu
-	return nil
-}
-
-func gatherDockerID(util *Data) error {
-	id, err := sysinfo.DockerID()
-	if err != nil {
-		if err == sysinfo.ErrFeatureUnsupported || err == sysinfo.ErrDockerNotFound {
-			return nil
-		}
-		return fmt.Errorf("unable to detect Docker on this platform: %s", err)
-	}
-
-	util.Vendors.Docker = &docker{ID: id}
-
-	return nil
-}
-
-func gatherHostname(util *Data) error {
-	hostname, err := sysinfo.Hostname()
-	if nil == err {
-		util.Hostname = hostname
-	} else {
-		return fmt.Errorf("Could not find hostname: %s", err)
-	}
-
-	return nil
-}
-
-func gatherMemory(util *Data) error {
-	ram, err := sysinfo.PhysicalMemoryBytes()
-	if nil == err {
-		ram = ram / (1024 * 1024) // bytes -> MiB
-		util.RAMMiB = &ram
-	} else {
-		return fmt.Errorf("Could not find host memory: %s", err)
-	}
-
-	return nil
 }
