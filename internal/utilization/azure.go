@@ -21,15 +21,15 @@ type azure struct {
 }
 
 func gatherAzure(util *Data, client *http.Client) error {
-  az, err := getAzure(client)
-  if err != nil {
-    // Only return the error here if it is unexpected to prevent
-    // warning customers who aren't running Azure about a timeout.
-    if _, ok := err.(unexpectedAzureErr); ok {
-      return err
-    }
-    return nil
-  }
+	az, err := getAzure(client)
+	if err != nil {
+		// Only return the error here if it is unexpected to prevent
+		// warning customers who aren't running Azure about a timeout.
+		if _, ok := err.(unexpectedAzureErr); ok {
+			return err
+		}
+		return nil
+	}
 	util.Vendors.Azure = az
 
 	return nil
@@ -38,34 +38,34 @@ func gatherAzure(util *Data, client *http.Client) error {
 type unexpectedAzureErr struct{ e error }
 
 func (e unexpectedAzureErr) Error() string {
-  return fmt.Sprintf("unexpected Azure error: %v", e.e)
+	return fmt.Sprintf("unexpected Azure error: %v", e.e)
 }
 
 func getAzure(client *http.Client) (*azure, error) {
-  response, err := client.Get(azureEndpoint)
-  if err != nil {
-    // No unexpectedAzureErr here: a timeout isusually going to
-    // happen.
-    return nil, err
-  }
+	response, err := client.Get(azureEndpoint)
+	if err != nil {
+		// No unexpectedAzureErr here: a timeout isusually going to
+		// happen.
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-    return nil, unexpectedAzureErr{e: fmt.Errorf("response code %d", response.StatusCode)}
+		return nil, unexpectedAzureErr{e: fmt.Errorf("response code %d", response.StatusCode)}
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-    return nil, unexpectedAzureErr{e: err}
+		return nil, unexpectedAzureErr{e: err}
 	}
 
-  az := &azure{}
+	az := &azure{}
 	if err := json.Unmarshal(data, az); err != nil {
-    return nil, unexpectedAzureErr{e: err}
+		return nil, unexpectedAzureErr{e: err}
 	}
 
 	if err := az.validate(); err != nil {
-    return nil, unexpectedAzureErr{e: err}
+		return nil, unexpectedAzureErr{e: err}
 	}
 
 	return az, nil

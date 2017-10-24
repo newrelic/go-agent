@@ -101,7 +101,7 @@ func (e errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) { re
 func TestUtilizationHash(t *testing.T) {
 	config := Config{
 		DetectAWS:    true,
-    DetectAzure:  true,
+		DetectAzure:  true,
 		DetectDocker: true,
 	}
 	client := &http.Client{
@@ -266,7 +266,7 @@ func TestVendorsIsEmpty(t *testing.T) {
 	}
 
 	v.AWS = &aws{}
-  v.Azure = &azure{}
+	v.Azure = &azure{}
 	if v.isEmpty() {
 		t.Fatal("non-empty vendors registers as empty")
 	}

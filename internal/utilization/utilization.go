@@ -141,9 +141,9 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 		goGather("aws", gatherAWS)
 	}
 
-  if config.DetectAzure {
-    goGather("azure", gatherAzure)
-  }
+	if config.DetectAzure {
+		goGather("azure", gatherAzure)
+	}
 
 	// Do non-network gathering sequentially since it is fast.
 

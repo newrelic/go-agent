@@ -1,7 +1,7 @@
 package utilization
 
 import (
-  "net/http"
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -16,14 +16,14 @@ func TestCrossAgentAzure(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-    client := &http.Client {
-      Transport: &mockTransport{
-        t:          t,
-        responses:  testCase.URIs,
-      },
-    }
+		client := &http.Client{
+			Transport: &mockTransport{
+				t:         t,
+				responses: testCase.URIs,
+			},
+		}
 
-  azure, err := getAzure(client)
+		azure, err := getAzure(client)
 
 		if testCase.ExpectedVendorsHash.Azure == nil {
 			if err == nil {
