@@ -42,7 +42,13 @@ func (e unexpectedAzureErr) Error() string {
 }
 
 func getAzure(client *http.Client) (*azure, error) {
-	response, err := client.Get(azureEndpoint)
+	req, err := http.NewRequest("GET", azureEndpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Metadata", "true")
+
+	response, err := client.Do(req)
 	if err != nil {
 		// No unexpectedAzureErr here: a timeout isusually going to
 		// happen.
