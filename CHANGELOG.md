@@ -1,6 +1,6 @@
 ## ChangeLog
 
-## In Progress
+## 1.10.0
 
 * Added new `RecordCustomMetric` method to [Application](https://godoc.org/github.com/newrelic/go-agent#Application).
   This functionality can be used to track averages or counters without using
