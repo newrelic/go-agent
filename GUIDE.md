@@ -9,6 +9,7 @@
   * [Datastore Segments](#datastore-segments)
   * [External Segments](#external-segments)
 * [Attributes](#attributes)
+* [Custom Metrics](#custom-metrics)
 * [Custom Events](#custom-events)
 * [Request Queuing](#request-queuing)
 
@@ -309,22 +310,22 @@ config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.Attribute
 
 * [More info on Custom Metrics](https://docs.newrelic.com/docs/agents/go-agent/instrumentation/create-custom-metrics-go)
 
-You may [create custom metrics](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics) 
+You may [create custom metrics](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics)
 via the `RecordCustomMetric` method.
 
 ```go
 app.RecordCustomMetric(
-    "CustomMetricName",         //name of your metric
-    132                         //time in ms
-);
+	"CustomMetricName", // Name of your metric
+	132,                // Value
+)
 ```
 
 **Note:** The Go Agent will automatically prepend the metric name you pass to
-`RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`. 
+`RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.
 This means the above code would produce a metric named
-`Custom/CustomMetricName`.  You'll also want to read over the 
+`Custom/CustomMetricName`.  You'll also want to read over the
 [Naming Transactions and Metrics](#naming-transactions-and-metrics) section below for
-advice on coming up with appropriate metric names. 
+advice on coming up with appropriate metric names.
 
 ## Custom Events
 
@@ -350,18 +351,11 @@ band on the application overview chart showing queue time.
 ## Error Reporting
 
 You may track errors using the `Transaction.NoticeError` method.  The easiest
-way to get started with `NoticeError` is to use errors based on 
+way to get started with `NoticeError` is to use errors based on
 [Go's standard error interface](https://blog.golang.org/error-handling-and-go).
 
 ```go
-import (  
-  "errors"
-  /* ... other imports ... */
-)
-
-  /* ... */
-  
-  txn.NoticeError(errors.New("my error message"))
+txn.NoticeError(errors.New("my error message"))
 ```
 
 `NoticeError` will work with *any* sort of object that implements Go's standard
@@ -371,20 +365,14 @@ If you're interested in sending more than an error *message* to New Relic, the
 Go Agent also offers a `newrelic.Error` struct.
 
 ```go
-  import (
-    /* ... other imports ... */
-    newrelic "github.com/newrelic/go-agent"
-  )
-  
-  /* ... */
-  txn.NoticeError(newrelic.Error{
-    Message: "my error message",
-    Class:   "IdentifierForError",
-    Attributes: map[string]interface{}{
-      "important_number": 97232,
-      "relevant_string":  "zap",
-    },
-  })        
+txn.NoticeError(newrelic.Error{
+	Message: "my error message",
+	Class:   "IdentifierForError",
+	Attributes: map[string]interface{}{
+		"important_number": 97232,
+		"relevant_string":  "zap",
+	},
+})
 ```
 
 Using the `newrelic.Error` struct requires you to manually marshall your error
@@ -394,37 +382,37 @@ data into the `Message`, `Class`, and `Attributes` fields.  However, there's two
 First, by setting an error `Class`, New Relic will be able to aggregate errors
 in the *Error Analytics* section of APM.  Second, the `Attributes` field allows
 you to send through key/value pairs with additional error debugging information
-(also exposed in the *Error Analytics* section of APM). 
+(also exposed in the *Error Analytics* section of APM).
 
 ## Advanced Error Reporting
 
 You're not limited to using Go's built-in error type or the provided
-`newrelic.Error` struct.  The Go Agent provides three error interfaces 
+`newrelic.Error` struct.  The Go Agent provides three error interfaces
 
 ```go
-  type StackTracer interface {
-    StackTrace() []uintptr
-  }
+type StackTracer interface {
+	StackTrace() []uintptr
+}
 
-  type ErrorClasser interface {
-    ErrorClass() string
-  }
-  
-  type ErrorAttributer interface {
-    ErrorAttributes() map[string]interface{}
-  }    
+type ErrorClasser interface {
+	ErrorClass() string
+}
+
+type ErrorAttributer interface {
+	ErrorAttributes() map[string]interface{}
+}
 ```
 
 If you implement any of these on your own error structs, the `txn.NoticeError`
 method will recognize these methods and use their return values to provide error
-information. 
+information.
 
 For example, you could implement a custom error struct named `MyErrorWithClass`
 
 ```go
-  type MyErrorWithClass struct {
+type MyErrorWithClass struct {
 
-  }
+}
 ```
 
 Then, you could implement both an `Error` method (per Go's standard `error`
@@ -432,22 +420,22 @@ interface) and an `ErrorClass` method (per the Go Agent `ErrorClasser`
 interface) for this struct.
 
 ```go
-  func (e MyErrorWithClass) Error() string { return "A hard coded error message" }
+func (e MyErrorWithClass) Error() string { return "A hard coded error message" }
 
-  // ErrorClass implements the ErrorClasser interface.
-  func (e MyErrorWithClass) ErrorClass() string { return "MyErrorClassForAggregation" }
+// ErrorClass implements the ErrorClasser interface.
+func (e MyErrorWithClass) ErrorClass() string { return "MyErrorClassForAggregation" }
 ```
 
 Finally, you'd use your new error by creating a new instance of your struct and
 passing it to the `NoticeError` method
 
 ```go
-  txn.NoticeError(MyErrorWithClass{})
+txn.NoticeError(MyErrorWithClass{})
 ```
-    
+
 While this is an oversimplified example, these interfaces give you a great deal
 of control over what error information is available for your application.
-    
+
 ## Naming Transactions and Metrics
 
 You'll want to think carefully about how you name your transactions and custom
@@ -467,11 +455,11 @@ metric name.
 
 There's a variety of places online to learn more about the Go Agent.
 
-[The New Relic docs site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-new-relic-go) 
+[The New Relic docs site](https://docs.newrelic.com/docs/agents/go-agent/get-started/introduction-new-relic-go)
 contains a number of useful code samples and more context about how to use the Go Agent.
 
 [New Relic's discussion forums](https://discuss.newrelic.com) have a dedicated
 public forum [for the Go Agent](https://discuss.newrelic.com/c/support-products-agents/go-agent).
 
 When in doubt, [the New Relic support site](https://support.newrelic.com/) is
-the best place to get started troubleshooting an agent issue. 
+the best place to get started troubleshooting an agent issue.
