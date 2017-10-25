@@ -279,6 +279,7 @@ func TestVendorsIsEmpty(t *testing.T) {
 
 	v.AWS = &aws{}
 	v.Azure = &azure{}
+	v.PCF = &pcf{}
 	if v.isEmpty() {
 		t.Fatal("non-empty vendors registers as empty")
 	}
