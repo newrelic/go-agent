@@ -1,6 +1,6 @@
 ## ChangeLog
 
-## IN PROGRESS 1.11.0
+## 1.11.0
 
 * README updated to emphasize that users should go to Support or community forums for questions. The issues section has been closed in favor of our support channels with this release in an effort to drive more timely responses by feeding this into Support's normal workflow.
 
