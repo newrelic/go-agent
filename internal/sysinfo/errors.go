@@ -5,6 +5,6 @@ import (
 )
 
 var (
+	// ErrFeatureUnsupported indicates unsupported platform.
 	ErrFeatureUnsupported = errors.New("That feature is not supported on this platform")
-	ErrIdentifierNotFound = errors.New("The requested identifier could not be found")
 )

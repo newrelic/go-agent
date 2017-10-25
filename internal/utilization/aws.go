@@ -17,69 +17,72 @@ type aws struct {
 	InstanceID       string `json:"instanceId,omitempty"`
 	InstanceType     string `json:"instanceType,omitempty"`
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
-
-	client *http.Client
 }
 
-func GatherAWS(util *Data) error {
-	aws := newAWS()
-	if err := aws.Gather(); err != nil {
-		return fmt.Errorf("AWS not detected: %s", err)
-	} else {
-		util.Vendors.AWS = aws
+func gatherAWS(util *Data, client *http.Client) error {
+	aws, err := getAWS(client)
+	if err != nil {
+		// Only return the error here if it is unexpected to prevent
+		// warning customers who aren't running AWS about a timeout.
+		if _, ok := err.(unexpectedAWSErr); ok {
+			return err
+		}
+		return nil
 	}
+	util.Vendors.AWS = aws
 
 	return nil
 }
 
-func newAWS() *aws {
-	return &aws{
-		client: &http.Client{Timeout: providerTimeout},
-	}
+type unexpectedAWSErr struct{ e error }
+
+func (e unexpectedAWSErr) Error() string {
+	return fmt.Sprintf("unexpected AWS error: %v", e.e)
 }
 
-func (a *aws) Gather() error {
-	response, err := a.client.Get(awsEndpoint)
+func getAWS(client *http.Client) (*aws, error) {
+	response, err := client.Get(awsEndpoint)
 	if err != nil {
-		return err
+		// No unexpectedAWSErr here: A timeout is usually going to
+		// happen.
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return fmt.Errorf("got response code %d", response.StatusCode)
+		return nil, unexpectedAWSErr{e: fmt.Errorf("response code %d", response.StatusCode)}
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, unexpectedAWSErr{e: err}
 	}
-
+	a := &aws{}
 	if err := json.Unmarshal(data, a); err != nil {
-		return err
+		return nil, unexpectedAWSErr{e: err}
 	}
 
 	if err := a.validate(); err != nil {
-		*a = aws{client: a.client}
-		return err
+		return nil, unexpectedAWSErr{e: err}
 	}
 
-	return nil
+	return a, nil
 }
 
-func (aws *aws) validate() (err error) {
-	aws.InstanceID, err = normalizeValue(aws.InstanceID)
+func (a *aws) validate() (err error) {
+	a.InstanceID, err = normalizeValue(a.InstanceID)
 	if err != nil {
-		return fmt.Errorf("Invalid AWS instance ID: %v", err)
+		return fmt.Errorf("invalid instance ID: %v", err)
 	}
 
-	aws.InstanceType, err = normalizeValue(aws.InstanceType)
+	a.InstanceType, err = normalizeValue(a.InstanceType)
 	if err != nil {
-		return fmt.Errorf("Invalid AWS instance type: %v", err)
+		return fmt.Errorf("invalid instance type: %v", err)
 	}
 
-	aws.AvailabilityZone, err = normalizeValue(aws.AvailabilityZone)
+	a.AvailabilityZone, err = normalizeValue(a.AvailabilityZone)
 	if err != nil {
-		return fmt.Errorf("Invalid AWS availability zone: %v", err)
+		return fmt.Errorf("invalid availability zone: %v", err)
 	}
 
 	return

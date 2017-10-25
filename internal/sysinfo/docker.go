@@ -12,9 +12,6 @@ import (
 )
 
 var (
-	// ErrDockerUnsupported is returned if Docker is not supported on the
-	// platform.
-	ErrDockerUnsupported = errors.New("Docker unsupported on this platform")
 	// ErrDockerNotFound is returned if a Docker ID is not found in
 	// /proc/self/cgroup
 	ErrDockerNotFound = errors.New("Docker ID not found")
@@ -23,7 +20,7 @@ var (
 // DockerID attempts to detect Docker.
 func DockerID() (string, error) {
 	if "linux" != runtime.GOOS {
-		return "", ErrDockerUnsupported
+		return "", ErrFeatureUnsupported
 	}
 
 	f, err := os.Open("/proc/self/cgroup")

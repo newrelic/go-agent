@@ -3,6 +3,7 @@ package utilization
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 )
 
@@ -15,53 +16,58 @@ type pcf struct {
 	environmentVariableGetter func(key string) string
 }
 
-func GatherPCF(util *Data) error {
-	pcf := newPCF()
-	if err := pcf.Gather(); err != nil {
-		return fmt.Errorf("PCF not detected: %s", err)
-	} else {
-		util.Vendors.PCF = pcf
+func gatherPCF(util *Data, _ *http.Client) error {
+	pcf, err := getPCF()
+	if err != nil {
+		// Only return the error here if it is unexpected to prevent
+		// warning customers who aren't running PCF about a timeout.
+		if _, ok := err.(unexpectedPCFErr); ok {
+			return err
+		}
+		return nil
 	}
+	util.Vendors.PCF = pcf
 
 	return nil
 }
 
-func newPCF() *pcf {
-	return &pcf{
-		environmentVariableGetter: os.Getenv,
-	}
+type unexpectedPCFErr struct{ e error }
+
+func (e unexpectedPCFErr) Error() string {
+	return fmt.Sprintf("unexpected PCF error: %v", e.e)
 }
 
-func (pcf *pcf) Gather() error {
-	pcf.InstanceGUID = pcf.environmentVariableGetter("CF_INSTANCE_GUID")
-	pcf.InstanceIP = pcf.environmentVariableGetter("CF_INSTANCE_IP")
-	pcf.MemoryLimit = pcf.environmentVariableGetter("MEMORY_LIMIT")
+func getPCF() (*pcf, error) {
+	p := &pcf{environmentVariableGetter: os.Getenv}
+	p.InstanceGUID = p.environmentVariableGetter("CF_INSTANCE_GUID")
+	p.InstanceIP = p.environmentVariableGetter("CF_INSTANCE_IP")
+	p.MemoryLimit = p.environmentVariableGetter("MEMORY_LIMIT")
 
-	if err := pcf.validate(); err != nil {
-		return err
+	if err := p.validate(); err != nil {
+		return nil, unexpectedPCFErr{e: err}
 	}
 
-	return nil
+	return p, nil
 }
 
 func (pcf *pcf) validate() (err error) {
 	pcf.InstanceGUID, err = normalizeValue(pcf.InstanceGUID)
 	if err != nil {
-		return fmt.Errorf("Invalid PCF instance GUID: %v", err)
+		return fmt.Errorf("Invalid instance GUID: %v", err)
 	}
 
 	pcf.InstanceIP, err = normalizeValue(pcf.InstanceIP)
 	if err != nil {
-		return fmt.Errorf("Invalid PCF instance IP: %v", err)
+		return fmt.Errorf("Invalid instance IP: %v", err)
 	}
 
 	pcf.MemoryLimit, err = normalizeValue(pcf.MemoryLimit)
 	if err != nil {
-		return fmt.Errorf("Invalid PCF memory limit: %v", err)
+		return fmt.Errorf("Invalid memory limit: %v", err)
 	}
 
 	if pcf.InstanceGUID == "" || pcf.InstanceIP == "" || pcf.MemoryLimit == "" {
-		err = errors.New("One or more PCF environment variables are unavailable")
+		err = errors.New("One or more environment variables are unavailable")
 	}
 
 	return

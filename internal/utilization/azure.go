@@ -18,82 +18,84 @@ type azure struct {
 	Name     string `json:"name,omitempty"`
 	VMID     string `json:"vmId,omitempty"`
 	VMSize   string `json:"vmSize,omitempty"`
-
-	client *http.Client
 }
 
-func GatherAzure(util *Data) error {
-	az := newAzure()
-	if err := az.Gather(); err != nil {
-		return fmt.Errorf("Azure not detected: %s", err)
-	} else {
-		util.Vendors.Azure = az
+func gatherAzure(util *Data, client *http.Client) error {
+	az, err := getAzure(client)
+	if err != nil {
+		// Only return the error here if it is unexpected to prevent
+		// warning customers who aren't running Azure about a timeout.
+		if _, ok := err.(unexpectedAzureErr); ok {
+			return err
+		}
+		return nil
 	}
+	util.Vendors.Azure = az
 
 	return nil
 }
 
-func newAzure() *azure {
-	return &azure{
-		client: &http.Client{Timeout: providerTimeout},
-	}
+type unexpectedAzureErr struct{ e error }
+
+func (e unexpectedAzureErr) Error() string {
+	return fmt.Sprintf("unexpected Azure error: %v", e.e)
 }
 
-func (az *azure) Gather() error {
-	// Azure's metadata service requires a Metadata header to avoid accidental
-	// redirects.
+func getAzure(client *http.Client) (*azure, error) {
 	req, err := http.NewRequest("GET", azureEndpoint, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Add("Metadata", "true")
 
-	response, err := az.client.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
-		return err
+		// No unexpectedAzureErr here: a timeout isusually going to
+		// happen.
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return fmt.Errorf("got response code %d", response.StatusCode)
+		return nil, unexpectedAzureErr{e: fmt.Errorf("response code %d", response.StatusCode)}
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, unexpectedAzureErr{e: err}
 	}
 
+	az := &azure{}
 	if err := json.Unmarshal(data, az); err != nil {
-		return err
+		return nil, unexpectedAzureErr{e: err}
 	}
 
 	if err := az.validate(); err != nil {
-		*az = azure{client: az.client}
-		return err
+		return nil, unexpectedAzureErr{e: err}
 	}
 
-	return nil
+	return az, nil
 }
 
-func (azure *azure) validate() (err error) {
-	azure.Location, err = normalizeValue(azure.Location)
+func (az *azure) validate() (err error) {
+	az.Location, err = normalizeValue(az.Location)
 	if err != nil {
-		return fmt.Errorf("Invalid Azure location: %v", err)
+		return fmt.Errorf("Invalid location: %v", err)
 	}
 
-	azure.Name, err = normalizeValue(azure.Name)
+	az.Name, err = normalizeValue(az.Name)
 	if err != nil {
-		return fmt.Errorf("Invalid Azure name: %v", err)
+		return fmt.Errorf("Invalid name: %v", err)
 	}
 
-	azure.VMID, err = normalizeValue(azure.VMID)
+	az.VMID, err = normalizeValue(az.VMID)
 	if err != nil {
-		return fmt.Errorf("Invalid Azure VM ID: %v", err)
+		return fmt.Errorf("Invalid VM ID: %v", err)
 	}
 
-	azure.VMSize, err = normalizeValue(azure.VMSize)
+	az.VMSize, err = normalizeValue(az.VMSize)
 	if err != nil {
-		return fmt.Errorf("Invalid Azure VM size: %v", err)
+		return fmt.Errorf("Invalid VM size: %v", err)
 	}
 
 	return

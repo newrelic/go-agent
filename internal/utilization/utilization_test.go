@@ -3,6 +3,8 @@ package utilization
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -17,7 +19,7 @@ func TestJSONMarshalling(t *testing.T) {
 	u := Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: &actualProcessors,
-		RamMiB:            ramInitializer,
+		RAMMiB:            ramInitializer,
 		Hostname:          "localhost",
 		Vendors: &vendors{
 			AWS: &aws{
@@ -61,7 +63,7 @@ func TestJSONMarshalling(t *testing.T) {
 	}
 
 	// Test that we marshal not-present values to nil.
-	u.RamMiB = nil
+	u.RAMMiB = nil
 	u.Hostname = ""
 	u.Config = nil
 	expect = `{
@@ -91,59 +93,27 @@ func TestJSONMarshalling(t *testing.T) {
 
 }
 
-// Smoke test the Gather method and JSON marshalling.
+type errorRoundTripper struct{ error }
+
+func (e errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) { return nil, e }
+
+// Smoke test the Gather method.
 func TestUtilizationHash(t *testing.T) {
-	configs := []Config{
-		Config{
-			DetectAWS:    true,
-			DetectAzure:  true,
-			DetectPCF:    true,
-			DetectDocker: true,
-		},
-		Config{
-			DetectAWS:    false,
-			DetectAzure:  false,
-			DetectPCF:    false,
-			DetectDocker: false,
-		},
+	config := Config{
+		DetectAWS:    true,
+		DetectDocker: true,
 	}
-	for _, c := range configs {
-		u := Gather(c, logger.ShimLogger{})
-
-		if u == nil {
-			t.Fatal("Utilization should not return nil if enabled.")
-		}
-
-		j, err := json.MarshalIndent(u, "", "\t")
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		if u.MetadataVersion == 0 || nil == u.LogicalProcessors ||
-			0 == *u.LogicalProcessors || u.RamMiB == nil || *u.RamMiB == 0 ||
-			u.Hostname == "" {
-			t.Errorf("Emptiness in utilization hash: %s", j)
-		}
-
-		js, err := json.Marshal(u)
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		js2, err := json.Marshal(u)
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		if !bytes.Equal(js, js2) {
-			t.Errorf("JSON doesn't match json.marshal.\n\nActual: %s\n\nExpected: %s\n\n", js, js2)
-		}
-
-		b, err := json.Marshal(Gather(c, logger.ShimLogger{}))
-		if err != nil || b == nil || len(b) == 0 {
-			t.Error(err, b)
-		}
-		b, err = json.MarshalIndent(Gather(c, logger.ShimLogger{}), "", "\t")
-		if err != nil || b == nil || len(b) == 0 {
-			t.Error(err, b)
-		}
+	client := &http.Client{
+		Transport: errorRoundTripper{errors.New("timed out")},
+	}
+	data := gatherWithClient(config, logger.ShimLogger{}, client)
+	if data.MetadataVersion == 0 ||
+		nil == data.LogicalProcessors ||
+		0 == *data.LogicalProcessors ||
+		data.RAMMiB == nil ||
+		*data.RAMMiB == 0 ||
+		data.Hostname == "" {
+		t.Errorf("utilization data unexpected fields: %+v", data)
 	}
 }
 
@@ -154,11 +124,11 @@ func TestOverrideFromConfig(t *testing.T) {
 	}{
 		{Config{}, `null`},
 		{Config{LogicalProcessors: 16}, `{"logical_processors":16}`},
-		{Config{TotalRamMIB: 1024}, `{"total_ram_mib":1024}`},
+		{Config{TotalRAMMIB: 1024}, `{"total_ram_mib":1024}`},
 		{Config{BillingHostname: "localhost"}, `{"hostname":"localhost"}`},
 		{Config{
 			LogicalProcessors: 16,
-			TotalRamMIB:       1024,
+			TotalRAMMIB:       1024,
 			BillingHostname:   "localhost",
 		}, `{"logical_processors":16,"total_ram_mib":1024,"hostname":"localhost"}`},
 	}
@@ -257,14 +227,14 @@ func runUtilizationCrossAgentTestcase(t *testing.T, tc utilizationCrossAgentTest
 
 	cfg := Config{
 		LogicalProcessors: ConfigLogicalProcessors,
-		TotalRamMIB:       ConfigRAWMMIB,
+		TotalRAMMIB:       ConfigRAWMMIB,
 		BillingHostname:   tc.Config.Hostname,
 	}
 
 	data := &Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: tc.LogicalProcessors,
-		RamMiB:            tc.RAMMIB,
+		RAMMiB:            tc.RAMMIB,
 		Hostname:          tc.Hostname,
 		BootID:            tc.BootID,
 		Vendors:           crossAgentVendors(tc),
@@ -306,7 +276,7 @@ func TestVendorsIsEmpty(t *testing.T) {
 		t.Fatal("default vendors does not register as empty")
 	}
 
-	v.AWS = newAWS()
+	v.AWS = &aws{}
 	if v.isEmpty() {
 		t.Fatal("non-empty vendors registers as empty")
 	}

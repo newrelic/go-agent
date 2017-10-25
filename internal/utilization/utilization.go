@@ -4,7 +4,7 @@
 package utilization
 
 import (
-	"fmt"
+	"net/http"
 	"runtime"
 	"sync"
 
@@ -16,28 +16,30 @@ const (
 	metadataVersion = 3
 )
 
+// Config controls the behavior of utilization information capture.
 type Config struct {
 	DetectAWS         bool
 	DetectAzure       bool
 	DetectPCF         bool
 	DetectDocker      bool
 	LogicalProcessors int
-	TotalRamMIB       int
+	TotalRAMMIB       int
 	BillingHostname   string
 }
 
 type override struct {
 	LogicalProcessors *int   `json:"logical_processors,omitempty"`
-	TotalRamMIB       *int   `json:"total_ram_mib,omitempty"`
+	TotalRAMMIB       *int   `json:"total_ram_mib,omitempty"`
 	BillingHostname   string `json:"hostname,omitempty"`
 }
 
+// Data contains utilization system information.
 type Data struct {
 	MetadataVersion int `json:"metadata_version"`
 	// Although `runtime.NumCPU()` will never fail, this field is a pointer
 	// to facilitate the cross agent tests.
 	LogicalProcessors *int      `json:"logical_processors"`
-	RamMiB            *uint64   `json:"total_ram_mib"`
+	RAMMiB            *uint64   `json:"total_ram_mib"`
 	Hostname          string    `json:"hostname"`
 	BootID            string    `json:"boot_id,omitempty"`
 	Vendors           *vendors  `json:"vendors,omitempty"`
@@ -51,13 +53,13 @@ var (
 	SampleData = Data{
 		MetadataVersion:   metadataVersion,
 		LogicalProcessors: &sampleLogicProc,
-		RamMiB:            &sampleRAMMib,
+		RAMMiB:            &sampleRAMMib,
 		Hostname:          "my-hostname",
 	}
 )
 
 type docker struct {
-	ID string `json:"id",omitempty`
+	ID string `json:"id,omitempty"`
 }
 
 type vendors struct {
@@ -78,64 +80,109 @@ func overrideFromConfig(config Config) *override {
 		x := config.LogicalProcessors
 		ov.LogicalProcessors = &x
 	}
-	if 0 != config.TotalRamMIB {
-		x := config.TotalRamMIB
-		ov.TotalRamMIB = &x
+	if 0 != config.TotalRAMMIB {
+		x := config.TotalRAMMIB
+		ov.TotalRAMMIB = &x
 	}
 	ov.BillingHostname = config.BillingHostname
 
 	if "" == ov.BillingHostname &&
 		nil == ov.LogicalProcessors &&
-		nil == ov.TotalRamMIB {
+		nil == ov.TotalRAMMIB {
 		ov = nil
 	}
 	return ov
 }
 
+// Gather gathers system utilization data.
 func Gather(config Config, lg logger.Logger) *Data {
+	client := &http.Client{
+		Timeout: providerTimeout,
+	}
+	return gatherWithClient(config, lg, client)
+}
+
+func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Data {
 	var wg sync.WaitGroup
 
+	cpu := runtime.NumCPU()
 	uDat := &Data{
-		MetadataVersion: metadataVersion,
-		Vendors:         &vendors{},
+		MetadataVersion:   metadataVersion,
+		LogicalProcessors: &cpu,
+		Vendors:           &vendors{},
+	}
+
+	warnGatherError := func(datatype string, err error) {
+		lg.Warn("error gathering utilization data", map[string]interface{}{
+			"error":    err.Error(),
+			"datatype": datatype,
+		})
 	}
 
 	// This closure allows us to run each gather function in a separate goroutine
 	// and wait for them at the end by closing over the wg WaitGroup we
 	// instantiated at the start of the function.
-	goGather := func(gather func(util *Data) error, util *Data) {
+	goGather := func(datatype string, gather func(*Data, *http.Client) error) {
 		wg.Add(1)
 		go func() {
+			// Note that locking around util is not neccesary since
+			// WaitGroup provides acts as a memory barrier:
+			// https://groups.google.com/d/msg/golang-nuts/5oHzhzXCcmM/utEwIAApCQAJ
+			// Thus this code is fine as long as each routine is
+			// modifying a different field of util.
 			defer wg.Done()
-			if err := gather(util); err != nil {
-				lg.Warn("%s", map[string]interface{}{
-					"error gathering data": err.Error(),
-				})
+			if err := gather(uDat, client); err != nil {
+				warnGatherError(datatype, err)
 			}
 		}()
 	}
 
-	// System things we gather no matter what.
-	goGather(GatherBootID, uDat)
-	goGather(GatherCPU, uDat)
-	goGather(GatherHostname, uDat)
-	goGather(GatherMemory, uDat)
-
-	// Now things the user can turn off.
-	if config.DetectDocker {
-		goGather(GatherDockerID, uDat)
-	}
+	// Kick off gathering which requires network calls in goroutines.
 
 	if config.DetectAWS {
-		goGather(GatherAWS, uDat)
+		goGather("aws", gatherAWS)
 	}
 
 	if config.DetectAzure {
-		goGather(GatherAzure, uDat)
+		goGather("azure", gatherAzure)
 	}
 
 	if config.DetectPCF {
-		goGather(GatherPCF, uDat)
+		goGather("pcf", gatherPCF)
+	}
+
+	// Do non-network gathering sequentially since it is fast.
+
+	if id, err := sysinfo.BootID(); err != nil {
+		if err != sysinfo.ErrFeatureUnsupported {
+			warnGatherError("bootid", err)
+		}
+	} else {
+		uDat.BootID = id
+	}
+
+	if config.DetectDocker {
+		if id, err := sysinfo.DockerID(); err != nil {
+			if err != sysinfo.ErrFeatureUnsupported &&
+				err != sysinfo.ErrDockerNotFound {
+				warnGatherError("docker", err)
+			}
+		} else {
+			uDat.Vendors.Docker = &docker{ID: id}
+		}
+	}
+
+	if hostname, err := sysinfo.Hostname(); nil == err {
+		uDat.Hostname = hostname
+	} else {
+		warnGatherError("hostname", err)
+	}
+
+	if bts, err := sysinfo.PhysicalMemoryBytes(); nil == err {
+		mib := sysinfo.BytesToMebibytes(bts)
+		uDat.RAMMiB = &mib
+	} else {
+		warnGatherError("memory", err)
 	}
 
 	// Now we wait for everything!
@@ -150,59 +197,4 @@ func Gather(config Config, lg logger.Logger) *Data {
 	}
 
 	return uDat
-}
-
-func GatherBootID(util *Data) error {
-	id, err := sysinfo.BootID()
-	if err != nil {
-		if err != sysinfo.ErrFeatureUnsupported {
-			return fmt.Errorf("Invalid boot ID detected: %s", err)
-		}
-	} else {
-		util.BootID = id
-	}
-
-	return nil
-}
-
-func GatherCPU(util *Data) error {
-	cpu := runtime.NumCPU()
-	util.LogicalProcessors = &cpu
-	return nil
-}
-
-func GatherDockerID(util *Data) error {
-	id, err := sysinfo.DockerID()
-	if err != nil {
-		if err != sysinfo.ErrFeatureUnsupported {
-			return fmt.Errorf("Did not detect Docker on this platform: %s", err)
-		}
-	} else {
-		util.Vendors.Docker = &docker{ID: id}
-	}
-
-	return nil
-}
-
-func GatherHostname(util *Data) error {
-	hostname, err := sysinfo.Hostname()
-	if nil == err {
-		util.Hostname = hostname
-	} else {
-		return fmt.Errorf("Could not find hostname: %s", err)
-	}
-
-	return nil
-}
-
-func GatherMemory(util *Data) error {
-	ram, err := sysinfo.PhysicalMemoryBytes()
-	if nil == err {
-		ram = ram / (1024 * 1024) // bytes -> MiB
-		util.RamMiB = &ram
-	} else {
-		return fmt.Errorf("Could not find host memory: %s", err)
-	}
-
-	return nil
 }

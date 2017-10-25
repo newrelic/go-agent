@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"runtime"
 )
 
 // BootID returns the boot ID of the executing kernel.
 func BootID() (string, error) {
+	if "linux" != runtime.GOOS {
+		return "", ErrFeatureUnsupported
+	}
 	data, err := ioutil.ReadFile("/proc/sys/kernel/random/boot_id")
 	if err != nil {
 		return "", err

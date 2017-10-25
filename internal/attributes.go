@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -463,37 +462,12 @@ func userAttributesJSON(a *Attributes, buf *bytes.Buffer, d destinationSet, extr
 	buf.WriteByte('}')
 }
 
-func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes map[string]interface{}) JSONString {
-	if nil == a {
-		return JSONString("{}")
-	}
+// userAttributesStringJSON is only used for testing.
+func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes map[string]interface{}) string {
 	estimate := len(a.user) * 128
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 	userAttributesJSON(a, buf, d, extraAttributes)
-	bs := buf.Bytes()
-	return JSONString(bs)
-}
-
-func agentAttributesStringJSON(a *Attributes, d destinationSet) JSONString {
-	if nil == a {
-		return JSONString("{}")
-	}
-	estimate := 1024
-	buf := bytes.NewBuffer(make([]byte, 0, estimate))
-	agentAttributesJSON(a, buf, d)
-	return JSONString(buf.Bytes())
-}
-
-func getUserAttributes(a *Attributes, d destinationSet) map[string]interface{} {
-	v := make(map[string]interface{})
-	json.Unmarshal([]byte(userAttributesStringJSON(a, d, nil)), &v)
-	return v
-}
-
-func getAgentAttributes(a *Attributes, d destinationSet) map[string]interface{} {
-	v := make(map[string]interface{})
-	json.Unmarshal([]byte(agentAttributesStringJSON(a, d)), &v)
-	return v
+	return buf.String()
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
