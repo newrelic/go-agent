@@ -113,7 +113,7 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 	}
 
 	warnGatherError := func(datatype string, err error) {
-		lg.Warn("error gathering utilization data", map[string]interface{}{
+		lg.Debug("error gathering utilization data", map[string]interface{}{
 			"error":    err.Error(),
 			"datatype": datatype,
 		})

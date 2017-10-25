@@ -126,6 +126,9 @@ type Config struct {
 		// DetectAWS controls whether the Application attempts to detect
 		// AWS.
 		DetectAWS bool
+		// DetectAzure controls whether the Application attempts to detect
+		// Azure.
+		DetectAzure bool
 		// DetectDocker controls whether the Application attempts to
 		// detect Docker.
 		DetectDocker bool
@@ -198,6 +201,7 @@ func NewConfig(appname, license string) Config {
 	}
 	c.ErrorCollector.Attributes.Enabled = true
 	c.Utilization.DetectAWS = true
+	c.Utilization.DetectAzure = true
 	c.Utilization.DetectDocker = true
 	c.Attributes.Enabled = true
 	c.RuntimeSampler.Enabled = true
