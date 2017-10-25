@@ -19,6 +19,7 @@ const (
 // Config controls the behavior of utilization information capture.
 type Config struct {
 	DetectAWS         bool
+	DetectAzure       bool
 	DetectDocker      bool
 	LogicalProcessors int
 	TotalRAMMIB       int
@@ -62,11 +63,12 @@ type docker struct {
 
 type vendors struct {
 	AWS    *aws    `json:"aws,omitempty"`
+	Azure  *azure  `json:"azure,omitempty"`
 	Docker *docker `json:"docker,omitempty"`
 }
 
 func (v *vendors) isEmpty() bool {
-	return v.AWS == nil && v.Docker == nil
+	return v.AWS == nil && v.Azure == nil && v.Docker == nil
 }
 
 func overrideFromConfig(config Config) *override {
@@ -109,7 +111,7 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 	}
 
 	warnGatherError := func(datatype string, err error) {
-		lg.Warn("error gathering utilization data", map[string]interface{}{
+		lg.Debug("error gathering utilization data", map[string]interface{}{
 			"error":    err.Error(),
 			"datatype": datatype,
 		})
@@ -137,6 +139,10 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 
 	if config.DetectAWS {
 		goGather("aws", gatherAWS)
+	}
+
+	if config.DetectAzure {
+		goGather("azure", gatherAzure)
 	}
 
 	// Do non-network gathering sequentially since it is fast.
