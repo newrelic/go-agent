@@ -34,13 +34,13 @@ func (e unexpectedPCFErr) Error() string {
 	return fmt.Sprintf("unexpected PCF error: %v", e.e)
 }
 
-func getPCF(f func(key string) string) (*pcf, error) {
+func getPCF(initializer func(key string) string) (*pcf, error) {
 	p := &pcf{}
 
-	if f != nil {
-		p.InstanceGUID = f("CF_INSTANCE_GUID")
-		p.InstanceIP = f("CF_INSTANCE_IP")
-		p.MemoryLimit = f("MEMORY_LIMIT")
+	if initializer != nil {
+		p.InstanceGUID = initializer("CF_INSTANCE_GUID")
+		p.InstanceIP = initializer("CF_INSTANCE_IP")
+		p.MemoryLimit = initializer("MEMORY_LIMIT")
 	} else {
 		p.InstanceGUID = os.Getenv("CF_INSTANCE_GUID")
 		p.InstanceIP = os.Getenv("CF_INSTANCE_IP")
