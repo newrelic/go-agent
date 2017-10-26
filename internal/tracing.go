@@ -263,13 +263,13 @@ var (
 		return unknownDatastoreHost
 	}()
 	hostsToReplace = map[string]struct{}{
-		"localhost":       struct{}{},
-		"127.0.0.1":       struct{}{},
-		"0.0.0.0":         struct{}{},
-		"0:0:0:0:0:0:0:1": struct{}{},
-		"::1":             struct{}{},
-		"0:0:0:0:0:0:0:0": struct{}{},
-		"::":              struct{}{},
+		"localhost":       {},
+		"127.0.0.1":       {},
+		"0.0.0.0":         {},
+		"0:0:0:0:0:0:0:1": {},
+		"::1":             {},
+		"0:0:0:0:0:0:0:0": {},
+		"::":              {},
 	}
 )
 
