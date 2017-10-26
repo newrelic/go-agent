@@ -12,9 +12,9 @@ import (
 func main() {
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:    true,
-		DetectPCF:    true,
 		DetectAzure:  true,
 		DetectDocker: true,
+		DetectPCF:    true,
 	}, newrelic.NewDebugLogger(os.Stdout))
 
 	js, err := json.MarshalIndent(util, "", "\t")

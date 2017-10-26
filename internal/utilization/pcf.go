@@ -11,13 +11,10 @@ type pcf struct {
 	InstanceGUID string `json:"cf_instance_guid,omitempty"`
 	InstanceIP   string `json:"cf_instance_ip,omitempty"`
 	MemoryLimit  string `json:"memory_limit,omitempty"`
-
-	// Having a custom getter allows the unit tests to mock os.Getenv().
-	environmentVariableGetter func(key string) string
 }
 
 func gatherPCF(util *Data, _ *http.Client) error {
-	pcf, err := getPCF()
+	pcf, err := getPCF(nil)
 	if err != nil {
 		// Only return the error here if it is unexpected to prevent
 		// warning customers who aren't running PCF about a timeout.
@@ -37,11 +34,22 @@ func (e unexpectedPCFErr) Error() string {
 	return fmt.Sprintf("unexpected PCF error: %v", e.e)
 }
 
-func getPCF() (*pcf, error) {
-	p := &pcf{environmentVariableGetter: os.Getenv}
-	p.InstanceGUID = p.environmentVariableGetter("CF_INSTANCE_GUID")
-	p.InstanceIP = p.environmentVariableGetter("CF_INSTANCE_IP")
-	p.MemoryLimit = p.environmentVariableGetter("MEMORY_LIMIT")
+func getPCF(f func(key string) string) (*pcf, error) {
+	p := &pcf{}
+
+	if f != nil {
+		p.InstanceGUID = f("CF_INSTANCE_GUID")
+		p.InstanceIP = f("CF_INSTANCE_IP")
+		p.MemoryLimit = f("MEMORY_LIMIT")
+	} else {
+		p.InstanceGUID = os.Getenv("CF_INSTANCE_GUID")
+		p.InstanceIP = os.Getenv("CF_INSTANCE_IP")
+		p.MemoryLimit = os.Getenv("MEMORY_LIMIT")
+	}
+
+	//p.InstanceGUID = p.environmentVariableGetter("CF_INSTANCE_GUID")
+	//p.InstanceIP = p.environmentVariableGetter("CF_INSTANCE_IP")
+	//p.MemoryLimit = p.environmentVariableGetter("MEMORY_LIMIT")
 
 	if err := p.validate(); err != nil {
 		return nil, unexpectedPCFErr{e: err}

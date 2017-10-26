@@ -15,14 +15,13 @@ func TestCrossAgentPCF(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		pcf, err := getPCF()
-		/*pcf.environmentVariableGetter = func(key string) string {
+		pcf, err := getPCF(func(key string) string {
 			resp := testCase.EnvVars[key]
 			if resp.Timeout {
 				return ""
 			}
 			return resp.Response
-		}*/
+		})
 
 		if testCase.ExpectedVendorsHash.PCF == nil {
 			if err == nil {
