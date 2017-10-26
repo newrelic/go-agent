@@ -96,10 +96,31 @@ func TestNormaliseValue(t *testing.T) {
 		isError  bool
 	}{
 		{
-			name:     "empty",
+			name:     "Valid - empty",
 			input:    "",
 			expected: "",
 			isError:  false,
+		},
+		{
+			name:     "Valid - symbols",
+			input:    ". /-_",
+			expected: ". /-_",
+			isError:  false,
+		},
+		{
+			name:     "Valid - string",
+			input:    "simplesentence",
+			expected: "simplesentence",
+			isError:  false,
+		},
+		{
+			name: "Invalid - More than 255",
+			input: `256256256256256256256256256256256256256256256256256256256256
+			256256256256256256256256256256256256256256256256256256256256256256256256
+			256256256256256256256256256256256256256256256256256256256256256256256256
+			2562562562562562562562562562562562562562562562562562`,
+			expected: "",
+			isError:  true,
 		},
 	}
 

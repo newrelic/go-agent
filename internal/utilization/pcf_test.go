@@ -15,21 +15,20 @@ func TestCrossAgentPCF(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		pcf := newPCF()
-		pcf.environmentVariableGetter = func(key string) string {
+		pcf, err := getPCF(func(key string) string {
 			resp := testCase.EnvVars[key]
 			if resp.Timeout {
 				return ""
 			}
 			return resp.Response
-		}
+		})
 
 		if testCase.ExpectedVendorsHash.PCF == nil {
-			if err := pcf.Gather(); err == nil {
+			if err == nil {
 				t.Fatalf("%s: expected error; got nil", testCase.TestName)
 			}
 		} else {
-			if err := pcf.Gather(); err != nil {
+			if err != nil {
 				t.Fatalf("%s: expected no error; got %v", testCase.TestName, err)
 			}
 

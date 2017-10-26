@@ -14,10 +14,15 @@ const (
 	gcpEndpoint     = "http://" + gcpHostname + gcpEndpointPath
 )
 
-func gatherGCP(util *Data) error {
-	gcp := newGCP()
-	if err := gcp.Gather(); err != nil {
-		return fmt.Errorf("GCP not detected: %s", err)
+func gatherGCP(util *Data, client *http.Client) error {
+	gcp, err := getGCP(client)
+	if err != nil {
+		// Only return the error here if it is unexpected to prevent
+		// warning customers who aren't running GCP about a timeout.
+		if _, ok := err.(unexpectedGCPErr); ok {
+			return err
+		}
+		return nil
 	}
 	util.Vendors.GCP = gcp
 
@@ -67,73 +72,71 @@ type gcp struct {
 	MachineType string        `json:"machineType,omitempty"`
 	Name        string        `json:"name,omitempty"`
 	Zone        string        `json:"zone,omitempty"`
-
-	client *http.Client
 }
 
-func newGCP() *gcp {
-	return &gcp{
-		client: &http.Client{Timeout: providerTimeout},
-	}
+type unexpectedGCPErr struct{ e error }
+
+func (e unexpectedGCPErr) Error() string {
+	return fmt.Sprintf("unexpected GCP error: %v", e.e)
 }
 
-func (g *gcp) Gather() error {
+func getGCP(client *http.Client) (*gcp, error) {
 	// GCP's metadata service requires a Metadata-Flavor header because... hell, I
 	// don't know, maybe they really like Guy Fieri?
 	req, err := http.NewRequest("GET", gcpEndpoint, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Add("Metadata-Flavor", "Google")
 
-	response, err := g.client.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return fmt.Errorf("got response code %d", response.StatusCode)
+		return nil, unexpectedGCPErr{e: fmt.Errorf("response code %d", response.StatusCode)}
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, unexpectedGCPErr{e: err}
 	}
 
+	g := &gcp{}
 	if err := json.Unmarshal(data, g); err != nil {
-		return err
+		return nil, unexpectedGCPErr{e: err}
 	}
 
 	if err := g.validate(); err != nil {
-		*g = gcp{client: g.client}
-		return err
+		return nil, unexpectedGCPErr{e: err}
 	}
 
-	return nil
+	return g, nil
 }
 
 func (g *gcp) validate() (err error) {
 	id, err := normalizeValue(g.ID.String())
 	if err != nil {
-		return fmt.Errorf("Invalid GCP ID: %v", err)
+		return fmt.Errorf("Invalid ID: %v", err)
 	}
 	g.ID = numericString(id)
 
 	mt, err := normalizeValue(g.MachineType)
 	if err != nil {
-		return fmt.Errorf("Invalid GCP machine type: %v", err)
+		return fmt.Errorf("Invalid machine type: %v", err)
 	}
 	g.MachineType = stripGCPPrefix(mt)
 
 	g.Name, err = normalizeValue(g.Name)
 	if err != nil {
-		return fmt.Errorf("Invalid GCP name: %v", err)
+		return fmt.Errorf("Invalid name: %v", err)
 	}
 
 	zone, err := normalizeValue(g.Zone)
 	if err != nil {
-		return fmt.Errorf("Invalid GCP zone: %v", err)
+		return fmt.Errorf("Invalid zone: %v", err)
 	}
 	g.Zone = stripGCPPrefix(zone)
 

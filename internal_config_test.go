@@ -107,7 +107,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Utilization":{
 				"BillingHostname":"",
 				"DetectAWS":true,
+				"DetectAzure":true,
 				"DetectDocker":true,
+				"DetectGCP":true,
+				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			}
@@ -198,7 +201,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Utilization":{
 				"BillingHostname":"",
 				"DetectAWS":true,
+				"DetectAzure":true,
 				"DetectDocker":true,
+				"DetectGCP":true,
+				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			}

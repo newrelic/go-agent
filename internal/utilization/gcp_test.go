@@ -1,6 +1,7 @@
 package utilization
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -15,18 +16,21 @@ func TestCrossAgentGCP(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		gcp := newGCP()
-		gcp.client.Transport = &mockTransport{
-			t:         t,
-			responses: testCase.URIs,
+		client := &http.Client{
+			Transport: &mockTransport{
+				t:         t,
+				responses: testCase.URIs,
+			},
 		}
 
+		gcp, err := getGCP(client)
+
 		if testCase.ExpectedVendorsHash.GCP == nil {
-			if err := gcp.Gather(); err == nil {
+			if err == nil {
 				t.Fatalf("%s: expected error; got nil", testCase.TestName)
 			}
 		} else {
-			if err := gcp.Gather(); err != nil {
+			if err != nil {
 				t.Fatalf("%s: expected no error; got %v", testCase.TestName, err)
 			}
 

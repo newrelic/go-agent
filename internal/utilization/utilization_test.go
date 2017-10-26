@@ -3,6 +3,8 @@ package utilization
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -91,61 +93,28 @@ func TestJSONMarshalling(t *testing.T) {
 
 }
 
-// Smoke test the Gather method and JSON marshalling.
+type errorRoundTripper struct{ error }
+
+func (e errorRoundTripper) RoundTrip(*http.Request) (*http.Response, error) { return nil, e }
+
+// Smoke test the Gather method.
 func TestUtilizationHash(t *testing.T) {
-	configs := []Config{
-		Config{
-			DetectAWS:    true,
-			DetectAzure:  true,
-			DetectGCP:    true,
-			DetectPCF:    true,
-			DetectDocker: true,
-		},
-		Config{
-			DetectAWS:    false,
-			DetectAzure:  false,
-			DetectGCP:    false,
-			DetectPCF:    false,
-			DetectDocker: false,
-		},
+	config := Config{
+		DetectAWS:    true,
+		DetectAzure:  true,
+		DetectDocker: true,
 	}
-	for _, c := range configs {
-		u := Gather(c, logger.ShimLogger{})
-
-		if u == nil {
-			t.Fatal("Utilization should not return nil if enabled.")
-		}
-
-		j, err := json.MarshalIndent(u, "", "\t")
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		if u.MetadataVersion == 0 || nil == u.LogicalProcessors ||
-			0 == *u.LogicalProcessors || u.RAMMiB == nil || *u.RAMMiB == 0 ||
-			u.Hostname == "" {
-			t.Errorf("Emptiness in utilization hash: %s", j)
-		}
-
-		js, err := json.Marshal(u)
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		js2, err := json.Marshal(u)
-		if err != nil {
-			t.Errorf("Marshalling failed and shouldn't: %s", err)
-		}
-		if !bytes.Equal(js, js2) {
-			t.Errorf("JSON doesn't match json.marshal.\n\nActual: %s\n\nExpected: %s\n\n", js, js2)
-		}
-
-		b, err := json.Marshal(Gather(c, logger.ShimLogger{}))
-		if err != nil || b == nil || len(b) == 0 {
-			t.Error(err, b)
-		}
-		b, err = json.MarshalIndent(Gather(c, logger.ShimLogger{}), "", "\t")
-		if err != nil || b == nil || len(b) == 0 {
-			t.Error(err, b)
-		}
+	client := &http.Client{
+		Transport: errorRoundTripper{errors.New("timed out")},
+	}
+	data := gatherWithClient(config, logger.ShimLogger{}, client)
+	if data.MetadataVersion == 0 ||
+		nil == data.LogicalProcessors ||
+		0 == *data.LogicalProcessors ||
+		data.RAMMiB == nil ||
+		*data.RAMMiB == 0 ||
+		data.Hostname == "" {
+		t.Errorf("utilization data unexpected fields: %+v", data)
 	}
 }
 
@@ -322,7 +291,10 @@ func TestVendorsIsEmpty(t *testing.T) {
 		t.Fatal("default vendors does not register as empty")
 	}
 
-	v.AWS = newAWS()
+	v.AWS = &aws{}
+	v.Azure = &azure{}
+	v.PCF = &pcf{}
+	v.GCP = &gcp{}
 	if v.isEmpty() {
 		t.Fatal("non-empty vendors registers as empty")
 	}
