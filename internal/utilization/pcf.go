@@ -47,10 +47,6 @@ func getPCF(f func(key string) string) (*pcf, error) {
 		p.MemoryLimit = os.Getenv("MEMORY_LIMIT")
 	}
 
-	//p.InstanceGUID = p.environmentVariableGetter("CF_INSTANCE_GUID")
-	//p.InstanceIP = p.environmentVariableGetter("CF_INSTANCE_IP")
-	//p.MemoryLimit = p.environmentVariableGetter("MEMORY_LIMIT")
-
 	if err := p.validate(); err != nil {
 		return nil, unexpectedPCFErr{e: err}
 	}
