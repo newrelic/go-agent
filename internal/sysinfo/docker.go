@@ -70,7 +70,6 @@ func parseDockerID(r io.Reader) (string, error) {
 			// We can stop searching at this point, the CPU
 			// subsystem should only occur once, and its cgroup is
 			// not docker or not a format we accept.
-			fmt.Println(id, err)
 			return "", err
 		}
 		return id, nil
