@@ -4,6 +4,8 @@
 
 * README updated to emphasize that users should go to Support or community forums for questions. The issues section has been closed in favor of our support channels with this release in an effort to drive more timely responses by feeding this into Support's normal workflow.
 
+* The agent now collects additional metadata when running within AWS, GCP, Azure, and PCF. This information is used to provide an enhanced experience when the agent is deployed on those platforms.
+
 ## 1.10.0
 
 * Added new `RecordCustomMetric` method to [Application](https://godoc.org/github.com/newrelic/go-agent#Application).
