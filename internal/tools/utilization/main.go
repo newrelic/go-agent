@@ -15,6 +15,7 @@ func main() {
 		DetectAzure:  true,
 		DetectDocker: true,
 		DetectPCF:    true,
+		DetectGCP:    true,
 	}, newrelic.NewDebugLogger(os.Stdout))
 
 	js, err := json.MarshalIndent(util, "", "\t")

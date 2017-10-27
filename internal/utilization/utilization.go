@@ -20,6 +20,7 @@ const (
 type Config struct {
 	DetectAWS         bool
 	DetectAzure       bool
+	DetectGCP         bool
 	DetectPCF         bool
 	DetectDocker      bool
 	LogicalProcessors int
@@ -65,12 +66,13 @@ type docker struct {
 type vendors struct {
 	AWS    *aws    `json:"aws,omitempty"`
 	Azure  *azure  `json:"azure,omitempty"`
+	GCP    *gcp    `json:"gcp,omitempty"`
 	PCF    *pcf    `json:"pcf,omitempty"`
 	Docker *docker `json:"docker,omitempty"`
 }
 
 func (v *vendors) isEmpty() bool {
-	return v.AWS == nil && v.Azure == nil && v.PCF == nil && v.Docker == nil
+	return v.AWS == nil && v.Azure == nil && v.GCP == nil && v.PCF == nil && v.Docker == nil
 }
 
 func overrideFromConfig(config Config) *override {
@@ -149,6 +151,10 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 
 	if config.DetectPCF {
 		goGather("pcf", gatherPCF)
+	}
+
+	if config.DetectGCP {
+		goGather("gcp", gatherGCP)
 	}
 
 	// Do non-network gathering sequentially since it is fast.
