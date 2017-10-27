@@ -4,7 +4,7 @@
 
 * README updated to emphasize that users should go to Support or community forums for questions. The issues section has been closed in favor of our support channels with this release in an effort to drive more timely responses by feeding this into Support's normal workflow.
 
-* The agent now collects additional metadata when running within AWS, GCP, Azure, and PCF. This information is used to provide an enhanced experience when the agent is deployed on those platforms.
+* The agent now collects additional metadata when running within Amazon Web Services, Google Cloud Platform, Microsoft Azure, and Pivotal Cloud Foundry. This information is used to provide an enhanced experience when the agent is deployed on those platforms.
 
 ## 1.10.0
 
