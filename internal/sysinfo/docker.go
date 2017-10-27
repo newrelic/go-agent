@@ -34,7 +34,7 @@ func DockerID() (string, error) {
 
 var (
 	dockerIDLength   = 64
-	dockerIDRegexRaw = fmt.Sprintf("^[0-9a-f]{%d}$", dockerIDLength)
+	dockerIDRegexRaw = fmt.Sprintf("[0-9a-f]{%d,}", dockerIDLength)
 	dockerIDRegex    = regexp.MustCompile(dockerIDRegexRaw)
 )
 
@@ -70,7 +70,7 @@ func parseDockerID(r io.Reader) (string, error) {
 		// # docker lxc driver
 		// when %r{^/lxc/([0-9a-f]+)$}                         then $1
 		//
-		var id string
+		/*var id string
 		if bytes.HasPrefix(cols[2], []byte("/docker/")) {
 			id = string(cols[2][len("/docker/"):])
 		} else if bytes.HasPrefix(cols[2], []byte("/lxc/")) {
@@ -80,12 +80,14 @@ func parseDockerID(r io.Reader) (string, error) {
 			id = string(cols[2][len("/system.slice/docker-") : len(cols[2])-len(".scope")])
 		} else {
 			continue
-		}
+		}*/
+		id := dockerIDRegex.FindString(string(cols[2]))
 
 		if err := validateDockerID(id); err != nil {
 			// We can stop searching at this point, the CPU
 			// subsystem should only occur once, and its cgroup is
 			// not docker or not a format we accept.
+			fmt.Println(id, err)
 			return "", err
 		}
 		return id, nil
@@ -111,10 +113,19 @@ func isCPUCol(col []byte) bool {
 	return false
 }
 
+func isHex(r rune) bool {
+	return ('0' <= r && r <= '9') || ('a' <= r && r <= 'f')
+}
+
 func validateDockerID(id string) error {
-	if !dockerIDRegex.MatchString(id) {
-		return fmt.Errorf("%s does not match %s",
-			id, dockerIDRegexRaw)
+	if len(id) != 64 {
+		return fmt.Errorf("%s is not %d characters long", id, dockerIDLength)
+	}
+
+	for _, c := range id {
+		if !isHex(c) {
+			return fmt.Errorf("Character: %c is not hex in string %s", c, id)
+		}
 	}
 
 	return nil
