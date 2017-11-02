@@ -20,8 +20,11 @@ matrix:
 
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
+  - GT_15=$(echo $TRAVIS_GO_VERSION | grep '^1.[6-9]$' > /dev/null; echo $?)
+  - if [[ "$GT_15" -eq "0" ]]; then go get github.com/golang/lint/golint; fi
 
 script:
-  - test -z "$(gofmt -s -l $GO_FILES)"
-  - go test -v -race ./...
-  - go vet ./...
+  - if [ -n "$(gofmt -s -l $GO_FILES)" ]; then echo "1"; fi; # gofmt
+  - go test -v -race ./... # go test
+  - go vet ./... # go vet
+  - if [[ "$GT_15" -eq 0 ]]; then golint -set_exit_status $(go list ./...); fi # golint
