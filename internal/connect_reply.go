@@ -60,7 +60,7 @@ type ConnectReply struct {
 	} `json:"messages"`
 }
 
-type trustedAccountSet map[int]bool
+type trustedAccountSet map[int]struct{}
 
 func (t *trustedAccountSet) IsTrusted(account int) bool {
 	_, exists := (*t)[account]
@@ -75,7 +75,7 @@ func (t *trustedAccountSet) UnmarshalJSON(data []byte) error {
 
 	*t = make(trustedAccountSet)
 	for _, account := range accounts {
-		(*t)[account] = true
+		(*t)[account] = struct{}{}
 	}
 
 	return nil
