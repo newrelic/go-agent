@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,7 +30,6 @@ type txn struct {
 	// finished has been set to true, no recording should occur.
 	finished bool
 
-	Name   string // Work in progress name
 	ignore bool
 
 	// wroteHeader prevents capturing multiple response code errors if the
@@ -60,8 +60,13 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	if nil != req && nil != req.URL {
 		txn.CleanURL = internal.SafeURL(req.URL)
 	}
+	txn.CrossProcess.InitFromHTTPRequest(txn.crossProcessEnabled(), input.Reply, req)
 
 	return txn
+}
+
+func (txn *txn) crossProcessEnabled() bool {
+	return txn.Config.CrossApplicationTracer.Enabled
 }
 
 func (txn *txn) slowQueriesEnabled() bool {
@@ -193,7 +198,35 @@ func (txn *txn) Write(b []byte) (int, error) {
 	return n, err
 }
 
+func getContentLength(h http.Header) int64 {
+	if cl := h.Get("Content-Length"); cl != "" {
+		if contentLength, err := strconv.ParseInt(cl, 10, 64); err == nil {
+			return contentLength
+		}
+	}
+
+	return -1
+}
+
 func (txn *txn) WriteHeader(code int) {
+	if txn.CrossProcess.Enabled && txn.CrossProcess.IsInbound() {
+		txn.freezeName()
+		contentLength := getContentLength(txn.W.Header())
+
+		appData, err := txn.CrossProcess.CreateAppData(txn.Name, txn.Queuing, time.Now().Sub(txn.Start), contentLength)
+		if err != nil {
+			txn.Config.Logger.Debug("error generating outbound response header", map[string]interface{}{
+				"error": err,
+			})
+		} else {
+			for key, values := range internal.AppDataToHTTPHeader(appData) {
+				for _, value := range values {
+					txn.W.Header().Add(key, value)
+				}
+			}
+		}
+	}
+
 	txn.W.WriteHeader(code)
 
 	txn.Lock()
@@ -226,6 +259,13 @@ func (txn *txn) End() error {
 	}
 
 	txn.freezeName()
+
+	// Finalise the CAT state.
+	if err := txn.CrossProcess.Finalise(txn.Name, txn.Config.AppName); err != nil {
+		txn.Config.Logger.Debug("error finalising the cross process state", map[string]interface{}{
+			"error": err,
+		})
+	}
 
 	// Assign apdexThreshold regardless of whether or not the transaction
 	// gets apdex since it may be used to calculate the trace threshold.
@@ -489,5 +529,31 @@ func endExternal(s ExternalSegment) error {
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u)
+	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+}
+
+func outboundHeaders(s ExternalSegment) http.Header {
+	txn := s.StartTime.txn
+	if nil == txn {
+		return http.Header{}
+	}
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return http.Header{}
+	}
+
+	metadata, err := txn.CrossProcess.CreateCrossProcessMetadata(txn.Name, txn.Config.AppName)
+	if err != nil {
+		txn.Config.Logger.Debug("error generating outbound headers", map[string]interface{}{
+			"error": err,
+		})
+
+		// It's possible for CreateCrossProcessMetadata() to error and still have a
+		// Synthetics header, so we'll still fall through to returning headers
+		// based on whatever metadata was returned.
+	}
+
+	return internal.MetadataToHTTPHeader(metadata)
 }

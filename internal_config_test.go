@@ -66,6 +66,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
+			"CrossApplicationTracer":{"Enabled":true},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
@@ -160,6 +161,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+			"CrossApplicationTracer":{"Enabled":true},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},

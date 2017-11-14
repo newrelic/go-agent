@@ -146,6 +146,12 @@ type Config struct {
 		BillingHostname   string
 	}
 
+	// CrossApplicationTracer controls behaviour relating to cross application
+	// tracing (CAT).
+	CrossApplicationTracer struct {
+		Enabled bool
+	}
+
 	// DatastoreTracer controls behavior relating to datastore segments.
 	DatastoreTracer struct {
 		InstanceReporting struct {
@@ -220,6 +226,8 @@ func NewConfig(appname, license string) Config {
 	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
 	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
+
+	c.CrossApplicationTracer.Enabled = true
 
 	c.DatastoreTracer.InstanceReporting.Enabled = true
 	c.DatastoreTracer.DatabaseNameReporting.Enabled = true
