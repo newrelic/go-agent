@@ -497,6 +497,83 @@ func TestTxnCrossProcessUsed(t *testing.T) {
 	}
 }
 
+func TestTxnCrossProcessSetInbound(t *testing.T) {
+	txp := &TxnCrossProcess{Type: 0}
+
+	txp.SetInbound(false)
+	if txp.IsInbound() != false {
+		t.Error("Inbound is not false after being set to false from false")
+	}
+
+	txp.SetInbound(true)
+	if txp.IsInbound() != true {
+		t.Error("Inbound is not true after being set to true from false")
+	}
+
+	txp.SetInbound(true)
+	if txp.IsInbound() != true {
+		t.Error("Inbound is not true after being set to true from true")
+	}
+
+	txp.SetInbound(false)
+	if txp.IsInbound() != false {
+		t.Error("Inbound is not false after being set to false from true")
+	}
+}
+
+func TestTxnCrossProcessSetOutbound(t *testing.T) {
+	txp := &TxnCrossProcess{Type: 0}
+
+	txp.SetOutbound(false)
+	if txp.IsOutbound() != false {
+		t.Error("Outbound is not false after being set to false from false")
+	}
+
+	txp.SetOutbound(true)
+	if txp.IsOutbound() != true {
+		t.Error("Outbound is not true after being set to true from false")
+	}
+
+	txp.SetOutbound(true)
+	if txp.IsOutbound() != true {
+		t.Error("Outbound is not true after being set to true from true")
+	}
+
+	txp.SetOutbound(false)
+	if txp.IsOutbound() != false {
+		t.Error("Outbound is not false after being set to false from true")
+	}
+}
+
+func TestTxnCrossProcessSetSynthetics(t *testing.T) {
+	// We'll always set SyntheticsHeader, since we're not really testing the full
+	// behaviour of IsSynthetics() here.
+	txp := &TxnCrossProcess{
+		Type:       0,
+		Synthetics: &cat.SyntheticsHeader{},
+	}
+
+	txp.SetSynthetics(false)
+	if txp.IsSynthetics() != false {
+		t.Error("Synthetics is not false after being set to false from false")
+	}
+
+	txp.SetSynthetics(true)
+	if txp.IsSynthetics() != true {
+		t.Error("Synthetics is not true after being set to true from false")
+	}
+
+	txp.SetSynthetics(true)
+	if txp.IsSynthetics() != true {
+		t.Error("Synthetics is not true after being set to true from true")
+	}
+
+	txp.SetSynthetics(false)
+	if txp.IsSynthetics() != false {
+		t.Error("Synthetics is not false after being set to false from true")
+	}
+}
+
 func TestTxnCrossProcessParseAppData(t *testing.T) {
 	for _, tc := range []struct {
 		name            string

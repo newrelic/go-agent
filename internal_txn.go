@@ -112,8 +112,8 @@ func (txn *txn) txnTraceThreshold() time.Duration {
 }
 
 func (txn *txn) shouldSaveTrace() bool {
-	return txn.txnTracesEnabled() &&
-		(txn.Duration >= txn.txnTraceThreshold())
+	return txn.CrossProcess.IsSynthetics() ||
+		(txn.txnTracesEnabled() && (txn.Duration >= txn.txnTraceThreshold()))
 }
 
 func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {

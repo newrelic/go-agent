@@ -83,7 +83,7 @@ func (txp *TxnCrossProcess) CreateCrossProcessMetadata(txnName, appName string) 
 	}
 
 	if txp.Enabled {
-		txp.Type |= txnCrossProcessOutbound
+		txp.SetOutbound(true)
 		txp.requireTripID()
 
 		id, err := txp.outboundID()
@@ -190,6 +190,39 @@ func (txp *TxnCrossProcess) Used() bool {
 	return 0 != txp.Type
 }
 
+// SetInbound sets the inbound CAT flag. This function is provided only for
+// internal and unit testing purposes, and should not be used outside of this
+// package normally.
+func (txp *TxnCrossProcess) SetInbound(inbound bool) {
+	if inbound {
+		txp.Type |= txnCrossProcessInbound
+	} else {
+		txp.Type &^= txnCrossProcessInbound
+	}
+}
+
+// SetOutbound sets the outbound CAT flag. This function is provided only for
+// internal and unit testing purposes, and should not be used outside of this
+// package normally.
+func (txp *TxnCrossProcess) SetOutbound(outbound bool) {
+	if outbound {
+		txp.Type |= txnCrossProcessOutbound
+	} else {
+		txp.Type &^= txnCrossProcessOutbound
+	}
+}
+
+// SetSynthetics sets the Synthetics CAT flag. This function is provided only
+// for internal and unit testing purposes, and should not be used outside of
+// this package normally.
+func (txp *TxnCrossProcess) SetSynthetics(synthetics bool) {
+	if synthetics {
+		txp.Type |= txnCrossProcessSynthetics
+	} else {
+		txp.Type &^= txnCrossProcessSynthetics
+	}
+}
+
 // handleInboundRequestHeaders parses the CAT headers from the given metadata
 // and updates the relevant fields on the provided TxnData.
 func (txp *TxnCrossProcess) handleInboundRequestHeaders(metadata CrossProcessMetadata) error {
@@ -236,7 +269,7 @@ func (txp *TxnCrossProcess) handleInboundRequestID(raw []byte) error {
 		return ErrAccountNotTrusted
 	}
 
-	txp.Type |= txnCrossProcessInbound
+	txp.SetInbound(true)
 	txp.ClientID = string(raw)
 	txp.setRequireGUID()
 
@@ -249,7 +282,7 @@ func (txp *TxnCrossProcess) handleInboundRequestTxnData(raw []byte) error {
 		return err
 	}
 
-	txp.Type |= txnCrossProcessInbound
+	txp.SetInbound(true)
 	if txnData.TripID != "" {
 		txp.TripID = txnData.TripID
 	} else {
@@ -286,7 +319,7 @@ func (txp *TxnCrossProcess) handleInboundRequestSynthetics(raw []byte) error {
 	// synthetics handling, but not CAT in general, so we won't return an error
 	// here.
 	if txp.TrustedAccounts.IsTrusted(synthetics.AccountID) {
-		txp.Type |= txnCrossProcessSynthetics
+		txp.SetSynthetics(true)
 		txp.setRequireGUID()
 		txp.Synthetics = synthetics
 	}
