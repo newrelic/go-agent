@@ -14,7 +14,7 @@ type pcf struct {
 }
 
 func gatherPCF(util *Data, _ *http.Client) error {
-	pcf, err := getPCF(nil)
+	pcf, err := getPCF(os.Getenv)
 	if err != nil {
 		// Only return the error here if it is unexpected to prevent
 		// warning customers who aren't running PCF about a timeout.
@@ -34,17 +34,19 @@ func (e unexpectedPCFErr) Error() string {
 	return fmt.Sprintf("unexpected PCF error: %v", e.e)
 }
 
+var (
+	errNoPCFVariables = errors.New("no PCF environment variables present")
+)
+
 func getPCF(initializer func(key string) string) (*pcf, error) {
 	p := &pcf{}
 
-	if initializer != nil {
-		p.InstanceGUID = initializer("CF_INSTANCE_GUID")
-		p.InstanceIP = initializer("CF_INSTANCE_IP")
-		p.MemoryLimit = initializer("MEMORY_LIMIT")
-	} else {
-		p.InstanceGUID = os.Getenv("CF_INSTANCE_GUID")
-		p.InstanceIP = os.Getenv("CF_INSTANCE_IP")
-		p.MemoryLimit = os.Getenv("MEMORY_LIMIT")
+	p.InstanceGUID = initializer("CF_INSTANCE_GUID")
+	p.InstanceIP = initializer("CF_INSTANCE_IP")
+	p.MemoryLimit = initializer("MEMORY_LIMIT")
+
+	if "" == p.InstanceGUID && "" == p.InstanceIP && "" == p.MemoryLimit {
+		return nil, errNoPCFVariables
 	}
 
 	if err := p.validate(); err != nil {
