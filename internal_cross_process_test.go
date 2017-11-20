@@ -105,11 +105,9 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 	app.ExpectMetrics(t, webMetrics)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: catIntrinsics,
-		AgentAttributes: map[string]interface{}{
-			"request.method":               "GET",
-			"httpResponseCode":             200,
-			"response.headers.contentType": "text/plain; charset=utf-8",
-		},
-		UserAttributes: map[string]interface{}{},
+		// Do not test attributes here:  In Go 1.5
+		// response.headers.contentType will be not be present.
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
 	}})
 }
