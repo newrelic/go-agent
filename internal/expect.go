@@ -178,6 +178,13 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 			v.Error("value difference", fmt.Sprintf("key=%s", key), v1, v2)
 		}
 	}
+	for key, val := range exists {
+		_, ok := expect[key]
+		if !ok {
+			v.Error("unexpected attribute present: ", key, val)
+			continue
+		}
+	}
 }
 
 // ExpectCustomEvents allows testing of custom events.

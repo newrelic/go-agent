@@ -167,6 +167,9 @@ func responseCodeIsError(cfg *Config, code int) bool {
 }
 
 func headersJustWritten(txn *txn, code int) {
+	txn.Lock()
+	defer txn.Unlock()
+
 	if txn.finished {
 		return
 	}
@@ -185,19 +188,6 @@ func headersJustWritten(txn *txn, code int) {
 	}
 }
 
-func (txn *txn) Header() http.Header { return txn.W.Header() }
-
-func (txn *txn) Write(b []byte) (int, error) {
-	n, err := txn.W.Write(b)
-
-	txn.Lock()
-	defer txn.Unlock()
-
-	headersJustWritten(txn, http.StatusOK)
-
-	return n, err
-}
-
 func getContentLength(h http.Header) int64 {
 	if cl := h.Get("Content-Length"); cl != "" {
 		if contentLength, err := strconv.ParseInt(cl, 10, 64); err == nil {
@@ -208,29 +198,59 @@ func getContentLength(h http.Header) int64 {
 	return -1
 }
 
-func (txn *txn) WriteHeader(code int) {
-	if txn.CrossProcess.Enabled && txn.CrossProcess.IsInbound() {
-		txn.freezeName()
-		contentLength := getContentLength(txn.W.Header())
-
-		appData, err := txn.CrossProcess.CreateAppData(txn.Name, txn.Queuing, time.Now().Sub(txn.Start), contentLength)
-		if err != nil {
-			txn.Config.Logger.Debug("error generating outbound response header", map[string]interface{}{
-				"error": err,
-			})
-		} else {
-			for key, values := range internal.AppDataToHTTPHeader(appData) {
-				for _, value := range values {
-					txn.W.Header().Add(key, value)
-				}
-			}
-		}
-	}
-
-	txn.W.WriteHeader(code)
-
+func (txn *txn) responseHeader() http.Header {
 	txn.Lock()
 	defer txn.Unlock()
+
+	if txn.finished {
+		return nil
+	}
+	if txn.wroteHeader {
+		return nil
+	}
+	if !txn.CrossProcess.Enabled {
+		return nil
+	}
+	if !txn.CrossProcess.IsInbound() {
+		return nil
+	}
+	txn.freezeName()
+	contentLength := getContentLength(txn.W.Header())
+
+	appData, err := txn.CrossProcess.CreateAppData(txn.Name, txn.Queuing, time.Since(txn.Start), contentLength)
+	if err != nil {
+		txn.Config.Logger.Debug("error generating outbound response header", map[string]interface{}{
+			"error": err,
+		})
+		return nil
+	}
+	return internal.AppDataToHTTPHeader(appData)
+}
+
+func addCrossProcessHeaders(txn *txn) {
+	for key, values := range txn.responseHeader() {
+		for _, value := range values {
+			txn.W.Header().Add(key, value)
+		}
+	}
+}
+
+func (txn *txn) Header() http.Header { return txn.W.Header() }
+
+func (txn *txn) Write(b []byte) (int, error) {
+	addCrossProcessHeaders(txn)
+
+	n, err := txn.W.Write(b)
+
+	headersJustWritten(txn, http.StatusOK)
+
+	return n, err
+}
+
+func (txn *txn) WriteHeader(code int) {
+	addCrossProcessHeaders(txn)
+
+	txn.W.WriteHeader(code)
 
 	headersJustWritten(txn, code)
 }
