@@ -139,6 +139,9 @@ func (txp *TxnCrossProcess) IsSynthetics() bool {
 
 // ParseAppData decodes the given appData value.
 func (txp *TxnCrossProcess) ParseAppData(encodedAppData string) (*cat.AppDataHeader, error) {
+	if !txp.Enabled {
+		return nil, nil
+	}
 	if encodedAppData != "" {
 		rawAppData, err := deobfuscate(encodedAppData, txp.EncodingKey)
 		if err != nil {
