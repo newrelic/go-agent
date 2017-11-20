@@ -217,7 +217,7 @@ func (txn *txn) responseHeader() http.Header {
 	txn.freezeName()
 	contentLength := getContentLength(txn.W.Header())
 
-	appData, err := txn.CrossProcess.CreateAppData(txn.Name, txn.Queuing, time.Since(txn.Start), contentLength)
+	appData, err := txn.CrossProcess.CreateAppData(txn.FinalName, txn.Queuing, time.Since(txn.Start), contentLength)
 	if err != nil {
 		txn.Config.Logger.Debug("error generating outbound response header", map[string]interface{}{
 			"error": err,
