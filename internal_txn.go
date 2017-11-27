@@ -228,6 +228,8 @@ func (txn *txn) responseHeader() http.Header {
 }
 
 func addCrossProcessHeaders(txn *txn) {
+	// responseHeader() checks the wroteHeader field and returns a nil map if the
+	// header has been written, so we don't need a check here.
 	for key, values := range txn.responseHeader() {
 		for _, value := range values {
 			txn.W.Header().Add(key, value)
@@ -238,6 +240,8 @@ func addCrossProcessHeaders(txn *txn) {
 func (txn *txn) Header() http.Header { return txn.W.Header() }
 
 func (txn *txn) Write(b []byte) (int, error) {
+	// This is safe to call unconditionally, even if Write() is called multiple
+	// times; see also the commentary in addCrossProcessHeaders().
 	addCrossProcessHeaders(txn)
 
 	n, err := txn.W.Write(b)
