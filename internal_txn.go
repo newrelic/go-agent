@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
@@ -188,16 +187,6 @@ func headersJustWritten(txn *txn, code int) {
 	}
 }
 
-func getContentLength(h http.Header) int64 {
-	if cl := h.Get("Content-Length"); cl != "" {
-		if contentLength, err := strconv.ParseInt(cl, 10, 64); err == nil {
-			return contentLength
-		}
-	}
-
-	return -1
-}
-
 func (txn *txn) responseHeader() http.Header {
 	txn.Lock()
 	defer txn.Unlock()
@@ -215,7 +204,7 @@ func (txn *txn) responseHeader() http.Header {
 		return nil
 	}
 	txn.freezeName()
-	contentLength := getContentLength(txn.W.Header())
+	contentLength := internal.GetContentLengthFromHeader(txn.W.Header())
 
 	appData, err := txn.CrossProcess.CreateAppData(txn.FinalName, txn.Queuing, time.Since(txn.Start), contentLength)
 	if err != nil {
