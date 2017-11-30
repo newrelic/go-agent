@@ -14,6 +14,10 @@
 * [Custom Metrics](#custom-metrics)
 * [Custom Events](#custom-events)
 * [Request Queuing](#request-queuing)
+* [Error Reporting](#error-reporting)
+  * [Advanced Error Reporting](#advanced-error-reporting)
+* [Naming Transactions and Metrics](#naming-transactions-and-metrics)
+* [For More Help](#for-more-help)
 
 ## Installation
 
@@ -468,7 +472,7 @@ in the *Error Analytics* section of APM.  Second, the `Attributes` field allows
 you to send through key/value pairs with additional error debugging information
 (also exposed in the *Error Analytics* section of APM).
 
-## Advanced Error Reporting
+### Advanced Error Reporting
 
 You're not limited to using Go's built-in error type or the provided
 `newrelic.Error` struct.  The Go Agent provides three error interfaces
