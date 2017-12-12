@@ -44,6 +44,11 @@ type Application interface {
 	// application is connected successfully.
 	WaitForConnection(timeout time.Duration) error
 
+	// ID returns the application's ID in New Relic. It will return the ID of the
+	// application only after connection has been established.
+	// Returns an error, if connection has not been established yet.
+	ID() (string, error)
+
 	// Shutdown flushes data to New Relic's servers and stops all
 	// agent-related goroutines managing this application.  After Shutdown
 	// is called, the application is disabled and no more data will be
