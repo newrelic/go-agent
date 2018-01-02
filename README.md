@@ -151,7 +151,7 @@ func main() {
 
 ## Support
 
-You can find more detailed documentation [in the guide](GUIDE.md).
+You can find more detailed documentation [in the guide](GUIDE.md) and on [docs.newrelic.com/docs/agents/go-agent](https://docs.newrelic.com/docs/agents/go-agent).
 
 If you can't find what you're looking for there, reach out to us on our [support
 site](http://support.newrelic.com/) or our [community
