@@ -1,4 +1,4 @@
-# New Relic Go Agent
+# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent)
 
 ## Description
 

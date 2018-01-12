@@ -1,5 +1,9 @@
 ## ChangeLog
 
+## 1.12.0
+
+* Added GoDoc badge to README.  Thanks to @mrhwick for the contribution!
+
 ## 1.11.0
 
 * We've closed the Issues tab on GitHub. Please visit our
