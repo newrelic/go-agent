@@ -29,7 +29,7 @@ func (s *shim) Info(msg string, c map[string]interface{}) {
 	s.e.WithFields(c).Info(msg)
 }
 func (s *shim) Debug(msg string, c map[string]interface{}) {
-	s.e.WithFields(c).Info(msg)
+	s.e.WithFields(c).Debug(msg)
 }
 func (s *shim) DebugEnabled() bool {
 	lvl := logrus.GetLevel()
