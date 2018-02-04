@@ -8,6 +8,7 @@ package nrgin
 import (
 	"net/http"
 
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
@@ -67,8 +68,8 @@ var (
 
 // Transaction returns the transaction stored inside the context, or nil if not
 // found.
-func Transaction(c *gin.Context) newrelic.Transaction {
-	if v, exists := c.Get(ctxKey); exists {
+func Transaction(c context.Context) newrelic.Transaction {
+	if v := c.Value(ctxKey); v != nil {
 		if txn, ok := v.(newrelic.Transaction); ok {
 			return txn
 		}
