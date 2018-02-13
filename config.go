@@ -267,7 +267,7 @@ func (c Config) Validate() error {
 	if c.HighSecurity && !c.UseTLS {
 		return errHighSecurityTLS
 	}
-	if "" == c.AppName {
+	if "" == c.AppName && c.Enabled {
 		return errAppNameMissing
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {

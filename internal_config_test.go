@@ -289,6 +289,14 @@ func TestValidate(t *testing.T) {
 		t.Error(err)
 	}
 	c = Config{
+		License: "0123456789012345678901234567890123456789",
+		AppName: "",
+		Enabled: false,
+	}
+	if err := c.Validate(); err != nil {
+		t.Error(err)
+	}
+	c = Config{
 		License:      "0123456789012345678901234567890123456789",
 		AppName:      "my app",
 		Enabled:      true,
