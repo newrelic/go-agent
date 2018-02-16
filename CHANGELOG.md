@@ -4,6 +4,9 @@
 
 * Added GoDoc badge to README.  Thanks to @mrhwick for the contribution!
 
+* `Config.UseTLS` configuration setting has been removed to increase security.
+   TLS will now always be used in communication with New Relic Servers.
+
 ## 1.11.0
 
 * We've closed the Issues tab on GitHub. Please visit our

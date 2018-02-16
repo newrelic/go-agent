@@ -104,7 +104,6 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				}
 			},
 			"Transport":"*http.Transport",
-			"UseTLS":true,
 			"Utilization":{
 				"BillingHostname":"",
 				"DetectAWS":true,
@@ -199,7 +198,6 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				}
 			},
 			"Transport":null,
-			"UseTLS":true,
 			"Utilization":{
 				"BillingHostname":"",
 				"DetectAWS":true,
@@ -300,16 +298,6 @@ func TestValidate(t *testing.T) {
 		License:      "0123456789012345678901234567890123456789",
 		AppName:      "my app",
 		Enabled:      true,
-		HighSecurity: true,
-	}
-	if err := c.Validate(); err != errHighSecurityTLS {
-		t.Error(err)
-	}
-	c = Config{
-		License:      "0123456789012345678901234567890123456789",
-		AppName:      "my app",
-		Enabled:      true,
-		UseTLS:       true,
 		HighSecurity: true,
 	}
 	if err := c.Validate(); err != nil {

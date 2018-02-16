@@ -15,21 +15,11 @@ import (
 )
 
 var (
-	// NEW_RELIC_HOST can be used to override the New Relic endpoint.  This
-	// is useful for testing against staging.
-	envHost = "NEW_RELIC_HOST"
 	// NEW_RELIC_DEBUG_LOGGING can be set to anything to enable additional
 	// debug logging: the agent will log every transaction's data at info
 	// level.
 	envDebugLogging = "NEW_RELIC_DEBUG_LOGGING"
-
-	debugLogging = os.Getenv(envDebugLogging)
-	redirectHost = func() string {
-		if s := os.Getenv(envHost); "" != s {
-			return s
-		}
-		return "collector.newrelic.com"
-	}()
+	debugLogging    = os.Getenv(envDebugLogging)
 )
 
 type dataConsumer interface {
@@ -151,7 +141,7 @@ func connectAttempt(app *app) (*internal.AppRun, error) {
 	if nil != e {
 		return nil, e
 	}
-	return internal.ConnectAttempt(js, redirectHost, app.rpmControls)
+	return internal.ConnectAttempt(js, app.rpmControls)
 }
 
 func (app *app) connectRoutine() {
@@ -401,7 +391,6 @@ func newApp(c Config) (Application, error) {
 		collectorErrorChan: make(chan error, 1),
 		dataChan:           make(chan appData, internal.AppDataChanSize),
 		rpmControls: internal.RpmControls{
-			UseTLS:  c.UseTLS,
 			License: c.License,
 			Client: &http.Client{
 				Transport: c.Transport,

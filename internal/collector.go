@@ -7,16 +7,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"regexp"
 
 	"github.com/newrelic/go-agent/internal/logger"
 )
 
 const (
-	procotolVersion = "14"
+	procotolVersion = "15"
 	userAgentPrefix = "NewRelic-Go-Agent/"
 
 	// Methods used in collector communication.
-	cmdRedirect     = "get_redirect_host"
+	cmdPreconnect   = "preconnect"
 	cmdConnect      = "connect"
 	cmdMetrics      = "metric_data"
 	cmdCustomEvents = "custom_event_data"
@@ -49,7 +51,6 @@ type RpmCmd struct {
 // RpmControls contains fields which will be the same for all calls made
 // by the same application.
 type RpmControls struct {
-	UseTLS       bool
 	License      string
 	Client       *http.Client
 	Logger       logger.Logger
@@ -61,12 +62,7 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 
 	u.Host = cmd.Collector
 	u.Path = "agent_listener/invoke_raw_method"
-
-	if cs.UseTLS {
-		u.Scheme = "https"
-	} else {
-		u.Scheme = "http"
-	}
+	u.Scheme = "https"
 
 	query := url.Values{}
 	query.Set("marshal_format", "json")
@@ -227,11 +223,34 @@ func parseResponse(b []byte) ([]byte, error) {
 	return r.ReturnValue, nil
 }
 
+const (
+	// NEW_RELIC_HOST can be used to override the New Relic endpoint.  This
+	// is useful for testing.
+	envHost = "NEW_RELIC_HOST"
+)
+
+var (
+	preconnectHostOverride       = os.Getenv(envHost)
+	preconnectHostDefault        = "collector.newrelic.com"
+	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
+)
+
+func calculatePreconnectHost(license, overrideHost string) string {
+	if "" != overrideHost {
+		return overrideHost
+	}
+	m := preconnectRegionLicenseRegex.FindStringSubmatch(license)
+	if len(m) > 1 {
+		return "collector." + m[1] + ".nr-data.net"
+	}
+	return preconnectHostDefault
+}
+
 // ConnectAttempt tries to connect an application.
-func ConnectAttempt(js []byte, redirectHost string, cs RpmControls) (*AppRun, error) {
+func ConnectAttempt(js []byte, cs RpmControls) (*AppRun, error) {
 	call := RpmCmd{
-		Name:      cmdRedirect,
-		Collector: redirectHost,
+		Name:      cmdPreconnect,
+		Collector: calculatePreconnectHost(cs.License, preconnectHostOverride),
 		Data:      []byte("[]"),
 	}
 

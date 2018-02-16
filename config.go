@@ -112,10 +112,6 @@ type Config struct {
 	// Relic UI.  This is an optional setting.
 	HostDisplayName string
 
-	// UseTLS controls whether http or https is used to send data to New
-	// Relic servers.
-	UseTLS bool
-
 	// Transport customizes http.Client communication with New Relic
 	// servers.  This may be used to configure a proxy.
 	Transport http.RoundTripper
@@ -205,7 +201,6 @@ func NewConfig(appname, license string) Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.HighSecurity = false
-	c.UseTLS = true
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
 	c.ErrorCollector.IgnoreStatusCodes = []int{
@@ -263,9 +258,6 @@ func (c Config) Validate() error {
 		if len(c.License) != licenseLength && len(c.License) != 0 {
 			return errLicenseLen
 		}
-	}
-	if c.HighSecurity && !c.UseTLS {
-		return errHighSecurityTLS
 	}
 	if "" == c.AppName && c.Enabled {
 		return errAppNameMissing

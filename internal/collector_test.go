@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/newrelic/go-agent/internal/crossagent"
 	"github.com/newrelic/go-agent/internal/logger"
 )
 
@@ -200,7 +201,6 @@ func TestUrl(t *testing.T) {
 		Collector: "example.com",
 	}
 	cs := RpmControls{
-		UseTLS:       true,
 		License:      "123abc",
 		Client:       nil,
 		Logger:       nil,
@@ -250,7 +250,7 @@ type connectMockRoundTripper struct {
 func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	cmd := r.URL.Query().Get("method")
 	switch cmd {
-	case cmdRedirect:
+	case cmdPreconnect:
 		return m.redirect.response, m.redirect.err
 	case cmdConnect:
 		return m.connect.response, m.connect.err
@@ -263,14 +263,13 @@ func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
 
 func testConnectHelper(transport http.RoundTripper) (*AppRun, error) {
 	cs := RpmControls{
-		UseTLS:       true,
 		License:      "12345",
 		Client:       &http.Client{Transport: transport},
 		Logger:       logger.ShimLogger{},
 		AgentVersion: "1",
 	}
 
-	return ConnectAttempt([]byte(`"connect-json"`), "redirect-host", cs)
+	return ConnectAttempt([]byte(`"connect-json"`), cs)
 }
 
 func TestConnectAttemptSuccess(t *testing.T) {
@@ -442,5 +441,66 @@ func TestConnectAttemptMissingRunID(t *testing.T) {
 	}
 	if nil == err {
 		t.Fatal("missing error")
+	}
+}
+
+func TestCalculatePreconnectHost(t *testing.T) {
+	// non-region license
+	host := calculatePreconnectHost("0123456789012345678901234567890123456789", "")
+	if host != preconnectHostDefault {
+		t.Error(host)
+	}
+	// override present
+	override := "other-collector.newrelic.com"
+	host = calculatePreconnectHost("0123456789012345678901234567890123456789", override)
+	if host != override {
+		t.Error(host)
+	}
+	// four letter region
+	host = calculatePreconnectHost("eu01xx6789012345678901234567890123456789", "")
+	if host != "collector.eu01.nr-data.net" {
+		t.Error(host)
+	}
+	// five letter region
+	host = calculatePreconnectHost("gov01x6789012345678901234567890123456789", "")
+	if host != "collector.gov01.nr-data.net" {
+		t.Error(host)
+	}
+	// six letter region
+	host = calculatePreconnectHost("foo001x6789012345678901234567890123456789", "")
+	if host != "collector.foo001.nr-data.net" {
+		t.Error(host)
+	}
+}
+
+func TestPreconnectHostCrossAgent(t *testing.T) {
+	var testcases []struct {
+		Name               string `json:"name"`
+		ConfigFileKey      string `json:"config_file_key"`
+		EnvKey             string `json:"env_key"`
+		ConfigOverrideHost string `json:"config_override_host"`
+		EnvOverrideHost    string `json:"env_override_host"`
+		ExpectHostname     string `json:"hostname"`
+	}
+	err := crossagent.ReadJSON("collector_hostname.json", &testcases)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range testcases {
+		// mimic file/environment precendence of other agents
+		configKey := tc.ConfigFileKey
+		if "" != tc.EnvKey {
+			configKey = tc.EnvKey
+		}
+		overrideHost := tc.ConfigOverrideHost
+		if "" != tc.EnvOverrideHost {
+			overrideHost = tc.EnvOverrideHost
+		}
+
+		host := calculatePreconnectHost(configKey, overrideHost)
+		if host != tc.ExpectHostname {
+			t.Errorf(`test="%s" got="%s" expected="%s"`, tc.Name, host, tc.ExpectHostname)
+		}
 	}
 }
