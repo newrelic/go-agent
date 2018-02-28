@@ -240,10 +240,9 @@ const (
 
 // The following errors will be returned if your Config fails to validate.
 var (
-	errLicenseLen      = fmt.Errorf("license length is not %d", licenseLength)
-	errHighSecurityTLS = errors.New("high security requires TLS")
-	errAppNameMissing  = errors.New("string AppName required")
-	errAppNameLimit    = fmt.Errorf("max of %d rollup application names", appNameLimit)
+	errLicenseLen     = fmt.Errorf("license length is not %d", licenseLength)
+	errAppNameMissing = errors.New("string AppName required")
+	errAppNameLimit   = fmt.Errorf("max of %d rollup application names", appNameLimit)
 )
 
 // Validate checks the config for improper fields.  If the config is invalid,
