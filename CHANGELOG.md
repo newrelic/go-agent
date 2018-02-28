@@ -1,6 +1,6 @@
 ## ChangeLog
 
-## 1.12.0
+## 2.0.0
 
 * Added GoDoc badge to README.  Thanks to @mrhwick for the contribution!
 
