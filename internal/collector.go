@@ -154,7 +154,7 @@ func CollectorRequest(cmd RpmCmd, cs RpmControls) ([]byte, error) {
 
 	resp, err := collectorRequestInternal(url, cmd.Data, cs)
 	if err != nil {
-		cs.Logger.Debug("rpm failure", map[string]interface{}{
+		cs.Logger.Error("rpm failure", map[string]interface{}{
 			"command": cmd.Name,
 			"url":     url,
 			"error":   err.Error(),
