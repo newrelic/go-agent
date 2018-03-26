@@ -24,4 +24,5 @@ const (
 	DatastoreCouchDB                        = "CouchDB"
 	DatastoreRiak                           = "Riak"
 	DatastoreVoltDB                         = "VoltDB"
+	DatastoreAmazonNeptune                  = "Amazon Neptune"
 )
