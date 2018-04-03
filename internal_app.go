@@ -488,6 +488,17 @@ func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 	}, r, name))
 }
 
+// StartAdvancedTransaction implements newrelic.Application's StartAdvancedTransaction.
+func (app *app) StartAdvancedTransaction(name string) AdvancedTransaction {
+	run, _ := app.getState()
+	return newAdvancedTxn(txnInput{
+		Config:     app.config,
+		Reply:      run.ConnectReply,
+		Consumer:   app,
+		attrConfig: app.attrConfig,
+	}, name)
+}
+
 var (
 	errHighSecurityEnabled        = errors.New("high security enabled")
 	errCustomEventsDisabled       = errors.New("custom events disabled")

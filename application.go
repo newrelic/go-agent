@@ -17,6 +17,12 @@ type Application interface {
 	//   code and response headers.
 	StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction
 
+	// StartAdvancedTransaction begins a Transaction much like StartTransaction.
+	// The same rules for a standard transaction apply to a advanced transaction.
+	// This type of transaction allows greater freedom as to how the vital headers
+	// are handled for CAT and how the web transaction is built
+	StartAdvancedTransaction(name string) AdvancedTransaction
+
 	// RecordCustomEvent adds a custom event to the application.  This
 	// feature is incompatible with high security mode.
 	//

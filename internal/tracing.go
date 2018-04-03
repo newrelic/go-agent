@@ -199,7 +199,20 @@ func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name str
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, resp *http.Response) error {
+func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, resp *http.Response) (err error) {
+	var appData *cat.AppDataHeader
+	if resp != nil {
+		appData, err = t.CrossProcess.ParseAppData(HTTPHeaderToAppData(resp.Header))
+		if err != nil {
+			return err
+		}
+	}
+
+	return EndAdvancedExternalSegment(t, start, now, u, appData)
+}
+
+// EndAdvancedExternalSegment ends an external segment.
+func EndAdvancedExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, appData *cat.AppDataHeader) error {
 	end, err := endSegment(t, start, now)
 	if nil != err {
 		return err
@@ -208,14 +221,6 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 	host := HostFromURL(u)
 	if "" == host {
 		host = "unknown"
-	}
-
-	var appData *cat.AppDataHeader
-	if resp != nil {
-		appData, err = t.CrossProcess.ParseAppData(HTTPHeaderToAppData(resp.Header))
-		if err != nil {
-			return err
-		}
 	}
 
 	var crossProcessID string

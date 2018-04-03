@@ -1,6 +1,12 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+
+	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/cat"
+)
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
@@ -62,6 +68,14 @@ type ExternalSegment struct {
 	URL string
 }
 
+type AdvancedExternalSegment struct {
+	StartTime SegmentStartTime
+	cat.AppDataHeader
+	internal.CrossProcessMetadata
+	startTime time.Time
+	URL       string
+}
+
 // End finishes the segment.
 func (s Segment) End() error { return endSegment(s) }
 
@@ -70,6 +84,29 @@ func (s DatastoreSegment) End() error { return endDatastore(s) }
 
 // End finishes the external segment.
 func (s ExternalSegment) End() error { return endExternal(s) }
+
+// End finishes the custom external segment.
+func (s AdvancedExternalSegment) End() error {
+	if s.AppDataHeader.ResponseTimeInSeconds == 0.0 {
+		s.AppDataHeader.ResponseTimeInSeconds = float64(time.Since(s.startTime)) / float64(time.Second)
+	}
+	return endAdvancedExternal(s)
+}
+
+// RestartTiming restats the start time of the external request to improve accuracy
+func (s *AdvancedExternalSegment) RestartTiming() {
+	s.startTime = time.Now()
+}
+
+// Import will import the appdata normally read from X-Newrelic-App-Data
+func (s *AdvancedExternalSegment) Import(appdata string) error {
+	cat, err := s.StartTime.txn.TxnData.CrossProcess.ParseAppData(appdata)
+	if err != nil {
+		return err
+	}
+	s.AppDataHeader = *cat
+	return nil
+}
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.
@@ -123,6 +160,37 @@ func StartExternalSegment(txn Transaction, request *http.Request) ExternalSegmen
 		for _, value := range values {
 			request.Header.Add(key, value)
 		}
+	}
+
+	return s
+}
+
+// StartAdvancedExternalSegment makes it possible to instrument external calls that aren't http based
+//
+//    segment := newrelic.StartAdvancedExternalSegment(txn)
+//    // transmit segment.Metadata to the remote service
+//    // if possible call segment.Import(appdata) for most accuracy
+//    segment.End()
+//
+func StartAdvancedExternalSegment(ctxn AdvancedTransaction, name, url string) AdvancedExternalSegment {
+	txn := ctxn.(wrap)
+	metadata, err := txn.CrossProcess.CreateCrossProcessMetadata(txn.Name, txn.Config.AppName)
+	if err != nil {
+		txn.Config.Logger.Debug("error generating outbound headers", map[string]interface{}{
+			"error": err,
+		})
+	}
+
+	s := AdvancedExternalSegment{
+		StartTime: StartSegmentNow(ctxn),
+		AppDataHeader: cat.AppDataHeader{
+			CrossProcessID:  string(txn.CrossProcess.CrossProcessID),
+			TransactionName: name,
+			TransactionGUID: txn.CrossProcess.GUID,
+		},
+		CrossProcessMetadata: metadata,
+		startTime:            time.Now(),
+		URL:                  url,
 	}
 
 	return s

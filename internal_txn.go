@@ -64,6 +64,42 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	return txn
 }
 
+func newAdvancedTxn(input txnInput, name string) *txn {
+	txn := &txn{
+		txnInput: input,
+	}
+	txn.Start = time.Now()
+	txn.Name = name
+	txn.Attrs = internal.NewAttributes(input.attrConfig)
+	txn.Attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
+	txn.TxnTrace.Enabled = txn.txnTracesEnabled()
+	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
+	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
+	txn.SlowQueriesEnabled = txn.slowQueriesEnabled()
+	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
+
+	return txn
+}
+
+func (txn *txn) SetWeb(web bool, url *url.URL) {
+	txn.IsWeb = web
+	if url != nil {
+		txn.CleanURL = internal.SafeURL(url)
+	}
+}
+
+func (txn *txn) SetCrossProcess(id, txnData, synthetics string) {
+	txn.CrossProcess.Init(txn.crossProcessEnabled(), txn.txnInput.Reply, internal.CrossProcessMetadata{
+		ID:         id,
+		TxnData:    txnData,
+		Synthetics: synthetics,
+	})
+}
+
+func (txn *txn) SetResponseCode(code int) {
+	headersJustWritten(txn, code)
+}
+
 func (txn *txn) crossProcessEnabled() bool {
 	return txn.Config.CrossApplicationTracer.Enabled
 }
@@ -177,7 +213,9 @@ func headersJustWritten(txn *txn, code int) {
 	}
 	txn.wroteHeader = true
 
-	internal.ResponseHeaderAttributes(txn.Attrs, txn.W.Header())
+	if txn.W != nil {
+		internal.ResponseHeaderAttributes(txn.Attrs, txn.W.Header())
+	}
 	internal.ResponseCodeAttribute(txn.Attrs, code)
 
 	if responseCodeIsError(&txn.Config, code) {
@@ -543,6 +581,24 @@ func endExternal(s ExternalSegment) error {
 		return err
 	}
 	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+}
+
+func endAdvancedExternal(s AdvancedExternalSegment) error {
+	txn := s.StartTime.txn
+	if nil == txn {
+		return nil
+	}
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return errAlreadyEnded
+	}
+	u, err := url.Parse(s.URL)
+	if nil != err {
+		return err
+	}
+	return internal.EndAdvancedExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, &s.AppDataHeader)
 }
 
 func outboundHeaders(s ExternalSegment) http.Header {
