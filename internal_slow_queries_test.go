@@ -428,6 +428,84 @@ func TestSlowQueryHighSecurity(t *testing.T) {
 	}})
 }
 
+func TestSlowQuerySecurityPolicyFalse(t *testing.T) {
+	// When the record_sql security policy is set to false, sql parameters
+	// and the sql format string should be replaced.
+	cfgfn := func(cfg *Config) {
+		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SecurityPolicies.RecordSQL.SetEnabled(false)
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	params := map[string]interface{}{
+		"str": "zap",
+		"int": 123,
+	}
+	s1 := DatastoreSegment{
+		StartTime:          StartSegmentNow(txn),
+		Product:            DatastoreMySQL,
+		Collection:         "users",
+		Operation:          "INSERT",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		QueryParameters:    params,
+	}
+	s1.End()
+	txn.End()
+
+	app.ExpectSlowQueries(t, []internal.WantSlowQuery{{
+		Count:        1,
+		MetricName:   "Datastore/statement/MySQL/users/INSERT",
+		Query:        "'INSERT' on 'users' using 'MySQL'",
+		TxnName:      "WebTransaction/Go/hello",
+		TxnURL:       "/hello",
+		DatabaseName: "",
+		Host:         "",
+		PortPathOrID: "",
+		Params:       nil,
+	}})
+}
+
+func TestSlowQuerySecurityPolicyTrue(t *testing.T) {
+	// When the record_sql security policy is set to true, sql parameters
+	// should be omitted.
+	cfgfn := func(cfg *Config) {
+		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SecurityPolicies.RecordSQL.SetEnabled(true)
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	params := map[string]interface{}{
+		"str": "zap",
+		"int": 123,
+	}
+	s1 := DatastoreSegment{
+		StartTime:          StartSegmentNow(txn),
+		Product:            DatastoreMySQL,
+		Collection:         "users",
+		Operation:          "INSERT",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		QueryParameters:    params,
+	}
+	s1.End()
+	txn.End()
+
+	app.ExpectSlowQueries(t, []internal.WantSlowQuery{{
+		Count:        1,
+		MetricName:   "Datastore/statement/MySQL/users/INSERT",
+		Query:        "INSERT INTO users (name, age) VALUES ($1, $2)",
+		TxnName:      "WebTransaction/Go/hello",
+		TxnURL:       "/hello",
+		DatabaseName: "",
+		Host:         "",
+		PortPathOrID: "",
+		Params:       nil,
+	}})
+}
+
 func TestSlowQueryInvalidParameters(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0

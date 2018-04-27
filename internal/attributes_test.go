@@ -121,7 +121,7 @@ func runAttributeTestcase(t *testing.T, js json.RawMessage) {
 		},
 	}
 
-	cfg := CreateAttributeConfig(input)
+	cfg := CreateAttributeConfig(input, true)
 
 	inputDests := destinationsFromArray(tc.InputDestinations)
 	expectedDests := destinationsFromArray(tc.ExpectedDestinations)
@@ -197,7 +197,7 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 }
 
 func TestUserAttributeValLength(t *testing.T) {
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attrs := NewAttributes(cfg)
 
 	atLimit := strings.Repeat("a", attributeValueLengthLimit)
@@ -214,7 +214,7 @@ func TestUserAttributeValLength(t *testing.T) {
 }
 
 func TestUserAttributeKeyLength(t *testing.T) {
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attrs := NewAttributes(cfg)
 
 	lengthyKey := strings.Repeat("a", attributeKeyLengthLimit+1)
@@ -229,7 +229,7 @@ func TestUserAttributeKeyLength(t *testing.T) {
 }
 
 func TestNumUserAttributesLimit(t *testing.T) {
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attrs := NewAttributes(cfg)
 
 	for i := 0; i < attributeUserLimit; i++ {
@@ -270,7 +270,7 @@ func TestNumUserAttributesLimit(t *testing.T) {
 }
 
 func TestExtraAttributesIncluded(t *testing.T) {
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attrs := NewAttributes(cfg)
 
 	err := AddUserAttribute(attrs, "a", 1, DestAll)
@@ -284,7 +284,7 @@ func TestExtraAttributesIncluded(t *testing.T) {
 }
 
 func TestExtraAttributesPrecedence(t *testing.T) {
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attrs := NewAttributes(cfg)
 
 	err := AddUserAttribute(attrs, "a", 1, DestAll)
@@ -293,6 +293,22 @@ func TestExtraAttributesPrecedence(t *testing.T) {
 	}
 	js := userAttributesStringJSON(attrs, DestAll, map[string]interface{}{"a": 2})
 	if `{"a":2}` != js {
+		t.Error(js)
+	}
+}
+
+func TestIncludeDisabled(t *testing.T) {
+	input := sampleAttributeConfigInput
+	input.Attributes.Include = append(input.Attributes.Include, "include_me")
+	cfg := CreateAttributeConfig(input, false)
+	attrs := NewAttributes(cfg)
+
+	err := AddUserAttribute(attrs, "include_me", 1, destNone)
+	if nil != err {
+		t.Error(err)
+	}
+	js := userAttributesStringJSON(attrs, DestAll, nil)
+	if `{}` != js {
 		t.Error(js)
 	}
 }

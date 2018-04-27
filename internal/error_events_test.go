@@ -103,7 +103,7 @@ func TestErrorEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
-	cfg := CreateAttributeConfig(aci)
+	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"
 	attr.Agent.RequestMethod = "GET"

@@ -320,6 +320,14 @@ func (txn *txn) AddAttribute(name string, value interface{}) error {
 	txn.Lock()
 	defer txn.Unlock()
 
+	if txn.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+
+	if !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
+		return errSecurityPolicy
+	}
+
 	if txn.finished {
 		return errAlreadyEnded
 	}
@@ -332,10 +340,12 @@ var (
 	errorsRemotelyDisabled = errors.New("errors remotely disabled")
 	errNilError            = errors.New("nil error")
 	errAlreadyEnded        = errors.New("transaction has already ended")
+	errSecurityPolicy      = errors.New("disabled by security policy")
 )
 
 const (
-	highSecurityErrorMsg = "message removed by high security setting"
+	highSecurityErrorMsg   = "message removed by high security setting"
+	securityPolicyErrorMsg = "message removed by security policy"
 )
 
 func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
@@ -353,6 +363,10 @@ func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 
 	if txn.Config.HighSecurity {
 		err.Msg = highSecurityErrorMsg
+	}
+
+	if !txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled() {
+		err.Msg = securityPolicyErrorMsg
 	}
 
 	txn.Errors.Add(err)
@@ -396,7 +410,7 @@ func (txn *txn) NoticeError(err error) error {
 		e.Stack = internal.GetStackTrace(2)
 	}
 
-	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity {
+	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity && txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
 		unvetted := ea.ErrorAttributes()
 		if len(unvetted) > internal.AttributeErrorLimit {
 			return errTooManyErrorAttributes
@@ -490,6 +504,12 @@ func endDatastore(s DatastoreSegment) error {
 	}
 	if !txn.Config.DatastoreTracer.QueryParameters.Enabled {
 		s.QueryParameters = nil
+	}
+	if txn.Reply.SecurityPolicies.RecordSQL.IsSet() {
+		s.QueryParameters = nil
+		if !txn.Reply.SecurityPolicies.RecordSQL.Enabled() {
+			s.ParameterizedQuery = ""
+		}
 	}
 	if !txn.Config.DatastoreTracer.DatabaseNameReporting.Enabled {
 		s.DatabaseName = ""

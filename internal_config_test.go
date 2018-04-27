@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"regexp"
@@ -89,6 +90,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
 			"RuntimeSampler":{"Enabled":true},
+			"SecurityPoliciesToken":"",
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true
@@ -131,10 +133,33 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
+		},
+		"security_policies":{
+			"record_sql":{"enabled":false},
+			"attributes_include":{"enabled":false},
+			"allow_raw_exception_messages":{"enabled":false},
+			"custom_events":{"enabled":false},
+			"custom_parameters":{"enabled":false}
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
+	securityPoliciesInput := []byte(`{
+		"record_sql":                    { "enabled": false, "required": false },
+	        "attributes_include":            { "enabled": false, "required": false },
+	        "allow_raw_exception_messages":  { "enabled": false, "required": false },
+	        "custom_events":                 { "enabled": false, "required": false },
+	        "custom_parameters":             { "enabled": false, "required": false },
+	        "custom_instrumentation_editor": { "enabled": false, "required": false },
+	        "message_parameters":            { "enabled": false, "required": false },
+	        "job_arguments":                 { "enabled": false, "required": false }
+	}`)
+	var sp internal.SecurityPolicies
+	err := json.Unmarshal(securityPoliciesInput, &sp)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", sp.PointerIfPopulated())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -183,6 +208,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Labels":null,
 			"Logger":null,
 			"RuntimeSampler":{"Enabled":true},
+			"SecurityPoliciesToken":"",
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true
@@ -227,7 +253,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		}
 	}]`)
 
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2")
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", nil)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -299,6 +325,28 @@ func TestValidate(t *testing.T) {
 		AppName:      "my app",
 		Enabled:      true,
 		HighSecurity: true,
+	}
+	if err := c.Validate(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestValidateWithPoliciesToken(t *testing.T) {
+	c := Config{
+		License:               "0123456789012345678901234567890123456789",
+		AppName:               "my app",
+		Enabled:               true,
+		HighSecurity:          true,
+		SecurityPoliciesToken: "0123456789",
+	}
+	if err := c.Validate(); err != errHighSecurityWithSecurityPolicies {
+		t.Error(err)
+	}
+	c = Config{
+		License:               "0123456789012345678901234567890123456789",
+		AppName:               "my app",
+		Enabled:               true,
+		SecurityPoliciesToken: "0123456789",
 	}
 	if err := c.Validate(); err != nil {
 		t.Error(err)

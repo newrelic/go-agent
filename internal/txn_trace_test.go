@@ -51,7 +51,7 @@ func TestTxnTrace(t *testing.T) {
 	EndExternalSegment(tr, t8, start.Add(15*time.Second), nil, nil)
 	EndBasicSegment(tr, t4, start.Add(16*time.Second), "t4")
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 	attr.Agent.RequestMethod = "GET"
 	AddUserAttribute(attr, "zap", 123, DestAll)
@@ -198,7 +198,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 0
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 
 	ht := newHarvestTraces()
@@ -275,7 +275,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 		EndBasicSegment(tr, s, now, strconv.Itoa(d))
 	}
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 
 	ht := newHarvestTraces()
@@ -388,7 +388,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 		EndBasicSegment(tr, s, now, strconv.Itoa(d))
 	}
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 
 	ht := newHarvestTraces()
@@ -485,7 +485,7 @@ func TestLongestTraceSaved(t *testing.T) {
 	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 	ht := newHarvestTraces()
 
@@ -593,7 +593,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 	tr := &TxnData{}
 	tr.TxnTrace.Enabled = true
 
-	acfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 	ht := newHarvestTraces()
 

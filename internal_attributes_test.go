@@ -8,6 +8,83 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
+func TestAddAttributeHighSecurity(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.HighSecurity = true
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+
+	if err := txn.AddAttribute(`key`, 1); err != errHighSecurityEnabled {
+		t.Error(err)
+	}
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "OtherTransaction/Go/hello",
+		},
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestAddAttributeSecurityPolicyDisablesParameters(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SecurityPolicies.CustomParameters.SetEnabled(false)
+	}
+	app := testApp(replyfn, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+
+	if err := txn.AddAttribute(`key`, 1); err != errSecurityPolicy {
+		t.Error(err)
+	}
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "OtherTransaction/Go/hello",
+		},
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SecurityPolicies.AttributesInclude.SetEnabled(false)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionEvents.Attributes.Include = append(cfg.TransactionEvents.Attributes.Include,
+			AttributeRequestUserAgent)
+	}
+	val := "dont-include-me-in-txn-events"
+	app := testApp(replyfn, cfgfn, t)
+	req := &http.Request{}
+	req.Header = make(http.Header)
+	req.Header.Add("User-Agent", val)
+	txn := app.StartTransaction("hello", nil, req)
+	txn.NoticeError(errors.New("hello"))
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: map[string]interface{}{},
+		UserAttributes:  map[string]interface{}{},
+	}})
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:         "WebTransaction/Go/hello",
+		Msg:             "hello",
+		Klass:           "*errors.errorString",
+		Caller:          "go-agent.TestAddAttributeSecurityPolicyDisablesInclude",
+		URL:             "",
+		AgentAttributes: map[string]interface{}{AttributeRequestUserAgent: val},
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
 func TestUserAttributeBasics(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false

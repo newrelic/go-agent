@@ -101,6 +101,31 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 	app.ExpectMetrics(t, backgroundErrorMetrics)
 }
 
+func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.AllowRawExceptionMessages.SetEnabled(false) }
+	app := testApp(replyfn, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(myError{})
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     securityPolicyErrorMsg,
+		Klass:   "newrelic.myError",
+		Caller:  "go-agent.TestNoticeErrorMessageSecurityPolicy",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "newrelic.myError",
+			"error.message":   securityPolicyErrorMsg,
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
+}
+
 func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ErrorCollector.Enabled = false }
 	app := testApp(nil, cfgFn, t)
@@ -390,6 +415,41 @@ func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.class":     "my class",
 			"error.message":   "message removed by high security setting",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
+}
+
+func TestNewrelicErrorAttributesSecurityPolicy(t *testing.T) {
+	extraAttributes := map[string]interface{}{
+		"zip": "zap",
+	}
+	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomParameters.SetEnabled(false) }
+	app := testApp(replyfn, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(Error{
+		Message:    "my msg",
+		Class:      "my class",
+		Attributes: extraAttributes,
+	})
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:        "OtherTransaction/Go/hello",
+		Msg:            "my msg",
+		Klass:          "my class",
+		Caller:         "go-agent.TestNewrelicErrorAttributesSecurityPolicy",
+		URL:            "",
+		UserAttributes: map[string]interface{}{},
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "my class",
+			"error.message":   "my msg",
 			"transactionName": "OtherTransaction/Go/hello",
 		},
 		UserAttributes: map[string]interface{}{},

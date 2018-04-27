@@ -153,6 +153,16 @@ func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
+func TestRecordCustomEventSecurityPolicy(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomEvents.SetEnabled(false) }
+	app := testApp(replyfn, nil, t)
+	err := app.RecordCustomEvent("myType", validParams)
+	if err != errSecurityPolicy {
+		t.Error(err)
+	}
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
+}
+
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = false }
 	app := testApp(nil, cfgfn, t)

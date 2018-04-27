@@ -103,7 +103,7 @@ func TestTxnEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, "zap")
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, hostDisplayName)
-	cfg := CreateAttributeConfig(aci)
+	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"
 	attr.Agent.RequestMethod = "GET"

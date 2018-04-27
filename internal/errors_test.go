@@ -52,7 +52,7 @@ func TestErrorTraceAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
-	cfg := CreateAttributeConfig(aci)
+	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.HostDisplayName = "exclude me"
 	attr.Agent.RequestMethod = "GET"
@@ -173,7 +173,7 @@ func BenchmarkErrorsJSON(b *testing.B) {
 		})
 	}
 
-	cfg := CreateAttributeConfig(sampleAttributeConfigInput)
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.RequestMethod = "GET"
 	AddUserAttribute(attr, "zip", 456, DestAll)

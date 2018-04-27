@@ -223,11 +223,12 @@ func TestUrl(t *testing.T) {
 }
 
 const (
-	redirectBody   = `{"return_value":"special_collector"}`
-	connectBody    = `{"return_value":{"agent_run_id":"my_agent_run_id"}}`
-	disconnectBody = `{"exception":{"error_type":"NewRelic::Agent::ForceDisconnectException"}}`
-	licenseBody    = `{"exception":{"error_type":"NewRelic::Agent::LicenseException"}}`
-	malformedBody  = `{"return_value":}}`
+	unknownRequiredPolicyBody = `{"return_value":{"redirect_host":"special_collector","security_policies":{"unknown_policy":{"enabled":true,"required":true}}}}`
+	redirectBody              = `{"return_value":{"redirect_host":"special_collector"}}`
+	connectBody               = `{"return_value":{"agent_run_id":"my_agent_run_id"}}`
+	disconnectBody            = `{"exception":{"error_type":"NewRelic::Agent::ForceDisconnectException"}}`
+	licenseBody               = `{"exception":{"error_type":"NewRelic::Agent::LicenseException"}}`
+	malformedBody             = `{"return_value":}}`
 )
 
 func makeResponse(code int, body string) *http.Response {
@@ -261,7 +262,13 @@ func (m connectMockRoundTripper) RoundTrip(r *http.Request) (*http.Response, err
 
 func (m connectMockRoundTripper) CancelRequest(req *http.Request) {}
 
-func testConnectHelper(transport http.RoundTripper) (*AppRun, error) {
+type testConfig struct{}
+
+func (tc testConfig) CreateConnectJSON(*SecurityPolicies) ([]byte, error) {
+	return []byte(`"connect-json"`), nil
+}
+
+func testConnectHelper(transport http.RoundTripper) (*ConnectReply, error) {
 	cs := RpmControls{
 		License:      "12345",
 		Client:       &http.Client{Transport: transport},
@@ -269,7 +276,7 @@ func testConnectHelper(transport http.RoundTripper) (*AppRun, error) {
 		AgentVersion: "1",
 	}
 
-	return ConnectAttempt([]byte(`"connect-json"`), cs)
+	return ConnectAttempt(testConfig{}, "", cs)
 }
 
 func TestConnectAttemptSuccess(t *testing.T) {
@@ -305,6 +312,19 @@ func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
 	run, err := testConnectHelper(connectMockRoundTripper{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, disconnectBody)},
+	})
+	if nil != run {
+		t.Error(run)
+	}
+	if !IsDisconnect(err) {
+		t.Fatal(err)
+	}
+}
+
+func TestConnectAttemptBadSecurityPolicies(t *testing.T) {
+	run, err := testConnectHelper(connectMockRoundTripper{
+		redirect: endpointResult{response: makeResponse(200, unknownRequiredPolicyBody)},
+		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
 	if nil != run {
 		t.Error(run)

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	procotolVersion = "15"
+	procotolVersion = "16"
 	userAgentPrefix = "NewRelic-Go-Agent/"
 
 	// Methods used in collector communication.
@@ -203,7 +203,17 @@ func IsLicenseException(e error) bool { return hasType(e, licenseInvalidType) }
 func IsRuntime(e error) bool { return hasType(e, runtimeType) }
 
 // IsDisconnect indicates if the error was a disconnect exception.
-func IsDisconnect(e error) bool { return hasType(e, disconnectType) }
+func IsDisconnect(e error) bool {
+	// Unrecognized or missing security policies should be treated as
+	// disconnects.
+	if _, ok := e.(errUnknownRequiredPolicy); ok {
+		return true
+	}
+	if _, ok := e.(errUnsetPolicy); ok {
+		return true
+	}
+	return hasType(e, disconnectType)
+}
 
 func parseResponse(b []byte) ([]byte, error) {
 	var r struct {
@@ -246,12 +256,29 @@ func calculatePreconnectHost(license, overrideHost string) string {
 	return preconnectHostDefault
 }
 
+// ConnectJSONCreator allows the creation of the connect payload JSON to be
+// deferred until the SecurityPolicies are acquired and vetted.
+type ConnectJSONCreator interface {
+	CreateConnectJSON(*SecurityPolicies) ([]byte, error)
+}
+
+type preconnectRequest struct {
+	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
+}
+
 // ConnectAttempt tries to connect an application.
-func ConnectAttempt(js []byte, cs RpmControls) (*AppRun, error) {
+func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, error) {
+	preconnectData, err := json.Marshal([]preconnectRequest{
+		preconnectRequest{SecurityPoliciesToken: securityPoliciesToken},
+	})
+	if nil != err {
+		return nil, fmt.Errorf("unable to marshal preconnect data: %v", err)
+	}
+
 	call := RpmCmd{
 		Name:      cmdPreconnect,
 		Collector: calculatePreconnectHost(cs.License, preconnectHostOverride),
-		Data:      []byte("[]"),
+		Data:      preconnectData,
 	}
 
 	out, err := CollectorRequest(call, cs)
@@ -261,13 +288,23 @@ func ConnectAttempt(js []byte, cs RpmControls) (*AppRun, error) {
 		return nil, err
 	}
 
-	var host string
-	err = json.Unmarshal(out, &host)
+	var preconnect PreconnectReply
+	err = json.Unmarshal(out, &preconnect)
 	if nil != err {
-		return nil, fmt.Errorf("unable to parse redirect reply: %v", err)
+		// Unknown policies detected during unmarshal should produce a
+		// disconnect.
+		if IsDisconnect(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("unable to parse preconnect reply: %v", err)
 	}
 
-	call.Collector = host
+	js, err := config.CreateConnectJSON(preconnect.SecurityPolicies.PointerIfPopulated())
+	if nil != err {
+		return nil, fmt.Errorf("unable to create connect data: %v", err)
+	}
+
+	call.Collector = preconnect.Collector
 	call.Data = js
 	call.Name = cmdConnect
 
@@ -289,5 +326,7 @@ func ConnectAttempt(js []byte, cs RpmControls) (*AppRun, error) {
 		return nil, errors.New("connect reply missing agent run id")
 	}
 
-	return &AppRun{reply, host}, nil
+	reply.PreconnectReply = preconnect
+
+	return reply, nil
 }
