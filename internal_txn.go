@@ -472,7 +472,7 @@ type segment struct {
 	txn   *txn
 }
 
-func endSegment(s Segment) error {
+func endSegment(s *Segment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -488,7 +488,7 @@ func endSegment(s Segment) error {
 	return err
 }
 
-func endDatastore(s DatastoreSegment) error {
+func endDatastore(s *DatastoreSegment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -533,7 +533,7 @@ func endDatastore(s DatastoreSegment) error {
 	})
 }
 
-func externalSegmentURL(s ExternalSegment) (*url.URL, error) {
+func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 	if "" != s.URL {
 		return url.Parse(s.URL)
 	}
@@ -547,7 +547,7 @@ func externalSegmentURL(s ExternalSegment) (*url.URL, error) {
 	return nil, nil
 }
 
-func endExternal(s ExternalSegment) error {
+func endExternal(s *ExternalSegment) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -565,7 +565,7 @@ func endExternal(s ExternalSegment) error {
 	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
 }
 
-func outboundHeaders(s ExternalSegment) http.Header {
+func outboundHeaders(s *ExternalSegment) http.Header {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return http.Header{}

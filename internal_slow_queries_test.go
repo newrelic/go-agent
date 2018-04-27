@@ -254,27 +254,30 @@ func TestSlowQueryAggregation(t *testing.T) {
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, helloRequest)
-	DatastoreSegment{
+	ds := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
 		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
-	}.End()
-	DatastoreSegment{
+	}
+	ds.End()
+	ds = DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
 		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
-	}.End()
-	DatastoreSegment{
+	}
+	ds.End()
+	ds = DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastorePostgres,
 		Collection:         "products",
 		Operation:          "INSERT",
 		ParameterizedQuery: "INSERT INTO products (name, price) VALUES ($1, $2)",
-	}.End()
+	}
+	ds.End()
 	txn.End()
 
 	app.ExpectSlowQueries(t, []internal.WantSlowQuery{{
@@ -747,7 +750,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		} else {
 			txn = app.StartTransaction("hello", nil, nil)
 		}
-		DatastoreSegment{
+		ds := DatastoreSegment{
 			StartTime:          StartSegmentNow(txn),
 			Product:            DatastoreProduct(tc.Input.Parameters.Product),
 			Operation:          tc.Input.Parameters.Operation,
@@ -756,7 +759,8 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 			Host:               tc.Input.Parameters.Host,
 			DatabaseName:       tc.Input.Parameters.DatabaseName,
 			ParameterizedQuery: query,
-		}.End()
+		}
+		ds.End()
 		txn.End()
 
 		var metrics []internal.WantMetric

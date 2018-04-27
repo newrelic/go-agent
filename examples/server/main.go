@@ -142,10 +142,11 @@ func external(w http.ResponseWriter, r *http.Request) {
 	// an http.Request is accessible then `StartExternalSegment` is
 	// recommended. See the implementation of `NewRoundTripper` for an
 	// example.
-	defer newrelic.ExternalSegment{
+	es := newrelic.ExternalSegment{
 		StartTime: newrelic.StartSegmentNow(txn),
 		URL:       url,
-	}.End()
+	}
+	defer es.End()
 
 	resp, err := http.Get(url)
 	if nil != err {

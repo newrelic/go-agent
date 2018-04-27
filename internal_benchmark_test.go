@@ -131,12 +131,13 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func(txn Transaction) {
-		defer DatastoreSegment{
+		ds := DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
 			Product:    DatastoreMySQL,
 			Collection: "my_table",
 			Operation:  "Select",
-		}.End()
+		}
+		defer ds.End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -154,10 +155,11 @@ func BenchmarkExternalSegment(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn", nil, nil)
 	fn := func(txn Transaction) {
-		defer ExternalSegment{
+		es := &ExternalSegment{
 			StartTime: txn.StartSegmentNow(),
 			URL:       "http://example.com/",
-		}.End()
+		}
+		defer es.End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -187,12 +189,13 @@ func BenchmarkTxnWithDatastore(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn", nil, nil)
-		DatastoreSegment{
+		ds := &DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
 			Product:    DatastoreMySQL,
 			Collection: "my_table",
 			Operation:  "Select",
-		}.End()
+		}
+		ds.End()
 		txn.End()
 	}
 }
@@ -205,10 +208,11 @@ func BenchmarkTxnWithExternal(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn", nil, nil)
-		ExternalSegment{
+		es := &ExternalSegment{
 			StartTime: txn.StartSegmentNow(),
 			URL:       "http://example.com",
-		}.End()
+		}
+		es.End()
 		txn.End()
 	}
 }
