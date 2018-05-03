@@ -236,12 +236,13 @@ This may be combined into a single line when instrumenting a datastore call
 that spans an entire function call:
 
 ```go
-defer newrelic.DatastoreSegment{
+s := newrelic.DatastoreSegment{
 	StartTime:  newrelic.StartSegmentNow(txn),
 	Product:    newrelic.DatastoreMySQL,
 	Collection: "my_table",
 	Operation:  "SELECT",
-}.End()
+}
+defer s.End()
 ```
 
 ### External Segments
@@ -306,10 +307,11 @@ ways to use this functionality:
 
     ```go
     func external(txn newrelic.Transaction, url string) (*http.Response, error) {
-      defer newrelic.ExternalSegment{
+      es := newrelic.ExternalSegment{
         StartTime: newrelic.StartSegmentNow(txn),
         URL:   url,
-      }.End()
+      }
+      defer es.End()
 
       return http.Get(url)
     }
