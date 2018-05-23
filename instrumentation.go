@@ -31,11 +31,25 @@ func WrapHandle(app Application, pattern string, handler http.Handler) (string, 
 	})
 }
 
+func WrapAllHandle(app Application, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		txn := app.StartTransaction(r.URL.Path, w, r)
+		defer txn.End()
+
+		handler.ServeHTTP(txn, r)
+	})
+}
+
 // WrapHandleFunc serves the same purpose as WrapHandle for functions registered
 // with ServeMux.HandleFunc.
 func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
+}
+
+func WrapServeHTTP(app Application, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	h := WrapAllHandle(app, http.HandlerFunc(handler))
+	return func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
 // NewRoundTripper creates an http.RoundTripper to instrument external requests.
