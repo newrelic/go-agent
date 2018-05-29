@@ -383,6 +383,24 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 	}
 }
 
+func (app *app) ID() (string, error) {
+	if !app.config.Enabled {
+		return "", fmt.Errorf("config not enabled")
+	}
+
+	run, err := app.getState()
+	if nil != err {
+		return "", fmt.Errorf("not connected. %s", err)
+	}
+
+	if run.RunID != "" {
+		return run.AppID, nil
+	}
+
+	// Should never happen
+	return "", fmt.Errorf("id is empty")
+}
+
 func newApp(c Config) (Application, error) {
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {

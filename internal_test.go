@@ -1462,3 +1462,16 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 		NumSegments: 0,
 	}})
 }
+
+func TestID(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+	}
+	app := testApp(nil, cfgfn, t)
+	appID, err := app.ID()
+	if err == nil {
+		t.Errorf("Expected error because app is not connected.AppID:%s", appID)
+	}
+}
