@@ -69,6 +69,10 @@ type app struct {
 	// err is non-nil if the application will never be connected again
 	// (disconnect, license exception, shutdown).
 	err error
+
+	// used to manage flushes to new relic that are dictated by the consumer.
+	flushStart    chan bool
+	flushComplete chan bool
 }
 
 // appRun contains information regarding a single connection session with the
@@ -104,6 +108,11 @@ func shouldSaveFailedHarvest(e error) bool {
 		return false
 	}
 	return true
+}
+
+func (app *app) doManualHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
+	app.doHarvest(h, harvestStart, run)
+	app.flushComplete <- true
 }
 
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
@@ -239,6 +248,12 @@ func (app *app) process() {
 
 	for {
 		select {
+		case f := <-app.flushStart:
+			if f && nil != run {
+				now := time.Now()
+				go app.doManualHarvest(h, now, run)
+				h = internal.NewHarvest(now)
+			}
 		case <-app.harvestTicker.C:
 			if nil != run {
 				now := time.Now()
@@ -308,6 +323,17 @@ func (app *app) process() {
 			processConnectMessages(run, app.config.Logger)
 		}
 	}
+}
+
+func (app *app) Flush(timeout time.Duration) {
+	app.flushStart <- true
+	// Block until flush is done or timeout occurs.
+	t := time.NewTimer(timeout)
+	select {
+	case <-app.flushComplete:
+	case <-t.C:
+	}
+	t.Stop()
 }
 
 func (app *app) Shutdown(timeout time.Duration) {
@@ -414,6 +440,8 @@ func newApp(c Config) (Application, error) {
 			Logger:       c.Logger,
 			AgentVersion: Version,
 		},
+		flushStart:    make(chan bool, 1),
+		flushComplete: make(chan bool, 1),
 	}
 
 	app.config.Logger.Info("application created", map[string]interface{}{

@@ -50,6 +50,11 @@ type Application interface {
 	// collected.  This method will block until all final data is sent to
 	// New Relic or the timeout has elapsed.
 	Shutdown(timeout time.Duration)
+
+	// Flush will flush data to New Relic's servers without stopping the
+	// agent-related goroutines managing this application. This method will block
+	// until the data is flushed or the timeout has elapsed.
+	Flush(timeout time.Duration)
 }
 
 // NewApplication creates an Application and spawns goroutines to manage the
