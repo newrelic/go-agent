@@ -1,6 +1,9 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // Transaction represents a request or a background task.
 // Each Transaction should only be used in a single goroutine.
@@ -42,4 +45,7 @@ type Transaction interface {
 	// `StartSegmentNow` functions which checks if the Transaction is nil.
 	// See segments.go
 	StartSegmentNow() SegmentStartTime
+
+	// StartSegmentAt allows timing of code that has already executed.
+	StartSegmentAt(startedAt time.Time) SegmentStartTime
 }
