@@ -9,7 +9,7 @@ garbage collection, goroutine activity, and memory use.
 
 All pull requests will be reviewed by the New Relic product team. Any questions or issues should be directed to our [support
 site](http://support.newrelic.com/) or our [community
-forum](http://forum.newrelic.com).
+forum](https://discuss.newrelic.com).
 
 ## Requirements
 
