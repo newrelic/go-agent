@@ -708,3 +708,23 @@ func TestTxnTraceSynthetics(t *testing.T) {
 		t.Errorf("err=%v; actual=%s; expect=%s", err, string(js), expect)
 	}
 }
+
+func BenchmarkWitnessNode(b *testing.B) {
+	trace := &TxnTrace{
+		Enabled:             true,
+		SegmentThreshold:    0,             // save all segments
+		StackTraceThreshold: 1 * time.Hour, // no stack traces
+		maxNodes:            100 * 1000,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		end := segmentEnd{
+			duration:  time.Duration(RandUint32()) * time.Millisecond,
+			exclusive: 0,
+		}
+		trace.witnessNode(end, "myNode", nil)
+	}
+}
