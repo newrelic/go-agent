@@ -43,7 +43,7 @@ app, err := newrelic.NewApplication(config)
 ```
 
 Find your application in the New Relic UI.  Click on it to see the Go runtime
-tab that shows information about goroutine counts, garbage collection, memory,
+page that shows information about goroutine counts, garbage collection, memory,
 and CPU usage.
 
 If you are working in a development environment or running unit tests, you may
@@ -209,10 +209,10 @@ s.End()
 ### Datastore Segments
 
 Datastore segments appear in the transaction "Breakdown table" and in the
-"Databases" tab.
+"Databases" page.
 
 * [datastore.go](datastore.go)
-* [More info on Databases tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
+* [More info on Databases page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 Datastore segments are instrumented using `DatastoreSegment`.  Just like basic
 segments, datastore segments begin when the `StartTime` field is populated and
@@ -248,12 +248,12 @@ defer s.End()
 ### External Segments
 
 External segments appear in the transaction "Breakdown table" and in the
-"External services" tab. Version 1.11.0 of the Go agent also adds support for
+"External services" page. Version 1.11.0 of the Go agent also adds support for
 Cross Application Tracing (CAT), which will result in external segments also
-appearing in the "Service maps" tab and being linked in transaction traces when
+appearing in the "Service maps" page and being linked in transaction traces when
 both sides of the request have traces.
 
-* [More info on External Services tab](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
+* [More info on External Services page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
 * [More info on Cross Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
 
 External segments are instrumented using `ExternalSegment`. There are three
