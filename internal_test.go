@@ -776,6 +776,8 @@ func TestZeroSegmentsSafe(t *testing.T) {
 
 	StartSegmentNow(nil)
 
+	StartSegmentAt(nil, time.Now())
+
 	ds := DatastoreSegment{}
 	ds.End()
 

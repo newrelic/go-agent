@@ -1,6 +1,9 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
@@ -82,6 +85,14 @@ func (s *ExternalSegment) OutboundHeaders() http.Header {
 func StartSegmentNow(txn Transaction) SegmentStartTime {
 	if nil != txn {
 		return txn.StartSegmentNow()
+	}
+	return SegmentStartTime{}
+}
+
+// StartSegmentAt allows setting the start time of a segment.
+func StartSegmentAt(txn Transaction, startedAt time.Time) SegmentStartTime {
+	if nil != txn {
+		return txn.StartSegmentAt(startedAt)
 	}
 	return SegmentStartTime{}
 }

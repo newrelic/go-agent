@@ -453,10 +453,14 @@ func (txn *txn) Ignore() error {
 }
 
 func (txn *txn) StartSegmentNow() SegmentStartTime {
+	return txn.StartSegmentAt(time.Now())
+}
+
+func (txn *txn) StartSegmentAt(startedAt time.Time) SegmentStartTime {
 	var s internal.SegmentStartTime
 	txn.Lock()
 	if !txn.finished {
-		s = internal.StartSegment(&txn.TxnData, time.Now())
+		s = internal.StartSegment(&txn.TxnData, startedAt)
 	}
 	txn.Unlock()
 	return SegmentStartTime{
