@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
+	"net/http"
 )
 
 type PayloadTest struct {
@@ -69,6 +70,56 @@ func disableCAT(cfg *Config) {
 func enableBetterCAT(cfg *Config) {
 	cfg.CrossApplicationTracer.Enabled = false
 	cfg.DistributedTracer.Enabled = true
+}
+
+func TestCreateAfterEnd(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+	expected := shimPayload{}
+	result := txn.CreateDistributedTracePayload()
+
+	if ( expected != result){
+		t.Error(err)
+	}
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	})
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":     "OtherTransaction/Go/hello",
+			"traceId":  internal.MatchAnything,
+			"guid":     internal.MatchAnything,
+			"sampled":  internal.MatchAnything,
+			"priority": internal.MatchAnything,
+		},
+	}})
+}
+
+func TestAcceptAfterEnd(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+
+	req, err := http.NewRequest("GET", "newrelic.com", nil)
+	StartExternalSegment(txn, req)
+	if "" != req.Header.Get(DistributedTracePayloadHeader) {
+		panic("Outbound request should not instrumented with Newrelic after a transaction's end: " + req.Header.Get(DistributedTracePayloadHeader))
+	}
+	if nil != err {
+		panic(err)
+	}
 }
 
 func TestPayloadConnection(t *testing.T) {
