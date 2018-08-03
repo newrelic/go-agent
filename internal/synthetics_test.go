@@ -148,7 +148,7 @@ func TestSynthetics(t *testing.T) {
 			Name: "txn",
 		}
 
-		tr.CrossProcess.Init(false, &ConnectReply{
+		tr.CrossProcess.Init(false, false, &ConnectReply{
 			CrossProcessID:  "1#1",
 			TrustedAccounts: make(map[int]struct{}),
 			EncodingKey:     tc.Settings.AgentEncodingKey,

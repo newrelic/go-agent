@@ -11,31 +11,31 @@ var (
 	agentRunID = `12345`
 )
 
-type intWriter int
+type priorityWriter Priority
 
-func (x intWriter) WriteJSON(buf *bytes.Buffer) {
-	buf.WriteString(strconv.Itoa(int(x)))
+func (x priorityWriter) WriteJSON(buf *bytes.Buffer) {
+	buf.WriteString(strconv.FormatFloat(float64(x), 'f', -1, 32))
 }
 
-func sampleAnalyticsEvent(stamp int) analyticsEvent {
+func sampleAnalyticsEvent(priority Priority) analyticsEvent {
 	return analyticsEvent{
-		eventStamp(stamp),
-		intWriter(stamp),
+		priority,
+		priorityWriter(priority),
 	}
 }
 
 func TestBasic(t *testing.T) {
 	events := newAnalyticsEvents(10)
-	events.addEvent(sampleAnalyticsEvent(1))
-	events.addEvent(sampleAnalyticsEvent(1))
-	events.addEvent(sampleAnalyticsEvent(1))
+	events.addEvent(sampleAnalyticsEvent(0.5))
+	events.addEvent(sampleAnalyticsEvent(0.5))
+	events.addEvent(sampleAnalyticsEvent(0.5))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
 		t.Fatal(err)
 	}
 
-	expected := `["12345",{"reservoir_size":10,"events_seen":3},[1,1,1]]`
+	expected := `["12345",{"reservoir_size":10,"events_seen":3},[0.5,0.5,0.5]]`
 
 	if string(json) != expected {
 		t.Error(string(json), expected)
@@ -67,18 +67,18 @@ func TestEmpty(t *testing.T) {
 
 func TestSampling(t *testing.T) {
 	events := newAnalyticsEvents(3)
-	events.addEvent(sampleAnalyticsEvent(10))
-	events.addEvent(sampleAnalyticsEvent(1))
-	events.addEvent(sampleAnalyticsEvent(9))
-	events.addEvent(sampleAnalyticsEvent(2))
-	events.addEvent(sampleAnalyticsEvent(8))
-	events.addEvent(sampleAnalyticsEvent(3))
+	events.addEvent(sampleAnalyticsEvent(0.999999))
+	events.addEvent(sampleAnalyticsEvent(0.1))
+	events.addEvent(sampleAnalyticsEvent(0.9))
+	events.addEvent(sampleAnalyticsEvent(0.2))
+	events.addEvent(sampleAnalyticsEvent(0.8))
+	events.addEvent(sampleAnalyticsEvent(0.3))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(json) != `["12345",{"reservoir_size":3,"events_seen":6},[8,10,9]]` {
+	if string(json) != `["12345",{"reservoir_size":3,"events_seen":6},[0.8,0.999999,0.9]]` {
 		t.Error(string(json))
 	}
 	if 6 != events.numSeen {
@@ -112,21 +112,21 @@ func TestMergeFull(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.addEvent(sampleAnalyticsEvent(5))
-	e1.addEvent(sampleAnalyticsEvent(10))
-	e1.addEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(0.1))
+	e1.addEvent(sampleAnalyticsEvent(0.15))
+	e1.addEvent(sampleAnalyticsEvent(0.25))
 
-	e2.addEvent(sampleAnalyticsEvent(6))
-	e2.addEvent(sampleAnalyticsEvent(12))
-	e2.addEvent(sampleAnalyticsEvent(18))
-	e2.addEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(0.06))
+	e2.addEvent(sampleAnalyticsEvent(0.12))
+	e2.addEvent(sampleAnalyticsEvent(0.18))
+	e2.addEvent(sampleAnalyticsEvent(0.24))
 
 	e1.Merge(e2)
 	json, err := e1.CollectorJSON(agentRunID)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(json) != `["12345",{"reservoir_size":2,"events_seen":7},[18,24]]` {
+	if string(json) != `["12345",{"reservoir_size":2,"events_seen":7},[0.24,0.25]]` {
 		t.Error(string(json))
 	}
 	if 7 != e1.numSeen {
@@ -141,14 +141,14 @@ func TestAnalyticsEventMergeFailedSuccess(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.addEvent(sampleAnalyticsEvent(5))
-	e1.addEvent(sampleAnalyticsEvent(10))
-	e1.addEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(0.1))
+	e1.addEvent(sampleAnalyticsEvent(0.15))
+	e1.addEvent(sampleAnalyticsEvent(0.25))
 
-	e2.addEvent(sampleAnalyticsEvent(6))
-	e2.addEvent(sampleAnalyticsEvent(12))
-	e2.addEvent(sampleAnalyticsEvent(18))
-	e2.addEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(0.06))
+	e2.addEvent(sampleAnalyticsEvent(0.12))
+	e2.addEvent(sampleAnalyticsEvent(0.18))
+	e2.addEvent(sampleAnalyticsEvent(0.24))
 
 	e1.mergeFailed(e2)
 
@@ -156,7 +156,7 @@ func TestAnalyticsEventMergeFailedSuccess(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(json) != `["12345",{"reservoir_size":2,"events_seen":7},[18,24]]` {
+	if string(json) != `["12345",{"reservoir_size":2,"events_seen":7},[0.24,0.25]]` {
 		t.Error(string(json))
 	}
 	if 7 != e1.numSeen {
@@ -174,14 +174,14 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 	e1 := newAnalyticsEvents(2)
 	e2 := newAnalyticsEvents(3)
 
-	e1.addEvent(sampleAnalyticsEvent(5))
-	e1.addEvent(sampleAnalyticsEvent(10))
-	e1.addEvent(sampleAnalyticsEvent(15))
+	e1.addEvent(sampleAnalyticsEvent(0.1))
+	e1.addEvent(sampleAnalyticsEvent(0.15))
+	e1.addEvent(sampleAnalyticsEvent(0.25))
 
-	e2.addEvent(sampleAnalyticsEvent(6))
-	e2.addEvent(sampleAnalyticsEvent(12))
-	e2.addEvent(sampleAnalyticsEvent(18))
-	e2.addEvent(sampleAnalyticsEvent(24))
+	e2.addEvent(sampleAnalyticsEvent(0.06))
+	e2.addEvent(sampleAnalyticsEvent(0.12))
+	e2.addEvent(sampleAnalyticsEvent(0.18))
+	e2.addEvent(sampleAnalyticsEvent(0.24))
 
 	e2.failedHarvests = failedEventsAttemptsLimit
 
@@ -191,7 +191,7 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(json) != `["12345",{"reservoir_size":2,"events_seen":3},[10,15]]` {
+	if string(json) != `["12345",{"reservoir_size":2,"events_seen":3},[0.15,0.25]]` {
 		t.Error(string(json))
 	}
 	if 3 != e1.numSeen {
@@ -207,7 +207,7 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 
 func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 	events := newAnalyticsEvents(maxTxnEvents)
-	event := analyticsEvent{eventStamp(1), w}
+	event := analyticsEvent{0, w}
 	for n := 0; n < maxTxnEvents; n++ {
 		events.addEvent(event)
 	}
@@ -263,4 +263,61 @@ func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
 		},
 	}
 	analyticsEventBenchmarkHelper(b, event)
+}
+
+func TestSplitFull(t *testing.T) {
+	events := newAnalyticsEvents(10)
+	for i := 0; i < 15; i++ {
+		events.addEvent(sampleAnalyticsEvent(Priority(float32(i) / 10.0)))
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	if string(j1) != `["12345",{"reservoir_size":5,"events_seen":5},[0.5,0.7,0.6,0.8,0.9]]` {
+		t.Error(string(j1))
+	}
+	if string(j2) != `["12345",{"reservoir_size":5,"events_seen":10},[1.1,1.4,1,1.3,1.2]]` {
+		t.Error(string(j2))
+	}
+}
+
+func TestSplitNotFullOdd(t *testing.T) {
+	events := newAnalyticsEvents(10)
+	for i := 0; i < 7; i++ {
+		events.addEvent(sampleAnalyticsEvent(Priority(float32(i) / 10.0)))
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	if string(j1) != `["12345",{"reservoir_size":3,"events_seen":3},[0,0.1,0.2]]` {
+		t.Error(string(j1))
+	}
+	if string(j2) != `["12345",{"reservoir_size":4,"events_seen":4},[0.3,0.4,0.5,0.6]]` {
+		t.Error(string(j2))
+	}
+}
+
+func TestSplitNotFullEven(t *testing.T) {
+	events := newAnalyticsEvents(10)
+	for i := 0; i < 8; i++ {
+		events.addEvent(sampleAnalyticsEvent(Priority(float32(i) / 10.0)))
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	if string(j1) != `["12345",{"reservoir_size":4,"events_seen":4},[0,0.1,0.2,0.3]]` {
+		t.Error(string(j1))
+	}
+	if string(j2) != `["12345",{"reservoir_size":4,"events_seen":4},[0.4,0.5,0.6,0.7]]` {
+		t.Error(string(j2))
+	}
 }

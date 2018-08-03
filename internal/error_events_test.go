@@ -6,15 +6,22 @@ import (
 	"time"
 )
 
-func testErrorEventJSON(t *testing.T, e *ErrorEvent, expect string) {
+func testErrorEventJSON(t testing.TB, e *ErrorEvent, expect string) {
 	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
 		return
 	}
 	expect = CompactJSONString(expect)
-	if string(js) != expect {
-		t.Error(string(js), expect)
+	// Type assertion to support early Go versions.
+	if h, ok := t.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
+	actual := string(js)
+	if expect != actual {
+		t.Errorf("\nexpect=%s\nactual=%s\n", expect, actual)
 	}
 }
 
@@ -33,6 +40,43 @@ func TestErrorEventMarshal(t *testing.T) {
 			FinalName: "myName",
 			Duration:  3 * time.Second,
 			Attrs:     nil,
+			BetterCAT: BetterCAT{
+				Enabled:  true,
+				Priority: 0.5,
+				ID:       "txn-guid-id",
+			},
+		},
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3,
+			"guid":"txn-guid-id",
+			"traceId":"txn-guid-id",
+			"priority":0.500000,
+			"sampled":false
+		},
+		{},
+		{}
+	]`)
+
+	// Many error event intrinsics are shared with txn events using sharedEventIntrinsics:  See
+	// the txn event tests.
+}
+
+func TestErrorEventMarshalOldCAT(t *testing.T) {
+	testErrorEventJSON(t, &ErrorEvent{
+		ErrorData: sampleErrorData,
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Attrs:     nil,
+			BetterCAT: BetterCAT{
+				Enabled:  false,
+			},
 		},
 	}, `[
 		{
@@ -46,57 +90,9 @@ func TestErrorEventMarshal(t *testing.T) {
 		{},
 		{}
 	]`)
-	testErrorEventJSON(t, &ErrorEvent{
-		ErrorData: sampleErrorData,
-		TxnEvent: TxnEvent{
-			FinalName: "myName",
-			Duration:  3 * time.Second,
-			Queuing:   5 * time.Second,
-			Attrs:     nil,
-		},
-	}, `[
-		{
-			"type":"TransactionError",
-			"error.class":"*errors.errorString",
-			"error.message":"hello",
-			"timestamp":1.41713646e+09,
-			"transactionName":"myName",
-			"duration":3,
-			"queueDuration":5
-		},
-		{},
-		{}
-	]`)
-	testErrorEventJSON(t, &ErrorEvent{
-		ErrorData: sampleErrorData,
-		TxnEvent: TxnEvent{
-			FinalName: "myName",
-			Duration:  3 * time.Second,
-			Queuing:   5 * time.Second,
-			DatastoreExternalTotals: DatastoreExternalTotals{
-				externalCallCount:  22,
-				externalDuration:   1122334 * time.Millisecond,
-				datastoreCallCount: 33,
-				datastoreDuration:  5566778 * time.Millisecond,
-			},
-		},
-	}, `[
-		{
-			"type":"TransactionError",
-			"error.class":"*errors.errorString",
-			"error.message":"hello",
-			"timestamp":1.41713646e+09,
-			"transactionName":"myName",
-			"duration":3,
-			"queueDuration":5,
-			"externalCallCount":22,
-			"externalDuration":1122.334,
-			"databaseCallCount":33,
-			"databaseDuration":5566.778
-		},
-		{},
-		{}
-	]`)
+
+	// Many error event intrinsics are shared with txn events using sharedEventIntrinsics:  See
+	// the txn event tests.
 }
 
 func TestErrorEventAttributes(t *testing.T) {
@@ -116,6 +112,54 @@ func TestErrorEventAttributes(t *testing.T) {
 			FinalName: "myName",
 			Duration:  3 * time.Second,
 			Attrs:     attr,
+			BetterCAT: BetterCAT{
+				Enabled:  true,
+				Priority: 0.5,
+				ID:       "txn-guid-id",
+			},
+		},
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3,
+			"guid":"txn-guid-id",
+			"traceId":"txn-guid-id",
+ 			"priority":0.500000,
+ 			"sampled":false
+		},
+		{
+			"zip":456
+		},
+		{
+			"request.method":"GET"
+		}
+	]`)
+}
+
+func TestErrorEventAttributesOldCAT(t *testing.T) {
+	aci := sampleAttributeConfigInput
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
+	cfg := CreateAttributeConfig(aci, true)
+	attr := NewAttributes(cfg)
+	attr.Agent.HostDisplayName = "exclude me"
+	attr.Agent.RequestMethod = "GET"
+	AddUserAttribute(attr, "zap", 123, DestAll)
+	AddUserAttribute(attr, "zip", 456, DestAll)
+
+	testErrorEventJSON(t, &ErrorEvent{
+		ErrorData: sampleErrorData,
+		TxnEvent: TxnEvent{
+			FinalName: "myName",
+			Duration:  3 * time.Second,
+			Attrs:     attr,
+			BetterCAT: BetterCAT{
+				Enabled:  false,
+			},
 		},
 	}, `[
 		{
@@ -132,5 +176,52 @@ func TestErrorEventAttributes(t *testing.T) {
 		{
 			"request.method":"GET"
 		}
+	]`)
+}
+
+func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
+	e := TxnEvent{
+		FinalName: "myName",
+		Duration:  3 * time.Second,
+		Attrs:     nil,
+	}
+
+	e.BetterCAT.Enabled = true
+	e.BetterCAT.Inbound = &Payload{
+		payloadCaller: payloadCaller{
+			TransportType: "HTTP",
+			Type:          "Browser",
+			App:           "caller-app",
+			Account:       "caller-account",
+		},
+		ID:                "caller-id",
+		TransactionID:     "caller-parent-id",
+		TracedID:          "trip-id",
+		TransportDuration: 2 * time.Second,
+	}
+
+	testErrorEventJSON(t, &ErrorEvent{
+		ErrorData: sampleErrorData,
+		TxnEvent:  e,
+	}, `[
+		{
+			"type":"TransactionError",
+			"error.class":"*errors.errorString",
+			"error.message":"hello",
+			"timestamp":1.41713646e+09,
+			"transactionName":"myName",
+			"duration":3,
+			"parent.type": "Browser",
+			"parent.app": "caller-app",
+			"parent.account": "caller-account",
+			"parent.transportType": "HTTP",
+			"parent.transportDuration": 2,
+			"guid":"",
+			"traceId":"trip-id",
+			"priority":0.000000,
+			"sampled":false
+		},
+		{},
+		{}
 	]`)
 }

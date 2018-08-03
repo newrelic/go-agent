@@ -78,6 +78,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
+			"DistributedTracer":{"Enabled":false},
 			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
@@ -196,6 +197,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
+			"DistributedTracer":{"Enabled":false},
 			"Enabled":true,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
@@ -327,6 +329,16 @@ func TestValidate(t *testing.T) {
 		HighSecurity: true,
 	}
 	if err := c.Validate(); err != nil {
+		t.Error(err)
+	}
+	c = Config{
+		License: "0123456789012345678901234567890123456789",
+		AppName: "my-app",
+		Enabled: true,
+	}
+	c.CrossApplicationTracer.Enabled = true
+	c.DistributedTracer.Enabled = true
+	if err := c.Validate(); err != errMixedTracers {
 		t.Error(err)
 	}
 }

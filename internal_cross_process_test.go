@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"errors"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/cat"
 )
@@ -17,42 +18,6 @@ var (
 			12345: struct{}{},
 		}
 	}
-)
-
-func inboundHeaders(t *testing.T) http.Header {
-	app := testApp(crossProcessReplyFn, nil, t)
-	clientTxn := app.StartTransaction("client", nil, nil)
-	req, err := http.NewRequest("GET", "newrelic.com", nil)
-	if nil != err {
-		t.Fatal(err)
-	}
-	StartExternalSegment(clientTxn, req)
-	if "" == req.Header.Get(cat.NewRelicIDName) {
-		t.Fatal(req.Header.Get(cat.NewRelicIDName))
-	}
-	if "" == req.Header.Get(cat.NewRelicTxnName) {
-		t.Fatal(req.Header.Get(cat.NewRelicTxnName))
-	}
-	return req.Header
-}
-
-var (
-	inboundCrossProcessRequest = func() *http.Request {
-		app := testApp(crossProcessReplyFn, nil, nil)
-		clientTxn := app.StartTransaction("client", nil, nil)
-		req, err := http.NewRequest("GET", "newrelic.com", nil)
-		StartExternalSegment(clientTxn, req)
-		if "" == req.Header.Get(cat.NewRelicIDName) {
-			panic("missing cat header NewRelicIDName: " + req.Header.Get(cat.NewRelicIDName))
-		}
-		if "" == req.Header.Get(cat.NewRelicTxnName) {
-			panic("missing cat header NewRelicTxnName: " + req.Header.Get(cat.NewRelicTxnName))
-		}
-		if nil != err {
-			panic(err)
-		}
-		return req
-	}()
 	catIntrinsics = map[string]interface{}{
 		"name":                        "WebTransaction/Go/hello",
 		"nr.pathHash":                 "fa013f2a",
@@ -65,12 +30,31 @@ var (
 	}
 )
 
+func inboundCrossProcessRequestFactory() *http.Request {
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	app := testApp(crossProcessReplyFn, cfgFn, nil)
+	clientTxn := app.StartTransaction("client", nil, nil)
+	req, err := http.NewRequest("GET", "newrelic.com", nil)
+	StartExternalSegment(clientTxn, req)
+	if "" == req.Header.Get(cat.NewRelicIDName) {
+		panic("missing cat header NewRelicIDName: " + req.Header.Get(cat.NewRelicIDName))
+	}
+	if "" == req.Header.Get(cat.NewRelicTxnName) {
+		panic("missing cat header NewRelicTxnName: " + req.Header.Get(cat.NewRelicTxnName))
+	}
+	if nil != err {
+		panic(err)
+	}
+	return req
+}
+
 func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	// Test that the CAT response header is present when the consumer uses
 	// txn.WriteHeader.
-	app := testApp(crossProcessReplyFn, nil, t)
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequest)
+	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
 	txn.WriteHeader(200)
 	txn.End()
 
@@ -92,9 +76,10 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 func TestCrossProcessWriteSuccess(t *testing.T) {
 	// Test that the CAT response header is present when the consumer uses
 	// txn.Write.
-	app := testApp(crossProcessReplyFn, nil, t)
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequest)
+	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
 	txn.Write([]byte("response text"))
 	txn.End()
 
@@ -109,5 +94,53 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 		// response.headers.contentType will be not be present.
 		AgentAttributes: nil,
 		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestCATRoundTripper(t *testing.T) {
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	app := testApp(nil, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	url := "http://example.com/"
+	client := &http.Client{}
+	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		// TODO test that request headers have been set here.
+		if r.URL.String() != url {
+			t.Error(r.URL.String())
+		}
+		return nil, errors.New("hello")
+	})
+	client.Transport = NewRoundTripper(txn, inner)
+	resp, err := client.Get(url)
+	if resp != nil || err == nil {
+		t.Error(resp, err.Error())
+	}
+	txn.NoticeError(myError{})
+	txn.End()
+	scope := "OtherTransaction/Go/hello"
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+	}, backgroundErrorMetrics...))
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":       "newrelic.myError",
+			"error.message":     "my msg",
+			"transactionName":   "OtherTransaction/Go/hello",
+			"externalCallCount": 1,
+			"externalDuration":  internal.MatchAnything,
+		},
+	}})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":              "OtherTransaction/Go/hello",
+			"externalCallCount": 1,
+			"externalDuration":  internal.MatchAnything,
+			"nr.guid":           internal.MatchAnything,
+			"nr.tripId":         internal.MatchAnything,
+			"nr.pathHash":       internal.MatchAnything,
+		},
 	}})
 }

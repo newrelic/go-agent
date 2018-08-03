@@ -407,8 +407,8 @@ func expectSlowQuery(t Validator, slowQuery *slowQuery, want WantSlowQuery) {
 	}
 	validateStringField(t, "MetricName", slowQuery.DatastoreMetric, want.MetricName)
 	validateStringField(t, "Query", slowQuery.ParameterizedQuery, want.Query)
-	validateStringField(t, "TxnName", slowQuery.TxnName, want.TxnName)
-	validateStringField(t, "TxnURL", slowQuery.TxnURL, want.TxnURL)
+	validateStringField(t, "TxnEvent.FinalName", slowQuery.TxnEvent.FinalName, want.TxnName)
+	validateStringField(t, "TxnEvent.CleanURL", slowQuery.TxnEvent.CleanURL, want.TxnURL)
 	validateStringField(t, "DatabaseName", slowQuery.DatabaseName, want.DatabaseName)
 	validateStringField(t, "Host", slowQuery.Host, want.Host)
 	validateStringField(t, "PortPathOrID", slowQuery.PortPathOrID, want.PortPathOrID)

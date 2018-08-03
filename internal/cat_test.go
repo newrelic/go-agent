@@ -97,7 +97,7 @@ func TestCatMap(t *testing.T) {
 			Name: tc.TransactionName,
 		}
 
-		tr.CrossProcess.Init(true, &ConnectReply{
+		tr.CrossProcess.Init(true, false, &ConnectReply{
 			CrossProcessID:  "1#1",
 			EncodingKey:     "foo",
 			TrustedAccounts: map[int]struct{}{1: struct{}{}},

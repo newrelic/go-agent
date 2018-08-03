@@ -36,11 +36,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.CustomEvents.Add(customE)
 
 	txnE := &TxnEvent{}
-	h.TxnEvents.AddTxnEvent(txnE)
-	h.TxnEvents.AddTxnEvent(txnE)
+	h.TxnEvents.AddTxnEvent(txnE, 0)
+	h.TxnEvents.AddTxnEvent(txnE, 0)
 
-	h.ErrorEvents.Add(&ErrorEvent{})
-	h.ErrorEvents.Add(&ErrorEvent{})
+	h.ErrorEvents.Add(&ErrorEvent{}, 0)
+	h.ErrorEvents.Add(&ErrorEvent{}, 0)
 
 	h.CreateFinalMetrics()
 	ExpectMetrics(t, h.Metrics, []WantMetric{
@@ -57,7 +57,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 
 func TestEmptyPayloads(t *testing.T) {
 	h := NewHarvest(time.Now())
-	payloads := h.Payloads()
+	payloads := h.Payloads(true)
 	for _, p := range payloads {
 		d, err := p.Data("agentRunID", time.Now())
 		if d != nil || err != nil {
@@ -75,7 +75,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		FinalName: "finalName",
 		Start:     time.Now(),
 		Duration:  1 * time.Second,
-	})
+	}, 0)
 	customEventParams := map[string]interface{}{"zip": 1}
 	ce, err := CreateCustomEvent("myEvent", customEventParams, time.Now())
 	if nil != err {
@@ -92,7 +92,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 			FinalName: "finalName",
 			Duration:  1 * time.Second,
 		},
-	})
+	}, 0)
 
 	ers := NewTxnErrors(10)
 	ers.Add(ErrorData{
@@ -156,7 +156,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if start2 != nextHarvest.Metrics.metricPeriodStart {
 		t.Error(nextHarvest.Metrics.metricPeriodStart)
 	}
-	payloads := h.Payloads()
+	payloads := h.Payloads(true)
 	for _, p := range payloads {
 		p.MergeIntoHarvest(nextHarvest)
 	}
@@ -210,6 +210,110 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.Duration = 123 * time.Second
 	args.Exclusive = 109 * time.Second
 	args.ApdexThreshold = 2 * time.Second
+
+	args.BetterCAT.Enabled = true
+
+	args.FinalName = webName
+	args.IsWeb = true
+	args.Errors = txnErrors
+	args.Zone = ApdexTolerating
+	metrics := newMetricTable(100, time.Now())
+	CreateTxnMetrics(args, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/allWeb", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/" + webName, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
+		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 0, 0, 0, 0, 0}},
+	})
+
+	args.FinalName = webName
+	args.IsWeb = true
+	args.Errors = nil
+	args.Zone = ApdexTolerating
+	metrics = newMetricTable(100, time.Now())
+	CreateTxnMetrics(args, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{webName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
+		{apdexRollup, "", true, []float64{0, 1, 0, 2, 2, 0}},
+		{"Apdex/zip/zap", "", false, []float64{0, 1, 0, 2, 2, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+	})
+
+	args.FinalName = backgroundName
+	args.IsWeb = false
+	args.Errors = txnErrors
+	args.Zone = ApdexNone
+	metrics = newMetricTable(100, time.Now())
+	CreateTxnMetrics(args, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/allOther", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"Errors/" + backgroundName, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{"ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 0, 0, 0, 0, 0}},
+	})
+
+	args.FinalName = backgroundName
+	args.IsWeb = false
+	args.Errors = nil
+	args.Zone = ApdexNone
+	metrics = newMetricTable(100, time.Now())
+	CreateTxnMetrics(args, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
+	})
+
+}
+
+
+func TestHarvestSplitTxnEvents(t *testing.T) {
+	now := time.Now()
+	h := NewHarvest(now)
+	for i := 0; i < maxTxnEvents; i++ {
+		h.TxnEvents.AddTxnEvent(&TxnEvent{}, Priority(float32(i)))
+	}
+
+	payloadsWithSplit := h.Payloads(true)
+	payloadsWithoutSplit := h.Payloads(false)
+
+	if len(payloadsWithSplit) != 8 {
+		t.Error(len(payloadsWithSplit))
+	}
+	if len(payloadsWithoutSplit) != 7 {
+		t.Error(len(payloadsWithoutSplit))
+	}
+}
+
+func TestCreateTxnMetricsOldCAT(t *testing.T) {
+	txnErr := &ErrorData{}
+	txnErrors := []*ErrorData{txnErr}
+	webName := "WebTransaction/zip/zap"
+	backgroundName := "OtherTransaction/zip/zap"
+	args := &TxnData{}
+	args.Duration = 123 * time.Second
+	args.Exclusive = 109 * time.Second
+	args.ApdexThreshold = 2 * time.Second
+
+	// When BetterCAT is disabled, affirm that the caller metrics are not created.
+	args.BetterCAT.Enabled = false
 
 	args.FinalName = webName
 	args.IsWeb = true
@@ -266,5 +370,4 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 	})
-
 }

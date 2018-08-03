@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+var (
+	sampleLicense = "0123456789012345678901234567890123456789"
+)
+
 // BenchmarkMuxWithoutNewRelic acts as a control against the other mux
 // benchmarks.
 func BenchmarkMuxWithoutNewRelic(b *testing.B) {
