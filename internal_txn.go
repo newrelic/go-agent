@@ -20,11 +20,6 @@ type txnInput struct {
 	attrConfig *internal.AttributeConfig
 }
 
-func newTxnID() string {
-	bits := internal.RandUint64()
-	return fmt.Sprintf("%x", bits)
-}
-
 type txn struct {
 	txnInput
 	// This mutex is required since the consumer may call the public API
@@ -56,7 +51,16 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
 		txn.BetterCAT.Priority = internal.NewPriority()
-		txn.BetterCAT.ID = newTxnID()
+		txn.BetterCAT.ID = internal.NewSpanID()
+
+		// Calculate sampled at the beginning of the transaction (rather
+		// than lazily at payload creation time) because it controls the
+		// creation of span events.
+		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), txn.Start)
+		if txn.BetterCAT.Sampled {
+			txn.BetterCAT.Priority += 1.0
+		}
+		txn.SpanEventsEnabled = input.Config.SpanEvents.Enabled
 	}
 
 	if nil != req {
@@ -174,6 +178,10 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 
 	if nil != txn.SlowQueries {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.TxnEvent)
+	}
+
+	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+		h.SpanEvents.MergeFromTransaction(&txn.TxnData)
 	}
 }
 
@@ -662,30 +670,24 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 		return
 	}
 
-	if 0 == txn.numPayloadsCreated && nil == txn.BetterCAT.Inbound {
-		// Lazily calculate if a transaction should be sampled:
-		// currently, only transactions which create payloads may be
-		// sampled.  This behavior is still under discussion.
-		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
-		if txn.BetterCAT.Sampled {
-			txn.BetterCAT.Priority += 1.0
-		}
-	}
 	txn.numPayloadsCreated++
 
 	var p internal.Payload
 	p.Type = internal.CallerType
 	p.Account = txn.Reply.AccountID
 
-
 	p.App = txn.Reply.PrimaryAppID
 	p.TracedID = txn.BetterCAT.TraceID()
 	p.Priority = txn.BetterCAT.Priority
 	p.Timestamp.Set(time.Now())
-	p.TransactionID = txn.BetterCAT.ID  // Set the transaction ID to the transaction guid.
+	p.TransactionID = txn.BetterCAT.ID // Set the transaction ID to the transaction guid.
 
 	if txn.Reply.AccountID != txn.Reply.TrustedAccountKey {
 		p.TrustedAccountKey = txn.Reply.TrustedAccountKey
+	}
+
+	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+		p.ID = txn.CurrentSpanIdentifier()
 	}
 
 	// limit the number of outbound sampled=true payloads to prevent too

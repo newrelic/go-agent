@@ -16,14 +16,14 @@ func assert(t testing.TB, expectTrue bool) {
 	}
 }
 
-func TestNilSampler(t *testing.T) {
-	var sampler *AdaptiveSampler
-	assert(t, !sampler.ComputeSampled(1.0, time.Now()))
+func TestDefaultReplyValidSampler(t *testing.T) {
+	reply := ConnectReplyDefaults()
+	assert(t, !reply.AdaptiveSampler.ComputeSampled(1.0, time.Now()))
 }
 
 func TestAdaptiveSampler(t *testing.T) {
 	start := time.Now()
-	sampler := NewAdaptiveSampler(AdaptiveSamplerInput{
+	sampler := newAdaptiveSampler(adaptiveSamplerInput{
 		Period: 60 * time.Second,
 		Target: 2,
 	}, start)
@@ -61,7 +61,7 @@ func TestAdaptiveSampler(t *testing.T) {
 
 func TestAdaptiveSamplerSkipPeriod(t *testing.T) {
 	start := time.Now()
-	sampler := NewAdaptiveSampler(AdaptiveSamplerInput{
+	sampler := newAdaptiveSampler(adaptiveSamplerInput{
 		Period: 60 * time.Second,
 		Target: 2,
 	}, start)
@@ -85,7 +85,7 @@ func TestAdaptiveSamplerTarget(t *testing.T) {
 	var target uint64
 	target = 20
 	start := time.Now()
-	sampler := NewAdaptiveSampler(AdaptiveSamplerInput{
+	sampler := newAdaptiveSampler(adaptiveSamplerInput{
 		Period: 60 * time.Second,
 		Target: target,
 	}, start)

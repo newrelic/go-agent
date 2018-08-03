@@ -18,6 +18,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{txnEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
 		{errorEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
 		{errorEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
+		{spanEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
+		{spanEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
 	})
 
 	h = NewHarvest(now)
@@ -52,6 +54,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{errorEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
 		{errorEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{supportabilityDropped, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{spanEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
+		{spanEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -283,7 +287,6 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 }
 
-
 func TestHarvestSplitTxnEvents(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now)
@@ -294,10 +297,10 @@ func TestHarvestSplitTxnEvents(t *testing.T) {
 	payloadsWithSplit := h.Payloads(true)
 	payloadsWithoutSplit := h.Payloads(false)
 
-	if len(payloadsWithSplit) != 8 {
+	if len(payloadsWithSplit) != 9 {
 		t.Error(len(payloadsWithSplit))
 	}
-	if len(payloadsWithoutSplit) != 7 {
+	if len(payloadsWithoutSplit) != 8 {
 		t.Error(len(payloadsWithoutSplit))
 	}
 }

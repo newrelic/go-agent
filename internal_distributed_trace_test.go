@@ -38,11 +38,7 @@ func distributedTracingReplyFields(reply *internal.ConnectReply) {
 	}
 	reply.TrustedAccountKey = "123"
 
-	reply.AdaptiveSampler = internal.NewAdaptiveSampler(internal.AdaptiveSamplerInput{
-		Period: time.Duration(60) * time.Second,
-		Target: 10,
-	}, time.Now())
-
+	reply.AdaptiveSampler = internal.SampleEverything{}
 }
 
 func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
@@ -110,6 +106,7 @@ func TestPayloadConnection(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 ip.TransactionID,
 			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -157,6 +154,7 @@ func TestAcceptMultiple(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 ip.TransactionID,
 			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -199,6 +197,7 @@ func TestPayloadConnectionText(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 ip.TransactionID,
 			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -250,6 +249,7 @@ func TestPayloadConnectionHTTPSafe(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 ip.TransactionID,
 			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -474,12 +474,12 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
 			"parent.type":              "App",
 			"parent.account":           "123",
 			"parent.app":               "456",
-			"parentSpanId":             "id",
 			"parent.transportType":     "Unknown",
 			"parent.transportDuration": internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
+			"traceId":                  "traceID",
+			"parentSpanId":             "id",
 			"guid":                     internal.MatchAnything,
 		},
 	}})
@@ -584,6 +584,7 @@ func TestPayloadFromFuture(t *testing.T) {
 			"parent.transportDuration": 0,
 			"parentId":                 ip.TransactionID,
 			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,

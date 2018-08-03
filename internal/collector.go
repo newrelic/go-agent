@@ -28,6 +28,7 @@ const (
 	cmdErrorData    = "error_data"
 	cmdTxnTraces    = "transaction_sample_data"
 	cmdSlowSQLs     = "sql_trace_data"
+	cmdSpanEvents   = "span_event_data"
 )
 
 var (
@@ -329,7 +330,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 
 	reply.PreconnectReply = preconnect
 
-	reply.AdaptiveSampler = NewAdaptiveSampler(AdaptiveSamplerInput{
+	reply.AdaptiveSampler = newAdaptiveSampler(adaptiveSamplerInput{
 		Period: time.Duration(reply.SamplingTargetPeriodInSeconds) * time.Second,
 		Target: reply.SamplingTarget,
 	}, time.Now())

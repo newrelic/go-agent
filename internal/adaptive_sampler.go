@@ -6,16 +6,33 @@ import (
 	"time"
 )
 
-// AdaptiveSamplerInput holds input fields for the NewAdaptiveSampler function
-type AdaptiveSamplerInput struct {
+// adaptiveSamplerInput holds input fields for the NewAdaptiveSampler function
+type adaptiveSamplerInput struct {
 	Period time.Duration
 	Target uint64
 }
 
-// AdaptiveSampler calculates which transactions should be sampled.
-type AdaptiveSampler struct {
+// AdaptiveSampler calculates which transactions should be sampled.  An interface
+// is used in the connect reply to facilitate testing.
+type AdaptiveSampler interface {
+	ComputeSampled(priority float32, now time.Time) bool
+}
+
+// SampleEverything is used for testing.
+type SampleEverything struct{}
+
+// SampleNothing is used when the application is not yet connected.
+type SampleNothing struct{}
+
+// ComputeSampled implements AdaptiveSampler.
+func (s SampleEverything) ComputeSampled(priority float32, now time.Time) bool { return true }
+
+// ComputeSampled implements AdaptiveSampler.
+func (s SampleNothing) ComputeSampled(priority float32, now time.Time) bool { return false }
+
+type adaptiveSampler struct {
 	sync.Mutex
-	AdaptiveSamplerInput
+	adaptiveSamplerInput
 
 	// Transactions with priority higher than this are sampled.
 	// This is 1 - sampleRatio.
@@ -28,10 +45,9 @@ type AdaptiveSampler struct {
 	}
 }
 
-// NewAdaptiveSampler is a constructor-like function that gives us an AdaptiveSampler
-func NewAdaptiveSampler(input AdaptiveSamplerInput, now time.Time) *AdaptiveSampler {
-	as := &AdaptiveSampler{}
-	as.AdaptiveSamplerInput = input
+func newAdaptiveSampler(input adaptiveSamplerInput, now time.Time) *adaptiveSampler {
+	as := &adaptiveSampler{}
+	as.adaptiveSamplerInput = input
 	as.currentPeriod.end = now.Add(input.Period)
 
 	// Sample the first transactions in the first period.
@@ -40,11 +56,7 @@ func NewAdaptiveSampler(input AdaptiveSamplerInput, now time.Time) *AdaptiveSamp
 }
 
 // ComputeSampled calculates if the transaction should be sampled.
-func (as *AdaptiveSampler) ComputeSampled(priority float32, now time.Time) bool {
-	if nil == as {
-		return false
-	}
-
+func (as *adaptiveSampler) ComputeSampled(priority float32, now time.Time) bool {
 	as.Lock()
 	defer as.Unlock()
 
@@ -86,7 +98,7 @@ func (as *AdaptiveSampler) ComputeSampled(priority float32, now time.Time) bool 
 	return false
 }
 
-func (as *AdaptiveSampler) computeSampledBackoff(target uint64, decidedCount uint64, sampledTrueCount uint64) bool {
+func (as *adaptiveSampler) computeSampledBackoff(target uint64, decidedCount uint64, sampledTrueCount uint64) bool {
 	return float64(RandUint64N(decidedCount)) <
 		math.Pow(float64(target), (float64(target)/float64(sampledTrueCount)))-math.Pow(float64(target), 0.5)
 }

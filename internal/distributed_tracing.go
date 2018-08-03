@@ -46,7 +46,7 @@ func (tm *timestampMillis) Set(t time.Time) { *tm = timestampMillis(t) }
 type Payload struct {
 	payloadCaller
 	TransactionID     string          `json:"tx,omitempty"`
-	ID                string          `json:"id"`
+	ID                string          `json:"id,omitempty"`
 	TracedID          string          `json:"tr"`
 	Priority          Priority        `json:"pr"`
 	Sampled           *bool           `json:"sa"`

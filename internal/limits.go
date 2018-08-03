@@ -36,6 +36,7 @@ const (
 	maxErrorEvents      = 100
 	maxHarvestErrors    = 20
 	maxHarvestSlowSQLs  = 10
+	maxSpanEvents       = 1000
 
 	// attributes
 	attributeKeyLengthLimit   = 255
