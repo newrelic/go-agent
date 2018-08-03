@@ -260,9 +260,9 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 		if "" == s.SpanID {
 			s.SpanID = NewSpanID()
 		}
-		// Note that the current span identifier is the parent because
-		// we've already modified the popped the segment that's ending
-		// off of the stack.
+		// Note that the current span identifier is the parent's
+		// identifier because we've already popped the segment that's
+		// ending off of the stack.
 		s.ParentID = t.CurrentSpanIdentifier()
 	}
 
