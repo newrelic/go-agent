@@ -4,12 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
-	"net/http"
 )
 
 type PayloadTest struct {
