@@ -782,8 +782,6 @@ func TestNilPayload(t *testing.T) {
 		t.Error(err)
 	}
 
-	txn.NoticeError(errors.New("oh no"))
-
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
