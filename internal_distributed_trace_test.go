@@ -789,7 +789,6 @@ func TestNilPayload(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
 	})
-
 }
 
 func TestNoticeErrorPayload(t *testing.T) {
