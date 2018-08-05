@@ -114,6 +114,50 @@ func TestPayloadConnection(t *testing.T) {
 	}})
 }
 
+func TestAcceptUnknownTransport(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	payload := makePayload(app, nil)
+	ip, ok := payload.(internal.Payload)
+	if !ok {
+		t.Fatal(payload)
+	}
+	txn := app.StartTransaction("hello", nil, nil)
+	tt := TransportType{ "JetPlane" }
+	err := txn.AcceptDistributedTracePayload(tt, payload)
+	if nil != err {
+		t.Error(err)
+	}
+	err = txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/App/123/456/JetPlane/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/JetPlane/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/JetPlane/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/JetPlane/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+	})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":                     "OtherTransaction/Go/hello",
+			"parent.type":              "App",
+			"parent.account":           "123",
+			"parent.app":               "456",
+			"parent.transportType":     "JetPlane",
+			"parent.transportDuration": internal.MatchAnything,
+			"parentId":                 ip.TransactionID,
+			"traceId":                  ip.TransactionID,
+			"parentSpanId":             ip.ID,
+			"guid":                     internal.MatchAnything,
+			"sampled":                  internal.MatchAnything,
+			"priority":                 internal.MatchAnything,
+		},
+	}})
+}
+
 func TestAcceptMultiple(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app, nil)
