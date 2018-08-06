@@ -435,7 +435,11 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
 	// A user has two options when it comes to TransportType.  They can either use one of the
 	// defined vars, like TransportHTTP, or create their own empty variable. The name field inside of
 	// the TransportType struct is not exported outside of the package so users cannot modify its value.
-	// This test makes sure empty an TransportType resolves to "Unknown"
+	// When they make the attempt, Go reports:
+	//
+	// implicit assignment of unexported field 'name' in newrelic.TransportType literal.
+	//
+	// This test makes sure an empty TransportType resolves to "Unknown"
 	var emptyTransport TransportType
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
@@ -784,6 +788,30 @@ func TestNilPayload(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
+	})
+}
+
+func TestNoticeErrorPayload(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+
+	txn := app.StartTransaction("hello", nil, nil)
+	txn.NoticeError(errors.New("oh no"))
+
+	err := txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 }
 
