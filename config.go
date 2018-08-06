@@ -44,7 +44,7 @@ type Config struct {
 
 	// SecurityPoliciesToken enables security policies if set to a non-empty
 	// string.  Only set this if security policies have been enabled on your
-	// account.  This cannot be used in conjuction with HighSecurity.
+	// account.  This cannot be used in conjunction with HighSecurity.
 	SecurityPoliciesToken string
 
 	// CustomInsightsEvents controls the behavior of
