@@ -37,6 +37,7 @@ type TxnEvent struct {
 	CleanURL     string
 	CrossProcess TxnCrossProcess
 	BetterCAT    BetterCAT
+	HasError     bool
 }
 
 // BetterCAT stores the transaction's priority and all fields related

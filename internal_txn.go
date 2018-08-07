@@ -402,7 +402,7 @@ func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 	}
 
 	txn.Errors.Add(err)
-
+	txn.TxnData.TxnEvent.HasError = true //mark transaction as having an error
 	return nil
 }
 

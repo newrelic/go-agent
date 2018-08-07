@@ -288,6 +288,7 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 					"type":      "Transaction",
 					"timestamp": MatchAnything,
 					"duration":  MatchAnything,
+					"error":     MatchAnything,
 				}, e.Intrinsics)
 			}
 			expectEvent(v, event, e)

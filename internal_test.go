@@ -1510,3 +1510,19 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 		NumSegments: 0,
 	}})
 }
+
+func TestNoticeErrorTxnEvents(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(myError{})
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":  "OtherTransaction/Go/hello",
+			"error": true,
+		},
+	}})
+}
