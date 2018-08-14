@@ -567,8 +567,20 @@ func endDatastore(s *DatastoreSegment) error {
 
 func externalSegmentMethod(s *ExternalSegment) string {
 	r := s.Request
+
+	// Is this a client request?
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+
+		// Golang's http package states that when a client's
+		// Request has an empty string for Method, the
+		// method is GET.
+		if "" == r.Method {
+			return "GET"
+		}
+	}
 	if nil == r {
-		return "GET"
+		return ""
 	}
 	return r.Method
 }
