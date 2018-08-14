@@ -92,7 +92,7 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 			w.stringField("http.method", ex.Method)
 		}
 		w.stringField("span.kind", "client")
-		w.stringField("component", "component")
+		w.stringField("component", "http")
 	}
 
 	buf.WriteByte('}')
