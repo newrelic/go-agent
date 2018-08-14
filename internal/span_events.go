@@ -41,6 +41,8 @@ type spanDatastoreExtras struct {
 
 type spanExternalExtras struct {
 	URL string
+	Method string
+	Component string
 }
 
 func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
@@ -86,7 +88,11 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 		if "" != ex.URL {
 			w.stringField("http.url", ex.URL)
 		}
+		if "" != ex.Method {
+			w.stringField("http.method", ex.Method)
+		}
 		w.stringField("span.kind", "client")
+		w.stringField("component", "component")
 	}
 
 	buf.WriteByte('}')
