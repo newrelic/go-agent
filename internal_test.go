@@ -729,7 +729,7 @@ func TestExternalSegmentMethod(t *testing.T) {
 
 	// empty segment
 	m := externalSegmentMethod(&ExternalSegment{})
-	if "" != m  {
+	if "" != m {
 		t.Error(m)
 	}
 
