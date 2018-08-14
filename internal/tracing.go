@@ -303,7 +303,7 @@ func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name str
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, resp *http.Response) error {
+func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response) error {
 	end, err := endSegment(t, start, now)
 	if nil != err {
 		return err
@@ -364,7 +364,7 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 		evt.Category = spanCategoryHTTP
 		evt.ExternalExtras = &spanExternalExtras{
 			URL: SafeURL(u),
-			Method: resp.Request.Method,
+			Method: method,
 		}
 		t.saveSpanEvent(evt)
 	}

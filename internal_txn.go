@@ -565,6 +565,14 @@ func endDatastore(s *DatastoreSegment) error {
 	})
 }
 
+func externalSegmentMethod(s *ExternalSegment) string {
+	r := s.Request
+	if nil == r {
+		return "GET"
+	}
+	return r.Method
+}
+
 func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 	if "" != s.URL {
 		return url.Parse(s.URL)
@@ -590,11 +598,12 @@ func endExternal(s *ExternalSegment) error {
 	if txn.finished {
 		return errAlreadyEnded
 	}
+	m := externalSegmentMethod(s)
 	u, err := externalSegmentURL(s)
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, m, s.Response)
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending
