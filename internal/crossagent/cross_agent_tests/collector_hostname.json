@@ -59,6 +59,12 @@
     "hostname": "other-collector.newrelic.com"
   },
   {
+    "name": "env var host override default with default env key",
+    "env_key": "eu01xx66c637a29c3982469a3fe8d1982d002c4a",
+    "env_override_host": "collector.newrelic.com",
+    "hostname": "collector.newrelic.com"
+  },
+  {
     "name": "No specified key defaults to collector.newrelic.com",
     "hostname": "collector.newrelic.com"
   }
