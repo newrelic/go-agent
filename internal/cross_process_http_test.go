@@ -10,7 +10,7 @@ import (
 
 func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	txp := &TxnCrossProcess{}
-	if err := txp.InitFromHTTPRequest(true, replyAccountOne, nil); err != nil {
+	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, nil); err != nil {
 		t.Errorf("got error while initialising without a request: %v", err)
 	}
 	if txp.IsInbound() {
@@ -22,7 +22,7 @@ func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := txp.InitFromHTTPRequest(true, replyAccountOne, req); err != nil {
+	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, req); err != nil {
 		t.Errorf("got error while initialising with an empty request: %v", err)
 	}
 	if txp.IsInbound() {
@@ -36,7 +36,7 @@ func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	}
 	req.Header.Add(cat.NewRelicIDName, mustObfuscate(`1#1`, "foo"))
 	req.Header.Add(cat.NewRelicTxnName, mustObfuscate(`["abcdefgh",false,"12345678","b95be233"]`, "foo"))
-	if err := txp.InitFromHTTPRequest(true, replyAccountOne, req); err != nil {
+	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, req); err != nil {
 		t.Errorf("got error while initialising with an inbound CAT request: %v", err)
 	}
 	if !txp.IsInbound() {

@@ -29,6 +29,10 @@ var (
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	}
+	backgroundMetricsUnknownCaller = append([]internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundMetrics...)
 	backgroundErrorMetrics = append([]internal.WantMetric{
 		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: singleCount},
@@ -73,8 +77,7 @@ func (rw *compatibleResponseRecorder) WriteHeader(code int) {
 }
 
 var (
-	sampleLicense = "0123456789012345678901234567890123456789"
-	validParams   = map[string]interface{}{"zip": 1, "zap": 2}
+	validParams = map[string]interface{}{"zip": 1, "zap": 2}
 )
 
 var (
@@ -1299,6 +1302,51 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 }
 
 func TestRoundTripper(t *testing.T) {
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
+	app := testApp(nil, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	url := "http://example.com/"
+	client := &http.Client{}
+	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		// TODO test that request headers have been set here.
+		if r.URL.String() != url {
+			t.Error(r.URL.String())
+		}
+		return nil, errors.New("hello")
+	})
+	client.Transport = NewRoundTripper(txn, inner)
+	resp, err := client.Get(url)
+	if resp != nil || err == nil {
+		t.Error(resp, err.Error())
+	}
+	txn.NoticeError(myError{})
+	txn.End()
+	scope := "OtherTransaction/Go/hello"
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+	}, backgroundErrorMetrics...))
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":       "newrelic.myError",
+			"error.message":     "my msg",
+			"transactionName":   "OtherTransaction/Go/hello",
+			"externalCallCount": 1,
+			"externalDuration":  internal.MatchAnything,
+		},
+	}})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":              "OtherTransaction/Go/hello",
+			"externalCallCount": 1,
+			"externalDuration":  internal.MatchAnything,
+		},
+	}})
+}
+
+func TestRoundTripperOldCAT(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	url := "http://example.com/"
@@ -1338,8 +1386,8 @@ func TestRoundTripper(t *testing.T) {
 			"name":              "OtherTransaction/Go/hello",
 			"externalCallCount": 1,
 			"externalDuration":  internal.MatchAnything,
-			"nr.guid":           internal.MatchAnything,
 			"nr.tripId":         internal.MatchAnything,
+			"nr.guid":           internal.MatchAnything,
 			"nr.pathHash":       internal.MatchAnything,
 		},
 	}})

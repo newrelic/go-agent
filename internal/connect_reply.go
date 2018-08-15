@@ -60,6 +60,15 @@ type ConnectReply struct {
 		Message string `json:"message"`
 		Level   string `json:"level"`
 	} `json:"messages"`
+
+	AdaptiveSampler *AdaptiveSampler
+
+	// BetterCAT/Distributed Tracing
+	AccountID                     string `json:"account_id"`
+	TrustedAccountKey             string `json:"trusted_account_key"`
+	PrimaryAppID                  string `json:"primary_application_id"`
+	SamplingTarget                uint64 `json:"sampling_target"`
+	SamplingTargetPeriodInSeconds int    `json:"sampling_target_period_in_seconds"`
 }
 
 type trustedAccountSet map[int]struct{}
@@ -88,12 +97,14 @@ func (t *trustedAccountSet) UnmarshalJSON(data []byte) error {
 // from changing the default settings.
 func ConnectReplyDefaults() *ConnectReply {
 	return &ConnectReply{
-		ApdexThresholdSeconds:  0.5,
-		CollectAnalyticsEvents: true,
-		CollectCustomEvents:    true,
-		CollectTraces:          true,
-		CollectErrors:          true,
-		CollectErrorEvents:     true,
+		ApdexThresholdSeconds:         0.5,
+		CollectAnalyticsEvents:        true,
+		CollectCustomEvents:           true,
+		CollectTraces:                 true,
+		CollectErrors:                 true,
+		CollectErrorEvents:            true,
+		SamplingTarget:                10,
+		SamplingTargetPeriodInSeconds: 60,
 	}
 }
 

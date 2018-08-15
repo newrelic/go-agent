@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +11,16 @@ import (
 	"github.com/newrelic/go-agent/internal/cat"
 	"github.com/newrelic/go-agent/internal/sysinfo"
 )
+
+// MarshalJSON limits the number of decimals.
+func (p *Priority) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(priorityFormat, *p)), nil
+}
+
+// WriteJSON limits the number of decimals.
+func (p Priority) WriteJSON(buf *bytes.Buffer) {
+	fmt.Fprintf(buf, priorityFormat, p)
+}
 
 // TxnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
@@ -25,6 +36,25 @@ type TxnEvent struct {
 	// CleanURL is not used in txn events, but is used in traced errors which embed TxnEvent.
 	CleanURL     string
 	CrossProcess TxnCrossProcess
+	BetterCAT    BetterCAT
+}
+
+// BetterCAT stores the transaction's priority and all fields related
+// to a DistributedTracer's Cross-Application Trace.
+type BetterCAT struct {
+	Enabled  bool
+	Priority Priority
+	Sampled  bool
+	Inbound  *Payload
+	ID       string
+}
+
+// TraceID returns the trace id.
+func (e BetterCAT) TraceID() string {
+	if nil != e.Inbound {
+		return e.Inbound.TracedID
+	}
+	return e.ID
 }
 
 // TxnData contains the recorded data of a transaction.
@@ -50,6 +80,10 @@ type TxnData struct {
 	SlowQueriesEnabled bool
 	SlowQueryThreshold time.Duration
 	SlowQueries        *slowQueries
+
+	// These better CAT supportability fields are left outside of
+	// TxnEvent.BetterCAT to minimize the size of transaction event memory.
+	DistributedTracingSupport
 }
 
 type segmentStamp uint64

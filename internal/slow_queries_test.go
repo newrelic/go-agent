@@ -17,6 +17,16 @@ func TestEmptySlowQueriesData(t *testing.T) {
 }
 
 func TestSlowQueriesBasic(t *testing.T) {
+	txnEvent := TxnEvent{
+		FinalName: "WebTransaction/Go/hello",
+		CleanURL:  "/zip/zap",
+		Duration:  3 * time.Second,
+		Attrs:     nil,
+		BetterCAT: BetterCAT{
+			Enabled: false,
+		},
+	}
+
 	txnSlows := newSlowQueries(maxTxnSlowQueries)
 	txnSlows.observeInstance(slowQueryInstance{
 		Duration:           2 * time.Second,
@@ -33,7 +43,7 @@ func TestSlowQueriesBasic(t *testing.T) {
 		}),
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
-	harvestSlows.Merge(txnSlows, "WebTransaction/Go/hello", "/zip/zap")
+	harvestSlows.Merge(txnSlows, txnEvent)
 	js, err := harvestSlows.Data("agentRunID", time.Now())
 	expect := CompactJSONString(`[[
 	[
@@ -76,16 +86,22 @@ func TestSlowQueriesAggregation(t *testing.T) {
 			ParameterizedQuery: str,
 		}
 		slow.Duration = duration
-		slow.TxnName = "Txn/0" + str
-		slow.TxnURL = "/0" + str
+		slow.TxnEvent = TxnEvent{
+			FinalName: "Txn/0" + str,
+			CleanURL:  "/0" + str,
+		}
 		slows[i*3+0] = slow
 		slow.Duration = duration + (100 * time.Second)
-		slow.TxnName = "Txn/1" + str
-		slow.TxnURL = "/1" + str
+		slow.TxnEvent = TxnEvent{
+			FinalName: "Txn/1" + str,
+			CleanURL:  "/1" + str,
+		}
 		slows[i*3+1] = slow
 		slow.Duration = duration + (200 * time.Second)
-		slow.TxnName = "Txn/2" + str
-		slow.TxnURL = "/2" + str
+		slow.TxnEvent = TxnEvent{
+			FinalName: "Txn/2" + str,
+			CleanURL:  "/2" + str,
+		}
 		slows[i*3+2] = slow
 	}
 	sq := newSlowQueries(10)
@@ -107,6 +123,86 @@ func TestSlowQueriesAggregation(t *testing.T) {
 	["Txn/246","/246",2346945487,"46","Datastore/46",2,392000,146000,246000,{}],
 	["Txn/249","/249",2430833582,"49","Datastore/49",3,447000,49000,249000,{}],
 	["Txn/248","/248",2447611201,"48","Datastore/48",3,444000,48000,248000,{}]
+]]`)
+	if nil != err {
+		t.Error(err)
+	}
+	if string(js) != expect {
+		t.Error(string(js), expect)
+	}
+}
+
+func TestSlowQueriesBetterCAT(t *testing.T) {
+	txnEvent := TxnEvent{
+		FinalName: "WebTransaction/Go/hello",
+		CleanURL:  "/zip/zap",
+		Duration:  3 * time.Second,
+		Attrs:     nil,
+		BetterCAT: BetterCAT{
+			Enabled:  true,
+			ID:       "txn-id",
+			Priority: 0.5,
+		},
+	}
+
+	txnEvent.BetterCAT.Inbound = &Payload{
+		payloadCaller: payloadCaller{
+			TransportType: "HTTP",
+			Type:          "Browser",
+			App:           "caller-app",
+			Account:       "caller-account",
+		},
+		ID:                "caller-id",
+		TransactionID:     "caller-parent-id",
+		TracedID:          "trace-id",
+		TransportDuration: 2 * time.Second,
+	}
+
+	txnSlows := newSlowQueries(maxTxnSlowQueries)
+	txnSlows.observeInstance(slowQueryInstance{
+		Duration:           2 * time.Second,
+		DatastoreMetric:    "Datastore/statement/MySQL/users/INSERT",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		Host:               "db-server-1",
+		PortPathOrID:       "3306",
+		DatabaseName:       "production",
+		StackTrace:         nil,
+		QueryParameters: vetQueryParameters(map[string]interface{}{
+			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
+			"invalid-value":                                struct{}{},
+			"valid":                                        123,
+		}),
+	})
+	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
+	harvestSlows.Merge(txnSlows, txnEvent)
+	js, err := harvestSlows.Data("agentRunID", time.Now())
+	expect := CompactJSONString(`[[
+	[
+		"WebTransaction/Go/hello",
+		"/zip/zap",
+		3722056893,
+		"INSERT INTO users (name, age) VALUES ($1, $2)",
+		"Datastore/statement/MySQL/users/INSERT",
+		1,
+		2000,
+		2000,
+		2000,
+		{
+			"host":"db-server-1",
+			"port_path_or_id":"3306",
+			"database_name":"production",
+			"query_parameters":{"valid":123},
+			"parent.type": "Browser",
+			"parent.app": "caller-app",
+			"parent.account": "caller-account",
+			"parent.transportType": "HTTP",
+			"parent.transportDuration": 2,
+			"guid":"txn-id",
+			"traceId":"trace-id",
+			"priority":0.500000,
+			"sampled":false
+		}
+	]
 ]]`)
 	if nil != err {
 		t.Error(err)

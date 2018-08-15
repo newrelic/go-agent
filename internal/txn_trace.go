@@ -404,3 +404,7 @@ func (traces *harvestTraces) slice() []*HarvestTrace {
 }
 
 func (traces *harvestTraces) MergeIntoHarvest(h *Harvest) {}
+
+func (traces *harvestTraces) EndpointMethod() string {
+	return cmdTxnTraces
+}

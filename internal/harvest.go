@@ -22,17 +22,28 @@ type Harvest struct {
 	SlowSQLs     *slowQueries
 }
 
+const (
+	// txnEventPayloadlimit is the maximum number of events that should be
+	// sent up in one post.
+	txnEventPayloadlimit = 5000
+)
+
 // Payloads returns a map from expected collector method name to data type.
-func (h *Harvest) Payloads() map[string]PayloadCreator {
-	return map[string]PayloadCreator{
-		cmdMetrics:      h.Metrics,
-		cmdCustomEvents: h.CustomEvents,
-		cmdTxnEvents:    h.TxnEvents,
-		cmdErrorEvents:  h.ErrorEvents,
-		cmdErrorData:    h.ErrorTraces,
-		cmdTxnTraces:    h.TxnTraces,
-		cmdSlowSQLs:     h.SlowSQLs,
+func (h *Harvest) Payloads(splitLargeTxnEvents bool) []PayloadCreator {
+	ps := []PayloadCreator{
+		h.Metrics,
+		h.CustomEvents,
+		h.ErrorEvents,
+		h.ErrorTraces,
+		h.TxnTraces,
+		h.SlowSQLs,
 	}
+	if splitLargeTxnEvents {
+		ps = append(ps, h.TxnEvents.payloads(txnEventPayloadlimit)...)
+	} else {
+		ps = append(ps, h.TxnEvents)
+	}
+	return ps
 }
 
 // NewHarvest returns a new Harvest.
@@ -101,6 +112,15 @@ type PayloadCreator interface {
 	// This method should return (nil, nil) if the payload is empty and no
 	// rpm request is necessary.
 	Data(agentRunID string, harvestStart time.Time) ([]byte, error)
+	// EndpointMethod is used for the "method" query parameter when posting
+	// the data.
+	EndpointMethod() string
+}
+
+func supportMetric(metrics *metricTable, b bool, metricName string) {
+	if b {
+		metrics.addSingleCount(metricName, forced)
+	}
 }
 
 // CreateTxnMetrics creates metrics for a transaction.
@@ -114,6 +134,43 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 
 	metrics.addDuration(args.FinalName, "", args.Duration, args.Exclusive, forced)
 	metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
+
+	// Better CAT Metrics
+	if cat := args.BetterCAT; cat.Enabled {
+		caller := callerUnknown
+		if nil != cat.Inbound {
+			caller = cat.Inbound.payloadCaller
+		}
+		m := durationByCallerMetric(caller)
+		metrics.addDuration(m.all, "", args.Duration, args.Duration, unforced)
+		metrics.addDuration(m.webOrOther(args.IsWeb), "", args.Duration, args.Duration, unforced)
+
+		// Transport Duration Metric
+		if nil != cat.Inbound {
+			d := cat.Inbound.TransportDuration
+			m = transportDurationMetric(caller)
+			metrics.addDuration(m.all, "", d, d, unforced)
+			metrics.addDuration(m.webOrOther(args.IsWeb), "", d, d, unforced)
+		}
+
+		// CAT Error Metrics
+		if args.HasErrors() {
+			m = errorsByCallerMetric(caller)
+			metrics.addSingleCount(m.all, unforced)
+			metrics.addSingleCount(m.webOrOther(args.IsWeb), unforced)
+		}
+
+		supportMetric(metrics, args.AcceptPayloadSuccess, supportTracingAcceptSuccess)
+		supportMetric(metrics, args.AcceptPayloadException, supportTracingAcceptException)
+		supportMetric(metrics, args.AcceptPayloadParseException, supportTracingAcceptParseException)
+		supportMetric(metrics, args.AcceptPayloadCreateBeforeAccept, supportTracingCreateBeforeAccept)
+		supportMetric(metrics, args.AcceptPayloadIgnoredMultiple, supportTracingIgnoredMultiple)
+		supportMetric(metrics, args.AcceptPayloadIgnoredVersion, supportTracingIgnoredVersion)
+		supportMetric(metrics, args.AcceptPayloadUntrustedAccount, supportTracingAcceptUntrustedAccount)
+		supportMetric(metrics, args.AcceptPayloadNullPayload, supportTracingAcceptNull)
+		supportMetric(metrics, args.CreatePayloadSuccess, supportTracingCreatePayloadSuccess)
+		supportMetric(metrics, args.CreatePayloadException, supportTracingCreatePayloadException)
+	}
 
 	// Apdex Metrics
 	if args.Zone != ApdexNone {
