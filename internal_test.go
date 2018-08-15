@@ -716,6 +716,61 @@ func TestResponseCodeIsError(t *testing.T) {
 	}
 }
 
+func TestExternalSegmentMethod(t *testing.T) {
+	req, err := http.NewRequest("POST", "http://request.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responsereq, err := http.NewRequest("POST", "http://response.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := &http.Response{Request: responsereq}
+
+	// empty segment
+	m := externalSegmentMethod(&ExternalSegment{})
+	if "" != m {
+		t.Error(m)
+	}
+
+	// empty request
+	m = externalSegmentMethod(&ExternalSegment{
+		Request: nil,
+	})
+	if "" != m {
+		t.Error(m)
+	}
+
+	// segment containing request and response
+	m = externalSegmentMethod(&ExternalSegment{
+		Request:  req,
+		Response: response,
+	})
+	if "POST" != m {
+		t.Error(m)
+	}
+
+	req, err = http.NewRequest("", "http://request.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responsereq, err = http.NewRequest("", "http://response.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response = &http.Response{Request: responsereq}
+
+	// empty string method means a client GET request
+	m = externalSegmentMethod(&ExternalSegment{
+		Request:  req,
+		Response: response,
+	})
+	if "GET" != m {
+		t.Error(m)
+	}
+
+}
+
 func TestExternalSegmentURL(t *testing.T) {
 	rawURL := "http://url.com"
 	req, err := http.NewRequest("GET", "http://request.com/", nil)
