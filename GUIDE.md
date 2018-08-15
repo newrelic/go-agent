@@ -11,6 +11,7 @@
 * [Attributes](#attributes)
 * [Cross Application Tracing](#cross-application-tracing)
   * [Upgrading Applications to Support Cross Application Tracing](#upgrading-applications-to-support-cross-application-tracing)
+* [Distributed Tracing](#distributed-tracing)
 * [Custom Metrics](#custom-metrics)
 * [Custom Events](#custom-events)
 * [Request Queuing](#request-queuing)
@@ -248,13 +249,16 @@ defer s.End()
 ### External Segments
 
 External segments appear in the transaction "Breakdown table" and in the
-"External services" page. Version 1.11.0 of the Go agent also adds support for
+"External services" page. Version 1.11.0 of the Go agent adds support for
 Cross Application Tracing (CAT), which will result in external segments also
 appearing in the "Service maps" page and being linked in transaction traces when
-both sides of the request have traces.
+both sides of the request have traces. Version 2.1.0 of the Go agent adds
+support for Distributed Tracing, which lets you see the path a request takes as
+it travels through distributed APM apps.
 
 * [More info on External Services page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
 * [More info on Cross Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
+* [More info on Distributed Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
 
 External segments are instrumented using `ExternalSegment`. There are three
 ways to use this functionality:
@@ -395,6 +399,43 @@ the full functionality offered by New Relic's CAT feature:
 
 4. Ensure that the `Response` field is set on `ExternalSegment` values before
    making or deferring calls to `ExternalSegment.End`.
+
+## Distributed Tracing
+
+New Relic's [Distributed
+Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
+feature lets you see the path that a request takes as it travels through distributed APM
+apps, which is vital for applications implementing a service-oriented or
+microservices architecture. Support for distributed tracing was added in 
+version 2.1.0 of the Go agent.
+
+The config's `DistributedTracer.Enabled` field has to be set. When true, the 
+agent will add distributed tracing headers in outbound requests, and scan 
+incoming requests for distributed tracing headers. Distributed tracing and 
+cross application tracing cannot be used simultaneously:
+
+```go
+config.CrossApplicationTracer.Enabled = false
+config.DistributedTracer.Enabled = true
+```
+
+Use the checklist for [upgrading applications to support cross application tracing](#upgrading-applications-to-support-cross-application-tracing) 
+to ensure your services are automatically instrumented for distributed tracing.
+
+Consider [custom instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
+for services not instrumented automatically by New Relic. In this scenario, the
+calling service has to generate a distributed trace payload:
+
+```go
+p := callingTxn.CreateDistributedTracePayload()
+```
+
+This payload has to added to the call to the destination service, which in turn
+invokes the call for accepting the payload:
+
+```go
+calledTxn.AcceptDistributedTracePayload(TransportOther, p)
+```
 
 ## Custom Metrics
 
