@@ -287,8 +287,9 @@ ways to use this functionality:
    [`http.RoundTripper`](https://golang.org/pkg/net/http/#RoundTripper) that
    will automatically instrument all requests made via
    [`http.Client`](https://golang.org/pkg/net/http/#Client) instances that use
-   that round tripper as their `Transport`. This option results in CAT support
-   transparently, provided the Go agent is version 1.11.0 or later.
+   that round tripper as their `Transport`. This option results in CAT support,
+   provided the Go agent is version 1.11.0, and in Distributed Tracing support,
+   regarding the Go agent version is 2.1.0.
 
    For example:
 
@@ -351,7 +352,28 @@ config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.Attribute
 
 * [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)
 
-## Cross Application Tracing
+## Tracing
+
+### Distributed Tracing
+
+New Relic's [Distributed
+Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
+feature lets you see the path that a request takes as it travels through distributed APM
+apps, which is vital for applications implementing a service-oriented or
+microservices architecture. Support for distributed tracing was added in 
+version 2.1.0 of the Go agent.
+
+The config's `DistributedTracer.Enabled` field has to be set. When true, the 
+agent will add distributed tracing headers in outbound requests, and scan 
+incoming requests for distributed tracing headers. Distributed tracing and 
+cross application tracing cannot be used simultaneously:
+
+```go
+config.CrossApplicationTracer.Enabled = false
+config.DistributedTracer.Enabled = true
+```
+
+### Cross Application Tracing
 
 New Relic's
 [Cross Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
@@ -362,6 +384,58 @@ Support for CAT was added in version 1.11.0 of the Go agent.
 As CAT uses HTTP headers to track requests across applications, the Go agent
 needs to be able to access and modify request and response headers both for
 incoming and outgoing requests.
+
+### Tracing instrumentation
+
+#### Automatic instrumentation
+
+Automatic tracing works by propagating [header information](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/how-new-relic-distributed-tracing-works#headers)
+from service to service in a request path. The Go agent automatically creates 
+and propagates this header information for each of the following scenarios:
+
+1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
+   uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux).
+
+2. Using either of the Go agent's [Gin](_integrations/nrgin/v1) or
+   [Gorilla](_integrations/nrgorilla/v1) integrations.
+
+3. Using another framework or [`http.Server`](https://golang.org/pkg/net/http/#Server) while ensuring that:
+
+      1. All calls to `StartTransaction` include the response writer and
+         request, and
+      2. `Transaction.WriteHeader` is used instead of calling `WriteHeader`
+         directly on the response writer, as described in the
+         [transactions section of this guide](#transactions).
+
+4. Using `NewRoundTripper`, as described in the
+   [external segments section of this guide](#external-segments).
+
+5. Using the call `StartExternalSegment` and providing an `http.Request`. as 
+   described in the [external segments section of this guide](#external-segments).
+
+6. Using the call `StartExternalSegment` and providing an `http.Request`.
+
+7. Ensure that the `Response` field is set on `ExternalSegment` values before
+   making or deferring calls to `ExternalSegment.End`???
+
+#### Custom instrumentation for Distributed Tracing
+
+Consider [custom instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
+for services not instrumented automatically by New Relic. In this scenario, the
+calling service has to generate a distributed trace payload:
+
+```go
+p := callingTxn.CreateDistributedTracePayload()
+```
+
+This payload has to added to the call to the destination service, which in turn
+invokes the call for accepting the payload:
+
+```go
+calledTxn.AcceptDistributedTracePayload(newrelic.TransportOther, p)
+```
+
+
 
 ### Upgrading Applications to Support Cross Application Tracing
 
@@ -399,43 +473,6 @@ the full functionality offered by New Relic's CAT feature:
 
 4. Ensure that the `Response` field is set on `ExternalSegment` values before
    making or deferring calls to `ExternalSegment.End`.
-
-## Distributed Tracing
-
-New Relic's [Distributed
-Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
-feature lets you see the path that a request takes as it travels through distributed APM
-apps, which is vital for applications implementing a service-oriented or
-microservices architecture. Support for distributed tracing was added in 
-version 2.1.0 of the Go agent.
-
-The config's `DistributedTracer.Enabled` field has to be set. When true, the 
-agent will add distributed tracing headers in outbound requests, and scan 
-incoming requests for distributed tracing headers. Distributed tracing and 
-cross application tracing cannot be used simultaneously:
-
-```go
-config.CrossApplicationTracer.Enabled = false
-config.DistributedTracer.Enabled = true
-```
-
-Use the checklist for [upgrading applications to support cross application tracing](#upgrading-applications-to-support-cross-application-tracing) 
-to ensure your services are automatically instrumented for distributed tracing.
-
-Consider [custom instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
-for services not instrumented automatically by New Relic. In this scenario, the
-calling service has to generate a distributed trace payload:
-
-```go
-p := callingTxn.CreateDistributedTracePayload()
-```
-
-This payload has to added to the call to the destination service, which in turn
-invokes the call for accepting the payload:
-
-```go
-calledTxn.AcceptDistributedTracePayload(TransportOther, p)
-```
 
 ## Custom Metrics
 
