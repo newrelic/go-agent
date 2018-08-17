@@ -9,8 +9,12 @@
   * [Datastore Segments](#datastore-segments)
   * [External Segments](#external-segments)
 * [Attributes](#attributes)
-* [Cross Application Tracing](#cross-application-tracing)
-  * [Upgrading Applications to Support Cross Application Tracing](#upgrading-applications-to-support-cross-application-tracing)
+* [Tracing](#tracing)
+  * [Distributed Tracing](#distributed-tracing)
+  * [Cross Application Tracing](#cross-application-tracing)
+  * [Tracing instrumentation](#tracing-instrumentation)
+    * [Automatic instrumentation](#automatic-instrumentation)
+    * [Custom instrumentation](#custom-instrumentation)
 * [Distributed Tracing](#distributed-tracing)
 * [Custom Metrics](#custom-metrics)
 * [Custom Events](#custom-events)
@@ -289,7 +293,7 @@ ways to use this functionality:
    [`http.Client`](https://golang.org/pkg/net/http/#Client) instances that use
    that round tripper as their `Transport`. This option results in CAT support,
    provided the Go agent is version 1.11.0, and in Distributed Tracing support,
-   regarding the Go agent version is 2.1.0.
+   provided the Go agent is version 2.1.0.
 
    For example:
 
@@ -387,17 +391,25 @@ incoming and outgoing requests.
 
 ### Tracing instrumentation
 
+Tracing works by propagating [header information](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/how-new-relic-distributed-tracing-works#headers)
+from service to service in a request path. The Go agent does this automatically
+for [supported scenarios](#automatic-instrumentation). For services not 
+automatically instrumented by the Go agent, Distributed Tracing with 
+[custom instrumentation](#custom-instrumentation) can be used.
+
 #### Automatic instrumentation
 
-Automatic tracing works by propagating [header information](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/how-new-relic-distributed-tracing-works#headers)
-from service to service in a request path. The Go agent automatically creates 
-and propagates this header information for each of the following scenarios:
+The Go agent automatically creates and propagates tracing header information 
+for each of the following scenarios:
 
 1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
-   uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux).
+   uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux)
+   ([Example](examples/server/main.go)).
 
 2. Using either of the Go agent's [Gin](_integrations/nrgin/v1) or
-   [Gorilla](_integrations/nrgorilla/v1) integrations.
+   [Gorilla](_integrations/nrgorilla/v1) integration
+   ([Gin Example](examples/_gin/main.go), [Gorilla Example](examples/_gorilla/main.go)).
+.
 
 3. Using another framework or [`http.Server`](https://golang.org/pkg/net/http/#Server) while ensuring that:
 
@@ -405,23 +417,21 @@ and propagates this header information for each of the following scenarios:
          request, and
       2. `Transaction.WriteHeader` is used instead of calling `WriteHeader`
          directly on the response writer, as described in the
-         [transactions section of this guide](#transactions).
+         [transactions section of this guide](#transactions)
+         ([Example](examples/server-http/main.go)).
 
 4. Using `NewRoundTripper`, as described in the
-   [external segments section of this guide](#external-segments).
+   [external segments section of this guide](#external-segments)
+   ([Example](examples/client-round-tripper/main.go)).
 
-5. Using the call `StartExternalSegment` and providing an `http.Request`. as 
-   described in the [external segments section of this guide](#external-segments).
-
-6. Using the call `StartExternalSegment` and providing an `http.Request`.
-
-7. Ensure that the `Response` field is set on `ExternalSegment` values before
-   making or deferring calls to `ExternalSegment.End`???
+5. Using the call `StartExternalSegment` and providing an `http.Request`, as 
+   described in the [external segments section of this guide](#external-segments)
+   ([Example](examples/client/main.go)).
 
 #### Custom instrumentation for Distributed Tracing
 
 Consider [custom instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
-for services not instrumented automatically by New Relic. In this scenario, the
+for services not instrumented automatically by the Go agent. In this scenario, the
 calling service has to generate a distributed trace payload:
 
 ```go
@@ -435,44 +445,9 @@ invokes the call for accepting the payload:
 calledTxn.AcceptDistributedTracePayload(newrelic.TransportOther, p)
 ```
 
+A complete example can be found
+[here](examples/custom-instrumentation/main.go).
 
-
-### Upgrading Applications to Support Cross Application Tracing
-
-Although many Go applications instrumented using older versions of the Go agent
-will not require changes to enable CAT support, we've prepared this checklist
-that you can use to ensure that your application is ready to take advantage of
-the full functionality offered by New Relic's CAT feature:
-
-1. Ensure that incoming HTTP requests both parse any incoming CAT headers, and
-   output the required outgoing CAT header:
-
-   1. If you use `WrapHandle` or `WrapHandleFunc` to instrument a server that
-      uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux), no
-      changes are required.
-
-   2. If you use either of the Go agent's [Gin](_integrations/nrgin/v1) or
-      [Gorilla](_integrations/nrgorilla/v1) integrations, no changes are
-      required.
-
-   3. If you use another framework or
-      [`http.Server`](https://golang.org/pkg/net/http/#Server) directly, you
-      will need to ensure that:
-
-      1. All calls to `StartTransaction` include the response writer and
-         request, and
-      2. `Transaction.WriteHeader` is used instead of calling `WriteHeader`
-         directly on the response writer, as described in the
-         [transactions section of this guide](#transactions).
-
-2. Convert any instances of using an `ExternalSegment` literal directly to
-   either use `StartExternalSegment` or `NewRoundTripper`, as described in the
-   [external segments section of this guide](#external-segments).
-
-3. Ensure that calls to `StartExternalSegment` provide an `http.Request`.
-
-4. Ensure that the `Response` field is set on `ExternalSegment` values before
-   making or deferring calls to `ExternalSegment.End`.
 
 ## Custom Metrics
 
