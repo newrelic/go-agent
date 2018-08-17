@@ -185,6 +185,36 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	}
 }
 
+// TransportType's name field is not mutable outside of its package
+// however, it still periodically needs to be used and assigned within
+// the this package.  For testing purposes only.
+func getTransport(transport string) string {
+	var retVal string
+
+	switch transport {
+	case TransportHTTP.name:
+		retVal = TransportHTTP.name
+	case TransportHTTPS.name:
+		retVal = TransportHTTPS.name
+	case TransportKafka.name:
+		retVal = TransportKafka.name
+	case TransportJMS.name:
+		retVal = TransportJMS.name
+	case TransportIronMQ.name:
+		retVal = TransportIronMQ.name
+	case TransportAMQP.name:
+		retVal = TransportAMQP.name
+	case TransportQueue.name:
+		retVal = TransportQueue.name
+	case TransportOther.name:
+		retVal = TransportOther.name
+	case TransportUnknown.name:
+	default:
+		retVal = TransportUnknown.name
+	}
+	return retVal
+}
+
 func responseCodeIsError(cfg *Config, code int) bool {
 	if code < http.StatusBadRequest { // 400
 		return false

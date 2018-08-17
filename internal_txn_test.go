@@ -8,6 +8,28 @@ import (
 	"github.com/newrelic/go-agent/internal/cat"
 )
 
+func TestGetTransport(t *testing.T) {
+	tp := getTransport("Pigeon")
+	if tp != "Unknown" {
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+	}
+
+	tp = getTransport("")
+	if tp != "Unknown" {
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+	}
+
+	tp = getTransport("http")
+	if tp != "Unknown" {
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+	}
+
+	tp = getTransport("HTTP")
+	if tp != "HTTP" {
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+	}
+}
+
 func TestShouldSaveTrace(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
