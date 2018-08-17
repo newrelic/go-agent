@@ -66,6 +66,12 @@ type payloadCaller struct {
 // Returns an error if there's a problem, nil if everything's fine
 func (p Payload) IsValid() error {
 
+	// If a payload is missing both `guid` and `transactionId` is received,
+	// a ParseException supportability metric should be generated.
+	if "" == p.TransactionID && "" == p.ID {
+		return ErrPayloadMissingField{message: "missing both guid/id and TransactionId/tx"}
+	}
+
 	if "" == p.Type {
 		return ErrPayloadMissingField{message: "missing Type/ty"}
 	}

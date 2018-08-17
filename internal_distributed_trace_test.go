@@ -815,6 +815,43 @@ func TestNoticeErrorPayload(t *testing.T) {
 	})
 }
 
+
+func TestMissingIDsForSupportabilityMetric(t *testing.T) {
+	p := `{
+		"v":[0,1],
+		"d":{
+			"ty":"App",
+			"ap":"456",
+			"ac":"123",
+			"tr":"traceID",
+			"ti":1488325987402
+		}
+	}`
+
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
+
+	if nil == err {
+		t.Log("Expected error from missing guid and transactionId")
+		t.Fail()
+	}
+
+	err = txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
+	})
+}
+
 func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 	p := `{
 		"d":{
