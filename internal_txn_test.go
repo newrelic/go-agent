@@ -11,22 +11,22 @@ import (
 func TestGetTransport(t *testing.T) {
 	tp := getTransport("Pigeon")
 	if tp != "Unknown" {
-		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %s", t)
 	}
 
 	tp = getTransport("")
 	if tp != "Unknown" {
-		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %s", t)
 	}
 
 	tp = getTransport("http")
 	if tp != "Unknown" {
-		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %s", t)
 	}
 
 	tp = getTransport("HTTP")
 	if tp != "HTTP" {
-		t.Errorf("%s: unexpected Transport value; expected Unknown, got %v", t)
+		t.Errorf("%s: unexpected Transport value; expected Unknown, got %s", t)
 	}
 }
 
