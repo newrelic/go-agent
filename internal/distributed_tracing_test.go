@@ -310,7 +310,7 @@ func TestRequiredFieldsMissingTimestamp(t *testing.T) {
 	}
 }
 
-func TestRequiredFieldsNilTimestamp(t *testing.T) {
+func TestRequiredFieldsZeroTimestamp(t *testing.T) {
 	var payload Payload
 	fixture := []byte(`{
 		"ty":"App",
