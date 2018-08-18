@@ -50,7 +50,7 @@ type Payload struct {
 	TracedID          string          `json:"tr"`
 	Priority          Priority        `json:"pr"`
 	Sampled           *bool           `json:"sa"`
-	Timestamp         timestampMillis `json:"ti,omitempty"`
+	Timestamp         timestampMillis `json:"ti"`
 	TransportDuration time.Duration   `json:"-"`
 }
 
