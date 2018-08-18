@@ -50,7 +50,7 @@ type Payload struct {
 	TracedID          string          `json:"tr"`
 	Priority          Priority        `json:"pr"`
 	Sampled           *bool           `json:"sa"`
-	Timestamp         timestampMillis `json:"ti"`
+	Timestamp         timestampMillis `json:"ti,omitempty"`
 	TransportDuration time.Duration   `json:"-"`
 }
 
@@ -82,7 +82,7 @@ func (p Payload) IsValid() error {
 		return ErrPayloadMissingField{message: "missing TracedID/tr"}
 	}
 
-	if p.Timestamp.Time().IsZero() {
+	if p.Timestamp.Time().IsZero() || 0 == p.Timestamp.Time().Unix() {
 		return ErrPayloadMissingField{message: "missing Timestamp/ti"}
 	}
 
