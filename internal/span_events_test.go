@@ -22,7 +22,6 @@ var (
 	sampleSpanEvent = SpanEvent{
 		TraceID:       "trace-id",
 		GUID:          "guid",
-		ParentID:      "parent-id",
 		TransactionID: "txn-id",
 		Sampled:       true,
 		Priority:      0.5,
@@ -37,7 +36,7 @@ var (
 		Component: "mySql",
 		Statement: "SELECT * from foo",
 		Instance:  "123",
-		Address:   "url.com",
+		Address:   "{host}:{portPathOrId}",
 		Hostname:  "host",
 	}
 
@@ -48,15 +47,13 @@ var (
 	}
 )
 
-// TODO: Is nr.entrypoint the correct payload field for indicating that a span is a root span?
-func TestSpanEventGenericMarshal(t *testing.T) {
+func TestSpanEventGenericRootMarshal(t *testing.T) {
 	e := sampleSpanEvent
 	testSpanEventJSON(t, &e, `[
 	{
 		"type":"Span",
 		"traceId":"trace-id",
 		"guid":"guid",
-		"parentId":"parent-id",
 		"transactionId":"txn-id",
 		"sampled":true,
 		"priority":0.500000,
@@ -74,7 +71,8 @@ func TestSpanEventDatastoreMarshal(t *testing.T) {
 	e := sampleSpanEvent
 
 	// Alter sample span event for this test case
-	e.IsEntrypoint = false
+ 	e.IsEntrypoint = false
+	e.ParentID = "parent-id"
 	e.Category = spanCategoryDatastore
 	e.DatastoreExtras = &sampleSpanDatastoreExtras
 
@@ -94,8 +92,46 @@ func TestSpanEventDatastoreMarshal(t *testing.T) {
 		"component":"mySql",
 		"db.statement":"SELECT * from foo",
 		"db.instance":"123",
-		"peer.address":"url.com",
+		"peer.address":"{host}:{portPathOrId}",
 		"peer.hostname":"host",
+		"span.kind":"client"
+	},
+	{},
+	{}]`)
+}
+
+func TestSpanEventDatastoreWithoutHostMarshal(t *testing.T) {
+	e := sampleSpanEvent
+
+	// Alter sample span event for this test case
+	e.IsEntrypoint = false
+	e.ParentID = "parent-id"
+	e.Category = spanCategoryDatastore
+	e.DatastoreExtras = &sampleSpanDatastoreExtras
+	e.DatastoreExtras.Hostname = ""
+	e.DatastoreExtras.Address = ""
+
+	// According to CHANGELOG.md, as of version 1.5, if `Host` and
+	// `PortPathOrID` are not provided in a Datastore segment, they
+	// do not appear as `"unknown"` in transaction traces and slow
+	// query traces.  To maintain parity with the other offerings of
+	// the Go Agent, neither do Span Events.
+	testSpanEventJSON(t, &e, `[
+	{
+		"type":"Span",
+		"traceId":"trace-id",
+		"guid":"guid",
+		"parentId":"parent-id",
+		"transactionId":"txn-id",
+		"sampled":true,
+		"priority":0.500000,
+		"timestamp":1488393111000,
+		"duration":2,
+		"name":"myName",
+		"category":"datastore",
+		"component":"mySql",
+		"db.statement":"SELECT * from foo",
+		"db.instance":"123",
 		"span.kind":"client"
 	},
 	{},
@@ -106,8 +142,9 @@ func TestSpanEventExternalMarshal(t *testing.T) {
 	e := sampleSpanEvent
 
 	// Alter sample span event for this test case
-	e.Category = spanCategoryHTTP
+	e.ParentID = "parent-id"
 	e.IsEntrypoint = false
+	e.Category = spanCategoryHTTP
 	e.ExternalExtras = &sampleSpanExternalExtras
 
 	testSpanEventJSON(t, &e, `[
