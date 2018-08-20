@@ -88,7 +88,7 @@ func (p Payload) IsValid() error {
 		return ErrPayloadMissingField{message: "missing TracedID/tr"}
 	}
 
-	if p.Timestamp.Time().IsZero() {
+	if p.Timestamp.Time().IsZero() || 0 == p.Timestamp.Time().Unix() {
 		return ErrPayloadMissingField{message: "missing Timestamp/ti"}
 	}
 
