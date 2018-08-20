@@ -74,7 +74,7 @@ type TxnData struct {
 
 	SpanEventsEnabled bool
 	rootSpanID        string
-	spanEvents        []*spanEvent
+	spanEvents        []*SpanEvent
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
@@ -120,11 +120,11 @@ type segmentEnd struct {
 	ParentID  string
 }
 
-func (end segmentEnd) spanEvent() *spanEvent {
+func (end segmentEnd) spanEvent() *SpanEvent {
 	if "" == end.SpanID {
 		return nil
 	}
-	return &spanEvent{
+	return &SpanEvent{
 		GUID:         end.SpanID,
 		ParentID:     end.ParentID,
 		Timestamp:    end.start.Time,
@@ -201,7 +201,7 @@ func (t *TxnData) CurrentSpanIdentifier() string {
 	return t.stack[len(t.stack)-1].spanID
 }
 
-func (t *TxnData) saveSpanEvent(e *spanEvent) {
+func (t *TxnData) saveSpanEvent(e *SpanEvent) {
 	if len(t.spanEvents) < maxSpanEvents {
 		t.spanEvents = append(t.spanEvents, e)
 	}
@@ -364,7 +364,7 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 		evt.Name = externalHostMetric(key)
 		evt.Category = spanCategoryHTTP
 		evt.ExternalExtras = &spanExternalExtras{
-			URL: SafeURL(u),
+			URL:    SafeURL(u),
 			Method: method,
 		}
 		t.saveSpanEvent(evt)
