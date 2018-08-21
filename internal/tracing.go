@@ -364,7 +364,7 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 		evt.Name = externalHostMetric(key)
 		evt.Category = spanCategoryHTTP
 		evt.ExternalExtras = &spanExternalExtras{
-			URL: SafeURL(u),
+			URL:    SafeURL(u),
 			Method: method,
 		}
 		t.saveSpanEvent(evt)

@@ -31,7 +31,7 @@ func TestTxnTrace(t *testing.T) {
 		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(tr, start.Add(4*time.Second))
-	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "",nil)
+	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
 	EndBasicSegment(tr, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t5 := StartSegment(tr, start.Add(8*time.Second))
@@ -48,7 +48,7 @@ func TestTxnTrace(t *testing.T) {
 		// no collection
 	})
 	t8 := StartSegment(tr, start.Add(14*time.Second))
-	EndExternalSegment(tr, t8, start.Add(15*time.Second), nil, "",nil)
+	EndExternalSegment(tr, t8, start.Add(15*time.Second), nil, "", nil)
 	EndBasicSegment(tr, t4, start.Add(16*time.Second), "t4")
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
@@ -221,7 +221,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(tr, start.Add(4*time.Second))
-	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "",nil)
+	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
 	EndBasicSegment(tr, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t5 := StartSegment(tr, start.Add(8*time.Second))
@@ -377,7 +377,6 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	}
 	testExpectedJSON(t, expect, string(js))
 }
-
 
 func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
@@ -1141,7 +1140,7 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// node above stack trace threshold w/ params
 	t3 := StartSegment(tr, start.Add(4*time.Second))
-	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "",nil)
+	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
 
 	p := tr.TxnTrace.nodes[0].params
 	if nil != p {

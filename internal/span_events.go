@@ -40,8 +40,8 @@ type spanDatastoreExtras struct {
 }
 
 type spanExternalExtras struct {
-	URL string
-	Method string
+	URL       string
+	Method    string
 	Component string
 }
 

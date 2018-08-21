@@ -1,6 +1,5 @@
 package internal
 
-
 // Priority allows for a priority sampling of events.  When an event
 // is created it is given a Priority.  Whenever an event pool is
 // full and events need to be dropped, the events with the lowest priority
@@ -26,4 +25,3 @@ func (p Priority) Float32() float32 {
 func (p Priority) isLowerPriority(y Priority) bool {
 	return p < y
 }
-
