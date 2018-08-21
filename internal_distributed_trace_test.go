@@ -333,6 +333,32 @@ func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 	}
 }
 
+func TestPayloadTransactionsDisabled(t *testing.T) {
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Enabled = true
+		cfg.TransactionEvents.Enabled = false
+	}
+	app := testApp(nil, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+
+	payload := txn.CreateDistributedTracePayload()
+	if nil == payload {
+		t.Fatal(payload)
+	}
+	if "" != payload.Text() {
+		t.Error(payload.Text())
+	}
+	if "" != payload.HTTPSafe() {
+		t.Error(payload.HTTPSafe())
+	}
+	err := txn.End()
+	if nil != err {
+		t.Error(err)
+	}
+}
+
 func TestPayloadConnectionEmptyString(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
