@@ -15,7 +15,8 @@ const (
 	spanCategoryGeneric                = "generic"
 )
 
-type spanEvent struct {
+// SpanEvent represents a span event, neccessary to support Distributed Tracing.
+type SpanEvent struct {
 	TraceID         string
 	GUID            string
 	ParentID        string
@@ -45,7 +46,8 @@ type spanExternalExtras struct {
 	Component string
 }
 
-func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
+// WriteJSON prepares JSON in the format expected by the collector.
+func (e *SpanEvent) WriteJSON(buf *bytes.Buffer) {
 	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('[')
 	buf.WriteByte('{')
@@ -105,6 +107,15 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(']')
 }
 
+// MarshalJSON is used for testing.
+func (e *SpanEvent) MarshalJSON() ([]byte, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, 256))
+
+	e.WriteJSON(buf)
+
+	return buf.Bytes(), nil
+}
+
 type spanEvents struct {
 	events *analyticsEvents
 }
@@ -115,7 +126,7 @@ func newSpanEvents(max int) *spanEvents {
 	}
 }
 
-func (events *spanEvents) addEvent(e *spanEvent, cat *BetterCAT) {
+func (events *spanEvents) addEvent(e *SpanEvent, cat *BetterCAT) {
 	e.TraceID = cat.TraceID()
 	e.TransactionID = cat.ID
 	e.Sampled = cat.Sampled
@@ -127,7 +138,7 @@ func (events *spanEvents) addEvent(e *spanEvent, cat *BetterCAT) {
 // harvest's span events.  This should only be called if the transaction was
 // sampled and span events are enabled.
 func (events *spanEvents) MergeFromTransaction(txndata *TxnData) {
-	root := &spanEvent{
+	root := &SpanEvent{
 		GUID:         txndata.getRootSpanID(),
 		Timestamp:    txndata.Start,
 		Duration:     txndata.Duration,
