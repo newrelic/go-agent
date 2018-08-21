@@ -37,12 +37,26 @@ var (
 	sampleTxnEventWithOldCAT = TxnEvent{
 		FinalName: "myOldName",
 		BetterCAT: BetterCAT{
-			Enabled:  false,
+			Enabled: false,
 		},
 		Start:    timeFromUnixMilliseconds(1488393111000),
 		Duration: 2 * time.Second,
 		Zone:     ApdexNone,
 		Attrs:    nil,
+	}
+
+	sampleTxnEventWithError = TxnEvent{
+		FinalName: "myName",
+		BetterCAT: BetterCAT{
+			Enabled:  true,
+			ID:       "txn-id",
+			Priority: 0.5,
+		},
+		Start:    timeFromUnixMilliseconds(1488393111000),
+		Duration: 2 * time.Second,
+		Zone:     ApdexNone,
+		Attrs:    nil,
+		HasError: true,
 	}
 )
 
@@ -53,6 +67,7 @@ func TestTxnEventMarshal(t *testing.T) {
 		"type":"Transaction",
 		"name":"myName",
 		"timestamp":1.488393111e+09,
+		"error":false,
 		"duration":2,
 		"guid":"txn-id",
 		"traceId":"txn-id",
@@ -72,6 +87,7 @@ func TestTxnEventMarshalWithApdex(t *testing.T) {
 		"name":"myName",
 		"timestamp":1.488393111e+09,
 		"nr.apdexPerfZone":"F",
+		"error":false,
 		"duration":2,
 		"guid":"txn-id",
 		"traceId":"txn-id",
@@ -95,6 +111,7 @@ func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 		"type":"Transaction",
 		"name":"myName",
 		"timestamp":1.488393111e+09,
+		"error":false,
 		"duration":2,
 		"externalCallCount":22,
 		"externalDuration":1122.334,
@@ -128,6 +145,7 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 		"type":"Transaction",
 		"name":"myName",
 		"timestamp":1.488393111e+09,
+		"error":false,
 		"duration":2,
 		"parent.type": "Browser",
 		"parent.app": "caller-app",
@@ -164,6 +182,7 @@ func TestTxnEventMarshalWithInboundCallerOldCAT(t *testing.T) {
 		"type":"Transaction",
 		"name":"myOldName",
 		"timestamp":1.488393111e+09,
+		"error":false,
 		"duration":2
 	},
 	{},
@@ -187,6 +206,7 @@ func TestTxnEventMarshalWithAttributes(t *testing.T) {
 		"type":"Transaction",
 		"name":"myName",
 		"timestamp":1.488393111e+09,
+		"error":false,
 		"duration":2,
 		"guid":"txn-id",
 		"traceId":"txn-id",
@@ -290,7 +310,25 @@ func TestTxnEventsSynthetics(t *testing.T) {
 		t.Errorf("unexpected saved event: expected=%v; got=%v", synthetics, saved)
 	}
 
-	if priority := events.events.events[0].priority; priority != 2.0  {
+	if priority := events.events.events[0].priority; priority != 2.0 {
 		t.Errorf("synthetics event has unexpected priority: %f", priority)
 	}
+}
+
+func TestTxnEventMarshalWithError(t *testing.T) {
+	e := sampleTxnEventWithError
+	testTxnEventJSON(t, &e, `[
+	{
+		"type":"Transaction",
+		"name":"myName",
+		"timestamp":1.488393111e+09,
+		"error":true,
+		"duration":2,
+		"guid":"txn-id",
+		"traceId":"txn-id",
+		"priority":0.500000,
+		"sampled":false
+	},
+	{},
+	{}]`)
 }

@@ -28,6 +28,8 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 		w.stringField("nr.apdexPerfZone", e.Zone.label())
 	}
 
+	w.boolField("error", e.HasError)
+
 	sharedTransactionIntrinsics(e, &w)
 
 	// Write better CAT intrinsics if enabled
