@@ -19,21 +19,24 @@ func mustGetEnv(key string) string {
 }
 
 func doRequest(txn newrelic.Transaction) error {
-	req, err := http.NewRequest("GET", "http://localhost:8000/segments", nil)
-	if nil != err {
-		return err
-	}
-	client := &http.Client{}
+	for _, addr := range []string{"segments", "mysql"} {
+		url := fmt.Sprintf("http://localhost:8000/%s", addr)
+		req, err := http.NewRequest("GET", url, nil)
+		if nil != err {
+			return err
+		}
+		client := &http.Client{}
 
-	// Using NewRoundTripper automatically instruments all request for
-	// Distributed Tracing and Cross Application Tracing.
-	client.Transport = newrelic.NewRoundTripper(txn, nil)
+		// Using NewRoundTripper automatically instruments all request
+		// for Distributed Tracing and Cross Application Tracing.
+		client.Transport = newrelic.NewRoundTripper(txn, nil)
 
-	resp, err := client.Do(req)
-	if nil != err {
-		return err
+		resp, err := client.Do(req)
+		if nil != err {
+			return err
+		}
+		fmt.Println("response code is", resp.StatusCode)
 	}
-	fmt.Println("response code is", resp.StatusCode)
 	return nil
 }
 
