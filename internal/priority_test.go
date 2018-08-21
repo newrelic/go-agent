@@ -9,15 +9,15 @@ func TestIsLowerPriority(t *testing.T) {
 	middle := Priority(0.1)
 	high := Priority(0.999999)
 
-	if (!low.isLowerPriority(middle)) {
+	if !low.isLowerPriority(middle) {
 		t.Error(low, middle)
 	}
 
-	if (high.isLowerPriority(middle)) {
+	if high.isLowerPriority(middle) {
 		t.Error(high, middle)
 	}
 
-	if (high.isLowerPriority(high)) {
+	if high.isLowerPriority(high) {
 		t.Error(high, high)
 	}
 }

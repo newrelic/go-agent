@@ -83,7 +83,7 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 			CleanURL:  "my_request_uri",
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
-				Enabled:  false,
+				Enabled: false,
 			},
 		},
 	}
@@ -186,7 +186,7 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 			CleanURL:  "my_request_uri",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
-				Enabled:  false,
+				Enabled: false,
 			},
 		},
 	}

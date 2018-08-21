@@ -75,7 +75,7 @@ func TestErrorEventMarshalOldCAT(t *testing.T) {
 			Duration:  3 * time.Second,
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
-				Enabled:  false,
+				Enabled: false,
 			},
 		},
 	}, `[
@@ -158,7 +158,7 @@ func TestErrorEventAttributesOldCAT(t *testing.T) {
 			Duration:  3 * time.Second,
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
-				Enabled:  false,
+				Enabled: false,
 			},
 		},
 	}, `[
