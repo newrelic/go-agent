@@ -25,6 +25,21 @@
   [distributed tracing section of the guide](GUIDE.md#distributed-tracingg)
   for more detail on how to ensure you get the most out of the Go agent's distributed tracing support.
   
+* Added functions [NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext)
+  and [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext)
+  for adding and retrieving the Transaction from a Context.  Handlers
+  instrumented by
+  [WrapHandle](https://godoc.org/github.com/newrelic/go-agent#WrapHandle),
+  [WrapHandleFunc](https://godoc.org/github.com/newrelic/go-agent#WrapHandleFunc),
+  and [nrgorilla.InstrumentRoutes](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1#InstrumentRoutes)
+  may use [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext)
+  on the request's context to access the Transaction.
+  Thanks to @caarlos0 for the contribution!  Though [NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext)
+  and [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext)
+  require Go 1.7+ (when [context](https://golang.org/pkg/context/) was added),
+  [RequestWithTransactionContext](https://godoc.org/github.com/newrelic/go-agent#RequestWithTransactionContext) is always exported so that it can be used in all framework and library
+  instrumentation.
+  
 ## 2.0.0
 
 * The `End()` functions defined on the `Segment`, `DatastoreSegment`, and

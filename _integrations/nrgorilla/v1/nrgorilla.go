@@ -22,6 +22,8 @@ func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	txn := h.app.StartTransaction(h.name, w, r)
 	defer txn.End()
 
+	r = newrelic.RequestWithTransactionContext(r, txn)
+
 	h.orig.ServeHTTP(txn, r)
 }
 
