@@ -32,4 +32,4 @@ Push access to this repository is granted via membership in the cross-agent-team
 | [docker_container_id](docker_container_id) | These tests cover parsing of Docker container IDs from `/proc/*/cgroup` on Linux hosts. |
 | [utilization](utilization) | These tests cover the collection and validation of metadata for billing purposes as per the [Utilization spec](https://source.datanerd.us/agents/agent-specs/blob/master/Utilization.md). |
 | [utilization_vendor_specific](utilization_vendor_specific) | These tests cover the collection and validation of metadata for AWS, Pivotal Cloud Foundry, Google Cloud Platform, and Azure as per the [Utilization spec](https://source.datanerd.us/agents/agent-specs/blob/master/Utilization.md). |
-| [data_transport](data_transport/data_transport.json) | These test correct JSON payload generation and handling collector responses. See [readme](https://source.datanerd.us/agents/cross_agent_tests/blob/master/data_transport/data_transport.md) for details. |
+| [distributed_tracing](distributed_tracing) | distributed tracing, a.k.a. CAT CATs |

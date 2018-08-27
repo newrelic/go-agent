@@ -32,6 +32,9 @@ func TestStartEndSegment(t *testing.T) {
 	if end.stop.Time != stop {
 		t.Error(end.stop, stop)
 	}
+	if 0 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
 }
 
 func TestMultipleChildren(t *testing.T) {
@@ -241,6 +244,113 @@ func TestLostChildrenRoot(t *testing.T) {
 	})
 }
 
+func TestNilSpanEvent(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+
+	tr := &TxnData{}
+	token := StartSegment(tr, start)
+	stop := start.Add(1 * time.Second)
+	end, err := endSegment(tr, token, stop)
+	if nil != err {
+		t.Error(err)
+	}
+
+	// A segment without a SpanId does not create a spanEvent.
+	if evt := end.spanEvent(); evt != nil {
+		t.Error(evt)
+	}
+}
+
+func TestDefaultSpanEvent(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+
+	tr := &TxnData{}
+	token := StartSegment(tr, start)
+	stop := start.Add(1 * time.Second)
+	end, err := endSegment(tr, token, stop)
+	if nil != err {
+		t.Error(err)
+	}
+	end.SpanID = "123"
+	if evt := end.spanEvent(); evt != nil {
+		if evt.GUID != end.SpanID ||
+			evt.ParentID != end.ParentID ||
+			evt.Timestamp != end.start.Time ||
+			evt.Duration != end.duration ||
+			evt.IsEntrypoint {
+			t.Error(evt)
+		}
+	}
+}
+
+func TestNewSpanID(t *testing.T) {
+	id := NewSpanID()
+	if len(id) != 16 {
+		t.Error(id)
+	}
+}
+
+func TestGetRootSpanID(t *testing.T) {
+	tr := &TxnData{}
+	id := tr.getRootSpanID()
+	if id == "" {
+		t.Error(id)
+	}
+	tr.rootSpanID = "0123456789ABCDEF"
+	id = tr.getRootSpanID()
+	if id != "0123456789ABCDEF" {
+		t.Error(id)
+	}
+}
+
+func TestCurrentSpanIdentifier(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+	tr.rootSpanID = "0123456789ABCDEF"
+	id := tr.CurrentSpanIdentifier()
+	if id != "0123456789ABCDEF" {
+		t.Error(id)
+	}
+
+	// After starting and ending a segment, the current span id is still the root.
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	_, err1 := endSegment(tr, t1, start.Add(3*time.Second))
+	if nil != err1 {
+		t.Error(err1)
+	}
+
+	id = tr.CurrentSpanIdentifier()
+	if id != "0123456789ABCDEF" {
+		t.Error(id)
+	}
+
+	// After starting a new segment, there should be a new current span id.
+	StartSegment(tr, start.Add(2*time.Second))
+	id2 := tr.CurrentSpanIdentifier()
+	if id2 == "0123456789ABCDEF" ||
+		id2 != tr.stack[0].spanID {
+		t.Error(id2)
+	}
+
+	// The current segment has not ended, so there should be no new current span id.
+	id = tr.CurrentSpanIdentifier()
+	if id != id2 {
+		t.Error(id)
+	}
+}
+
+func TestDatastoreSpanAddress(t *testing.T) {
+	if s := datastoreSpanAddress("host", "portPathOrID"); s != "host:portPathOrID" {
+		t.Error(s)
+	}
+	if s := datastoreSpanAddress("host", ""); s != "host" {
+		t.Error(s)
+	}
+	if s := datastoreSpanAddress("", ""); s != "" {
+		t.Error(s)
+	}
+}
+
 func TestSegmentBasic(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &TxnData{}
@@ -281,13 +391,13 @@ func TestSegmentExternal(t *testing.T) {
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
-	EndExternalSegment(tr, t2, start.Add(3*time.Second), nil, nil)
-	EndExternalSegment(tr, t1, start.Add(4*time.Second), parseURL("http://f1.com"), nil)
+	EndExternalSegment(tr, t2, start.Add(3*time.Second), nil, "", nil)
+	EndExternalSegment(tr, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil)
 	t3 := StartSegment(tr, start.Add(5*time.Second))
-	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://f1.com"), nil)
+	EndExternalSegment(tr, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil)
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t4.Stamp++
-	EndExternalSegment(tr, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), nil)
+	EndExternalSegment(tr, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil)
 
 	if tr.externalCallCount != 3 {
 		t.Error(tr.externalCallCount)
@@ -477,5 +587,72 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 			{"Datastore/statement/" + tc.Product + "/my_table/SELECT", tr.FinalName, false, data},
 			{expect, "", false, data},
 		})
+	}
+}
+
+func TestGenericSpanEventCreation(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+
+	// Enable that which is necessary to generate span events when segments are ended.
+	tr.BetterCAT.Sampled = true
+	tr.SpanEventsEnabled = true
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	EndBasicSegment(tr, t1, start.Add(3*time.Second), "t1")
+
+	// Since a basic segment has just ended, there should be exactly one generic span event in tr.spanEvents[]
+	if 1 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
+	if tr.spanEvents[0].Category != spanCategoryGeneric {
+		t.Error(tr.spanEvents[0].Category)
+	}
+}
+
+func TestDatastoreSpanEventCreation(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+
+	// Enable that which is necessary to generate span events when segments are ended.
+	tr.BetterCAT.Sampled = true
+	tr.SpanEventsEnabled = true
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	EndDatastoreSegment(EndDatastoreParams{
+		Tracer:     tr,
+		Start:      t1,
+		Now:        start.Add(3 * time.Second),
+		Product:    "MySQL",
+		Operation:  "SELECT",
+		Collection: "my_table",
+	})
+
+	// Since a datastore segment has just ended, there should be exactly one datastore span event in tr.spanEvents[]
+	if 1 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
+	if tr.spanEvents[0].Category != spanCategoryDatastore {
+		t.Error(tr.spanEvents[0].Category)
+	}
+}
+
+func TestHTTPSpanEventCreation(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+
+	// Enable that which is necessary to generate span events when segments are ended.
+	tr.BetterCAT.Sampled = true
+	tr.SpanEventsEnabled = true
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	EndExternalSegment(tr, t1, start.Add(3*time.Second), nil, "", nil)
+
+	// Since an external segment has just ended, there should be exactly one HTTP span event in tr.spanEvents[]
+	if 1 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
+	if tr.spanEvents[0].Category != spanCategoryHTTP {
+		t.Error(tr.spanEvents[0].Category)
 	}
 }

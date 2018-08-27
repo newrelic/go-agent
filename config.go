@@ -161,6 +161,12 @@ type Config struct {
 		Enabled bool
 	}
 
+	// SpanEvents controls behavior relating to Span Events.  Span Events
+	// required distributed tracing to be enabled.
+	SpanEvents struct {
+		Enabled bool
+	}
+
 	// DatastoreTracer controls behavior relating to datastore segments.
 	DatastoreTracer struct {
 		InstanceReporting struct {
@@ -237,6 +243,7 @@ func NewConfig(appname, license string) Config {
 
 	c.CrossApplicationTracer.Enabled = true
 	c.DistributedTracer.Enabled = false
+	c.SpanEvents.Enabled = true
 
 	c.DatastoreTracer.InstanceReporting.Enabled = true
 	c.DatastoreTracer.DatabaseNameReporting.Enabled = true

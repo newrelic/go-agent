@@ -32,6 +32,10 @@ const (
 	errorEventsSeen = "Supportability/Events/TransactionError/Seen"
 	errorEventsSent = "Supportability/Events/TransactionError/Sent"
 
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Span-Events.md
+	spanEventsSeen = "Supportability/SpanEvent/TotalEventsSeen"
+	spanEventsSent = "Supportability/SpanEvent/TotalEventsSent"
+
 	supportabilityDropped = "Supportability/MetricsDropped"
 
 	// Runtime/System Metrics

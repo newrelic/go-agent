@@ -20,11 +20,6 @@ type txnInput struct {
 	attrConfig *internal.AttributeConfig
 }
 
-func newTxnID() string {
-	bits := internal.RandUint64()
-	return fmt.Sprintf("%x", bits)
-}
-
 type txn struct {
 	txnInput
 	// This mutex is required since the consumer may call the public API
@@ -56,7 +51,16 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
 		txn.BetterCAT.Priority = internal.NewPriority()
-		txn.BetterCAT.ID = newTxnID()
+		txn.BetterCAT.ID = internal.NewSpanID()
+
+		// Calculate sampled at the beginning of the transaction (rather
+		// than lazily at payload creation time) because it controls the
+		// creation of span events.
+		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), txn.Start)
+		if txn.BetterCAT.Sampled {
+			txn.BetterCAT.Priority += 1.0
+		}
+		txn.SpanEventsEnabled = input.Config.SpanEvents.Enabled
 	}
 
 	if nil != req {
@@ -175,6 +179,40 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	if nil != txn.SlowQueries {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.TxnEvent)
 	}
+
+	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+		h.SpanEvents.MergeFromTransaction(&txn.TxnData)
+	}
+}
+
+// TransportType's name field is not mutable outside of its package
+// however, it still periodically needs to be used and assigned within
+// the this package.  For testing purposes only.
+func getTransport(transport string) string {
+	var retVal string
+
+	switch transport {
+	case TransportHTTP.name:
+		retVal = TransportHTTP.name
+	case TransportHTTPS.name:
+		retVal = TransportHTTPS.name
+	case TransportKafka.name:
+		retVal = TransportKafka.name
+	case TransportJMS.name:
+		retVal = TransportJMS.name
+	case TransportIronMQ.name:
+		retVal = TransportIronMQ.name
+	case TransportAMQP.name:
+		retVal = TransportAMQP.name
+	case TransportQueue.name:
+		retVal = TransportQueue.name
+	case TransportOther.name:
+		retVal = TransportOther.name
+	case TransportUnknown.name:
+	default:
+		retVal = TransportUnknown.name
+	}
+	return retVal
 }
 
 func responseCodeIsError(cfg *Config, code int) bool {
@@ -394,7 +432,7 @@ func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 	}
 
 	txn.Errors.Add(err)
-
+	txn.TxnData.TxnEvent.HasError = true //mark transaction as having an error
 	return nil
 }
 
@@ -557,6 +595,26 @@ func endDatastore(s *DatastoreSegment) error {
 	})
 }
 
+func externalSegmentMethod(s *ExternalSegment) string {
+	r := s.Request
+
+	// Is this a client request?
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+
+		// Golang's http package states that when a client's
+		// Request has an empty string for Method, the
+		// method is GET.
+		if "" == r.Method {
+			return "GET"
+		}
+	}
+	if nil == r {
+		return ""
+	}
+	return r.Method
+}
+
 func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 	if "" != s.URL {
 		return url.Parse(s.URL)
@@ -582,11 +640,12 @@ func endExternal(s *ExternalSegment) error {
 	if txn.finished {
 		return errAlreadyEnded
 	}
+	m := externalSegmentMethod(s)
 	u, err := externalSegmentURL(s)
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, m, s.Response)
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending
@@ -662,30 +721,24 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 		return
 	}
 
-	if 0 == txn.numPayloadsCreated && nil == txn.BetterCAT.Inbound {
-		// Lazily calculate if a transaction should be sampled:
-		// currently, only transactions which create payloads may be
-		// sampled.  This behavior is still under discussion.
-		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
-		if txn.BetterCAT.Sampled {
-			txn.BetterCAT.Priority += 1.0
-		}
-	}
 	txn.numPayloadsCreated++
 
 	var p internal.Payload
 	p.Type = internal.CallerType
 	p.Account = txn.Reply.AccountID
 
-
 	p.App = txn.Reply.PrimaryAppID
 	p.TracedID = txn.BetterCAT.TraceID()
 	p.Priority = txn.BetterCAT.Priority
 	p.Timestamp.Set(time.Now())
-	p.TransactionID = txn.BetterCAT.ID  // Set the transaction ID to the transaction guid.
+	p.TransactionID = txn.BetterCAT.ID // Set the transaction ID to the transaction guid.
 
 	if txn.Reply.AccountID != txn.Reply.TrustedAccountKey {
 		p.TrustedAccountKey = txn.Reply.TrustedAccountKey
+	}
+
+	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+		p.ID = txn.CurrentSpanIdentifier()
 	}
 
 	// limit the number of outbound sampled=true payloads to prevent too

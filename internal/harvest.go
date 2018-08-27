@@ -20,6 +20,7 @@ type Harvest struct {
 	ErrorTraces  harvestErrors
 	TxnTraces    *harvestTraces
 	SlowSQLs     *slowQueries
+	SpanEvents   *spanEvents
 }
 
 const (
@@ -37,6 +38,7 @@ func (h *Harvest) Payloads(splitLargeTxnEvents bool) []PayloadCreator {
 		h.ErrorTraces,
 		h.TxnTraces,
 		h.SlowSQLs,
+		h.SpanEvents,
 	}
 	if splitLargeTxnEvents {
 		ps = append(ps, h.TxnEvents.payloads(txnEventPayloadlimit)...)
@@ -56,6 +58,7 @@ func NewHarvest(now time.Time) *Harvest {
 		ErrorTraces:  newHarvestErrors(maxHarvestErrors),
 		TxnTraces:    newHarvestTraces(),
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
+		SpanEvents:   newSpanEvents(maxSpanEvents),
 	}
 }
 
@@ -94,6 +97,9 @@ func (h *Harvest) CreateFinalMetrics() {
 
 	h.Metrics.addCount(errorEventsSeen, h.ErrorEvents.numSeen(), forced)
 	h.Metrics.addCount(errorEventsSent, h.ErrorEvents.numSaved(), forced)
+
+	h.Metrics.addCount(spanEventsSeen, h.SpanEvents.numSeen(), forced)
+	h.Metrics.addCount(spanEventsSent, h.SpanEvents.numSaved(), forced)
 
 	if h.Metrics.numDropped > 0 {
 		h.Metrics.addCount(supportabilityDropped, float64(h.Metrics.numDropped), forced)

@@ -1,5 +1,30 @@
 ## ChangeLog
 
+* The Go Agent now supports distributed tracing.
+
+  Distributed tracing lets you see the path that a request takes as it travels through your distributed system. By 
+  showing the distributed activity through a unified view, you can troubleshoot and understand a complex system better 
+  than ever before.
+
+  Distributed tracing is available with an APM Pro or equivalent subscription. To see a complete distributed trace, you 
+  need to enable the feature on a set of neighboring services. Enabling distributed tracing changes the behavior of 
+  some New Relic features, so carefully consult the 
+  [transition guide](https://docs.newrelic.com/docs/transition-guide-distributed-tracing) before you enable this 
+  feature.
+
+  To enable distributed tracing, set the following fields in your config.  Note that distributed tracing and cross 
+  application tracing cannot be used simultaneously.
+
+```
+  config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+  config.CrossApplicationTracer.Enabled = false
+  config.DistributedTracer.Enabled = true
+```
+
+  Please refer to the 
+  [distributed tracing section of the guide](GUIDE.md#distributed-tracingg)
+  for more detail on how to ensure you get the most out of the Go agent's distributed tracing support.
+  
 ## 2.0.0
 
 * The `End()` functions defined on the `Segment`, `DatastoreSegment`, and
@@ -42,7 +67,7 @@
   problems you're having, or to report issues.
 
 * Added support for Cross Application Tracing (CAT). Please refer to the
-  [upgrading section of the guide](GUIDE.md#upgrading-applications-to-support-cross-application-tracing)
+  [CAT section of the guide](GUIDE.md#cross-application-tracing)
   for more detail on how to ensure you get the most out of the Go agent's new
   CAT support.
 

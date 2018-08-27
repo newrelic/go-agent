@@ -24,7 +24,7 @@ func (events *analyticsEvents) NumSeen() float64  { return float64(events.numSee
 func (events *analyticsEvents) NumSaved() float64 { return float64(len(events.events)) }
 
 func (h analyticsEventHeap) Len() int           { return len(h) }
-func (h analyticsEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority)  }
+func (h analyticsEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority) }
 func (h analyticsEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 // Push and Pop are unused: only heap.Init and heap.Fix are used.

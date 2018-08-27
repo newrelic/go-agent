@@ -309,3 +309,24 @@ func TestRequiredFieldsMissingTimestamp(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestRequiredFieldsZeroTimestamp(t *testing.T) {
+	var payload Payload
+	fixture := []byte(`{
+		"ty":"App",
+		"ac":"123",
+		"ap":"456",
+		"tr":"traceID",
+		"ti":0
+	}`)
+
+	if err := json.Unmarshal(fixture, &payload); nil != err {
+		t.Log("Could not marshall fixture data into payload")
+		t.Error(err)
+	}
+
+	if err := payload.IsValid(); err == nil {
+		t.Log("Expected error from missing Timestamp (ti)")
+		t.Fail()
+	}
+}

@@ -46,7 +46,7 @@ func (tm *timestampMillis) Set(t time.Time) { *tm = timestampMillis(t) }
 type Payload struct {
 	payloadCaller
 	TransactionID     string          `json:"tx,omitempty"`
-	ID                string          `json:"id"`
+	ID                string          `json:"id,omitempty"`
 	TracedID          string          `json:"tr"`
 	Priority          Priority        `json:"pr"`
 	Sampled           *bool           `json:"sa"`
@@ -66,6 +66,12 @@ type payloadCaller struct {
 // Returns an error if there's a problem, nil if everything's fine
 func (p Payload) IsValid() error {
 
+	// If a payload is missing both `guid` and `transactionId` is received,
+	// a ParseException supportability metric should be generated.
+	if "" == p.TransactionID && "" == p.ID {
+		return ErrPayloadMissingField{message: "missing both guid/id and TransactionId/tx"}
+	}
+
 	if "" == p.Type {
 		return ErrPayloadMissingField{message: "missing Type/ty"}
 	}
@@ -82,7 +88,7 @@ func (p Payload) IsValid() error {
 		return ErrPayloadMissingField{message: "missing TracedID/tr"}
 	}
 
-	if p.Timestamp.Time().IsZero() {
+	if p.Timestamp.Time().IsZero() || 0 == p.Timestamp.Time().Unix() {
 		return ErrPayloadMissingField{message: "missing Timestamp/ti"}
 	}
 
