@@ -162,7 +162,7 @@ type Config struct {
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
-	// required distributed tracing to be enabled.
+	// require that distributed tracing is enabled.
 	SpanEvents struct {
 		Enabled bool
 	}

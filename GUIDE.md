@@ -11,10 +11,10 @@
 * [Attributes](#attributes)
 * [Tracing](#tracing)
   * [Distributed Tracing](#distributed-tracing)
-  * [Cross Application Tracing](#cross-application-tracing)
+  * [Cross-Application Tracing](#cross-application-tracing)
   * [Tracing instrumentation](#tracing-instrumentation)
-    * [Automatic instrumentation](#automatic-instrumentation)
-    * [Custom instrumentation](#custom-instrumentation)
+    * [Getting Tracing Instrumentation Out-of-the-Box](#getting-tracing-instrumentation-out-of-the-box)
+    * [Manually Implementing Distributed Tracing](#manually-implementing-distributed-tracing)
 * [Distributed Tracing](#distributed-tracing)
 * [Custom Metrics](#custom-metrics)
 * [Custom Events](#custom-events)
@@ -119,8 +119,8 @@ defer txn.End()
 If the response writer is provided when calling `StartTransaction`, you can
 then use `txn.WriteHeader` as a drop in replacement for the standard library's
 [`http.ResponseWriter.WriteHeader`](https://golang.org/pkg/net/http/#ResponseWriter)
-function. We strongly recommend doing so, as this both enables Cross
-Application Tracing support and ensures that attributes are added to the
+function. We strongly recommend doing so, as this both enables cross-application
+tracing support and ensures that attributes are added to the
 Transaction event capturing the response size and status code.
 
 The response writer and request parameters are optional.  Leave them `nil` to
@@ -253,15 +253,15 @@ defer s.End()
 ### External Segments
 
 External segments appear in the transaction "Breakdown table" and in the
-"External services" page. Version 1.11.0 of the Go agent adds support for
-Cross Application Tracing (CAT), which will result in external segments also
+"External services" page. Version 1.11.0 of the Go Agent adds support for
+cross-application tracing (CAT), which will result in external segments also
 appearing in the "Service maps" page and being linked in transaction traces when
-both sides of the request have traces. Version 2.1.0 of the Go agent adds
-support for Distributed Tracing, which lets you see the path a request takes as
+both sides of the request have traces. Version 2.1.0 of the Go Agent adds
+support for distributed tracing, which lets you see the path a request takes as
 it travels through distributed APM apps.
 
 * [More info on External Services page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/external-services-page)
-* [More info on Cross Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
+* [More info on Cross-Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
 * [More info on Distributed Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
 
 External segments are instrumented using `ExternalSegment`. There are three
@@ -292,8 +292,8 @@ ways to use this functionality:
    will automatically instrument all requests made via
    [`http.Client`](https://golang.org/pkg/net/http/#Client) instances that use
    that round tripper as their `Transport`. This option results in CAT support,
-   provided the Go agent is version 1.11.0, and in Distributed Tracing support,
-   provided the Go agent is version 2.1.0.
+   provided the Go Agent is version 1.11.0, and in distributed tracing support,
+   provided the Go Agent is version 2.1.0.
 
    For example:
 
@@ -309,7 +309,7 @@ ways to use this functionality:
 3. Directly creating an `ExternalSegment` via a struct literal with an explicit
    `URL` or `Request`, and then calling `ExternalSegment.End`. This option does
    not support CAT, and may be removed or changed in a future major version of
-   the Go agent. As a result, we suggest using one of the other options above
+   the Go Agent. As a result, we suggest using one of the other options above
    wherever possible.
 
    For example:
@@ -358,55 +358,61 @@ config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.Attribute
 
 ## Tracing
 
+New Relic's [distributed
+tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing)  
+is the next generation of the previous cross-application tracing feature. Compared to 
+cross-application tracing, distributed tracing gives more detail about cross-service activity and provides more 
+complete end-to-end visibility.  This section discusses distributed tracing and cross-application tracing in turn.
+
 ### Distributed Tracing
 
-New Relic's [Distributed
-Tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
+New Relic's [distributed
+tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing) 
 feature lets you see the path that a request takes as it travels through distributed APM
 apps, which is vital for applications implementing a service-oriented or
 microservices architecture. Support for distributed tracing was added in 
-version 2.1.0 of the Go agent.
+version 2.1.0 of the Go Agent.
 
 The config's `DistributedTracer.Enabled` field has to be set. When true, the 
 agent will add distributed tracing headers in outbound requests, and scan 
 incoming requests for distributed tracing headers. Distributed tracing and 
-cross application tracing cannot be used simultaneously:
+cross-application tracing cannot be used simultaneously:
 
 ```go
 config.CrossApplicationTracer.Enabled = false
 config.DistributedTracer.Enabled = true
 ```
 
-### Cross Application Tracing
+### Cross-Application Tracing
 
 New Relic's
-[Cross Application Tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
+[cross-application tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
 feature, or CAT for short, links transactions between applications in APM to
 help identify performance problems within your service-oriented architecture.
-Support for CAT was added in version 1.11.0 of the Go agent.
+Support for CAT was added in version 1.11.0 of the Go Agent.
 
-As CAT uses HTTP headers to track requests across applications, the Go agent
+As CAT uses HTTP headers to track requests across applications, the Go Agent
 needs to be able to access and modify request and response headers both for
 incoming and outgoing requests.
 
-### Tracing instrumentation
+### Tracing Instrumentation
 
-Tracing works by propagating [header information](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/how-new-relic-distributed-tracing-works#headers)
-from service to service in a request path. The Go agent does this automatically
-for [supported scenarios](#automatic-instrumentation). For services not 
-automatically instrumented by the Go agent, Distributed Tracing with 
-[custom instrumentation](#custom-instrumentation) can be used.
+Both distributed tracing and cross-application tracing work by propagating 
+[header information](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/how-new-relic-distributed-tracing-works#headers)
+from service to service in a request path. In many scenarios, the Go Agent offers tracing instrumentation 
+out-of-the-box, for both distributed tracing and cross-application tracing. For other scenarios customers may implement 
+distributed tracing based on the examples provided in this guide.
 
-#### Automatic instrumentation
+#### Getting Tracing Instrumentation Out-of-the-Box
 
-The Go agent automatically creates and propagates tracing header information 
+The Go Agent automatically creates and propagates tracing header information 
 for each of the following scenarios:
 
 1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
    uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux)
    ([Example](examples/server/main.go)).
 
-2. Using either of the Go agent's [Gin](_integrations/nrgin/v1) or
+2. Using either of the Go Agent's [Gin](_integrations/nrgin/v1) or
    [Gorilla](_integrations/nrgorilla/v1) integration
    ([Gin Example](examples/_gin/main.go), [Gorilla Example](examples/_gorilla/main.go)).
 .
@@ -428,17 +434,17 @@ for each of the following scenarios:
    described in the [external segments section of this guide](#external-segments)
    ([Example](examples/client/main.go)).
 
-#### Custom instrumentation for Distributed Tracing
+#### Manually Implementing Distributed Tracing
 
-Consider [custom instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
-for services not instrumented automatically by the Go agent. In this scenario, the
+Consider [manual instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis) 
+for services not instrumented automatically by the Go Agent. In such scenarios, the
 calling service has to generate a distributed trace payload:
 
 ```go
 p := callingTxn.CreateDistributedTracePayload()
 ```
 
-This payload has to added to the call to the destination service, which in turn
+This payload has to be added to the call to the destination service, which in turn
 invokes the call for accepting the payload:
 
 ```go
