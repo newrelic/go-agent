@@ -3,6 +3,7 @@
 package nrgorilla
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -20,6 +21,7 @@ type instrumentedHandler struct {
 
 func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	txn := h.app.StartTransaction(h.name, w, r)
+	r = r.WithContext(NewContext(r.Context(), txn))
 	defer txn.End()
 
 	r = newrelic.RequestWithTransactionContext(r, txn)
@@ -65,3 +67,20 @@ func InstrumentRoutes(r *mux.Router, app newrelic.Application) *mux.Router {
 	}
 	return r
 }
+
+// NewContext returns a new Context that carries the provided transcation.
+func NewContext(ctx context.Context, txn newrelic.Transaction) context.Context {
+	return context.WithValue(ctx, contextKey, txn)
+}
+
+// FromContext returns the Transaction in the context, if any. If there
+// isn't a transaction in the context, nil is returned.
+func FromContext(ctx context.Context) newrelic.Transaction {
+	h, _ := ctx.Value(contextKey).(newrelic.Transaction)
+	return h
+}
+
+type contextKeyType struct{}
+
+// globally unique, since it is an unexported type
+var contextKey = contextKeyType(struct{}{})

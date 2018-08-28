@@ -12,6 +12,12 @@ import (
 
 func makeHandler(text string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		txn := nrgorilla.FromContext(r.Context())
+		req, _ := http.NewRequest(http.MethodGet, "https://support.newrelic.com/", nil)
+		s := newrelic.StartExternalSegment(txn, req)
+		resp, _ := http.DefaultClient.Do(req)
+		s.Response = resp
+		s.End()
 		w.Write([]byte(text))
 	})
 }
