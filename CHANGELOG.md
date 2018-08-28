@@ -24,7 +24,7 @@
 ```
 
   Please refer to the
-  [distributed tracing section of the guide](GUIDE.md#distributed-tracingg)
+  [distributed tracing section of the guide](GUIDE.md#distributed-tracing)
   for more detail on how to ensure you get the most out of the Go agent's distributed tracing support.
 
 * Added functions [NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext)
