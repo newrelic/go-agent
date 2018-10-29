@@ -18,8 +18,8 @@ matrix:
   allow_failures:
     - go: tip
 
-# golint has dependencies that only work on Go 1.7 or later. See also
-# https://github.com/golang/lint/issues/400.
+# golint requires a supported version of Go, which in practice is currently 1.9+.
+# See: https://github.com/golang/lint#installation
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
   - DO_GOLINT=$(echo $TRAVIS_GO_VERSION | perl -wne 'chomp; if (/^[0-9]+\.[0-9]+/) { my ($major, $minor) = split /\./; print "new" if $minor >= 9 || $major > 1 } elsif (/^tip$/) { print "new" }' | grep new > /dev/null; echo $?)
