@@ -192,11 +192,11 @@ func TestTxnEventMarshalWithInboundCallerOldCAT(t *testing.T) {
 func TestTxnEventMarshalWithAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, "zap")
-	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, hostDisplayName)
+	aci.TransactionEvents.Exclude = append(aci.TransactionEvents.Exclude, AttributeHostDisplayName.name())
 	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
-	attr.Agent.HostDisplayName = "exclude me"
-	attr.Agent.RequestMethod = "GET"
+	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
+	attr.Agent.Add(attributeRequestMethod, "GET", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 	e := sampleTxnEvent
