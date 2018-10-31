@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"strings"
 	"testing"
@@ -310,5 +311,31 @@ func TestIncludeDisabled(t *testing.T) {
 	js := userAttributesStringJSON(attrs, DestAll, nil)
 	if `{}` != js {
 		t.Error(js)
+	}
+}
+
+func BenchmarkAgentAttributes(b *testing.B) {
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
+
+	req, err := http.NewRequest("GET", "http://www.newrelic.com", nil)
+	if nil != err {
+		b.Fatal(err)
+	}
+
+	req.Header.Set("Accept", "zap")
+	req.Header.Set("Content-Type", "zap")
+	req.Header.Set("Host", "zap")
+	req.Header.Set("User-Agent", "zap")
+	req.Header.Set("Referer", "http://www.newrelic.com")
+	req.Header.Set("Content-Length", "123")
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		attrs := NewAttributes(cfg)
+		RequestAgentAttributes(attrs, req)
+		buf := bytes.Buffer{}
+		agentAttributesJSON(attrs, &buf, destTxnTrace)
 	}
 }

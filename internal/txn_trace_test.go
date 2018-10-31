@@ -53,7 +53,7 @@ func TestTxnTrace(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
-	attr.Agent.RequestMethod = "GET"
+	attr.Agent.Add(attributeRequestMethod, "GET", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
 	ht := newHarvestTraces()
@@ -243,7 +243,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
-	attr.Agent.RequestMethod = "GET"
+	attr.Agent.Add(attributeRequestMethod, "GET", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
 	ht := newHarvestTraces()

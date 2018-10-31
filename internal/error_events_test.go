@@ -98,11 +98,11 @@ func TestErrorEventMarshalOldCAT(t *testing.T) {
 func TestErrorEventAttributes(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
-	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, AttributeHostDisplayName.name())
 	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
-	attr.Agent.HostDisplayName = "exclude me"
-	attr.Agent.RequestMethod = "GET"
+	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
+	attr.Agent.Add(attributeRequestMethod, "GET", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
@@ -143,11 +143,11 @@ func TestErrorEventAttributes(t *testing.T) {
 func TestErrorEventAttributesOldCAT(t *testing.T) {
 	aci := sampleAttributeConfigInput
 	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, "zap")
-	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, hostDisplayName)
+	aci.ErrorCollector.Exclude = append(aci.ErrorCollector.Exclude, AttributeHostDisplayName.name())
 	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
-	attr.Agent.HostDisplayName = "exclude me"
-	attr.Agent.RequestMethod = "GET"
+	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
+	attr.Agent.Add(attributeRequestMethod, "GET", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 

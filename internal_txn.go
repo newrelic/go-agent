@@ -67,7 +67,7 @@ func newTxn(input txnInput, req *http.Request, name string) *txn {
 		txn.Queuing = internal.QueueDuration(req.Header, txn.Start)
 		internal.RequestAgentAttributes(txn.Attrs, req)
 	}
-	txn.Attrs.Agent.HostDisplayName = txn.Config.HostDisplayName
+	txn.Attrs.Agent.Add(internal.AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
 	txn.TxnTrace.Enabled = txn.txnTracesEnabled()
 	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
 	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
