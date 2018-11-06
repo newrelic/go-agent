@@ -37,7 +37,7 @@ func distributedTracingReplyFields(reply *internal.ConnectReply) {
 	reply.AppID = "456"
 	reply.PrimaryAppID = "456"
 	reply.TrustedAccounts = map[int]struct{}{
-		123: struct{}{},
+		123: {},
 	}
 	reply.TrustedAccountKey = "123"
 
@@ -49,7 +49,7 @@ func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
 	reply.AppID = "456"
 	reply.PrimaryAppID = "456"
 	reply.TrustedAccounts = map[int]struct{}{
-		123: struct{}{},
+		123: {},
 	}
 	reply.TrustedAccountKey = "789"
 }

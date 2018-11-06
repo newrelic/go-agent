@@ -15,7 +15,7 @@ var (
 		reply.EncodingKey = "encoding_key"
 		reply.CrossProcessID = "12345#67890"
 		reply.TrustedAccounts = map[int]struct{}{
-			12345: struct{}{},
+			12345: {},
 		}
 	}
 	catIntrinsics = map[string]interface{}{

@@ -271,7 +271,7 @@ type preconnectRequest struct {
 // ConnectAttempt tries to connect an application.
 func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, error) {
 	preconnectData, err := json.Marshal([]preconnectRequest{
-		preconnectRequest{SecurityPoliciesToken: securityPoliciesToken},
+		{SecurityPoliciesToken: securityPoliciesToken},
 	})
 	if nil != err {
 		return nil, fmt.Errorf("unable to marshal preconnect data: %v", err)
