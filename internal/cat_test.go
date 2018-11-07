@@ -101,7 +101,7 @@ func TestCatMap(t *testing.T) {
 			CrossProcessID:  "1#1",
 			EncodingKey:     "foo",
 			TrustedAccounts: map[int]struct{}{1: struct{}{}},
-		}, CrossProcessMetadata{})
+		})
 
 		// Marshal the inbound payload into JSON for easier testing.
 		txnData, err := json.Marshal(tc.InboundPayload)

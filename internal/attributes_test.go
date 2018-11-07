@@ -334,7 +334,7 @@ func BenchmarkAgentAttributes(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		attrs := NewAttributes(cfg)
-		RequestAgentAttributes(attrs, req)
+		RequestAgentAttributes(attrs, req.Method, req.Header)
 		buf := bytes.Buffer{}
 		agentAttributesJSON(attrs, &buf, destTxnTrace)
 	}

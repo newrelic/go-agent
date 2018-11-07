@@ -479,16 +479,6 @@ func (app *app) setState(run *appRun, err error) {
 	app.err = err
 }
 
-func transportTypeFromRequest(r *http.Request) TransportType {
-	if strings.HasPrefix(r.Proto, "HTTP") {
-		if r.TLS != nil {
-			return TransportHTTPS
-		}
-		return TransportHTTP
-	}
-	return TransportUnknown
-}
-
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
 	run, _ := app.getState()
@@ -498,12 +488,10 @@ func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 		W:          w,
 		Consumer:   app,
 		attrConfig: run.AttributeConfig,
-	}, r, name))
+	}, name))
 
 	if nil != r {
-		if p := r.Header.Get(DistributedTracePayloadHeader); p != "" {
-			txn.AcceptDistributedTracePayload(transportTypeFromRequest(r), p)
-		}
+		txn.SetWebRequest(r)
 	}
 	return txn
 }

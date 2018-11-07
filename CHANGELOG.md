@@ -1,5 +1,14 @@
 ## ChangeLog
 
+* Introduced a new `Transaction.SetWebRequest(request interface{})` method which
+  adds request attributes and marks the transaction as a web transaction.  The
+  request parameter may be an `*http.Request`, something that implements
+  [Request](https://godoc.org/github.com/newrelic/go-agent#Request), or `nil`.
+  This method is useful if your framework uses a nonstandard request structure,
+  or if you don't have access to the request at the beginning of the
+  transaction. If you do not have access to a request but still want to mark
+  the transaction as a web transaction, use a `nil` parameter.
+
 ## 2.1.0
 
 * The Go Agent now supports distributed tracing.

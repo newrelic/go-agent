@@ -443,10 +443,9 @@ func userAttributesStringJSON(a *Attributes, d destinationSet, extraAttributes m
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
-func RequestAgentAttributes(a *Attributes, r *http.Request) {
-	a.Agent.Add(attributeRequestMethod, r.Method, nil)
+func RequestAgentAttributes(a *Attributes, method string, h http.Header) {
+	a.Agent.Add(attributeRequestMethod, method, nil)
 
-	h := r.Header
 	if nil == h {
 		return
 	}

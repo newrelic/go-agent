@@ -40,7 +40,7 @@ func mustObfuscate(input, encodingKey string) string {
 
 func newTxnCrossProcessFromConnectReply(reply *ConnectReply) *TxnCrossProcess {
 	txp := &TxnCrossProcess{GUID: "abcdefgh"}
-	txp.InitFromHTTPRequest(true, false, reply, nil)
+	txp.Init(true, false, reply)
 
 	return txp
 }
@@ -170,7 +170,9 @@ func TestTxnCrossProcessInit(t *testing.T) {
 			synthetics = tc.req.Header.Get(cat.NewRelicSyntheticsName)
 		}
 
-		err := actual.Init(tc.enabled, false, tc.reply, CrossProcessMetadata{id, txnData, synthetics})
+		actual.Init(tc.enabled, false, tc.reply)
+		err := actual.handleInboundRequestHeaders(CrossProcessMetadata{id, txnData, synthetics})
+
 		if tc.expectedError == false && err != nil {
 			t.Errorf("%s: unexpected error returned from Init: %v", tc.name, err)
 		} else if tc.expectedError && err == nil {
@@ -306,7 +308,10 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 		},
 	} {
 		txp := &TxnCrossProcess{GUID: "00000000"}
-		txp.InitFromHTTPRequest(tc.enabled, false, tc.reply, tc.req)
+		txp.Init(tc.enabled, false, tc.reply)
+		if nil != tc.req {
+			txp.InboundHTTPRequest(tc.req.Header)
+		}
 		metadata, err := txp.CreateCrossProcessMetadata(tc.txnName, tc.appName)
 
 		if tc.expectedError == false && err != nil {
@@ -364,7 +369,7 @@ func TestTxnCrossProcessCreateCrossProcessMetadataError(t *testing.T) {
 func TestTxnCrossProcessFinalise(t *testing.T) {
 	// No CAT.
 	txp := &TxnCrossProcess{}
-	txp.InitFromHTTPRequest(true, false, replyAccountOne, nil)
+	txp.Init(true, false, replyAccountOne)
 	if err := txp.Finalise("txn", "app"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -374,7 +379,8 @@ func TestTxnCrossProcessFinalise(t *testing.T) {
 
 	// CAT, but no path hash.
 	txp = &TxnCrossProcess{}
-	txp.InitFromHTTPRequest(true, false, replyAccountOne, requestCATOne)
+	txp.Init(true, false, replyAccountOne)
+	txp.InboundHTTPRequest(requestCATOne.Header)
 	if txp.PathHash != "" {
 		t.Errorf("unexpected path hash: %s", txp.PathHash)
 	}
@@ -387,7 +393,8 @@ func TestTxnCrossProcessFinalise(t *testing.T) {
 
 	// CAT, with a path hash.
 	txp = &TxnCrossProcess{}
-	txp.InitFromHTTPRequest(true, false, replyAccountOne, requestCATOne)
+	txp.Init(true, false, replyAccountOne)
+	txp.InboundHTTPRequest(requestCATOne.Header)
 	txp.CreateCrossProcessMetadata("txn", "app")
 	if txp.PathHash == "" {
 		t.Error("unexpected lack of path hash")
@@ -800,7 +807,7 @@ func TestTxnCrossProcessHandleInboundRequestHeaders(t *testing.T) {
 		},
 	} {
 		txp := &TxnCrossProcess{Enabled: tc.enabled}
-		txp.Init(tc.enabled, false, tc.reply, CrossProcessMetadata{})
+		txp.Init(tc.enabled, false, tc.reply)
 
 		err := txp.handleInboundRequestHeaders(tc.metadata)
 		if tc.expectedError && err == nil {

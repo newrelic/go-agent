@@ -10,9 +10,7 @@ import (
 
 func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	txp := &TxnCrossProcess{}
-	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, nil); err != nil {
-		t.Errorf("got error while initialising without a request: %v", err)
-	}
+	txp.Init(true, false, replyAccountOne)
 	if txp.IsInbound() {
 		t.Error("inbound CAT enabled even though there was no request")
 	}
@@ -22,8 +20,9 @@ func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, req); err != nil {
-		t.Errorf("got error while initialising with an empty request: %v", err)
+	txp.Init(true, false, replyAccountOne)
+	if err := txp.InboundHTTPRequest(req.Header); err != nil {
+		t.Errorf("got error while consuming an empty request: %v", err)
 	}
 	if txp.IsInbound() {
 		t.Error("inbound CAT enabled even though there was no metadata in the request")
@@ -36,8 +35,14 @@ func TestTxnCrossProcessInitFromHTTPRequest(t *testing.T) {
 	}
 	req.Header.Add(cat.NewRelicIDName, mustObfuscate(`1#1`, "foo"))
 	req.Header.Add(cat.NewRelicTxnName, mustObfuscate(`["abcdefgh",false,"12345678","b95be233"]`, "foo"))
-	if err := txp.InitFromHTTPRequest(true, false, replyAccountOne, req); err != nil {
-		t.Errorf("got error while initialising with an inbound CAT request: %v", err)
+	txp.Init(true, false, replyAccountOne)
+	if err := txp.InboundHTTPRequest(req.Header); err != nil {
+		t.Errorf("got error while consuming an inbound CAT request: %v", err)
+	}
+	// A second call to InboundHTTPRequest to ensure that it can safely
+	// be called multiple times:
+	if err := txp.InboundHTTPRequest(req.Header); err != nil {
+		t.Errorf("got error while consuming an inbound CAT request: %v", err)
 	}
 	if !txp.IsInbound() {
 		t.Error("inbound CAT disabled even though there was metadata in the request")

@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"net/http"
+	"net/url"
 )
 
 // Transaction represents a request or a background task.
@@ -37,6 +38,11 @@ type Transaction interface {
 	// For more information, see:
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 	AddAttribute(key string, value interface{}) error
+
+	// SetWebRequest adds request attributes and marks the transaction as a
+	// web transaction.  The request parameter may be an *http.Request,
+	// something that implements Request, or nil.
+	SetWebRequest(request interface{}) error
 
 	// StartSegmentNow allows the timing of functions, external calls, and
 	// datastore calls.  The segments of each transaction MUST be used in a
@@ -105,3 +111,12 @@ var (
 	TransportQueue   = TransportType{name: "Queue"}
 	TransportOther   = TransportType{name: "Other"}
 )
+
+// Request may be implemented to provide request information to
+// Transaction.SetWebRequest.
+type Request interface {
+	Header() http.Header
+	URL() *url.URL
+	Method() string
+	Transport() TransportType
+}

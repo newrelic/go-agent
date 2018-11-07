@@ -152,7 +152,7 @@ func TestSynthetics(t *testing.T) {
 			CrossProcessID:  "1#1",
 			TrustedAccounts: make(map[int]struct{}),
 			EncodingKey:     tc.Settings.AgentEncodingKey,
-		}, CrossProcessMetadata{})
+		})
 
 		// Set up the trusted accounts.
 		for _, account := range tc.Settings.TrustedAccountIDs {
