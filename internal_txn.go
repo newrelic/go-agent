@@ -815,6 +815,7 @@ var (
 	errOutboundPayloadCreated   = errors.New("outbound payload already created")
 	errAlreadyAccepted          = errors.New("AcceptDistributedTracePayload has already been called")
 	errInboundPayloadDTDisabled = errors.New("DistributedTracer must be enabled to accept an inbound payload")
+	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )
 
 func (txn *txn) AcceptDistributedTracePayload(t TransportType, p interface{}) error {
@@ -882,7 +883,7 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 	}
 	if receivedTrustKey != txn.Reply.TrustedAccountKey {
 		txn.AcceptPayloadUntrustedAccount = true
-		return internal.ErrTrustedAccountKey{Message: "trusted account key missing or does not match"}
+		return errTrustedAccountKey
 	}
 
 	if 0 != payload.Priority {

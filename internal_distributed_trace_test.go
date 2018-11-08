@@ -656,7 +656,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, ip)
 
-	if _, ok := err.(internal.ErrTrustedAccountKey); !ok {
+	if err != errTrustedAccountKey {
 		t.Error(err)
 	}
 	err = txn.End()
@@ -749,9 +749,8 @@ func TestTrustedAccountKeyPayloadHasKeyAndDoesNotMatch(t *testing.T) {
 	}`
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
-	if _, ok := err.(internal.ErrTrustedAccountKey); !ok {
-		t.Log("Expected ErrTrustedAccountKey from mismatched trustkeys")
-		t.Fail()
+	if err != errTrustedAccountKey {
+		t.Error("Expected ErrTrustedAccountKey from mismatched trustkeys", err)
 	}
 	err = txn.End()
 	if nil != err {
@@ -806,9 +805,8 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdDoesNotMatch(t *testing.T
 	}`
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
-	if _, ok := err.(internal.ErrTrustedAccountKey); !ok {
-		t.Log("Expected ErrTrustedAccountKey from mismatched trustkeys")
-		t.Fail()
+	if err != errTrustedAccountKey {
+		t.Error("Expected ErrTrustedAccountKey from mismatched trustkeys", err)
 	}
 	err = txn.End()
 	if nil != err {
