@@ -102,6 +102,21 @@ type WantSlowQuery struct {
 	Params       map[string]interface{}
 }
 
+// HarvestTestinger is implemented by the app.  It sets an empty test harvest
+// and modifies the connect reply if a callback is provided.
+type HarvestTestinger interface {
+	HarvestTesting(replyfn func(*ConnectReply))
+}
+
+// HarvestTesting allows integration packages to test instrumentation.
+func HarvestTesting(app interface{}, replyfn func(*ConnectReply)) {
+	ta, ok := app.(HarvestTestinger)
+	if !ok {
+		panic("HarvestTesting type assertion failure")
+	}
+	ta.HarvestTesting(replyfn)
+}
+
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {

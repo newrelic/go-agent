@@ -451,13 +451,23 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, er
 		return nil, err
 	}
 	app := application.(*app)
-	if nil != replyfn {
-		replyfn(app.placeholderRun.ConnectReply)
-		app.placeholderRun = newAppRun(cfg, app.placeholderRun.ConnectReply)
-	}
-	app.testHarvest = internal.NewHarvest(time.Now())
+	app.HarvestTesting(replyfn)
 
 	return app, nil
+}
+
+var (
+	_ internal.HarvestTestinger = &app{}
+	_ internal.Expect           = &app{}
+)
+
+func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
+	if nil != replyfn {
+		reply := internal.ConnectReplyDefaults()
+		replyfn(reply)
+		app.placeholderRun = newAppRun(app.config, reply)
+	}
+	app.testHarvest = internal.NewHarvest(time.Now())
 }
 
 func (app *app) getState() (*appRun, error) {

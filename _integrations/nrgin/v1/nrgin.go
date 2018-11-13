@@ -15,8 +15,8 @@ import (
 
 func init() { internal.TrackUsage("integration", "framework", "gin", "v1") }
 
-// headerResponseWriter exists to give the transaction access to response
-// headers.
+// headerResponseWriter gives the transaction access to response headers and the
+// response code.
 type headerResponseWriter struct{ w gin.ResponseWriter }
 
 func (w *headerResponseWriter) Header() http.Header       { return w.w.Header() }
@@ -25,6 +25,9 @@ func (w *headerResponseWriter) WriteHeader(int)           {}
 
 var _ http.ResponseWriter = &headerResponseWriter{}
 
+// replacementResponseWriter mimics the behavior of gin.ResponseWriter which
+// buffers the response code rather than writing it when
+// gin.ResponseWriter.WriteHeader is called.
 type replacementResponseWriter struct {
 	gin.ResponseWriter
 	txn     newrelic.Transaction
