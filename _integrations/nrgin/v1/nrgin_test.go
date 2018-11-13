@@ -45,8 +45,7 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/" + pkg + ".hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -71,8 +70,7 @@ func TestRouterGroup(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/" + pkg + ".hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -98,8 +96,7 @@ func TestAnonymousHandler(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "anonymous function handler" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/" + pkg + ".TestAnonymousHandler.func1", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -135,8 +132,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/" + pkg + ".multipleWriteHeader", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -174,8 +170,7 @@ func TestContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/" + pkg + ".accessTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},

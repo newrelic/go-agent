@@ -41,8 +41,7 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/alpha", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -66,8 +65,7 @@ func TestSubrouterRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "adding user" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/users/add", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -90,8 +88,7 @@ func TestNamedRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "named route" {
 		t.Error("wrong response body", respBody)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/special-name-route", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -124,8 +121,7 @@ func TestRouteNotFound(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	expect, _ := app.(internal.Expect)
-	expect.ExpectMetrics(t, []internal.WantMetric{
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
