@@ -3,6 +3,7 @@
 //	router := gin.Default()
 //	router.Use(nrgin.Middleware(app))
 //
+// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrgin/v1/example/main.go
 package nrgin
 
 import (
