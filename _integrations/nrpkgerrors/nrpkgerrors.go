@@ -1,4 +1,6 @@
 // Package nrpkgerrors introduces support for github.com/pkg/errors.
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrpkgerrors/example/main.go
 package nrpkgerrors
 
 import (
