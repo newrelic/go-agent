@@ -116,10 +116,14 @@ func segments(w http.ResponseWriter, r *http.Request) {
 func mysql(w http.ResponseWriter, r *http.Request) {
 	txn, _ := w.(newrelic.Transaction)
 	s := newrelic.DatastoreSegment{
-		StartTime:          newrelic.StartSegmentNow(txn),
-		Product:            newrelic.DatastoreMySQL,
-		Collection:         "users",
-		Operation:          "INSERT",
+		StartTime: newrelic.StartSegmentNow(txn),
+		// Product, Collection, and Operation are the most important
+		// fields to populate because they are used in the breakdown
+		// metrics.
+		Product:    newrelic.DatastoreMySQL,
+		Collection: "users",
+		Operation:  "INSERT",
+
 		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
 		QueryParameters: map[string]interface{}{
 			"name": "Dracula",
@@ -136,32 +140,23 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 }
 
 func external(w http.ResponseWriter, r *http.Request) {
-	url := "http://example.com/"
 	txn, _ := w.(newrelic.Transaction)
-	// This demonstrates an external segment where only the URL is known. If
-	// an http.Request is accessible then `StartExternalSegment` is
-	// recommended. See the implementation of `NewRoundTripper` for an
-	// example.
-	es := newrelic.ExternalSegment{
-		StartTime: newrelic.StartSegmentNow(txn),
-		URL:       url,
-	}
-	defer es.End()
+	req, _ := http.NewRequest("GET", "http://example.com", nil)
 
-	resp, err := http.Get(url)
-	if nil != err {
-		io.WriteString(w, err.Error())
-		return
-	}
-	defer resp.Body.Close()
-	io.Copy(w, resp.Body)
-}
+	// Using StartExternalSegment is recommended because it does distributed
+	// tracing header setup, but if you don't have an *http.Request and
+	// instead only have a url string then you can start the external
+	// segment like this:
+	//
+	// es := newrelic.ExternalSegment{
+	// 	StartTime: newrelic.StartSegmentNow(txn),
+	// 	URL:       urlString,
+	// }
+	//
+	es := newrelic.StartExternalSegment(txn, req)
+	resp, err := http.DefaultClient.Do(req)
+	es.End()
 
-func roundtripper(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
-	txn, _ := w.(newrelic.Transaction)
-	client.Transport = newrelic.NewRoundTripper(txn, nil)
-	resp, err := client.Get("http://example.com/")
 	if nil != err {
 		io.WriteString(w, err.Error())
 		return
@@ -210,7 +205,6 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/segments", segments))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/mysql", mysql))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
-	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
 	http.HandleFunc("/background", background)
 
