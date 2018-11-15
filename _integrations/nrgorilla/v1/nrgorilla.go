@@ -1,5 +1,6 @@
-// Package nrgorilla introduces to support for the gorilla/mux framework.  See
-// examples/_gorilla/main.go for an example.
+// Package nrgorilla introduces to support for the gorilla/mux framework.
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrgorilla/v1/example/main.go
 package nrgorilla
 
 import (

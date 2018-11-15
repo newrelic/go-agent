@@ -7,6 +7,8 @@
 // Only logrus' StandardLogger is supported since there is no method (as of July
 // 2016) to get the level of a logrus.Logger. See
 // https://github.com/sirupsen/logrus/issues/241
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrlogrus/example/main.go
 package nrlogrus
 
 import (
