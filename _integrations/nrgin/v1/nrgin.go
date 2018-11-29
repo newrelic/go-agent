@@ -87,17 +87,19 @@ func Transaction(c *gin.Context) newrelic.Transaction {
 //
 func Middleware(app newrelic.Application) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		name := c.HandlerName()
-		w := &headerResponseWriter{w: c.Writer}
-		txn := app.StartTransaction(name, w, c.Request)
-		defer txn.End()
+		if app != nil {
+			name := c.HandlerName()
+			w := &headerResponseWriter{w: c.Writer}
+			txn := app.StartTransaction(name, w, c.Request)
+			defer txn.End()
 
-		c.Writer = &replacementResponseWriter{
-			ResponseWriter: c.Writer,
-			txn:            txn,
-			code:           http.StatusOK,
+			c.Writer = &replacementResponseWriter{
+				ResponseWriter: c.Writer,
+				txn:            txn,
+				code:           http.StatusOK,
+			}
+			c.Set(ctxKey, txn)
 		}
-		c.Set(ctxKey, txn)
 		c.Next()
 	}
 }

@@ -133,3 +133,19 @@ func TestRouteNotFound(t *testing.T) {
 		{Name: "Errors/WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
+
+func TestNilApp(t *testing.T) {
+	var app newrelic.Application
+	r := mux.NewRouter()
+	r.Handle("/alpha", makeHandler("alpha response"))
+	InstrumentRoutes(r, app)
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/alpha", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "alpha response" {
+		t.Error("wrong response body", respBody)
+	}
+}
