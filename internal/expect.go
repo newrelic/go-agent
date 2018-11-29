@@ -465,7 +465,7 @@ func ExpectSpanEventsAbsent(v Validator, events *spanEvents, names []string) {
 // ExpectSpanEvents allows testing of span events.  It passes if events exactly matches expect.
 func ExpectSpanEvents(v Validator, events *spanEvents, expect []WantEvent) {
 	if len(events.events.events) != len(expect) {
-		v.Error("number of txn events does not match",
+		v.Error("number of span events does not match",
 			len(events.events.events), len(expect))
 		return
 	}
