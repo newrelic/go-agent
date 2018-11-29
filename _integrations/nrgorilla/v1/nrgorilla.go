@@ -56,13 +56,15 @@ func routeName(route *mux.Route) string {
 // InstrumentRoutes adds instrumentation to a router.  This must be used after
 // the routes have been added to the router.
 func InstrumentRoutes(r *mux.Router, app newrelic.Application) *mux.Router {
-	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		h := instrumentRoute(route.GetHandler(), app, routeName(route))
-		route.Handler(h)
-		return nil
-	})
-	if nil != r.NotFoundHandler {
-		r.NotFoundHandler = instrumentRoute(r.NotFoundHandler, app, "NotFoundHandler")
+	if app != nil {
+		r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+			h := instrumentRoute(route.GetHandler(), app, routeName(route))
+			route.Handler(h)
+			return nil
+		})
+		if nil != r.NotFoundHandler {
+			r.NotFoundHandler = instrumentRoute(r.NotFoundHandler, app, "NotFoundHandler")
+		}
 	}
 	return r
 }

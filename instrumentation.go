@@ -22,7 +22,17 @@ import "net/http"
 //		txn.SetName("other-name")
 //	}
 //
+// The Transaction is added to the request's context, so it may be alternatively
+// accessed like this:
+//
+//	// 'req' is the variable name of the *http.Request.
+//	txn := newrelic.FromContext(req.Context())
+//
+// This function is safe to call if 'app' is nil.
 func WrapHandle(app Application, pattern string, handler http.Handler) (string, http.Handler) {
+	if app == nil {
+		return pattern, handler
+	}
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		txn := app.StartTransaction(pattern, w, r)
 		defer txn.End()

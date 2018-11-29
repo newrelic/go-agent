@@ -387,6 +387,19 @@ func TestWrapHandle(t *testing.T) {
 	app.ExpectMetrics(t, webErrorMetrics)
 }
 
+func TestWrapHandleNilApp(t *testing.T) {
+	var app Application
+	mux := http.NewServeMux()
+	mux.Handle(WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
+	w := newCompatibleResponseRecorder()
+	mux.ServeHTTP(w, helloRequest)
+
+	out := w.Body.String()
+	if "my response" != out {
+		t.Error(out)
+	}
+}
+
 func TestSetName(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("one", nil, nil)
