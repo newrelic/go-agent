@@ -66,7 +66,7 @@ func (f *logFile) fire(level, msg string, ctx map[string]interface{}) {
 		ctx,
 	})
 	if nil == err {
-		f.l.Printf(string(js))
+		f.l.Print(string(js))
 	} else {
 		f.l.Printf("unable to marshal log entry: %v", err)
 	}
