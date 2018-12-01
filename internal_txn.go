@@ -529,12 +529,27 @@ func (txn *txn) StartSegmentNow() SegmentStartTime {
 	}
 }
 
+func (txn *txn) StartBackdatedSegment(t time.Time) SegmentStartTime {
+	var s internal.SegmentStartTime
+	txn.Lock()
+	if !txn.finished {
+		s = internal.StartSegment(&txn.TxnData, t)
+	}
+	txn.Unlock()
+	return SegmentStartTime{
+		segment: segment{
+			start: s,
+			txn:   txn,
+		},
+	}
+}
+
 type segment struct {
 	start internal.SegmentStartTime
 	txn   *txn
 }
 
-func endSegment(s *Segment) error {
+func endSegment(s *Segment, t time.Time) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -544,13 +559,13 @@ func endSegment(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = internal.EndBasicSegment(&txn.TxnData, s.StartTime.start, time.Now(), s.Name)
+		err = internal.EndBasicSegment(&txn.TxnData, s.StartTime.start, t, s.Name)
 	}
 	txn.Unlock()
 	return err
 }
 
-func endDatastore(s *DatastoreSegment) error {
+func endDatastore(s *DatastoreSegment, t time.Time) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -583,7 +598,7 @@ func endDatastore(s *DatastoreSegment) error {
 	return internal.EndDatastoreSegment(internal.EndDatastoreParams{
 		Tracer:             &txn.TxnData,
 		Start:              s.StartTime.start,
-		Now:                time.Now(),
+		Now:                t,
 		Product:            string(s.Product),
 		Collection:         s.Collection,
 		Operation:          s.Operation,
@@ -629,7 +644,7 @@ func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 	return nil, nil
 }
 
-func endExternal(s *ExternalSegment) error {
+func endExternal(s *ExternalSegment, t time.Time) error {
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -645,7 +660,7 @@ func endExternal(s *ExternalSegment) error {
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, m, s.Response)
+	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, t, u, m, s.Response)
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending

@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"net/http"
+	"time"
 )
 
 // Transaction represents a request or a background task.
@@ -44,6 +45,8 @@ type Transaction interface {
 	// `StartSegmentNow` functions which checks if the Transaction is nil.
 	// See segments.go
 	StartSegmentNow() SegmentStartTime
+
+	StartBackdatedSegment(t time.Time) SegmentStartTime
 
 	// CreateDistributedTracePayload creates a payload to link the calls
 	// between transactions. This method never returns nil. Instead, it may

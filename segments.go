@@ -1,6 +1,9 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
@@ -64,13 +67,22 @@ type ExternalSegment struct {
 }
 
 // End finishes the segment.
-func (s *Segment) End() error { return endSegment(s) }
+func (s *Segment) End() error { return endSegment(s, time.Now()) }
+
+// BackdatedEnd finishes the segment that finished some time in the past.
+func (s *Segment) BackdatedEnd(t time.Time) error { return endSegment(s, t) }
 
 // End finishes the datastore segment.
-func (s *DatastoreSegment) End() error { return endDatastore(s) }
+func (s *DatastoreSegment) End() error { return endDatastore(s, time.Now()) }
+
+// BackdatedEnd finishes the datastore segment that finished some time in the past.
+func (s *DatastoreSegment) BackdatedEnd(t time.Time) error { return endDatastore(s, t) }
 
 // End finishes the external segment.
-func (s *ExternalSegment) End() error { return endExternal(s) }
+func (s *ExternalSegment) End() error { return endExternal(s, time.Now()) }
+
+// BackdatedEnd finishes the external segment that finished some time in the past.
+func (s *ExternalSegment) BackdatedEnd(t time.Time) error { return endExternal(s, t) }
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.
