@@ -22,7 +22,8 @@ type PreconnectReply struct {
 // ConnectReply contains all of the settings and state send down from the
 // collector.  It should not be modified after creation.
 type ConnectReply struct {
-	RunID AgentRunID `json:"agent_run_id"`
+	RunID             AgentRunID        `json:"agent_run_id"`
+	RequestHeadersMap map[string]string `json:"request_headers_map"`
 
 	// Transaction Name Modifiers
 	SegmentTerms segmentRules `json:"transaction_segment_terms"`

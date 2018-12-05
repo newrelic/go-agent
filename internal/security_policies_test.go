@@ -77,7 +77,7 @@ func TestUnknownRequiredPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	testBool(t, "PointerIfPopulated", false, nil != policies.PointerIfPopulated())
-	testBool(t, "unknown required policy should be disconnect", true, IsDisconnect(err))
+	testBool(t, "unknown required policy should be disconnect", true, isDisconnectSecurityPolicyError(err))
 }
 
 func TestSecurityPolicyMissing(t *testing.T) {
@@ -95,7 +95,7 @@ func TestSecurityPolicyMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 	testBool(t, "PointerIfPopulated", false, nil != policies.PointerIfPopulated())
-	testBool(t, "missing policy should be disconnect", true, IsDisconnect(err))
+	testBool(t, "missing policy should be disconnect", true, isDisconnectSecurityPolicyError(err))
 }
 
 func TestMalformedPolicies(t *testing.T) {
@@ -105,5 +105,5 @@ func TestMalformedPolicies(t *testing.T) {
 	if nil == err {
 		t.Fatal(err)
 	}
-	testBool(t, "malformed policies should not be disconnect", false, IsDisconnect(err))
+	testBool(t, "malformed policies should not be disconnect", false, isDisconnectSecurityPolicyError(err))
 }
