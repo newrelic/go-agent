@@ -38,8 +38,8 @@ func TestSlowQueriesBasic(t *testing.T) {
 		StackTrace:         nil,
 		QueryParameters: vetQueryParameters(map[string]interface{}{
 			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
-			"invalid-value":                                struct{}{},
-			"valid":                                        123,
+			"invalid-value": struct{}{},
+			"valid":         123,
 		}),
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
@@ -169,8 +169,8 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 		StackTrace:         nil,
 		QueryParameters: vetQueryParameters(map[string]interface{}{
 			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
-			"invalid-value":                                struct{}{},
-			"valid":                                        123,
+			"invalid-value": struct{}{},
+			"valid":         123,
 		}),
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)

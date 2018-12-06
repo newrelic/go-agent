@@ -259,7 +259,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 	if nil != err {
 		// Certain security policy errors must be treated as a disconnect.
 		return nil, RPMResponse{
-			Err: fmt.Errorf("unable to process preconnect reply: %v", err),
+			Err:                      fmt.Errorf("unable to process preconnect reply: %v", err),
 			disconnectSecurityPolicy: isDisconnectSecurityPolicyError(err),
 		}
 	}

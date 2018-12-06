@@ -94,7 +94,7 @@ func TestSyntheticsOldCAT(t *testing.T) {
 	}
 
 	expectedIntrinsics := map[string]interface{}{
-		"name": "WebTransaction/Go/helloOldCAT",
+		"name":                        "WebTransaction/Go/helloOldCAT",
 		"client_cross_process_id":     "1#1",
 		"nr.syntheticsResourceId":     "rrrrrrr-rrrr-1234-rrrr-rrrrrrrrrrrr",
 		"nr.syntheticsJobId":          "jjjjjjj-jjjj-1234-jjjj-jjjjjjjjjjjj",
@@ -137,7 +137,7 @@ func TestSyntheticsBetterCAT(t *testing.T) {
 	}
 
 	expectedIntrinsics := map[string]interface{}{
-		"name": "WebTransaction/Go/helloBetterCAT",
+		"name":                    "WebTransaction/Go/helloBetterCAT",
 		"nr.syntheticsResourceId": "rrrrrrr-rrrr-1234-rrrr-rrrrrrrrrrrr",
 		"nr.syntheticsJobId":      "jjjjjjj-jjjj-1234-jjjj-jjjjjjjjjjjj",
 		"nr.syntheticsMonitorId":  "mmmmmmm-mmmm-1234-mmmm-mmmmmmmmmmmm",
@@ -178,7 +178,7 @@ func TestSyntheticsStandalone(t *testing.T) {
 	}
 
 	expectedIntrinsics := map[string]interface{}{
-		"name": "WebTransaction/Go/helloSynthetics",
+		"name":                    "WebTransaction/Go/helloSynthetics",
 		"nr.syntheticsResourceId": "rrrrrrr-rrrr-1234-rrrr-rrrrrrrrrrrr",
 		"nr.syntheticsJobId":      "jjjjjjj-jjjj-1234-jjjj-jjjjjjjjjjjj",
 		"nr.syntheticsMonitorId":  "mmmmmmm-mmmm-1234-mmmm-mmmmmmmmmmmm",
