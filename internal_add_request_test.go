@@ -243,7 +243,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	// copy sampleCustomRequest to avoid modifying it
 	req := sampleCustomRequest
 	req.header = map[string][]string{
-		DistributedTracePayloadHeader: []string{payload.Text()},
+		DistributedTracePayloadHeader: {payload.Text()},
 	}
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.SetWebRequest(req)

@@ -100,7 +100,7 @@ func TestCatMap(t *testing.T) {
 		tr.CrossProcess.Init(true, false, &ConnectReply{
 			CrossProcessID:  "1#1",
 			EncodingKey:     "foo",
-			TrustedAccounts: map[int]struct{}{1: struct{}{}},
+			TrustedAccounts: map[int]struct{}{1: {}},
 		})
 
 		// Marshal the inbound payload into JSON for easier testing.

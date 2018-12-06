@@ -14,13 +14,13 @@ var (
 	replyAccountOne = &ConnectReply{
 		CrossProcessID:  "1#1",
 		EncodingKey:     "foo",
-		TrustedAccounts: map[int]struct{}{1: struct{}{}},
+		TrustedAccounts: map[int]struct{}{1: {}},
 	}
 
 	replyAccountTwo = &ConnectReply{
 		CrossProcessID:  "2#2",
 		EncodingKey:     "foo",
-		TrustedAccounts: map[int]struct{}{2: struct{}{}},
+		TrustedAccounts: map[int]struct{}{2: {}},
 	}
 
 	requestEmpty            = newRequest().Request
@@ -102,7 +102,7 @@ func TestTxnCrossProcessInit(t *testing.T) {
 				CrossProcessID:  []byte("1#1"),
 				EncodingKey:     []byte("foo"),
 				Enabled:         false,
-				TrustedAccounts: map[int]struct{}{1: struct{}{}},
+				TrustedAccounts: map[int]struct{}{1: {}},
 			},
 			expectedError: false,
 		},
@@ -115,7 +115,7 @@ func TestTxnCrossProcessInit(t *testing.T) {
 				CrossProcessID:  []byte("1#1"),
 				EncodingKey:     []byte("foo"),
 				Enabled:         true,
-				TrustedAccounts: map[int]struct{}{1: struct{}{}},
+				TrustedAccounts: map[int]struct{}{1: {}},
 			},
 			expectedError: false,
 		},
@@ -128,7 +128,7 @@ func TestTxnCrossProcessInit(t *testing.T) {
 				CrossProcessID:  []byte("1#1"),
 				EncodingKey:     []byte("foo"),
 				Enabled:         true,
-				TrustedAccounts: map[int]struct{}{1: struct{}{}},
+				TrustedAccounts: map[int]struct{}{1: {}},
 			},
 			expectedError: false,
 		},
@@ -141,7 +141,7 @@ func TestTxnCrossProcessInit(t *testing.T) {
 				CrossProcessID:  []byte("2#2"),
 				EncodingKey:     []byte("foo"),
 				Enabled:         true,
-				TrustedAccounts: map[int]struct{}{2: struct{}{}},
+				TrustedAccounts: map[int]struct{}{2: {}},
 			},
 			expectedError: true,
 		},
@@ -154,7 +154,7 @@ func TestTxnCrossProcessInit(t *testing.T) {
 				CrossProcessID:  []byte("1#1"),
 				EncodingKey:     []byte("foo"),
 				Enabled:         true,
-				TrustedAccounts: map[int]struct{}{1: struct{}{}},
+				TrustedAccounts: map[int]struct{}{1: {}},
 			},
 			expectedError: false,
 		},
