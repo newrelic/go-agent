@@ -9,6 +9,8 @@
   transaction. If you do not have access to a request but still want to mark
   the transaction as a web transaction, use a `nil` parameter.
 
+* Fix `Debug` in `nrlogrus` package.  Thanks to @paddycarey for catching this.
+
 ## 2.1.0
 
 * The Go Agent now supports distributed tracing.
