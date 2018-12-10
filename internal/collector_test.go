@@ -439,7 +439,7 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		// mimic file/environment precendence of other agents
+		// mimic file/environment precedence of other agents
 		configKey := tc.ConfigFileKey
 		if "" != tc.EnvKey {
 			configKey = tc.EnvKey

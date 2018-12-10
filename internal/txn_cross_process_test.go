@@ -791,7 +791,7 @@ func TestTxnCrossProcessHandleInboundRequestHeaders(t *testing.T) {
 			reply:   replyAccountOne,
 			metadata: CrossProcessMetadata{
 				ID:      mustObfuscate(`1#1`, "foo"),
-				TxnData: mustObfuscate(`["00000000",alse,"00000000","b95be233"]`, "foo"),
+				TxnData: mustObfuscate(`["00000000",invalid,"00000000","b95be233"]`, "foo"),
 			},
 			expectedError: true,
 		},
