@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/newrelic/go-agent"
+	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 )
 
@@ -65,10 +65,6 @@ func (w *replacementResponseWriter) WriteHeaderNow() {
 	w.ResponseWriter.WriteHeaderNow()
 }
 
-var (
-	ctxKey = "newRelicTransaction"
-)
-
 // Context avoids making this package 1.7+ specific.
 type Context interface {
 	Value(key interface{}) interface{}
@@ -77,7 +73,12 @@ type Context interface {
 // Transaction returns the transaction stored inside the context, or nil if not
 // found.
 func Transaction(c Context) newrelic.Transaction {
-	if v := c.Value(ctxKey); nil != v {
+	if v := c.Value(internal.GinTransactionContextKey); nil != v {
+		if txn, ok := v.(newrelic.Transaction); ok {
+			return txn
+		}
+	}
+	if v := c.Value(internal.TransactionContextKey); nil != v {
 		if txn, ok := v.(newrelic.Transaction); ok {
 			return txn
 		}
@@ -103,7 +104,7 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 				txn:            txn,
 				code:           http.StatusOK,
 			}
-			c.Set(ctxKey, txn)
+			c.Set(internal.GinTransactionContextKey, txn)
 		}
 		c.Next()
 	}

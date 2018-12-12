@@ -31,6 +31,18 @@ resp, err := client.Do(request)
 
 * Fix `Debug` in `nrlogrus` package.  Thanks to @paddycarey for catching this.
 
+* [nrgin.Transaction](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Transaction)
+may now be called with either a `context.Context` or a `*gin.Context`.  Thanks
+to @rodriguezgustavo for the suggestion.  Additionally,
+[nrgin.Transaction](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Transaction),
+[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext), and
+[NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext) now work
+nicely together: If
+[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext) is
+called with a `*gin.Context` parameter then it will return the transaction added
+by
+[nrgin.Middleware](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Middleware).
+
 ## 2.1.0
 
 * The Go Agent now supports distributed tracing.
