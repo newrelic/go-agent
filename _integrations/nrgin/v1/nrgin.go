@@ -69,10 +69,15 @@ var (
 	ctxKey = "newRelicTransaction"
 )
 
+// Context avoids making this package 1.7+ specific.
+type Context interface {
+	Value(key interface{}) interface{}
+}
+
 // Transaction returns the transaction stored inside the context, or nil if not
 // found.
-func Transaction(c *gin.Context) newrelic.Transaction {
-	if v, exists := c.Get(ctxKey); exists {
+func Transaction(c Context) newrelic.Transaction {
+	if v := c.Value(ctxKey); nil != v {
 		if txn, ok := v.(newrelic.Transaction); ok {
 			return txn
 		}

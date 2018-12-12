@@ -145,18 +145,18 @@ func TestMultipleWriteHeader(t *testing.T) {
 	})
 }
 
-func accessTransaction(c *gin.Context) {
+func accessTransactionGinContext(c *gin.Context) {
 	if txn := Transaction(c); nil != txn {
 		txn.NoticeError(errors.New("problem"))
 	}
-	c.Writer.WriteString("accessTransaction")
+	c.Writer.WriteString("accessTransactionGinContext")
 }
 
 func TestContextTransaction(t *testing.T) {
 	app := testApp(t)
 	router := gin.Default()
 	router.Use(Middleware(app))
-	router.GET("/txn", accessTransaction)
+	router.GET("/txn", accessTransactionGinContext)
 
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/txn", nil)
@@ -164,21 +164,21 @@ func TestContextTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	router.ServeHTTP(response, req)
-	if respBody := response.Body.String(); respBody != "accessTransaction" {
+	if respBody := response.Body.String(); respBody != "accessTransactionGinContext" {
 		t.Error("wrong response body", respBody)
 	}
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".accessTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".accessTransaction", Scope: "", Forced: false, Data: nil},
+		{Name: "Apdex/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: false, Data: nil},
 		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/" + pkg + ".accessTransaction", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/WebTransaction/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
 
