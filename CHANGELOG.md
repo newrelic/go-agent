@@ -1,5 +1,25 @@
 ## ChangeLog
 
+* The `Transaction` parameter to
+[NewRoundTripper](https://godoc.org/github.com/newrelic/go-agent#NewRoundTripper)
+and
+[StartExternalSegment](https://godoc.org/github.com/newrelic/go-agent#StartExternalSegment)
+is now optional:  If it is `nil`, then a `Transaction` will be looked for in the
+request's context (using
+[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext)).
+Passing a `nil` transaction is **STRONGLY** recommended when using
+[NewRoundTripper](https://godoc.org/github.com/newrelic/go-agent#NewRoundTripper)
+since it allows one `http.Client.Transport` to be used for multiple
+transactions.  Example use:
+
+```go
+client := &http.Client{}
+client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
+request, _ := http.NewRequest("GET", "http://example.com", nil)
+request = newrelic.RequestWithTransactionContext(request, txn)
+resp, err := client.Do(request)
+```
+
 * Introduced a new `Transaction.SetWebRequest(request interface{})` method which
   adds request attributes and marks the transaction as a web transaction.  The
   request parameter may be an `*http.Request`, something that implements

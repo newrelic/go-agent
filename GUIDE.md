@@ -287,23 +287,34 @@ ways to use this functionality:
     }
     ```
 
+    If the transaction is `nil` then `StartExternalSegment` will look for a
+    transaction in the request's context using
+    [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext).
+
 2. Using `NewRoundTripper` to get a
    [`http.RoundTripper`](https://golang.org/pkg/net/http/#RoundTripper) that
    will automatically instrument all requests made via
    [`http.Client`](https://golang.org/pkg/net/http/#Client) instances that use
    that round tripper as their `Transport`. This option results in CAT support,
    provided the Go Agent is version 1.11.0, and in distributed tracing support,
-   provided the Go Agent is version 2.1.0.
+   provided the Go Agent is version 2.1.0.  `NewRoundTripper` can be called
+   with a `nil` or non-`nil` transaction:  If the transaction is `nil`, the
+   round tripper will look for a transaction in the request's context
+   using [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext).
+   This pattern is **strongly** recommended, since it allows the round tripper
+   to be used in a client shared between multiple transactions.
 
    For example:
 
     ```go
     client := &http.Client{}
-    client.Transport = newrelic.NewRoundTripper(txn, nil)
-    resp, err := client.Get("http://example.com/")
+    client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
+    request, _ := http.NewRequest("GET", "http://example.com", nil)
+    request = newrelic.RequestWithTransactionContext(request, txn)
+    resp, err := client.Do(request)
     ```
 
-   Note that, as with all segments, the round tripper returned **must** only be
+   If transaction is non-`nil`, the round tripper returned **must** only be
    used in the same goroutine as the transaction.
 
 3. Directly creating an `ExternalSegment` via a struct literal with an explicit

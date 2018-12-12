@@ -1,3 +1,5 @@
+// +build go1.7
+
 package main
 
 import (
@@ -165,6 +167,37 @@ func external(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func roundtripper(w http.ResponseWriter, r *http.Request) {
+	// NewRoundTripper allows you to instrument external calls without
+	// calling StartExternalSegment by modifying the http.Client's Transport
+	// field.  If the Transaction parameter is nil, the RoundTripper
+	// returned will look for a Transaction in the request's context (using
+	// FromContext). This is recommended because it allows you to reuse the
+	// same client for multiple transactions.
+	client := &http.Client{}
+	client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
+
+	request, _ := http.NewRequest("GET", "http://example.com", nil)
+	// Since the transaction is already added to the inbound request's
+	// context by WrapHandleFunc, we just need to copy the context from the
+	// inbound request to the external request.
+	request = request.WithContext(r.Context())
+	// Alternatively, if you don't want to copy entire context, and instead
+	// wanted just to add the transaction to the external request's context,
+	// you could do that like this:
+	//
+	//	txn := newrelic.FromContext(r.Context())
+	//	request = newrelic.RequestWithTransactionContext(request, txn)
+
+	resp, err := client.Do(request)
+	if nil != err {
+		io.WriteString(w, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(w, resp.Body)
+}
+
 func customMetric(w http.ResponseWriter, r *http.Request) {
 	for _, vals := range r.Header {
 		for _, v := range vals {
@@ -205,6 +238,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/segments", segments))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/mysql", mysql))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
 	http.HandleFunc("/background", background)
 

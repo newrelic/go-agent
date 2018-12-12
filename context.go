@@ -29,3 +29,11 @@ func RequestWithTransactionContext(req *http.Request, txn Transaction) *http.Req
 	ctx = NewContext(ctx, txn)
 	return req.WithContext(ctx)
 }
+
+func transactionFromRequestContext(req *http.Request) Transaction {
+	var txn Transaction
+	if nil != req {
+		txn = FromContext(req.Context())
+	}
+	return txn
+}
