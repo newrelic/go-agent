@@ -415,10 +415,10 @@ func (txn *txn) End() error {
 
 	if txn.Config.Logger.DebugEnabled() {
 		txn.Config.Logger.Debug("transaction ended", map[string]interface{}{
-			"name":        txn.FinalName,
-			"duration_ms": txn.Duration.Seconds() * 1000.0,
-			"ignored":     txn.ignore,
-			"run":         txn.Reply.RunID,
+			"name":          txn.FinalName,
+			"duration_ms":   txn.Duration.Seconds() * 1000.0,
+			"ignored":       txn.ignore,
+			"app_connected": "" != txn.Reply.RunID,
 		})
 	}
 
