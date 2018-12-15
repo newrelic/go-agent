@@ -44,6 +44,7 @@ type ConnectReply struct {
 	CollectTraces          bool               `json:"collect_traces"`
 	CollectErrors          bool               `json:"collect_errors"`
 	CollectErrorEvents     bool               `json:"collect_error_events"`
+	CollectSpanEvents      bool               `json:"collect_span_events"`
 
 	// RUM
 	AgentLoader string `json:"js_agent_loader"`
@@ -104,6 +105,7 @@ func ConnectReplyDefaults() *ConnectReply {
 		CollectTraces:          true,
 		CollectErrors:          true,
 		CollectErrorEvents:     true,
+		CollectSpanEvents:      true,
 		// No transactions should be sampled before the application is
 		// connected.
 		AdaptiveSampler: SampleNothing{},

@@ -60,7 +60,7 @@ func newTxn(input txnInput, name string) *txn {
 		if txn.BetterCAT.Sampled {
 			txn.BetterCAT.Priority += 1.0
 		}
-		txn.SpanEventsEnabled = input.Config.SpanEvents.Enabled
+		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled && txn.Reply.CollectSpanEvents
 	}
 
 	txn.Attrs.Agent.Add(internal.AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
@@ -237,7 +237,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.TxnEvent)
 	}
 
-	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+	if txn.BetterCAT.Sampled && txn.SpanEventsEnabled {
 		h.SpanEvents.MergeFromTransaction(&txn.TxnData)
 	}
 }
@@ -794,7 +794,7 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 		p.TrustedAccountKey = txn.Reply.TrustedAccountKey
 	}
 
-	if txn.BetterCAT.Sampled && txn.Config.SpanEvents.Enabled {
+	if txn.BetterCAT.Sampled && txn.SpanEventsEnabled {
 		p.ID = txn.CurrentSpanIdentifier()
 	}
 
