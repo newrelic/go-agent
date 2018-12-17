@@ -59,6 +59,8 @@ var (
 )
 
 func TestSetWebRequestNil(t *testing.T) {
+	// Test that using SetWebRequest with nil marks the transaction as a web
+	// transaction.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.SetWebRequest(nil)
@@ -76,6 +78,7 @@ func TestSetWebRequestNil(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		AgentAttributes: map[string]interface{}{},
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"guid":             internal.MatchAnything,
@@ -88,11 +91,11 @@ func TestSetWebRequestNil(t *testing.T) {
 }
 
 func TestSetWebRequestNilPointer(t *testing.T) {
+	// Test that calling NewWebRequest with a nil pointer is safe and
+	// returns a nil interface that SetWebRequest handles safely.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
-	var nilPointer *http.Request
-	var request interface{} = nilPointer
-	err := txn.SetWebRequest(request)
+	err := txn.SetWebRequest(NewWebRequest(nil))
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -107,6 +110,7 @@ func TestSetWebRequestNilPointer(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		AgentAttributes: map[string]interface{}{},
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"guid":             internal.MatchAnything,
@@ -119,9 +123,11 @@ func TestSetWebRequestNilPointer(t *testing.T) {
 }
 
 func TestSetWebRequestHTTPRequest(t *testing.T) {
+	// Test that NewWebRequest correctly turns an *http.Request into a
+	// WebRequest that SetWebRequest uses as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
-	err := txn.SetWebRequest(sampleHTTPRequest)
+	err := txn.SetWebRequest(NewWebRequest(sampleHTTPRequest))
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -149,6 +155,8 @@ func TestSetWebRequestHTTPRequest(t *testing.T) {
 }
 
 func TestSetWebRequestCustomRequest(t *testing.T) {
+	// Test that a custom type which implements WebRequest is used by
+	// SetWebRequest as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.SetWebRequest(sampleCustomRequest)
@@ -178,40 +186,9 @@ func TestSetWebRequestCustomRequest(t *testing.T) {
 	}})
 }
 
-func TestSetWebRequestBadType(t *testing.T) {
-	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
-	err := txn.SetWebRequest(123)
-	if err != errInvalidRequestType {
-		t.Error("incorrect error", err)
-	}
-	err = txn.End()
-	if nil != err {
-		t.Error("unexpected error", err)
-	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
-	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: nil,
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
-			"guid":             internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-	}})
-}
-
 func TestSetWebRequestAlreadyEnded(t *testing.T) {
+	// Test that SetWebRequest returns an error if called after
+	// Transaction.End.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	txn.End()
@@ -226,7 +203,7 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: nil,
+		AgentAttributes: map[string]interface{}{},
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
 			"guid":     internal.MatchAnything,
@@ -238,9 +215,13 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 }
 
 func TestSetWebRequestWithDistributedTracing(t *testing.T) {
+	// Test that the WebRequest.Transport() return value is used as the
+	// distributed tracing transport if a distributed tracing header is
+	// found in the WebRequest.Header().
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app, nil)
-	// copy sampleCustomRequest to avoid modifying it
+	// Copy sampleCustomRequest to avoid modifying it since it is used in
+	// other tests.
 	req := sampleCustomRequest
 	req.header = map[string][]string{
 		DistributedTracePayloadHeader: {payload.Text()},
@@ -264,7 +245,9 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: nil,
+		AgentAttributes: map[string]interface{}{
+			"request.method": "GET",
+		},
 		Intrinsics: map[string]interface{}{
 			"name":                     "WebTransaction/Go/hello",
 			"parent.type":              "App",
@@ -279,6 +262,45 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
 			"nr.apdexPerfZone":         internal.MatchAnything,
+		},
+	}})
+}
+
+type incompleteRequest struct{}
+
+func (r incompleteRequest) Header() http.Header      { return nil }
+func (r incompleteRequest) URL() *url.URL            { return nil }
+func (r incompleteRequest) Method() string           { return "" }
+func (r incompleteRequest) Transport() TransportType { return TransportUnknown }
+
+func TestSetWebRequestIncompleteRequest(t *testing.T) {
+	// Test SetWebRequest will safely handle situations where the request's
+	// URL() and Header() methods return nil.
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.SetWebRequest(incompleteRequest{})
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+	})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		AgentAttributes: map[string]interface{}{},
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"guid":             internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"nr.apdexPerfZone": internal.MatchAnything,
 		},
 	}})
 }

@@ -20,14 +20,21 @@ request = newrelic.RequestWithTransactionContext(request, txn)
 resp, err := client.Do(request)
 ```
 
-* Introduced a new `Transaction.SetWebRequest(request interface{})` method which
-  adds request attributes and marks the transaction as a web transaction.  The
-  request parameter may be an `*http.Request`, something that implements
-  [Request](https://godoc.org/github.com/newrelic/go-agent#Request), or `nil`.
-  This method is useful if your framework uses a nonstandard request structure,
-  or if you don't have access to the request at the beginning of the
-  transaction. If you do not have access to a request but still want to mark
-  the transaction as a web transaction, use a `nil` parameter.
+* Introduced `Transaction.SetWebRequest(WebRequest)` method which marks the
+transaction as a web transaction.  If the `WebRequest` parameter is non-nil,
+`SetWebRequest` will collect details on request attributes, url, and method.
+This method is useful if you don't have access to the request at the beginning
+of the transaction, or if your request is not an `*http.Request` (just add
+methods to your request that satisfy
+[WebRequest](https://godoc.org/github.com/newrelic/go-agent#WebRequest)).  To
+use an `*http.Request` as the parameter, use the
+[NewWebRequest](https://godoc.org/github.com/newrelic/go-agent#NewWebRequest)
+transformation function.  Example:
+
+```go
+var request *http.Request = getInboundRequest()
+txn.SetWebRequest(newrelic.NewWebRequest(request))
+```
 
 * Fix `Debug` in `nrlogrus` package.  Thanks to @paddycarey for catching this.
 

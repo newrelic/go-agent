@@ -484,7 +484,7 @@ func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 	}, name))
 
 	if nil != r {
-		txn.SetWebRequest(r)
+		txn.SetWebRequest(NewWebRequest(r))
 	}
 	return txn
 }

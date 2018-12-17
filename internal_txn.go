@@ -98,11 +98,7 @@ func (r requestWrap) Transport() TransportType {
 
 }
 
-var (
-	errInvalidRequestType = errors.New("invalid request type")
-)
-
-func (txn *txn) SetWebRequest(request interface{}) error {
+func (txn *txn) SetWebRequest(r WebRequest) error {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -113,18 +109,8 @@ func (txn *txn) SetWebRequest(request interface{}) error {
 	// Any call to SetWebRequest should indicate a web transaction.
 	txn.IsWeb = true
 
-	if nil == request {
+	if nil == r {
 		return nil
-	}
-	if r, ok := request.(*http.Request); ok {
-		if nil == r {
-			return nil
-		}
-		request = requestWrap{request: r}
-	}
-	r, ok := request.(Request)
-	if !ok {
-		return errInvalidRequestType
 	}
 	if h := r.Header(); nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
