@@ -36,19 +36,18 @@ var request *http.Request = getInboundRequest()
 txn.SetWebRequest(newrelic.NewWebRequest(request))
 ```
 
-* Fix `Debug` in `nrlogrus` package.  Thanks to @paddycarey for catching this.
+* Fixed `Debug` in `nrlogrus` package.  Previous versions of the New Relic Go Agent incorrectly
+logged to Info level instead of Debug.  This has now been fixed.  Thanks to @paddycarey for catching this.
 
 * [nrgin.Transaction](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Transaction)
-may now be called with either a `context.Context` or a `*gin.Context`.  Thanks
-to @rodriguezgustavo for the suggestion.  Additionally,
-[nrgin.Transaction](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Transaction),
-[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext), and
-[NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext) now work
-nicely together: If
-[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext) is
-called with a `*gin.Context` parameter then it will return the transaction added
-by
-[nrgin.Middleware](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Middleware).
+may now be called with either a `context.Context` or a `*gin.Context`.  If you were passing a `*gin.Context`
+around your functions as a `context.Context`, you may access the Transaction by calling either
+[nrgin.Transaction](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Transaction)
+or [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext).
+These functions now work nicely together.
+For example, [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext) will return the `Transaction`
+added by [nrgin.Middleware](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1#Middleware).
+Thanks to @rodriguezgustavo for the suggestion.  
 
 ## 2.1.0
 
