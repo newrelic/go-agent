@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.2.0
+
 * The `Transaction` parameter to
 [NewRoundTripper](https://godoc.org/github.com/newrelic/go-agent#NewRoundTripper)
 and
