@@ -9,13 +9,16 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/newrelic/go-agent/internal/logger"
 )
 
 const (
-	procotolVersion = "17"
+	// ProcotolVersion is the protocol version used to communicate with NR
+	// backend.
+	ProcotolVersion = 17
 	userAgentPrefix = "NewRelic-Go-Agent/"
 
 	// Methods used in collector communication.
@@ -111,7 +114,7 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 
 	query := url.Values{}
 	query.Set("marshal_format", "json")
-	query.Set("protocol_version", procotolVersion)
+	query.Set("protocol_version", strconv.Itoa(ProcotolVersion))
 	query.Set("method", cmd.Name)
 	query.Set("license_key", cs.License)
 
