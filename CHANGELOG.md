@@ -1,5 +1,10 @@
 ## ChangeLog
 
+* Added support for [Echo](https://echo.labstack.com) in the new `nrecho`
+  package.
+  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho/v1)
+  * [Example](_integrations/nrecho/v1/example/main.go)
+
 * Introduced `Transaction.SetWebResponse(http.ResponseWriter)` method which sets
   the transaction's response writer.  After calling this method, the
   `Transaction` may be used in place of the `http.ResponseWriter` to intercept
