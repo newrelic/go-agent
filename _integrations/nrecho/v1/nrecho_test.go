@@ -144,7 +144,7 @@ func TestNoticedErrors(t *testing.T) {
 	})
 }
 
-func TestNotFoundIgnored(t *testing.T) {
+func TestNotFoundHandler(t *testing.T) {
 	app := testApp(t)
 
 	e := echo.New()
@@ -157,5 +157,40 @@ func TestNotFoundIgnored(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{})
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/NotFoundHandler", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: nil},
+	})
+}
+
+func TestMethodNotAllowedHandler(t *testing.T) {
+	app := testApp(t)
+
+	e := echo.New()
+	e.Use(Middleware(app))
+	e.GET("/hello", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, World!")
+	})
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("POST", "/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e.ServeHTTP(response, req)
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/MethodNotAllowedHandler", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/MethodNotAllowedHandler", Scope: "",
+			Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/MethodNotAllowedHandler", Scope: "", Forced: true, Data: nil},
+	})
 }

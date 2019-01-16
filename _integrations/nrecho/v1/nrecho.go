@@ -1,6 +1,8 @@
 package nrecho
 
 import (
+	"reflect"
+
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
 )
@@ -14,23 +16,27 @@ func FromContext(c echo.Context) newrelic.Transaction {
 	return txn
 }
 
+func handlerPointer(handler echo.HandlerFunc) uintptr {
+	return reflect.ValueOf(handler).Pointer()
+}
+
+func transactionName(c echo.Context) string {
+	ptr := handlerPointer(c.Handler())
+	if ptr == handlerPointer(echo.NotFoundHandler) {
+		return "NotFoundHandler"
+	}
+	if ptr == handlerPointer(echo.MethodNotAllowedHandler) {
+		return "MethodNotAllowedHandler"
+	}
+	return c.Path()
+}
+
 // Middleware creates Echo middleware that instruments requests.
 //
 //  e := echo.New()
 //  e.Use(nrecho.Middleware(app))
 //
 func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
-
-	originalNotFoundHandler := echo.NotFoundHandler
-	echo.NotFoundHandler = func(c echo.Context) error {
-		txn := FromContext(c)
-		if nil != txn {
-			// Ignore all transactions that would hit the echo.NotFoundHandler
-			// in order to prevent metric grouping issues.
-			txn.Ignore()
-		}
-		return originalNotFoundHandler(c)
-	}
 
 	if nil == app {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -39,19 +45,27 @@ func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFun
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			txn := app.StartTransaction(c.Path(), c.Response().Writer, c.Request())
+		return func(c echo.Context) (err error) {
+			txn := app.StartTransaction(transactionName(c), c.Response().Writer, c.Request())
 			defer txn.End()
 
 			c.Response().Writer = txn
 			c.Set(echoContextKey, txn)
 
-			err := next(c)
-			if nil != err {
-				txn.NoticeError(err)
+			err = next(c)
+
+			if nil == err {
+				return
 			}
 
-			return err
+			if httperr, ok := err.(*echo.HTTPError); ok {
+				if 404 == httperr.Code {
+					return
+				}
+			}
+
+			txn.NoticeError(err)
+			return
 		}
 	}
 }
