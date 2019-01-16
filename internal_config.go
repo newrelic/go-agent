@@ -149,6 +149,9 @@ func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) (
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:         c.Utilization.DetectAWS,
+		DetectAzure:       c.Utilization.DetectAzure,
+		DetectPCF:         c.Utilization.DetectPCF,
+		DetectGCP:         c.Utilization.DetectGCP,
 		DetectDocker:      c.Utilization.DetectDocker,
 		LogicalProcessors: c.Utilization.LogicalProcessors,
 		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
