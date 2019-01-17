@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrecho/v1"
+	"github.com/newrelic/go-agent/_integrations/nrecho"
 )
 
 func mustGetEnv(key string) string {
