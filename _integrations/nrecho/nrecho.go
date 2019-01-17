@@ -1,3 +1,6 @@
+// Package nrecho introduces to support for the echo framework.
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrecho/example/main.go
 package nrecho
 
 import (
