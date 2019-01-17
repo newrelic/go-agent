@@ -5,9 +5,12 @@ import (
 
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
 
 const echoContextKey = "newRelicTransaction"
+
+func init() { internal.TrackUsage("integration", "framework", "echo") }
 
 // FromContext returns the Transaction from the context if present, and nil
 // otherwise.
