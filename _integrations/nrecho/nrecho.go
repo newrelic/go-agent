@@ -11,15 +11,12 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
-const echoContextKey = "newRelicTransaction"
-
 func init() { internal.TrackUsage("integration", "framework", "echo") }
 
 // FromContext returns the Transaction from the context if present, and nil
 // otherwise.
 func FromContext(c echo.Context) newrelic.Transaction {
-	txn, _ := c.Get(echoContextKey).(newrelic.Transaction)
-	return txn
+	return newrelic.FromContext(c.Request().Context())
 }
 
 func handlerPointer(handler echo.HandlerFunc) uintptr {
@@ -56,7 +53,9 @@ func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFun
 			defer txn.End()
 
 			c.Response().Writer = txn
-			c.Set(echoContextKey, txn)
+
+			// Add txn to c.Request().Context()
+			c.SetRequest(c.Request().WithContext(newrelic.NewContext(c.Request().Context(), txn)))
 
 			err = next(c)
 
