@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -142,6 +143,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"allow_raw_exception_messages":{"enabled":false},
 			"custom_events":{"enabled":false},
 			"custom_parameters":{"enabled":false}
+		},
+		"metadata":{
+			"NEW_RELIC_METADATA_ZAP":"zip"
 		}
 	}]`)
 
@@ -161,7 +165,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", sp.PointerIfPopulated())
+	metadata := map[string]string{
+		"NEW_RELIC_METADATA_ZAP": "zip",
+	}
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", sp.PointerIfPopulated(), metadata)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -254,10 +261,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
-		}
+		},
+		"metadata":{}
 	}]`)
 
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", nil)
+	metadata := map[string]string{}
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", nil, metadata)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -364,5 +373,34 @@ func TestValidateWithPoliciesToken(t *testing.T) {
 	}
 	if err := c.Validate(); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestGatherMetadata(t *testing.T) {
+	metadata := gatherMetadata(func() []string { return nil })
+	if !reflect.DeepEqual(metadata, map[string]string{}) {
+		t.Error(metadata)
+	}
+	metadata = gatherMetadata(func() []string {
+		return []string{
+			"NEW_RELIC_METADATA_ZIP=zap",
+			"NEW_RELIC_METADATA_PIZZA=cheese",
+			"NEW_RELIC_METADATA_=hello",
+			"NEW_RELIC_METADATA_LOTS_OF_EQUALS=one=two",
+			"NEW_RELIC_METADATA_",
+			"NEW_RELIC_METADATA_NO_EQUALS",
+			"NEW_RELIC_METADATA_EMPTY=",
+			"NEW_RELIC_",
+			"hello=world",
+		}
+	})
+	if !reflect.DeepEqual(metadata, map[string]string{
+		"NEW_RELIC_METADATA_ZIP":            "zap",
+		"NEW_RELIC_METADATA_PIZZA":          "cheese",
+		"NEW_RELIC_METADATA_":               "hello",
+		"NEW_RELIC_METADATA_LOTS_OF_EQUALS": "one=two",
+		"NEW_RELIC_METADATA_EMPTY":          "",
+	}) {
+		t.Error(metadata)
 	}
 }

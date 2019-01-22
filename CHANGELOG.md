@@ -1,5 +1,11 @@
 ## ChangeLog
 
+* The agent will now collect environment variables which are prefixed by
+  `NEW_RELIC_METADATA_`.  These will be added to Transaction events to provide
+  context between your Kubernetes cluster and your services. For details on the
+  benefits (currently in beta) see
+  [this blog post](https://blog.newrelic.com/engineering/monitoring-application-performance-in-kubernetes/)
+
 ## 2.2.0
 
 * The `Transaction` parameter to
