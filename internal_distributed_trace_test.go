@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1147,78 +1148,40 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 	})
 }
 
-func testHelperIsFieldSetWithValue(t *testing.T, p DistributedTracePayload, field interface{}, key string) {
+func isZeroValue(x interface{}) bool {
+	// https://stackoverflow.com/questions/13901819/quick-way-to-detect-empty-values-via-reflection-in-go
+	return nil == x || x == reflect.Zero(reflect.TypeOf(x)).Interface()
+}
 
-	fieldExists := true
-	fieldHasNonDefaultValue := true
-
-	switch v := field.(type) {
-	case *string:
-		if nil == v {
-			fieldExists = false
-		} else if "" == *v {
-			fieldHasNonDefaultValue = false
-		}
-
-	case *uint:
-		if nil == v {
-			fieldExists = false
-		} else if 0 == *v {
-			fieldHasNonDefaultValue = false
-		}
-
-	case *float32:
-		if nil == v {
-			fieldExists = false
-		} else if 0 == *v {
-			fieldHasNonDefaultValue = false
-		}
-
-	case *bool:
-		if nil == v {
-			fieldExists = false
-		} else if false == *v {
-			fieldHasNonDefaultValue = false
-		}
-	default:
-		t.Log("Unhandled type passed to testHelperIsFieldSetWithValue")
-		t.Fail()
+func testPayloadFieldsPresent(t *testing.T, p DistributedTracePayload, keys ...string) {
+	out := struct {
+		Version []int                  `json:"v"`
+		Data    map[string]interface{} `json:"d"`
+	}{}
+	if err := json.Unmarshal([]byte(p.Text()), &out); nil != err {
+		t.Fatal("unable to unmarshal payload Text", err)
 	}
-
-	if !fieldExists {
-		t.Logf("Field not set: %s", key)
-		t.Log(p.Text())
-		t.Fail()
+	for _, key := range keys {
+		val, ok := out.Data[key]
+		if !ok {
+			t.Fatal("required key missing", key)
+		}
+		if isZeroValue(val) {
+			t.Fatal("value has default value", key, val)
+		}
 	}
-
-	if !fieldHasNonDefaultValue {
-		t.Logf("Field has default value: %s", key)
-		t.Log(p.Text())
-		t.Fail()
-	}
-
 }
 
 func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 
 	// creates a distributed trace payload and then checks
 	// to ensure the required fields are in place
-	var payloadData PayloadTest
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
 
 	p := txn.CreateDistributedTracePayload()
 
-	if err := json.Unmarshal([]byte(p.Text()), &payloadData); nil != err {
-		t.Log("Could not marshall payload into test struct")
-		t.Error(err)
-	}
-
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.TY, "ty")
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.AC, "ac")
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.AP, "ap")
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.TR, "tr")
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.TI, "ti")
+	testPayloadFieldsPresent(t, p, "ty", "ac", "ap", "tr", "ti")
 
 	err := txn.End()
 	if nil != err {
@@ -1284,7 +1247,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 		t.Error(err)
 	}
 
-	testHelperIsFieldSetWithValue(t, p, payloadData.D.TK, "tk")
+	testPayloadFieldsPresent(t, p, "tk")
 
 	err := txn.End()
 	if nil != err {
@@ -1301,7 +1264,6 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 }
 
 func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
-	var payloadData PayloadTest
 
 	// simulates 1. reading distributed trace payload from non-header external storage
 	// (for queues, other customer integrations); 2. Accpeting that Payload; 3. Creating
@@ -1333,19 +1295,8 @@ func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
 
 	payload := txn.CreateDistributedTracePayload()
 
-	if err := json.Unmarshal([]byte(payload.Text()), &payloadData); nil != err {
-		t.Log("Could not marshall payload into test struct")
-		t.Error(err)
-	}
-
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TY, "ty")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TY, "ty")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.AC, "ac")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.AP, "ap")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TR, "tr")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TI, "ti")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.PR, "pr")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.SA, "sa")
+	testPayloadFieldsPresent(t, payload,
+		"ty", "ac", "ap", "tr", "ti", "pr", "sa")
 
 	err = txn.End()
 	if nil != err {
@@ -1354,7 +1305,6 @@ func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
 }
 
 func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
-	var payloadData PayloadTest
 
 	// simulates 1. reading distributed trace payload from non-header external storage
 	// (for queues, other customer integrations); 2. Accpeting that Payload; 3. Creating
@@ -1386,21 +1336,8 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 	}
 
 	payload := txn.CreateDistributedTracePayload()
-
-	if err := json.Unmarshal([]byte(`{"v":[0,1],"d":{"ty":"App","ap":"456","ac":"123","tx":"id","id":"8ac36ab049908fc","tr":"traceID","pr":0.54343,"sa":true,"ti":1532644494523}}`), &payloadData); nil != err {
-		t.Log("Could not marshall payload into test struct")
-		t.Error(err)
-	}
-
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TY, "ty")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TY, "ty")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.AC, "ac")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.AP, "ap")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.ID, "id")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TR, "tr")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.TI, "ti")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.PR, "pr")
-	testHelperIsFieldSetWithValue(t, payload, payloadData.D.SA, "sa")
+	testPayloadFieldsPresent(t, payload,
+		"ty", "ac", "ap", "id", "tr", "ti", "pr", "sa")
 
 	err = txn.End()
 	if nil != err {
@@ -1946,13 +1883,7 @@ func assertTestCaseTransactionError(app expectApp, t *testing.T, tc distributedT
 
 func TestDistributedTraceCrossAgent(t *testing.T) {
 	var tcs []distributedTraceTestcase
-	//
-	input, err := crossagent.ReadFile(`distributed_tracing/distributed_tracing.json`)
-	if nil != err {
-		t.Fatal(err)
-	}
-
-	err = json.Unmarshal(input, &tcs)
+	err := crossagent.ReadJSON(`distributed_tracing/distributed_tracing.json`, &tcs)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -1979,9 +1910,8 @@ func TestDistributedTraceDisabledSpanEventsEnabled(t *testing.T) {
 	payload := makePayload(app, nil)
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
-	if nil == err {
-		t.Log("we expected an error with DT disabled")
-		t.Fail()
+	if err != errInboundPayloadDTDisabled {
+		t.Fatal("we expected an error with DT disabled", err)
 	}
 	err = txn.End()
 	if nil != err {
