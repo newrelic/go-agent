@@ -1,5 +1,17 @@
 ## ChangeLog
 
+* Introduced `Transaction.NewGoroutine() Transaction` method which allows the
+  transaction to be used in multiple goroutines!  `NewGoroutine` must be called
+  when the `Transaction` is passed to a different goroutine.  The entire
+  `Transaction` will end when `End()` is called in any goroutine.  Example use:
+
+```go
+	go func(txn newrelic.Transaction) {
+		defer newrelic.StartSegment(txn, "async").End()
+		time.Sleep(100 * time.Millisecond)
+	}(txn.NewGoroutine())
+```
+
 ## 2.5.0
 
 * Added support for [New Relic Browser](https://docs.newrelic.com/docs/browser)

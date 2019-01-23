@@ -74,6 +74,20 @@ func disableDistributedTracerEnableSpanEvents(cfg *Config) {
 	cfg.SpanEvents.Enabled = true
 }
 
+var (
+	distributedTracingSuccessMetrics = []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+	}
+)
+
 func TestPayloadConnection(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app, nil)
@@ -90,15 +104,7 @@ func TestPayloadConnection(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	})
+	app.ExpectMetrics(t, distributedTracingSuccessMetrics)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "OtherTransaction/Go/hello",
@@ -137,16 +143,9 @@ func TestAcceptMultiple(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Multiple", Scope: "", Forced: true, Data: singleCount},
-	})
+	}, distributedTracingSuccessMetrics...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "OtherTransaction/Go/hello",
@@ -181,15 +180,7 @@ func TestPayloadConnectionText(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	})
+	app.ExpectMetrics(t, distributedTracingSuccessMetrics)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "OtherTransaction/Go/hello",
@@ -233,15 +224,7 @@ func TestPayloadConnectionHTTPSafe(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	})
+	app.ExpectMetrics(t, distributedTracingSuccessMetrics)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "OtherTransaction/Go/hello",
@@ -495,6 +478,8 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/App/123/456/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/App/123/456/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/Unknown/all", Scope: "", Forced: false, Data: nil},
@@ -598,15 +583,7 @@ func TestPayloadFromFuture(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: singleCount},
-		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: singleCount},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	})
+	app.ExpectMetrics(t, distributedTracingSuccessMetrics)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "OtherTransaction/Go/hello",
@@ -794,6 +771,17 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdDoesNotMatch(t *testing.T
 	}
 }
 
+var (
+	backgroundUnknownCaller = []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	}
+)
+
 func TestNilPayload(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
@@ -809,13 +797,9 @@ func TestNilPayload(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestNoticeErrorPayload(t *testing.T) {
@@ -829,17 +813,13 @@ func TestNoticeErrorPayload(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "Errors/OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestMissingIDsForSupportabilityMetric(t *testing.T) {
@@ -869,13 +849,9 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestMissingVersionForSupportabilityMetric(t *testing.T) {
@@ -905,13 +881,9 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestMissingFieldForSupportabilityMetric(t *testing.T) {
@@ -941,13 +913,9 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestParseExceptionSupportabilityMetric(t *testing.T) {
@@ -977,13 +945,9 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestErrorsByCaller(t *testing.T) {
@@ -1007,6 +971,8 @@ func TestErrorsByCaller(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
@@ -1053,6 +1019,8 @@ func TestCreateDistributedTraceCatDisabled(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
 
 }
@@ -1088,6 +1056,8 @@ func TestCreateDistributedTraceBetterCatDisabled(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
 
 }
@@ -1118,13 +1088,9 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func isZeroValue(x interface{}) bool {
@@ -1167,13 +1133,9 @@ func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
@@ -1202,13 +1164,9 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
@@ -1233,13 +1191,9 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 		t.Error(err)
 	}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-	})
+	}, backgroundUnknownCaller...))
 }
 
 func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {

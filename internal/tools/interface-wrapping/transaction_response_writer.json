@@ -1,7 +1,7 @@
 {
 	"comment": "used in internal_response_writer.go",
-	"variable_name": "txn",
-	"test_variable_name": "txn.writer",
+	"variable_name": "trd",
+	"test_variable_name": "trd.txn.writer",
 	"required_interfaces": [
 		"Transaction"
 	],

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -189,6 +190,22 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func async(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func(txn newrelic.Transaction) {
+		defer wg.Done()
+		defer newrelic.StartSegment(txn, "async").End()
+		time.Sleep(100 * time.Millisecond)
+	}(txn.NewGoroutine())
+
+	segment := newrelic.StartSegment(txn, "wg.Wait")
+	wg.Wait()
+	segment.End()
+	w.Write([]byte("done!"))
+}
+
 func customMetric(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	for _, vals := range r.Header {
@@ -247,6 +264,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/browser", browser))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as

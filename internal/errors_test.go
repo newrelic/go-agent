@@ -40,6 +40,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 				ID:       "txn-id",
 				Priority: 0.5,
 			},
+			TotalTime: 2 * time.Second,
 		},
 	}
 	js, err := json.Marshal(he)
@@ -57,6 +58,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 			"agentAttributes":{},
 			"userAttributes":{},
 			"intrinsics":{
+				"totalTime":2,
 				"guid":"txn-id",
 				"traceId":"txn-id",
 				"priority":0.500000,
@@ -82,6 +84,7 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 			BetterCAT: BetterCAT{
 				Enabled: false,
 			},
+			TotalTime: 2 * time.Second,
 		},
 	}
 	js, err := json.Marshal(he)
@@ -98,7 +101,9 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 		{
 			"agentAttributes":{},
 			"userAttributes":{},
-			"intrinsics":{},
+			"intrinsics":{
+				"totalTime":2
+			},
 			"stack_trace":[]
 		}
 	]`
@@ -131,6 +136,7 @@ func TestErrorTraceAttributes(t *testing.T) {
 				ID:       "txn-id",
 				Priority: 0.5,
 			},
+			TotalTime: 2 * time.Second,
 		},
 	}
 	js, err := json.Marshal(he)
@@ -147,6 +153,7 @@ func TestErrorTraceAttributes(t *testing.T) {
 			"agentAttributes":{"request.uri":"my_request_uri"},
 			"userAttributes":{"zip":456},
 			"intrinsics":{
+				"totalTime":2,
 				"guid":"txn-id",
 				"traceId":"txn-id",
 				"priority":0.500000,
@@ -181,6 +188,7 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 			BetterCAT: BetterCAT{
 				Enabled: false,
 			},
+			TotalTime: 2 * time.Second,
 		},
 	}
 	js, err := json.Marshal(he)
@@ -196,7 +204,9 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 		{
 			"agentAttributes":{"request.uri":"my_request_uri"},
 			"userAttributes":{"zip":456},
-			"intrinsics":{}
+			"intrinsics":{
+				"totalTime":2
+			}
 		}
 	]`
 	testExpectedJSON(t, expect, string(js))
@@ -220,6 +230,7 @@ func TestErrorsLifecycle(t *testing.T) {
 			ID:       "txn-id",
 			Priority: 0.5,
 		},
+		TotalTime: 2 * time.Second,
 	})
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
@@ -238,6 +249,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "agentAttributes":{},
             "userAttributes":{},
             "intrinsics":{
+               "totalTime":2,
                "guid":"txn-id",
                "traceId":"txn-id",
                "priority":0.500000,
@@ -254,6 +266,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "agentAttributes":{},
             "userAttributes":{},
             "intrinsics":{
+               "totalTime":2,
                "guid":"txn-id",
                "traceId":"txn-id",
                "priority":0.500000,
@@ -270,6 +283,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "agentAttributes":{},
             "userAttributes":{},
             "intrinsics":{
+               "totalTime":2,
                "guid":"txn-id",
                "traceId":"txn-id",
                "priority":0.500000,

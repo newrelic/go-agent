@@ -31,8 +31,8 @@ func pcToFunc(pc uintptr) (*runtime.Func, uintptr) {
 	return runtime.FuncForPC(place), place
 }
 
-func topCallerNameBase(st StackTrace) string {
-	f, _ := pcToFunc(st[0])
+func topCallerNameBase(st StackTrace, extraSkipFrames int) string {
+	f, _ := pcToFunc(st[extraSkipFrames])
 	if nil == f {
 		return ""
 	}

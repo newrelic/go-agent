@@ -280,10 +280,11 @@ func TestErrorWithStackTrace(t *testing.T) {
 	}
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/hello",
-		Msg:     "my msg",
-		Klass:   "newrelic.withStackTrace",
-		Caller:  "go-agent.makeErrorWithStackTrace",
+		TxnName:    "OtherTransaction/Go/hello",
+		Msg:        "my msg",
+		Klass:      "newrelic.withStackTrace",
+		Caller:     "go-agent.makeErrorWithStackTrace",
+		NotNoticed: true,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

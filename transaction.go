@@ -114,6 +114,19 @@ type Transaction interface {
 	// Relic's Browser support no longer requires a separate footer. The
 	// naming is for consistency with other New Relic language agents.
 	BrowserTimingHeader() (*BrowserTimingHeader, error)
+
+	// NewGoroutine must be called when passing the Transaction to a new
+	// goroutine.  This new Transaction reference maintains its own segment
+	// stack which allows segment metric exclusive time to be calculated.
+	// The Transaction will end when End() is called in any goroutine.
+	// Example use:
+	//
+	//	go func(txn newrelic.Transaction) {
+	//		defer newrelic.StartSegment(txn, "async").End()
+	//		time.Sleep(100 * time.Millisecond)
+	//	}(txn.NewGoroutine())
+	//
+	NewGoroutine() Transaction
 }
 
 // DistributedTracePayload is used to instrument connections between

@@ -7,21 +7,21 @@ import (
 	"net/http"
 )
 
-func (txn *txn) CloseNotify() <-chan bool {
-	return txn.getWriter().(http.CloseNotifier).CloseNotify()
+func (trd *thread) CloseNotify() <-chan bool {
+	return trd.txn.getWriter().(http.CloseNotifier).CloseNotify()
 }
-func (txn *txn) Flush() {
-	txn.getWriter().(http.Flusher).Flush()
+func (trd *thread) Flush() {
+	trd.txn.getWriter().(http.Flusher).Flush()
 }
-func (txn *txn) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return txn.getWriter().(http.Hijacker).Hijack()
+func (trd *thread) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return trd.txn.getWriter().(http.Hijacker).Hijack()
 }
-func (txn *txn) ReadFrom(r io.Reader) (int64, error) {
-	return txn.getWriter().(io.ReaderFrom).ReadFrom(r)
+func (trd *thread) ReadFrom(r io.Reader) (int64, error) {
+	return trd.txn.getWriter().(io.ReaderFrom).ReadFrom(r)
 }
 
-func upgradeTxn(txn *txn) Transaction {
-	// Note that txn.getWriter() is not used here.  The transaction is
+func upgradeTxn(trd *thread) Transaction {
+	// Note that trd.txn.getWriter() is not used here.  The transaction is
 	// locked (or under construction) when this function is used.
 
 	// GENERATED CODE DO NOT MODIFY
@@ -33,107 +33,107 @@ func upgradeTxn(txn *txn) Transaction {
 		i3 int32 = 1 << 3
 	)
 	var interfaceSet int32
-	if _, ok := txn.writer.(http.CloseNotifier); ok {
+	if _, ok := trd.txn.writer.(http.CloseNotifier); ok {
 		interfaceSet |= i0
 	}
-	if _, ok := txn.writer.(http.Flusher); ok {
+	if _, ok := trd.txn.writer.(http.Flusher); ok {
 		interfaceSet |= i1
 	}
-	if _, ok := txn.writer.(http.Hijacker); ok {
+	if _, ok := trd.txn.writer.(http.Hijacker); ok {
 		interfaceSet |= i2
 	}
-	if _, ok := txn.writer.(io.ReaderFrom); ok {
+	if _, ok := trd.txn.writer.(io.ReaderFrom); ok {
 		interfaceSet |= i3
 	}
 	switch interfaceSet {
 	default: // No optional interfaces implemented
 		return struct {
 			Transaction
-		}{txn}
+		}{trd}
 	case i0:
 		return struct {
 			Transaction
 			http.CloseNotifier
-		}{txn, txn}
+		}{trd, trd}
 	case i1:
 		return struct {
 			Transaction
 			http.Flusher
-		}{txn, txn}
+		}{trd, trd}
 	case i0 | i1:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			http.Flusher
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i2:
 		return struct {
 			Transaction
 			http.Hijacker
-		}{txn, txn}
+		}{trd, trd}
 	case i0 | i2:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			http.Hijacker
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i1 | i2:
 		return struct {
 			Transaction
 			http.Flusher
 			http.Hijacker
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i0 | i1 | i2:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			http.Flusher
 			http.Hijacker
-		}{txn, txn, txn, txn}
+		}{trd, trd, trd, trd}
 	case i3:
 		return struct {
 			Transaction
 			io.ReaderFrom
-		}{txn, txn}
+		}{trd, trd}
 	case i0 | i3:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i1 | i3:
 		return struct {
 			Transaction
 			http.Flusher
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i0 | i1 | i3:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			http.Flusher
 			io.ReaderFrom
-		}{txn, txn, txn, txn}
+		}{trd, trd, trd, trd}
 	case i2 | i3:
 		return struct {
 			Transaction
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{trd, trd, trd}
 	case i0 | i2 | i3:
 		return struct {
 			Transaction
 			http.CloseNotifier
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn, txn}
+		}{trd, trd, trd, trd}
 	case i1 | i2 | i3:
 		return struct {
 			Transaction
 			http.Flusher
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn, txn}
+		}{trd, trd, trd, trd}
 	case i0 | i1 | i2 | i3:
 		return struct {
 			Transaction
@@ -141,6 +141,6 @@ func upgradeTxn(txn *txn) Transaction {
 			http.Flusher
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn, txn, txn}
+		}{trd, trd, trd, trd, trd}
 	}
 }

@@ -16,6 +16,8 @@ var (
 	webMetrics  = []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -28,6 +30,8 @@ var (
 	backgroundMetrics = []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	}
 	backgroundMetricsUnknownCaller = append([]internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
@@ -453,10 +457,11 @@ func TestPanicError(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/hello",
-		Msg:     "my msg",
-		Klass:   internal.PanicErrorKlass,
-		Caller:  "go-agent.(*txn).End",
+		TxnName:    "OtherTransaction/Go/hello",
+		Msg:        "my msg",
+		Klass:      internal.PanicErrorKlass,
+		Caller:     "go-agent.(*thread).End",
+		NotNoticed: true,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -479,10 +484,11 @@ func TestPanicString(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/hello",
-		Msg:     "my string",
-		Klass:   internal.PanicErrorKlass,
-		Caller:  "go-agent.(*txn).End",
+		TxnName:    "OtherTransaction/Go/hello",
+		Msg:        "my string",
+		Klass:      internal.PanicErrorKlass,
+		Caller:     "go-agent.(*thread).End",
+		NotNoticed: true,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -505,10 +511,11 @@ func TestPanicInt(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/hello",
-		Msg:     "22",
-		Klass:   internal.PanicErrorKlass,
-		Caller:  "go-agent.(*txn).End",
+		TxnName:    "OtherTransaction/Go/hello",
+		Msg:        "22",
+		Klass:      internal.PanicErrorKlass,
+		Caller:     "go-agent.(*thread).End",
+		NotNoticed: true,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -549,10 +556,11 @@ func TestResponseCodeError(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/hello",
-		Msg:     "Bad Request",
-		Klass:   "400",
-		Caller:  "go-agent.(*txn).WriteHeader",
+		TxnName:    "WebTransaction/Go/hello",
+		Msg:        "Bad Request",
+		Klass:      "400",
+		Caller:     "go-agent.(*txn).WriteHeader",
+		NotNoticed: true,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1633,4 +1641,62 @@ func TestNilSegmentPointerEnd(t *testing.T) {
 	basicSegment.End()
 	datastoreSegment.End()
 	externalSegment.End()
+}
+
+type flushWriter struct{}
+
+func (f flushWriter) WriteHeader(int)           {}
+func (f flushWriter) Write([]byte) (int, error) { return 0, nil }
+func (f flushWriter) Header() http.Header       { return nil }
+func (f flushWriter) Flush()                    {}
+
+func TestAsync(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", flushWriter{}, nil)
+	if _, ok := txn.(http.Flusher); !ok {
+		t.Error("transaction should have flush")
+	}
+	s1 := StartSegment(txn, "mainThread")
+	asyncThread := txn.NewGoroutine()
+	// Test that the async transaction reference has the correct optional
+	// interface behavior.
+	if _, ok := asyncThread.(http.Flusher); !ok {
+		t.Error("async transaction reference should have flush")
+	}
+	s2 := StartSegment(asyncThread, "asyncThread")
+	// End segments in interleaved order.
+	s1.End()
+	s2.End()
+	// Test that the async transaction reference has the expected
+	// transaction method behavior.
+	asyncThread.AddAttribute("zip", "zap")
+	// Test that the transaction ends when the async transaction is ended.
+	if err := asyncThread.End(); nil != err {
+		t.Error(err)
+	}
+	threadAfterEnd := asyncThread.NewGoroutine()
+	if _, ok := threadAfterEnd.(http.Flusher); !ok {
+		t.Error("after end transaction reference should have flush")
+	}
+	if err := threadAfterEnd.End(); err != errAlreadyEnded {
+		t.Error(err)
+	}
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name": "OtherTransaction/Go/hello",
+		},
+		UserAttributes: map[string]interface{}{
+			"zip": "zap",
+		},
+	}})
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/mainThread", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/mainThread", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+		{Name: "Custom/asyncThread", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/asyncThread", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+	})
 }

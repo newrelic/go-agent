@@ -32,6 +32,10 @@ func (e *TxnEvent) WriteJSON(buf *bytes.Buffer) {
 
 	sharedTransactionIntrinsics(e, &w)
 
+	// totalTime gets put into transaction events but not error events:
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Total-Time-Async.md#attributes
+	w.floatField("totalTime", e.TotalTime.Seconds())
+
 	// Write better CAT intrinsics if enabled
 	sharedBetterCATIntrinsics(e, &w)
 
