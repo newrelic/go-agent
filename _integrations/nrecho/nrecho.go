@@ -4,6 +4,7 @@
 package nrecho
 
 import (
+	"net/http"
 	"reflect"
 
 	"github.com/labstack/echo"
@@ -49,7 +50,8 @@ func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFun
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
-			txn := app.StartTransaction(transactionName(c), c.Response().Writer, c.Request())
+			rw := c.Response().Writer
+			txn := app.StartTransaction(transactionName(c), rw, c.Request())
 			defer txn.End()
 
 			c.Response().Writer = txn
@@ -59,17 +61,21 @@ func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFun
 
 			err = next(c)
 
-			if nil == err {
-				return
-			}
+			// Record the response code. The response headers are not captured
+			// in this case because they are set after this middleware returns.
+			// Designed to mimic the logic in echo.DefaultHTTPErrorHandler.
+			if nil != err && !c.Response().Committed {
 
-			if httperr, ok := err.(*echo.HTTPError); ok {
-				if 404 == httperr.Code {
-					return
+				txn.SetWebResponse(nil)
+				c.Response().Writer = rw
+
+				if httperr, ok := err.(*echo.HTTPError); ok {
+					txn.WriteHeader(httperr.Code)
+				} else {
+					txn.WriteHeader(http.StatusInternalServerError)
 				}
 			}
 
-			txn.NoticeError(err)
 			return
 		}
 	}

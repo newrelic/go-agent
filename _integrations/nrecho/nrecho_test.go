@@ -116,34 +116,6 @@ func TestTransactionContext(t *testing.T) {
 	})
 }
 
-func TestNoticedErrors(t *testing.T) {
-	app := testApp(t)
-
-	e := echo.New()
-	e.Use(Middleware(app))
-	e.GET("/hello", func(c echo.Context) error {
-		return errors.New("ooooooooops")
-	})
-
-	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-	})
-}
-
 func TestNotFoundHandler(t *testing.T) {
 	app := testApp(t)
 
@@ -193,4 +165,122 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction/Go/MethodNotAllowedHandler", Scope: "", Forced: true, Data: nil},
 	})
+}
+
+func TestReturnsHTTPError(t *testing.T) {
+	app := testApp(t)
+
+	e := echo.New()
+	e.Use(Middleware(app))
+	e.GET("/hello", func(c echo.Context) error {
+		return echo.NewHTTPError(http.StatusTeapot, "I'm a teapot!")
+	})
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e.ServeHTTP(response, req)
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode": "418",
+			"request.method":   "GET",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+}
+
+func TestReturnsError(t *testing.T) {
+	app := testApp(t)
+
+	e := echo.New()
+	e.Use(Middleware(app))
+	e.GET("/hello", func(c echo.Context) error {
+		return errors.New("ooooooooops")
+	})
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e.ServeHTTP(response, req)
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode": "500",
+			"request.method":   "GET",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+}
+
+func TestResponseCode(t *testing.T) {
+	app := testApp(t)
+
+	e := echo.New()
+	e.Use(Middleware(app))
+	e.GET("/hello", func(c echo.Context) error {
+		return c.Blob(http.StatusTeapot, "text/html", []byte("Hello, World!"))
+	})
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e.ServeHTTP(response, req)
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":             "418",
+			"request.method":               "GET",
+			"response.headers.contentType": "text/html",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
 }
