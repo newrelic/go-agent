@@ -11,11 +11,12 @@ import (
 
 func main() {
 	util := utilization.Gather(utilization.Config{
-		DetectAWS:    true,
-		DetectAzure:  true,
-		DetectDocker: true,
-		DetectPCF:    true,
-		DetectGCP:    true,
+		DetectAWS:        true,
+		DetectAzure:      true,
+		DetectDocker:     true,
+		DetectPCF:        true,
+		DetectGCP:        true,
+		DetectKubernetes: true,
 	}, newrelic.NewDebugLogger(os.Stdout))
 
 	js, err := json.MarshalIndent(util, "", "\t")

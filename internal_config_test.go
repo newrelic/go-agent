@@ -115,6 +115,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"DetectAzure":true,
 				"DetectDocker":true,
 				"DetectGCP":true,
+				"DetectKubernetes":true,
 				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
@@ -132,7 +133,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":3,
+			"metadata_version":5,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
@@ -241,6 +242,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"DetectAzure":true,
 				"DetectDocker":true,
 				"DetectGCP":true,
+				"DetectKubernetes":true,
 				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
@@ -257,7 +259,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		],
 		"identifier":"my appname",
 		"utilization":{
-			"metadata_version":3,
+			"metadata_version":5,
 			"logical_processors":16,
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"

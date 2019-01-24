@@ -174,6 +174,7 @@ func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) (
 		DetectPCF:         c.Utilization.DetectPCF,
 		DetectGCP:         c.Utilization.DetectGCP,
 		DetectDocker:      c.Utilization.DetectDocker,
+		DetectKubernetes:  c.Utilization.DetectKubernetes,
 		LogicalProcessors: c.Utilization.LogicalProcessors,
 		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
 		BillingHostname:   c.Utilization.BillingHostname,
