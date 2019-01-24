@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.3.0
+
 * Added support for [Echo](https://echo.labstack.com) in the new `nrecho`
   package.
   * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho)
