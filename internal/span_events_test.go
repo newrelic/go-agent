@@ -193,7 +193,7 @@ func TestSpanEventsMergeFromTransaction(t *testing.T) {
 	args.rootSpanID = "root-span-id"
 
 	args.spanEvents = []*SpanEvent{
-		&SpanEvent{
+		{
 			GUID:         "span-1-id",
 			ParentID:     "root-span-id",
 			Timestamp:    time.Now(),
@@ -202,7 +202,7 @@ func TestSpanEventsMergeFromTransaction(t *testing.T) {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: false,
 		},
-		&SpanEvent{
+		{
 			GUID:         "span-2-id",
 			ParentID:     "span-1-id",
 			Timestamp:    time.Now(),
