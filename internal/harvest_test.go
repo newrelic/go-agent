@@ -29,10 +29,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.ErrorEvents = newErrorEvents(1)
 	h.SpanEvents = newSpanEvents(1)
 
-	args := &TxnData{}
-	h.SpanEvents.addEvent(&SpanEvent{}, &BetterCAT{})
-	h.SpanEvents.addEvent(&SpanEvent{}, &BetterCAT{})
-	h.SpanEvents.MergeFromTransaction(args)
+	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
+	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 
 	h.Metrics.addSingleCount("drop me!", unforced)
 
@@ -60,7 +58,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{errorEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
 		{errorEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{supportabilityDropped, "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{spanEventsSeen, "", true, []float64{3, 0, 0, 0, 0, 0}},
+		{spanEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
 		{spanEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
@@ -79,13 +77,6 @@ func TestEmptyPayloads(t *testing.T) {
 func TestMergeFailedHarvest(t *testing.T) {
 	start1 := time.Now()
 	start2 := start1.Add(1 * time.Minute)
-
-	args := &TxnData{}
-	args.Start = time.Now()
-	args.Duration = 1 * time.Second
-	args.FinalName = "finalName"
-	args.BetterCAT.Enabled = true
-	args.BetterCAT.ID = "123"
 
 	h := NewHarvest(start1)
 	h.Metrics.addCount("zip", 1, forced)
@@ -124,7 +115,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		CleanURL:  "requestURI",
 		Attrs:     nil,
 	})
-	h.SpanEvents.MergeFromTransaction(args)
+	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 
 	if start1 != h.Metrics.metricPeriodStart {
 		t.Error(h.Metrics.metricPeriodStart)
@@ -169,14 +160,14 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectSpanEvents(t, h.SpanEvents, []WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"type":          "Span",
-			"name":          "finalName",
-			"sampled":       false,
-			"priority":      0,
+			"name":          "myName",
+			"sampled":       true,
+			"priority":      0.5,
 			"category":      spanCategoryGeneric,
 			"nr.entryPoint": true,
-			"guid":          MatchAnything,
-			"transactionId": "123",
-			"traceId":       "123",
+			"guid":          "guid",
+			"transactionId": "txn-id",
+			"traceId":       "trace-id",
 		},
 	}})
 	ExpectErrors(t, h.ErrorTraces, []WantError{{
@@ -239,14 +230,14 @@ func TestMergeFailedHarvest(t *testing.T) {
 	ExpectSpanEvents(t, h.SpanEvents, []WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"type":          "Span",
-			"name":          "finalName",
-			"sampled":       false,
-			"priority":      0,
+			"name":          "myName",
+			"sampled":       true,
+			"priority":      0.5,
 			"category":      spanCategoryGeneric,
 			"nr.entryPoint": true,
-			"guid":          MatchAnything,
-			"transactionId": "123",
-			"traceId":       "123",
+			"guid":          "guid",
+			"transactionId": "txn-id",
+			"traceId":       "trace-id",
 		},
 	}})
 	ExpectErrors(t, nextHarvest.ErrorTraces, []WantError{})
@@ -420,72 +411,4 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 		{backgroundName, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 109, 123, 123, 123 * 123}},
 	})
-}
-
-func TestHarvestRootSpanEvent(t *testing.T) {
-	now := time.Now()
-	args := &TxnData{}
-	args.Start = time.Now()
-	args.Duration = 1 * time.Second
-	args.FinalName = "finalName"
-	args.BetterCAT.Enabled = true
-	args.BetterCAT.ID = "123"
-
-	h := NewHarvest(now)
-	h.TxnEvents.AddTxnEvent(&TxnEvent{
-		FinalName: "finalName",
-		Start:     time.Now(),
-		Duration:  1 * time.Second,
-	}, 0)
-	h.SpanEvents.MergeFromTransaction(args)
-
-	ExpectSpanEvents(t, h.SpanEvents, []WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"type":          "Span",
-			"name":          "finalName",
-			"sampled":       false,
-			"priority":      0,
-			"category":      spanCategoryGeneric,
-			"nr.entryPoint": true,
-			"guid":          MatchAnything,
-			"transactionId": "123",
-			"traceId":       "123",
-		},
-	}})
-}
-
-func TestHarvestRootSpanEventWithParent(t *testing.T) {
-	now := time.Now()
-	args := &TxnData{}
-	args.Start = time.Now()
-	args.Duration = 1 * time.Second
-	args.FinalName = "finalName"
-	args.BetterCAT.Enabled = true
-	args.BetterCAT.ID = "123"
-	args.BetterCAT.Inbound = &Payload{}
-	args.BetterCAT.Inbound.ID = "000"
-	args.BetterCAT.Inbound.TracedID = "867"
-
-	h := NewHarvest(now)
-	h.TxnEvents.AddTxnEvent(&TxnEvent{
-		FinalName: "finalName",
-		Start:     time.Now(),
-		Duration:  1 * time.Second,
-	}, 0)
-	h.SpanEvents.MergeFromTransaction(args)
-
-	ExpectSpanEvents(t, h.SpanEvents, []WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"type":          "Span",
-			"name":          "finalName",
-			"sampled":       false,
-			"priority":      0,
-			"category":      spanCategoryGeneric,
-			"parentId":      "000",
-			"nr.entryPoint": true,
-			"guid":          MatchAnything,
-			"transactionId": "123",
-			"traceId":       "867",
-		},
-	}})
 }

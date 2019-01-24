@@ -176,3 +176,83 @@ func TestSpanEventsEndpointMethod(t *testing.T) {
 		t.Error(m)
 	}
 }
+
+func TestSpanEventsMergeFromTransaction(t *testing.T) {
+	args := &TxnData{}
+	args.Start = time.Now()
+	args.Duration = 1 * time.Second
+	args.FinalName = "finalName"
+	args.BetterCAT.Sampled = true
+	args.BetterCAT.Priority = 0.7
+	args.BetterCAT.Enabled = true
+	args.BetterCAT.ID = "txn-id"
+	args.BetterCAT.Inbound = &Payload{
+		ID:       "inbound-id",
+		TracedID: "inbound-trace-id",
+	}
+	args.rootSpanID = "root-span-id"
+
+	args.spanEvents = []*SpanEvent{
+		&SpanEvent{
+			GUID:         "span-1-id",
+			ParentID:     "root-span-id",
+			Timestamp:    time.Now(),
+			Duration:     3 * time.Millisecond,
+			Name:         "span1",
+			Category:     spanCategoryGeneric,
+			IsEntrypoint: false,
+		},
+		&SpanEvent{
+			GUID:         "span-2-id",
+			ParentID:     "span-1-id",
+			Timestamp:    time.Now(),
+			Duration:     3 * time.Millisecond,
+			Name:         "span2",
+			Category:     spanCategoryGeneric,
+			IsEntrypoint: false,
+		},
+	}
+
+	spanEvents := newSpanEvents(10)
+	spanEvents.MergeFromTransaction(args)
+
+	ExpectSpanEvents(t, spanEvents, []WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "finalName",
+				"sampled":       true,
+				"priority":      0.7,
+				"category":      spanCategoryGeneric,
+				"parentId":      "inbound-id",
+				"nr.entryPoint": true,
+				"guid":          "root-span-id",
+				"transactionId": "txn-id",
+				"traceId":       "inbound-trace-id",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "span1",
+				"sampled":       true,
+				"priority":      0.7,
+				"category":      spanCategoryGeneric,
+				"parentId":      "root-span-id",
+				"guid":          "span-1-id",
+				"transactionId": "txn-id",
+				"traceId":       "inbound-trace-id",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "span2",
+				"sampled":       true,
+				"priority":      0.7,
+				"category":      spanCategoryGeneric,
+				"parentId":      "span-1-id",
+				"guid":          "span-2-id",
+				"transactionId": "txn-id",
+				"traceId":       "inbound-trace-id",
+			},
+		},
+	})
+}
