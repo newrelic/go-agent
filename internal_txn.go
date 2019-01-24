@@ -14,7 +14,8 @@ import (
 )
 
 type txnInput struct {
-	W          http.ResponseWriter
+	// This ResponseWriter should only be accessed using txn.getWriter()
+	writer     http.ResponseWriter
 	Config     Config
 	Reply      *internal.ConnectReply
 	Consumer   dataConsumer
@@ -129,6 +130,18 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	}
 
 	return nil
+}
+
+func (txn *txn) SetWebResponse(w http.ResponseWriter) Transaction {
+	txn.Lock()
+	defer txn.Unlock()
+
+	// Replace the ResponseWriter even if the transaction has ended so that
+	// consumers calling ResponseWriter methods on the transactions see that
+	// data flowing through as expected.
+	txn.writer = w
+
+	return upgradeTxn(txn)
 }
 
 func (txn *txn) slowQueriesEnabled() bool {
@@ -270,7 +283,7 @@ func responseCodeIsError(cfg *Config, code int) bool {
 	return true
 }
 
-func headersJustWritten(txn *txn, code int) {
+func headersJustWritten(txn *txn, code int, hdr http.Header) {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -282,7 +295,7 @@ func headersJustWritten(txn *txn, code int) {
 	}
 	txn.wroteHeader = true
 
-	internal.ResponseHeaderAttributes(txn.Attrs, txn.W.Header())
+	internal.ResponseHeaderAttributes(txn.Attrs, hdr)
 	internal.ResponseCodeAttribute(txn.Attrs, code)
 
 	if responseCodeIsError(&txn.Config, code) {
@@ -292,7 +305,7 @@ func headersJustWritten(txn *txn, code int) {
 	}
 }
 
-func (txn *txn) responseHeader() http.Header {
+func (txn *txn) responseHeader(hdr http.Header) http.Header {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -309,7 +322,7 @@ func (txn *txn) responseHeader() http.Header {
 		return nil
 	}
 	txn.freezeName()
-	contentLength := internal.GetContentLengthFromHeader(txn.W.Header())
+	contentLength := internal.GetContentLengthFromHeader(hdr)
 
 	appData, err := txn.CrossProcess.CreateAppData(txn.FinalName, txn.Queuing, time.Since(txn.Start), contentLength)
 	if err != nil {
@@ -321,36 +334,70 @@ func (txn *txn) responseHeader() http.Header {
 	return internal.AppDataToHTTPHeader(appData)
 }
 
-func addCrossProcessHeaders(txn *txn) {
+func addCrossProcessHeaders(txn *txn, hdr http.Header) {
 	// responseHeader() checks the wroteHeader field and returns a nil map if the
 	// header has been written, so we don't need a check here.
-	for key, values := range txn.responseHeader() {
-		for _, value := range values {
-			txn.W.Header().Add(key, value)
+	if nil != hdr {
+		for key, values := range txn.responseHeader(hdr) {
+			for _, value := range values {
+				hdr.Add(key, value)
+			}
 		}
 	}
 }
 
-func (txn *txn) Header() http.Header { return txn.W.Header() }
+// getWriter is used to access the transaction's ResponseWriter. The
+// ResponseWriter is mutex protected since it may be changed with
+// txn.SetWebResponse, and we want changes to be visible across goroutines.  The
+// ResponseWriter is accessed using this getWriter() function rather than directly
+// in mutex protected methods since we do NOT want the transaction to be locked
+// while calling the ResponseWriter's methods.
+func (txn *txn) getWriter() http.ResponseWriter {
+	txn.Lock()
+	rw := txn.writer
+	txn.Unlock()
+	return rw
+}
 
-func (txn *txn) Write(b []byte) (int, error) {
+func nilSafeHeader(rw http.ResponseWriter) http.Header {
+	if nil == rw {
+		return nil
+	}
+	return rw.Header()
+}
+
+func (txn *txn) Header() http.Header {
+	return nilSafeHeader(txn.getWriter())
+}
+
+func (txn *txn) Write(b []byte) (n int, err error) {
+	rw := txn.getWriter()
+	hdr := nilSafeHeader(rw)
+
 	// This is safe to call unconditionally, even if Write() is called multiple
 	// times; see also the commentary in addCrossProcessHeaders().
-	addCrossProcessHeaders(txn)
+	addCrossProcessHeaders(txn, hdr)
 
-	n, err := txn.W.Write(b)
+	if rw != nil {
+		n, err = rw.Write(b)
+	}
 
-	headersJustWritten(txn, http.StatusOK)
+	headersJustWritten(txn, http.StatusOK, hdr)
 
-	return n, err
+	return
 }
 
 func (txn *txn) WriteHeader(code int) {
-	addCrossProcessHeaders(txn)
+	rw := txn.getWriter()
+	hdr := nilSafeHeader(rw)
 
-	txn.W.WriteHeader(code)
+	addCrossProcessHeaders(txn, hdr)
 
-	headersJustWritten(txn, code)
+	if nil != rw {
+		rw.WriteHeader(code)
+	}
+
+	headersJustWritten(txn, code, hdr)
 }
 
 func (txn *txn) End() error {

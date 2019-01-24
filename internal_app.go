@@ -476,7 +476,7 @@ func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Req
 	txn := upgradeTxn(newTxn(txnInput{
 		Config:     app.config,
 		Reply:      run.ConnectReply,
-		W:          w,
+		writer:     w,
 		Consumer:   app,
 		attrConfig: run.AttributeConfig,
 	}, name))

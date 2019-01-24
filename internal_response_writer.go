@@ -31,54 +31,84 @@ type wrapCFR struct{ *txn }
 type wrapCFH struct{ *txn }
 type wrapCFHR struct{ *txn }
 
-func (x wrapC) CloseNotify() <-chan bool    { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCR) CloseNotify() <-chan bool   { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCH) CloseNotify() <-chan bool   { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCHR) CloseNotify() <-chan bool  { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCF) CloseNotify() <-chan bool   { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCFR) CloseNotify() <-chan bool  { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCFH) CloseNotify() <-chan bool  { return x.W.(http.CloseNotifier).CloseNotify() }
-func (x wrapCFHR) CloseNotify() <-chan bool { return x.W.(http.CloseNotifier).CloseNotify() }
+// Note that these methods use getWriter() which can return nil.  This is not a
+// problem because the transaction will only be upgraded to a type with these
+// methods if a response writer is present.
 
-func (x wrapF) Flush()    { x.W.(http.Flusher).Flush() }
-func (x wrapFR) Flush()   { x.W.(http.Flusher).Flush() }
-func (x wrapFH) Flush()   { x.W.(http.Flusher).Flush() }
-func (x wrapFHR) Flush()  { x.W.(http.Flusher).Flush() }
-func (x wrapCF) Flush()   { x.W.(http.Flusher).Flush() }
-func (x wrapCFR) Flush()  { x.W.(http.Flusher).Flush() }
-func (x wrapCFH) Flush()  { x.W.(http.Flusher).Flush() }
-func (x wrapCFHR) Flush() { x.W.(http.Flusher).Flush() }
+func (x wrapC) CloseNotify() <-chan bool    { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCR) CloseNotify() <-chan bool   { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCH) CloseNotify() <-chan bool   { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCHR) CloseNotify() <-chan bool  { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCF) CloseNotify() <-chan bool   { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCFR) CloseNotify() <-chan bool  { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCFH) CloseNotify() <-chan bool  { return x.getWriter().(http.CloseNotifier).CloseNotify() }
+func (x wrapCFHR) CloseNotify() <-chan bool { return x.getWriter().(http.CloseNotifier).CloseNotify() }
 
-func (x wrapH) Hijack() (net.Conn, *bufio.ReadWriter, error)    { return x.W.(http.Hijacker).Hijack() }
-func (x wrapHR) Hijack() (net.Conn, *bufio.ReadWriter, error)   { return x.W.(http.Hijacker).Hijack() }
-func (x wrapFH) Hijack() (net.Conn, *bufio.ReadWriter, error)   { return x.W.(http.Hijacker).Hijack() }
-func (x wrapFHR) Hijack() (net.Conn, *bufio.ReadWriter, error)  { return x.W.(http.Hijacker).Hijack() }
-func (x wrapCH) Hijack() (net.Conn, *bufio.ReadWriter, error)   { return x.W.(http.Hijacker).Hijack() }
-func (x wrapCHR) Hijack() (net.Conn, *bufio.ReadWriter, error)  { return x.W.(http.Hijacker).Hijack() }
-func (x wrapCFH) Hijack() (net.Conn, *bufio.ReadWriter, error)  { return x.W.(http.Hijacker).Hijack() }
-func (x wrapCFHR) Hijack() (net.Conn, *bufio.ReadWriter, error) { return x.W.(http.Hijacker).Hijack() }
+func (x wrapF) Flush()    { x.getWriter().(http.Flusher).Flush() }
+func (x wrapFR) Flush()   { x.getWriter().(http.Flusher).Flush() }
+func (x wrapFH) Flush()   { x.getWriter().(http.Flusher).Flush() }
+func (x wrapFHR) Flush()  { x.getWriter().(http.Flusher).Flush() }
+func (x wrapCF) Flush()   { x.getWriter().(http.Flusher).Flush() }
+func (x wrapCFR) Flush()  { x.getWriter().(http.Flusher).Flush() }
+func (x wrapCFH) Flush()  { x.getWriter().(http.Flusher).Flush() }
+func (x wrapCFHR) Flush() { x.getWriter().(http.Flusher).Flush() }
 
-func (x wrapR) ReadFrom(r io.Reader) (int64, error)    { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapHR) ReadFrom(r io.Reader) (int64, error)   { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapFR) ReadFrom(r io.Reader) (int64, error)   { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapFHR) ReadFrom(r io.Reader) (int64, error)  { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapCR) ReadFrom(r io.Reader) (int64, error)   { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapCHR) ReadFrom(r io.Reader) (int64, error)  { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapCFR) ReadFrom(r io.Reader) (int64, error)  { return x.W.(io.ReaderFrom).ReadFrom(r) }
-func (x wrapCFHR) ReadFrom(r io.Reader) (int64, error) { return x.W.(io.ReaderFrom).ReadFrom(r) }
+func (x wrapH) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapHR) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapFH) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapFHR) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapCH) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapCHR) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapCFH) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+func (x wrapCFHR) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return x.getWriter().(http.Hijacker).Hijack()
+}
+
+func (x wrapR) ReadFrom(r io.Reader) (int64, error)  { return x.getWriter().(io.ReaderFrom).ReadFrom(r) }
+func (x wrapHR) ReadFrom(r io.Reader) (int64, error) { return x.getWriter().(io.ReaderFrom).ReadFrom(r) }
+func (x wrapFR) ReadFrom(r io.Reader) (int64, error) { return x.getWriter().(io.ReaderFrom).ReadFrom(r) }
+func (x wrapFHR) ReadFrom(r io.Reader) (int64, error) {
+	return x.getWriter().(io.ReaderFrom).ReadFrom(r)
+}
+func (x wrapCR) ReadFrom(r io.Reader) (int64, error) { return x.getWriter().(io.ReaderFrom).ReadFrom(r) }
+func (x wrapCHR) ReadFrom(r io.Reader) (int64, error) {
+	return x.getWriter().(io.ReaderFrom).ReadFrom(r)
+}
+func (x wrapCFR) ReadFrom(r io.Reader) (int64, error) {
+	return x.getWriter().(io.ReaderFrom).ReadFrom(r)
+}
+func (x wrapCFHR) ReadFrom(r io.Reader) (int64, error) {
+	return x.getWriter().(io.ReaderFrom).ReadFrom(r)
+}
 
 func upgradeTxn(txn *txn) Transaction {
+	// Note that txn.getWriter() is not used here.  The transaction is
+	// locked (or under construction) when this function is used.
 	x := 0
-	if _, ok := txn.W.(http.CloseNotifier); ok {
+	if _, ok := txn.writer.(http.CloseNotifier); ok {
 		x |= hasC
 	}
-	if _, ok := txn.W.(http.Flusher); ok {
+	if _, ok := txn.writer.(http.Flusher); ok {
 		x |= hasF
 	}
-	if _, ok := txn.W.(http.Hijacker); ok {
+	if _, ok := txn.writer.(http.Hijacker); ok {
 		x |= hasH
 	}
-	if _, ok := txn.W.(io.ReaderFrom); ok {
+	if _, ok := txn.writer.(io.ReaderFrom); ok {
 		x |= hasR
 	}
 

@@ -8,9 +8,12 @@ import (
 // Transaction represents a request or a background task.
 // Each Transaction should only be used in a single goroutine.
 type Transaction interface {
-	// If StartTransaction is called with a non-nil http.ResponseWriter then
-	// the Transaction may be used in its place.  This allows
-	// instrumentation of the response code and response headers.
+	// The transaction's http.ResponseWriter methods will delegate to the
+	// http.ResponseWriter provided as a parameter to
+	// Application.StartTransaction or Transaction.SetWebResponse. This
+	// allows instrumentation of the response code and response headers.
+	// These methods may still be called without panic if the transaction
+	// does not have a http.ResponseWriter.
 	http.ResponseWriter
 
 	// End finishes the current transaction, stopping all further
@@ -45,6 +48,17 @@ type Transaction interface {
 	// present, the agent will look for a distributed tracing header.  Use
 	// NewWebRequest to transform a *http.Request into a WebRequest.
 	SetWebRequest(WebRequest) error
+
+	// SetWebResponse sets transaction's http.ResponseWriter.  After calling
+	// this method, the transaction may be used in place of the
+	// ResponseWriter to intercept the response code.  This method is useful
+	// when the ResponseWriter is not available at the beginning of the
+	// transaction (if so, it can be given as a parameter to
+	// Application.StartTransaction).  This method will return a reference
+	// to the transaction which implements the combination of
+	// http.CloseNotifier, http.Flusher, http.Hijacker, and io.ReaderFrom
+	// implemented by the ResponseWriter.
+	SetWebResponse(http.ResponseWriter) Transaction
 
 	// StartSegmentNow allows the timing of functions, external calls, and
 	// datastore calls.  The segments of each transaction MUST be used in a

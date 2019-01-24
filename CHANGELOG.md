@@ -1,5 +1,36 @@
 ## ChangeLog
 
+* Introduced `Transaction.SetWebResponse(http.ResponseWriter)` method which sets
+  the transaction's response writer.  After calling this method, the
+  `Transaction` may be used in place of the `http.ResponseWriter` to intercept
+  the response code.  This method is useful when the `http.ResponseWriter` is
+  not available at the beginning of the transaction (if so, it can be given as a
+  parameter to `Application.StartTransaction`).  This method will return a
+  reference to the transaction which implements the combination of
+  `http.CloseNotifier`, `http.Flusher`, `http.Hijacker`, and `io.ReaderFrom`
+  implemented by the ResponseWriter.  Example:
+
+```go
+func setResponseDemo(txn newrelic.Transaction) {
+	recorder := httptest.NewRecorder()
+	txn = txn.SetWebResponse(recorder)
+	txn.WriteHeader(200)
+	fmt.Println("response code recorded:", recorder.Code)
+}
+```
+
+* The `Transaction`'s `http.ResponseWriter` methods may now be called safely if
+  a `http.ResponseWriter` has not been set.  This allows you to add a response code
+  to the transaction without using a `http.ResponseWriter`.  Example:
+
+```go
+func transactionWithResponseCode(app newrelic.Application) {
+       txn := app.StartTransaction("hasResponseCode", nil, nil)
+       defer txn.End()
+       txn.WriteHeader(200) // Safe!
+}
+```
+
 * The agent will now collect environment variables which are prefixed by
   `NEW_RELIC_METADATA_`.  These will be added to Transaction events to provide
   context between your Kubernetes cluster and your services. For details on the
