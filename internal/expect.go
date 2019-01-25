@@ -148,39 +148,21 @@ func expectMetricField(t Validator, id metricID, v1, v2 float64, fieldName strin
 	}
 }
 
-// ExpectMetricsPresent allows testing of metrics with requiring an exact match
+// ExpectMetricsPresent allows testing of metrics without requiring an exact match
 func ExpectMetricsPresent(t Validator, mt *metricTable, expect []WantMetric) {
-	expectedIds := make(map[metricID]struct{})
-	for _, e := range expect {
-		id := metricID{Name: e.Name, Scope: e.Scope}
-		expectedIds[id] = struct{}{}
-		m := mt.metrics[id]
-		if nil == m {
-			t.Error("unable to find metric", id)
-			continue
-		}
-
-		if b, ok := e.Forced.(bool); ok {
-			if b != (forced == m.forced) {
-				t.Error("metric forced incorrect", b, m.forced, id)
-			}
-		}
-
-		if nil != e.Data {
-			expectMetricField(t, id, e.Data[0], m.data.countSatisfied, "countSatisfied")
-			expectMetricField(t, id, e.Data[1], m.data.totalTolerated, "totalTolerated")
-			expectMetricField(t, id, e.Data[2], m.data.exclusiveFailed, "exclusiveFailed")
-			expectMetricField(t, id, e.Data[3], m.data.min, "min")
-			expectMetricField(t, id, e.Data[4], m.data.max, "max")
-			expectMetricField(t, id, e.Data[5], m.data.sumSquares, "sumSquares")
-		}
-	}
+	expectMetrics(t, mt, expect, false)
 }
 
 // ExpectMetrics allows testing of metrics.  It passes if mt exactly matches expect.
 func ExpectMetrics(t Validator, mt *metricTable, expect []WantMetric) {
-	if len(mt.metrics) != len(expect) {
-		t.Error("metric counts do not match expectations", len(mt.metrics), len(expect))
+	expectMetrics(t, mt, expect, true)
+}
+
+func expectMetrics(t Validator, mt *metricTable, expect []WantMetric, exactMatch bool) {
+	if exactMatch {
+		if len(mt.metrics) != len(expect) {
+			t.Error("metric counts do not match expectations", len(mt.metrics), len(expect))
+		}
 	}
 	expectedIds := make(map[metricID]struct{})
 	for _, e := range expect {
@@ -207,9 +189,11 @@ func ExpectMetrics(t Validator, mt *metricTable, expect []WantMetric) {
 			expectMetricField(t, id, e.Data[5], m.data.sumSquares, "sumSquares")
 		}
 	}
-	for id := range mt.metrics {
-		if _, ok := expectedIds[id]; !ok {
-			t.Error("expected metrics does not contain", id.Name, id.Scope)
+	if exactMatch {
+		for id := range mt.metrics {
+			if _, ok := expectedIds[id]; !ok {
+				t.Error("expected metrics does not contain", id.Name, id.Scope)
+			}
 		}
 	}
 }
