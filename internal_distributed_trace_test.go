@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
@@ -1685,27 +1684,9 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 
 	}, configCallback, t)
 
-	// start a web or background transaction, depending on test
-	var txn Transaction
-
-	if true == tc.WebTransaction {
-		w := &sampleResponseWriter{
-			header: make(http.Header),
-		}
-
-		r := func() *http.Request {
-			r, err := http.NewRequest("GET", helloPath+helloQueryParams, nil)
-			if nil != err {
-				panic(err)
-			}
-			return r
-		}()
-
-		txn = app.StartTransaction("hello", w, r)
-		t.Log("Starting Web Transaction")
-	} else {
-		txn = app.StartTransaction("hello", nil, nil)
-		t.Log("Starting Background Transaction")
+	txn := app.StartTransaction("hello", nil, nil)
+	if tc.WebTransaction {
+		txn.SetWebRequest(nil)
 	}
 
 	// If the tests wants us to have an error, give 'em an error
