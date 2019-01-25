@@ -62,7 +62,7 @@ func TestCreateFullTxnNameTxnRulesIgnore(t *testing.T) {
 	}
 }
 
-func TestCreateFullTxnNameAllRules(t *testing.T) {
+func TestCreateFullTxnNameAllRulesWithCache(t *testing.T) {
 	js := `{
 		"url_rules":[
 			{"match_expression":"zip","each_segment":true,"replacement":"zoop"}
@@ -77,12 +77,22 @@ func TestCreateFullTxnNameAllRules(t *testing.T) {
 		]
 	}`
 	reply := ConnectReplyDefaults()
+	reply.rulesCache = newRulesCache(3)
 	err := json.Unmarshal([]byte(js), &reply)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != "WebTransaction/Go/zap/zoop/*/zyp" {
-		t.Error(out)
+	want := "WebTransaction/Go/zap/zoop/*/zyp"
+	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != want {
+		t.Error("wanted:", want, "got:", out)
+	}
+	// Check that the cache was populated as expected.
+	if out := reply.rulesCache.find("/zap/zip/zep", true); out != want {
+		t.Error("wanted:", want, "got:", out)
+	}
+	// Check that the next CreateFullTxnName returns the same output.
+	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != want {
+		t.Error("wanted:", want, "got:", out)
 	}
 }
 
@@ -127,6 +137,53 @@ func TestIsTrusted(t *testing.T) {
 
 		if actual := trustedAccounts.IsTrusted(test.id); test.expected != actual {
 			t.Errorf("failed asserting whether %d is trusted by %v: expected %v; got %v", test.id, test.trusted, test.expected, actual)
+		}
+	}
+}
+
+func BenchmarkDefaultRules(b *testing.B) {
+	js := `{"url_rules":[
+		{
+			"match_expression":".*\\.(ace|arj|ini|txt|udl|plist|css|gif|ico|jpe?g|js|png|swf|woff|caf|aiff|m4v|mpe?g|mp3|mp4|mov)$",
+			"replacement":"/*.\\1",
+			"ignore":false,
+			"eval_order":1000,
+			"terminate_chain":true,
+			"replace_all":false,
+			"each_segment":false
+		},
+		{
+			"match_expression":"^[0-9][0-9a-f_,.-]*$",
+			"replacement":"*",
+			"ignore":false,
+			"eval_order":1001,
+			"terminate_chain":false,
+			"replace_all":false,
+			"each_segment":true
+		},
+		{
+			"match_expression":"^(.*)/[0-9][0-9a-f_,-]*\\.([0-9a-z][0-9a-z]*)$",
+			"replacement":"\\1/.*\\2",
+			"ignore":false,
+			"eval_order":1002,
+			"terminate_chain":false,
+			"replace_all":false,
+			"each_segment":false
+		}
+	]}`
+	reply := ConnectReplyDefaults()
+	reply.rulesCache = newRulesCache(1)
+	err := json.Unmarshal([]byte(js), &reply)
+	if nil != err {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		if out := CreateFullTxnName("/myEndpoint", reply, true); out != "WebTransaction/Go/myEndpoint" {
+			b.Error(out)
 		}
 	}
 }

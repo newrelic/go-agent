@@ -61,4 +61,6 @@ const (
 	// be changed without notifying customers that they must update all
 	// instance simultaneously for valid runtime metrics.
 	RuntimeSamplerPeriod = 60 * time.Second
+
+	txnNameCacheLimit = 40
 )

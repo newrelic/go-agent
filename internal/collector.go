@@ -301,6 +301,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 		Period: time.Duration(reply.Reply.SamplingTargetPeriodInSeconds) * time.Second,
 		Target: reply.Reply.SamplingTarget,
 	}, time.Now())
+	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
 	return reply.Reply, resp
 }
