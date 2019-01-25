@@ -73,7 +73,7 @@ func TestTxnTrace(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
@@ -189,9 +189,9 @@ func TestTxnTrace(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
+	]]]`
 
-	js, err := ht.slice()[0].MarshalJSON()
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
@@ -369,9 +369,9 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
+	]]]`
 
-	js, err := ht.slice()[0].MarshalJSON()
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -405,7 +405,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
@@ -445,8 +445,8 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestTxnTraceNoSegmentsNoAttributesOldCAT(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
@@ -510,8 +510,8 @@ func TestTxnTraceNoSegmentsNoAttributesOldCAT(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -554,7 +554,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   123000,
 	   "WebTransaction/Go/hello",
@@ -630,8 +630,8 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -669,7 +669,7 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   123000,
 	   "WebTransaction/Go/hello",
@@ -740,8 +740,8 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -784,7 +784,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   123000,
 	   "WebTransaction/Go/hello",
@@ -846,8 +846,8 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -885,7 +885,7 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `[
+	expect := `["12345",[[
 	   1417136460000000,
 	   123000,
 	   "WebTransaction/Go/hello",
@@ -942,8 +942,8 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 	   false,
 	   null,
 	   ""
-	]`
-	js, err := ht.slice()[0].MarshalJSON()
+	]]]`
+	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
 	}
