@@ -1346,7 +1346,7 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 
 type distributedTraceTestcasePayloadTest PayloadTest
 
-type distributedTraceOutboundTestcase struct {
+type fieldExpectations struct {
 	Exact      map[string]interface{} `json:"exact"`
 	Expected   []string               `json:"expected"`
 	Unexpected []string               `json:"unexpected"`
@@ -1365,36 +1365,28 @@ type distributedTraceTestcase struct {
 	TransportType     string                                `json:"transport_type"`
 	InboundPayloads   []distributedTraceTestcasePayloadTest `json:"inbound_payloads"`
 
-	OutboundPayloads []distributedTraceOutboundTestcase `json:"outbound_payloads"`
+	OutboundPayloads []fieldExpectations `json:"outbound_payloads"`
 
 	Intrinsics struct {
-		TargetEvents []string `json:"target_events"`
-		Common       struct {
-			Exact      map[string]interface{} `json:"exact"`
-			Expected   []string               `json:"expected"`
-			Unexpected []string               `json:"unexpected"`
-		} `json:"common"`
-
-		Transaction struct {
-			Exact      map[string]interface{} `json:"exact"`
-			Expected   []string               `json:"expected"`
-			Unexpected []string               `json:"unexpected"`
-		} `json:"Transaction"`
-
-		Span struct {
-			Exact      map[string]interface{} `json:"exact"`
-			Expected   []string               `json:"expected"`
-			Unexpected []string               `json:"unexpected"`
-		}
-
-		TransactionError struct {
-			Exact      map[string]interface{} `json:"exact"`
-			Expected   []string               `json:"expected"`
-			Unexpected []string               `json:"unexpected"`
-		}
+		TargetEvents     []string          `json:"target_events"`
+		Common           fieldExpectations `json:"common"`
+		Transaction      fieldExpectations `json:"Transaction"`
+		Span             fieldExpectations `json:"Span"`
+		TransactionError fieldExpectations `json:"TransactionError"`
 	} `json:"intrinsics"`
 
 	ExpectedMetrics [][2]interface{} `json:"expected_metrics"`
+}
+
+func (fe *fieldExpectations) add(intrinsics map[string]interface{}) {
+	if nil != fe {
+		for k, v := range fe.Exact {
+			intrinsics[k] = v
+		}
+		for _, v := range fe.Expected {
+			intrinsics[v] = internal.MatchAnything
+		}
+	}
 }
 
 func TestDistributedTraceCrossAgentJsonParse(t *testing.T) {
@@ -1727,11 +1719,24 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 	for _, value := range tc.Intrinsics.TargetEvents {
 		switch value {
 		case "Transaction":
-			assertTestCaseTransaction(app, t, tc)
+			assertTestCaseIntrinsics(t,
+				&tc.Intrinsics.Common,
+				&tc.Intrinsics.Transaction,
+				app.ExpectTxnEventsPresent,
+				app.ExpectTxnEventsAbsent)
 		case "Span":
-			assertTestCaseSpan(app, t, tc)
+			assertTestCaseIntrinsics(t,
+				&tc.Intrinsics.Common,
+				&tc.Intrinsics.Span,
+				app.ExpectSpanEventsPresent,
+				app.ExpectSpanEventsAbsent)
+
 		case "TransactionError":
-			assertTestCaseTransactionError(app, t, tc)
+			assertTestCaseIntrinsics(t,
+				&tc.Intrinsics.Common,
+				&tc.Intrinsics.TransactionError,
+				app.ExpectErrorEventsPresent,
+				app.ExpectErrorEventsAbsent)
 		}
 	}
 	t.Logf("Ending Test: %s", tc.TestName)
@@ -1739,7 +1744,7 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 	extraAsserts(app, t, tc)
 }
 
-func assertTestCaseOutboundPayload(expect distributedTraceOutboundTestcase, t *testing.T, actual string) {
+func assertTestCaseOutboundPayload(expect fieldExpectations, t *testing.T, actual string) {
 	type outboundTestcase struct {
 		Version [2]uint                `json:"v"`
 		Data    map[string]interface{} `json:"d"`
@@ -1779,87 +1784,21 @@ func assertTestCaseOutboundPayload(expect distributedTraceOutboundTestcase, t *t
 	}
 }
 
-func assertTestCaseTransaction(app expectApp, t *testing.T, tc distributedTraceTestcase) {
-	t.Log("Starting Transaction Event Assertions")
-	wantEvent := internal.WantEvent{Intrinsics: map[string]interface{}{}}
-	// we have common attributes, both exact and expected
-	for k, v := range tc.Intrinsics.Common.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
-	for _, v := range tc.Intrinsics.Common.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
+func assertTestCaseIntrinsics(t *testing.T,
+	f1 *fieldExpectations,
+	f2 *fieldExpectations,
+	present func(internal.Validator, []internal.WantEvent),
+	absent func(internal.Validator, []string)) {
 
-	// we also have things specific to the transaction exvent
-	for k, v := range tc.Intrinsics.Transaction.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
+	intrinsics := map[string]interface{}{}
+	f1.add(intrinsics)
+	f2.add(intrinsics)
+	present(t, []internal.WantEvent{{Intrinsics: intrinsics}})
 
-	for _, v := range tc.Intrinsics.Transaction.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
-
-	wantEvents := []internal.WantEvent{wantEvent}
-	app.ExpectTxnEventsPresent(t, wantEvents)
-
-	combinedUnexpected := append(tc.Intrinsics.Common.Unexpected, tc.Intrinsics.Transaction.Unexpected...)
-	app.ExpectTxnEventsAbsent(t, combinedUnexpected)
-
-	t.Log("Ending Transaction Event Assertions")
-}
-
-func assertTestCaseSpan(app expectApp, t *testing.T, tc distributedTraceTestcase) {
-	t.Log("Starting Span Event Assertions")
-	wantEvent := internal.WantEvent{Intrinsics: map[string]interface{}{}}
-	// we have common attributes, both exact and expected
-	for k, v := range tc.Intrinsics.Common.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
-	for _, v := range tc.Intrinsics.Common.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
-
-	// we also have things specific to the transaction exvent
-	for k, v := range tc.Intrinsics.Span.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
-
-	for _, v := range tc.Intrinsics.Span.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
-
-	wantEvents := []internal.WantEvent{wantEvent}
-	app.ExpectSpanEventsPresent(t, wantEvents)
-
-	combinedUnexpected := append(tc.Intrinsics.Common.Unexpected, tc.Intrinsics.Span.Unexpected...)
-	app.ExpectSpanEventsAbsent(t, combinedUnexpected)
-}
-
-func assertTestCaseTransactionError(app expectApp, t *testing.T, tc distributedTraceTestcase) {
-	t.Log("Starting Error Event Assertions")
-	wantEvent := internal.WantEvent{Intrinsics: map[string]interface{}{}}
-	// we have common attributes, both exact and expected
-	for k, v := range tc.Intrinsics.Common.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
-	for _, v := range tc.Intrinsics.Common.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
-
-	for k, v := range tc.Intrinsics.TransactionError.Exact {
-		wantEvent.Intrinsics[k] = v
-	}
-	for _, v := range tc.Intrinsics.TransactionError.Expected {
-		wantEvent.Intrinsics[v] = internal.MatchAnything
-	}
-
-	wantEvents := []internal.WantEvent{wantEvent}
-	app.ExpectErrorEventsPresent(t, wantEvents)
-
-	combinedUnexpected := append(tc.Intrinsics.Common.Unexpected, tc.Intrinsics.TransactionError.Unexpected...)
-	app.ExpectErrorEventsAbsent(t, combinedUnexpected)
-
-	t.Log("Ending Error Event Assertions")
+	var unexpected []string
+	unexpected = append(unexpected, f1.Unexpected...)
+	unexpected = append(unexpected, f2.Unexpected...)
+	absent(t, unexpected)
 }
 
 func TestDistributedTraceCrossAgent(t *testing.T) {
