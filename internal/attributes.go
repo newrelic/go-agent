@@ -304,7 +304,7 @@ func ValidateUserAttribute(key string, val interface{}) (interface{}, error) {
 	}
 
 	switch val.(type) {
-	case string, bool, nil,
+	case string, bool,
 		uint8, uint16, uint32, uint64, int8, int16, int32, int64,
 		float32, float64, uint, int, uintptr:
 	default:
@@ -351,8 +351,6 @@ func AddUserAttribute(a *Attributes, key string, val interface{}, d destinationS
 
 func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	switch v := val.(type) {
-	case nil:
-		w.rawField(key, `null`)
 	case string:
 		w.stringField(key, v)
 	case bool:

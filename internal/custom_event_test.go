@@ -157,7 +157,6 @@ func TestCustomEventAttributeTypes(t *testing.T) {
 		{"string", `"string"`},
 		{true, `true`},
 		{false, `false`},
-		{nil, `null`},
 		{uint8(1), `1`},
 		{uint16(1), `1`},
 		{uint32(1), `1`},

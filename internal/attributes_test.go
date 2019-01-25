@@ -153,7 +153,6 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 	w := jsonFieldsWriter{buf: buf}
 
 	buf.WriteByte('{')
-	writeAttributeValueJSON(&w, "a", nil)
 	writeAttributeValueJSON(&w, "a", `escape\me!`)
 	writeAttributeValueJSON(&w, "a", true)
 	writeAttributeValueJSON(&w, "a", false)
@@ -173,7 +172,6 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 	buf.WriteByte('}')
 
 	expect := CompactJSONString(`{
-		"a":null,
 		"a":"escape\\me!",
 		"a":true,
 		"a":false,
@@ -194,6 +192,42 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 	js := buf.String()
 	if js != expect {
 		t.Error(js, expect)
+	}
+}
+
+func TestValidAttributeTypes(t *testing.T) {
+	testcases := []struct {
+		Input interface{}
+		Valid bool
+	}{
+		// Valid attribute types.
+		{Input: "string value", Valid: true},
+		{Input: true, Valid: true},
+		{Input: uint8(0), Valid: true},
+		{Input: uint16(0), Valid: true},
+		{Input: uint32(0), Valid: true},
+		{Input: uint64(0), Valid: true},
+		{Input: int8(0), Valid: true},
+		{Input: int16(0), Valid: true},
+		{Input: int32(0), Valid: true},
+		{Input: int64(0), Valid: true},
+		{Input: float32(0), Valid: true},
+		{Input: float64(0), Valid: true},
+		{Input: uint(0), Valid: true},
+		{Input: int(0), Valid: true},
+		{Input: uintptr(0), Valid: true},
+		// Invalid attribute types.
+		{Input: nil, Valid: false},
+		{Input: struct{}{}, Valid: false},
+		{Input: &struct{}{}, Valid: false},
+	}
+
+	for _, tc := range testcases {
+		val, err := ValidateUserAttribute("key", tc.Input)
+		_, invalid := err.(ErrInvalidAttributeType)
+		if tc.Valid == invalid {
+			t.Error(tc.Input, tc.Valid, val, err)
+		}
 	}
 }
 

@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* The `Transaction.AddAttribute` method no longer accepts `nil` values as
+  our backend will ignore such attributes.
+
 ## 2.3.0
 
 * Added support for [Echo](https://echo.labstack.com) in the new `nrecho`

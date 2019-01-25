@@ -105,6 +105,10 @@ func TestUserAttributeBasics(t *testing.T) {
 	if _, ok := err.(internal.ErrInvalidAttributeType); !ok {
 		t.Error(err)
 	}
+	err = txn.AddAttribute("nil_value", nil)
+	if _, ok := err.(internal.ErrInvalidAttributeType); !ok {
+		t.Error(err)
+	}
 	txn.End()
 	if err := txn.AddAttribute("already_ended", "zap"); err != errAlreadyEnded {
 		t.Error(err)
