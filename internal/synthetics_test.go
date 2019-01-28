@@ -28,20 +28,6 @@ type harvestedTxnTrace struct {
 	syntheticsResourceID string
 }
 
-func traceAttributesToEventAttributes(attrs map[string]interface{}) (eventAttributes, error) {
-	ea := make(eventAttributes)
-
-	for k, v := range attrs {
-		s, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("%s is not a string: type is %t; value %v", k, v, v)
-		}
-		ea[k] = s
-	}
-
-	return ea, nil
-}
-
 func (h *harvestedTxnTrace) UnmarshalJSON(data []byte) error {
 	var arr []interface{}
 
@@ -68,22 +54,10 @@ func (h *harvestedTxnTrace) UnmarshalJSON(data []byte) error {
 
 	traceDetails := arr[4].([]interface{})
 	attributes := traceDetails[4].(map[string]interface{})
-	var err error
 
-	h.traceDetails.attributes.agentAttributes, err = traceAttributesToEventAttributes(attributes["agentAttributes"].(map[string]interface{}))
-	if err != nil {
-		return err
-	}
-
-	h.traceDetails.attributes.userAttributes, err = traceAttributesToEventAttributes(attributes["userAttributes"].(map[string]interface{}))
-	if err != nil {
-		return err
-	}
-
-	h.traceDetails.attributes.intrinsics, err = traceAttributesToEventAttributes(attributes["intrinsics"].(map[string]interface{}))
-	if err != nil {
-		return err
-	}
+	h.traceDetails.attributes.agentAttributes = attributes["agentAttributes"].(map[string]interface{})
+	h.traceDetails.attributes.userAttributes = attributes["userAttributes"].(map[string]interface{})
+	h.traceDetails.attributes.intrinsics = attributes["intrinsics"].(map[string]interface{})
 
 	return nil
 }
