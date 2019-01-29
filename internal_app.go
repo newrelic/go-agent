@@ -474,6 +474,7 @@ func (app *app) setState(run *appRun, err error) {
 func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
 	run, _ := app.getState()
 	txn := upgradeTxn(newTxn(txnInput{
+		app:        app,
 		Config:     app.config,
 		Reply:      run.ConnectReply,
 		writer:     w,

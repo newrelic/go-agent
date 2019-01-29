@@ -1594,3 +1594,16 @@ func TestNoticeErrorTxnEvents(t *testing.T) {
 		},
 	}})
 }
+
+func TestTransactionApplication(t *testing.T) {
+	txn := testApp(nil, nil, t).StartTransaction("hello", nil, nil)
+	app := txn.Application()
+	err := app.RecordCustomMetric("myMetric", 123.0)
+	if nil != err {
+		t.Error(err)
+	}
+	expectData := []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}
+	app.(expectApp).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
+	})
+}

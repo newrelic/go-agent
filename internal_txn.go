@@ -16,6 +16,7 @@ import (
 type txnInput struct {
 	// This ResponseWriter should only be accessed using txn.getWriter()
 	writer     http.ResponseWriter
+	app        Application
 	Config     Config
 	Reply      *internal.ConnectReply
 	Consumer   dataConsumer
@@ -947,4 +948,8 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 	txn.AcceptPayloadSuccess = true
 
 	return nil
+}
+
+func (txn *txn) Application() Application {
+	return txn.app
 }

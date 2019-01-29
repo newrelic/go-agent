@@ -1,5 +1,10 @@
 ## ChangeLog
 
+* Introduced `Transaction.Application` method which returns the `Application`
+  that started the `Transaction`.  This method is useful since it may prevent
+  having to pass the `Application` to code that already has access to the
+  `Transaction`.
+
 * The `Transaction.AddAttribute` method no longer accepts `nil` values as
   our backend will ignore such attributes.
 

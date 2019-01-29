@@ -92,6 +92,9 @@ type Transaction interface {
 	//
 	// The payload parameter may be a DistributedTracePayload or a string.
 	AcceptDistributedTracePayload(t TransportType, payload interface{}) error
+
+	// Application returns the Application which started the transaction.
+	Application() Application
 }
 
 // DistributedTracePayload is used to instrument connections between
