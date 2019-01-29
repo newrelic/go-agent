@@ -1,0 +1,14 @@
+{
+	"comment": "used in internal_response_writer.go",
+	"variable_name": "txn",
+	"test_variable_name": "txn.writer",
+	"required_interfaces": [
+		"Transaction"
+	],
+	"optional_interfaces": [
+		"http.CloseNotifier",
+		"http.Flusher",
+		"http.Hijacker",
+		"io.ReaderFrom"
+	]
+}
