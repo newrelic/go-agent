@@ -1657,6 +1657,30 @@ func TestDistributedTraceCrossAgentJsonParse(t *testing.T) {
 	}
 }
 
+// getTransport ensures that our transport names match cross agent test values.
+func getTransport(transport string) TransportType {
+	switch transport {
+	case TransportHTTP.name:
+		return TransportHTTP
+	case TransportHTTPS.name:
+		return TransportHTTPS
+	case TransportKafka.name:
+		return TransportKafka
+	case TransportJMS.name:
+		return TransportJMS
+	case TransportIronMQ.name:
+		return TransportIronMQ
+	case TransportAMQP.name:
+		return TransportAMQP
+	case TransportQueue.name:
+		return TransportQueue
+	case TransportOther.name:
+		return TransportOther
+	default:
+		return TransportUnknown
+	}
+}
+
 func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTestcase, extraAsserts func(expectApp, *testing.T, distributedTraceTestcase)) {
 	t.Logf("Starting Test: %s", tc.TestName)
 	configCallback := enableBetterCAT
@@ -1688,12 +1712,12 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 
 	// If there are no inbound payloads, invoke Accept on an empty inbound payload.
 	if nil == tc.InboundPayloads {
-		txn.AcceptDistributedTracePayload(TransportType{name: getTransport(tc.TransportType)}, nil)
+		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), nil)
 	}
 
 	for _, value := range tc.InboundPayloads {
 		payload := makePayloadFromTestcaseInbound(t, value)
-		txn.AcceptDistributedTracePayload(TransportType{name: getTransport(tc.TransportType)}, string(payload))
+		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), string(payload))
 	}
 
 	//call create each time an outbound payload appears in the testcase
