@@ -15,21 +15,8 @@ import (
 )
 
 type PayloadTest struct {
-	V [2]int          `json:"v"`
-	D PayloadTestData `json:"d"`
-}
-
-type PayloadTestData struct {
-	TY *string  `json:"ty"`
-	AC *string  `json:"ac"`
-	AP *string  `json:"ap"`
-	ID *string  `json:"id"`
-	TR *string  `json:"tr"`
-	TK *string  `json:"tk"`
-	PR *float32 `json:"pr"`
-	SA *bool    `json:"sa"`
-	TI *uint    `json:"ti"`
-	TX *string  `json:"tx"`
+	V *[2]int                `json:"v,omitempty"`
+	D map[string]interface{} `json:"d,omitempty"`
 }
 
 func distributedTracingReplyFields(reply *internal.ConnectReply) {
@@ -1211,7 +1198,7 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 		t.Error(err)
 	}
 
-	if nil != payloadData.D.TK {
+	if nil != payloadData.D["tk"] {
 		t.Log("Did not expect trust key (tk) to be there")
 		t.Log(p.Text())
 		t.Fail()
@@ -1347,13 +1334,14 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 type distributedTraceTestcasePayloadTest PayloadTest
 
 type fieldExpectations struct {
-	Exact      map[string]interface{} `json:"exact"`
-	Expected   []string               `json:"expected"`
-	Unexpected []string               `json:"unexpected"`
+	Exact      map[string]interface{} `json:"exact,omitempty"`
+	Expected   []string               `json:"expected,omitempty"`
+	Unexpected []string               `json:"unexpected,omitempty"`
 }
 
 type distributedTraceTestcase struct {
 	TestName          string                                `json:"test_name"`
+	Comment           string                                `json:"comment,omitempty"`
 	TrustedAccountKey string                                `json:"trusted_account_key"`
 	AccountID         string                                `json:"account_id"`
 	WebTransaction    bool                                  `json:"web_transaction"`
@@ -1365,14 +1353,14 @@ type distributedTraceTestcase struct {
 	TransportType     string                                `json:"transport_type"`
 	InboundPayloads   []distributedTraceTestcasePayloadTest `json:"inbound_payloads"`
 
-	OutboundPayloads []fieldExpectations `json:"outbound_payloads"`
+	OutboundPayloads []fieldExpectations `json:"outbound_payloads,omitempty"`
 
 	Intrinsics struct {
-		TargetEvents     []string          `json:"target_events"`
-		Common           fieldExpectations `json:"common"`
-		Transaction      fieldExpectations `json:"Transaction"`
-		Span             fieldExpectations `json:"Span"`
-		TransactionError fieldExpectations `json:"TransactionError"`
+		TargetEvents     []string           `json:"target_events"`
+		Common           *fieldExpectations `json:"common,omitempty"`
+		Transaction      *fieldExpectations `json:"Transaction,omitempty"`
+		Span             *fieldExpectations `json:"Span,omitempty"`
+		TransactionError *fieldExpectations `json:"TransactionError,omitempty"`
 	} `json:"intrinsics"`
 
 	ExpectedMetrics [][2]interface{} `json:"expected_metrics"`
@@ -1389,272 +1377,11 @@ func (fe *fieldExpectations) add(intrinsics map[string]interface{}) {
 	}
 }
 
-func TestDistributedTraceCrossAgentJsonParse(t *testing.T) {
-	// test cases are complicated enough that we want/need this
-	// test to ensure we're parsing the test case JSON correctly,
-	// and don't have any of go's slient failures if we've
-	// typo'd a json field name or something
-	var tc distributedTraceTestcase
-
-	// this is not a legitimate fixture, we're only use it to
-	// test that our parsing code parses everything as expected
-	input := []byte(`{
-				"test_name": "fixture_test",
-				"trusted_account_key": "33",
-				"account_id": "33",
-				"web_transaction": true,
-				"raises_exception": true,
-				"force_sampled_true": true,
-				"span_events_enabled": true,
-				"major_version": 1,
-				"minor_version": 1,
-				"transport_type": "HTTP",
-				"inbound_payloads": [
-						{
-								"v": [2, 3],
-								"d": {
-										"ac": "33",
-										"ap": "2827902",
-										"id": "7d3efb1b173fecfa",
-										"tx": "e8b91a159289ff74",
-										"pr": 1.234567,
-										"sa": true,
-										"ti": 1518469636035,
-										"tr": "d6b4ba0c3a712ca",
-										"ty": "App"
-								}
-						}
-				],
-				"intrinsics": {
-						"target_events": ["Transaction", "Span"],
-						"common":{
-								"exact": {
-										"traceId": "d6b4ba0c3a712ca",
-										"priority": 1.234567,
-										"sampled": true
-								},
-								"expected": ["guid"],
-								"unexpected": ["grandparentId", "cross_process_id"]
-						},
-						"Transaction": {
-								"exact": {
-										"parent.type": "App",
-										"parent.app": "2827902",
-										"parent.account": "33",
-										"parent.transportType": "HTTP",
-										"parentId": "e8b91a159289ff74",
-										"parentSpanId": "parentSpanId"
-								},
-								"expected": ["parent.transportDuration"]
-						},
-						"Span": {
-								"exact": {
-										"parentId": "7d3efb1b173fecfa"
-								},
-								"expected": ["transactionId"],
-								"unexpected": ["parent.app", "parent.account"]
-						}
-				},
-				"expected_metrics": [
-						["DurationByCaller/App/33/2827902/HTTP/all", 1],
-						["DurationByCaller/App/33/2827902/HTTP/allWeb", 7]
-				]}`)
-
-	err := json.Unmarshal(input, &tc)
-
-	if nil != err {
-		t.Fatal(err)
+func (fe *fieldExpectations) unexpected() []string {
+	if nil != fe {
+		return fe.Unexpected
 	}
-
-	if "fixture_test" != tc.TestName {
-		t.Log("Unexpected value for tc.TestName")
-		t.Fail()
-	}
-
-	if "33" != tc.TrustedAccountKey {
-		t.Log("Unexpected value for tc.TrustedAccountKey")
-		t.Fail()
-	}
-
-	if "33" != tc.AccountID {
-		t.Log("Unexpected value for tc.AccountID")
-		t.Fail()
-	}
-
-	if true != tc.WebTransaction {
-		t.Log("Unexpected value for tc.WebTransaction")
-		t.Fail()
-	}
-
-	if true != tc.RaisesException {
-		t.Log("Unexpected value for tc.RaisesException")
-		t.Fail()
-	}
-
-	if true != tc.ForceSampledTrue {
-		t.Log("Unexpected value for tc.ForceSampledTrue")
-		t.Fail()
-	}
-
-	if true != tc.SpanEventsEnabled {
-		t.Log("Unexpected value for tc.SpanEventsEnabled")
-		t.Fail()
-	}
-
-	if 1 != tc.MajorVersion {
-		t.Log("Unexpected value for tc.MajorVersion")
-		t.Fail()
-	}
-
-	if 1 != tc.MinorVersion {
-		t.Log("Unexpected value for tc.MinorVersion")
-		t.Fail()
-	}
-
-	if "HTTP" != tc.TransportType {
-		t.Log("Unexpected value for tc.TransportType")
-		t.Fail()
-	}
-
-	if 1 != len(tc.InboundPayloads) {
-		t.Log("Unexpected value for len(tc.InboundPayloads)")
-		t.Fail()
-	}
-
-	if 2 != tc.InboundPayloads[0].V[0] {
-		t.Log("Unexpected value for tc.InboundPayloads[0].V[0]")
-		t.Fail()
-	}
-
-	if 3 != tc.InboundPayloads[0].V[1] {
-		t.Log("Unexpected value for tc.InboundPayloads[0].V[1]")
-		t.Fail()
-	}
-
-	if "33" != *tc.InboundPayloads[0].D.AC {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.AC")
-		t.Fail()
-	}
-
-	if "2827902" != *tc.InboundPayloads[0].D.AP {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.AP")
-		t.Fail()
-	}
-
-	if "7d3efb1b173fecfa" != *tc.InboundPayloads[0].D.ID {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.ID")
-		t.Fail()
-	}
-
-	if "e8b91a159289ff74" != *tc.InboundPayloads[0].D.TX {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.TX")
-		t.Fail()
-	}
-
-	if 1.234567 != *tc.InboundPayloads[0].D.PR {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.PR")
-		t.Fail()
-	}
-
-	if true != *tc.InboundPayloads[0].D.SA {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.SA")
-		t.Fail()
-	}
-
-	if 1518469636035 != *tc.InboundPayloads[0].D.TI {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.TI")
-		t.Fail()
-	}
-
-	if "d6b4ba0c3a712ca" != *tc.InboundPayloads[0].D.TR {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.TR")
-		t.Fail()
-	}
-
-	if "App" != *tc.InboundPayloads[0].D.TY {
-		t.Log("Unexpected value for *tc.InboundPayloads[0].D.TY")
-		t.Fail()
-	}
-
-	if "Transaction" != tc.Intrinsics.TargetEvents[0] {
-		t.Log("Unexpected value for tc.Intrinsics.TargetEvents[0]")
-		t.Fail()
-	}
-
-	if "Span" != tc.Intrinsics.TargetEvents[1] {
-		t.Log("Unexpected value for tc.Intrinsics.TargetEvents[1]")
-		t.Fail()
-	}
-
-	if len(tc.Intrinsics.Common.Exact) < 1 {
-		t.Log("No common exact intrinsics found.")
-		t.Fail()
-	}
-
-	if "guid" != tc.Intrinsics.Common.Expected[0] {
-		t.Log("Unexpected value for tc.Intrinsics.Common.Expected[0]")
-		t.Fail()
-	}
-
-	if "grandparentId" != tc.Intrinsics.Common.Unexpected[0] {
-		t.Log("Unexpected value for tc.Intrinsics.Common.Unexpected[0]")
-		t.Fail()
-	}
-
-	if "cross_process_id" != tc.Intrinsics.Common.Unexpected[1] {
-		t.Log("Unexpected value for tc.Intrinsics.Common.Unexpected[1]")
-		t.Fail()
-	}
-
-	if len(tc.Intrinsics.Transaction.Exact) < 1 {
-		t.Log("No transaction exact intrinsics found.")
-		t.Fail()
-	}
-
-	if "parent.transportDuration" != tc.Intrinsics.Transaction.Expected[0] {
-		t.Log("Unexpected value for tc.Intrinsics.Transaction.Expected[0]")
-		t.Fail()
-	}
-
-	if len(tc.Intrinsics.Span.Exact) < 1 {
-		t.Log("No span exact intrinsics found.")
-		t.Fail()
-	}
-
-	if "transactionId" != tc.Intrinsics.Span.Expected[0] {
-		t.Log("Unexpected value for tc.Intrinsics.Span.Expected[0]")
-		t.Fail()
-	}
-
-	if "parent.app" != tc.Intrinsics.Span.Unexpected[0] {
-		t.Log("Unexpected value for tc.Intrinsics.Span.Unexpected[0]")
-		t.Fail()
-	}
-
-	if "parent.account" != tc.Intrinsics.Span.Unexpected[1] {
-		t.Log("Unexpected value for tc.Intrinsics.Span.Unexpected[1]")
-		t.Fail()
-	}
-
-	if "DurationByCaller/App/33/2827902/HTTP/all" != tc.ExpectedMetrics[0][0].(string) {
-		t.Log("Unexpected value for tc.ExpectedMetrics[0][0].(string)")
-		t.Fail()
-	}
-
-	if 1 != tc.ExpectedMetrics[0][1].(float64) {
-		t.Log("Unexpected value for tc.ExpectedMetrics[0][1].(float64)")
-		t.Fail()
-	}
-
-	if "DurationByCaller/App/33/2827902/HTTP/allWeb" != tc.ExpectedMetrics[1][0].(string) {
-		t.Log("Unexpected value for tc.ExpectedMetrics[1][0].(string)")
-		t.Fail()
-	}
-
-	if 7 != tc.ExpectedMetrics[1][1].(float64) {
-		t.Log("Unexpected value for tc.ExpectedMetrics[1][1].(float64)")
-		t.Fail()
-	}
+	return nil
 }
 
 // getTransport ensures that our transport names match cross agent test values.
@@ -1744,21 +1471,21 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 		switch value {
 		case "Transaction":
 			assertTestCaseIntrinsics(t,
-				&tc.Intrinsics.Common,
-				&tc.Intrinsics.Transaction,
+				tc.Intrinsics.Common,
+				tc.Intrinsics.Transaction,
 				app.ExpectTxnEventsPresent,
 				app.ExpectTxnEventsAbsent)
 		case "Span":
 			assertTestCaseIntrinsics(t,
-				&tc.Intrinsics.Common,
-				&tc.Intrinsics.Span,
+				tc.Intrinsics.Common,
+				tc.Intrinsics.Span,
 				app.ExpectSpanEventsPresent,
 				app.ExpectSpanEventsAbsent)
 
 		case "TransactionError":
 			assertTestCaseIntrinsics(t,
-				&tc.Intrinsics.Common,
-				&tc.Intrinsics.TransactionError,
+				tc.Intrinsics.Common,
+				tc.Intrinsics.TransactionError,
 				app.ExpectErrorEventsPresent,
 				app.ExpectErrorEventsAbsent)
 		}
@@ -1820,16 +1547,38 @@ func assertTestCaseIntrinsics(t *testing.T,
 	present(t, []internal.WantEvent{{Intrinsics: intrinsics}})
 
 	var unexpected []string
-	unexpected = append(unexpected, f1.Unexpected...)
-	unexpected = append(unexpected, f2.Unexpected...)
+	unexpected = append(unexpected, f1.unexpected()...)
+	unexpected = append(unexpected, f2.unexpected()...)
 	absent(t, unexpected)
 }
 
 func TestDistributedTraceCrossAgent(t *testing.T) {
 	var tcs []distributedTraceTestcase
-	err := crossagent.ReadJSON(`distributed_tracing/distributed_tracing.json`, &tcs)
+	data, err := crossagent.ReadFile(`distributed_tracing/distributed_tracing.json`)
 	if nil != err {
 		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &tcs); nil != err {
+		t.Fatal(err)
+	}
+	// Test that we are correctly parsing all of the testcase fields by
+	// comparing an opaque object from original JSON to an object from JSON
+	// created by our testcases.
+	backToJSON, err := json.Marshal(tcs)
+	if nil != err {
+		t.Fatal(err)
+	}
+	var fromFile []map[string]interface{}
+	var fromMarshalled []map[string]interface{}
+	if err := json.Unmarshal(data, &fromFile); nil != err {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(backToJSON, &fromMarshalled); nil != err {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(fromFile, fromMarshalled) {
+		t.Error(internal.CompactJSONString(string(data)), "\n",
+			internal.CompactJSONString(string(backToJSON)))
 	}
 
 	// Iterate over all cross-agent tests
