@@ -42,15 +42,10 @@ func TestContextContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".accessTransactionContextContext", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".accessTransactionContextContext", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/" + pkg + ".accessTransactionContextContext", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      pkg + ".accessTransactionContextContext",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -81,15 +76,10 @@ func TestFromContext(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".accessTransactionFromContext", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".accessTransactionFromContext", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/" + pkg + ".accessTransactionFromContext", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      pkg + ".accessTransactionFromContext",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -116,11 +106,9 @@ func TestNewContextTransaction(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/name", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allOther", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/OtherTransaction/Go/name", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "name",
+		IsWeb:     false,
+		NumErrors: 1,
 	})
 }

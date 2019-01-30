@@ -41,12 +41,9 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/alpha", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/alpha", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "alpha",
+		IsWeb: true,
 	})
 }
 
@@ -65,12 +62,9 @@ func TestSubrouterRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "adding user" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/users/add", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/users/add", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "users/add",
+		IsWeb: true,
 	})
 }
 
@@ -88,12 +82,9 @@ func TestNamedRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "named route" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/special-name-route", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/special-name-route", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "special-name-route",
+		IsWeb: true,
 	})
 }
 
@@ -121,16 +112,11 @@ func TestRouteNotFound(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/NotFoundHandler", Scope: "", Forced: false, Data: nil},
-		// Error metrics test the 500 response code capture.
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	// Error metrics test the 500 response code capture.
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "NotFoundHandler",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 

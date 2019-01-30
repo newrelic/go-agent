@@ -45,12 +45,9 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".hello", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".hello", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  pkg + ".hello",
+		IsWeb: true,
 	})
 }
 
@@ -70,12 +67,9 @@ func TestRouterGroup(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".hello", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".hello", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  pkg + ".hello",
+		IsWeb: true,
 	})
 }
 
@@ -96,12 +90,9 @@ func TestAnonymousHandler(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "anonymous function handler" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".TestAnonymousHandler.func1", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".TestAnonymousHandler.func1", Scope: "", Forced: false, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  pkg + ".TestAnonymousHandler.func1",
+		IsWeb: true,
 	})
 }
 
@@ -132,16 +123,11 @@ func TestMultipleWriteHeader(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".multipleWriteHeader", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".multipleWriteHeader", Scope: "", Forced: false, Data: nil},
-		// Error metrics test the 500 response code capture.
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/" + pkg + ".multipleWriteHeader", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	// Error metrics test the 500 response code capture.
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      pkg + ".multipleWriteHeader",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -170,15 +156,10 @@ func TestContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/WebTransaction/Go/" + pkg + ".accessTransactionGinContext", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      pkg + ".accessTransactionGinContext",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 

@@ -41,12 +41,9 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "Hello, World!" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "hello",
+		IsWeb: true,
 	})
 	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -104,15 +101,10 @@ func TestTransactionContext(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "Hello, World!" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "hello",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -129,12 +121,9 @@ func TestNotFoundHandler(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/NotFoundHandler", Scope: "", Forced: false, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/NotFoundHandler", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "NotFoundHandler",
+		IsWeb: true,
 	})
 }
 
@@ -154,16 +143,10 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/MethodNotAllowedHandler", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/MethodNotAllowedHandler", Scope: "",
-			Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/MethodNotAllowedHandler", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "MethodNotAllowedHandler",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -183,15 +166,10 @@ func TestReturnsHTTPError(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "hello",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -222,15 +200,10 @@ func TestReturnsError(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "hello",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -261,15 +234,10 @@ func TestResponseCode(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/WebTransaction/Go/hello", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "hello",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

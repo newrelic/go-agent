@@ -117,6 +117,47 @@ func HarvestTesting(app interface{}, replyfn func(*ConnectReply)) {
 	ta.HarvestTesting(replyfn)
 }
 
+// WantTxn provides the expectation parameters to ExpectTxnMetrics.
+type WantTxn struct {
+	Name      string
+	IsWeb     bool
+	NumErrors int
+}
+
+// ExpectTxnMetrics tests that the app contains metrics for a transaction.
+func ExpectTxnMetrics(t Validator, mt *metricTable, want WantTxn) {
+	var metrics []WantMetric
+	var scope string
+	var allWebOther string
+	if want.IsWeb {
+		scope = "WebTransaction/Go/" + want.Name
+		allWebOther = "allWeb"
+		metrics = []WantMetric{
+			{Name: "WebTransaction/Go/" + want.Name, Scope: "", Forced: true, Data: nil},
+			{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+			{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+			{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+			{Name: "Apdex/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
+		}
+	} else {
+		scope = "OtherTransaction/Go/" + want.Name
+		allWebOther = "allOther"
+		metrics = []WantMetric{
+			{Name: "OtherTransaction/Go/" + want.Name, Scope: "", Forced: true, Data: nil},
+			{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		}
+	}
+	if want.NumErrors > 0 {
+		data := []float64{float64(want.NumErrors), 0, 0, 0, 0, 0}
+		metrics = append(metrics, []WantMetric{
+			{Name: "Errors/all", Scope: "", Forced: true, Data: data},
+			{Name: "Errors/" + allWebOther, Scope: "", Forced: true, Data: data},
+			{Name: "Errors/" + scope, Scope: "", Forced: true, Data: data},
+		}...)
+	}
+	ExpectMetrics(t, mt, metrics)
+}
+
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
@@ -132,6 +173,7 @@ type Expect interface {
 
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectMetricsPresent(t Validator, want []WantMetric)
+	ExpectTxnMetrics(t Validator, want WantTxn)
 
 	ExpectTxnTraces(t Validator, want []WantTxnTrace)
 	ExpectSlowQueries(t Validator, want []WantSlowQuery)

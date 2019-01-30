@@ -637,6 +637,11 @@ func (app *app) ExpectMetricsPresent(t internal.Validator, want []internal.WantM
 	internal.ExpectMetricsPresent(t, app.testHarvest.Metrics, want)
 }
 
+func (app *app) ExpectTxnMetrics(t internal.Validator, want internal.WantTxn) {
+	t = internal.ExtendValidator(t, "metrics")
+	internal.ExpectTxnMetrics(t, app.testHarvest.Metrics, want)
+}
+
 func (app *app) ExpectTxnTraces(t internal.Validator, want []internal.WantTxnTrace) {
 	t = internal.ExtendValidator(t, "txn traces")
 	internal.ExpectTxnTraces(t, app.testHarvest.TxnTraces, want)
