@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.4.0
+
 * Introduced `Transaction.Application` method which returns the `Application`
   that started the `Transaction`.  This method is useful since it may prevent
   having to pass the `Application` to code that already has access to the
