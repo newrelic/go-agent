@@ -3,10 +3,17 @@
 * Introduced `Transaction.Application` method which returns the `Application`
   that started the `Transaction`.  This method is useful since it may prevent
   having to pass the `Application` to code that already has access to the
-  `Transaction`.
+  `Transaction`.  Example use:
 
-* The `Transaction.AddAttribute` method no longer accepts `nil` values as
-  our backend will ignore such attributes.
+```go
+txn.Application().RecordCustomEvent("customerOrder", map[string]interface{}{
+	"numItems":   2,
+	"totalPrice": 13.75,
+})
+```
+
+* The `Transaction.AddAttribute` method no longer accepts `nil` values since
+  our backend ignores them.
 
 ## 2.3.0
 

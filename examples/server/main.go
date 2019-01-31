@@ -14,10 +14,6 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-var (
-	app newrelic.Application
-)
-
 func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "hello world")
 }
@@ -50,14 +46,18 @@ func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 }
 
 func customEvent(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+
 	io.WriteString(w, "recording a custom event")
 
-	app.RecordCustomEvent("my_event_type", map[string]interface{}{
-		"myString": "hello",
-		"myFloat":  0.603,
-		"myInt":    123,
-		"myBool":   true,
-	})
+	if nil != txn {
+		txn.Application().RecordCustomEvent("my_event_type", map[string]interface{}{
+			"myString": "hello",
+			"myFloat":  0.603,
+			"myInt":    123,
+			"myBool":   true,
+		})
+	}
 }
 
 func setName(w http.ResponseWriter, r *http.Request) {
@@ -75,16 +75,6 @@ func addAttribute(w http.ResponseWriter, r *http.Request) {
 		txn.AddAttribute("myString", "hello")
 		txn.AddAttribute("myInt", 123)
 	}
-}
-
-func background(w http.ResponseWriter, r *http.Request) {
-	// Transactions started without an http.Request are classified as
-	// background transactions.
-	txn := app.StartTransaction("background", nil, nil)
-	defer txn.End()
-
-	io.WriteString(w, "background transaction")
-	time.Sleep(150 * time.Millisecond)
 }
 
 func ignore(w http.ResponseWriter, r *http.Request) {
@@ -199,11 +189,14 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 }
 
 func customMetric(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
 	for _, vals := range r.Header {
 		for _, v := range vals {
 			// This custom metric will have the name
 			// "Custom/HeaderLength" in the New Relic UI.
-			app.RecordCustomMetric("HeaderLength", float64(len(v)))
+			if nil != txn {
+				txn.Application().RecordCustomMetric("HeaderLength", float64(len(v)))
+			}
 		}
 	}
 	io.WriteString(w, "custom metric recorded")
@@ -220,8 +213,7 @@ func main() {
 	cfg := newrelic.NewConfig("Example App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 
-	var err error
-	app, err = newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
 		fmt.Println(err)
 		os.Exit(1)
@@ -240,7 +232,16 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
-	http.HandleFunc("/background", background)
+
+	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
+		// Transactions started without an http.Request are classified as
+		// background transactions.
+		txn := app.StartTransaction("background", nil, nil)
+		defer txn.End()
+
+		io.WriteString(w, "background transaction")
+		time.Sleep(150 * time.Millisecond)
+	})
 
 	http.ListenAndServe(":8000", nil)
 }
