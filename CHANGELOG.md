@@ -46,11 +46,14 @@ func transactionWithResponseCode(app newrelic.Application) {
 }
 ```
 
-* The agent will now collect environment variables prefixed by
-  `NEW_RELIC_METADATA_` and `KUBERNETES_SERVICE_HOST`.  These will be added to
+* The agent now collects environment variables prefixed by
+  `NEW_RELIC_METADATA_`.  Some of these may be added
   Transaction events to provide context between your Kubernetes cluster and your
   services. For details on the benefits (currently in beta) see [this blog
   post](https://blog.newrelic.com/engineering/monitoring-application-performance-in-kubernetes/)
+
+* The agent now collects the `KUBERNETES_SERVICE_HOST` environment variable to
+  detect when the application is running on Kubernetes.
 
 * The agent now collects the fully qualified domain name of the host and
   local IP addresses for improved linking with our infrastructure product.
