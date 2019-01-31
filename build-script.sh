@@ -1,4 +1,5 @@
 set -x
+set -e
 
 LATEST_VERSION="go1.11"
 
@@ -7,7 +8,7 @@ if [ -n "$INTEGRATION" ]; then
 	go get ./...
 fi
 
-go test -race -v ./...
+go test -race -benchtime=1ms -bench=. ./...
 go vet ./...
 
 if [[ -n "$(go version | grep $LATEST_VERSION)" ]]; then

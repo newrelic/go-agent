@@ -46,14 +46,6 @@ func makePayload(app Application, u *url.URL) DistributedTracePayload {
 	return txn.CreateDistributedTracePayload()
 }
 
-func makePayloadFromTestcaseInbound(t *testing.T, tci distributedTraceTestcasePayloadTest) []byte {
-	js, err := json.Marshal(tci)
-	if nil != err {
-		t.Error(err)
-	}
-	return js
-}
-
 func enableOldCATDisableBetterCat(cfg *Config) {
 	cfg.CrossApplicationTracer.Enabled = true
 	cfg.DistributedTracer.Enabled = false
@@ -1331,8 +1323,6 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 	}
 }
 
-type distributedTraceTestcasePayloadTest PayloadTest
-
 type fieldExpectations struct {
 	Exact      map[string]interface{} `json:"exact,omitempty"`
 	Expected   []string               `json:"expected,omitempty"`
@@ -1340,18 +1330,18 @@ type fieldExpectations struct {
 }
 
 type distributedTraceTestcase struct {
-	TestName          string                                `json:"test_name"`
-	Comment           string                                `json:"comment,omitempty"`
-	TrustedAccountKey string                                `json:"trusted_account_key"`
-	AccountID         string                                `json:"account_id"`
-	WebTransaction    bool                                  `json:"web_transaction"`
-	RaisesException   bool                                  `json:"raises_exception"`
-	ForceSampledTrue  bool                                  `json:"force_sampled_true"`
-	SpanEventsEnabled bool                                  `json:"span_events_enabled"`
-	MajorVersion      int                                   `json:"major_version"`
-	MinorVersion      int                                   `json:"minor_version"`
-	TransportType     string                                `json:"transport_type"`
-	InboundPayloads   []distributedTraceTestcasePayloadTest `json:"inbound_payloads"`
+	TestName          string            `json:"test_name"`
+	Comment           string            `json:"comment,omitempty"`
+	TrustedAccountKey string            `json:"trusted_account_key"`
+	AccountID         string            `json:"account_id"`
+	WebTransaction    bool              `json:"web_transaction"`
+	RaisesException   bool              `json:"raises_exception"`
+	ForceSampledTrue  bool              `json:"force_sampled_true"`
+	SpanEventsEnabled bool              `json:"span_events_enabled"`
+	MajorVersion      int               `json:"major_version"`
+	MinorVersion      int               `json:"minor_version"`
+	TransportType     string            `json:"transport_type"`
+	InboundPayloads   []json.RawMessage `json:"inbound_payloads"`
 
 	OutboundPayloads []fieldExpectations `json:"outbound_payloads,omitempty"`
 
@@ -1443,8 +1433,9 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 	}
 
 	for _, value := range tc.InboundPayloads {
-		payload := makePayloadFromTestcaseInbound(t, value)
-		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), string(payload))
+		// Note that the error return value is not tested here because
+		// some of the tests are intentionally errors.
+		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), string(value))
 	}
 
 	//call create each time an outbound payload appears in the testcase
@@ -1594,7 +1585,6 @@ func TestDistributedTraceCrossAgent(t *testing.T) {
 				app.ExpectSpanEventsCount(t, 0)
 			})
 		}
-
 	}
 }
 
