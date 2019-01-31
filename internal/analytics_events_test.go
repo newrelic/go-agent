@@ -241,7 +241,6 @@ func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 		"string": "myString",
 		"bool":   true,
 		"int64":  int64(123),
-		"nil":    nil,
 	}, now)
 	if nil != err {
 		b.Fatal(err)
