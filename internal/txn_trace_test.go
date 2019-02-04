@@ -95,7 +95,7 @@ func TestTxnTrace(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               [
 	                  [
 	                     1000,
@@ -245,7 +245,7 @@ func TestTxnTraceNoNodes(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               [
 	               ]
 	            ]
@@ -380,7 +380,7 @@ func TestTxnTraceAsync(t *testing.T) {
                0,
                20000,
                "WebTransaction/Go/hello",
-               {"exclusive_duration_millis":0},
+               {"exclusive_duration_millis":20000},
                [
                   [
                      1000,
@@ -535,7 +535,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               [
 	                  [
 	                     1000,
@@ -684,7 +684,7 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               []
 	            ]
 	         ]
@@ -760,7 +760,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               []
 	            ]
 	         ]
@@ -831,7 +831,7 @@ func TestTxnTraceNoSegmentsNoAttributesOldCAT(t *testing.T) {
 	               0,
 	               20000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":20000},
 	               []
 	            ]
 	         ]
@@ -914,7 +914,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	               0,
 	               123000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":123000},
 	               [
 	                  [
 	                     0,
@@ -1032,7 +1032,7 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 	               0,
 	               123000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":123000},
 	               [
 	                  [
 	                     0,
@@ -1151,7 +1151,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	               0,
 	               123000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":123000},
 	               [
 	                  [
 	                     18000,
@@ -1255,7 +1255,7 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 	               0,
 	               123000,
 	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":0},
+	               {"exclusive_duration_millis":123000},
 	               [
 	                  [
 	                     18000,
@@ -1377,7 +1377,7 @@ func TestLongestTraceSaved(t *testing.T) {
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":0},[]]]
+					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":5000},[]]]
 				],
 				{
 					"agentAttributes":{"request.uri":"/url"},
@@ -1452,7 +1452,7 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":0},[]]]
+					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":5000},[]]]
 				],
 				{
 					"agentAttributes":{"request.uri":"/url"},
@@ -1584,7 +1584,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			[
 				0,{},{},
 				[0,3000,"ROOT",{},
-					[[0,3000,"WebTransaction/Go/3",{"exclusive_duration_millis":0},[]]]
+					[[0,3000,"WebTransaction/Go/3",{"exclusive_duration_millis":3000},[]]]
 				],
 				{
 					"agentAttributes":{"request.uri":"/url"},
@@ -1602,7 +1602,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":0},[]]]
+					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":5000},[]]]
 				],
 				{
 					"agentAttributes":{"request.uri":"/url"},
@@ -1620,7 +1620,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			[
 				0,{},{},
 				[0,4000,"ROOT",{},
-					[[0,4000,"WebTransaction/Go/4",{"exclusive_duration_millis":0},[]]]
+					[[0,4000,"WebTransaction/Go/4",{"exclusive_duration_millis":4000},[]]]
 				],
 				{
 					"agentAttributes":{"request.uri":"/url"},

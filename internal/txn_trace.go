@@ -27,7 +27,7 @@ type traceNodeParams struct {
 	Query                   string
 	TransactionGUID         string
 	queryParameters         queryParameters
-	exclusiveDurationMillis *int64
+	exclusiveDurationMillis *float64
 }
 
 func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
@@ -58,7 +58,7 @@ func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
 		w.writerField("query_parameters", p.queryParameters)
 	}
 	if nil != p.exclusiveDurationMillis {
-		w.intField("exclusive_duration_millis", *p.exclusiveDurationMillis)
+		w.floatField("exclusive_duration_millis", *p.exclusiveDurationMillis)
 	}
 	buf.WriteByte('}')
 }
@@ -288,10 +288,12 @@ func (trace *HarvestTrace) writeJSON(buf *bytes.Buffer) {
 		relativeStop:  trace.Duration,
 	})
 
-	// This exclusive_duration_millis field is added to fix the transaction
-	// trace summary tab. It is provided on this segment to prevent negative
-	// Duration column.
-	var exclusiveDurationMillis int64
+	// exclusive_duration_millis field is added to fix the transaction trace
+	// summary tab.  If exclusive_duration_millis is not provided, the
+	// Seldon and Wanda UIs will calculate exclusive time, which doesn't
+	// work for this root node since all async goroutines are children of
+	// this root.
+	exclusiveDurationMillis := trace.Duration.Seconds() * 1000.0
 	printNodeStart(buf, nodeDetails{ // begin inner root
 		name:          trace.FinalName,
 		relativeStart: 0,
