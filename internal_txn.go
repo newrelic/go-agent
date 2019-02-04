@@ -728,7 +728,7 @@ func (thd *thread) NewGoroutine() Transaction {
 	defer txn.Unlock()
 
 	if txn.finished {
-		// It the transaction has finished, return the same thread.
+		// If the transaction has finished, return the same thread.
 		return upgradeTxn(thd)
 	}
 	return upgradeTxn(&thread{
