@@ -115,16 +115,38 @@ type Transaction interface {
 	// naming is for consistency with other New Relic language agents.
 	BrowserTimingHeader() (*BrowserTimingHeader, error)
 
-	// NewGoroutine must be called when passing the Transaction to a new
-	// goroutine.  This new Transaction reference maintains its own segment
-	// stack which allows segment metric exclusive time to be calculated.
+	// NewGoroutine allows you to create segments in multiple goroutines.
+	//
+	// NewGoroutine returns a new reference to the Transaction.  This must
+	// be called any time you are passing the Transaction to another
+	// goroutine which makes segments.  Each segment-creating goroutine must
+	// have its own Transaction reference.  It does not matter if you call
+	// this before or after the other goroutine has started.
+	//
+	// Each Transaction reference has its own segment stack which assumes
+	// synchronous behavior when creating metrics and traces.
+	//
+	// All Transaction methods can be used in any Transaction reference.
 	// The Transaction will end when End() is called in any goroutine.
-	// Example use:
+	//
+	// Example passing a new Transaction reference directly to another
+	// goroutine:
 	//
 	//	go func(txn newrelic.Transaction) {
 	//		defer newrelic.StartSegment(txn, "async").End()
 	//		time.Sleep(100 * time.Millisecond)
 	//	}(txn.NewGoroutine())
+	//
+	// Example passing a new Transaction reference on a channel to another
+	// goroutine:
+	//
+	//	ch := make(chan newrelic.Transaction)
+	//	go func() {
+	//		txn := <-ch
+	//		defer newrelic.StartSegment(txn, "async").End()
+	//		time.Sleep(100 * time.Millisecond)
+	//	}()
+	//	ch <- txn.NewGoroutine()
 	//
 	NewGoroutine() Transaction
 }
