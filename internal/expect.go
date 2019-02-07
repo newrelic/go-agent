@@ -62,7 +62,7 @@ type WantError struct {
 	Caller  string
 	// NotNoticed should be true if the stack trace was not generated within
 	// txn.NoticeError.  This field is provided to account for extra stack
-	// frames when running with -race.
+	// frames when running tests with -race.
 	NotNoticed      bool
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
