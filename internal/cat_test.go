@@ -127,7 +127,7 @@ func TestCatMap(t *testing.T) {
 
 			// Grab and deobfuscate the txndata that would have been sent to the
 			// external service.
-			txnData, err := deobfuscate(metadata.TxnData, tr.CrossProcess.EncodingKey)
+			txnData, err := Deobfuscate(metadata.TxnData, tr.CrossProcess.EncodingKey)
 			if err != nil {
 				t.Errorf("%s: error deobfuscating outbound request header: %v", tc.Name, err)
 			}

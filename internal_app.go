@@ -87,6 +87,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 			ErrorCollector:    convertAttributeDestinationConfig(config.ErrorCollector.Attributes),
 			TransactionEvents: convertAttributeDestinationConfig(config.TransactionEvents.Attributes),
 			TransactionTracer: convertAttributeDestinationConfig(config.TransactionTracer.Attributes),
+			BrowserMonitoring: convertAttributeDestinationConfig(config.BrowserMonitoring.Attributes),
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
 	}
 }
@@ -376,8 +377,7 @@ func newApp(c Config) (Application, error) {
 		c.Logger = logger.ShimLogger{}
 	}
 	app := &app{
-		config: c,
-
+		config:         c,
 		placeholderRun: newAppRun(c, internal.ConnectReplyDefaults()),
 
 		// This channel must be buffered since Shutdown makes a

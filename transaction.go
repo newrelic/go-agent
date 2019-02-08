@@ -95,6 +95,25 @@ type Transaction interface {
 
 	// Application returns the Application which started the transaction.
 	Application() Application
+
+	// BrowserTimingHeader generates the JavaScript required to enable
+	// support for New Relic's Browser product. This should be placed as
+	// high in the generated HTML as possible to generate the best timing
+	// information: we suggest including it immediately after the opening
+	// <head> tag and any <meta charset> tags.
+	//
+	// Note that calling this function has the side effect of freezing the
+	// transaction name: any calls to SetName() after BrowserTimingHeader()
+	// will be ignored.
+	//
+	// The *BrowserTimingHeader return value will be nil if browser
+	// monitoring is disabled, the application is not connected, or an error
+	// occurred.  It is safe to call the pointer's methods if it is nil.
+	//
+	// There is not a corresponding BrowserTimingFooter() function, as New
+	// Relic's Browser support no longer requires a separate footer. The
+	// naming is for consistency with other New Relic language agents.
+	BrowserTimingHeader() (*BrowserTimingHeader, error)
 }
 
 // DistributedTracePayload is used to instrument connections between

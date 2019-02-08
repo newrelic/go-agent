@@ -147,7 +147,7 @@ func (txp *TxnCrossProcess) ParseAppData(encodedAppData string) (*cat.AppDataHea
 		return nil, nil
 	}
 	if encodedAppData != "" {
-		rawAppData, err := deobfuscate(encodedAppData, txp.EncodingKey)
+		rawAppData, err := Deobfuscate(encodedAppData, txp.EncodingKey)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +183,7 @@ func (txp *TxnCrossProcess) CreateAppData(name string, queueTime, responseTime t
 		return "", err
 	}
 
-	obfuscated, err := obfuscate(data, txp.EncodingKey)
+	obfuscated, err := Obfuscate(data, txp.EncodingKey)
 	if err != nil {
 		return "", err
 	}
@@ -249,12 +249,12 @@ func (txp *TxnCrossProcess) handleInboundRequestHeaders(metadata CrossProcessMet
 }
 
 func (txp *TxnCrossProcess) handleInboundRequestEncodedCAT(encodedID, encodedTxnData string) error {
-	rawID, err := deobfuscate(encodedID, txp.EncodingKey)
+	rawID, err := Deobfuscate(encodedID, txp.EncodingKey)
 	if err != nil {
 		return err
 	}
 
-	rawTxnData, err := deobfuscate(encodedTxnData, txp.EncodingKey)
+	rawTxnData, err := Deobfuscate(encodedTxnData, txp.EncodingKey)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (txp *TxnCrossProcess) handleInboundRequestTxnData(raw []byte) error {
 }
 
 func (txp *TxnCrossProcess) handleInboundRequestEncodedSynthetics(encoded string) error {
-	raw, err := deobfuscate(encoded, txp.EncodingKey)
+	raw, err := Deobfuscate(encoded, txp.EncodingKey)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (txp *TxnCrossProcess) handleInboundRequestSynthetics(raw []byte) error {
 }
 
 func (txp *TxnCrossProcess) outboundID() (string, error) {
-	return obfuscate(txp.CrossProcessID, txp.EncodingKey)
+	return Obfuscate(txp.CrossProcessID, txp.EncodingKey)
 }
 
 func (txp *TxnCrossProcess) outboundTxnData(txnName, appName string) (string, error) {
@@ -353,7 +353,7 @@ func (txp *TxnCrossProcess) outboundTxnData(txnName, appName string) (string, er
 		return "", err
 	}
 
-	return obfuscate(data, txp.EncodingKey)
+	return Obfuscate(data, txp.EncodingKey)
 }
 
 // setRequireGUID ensures that the transaction has a valid GUID, and sets the

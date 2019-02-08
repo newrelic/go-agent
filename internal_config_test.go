@@ -68,6 +68,14 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
+			"BrowserMonitoring":{
+				"Attributes":{
+					"Enabled":false,
+					"Exclude":null,
+					"Include":null
+				},
+				"Enabled":true
+			},
 			"CrossApplicationTracer":{"Enabled":true},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
@@ -119,7 +127,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
-			}
+			},
+			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
 		"high_security":false,
@@ -195,6 +204,14 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+			"BrowserMonitoring":{
+				"Attributes":{
+					"Enabled":false,
+					"Exclude":null,
+					"Include":null
+				},
+				"Enabled":true
+			},
 			"CrossApplicationTracer":{"Enabled":true},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
@@ -246,7 +263,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"DetectPCF":true,
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
-			}
+			},
+			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
 		"high_security":false,

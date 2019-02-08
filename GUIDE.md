@@ -22,6 +22,7 @@
 * [Error Reporting](#error-reporting)
   * [Advanced Error Reporting](#advanced-error-reporting)
 * [Naming Transactions and Metrics](#naming-transactions-and-metrics)
+* [Browser](#browser)
 * [For More Help](#for-more-help)
 
 ## Installation
@@ -609,6 +610,17 @@ few major code paths may generate many different full URL paths to unique
 documents, articles, page, etc. If the unique element of the URL path is
 included in the metric name, each of these common paths will have its own unique
 metric name.
+
+## Browser
+
+To enable support for using
+[New Relic Browser](https://docs.newrelic.com/docs/browser), your HTML pages
+must include a JavaScript snippet that will load the Browser agent and
+configure it with the correct application name. This snippet is available via
+the `BrowserTimingHeader` method: simply include the byte slice returned by
+`txn.BrowserTimingHeader().WithTags()` as early as possible in the `<head>`
+section of your HTML, load the page, and browser data should be available
+immediately.
 
 
 ## For More Help

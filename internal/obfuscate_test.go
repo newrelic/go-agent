@@ -9,7 +9,7 @@ func TestDeobfuscate(t *testing.T) {
 	var err error
 
 	for _, in := range []string{"", "foo"} {
-		out, err = deobfuscate(in, []byte(""))
+		out, err = Deobfuscate(in, []byte(""))
 		if err == nil {
 			t.Error("error is nil for an empty key")
 		}
@@ -19,7 +19,7 @@ func TestDeobfuscate(t *testing.T) {
 	}
 
 	for _, in := range []string{"invalid_base64", "=moreinvalidbase64", "xx"} {
-		out, err = deobfuscate(in, []byte(""))
+		out, err = Deobfuscate(in, []byte(""))
 		if err == nil {
 			t.Error("error is nil for invalid base64")
 		}
@@ -36,7 +36,7 @@ func TestDeobfuscate(t *testing.T) {
 		{"", "BLAHHHH", ""},
 		{"NikyPBs8OisiJg==", "BLAHHHH", "testString"},
 	} {
-		out, err = deobfuscate(test.input, []byte(test.key))
+		out, err = Deobfuscate(test.input, []byte(test.key))
 		if err != nil {
 			t.Errorf("error expected to be nil; got: %v", err)
 		}
@@ -51,7 +51,7 @@ func TestObfuscate(t *testing.T) {
 	var err error
 
 	for _, in := range []string{"", "foo"} {
-		out, err = obfuscate([]byte(in), []byte(""))
+		out, err = Obfuscate([]byte(in), []byte(""))
 		if err == nil {
 			t.Error("error is nil for an empty key")
 		}
@@ -68,7 +68,7 @@ func TestObfuscate(t *testing.T) {
 		{"", "BLAHHHH", ""},
 		{"testString", "BLAHHHH", "NikyPBs8OisiJg=="},
 	} {
-		out, err = obfuscate([]byte(test.input), []byte(test.key))
+		out, err = Obfuscate([]byte(test.input), []byte(test.key))
 		if err != nil {
 			t.Errorf("error expected to be nil; got: %v", err)
 		}

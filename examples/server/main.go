@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -202,6 +203,19 @@ func customMetric(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "custom metric recorded")
 }
 
+func browser(w http.ResponseWriter, r *http.Request) {
+	hdr, err := w.(newrelic.Transaction).BrowserTimingHeader()
+	if nil != err {
+		log.Printf("unable to create browser timing header: %v", err)
+	}
+	// BrowserTimingHeader() will always return a header whose methods can
+	// be safely called.
+	if js := hdr.WithTags(); js != nil {
+		w.Write(js)
+	}
+	io.WriteString(w, "browser header page")
+}
+
 func mustGetEnv(key string) string {
 	if val := os.Getenv(key); "" != val {
 		return val
@@ -232,6 +246,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/external", external))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/roundtripper", roundtripper))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/browser", browser))
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as

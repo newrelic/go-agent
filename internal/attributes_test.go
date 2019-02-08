@@ -110,7 +110,7 @@ func runAttributeTestcase(t *testing.T, js json.RawMessage) {
 			Include: tc.Config.EventsAttributesInclude,
 			Exclude: tc.Config.EventsAttributesExclude,
 		},
-		browserMonitoring: AttributeDestinationConfig{
+		BrowserMonitoring: AttributeDestinationConfig{
 			Enabled: tc.Config.BrowserAttributesEnabled,
 			Include: tc.Config.BrowserAttributesInclude,
 			Exclude: tc.Config.BrowserAttributesExclude,

@@ -117,8 +117,12 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	w.Write(helloResponse)
 }
 
+const (
+	testLicenseKey = "0123456789012345678901234567890123456789"
+)
+
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
-	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg := NewConfig("my app", testLicenseKey)
 
 	if nil != cfgfn {
 		cfgfn(&cfg)

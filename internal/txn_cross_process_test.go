@@ -30,7 +30,7 @@ var (
 )
 
 func mustObfuscate(input, encodingKey string) string {
-	output, err := obfuscate([]byte(input), []byte(encodingKey))
+	output, err := Obfuscate([]byte(input), []byte(encodingKey))
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +75,7 @@ func (req *request) withCAT(txp *TxnCrossProcess, txnName, appName string) *requ
 
 func (req *request) withSynthetics(account int, encodingKey string) *request {
 	header := fmt.Sprintf(`[1,%d,"resource","job","monitor"]`, account)
-	obfuscated, err := obfuscate([]byte(header), []byte(encodingKey))
+	obfuscated, err := Obfuscate([]byte(header), []byte(encodingKey))
 	if err != nil {
 		panic(err)
 	}

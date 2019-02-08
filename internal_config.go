@@ -96,6 +96,12 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	delete(fields, `License`)
 	fields[`Transport`] = transportSetting(transport)
 	fields[`Logger`] = loggerSetting(logger)
+
+	// Browser monitoring support.
+	if c.BrowserMonitoring.Enabled {
+		fields[`browser_monitoring.loader`] = "rum"
+	}
+
 	return json.Marshal(fields)
 }
 

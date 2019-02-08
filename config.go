@@ -113,6 +113,13 @@ type Config struct {
 		Attributes AttributeDestinationConfig
 	}
 
+	// BrowserMonitoring contains settings which control the behavior of
+	// Transaction.BrowserTimingHeader.
+	BrowserMonitoring struct {
+		Enabled    bool
+		Attributes AttributeDestinationConfig
+	}
+
 	// HostDisplayName gives this server a recognizable name in the New
 	// Relic UI.  This is an optional setting.
 	HostDisplayName string
@@ -244,6 +251,10 @@ func NewConfig(appname, license string) Config {
 	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
 	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
+
+	c.BrowserMonitoring.Enabled = true
+	// browser monitoring attributes are disabled by default
+	c.BrowserMonitoring.Attributes.Enabled = false
 
 	c.CrossApplicationTracer.Enabled = true
 	c.DistributedTracer.Enabled = false

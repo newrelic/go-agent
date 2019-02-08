@@ -464,6 +464,8 @@ var (
 	errNilError            = errors.New("nil error")
 	errAlreadyEnded        = errors.New("transaction has already ended")
 	errSecurityPolicy      = errors.New("disabled by security policy")
+	errTransactionIgnored  = errors.New("transaction has been ignored")
+	errBrowserDisabled     = errors.New("browser disabled by local configuration")
 )
 
 const (
@@ -588,6 +590,74 @@ func (txn *txn) StartSegmentNow() SegmentStartTime {
 			txn:   txn,
 		},
 	}
+}
+
+const (
+	// Browser fields are encoded using the first digits of the license
+	// key.
+	browserEncodingKeyLimit = 13
+)
+
+func browserEncodingKey(licenseKey string) []byte {
+	key := []byte(licenseKey)
+	if len(key) > browserEncodingKeyLimit {
+		key = key[0:browserEncodingKeyLimit]
+	}
+	return key
+}
+
+func (txn *txn) BrowserTimingHeader() (*BrowserTimingHeader, error) {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if !txn.Config.BrowserMonitoring.Enabled {
+		return nil, errBrowserDisabled
+	}
+
+	if txn.Reply.AgentLoader == "" {
+		// If the loader is empty, either browser has been disabled
+		// by the server or the application is not yet connected.
+		return nil, nil
+	}
+
+	if txn.finished {
+		return nil, errAlreadyEnded
+	}
+
+	txn.freezeName()
+
+	// Freezing the name might cause the transaction to be ignored, so check
+	// this after txn.freezeName().
+	if txn.ignore {
+		return nil, errTransactionIgnored
+	}
+
+	encodingKey := browserEncodingKey(txn.Config.License)
+
+	attrs, err := internal.Obfuscate(internal.BrowserAttributes(txn.Attrs), encodingKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting browser attributes: %v", err)
+	}
+
+	name, err := internal.Obfuscate([]byte(txn.FinalName), encodingKey)
+	if err != nil {
+		return nil, fmt.Errorf("error obfuscating name: %v", err)
+	}
+
+	return &BrowserTimingHeader{
+		agentLoader: txn.Reply.AgentLoader,
+		info: browserInfo{
+			Beacon:                txn.Reply.Beacon,
+			LicenseKey:            txn.Reply.BrowserKey,
+			ApplicationID:         txn.Reply.AppID,
+			TransactionName:       name,
+			QueueTimeMillis:       txn.Queuing.Nanoseconds() / (1000 * 1000),
+			ApplicationTimeMillis: time.Now().Sub(txn.Start).Nanoseconds() / (1000 * 1000),
+			ObfuscatedAttributes:  attrs,
+			ErrorBeacon:           txn.Reply.ErrorBeacon,
+			Agent:                 txn.Reply.JSAgentFile,
+		},
+	}, nil
 }
 
 type segment struct {
