@@ -666,6 +666,9 @@ type segment struct {
 }
 
 func endSegment(s *Segment) error {
+	if nil == s {
+		return nil
+	}
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -682,6 +685,9 @@ func endSegment(s *Segment) error {
 }
 
 func endDatastore(s *DatastoreSegment) error {
+	if nil == s {
+		return nil
+	}
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil
@@ -761,6 +767,9 @@ func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 }
 
 func endExternal(s *ExternalSegment) error {
+	if nil == s {
+		return nil
+	}
 	txn := s.StartTime.txn
 	if nil == txn {
 		return nil

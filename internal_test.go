@@ -1611,3 +1611,14 @@ func TestTransactionApplication(t *testing.T) {
 		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
 	})
 }
+
+func TestNilSegmentPointerEnd(t *testing.T) {
+	var basicSegment *Segment
+	var datastoreSegment *DatastoreSegment
+	var externalSegment *ExternalSegment
+
+	// These calls on nil pointer receivers should not panic.
+	basicSegment.End()
+	datastoreSegment.End()
+	externalSegment.End()
+}
