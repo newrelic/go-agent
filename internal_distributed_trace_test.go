@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
@@ -1398,8 +1399,8 @@ func getTransport(transport string) TransportType {
 	}
 }
 
-func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTestcase, extraAsserts func(expectApp, *testing.T, distributedTraceTestcase)) {
-	t.Logf("Starting Test: %s", tc.TestName)
+func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTestcase, extraAsserts func(expectApp, internal.Validator)) {
+	t := internal.ExtendValidator(tst, "test="+tc.TestName)
 	configCallback := enableBetterCAT
 	if false == tc.SpanEventsEnabled {
 		configCallback = disableSpanEvents
@@ -1415,7 +1416,7 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 		// we'll need to revisit this testing sampler
 		reply.AdaptiveSampler = internal.SampleEverything{}
 
-	}, configCallback, t)
+	}, configCallback, tst)
 
 	txn := app.StartTransaction("hello", nil, nil)
 	if tc.WebTransaction {
@@ -1481,22 +1482,16 @@ func runDistributedTraceCrossAgentTestcase(t *testing.T, tc distributedTraceTest
 				app.ExpectErrorEventsAbsent)
 		}
 	}
-	t.Logf("Ending Test: %s", tc.TestName)
 
-	extraAsserts(app, t, tc)
+	extraAsserts(app, t)
 }
 
-func assertTestCaseOutboundPayload(expect fieldExpectations, t *testing.T, actual string) {
+func assertTestCaseOutboundPayload(expect fieldExpectations, t internal.Validator, actual string) {
 	type outboundTestcase struct {
 		Version [2]uint                `json:"v"`
 		Data    map[string]interface{} `json:"d"`
 	}
 	var actualPayload outboundTestcase
-	var (
-		errExpectedBadValue = errors.New("expected field in outbound payload has bad value")
-		errExpectedMissing  = errors.New("expected field in outbound payload not found")
-		errUnexpectedFound  = errors.New("found unexpected field in outbound payload")
-	)
 	err := json.Unmarshal([]byte(actual), &actualPayload)
 	if nil != err {
 		t.Error(err)
@@ -1506,7 +1501,8 @@ func assertTestCaseOutboundPayload(expect fieldExpectations, t *testing.T, actua
 		if k != "v" {
 			field := strings.Split(k, ".")[1]
 			if v != actualPayload.Data[field] {
-				t.Error(errExpectedBadValue)
+				t.Error(fmt.Sprintf("exact outbound payload field mismatch key=%s wanted=%v got=%v",
+					k, v, actualPayload.Data[field]))
 			}
 		}
 	}
@@ -1514,19 +1510,19 @@ func assertTestCaseOutboundPayload(expect fieldExpectations, t *testing.T, actua
 	for _, e := range expect.Expected {
 		field := strings.Split(e, ".")[1]
 		if nil == actualPayload.Data[field] {
-			t.Error(errExpectedMissing)
+			t.Error(fmt.Sprintf("expected outbound payload field missing key=%s", e))
 		}
 	}
 	// Affirm that the unexpected values are not in the actual payload.
 	for _, u := range expect.Unexpected {
 		field := strings.Split(u, ".")[1]
 		if nil != actualPayload.Data[field] {
-			t.Error(errUnexpectedFound)
+			t.Error(fmt.Sprintf("unexpected outbound payload field present key=%s", u))
 		}
 	}
 }
 
-func assertTestCaseIntrinsics(t *testing.T,
+func assertTestCaseIntrinsics(t internal.Validator,
 	f1 *fieldExpectations,
 	f2 *fieldExpectations,
 	present func(internal.Validator, []internal.WantEvent),
@@ -1574,17 +1570,15 @@ func TestDistributedTraceCrossAgent(t *testing.T) {
 
 	// Iterate over all cross-agent tests
 	for _, tc := range tcs {
-		runDistributedTraceCrossAgentTestcase(t, tc, func(app expectApp, t *testing.T, tc distributedTraceTestcase) {})
-
-		// if there are specific test cases where we'd like to go above and
-		// beyond the standard cross agent assertions, do so here
+		extraAsserts := func(app expectApp, t internal.Validator) {}
 		if "spans_disabled_in_child" == tc.TestName {
 			// if span events are disabled but distributed tracing is enabled, then
 			// we expect there are zero span events
-			runDistributedTraceCrossAgentTestcase(t, tc, func(app expectApp, t *testing.T, tc distributedTraceTestcase) {
+			extraAsserts = func(app expectApp, t internal.Validator) {
 				app.ExpectSpanEventsCount(t, 0)
-			})
+			}
 		}
+		runDistributedTraceCrossAgentTestcase(t, tc, extraAsserts)
 	}
 }
 
