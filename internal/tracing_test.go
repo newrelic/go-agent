@@ -595,7 +595,7 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	tr := &TxnData{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	tr.BetterCAT.Sampled = true
+	tr.LazilyCalculateSampled = func() bool { return true }
 	tr.SpanEventsEnabled = true
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -610,12 +610,42 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	}
 }
 
+func TestSpanEventNotSampled(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+
+	tr.LazilyCalculateSampled = func() bool { return false }
+	tr.SpanEventsEnabled = true
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	EndBasicSegment(tr, t1, start.Add(3*time.Second), "t1")
+
+	if 0 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
+}
+
+func TestSpanEventNotEnabled(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+
+	tr.LazilyCalculateSampled = func() bool { return true }
+	tr.SpanEventsEnabled = false
+
+	t1 := StartSegment(tr, start.Add(1*time.Second))
+	EndBasicSegment(tr, t1, start.Add(3*time.Second), "t1")
+
+	if 0 != len(tr.spanEvents) {
+		t.Error(tr.spanEvents)
+	}
+}
+
 func TestDatastoreSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	tr := &TxnData{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	tr.BetterCAT.Sampled = true
+	tr.LazilyCalculateSampled = func() bool { return true }
 	tr.SpanEventsEnabled = true
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))
@@ -642,7 +672,7 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	tr := &TxnData{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	tr.BetterCAT.Sampled = true
+	tr.LazilyCalculateSampled = func() bool { return true }
 	tr.SpanEventsEnabled = true
 
 	t1 := StartSegment(tr, start.Add(1*time.Second))

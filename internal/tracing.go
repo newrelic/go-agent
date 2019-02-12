@@ -72,9 +72,10 @@ type TxnData struct {
 	stamp            segmentStamp
 	stack            []segmentFrame
 
-	SpanEventsEnabled bool
-	rootSpanID        string
-	spanEvents        []*SpanEvent
+	LazilyCalculateSampled func() bool
+	SpanEventsEnabled      bool
+	rootSpanID             string
+	spanEvents             []*SpanEvent
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
@@ -256,7 +257,7 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 
 	t.stack = t.stack[0:start.Depth]
 
-	if t.BetterCAT.Sampled && t.SpanEventsEnabled {
+	if t.SpanEventsEnabled && t.LazilyCalculateSampled() {
 		s.SpanID = frame.spanID
 		if "" == s.SpanID {
 			s.SpanID = NewSpanID()

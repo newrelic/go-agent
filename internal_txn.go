@@ -32,6 +32,7 @@ type txn struct {
 	// finished has been set to true, no recording should occur.
 	finished           bool
 	numPayloadsCreated uint32
+	sampledCalculated  bool
 
 	ignore bool
 
@@ -54,15 +55,8 @@ func newTxn(input txnInput, name string) *txn {
 		txn.BetterCAT.Enabled = true
 		txn.BetterCAT.Priority = internal.NewPriority()
 		txn.BetterCAT.ID = internal.NewSpanID()
-
-		// Calculate sampled at the beginning of the transaction (rather
-		// than lazily at payload creation time) because it controls the
-		// creation of span events.
-		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), txn.Start)
-		if txn.BetterCAT.Sampled {
-			txn.BetterCAT.Priority += 1.0
-		}
 		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled && txn.Reply.CollectSpanEvents
+		txn.LazilyCalculateSampled = txn.lazilyCalculateSampled
 	}
 
 	txn.Attrs.Agent.Add(internal.AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
@@ -81,6 +75,25 @@ func newTxn(input txnInput, name string) *txn {
 	txn.CrossProcess.Init(doOldCAT, noGUID, input.Reply)
 
 	return txn
+}
+
+// lazilyCalculateSampled calculates and returns whether or not the transaction
+// should be sampled.  Sampled is not computed at the beginning of the
+// transaction because we want to calculate Sampled only for transactions that
+// do not accept an inbound payload.
+func (txn *txn) lazilyCalculateSampled() bool {
+	if !txn.BetterCAT.Enabled {
+		return false
+	}
+	if txn.sampledCalculated {
+		return txn.BetterCAT.Sampled
+	}
+	txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
+	if txn.BetterCAT.Sampled {
+		txn.BetterCAT.Priority += 1.0
+	}
+	txn.sampledCalculated = true
+	return txn.BetterCAT.Sampled
 }
 
 type requestWrap struct{ request *http.Request }
@@ -395,6 +408,9 @@ func (txn *txn) End() error {
 	}
 
 	txn.freezeName()
+	// Make a sampling decision if there have been no segments or outbound
+	// payloads.
+	txn.lazilyCalculateSampled()
 
 	// Finalise the CAT state.
 	if err := txn.CrossProcess.Finalise(txn.Name, txn.Config.AppName); err != nil {
@@ -877,7 +893,8 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 		p.TrustedAccountKey = txn.Reply.TrustedAccountKey
 	}
 
-	if txn.BetterCAT.Sampled && txn.SpanEventsEnabled {
+	sampled := txn.lazilyCalculateSampled()
+	if sampled && txn.SpanEventsEnabled {
 		p.ID = txn.CurrentSpanIdentifier()
 	}
 
@@ -885,7 +902,7 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 	// many downstream sampled events.
 	p.SetSampled(false)
 	if txn.numPayloadsCreated < maxSampledDistributedPayloads {
-		p.SetSampled(txn.BetterCAT.Sampled)
+		p.SetSampled(sampled)
 	}
 
 	txn.CreatePayloadSuccess = true
@@ -976,8 +993,7 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 	// a nul payload.Sampled means the a field wasn't provided
 	if nil != payload.Sampled {
 		txn.BetterCAT.Sampled = *payload.Sampled
-	} else {
-		txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
+		txn.sampledCalculated = true
 	}
 
 	txn.BetterCAT.Inbound = payload

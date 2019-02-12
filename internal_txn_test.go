@@ -142,3 +142,59 @@ func TestShouldSaveTrace(t *testing.T) {
 		}
 	}
 }
+
+func TestLazilyCalculateSampledTrue(t *testing.T) {
+	tx := &txn{}
+	tx.BetterCAT.Priority = 0.5
+	tx.sampledCalculated = false
+	tx.BetterCAT.Enabled = true
+	tx.Reply = &internal.ConnectReply{
+		AdaptiveSampler: internal.SampleEverything{},
+	}
+	out := tx.lazilyCalculateSampled()
+	if !out || !tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 1.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+	tx.Reply.AdaptiveSampler = internal.SampleNothing{}
+	out = tx.lazilyCalculateSampled()
+	if !out || !tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 1.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+}
+
+func TestLazilyCalculateSampledFalse(t *testing.T) {
+	tx := &txn{}
+	tx.BetterCAT.Priority = 0.5
+	tx.sampledCalculated = false
+	tx.BetterCAT.Enabled = true
+	tx.Reply = &internal.ConnectReply{
+		AdaptiveSampler: internal.SampleNothing{},
+	}
+	out := tx.lazilyCalculateSampled()
+	if out || tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+	tx.Reply.AdaptiveSampler = internal.SampleEverything{}
+	out = tx.lazilyCalculateSampled()
+	if out || tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+}
+
+func TestLazilyCalculateSampledCATDisabled(t *testing.T) {
+	tx := &txn{}
+	tx.BetterCAT.Priority = 0.5
+	tx.sampledCalculated = false
+	tx.BetterCAT.Enabled = false
+	tx.Reply = &internal.ConnectReply{
+		AdaptiveSampler: internal.SampleEverything{},
+	}
+	out := tx.lazilyCalculateSampled()
+	if out || tx.BetterCAT.Sampled || tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+	out = tx.lazilyCalculateSampled()
+	if out || tx.BetterCAT.Sampled || tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
+		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
+	}
+}
