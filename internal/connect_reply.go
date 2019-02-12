@@ -114,6 +114,9 @@ func ConnectReplyDefaults() *ConnectReply {
 		// No transactions should be sampled before the application is
 		// connected.
 		AdaptiveSampler: SampleNothing{},
+
+		SamplingTarget:                10,
+		SamplingTargetPeriodInSeconds: 60,
 	}
 }
 
