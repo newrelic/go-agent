@@ -137,11 +137,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
-	internal.RequestAgentAttributes(txn.Attrs, r.Method(), r.Header())
-
-	if u := r.URL(); nil != u {
-		txn.CleanURL = internal.SafeURL(u)
-	}
+	internal.RequestAgentAttributes(txn.Attrs, r.Method(), r.Header(), r.URL())
 
 	return nil
 }

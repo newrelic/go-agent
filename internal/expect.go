@@ -58,7 +58,6 @@ type WantError struct {
 	Msg             string
 	Klass           string
 	Caller          string
-	URL             string
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
@@ -83,7 +82,6 @@ type WantEvent struct {
 // WantTxnTrace is a transaction trace expectation.
 type WantTxnTrace struct {
 	MetricName      string
-	CleanURL        string
 	NumSegments     int
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
@@ -573,7 +571,6 @@ func expectError(v Validator, err *tracedError, expect WantError) {
 	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
 	validateStringField(v, "klass", expect.Klass, err.Klass)
 	validateStringField(v, "msg", expect.Msg, err.Msg)
-	validateStringField(v, "URL", expect.URL, err.CleanURL)
 	js, errr := err.MarshalJSON()
 	if nil != errr {
 		v.Error("unable to marshal error json", errr)
@@ -632,7 +629,10 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 	}
 	duration := unmarshalled[1].(float64)
 	name := unmarshalled[2].(string)
-	cleanURL := unmarshalled[3].(string)
+	var arrayURL string
+	if nil != unmarshalled[3] {
+		arrayURL = unmarshalled[3].(string)
+	}
 	traceData := unmarshalled[4].([]interface{})
 
 	rootNode := traceData[3].([]interface{})
@@ -641,7 +641,6 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 	agentAttributes := attributes["agentAttributes"].(map[string]interface{})
 
 	validateStringField(v, "metric name", expect.MetricName, name)
-	validateStringField(v, "request url", expect.CleanURL, cleanURL)
 
 	if doDurationTests && 0 == duration {
 		v.Error("zero trace duration")
@@ -652,6 +651,10 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 	}
 	if nil != expect.AgentAttributes {
 		expectAttributes(v, agentAttributes, expect.AgentAttributes)
+		expectURL, _ := expect.AgentAttributes["request.uri"].(string)
+		if "" != expectURL {
+			validateStringField(v, "request url in array", expectURL, arrayURL)
+		}
 	}
 	numSegments := countSegments(rootNode)
 	// The expectation segment count does not include the two root nodes.
@@ -677,10 +680,11 @@ func expectSlowQuery(t Validator, slowQuery *slowQuery, want WantSlowQuery) {
 	if slowQuery.Count != want.Count {
 		t.Error("wrong Count field", slowQuery.Count, want.Count)
 	}
+	uri, _ := slowQuery.TxnEvent.Attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
 	validateStringField(t, "MetricName", slowQuery.DatastoreMetric, want.MetricName)
 	validateStringField(t, "Query", slowQuery.ParameterizedQuery, want.Query)
 	validateStringField(t, "TxnEvent.FinalName", slowQuery.TxnEvent.FinalName, want.TxnName)
-	validateStringField(t, "TxnEvent.CleanURL", slowQuery.TxnEvent.CleanURL, want.TxnURL)
+	validateStringField(t, "request.uri", uri, want.TxnURL)
 	validateStringField(t, "DatabaseName", slowQuery.DatabaseName, want.DatabaseName)
 	validateStringField(t, "Host", slowQuery.Host, want.Host)
 	validateStringField(t, "PortPathOrID", slowQuery.PortPathOrID, want.PortPathOrID)

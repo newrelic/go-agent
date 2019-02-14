@@ -109,12 +109,6 @@ func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 		buf.WriteByte(':')
 		h.Stack.WriteJSON(buf)
 	}
-	if h.CleanURL != "" {
-		buf.WriteByte(',')
-		buf.WriteString(`"request_uri"`)
-		buf.WriteByte(':')
-		jsonx.AppendString(buf, h.CleanURL)
-	}
 	buf.WriteByte('}')
 
 	buf.WriteByte(']')

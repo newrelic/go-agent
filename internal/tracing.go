@@ -33,8 +33,6 @@ type TxnEvent struct {
 	Zone      ApdexZone
 	Attrs     *Attributes
 	DatastoreExternalTotals
-	// CleanURL is not used in txn events, but is used in traced errors which embed TxnEvent.
-	CleanURL     string
 	CrossProcess TxnCrossProcess
 	BetterCAT    BetterCAT
 	HasError     bool

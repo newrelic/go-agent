@@ -24,6 +24,16 @@ func browser(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+* The Go agent now collects an attribute named `request.uri` on Transaction
+  Traces, Transaction Events, Error Traces, and Error Events.  `request.uri`
+  will never contain user, password, query parameters, or fragment.  To prevent
+  the request's URL from being collected in any data, modify your `Config` like
+  this:
+
+```go
+cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, newrelic.AttributeRequestURI)
+```
+
 ## 2.4.0
 
 * Introduced `Transaction.Application` method which returns the `Application`

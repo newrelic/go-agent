@@ -99,6 +99,16 @@ var (
 
 		return r
 	}()
+	helloRequestAttributes = map[string]interface{}{
+		"request.uri":                   "/hello",
+		"request.headers.host":          "my_domain.com",
+		"request.headers.referer":       "http://en.wikipedia.org/zip",
+		"request.headers.contentLength": 753,
+		"request.method":                "GET",
+		"request.headers.accept":        "text/plain",
+		"request.headers.User-Agent":    "Mozilla/5.0",
+		"request.headers.contentType":   "text/html; charset=utf-8",
+	}
 )
 
 func TestNewApplicationNil(t *testing.T) {
@@ -350,7 +360,6 @@ func TestWrapHandleFunc(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 		Caller:  "go-agent.myErrorHandler",
-		URL:     "/hello",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -358,6 +367,9 @@ func TestWrapHandleFunc(t *testing.T) {
 			"error.message":   "my msg",
 			"transactionName": "WebTransaction/Go/hello",
 		},
+		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
+			"httpResponseCode": "200",
+		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
 }
@@ -379,7 +391,6 @@ func TestWrapHandle(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 		Caller:  "go-agent.myErrorHandler",
-		URL:     "/hello",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -387,6 +398,9 @@ func TestWrapHandle(t *testing.T) {
 			"error.message":   "my msg",
 			"transactionName": "WebTransaction/Go/hello",
 		},
+		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
+			"httpResponseCode": "200",
+		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
 }
@@ -443,7 +457,6 @@ func TestPanicError(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "go-agent.(*txn).End",
-		URL:     "",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -470,7 +483,6 @@ func TestPanicString(t *testing.T) {
 		Msg:     "my string",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "go-agent.(*txn).End",
-		URL:     "",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -497,7 +509,6 @@ func TestPanicInt(t *testing.T) {
 		Msg:     "22",
 		Klass:   internal.PanicErrorKlass,
 		Caller:  "go-agent.(*txn).End",
-		URL:     "",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -542,7 +553,6 @@ func TestResponseCodeError(t *testing.T) {
 		Msg:     "Bad Request",
 		Klass:   "400",
 		Caller:  "go-agent.(*txn).WriteHeader",
-		URL:     "/hello",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -550,6 +560,9 @@ func TestResponseCodeError(t *testing.T) {
 			"error.message":   "Bad Request",
 			"transactionName": "WebTransaction/Go/hello",
 		},
+		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
+			"httpResponseCode": "400",
+		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
 }
@@ -647,7 +660,6 @@ func TestQueueTime(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 		Caller:  "go-agent.TestQueueTime",
-		URL:     "/hello",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -655,6 +667,10 @@ func TestQueueTime(t *testing.T) {
 			"error.message":   "my msg",
 			"transactionName": "WebTransaction/Go/hello",
 			"queueDuration":   internal.MatchAnything,
+		},
+		AgentAttributes: map[string]interface{}{
+			"request.uri":    "/hello",
+			"request.method": "GET",
 		},
 	}})
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -699,7 +715,6 @@ func TestIgnoreAlreadyEnded(t *testing.T) {
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 		Caller:  "go-agent.TestIgnoreAlreadyEnded",
-		URL:     "",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1490,7 +1505,6 @@ func TestTraceNoSegments(t *testing.T) {
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:  "WebTransaction/Go/hello",
-		CleanURL:    "/hello",
 		NumSegments: 0,
 	}})
 }
@@ -1548,7 +1562,6 @@ func TestTraceWithSegments(t *testing.T) {
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:  "WebTransaction/Go/hello",
-		CleanURL:    "/hello",
 		NumSegments: 3,
 	}})
 }
@@ -1578,7 +1591,6 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:  "WebTransaction/Go/hello",
-		CleanURL:    "/hello",
 		NumSegments: 0,
 	}})
 }

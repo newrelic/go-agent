@@ -55,6 +55,7 @@ var (
 		AttributeRequestContentType:   "mycontent",
 		AttributeRequestContentLength: 123,
 		AttributeRequestHost:          "myhost",
+		AttributeRequestURI:           "http://www.newrelic.com",
 	}
 )
 
@@ -247,6 +248,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		AgentAttributes: map[string]interface{}{
 			"request.method": "GET",
+			"request.uri":    "http://www.newrelic.com",
 		},
 		Intrinsics: map[string]interface{}{
 			"name":                     "WebTransaction/Go/hello",

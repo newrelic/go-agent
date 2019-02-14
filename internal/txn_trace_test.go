@@ -53,7 +53,7 @@ func TestTxnTrace(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
-	attr.Agent.Add(attributeRequestMethod, "GET", nil)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
 	ht := newHarvestTraces()
@@ -62,7 +62,6 @@ func TestTxnTrace(t *testing.T) {
 			Start:     start,
 			Duration:  20 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -171,7 +170,7 @@ func TestTxnTrace(t *testing.T) {
 	      ],
 	      {
 	         "agentAttributes":{
-	            "request.method":"GET"
+	            "request.uri":"/url"
 	         },
 	         "userAttributes":{
 	            "zap":123
@@ -243,7 +242,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
-	attr.Agent.Add(attributeRequestMethod, "GET", nil)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 
 	ht := newHarvestTraces()
@@ -252,7 +251,6 @@ func TestTxnTraceOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  20 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -355,9 +353,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	         ]
 	      ],
 	      {
-	         "agentAttributes":{
-	            "request.method":"GET"
-	         },
+	         "agentAttributes":{"request.uri":"/url"},
 	         "userAttributes":{
 	            "zap":123
 	         },
@@ -371,6 +367,83 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	   ""
 	]]]`
 
+	js, err := ht.Data("12345", start)
+	if nil != err {
+		t.Fatal(err)
+	}
+	testExpectedJSON(t, expect, string(js))
+}
+
+func TestTxnTraceExcludeURI(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	tr := &TxnData{}
+	tr.TxnTrace.Enabled = true
+	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
+	tr.TxnTrace.SegmentThreshold = 0
+
+	c := sampleAttributeConfigInput
+	c.TransactionTracer.Exclude = []string{"request.uri"}
+	acfg := CreateAttributeConfig(c, true)
+	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
+
+	ht := newHarvestTraces()
+	ht.regular.addTxnTrace(&HarvestTrace{
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  20 * time.Second,
+			FinalName: "WebTransaction/Go/hello",
+			Attrs:     attr,
+			BetterCAT: BetterCAT{
+				Enabled:  true,
+				ID:       "txn-id",
+				Priority: 0.5,
+			},
+		},
+		Trace: tr.TxnTrace,
+	})
+
+	expect := `["12345",[[
+	   1417136460000000,
+	   20000,
+	   "WebTransaction/Go/hello",
+	   null,
+	   [
+	      0,
+	      {},
+	      {},
+	      [
+	         0,
+	         20000,
+	         "ROOT",
+	         {},
+	         [
+	            [
+	               0,
+	               20000,
+	               "WebTransaction/Go/hello",
+	               {},
+	               []
+	            ]
+	         ]
+	      ],
+	      {
+	         "agentAttributes":{},
+	         "userAttributes":{},
+	         "intrinsics":{
+		        "guid":"txn-id",
+	         	"traceId":"txn-id",
+	         	"priority":0.500000,
+	         	"sampled":false
+	         }
+	      }
+	   ],
+	   "",
+	   null,
+	   false,
+	   null,
+	   ""
+	]]]`
 	js, err := ht.Data("12345", start)
 	if nil != err {
 		t.Fatal(err)
@@ -394,7 +467,6 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 			Start:     start,
 			Duration:  20 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -409,7 +481,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
-	   "/url",
+	   null,
 	   [
 	      0,
 	      {},
@@ -469,7 +541,6 @@ func TestTxnTraceNoSegmentsNoAttributesOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  20 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -479,7 +550,7 @@ func TestTxnTraceNoSegmentsNoAttributesOldCAT(t *testing.T) {
 	   1417136460000000,
 	   20000,
 	   "WebTransaction/Go/hello",
-	   "/url",
+	   null,
 	   [
 	      0,
 	      {},
@@ -536,6 +607,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&HarvestTrace{
@@ -543,7 +615,6 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 			Start:     start,
 			Duration:  123 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -615,7 +686,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	         ]
 	      ],
 	      {
-	         "agentAttributes":{},
+	         "agentAttributes":{"request.uri":"/url"},
 	         "userAttributes":{},
 	         "intrinsics":{
 		        "guid":"txn-id",
@@ -656,6 +727,7 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&HarvestTrace{
@@ -663,7 +735,6 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  123 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -730,7 +801,7 @@ func TestTxnTraceSlowestNodesSavedOldCAT(t *testing.T) {
 	         ]
 	      ],
 	      {
-	         "agentAttributes":{},
+	         "agentAttributes":{"request.uri":"/url"},
 	         "userAttributes":{},
 	         "intrinsics":{}
 	      }
@@ -766,6 +837,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&HarvestTrace{
@@ -773,7 +845,6 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 			Start:     start,
 			Duration:  123 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -831,7 +902,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	         ]
 	      ],
 	      {
-	         "agentAttributes":{},
+	         "agentAttributes":{"request.uri":"/url"},
 	         "userAttributes":{},
 	         "intrinsics":{
 				"guid":"txn-id",
@@ -872,6 +943,7 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&HarvestTrace{
@@ -879,7 +951,6 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  123 * time.Second,
 			FinalName: "WebTransaction/Go/hello",
-			CleanURL:  "/url",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -932,7 +1003,7 @@ func TestTxnTraceSegmentThresholdOldCAT(t *testing.T) {
 	         ]
 	      ],
 	      {
-	         "agentAttributes":{},
+	         "agentAttributes":{"request.uri":"/url"},
 	         "userAttributes":{},
 	         "intrinsics":{}
 	      }
@@ -966,6 +1037,7 @@ func TestLongestTraceSaved(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 	ht := newHarvestTraces()
 
 	ht.Witness(HarvestTrace{
@@ -973,7 +1045,6 @@ func TestLongestTraceSaved(t *testing.T) {
 			Start:     start,
 			Duration:  3 * time.Second,
 			FinalName: "WebTransaction/Go/3",
-			CleanURL:  "/url/3",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -988,7 +1059,6 @@ func TestLongestTraceSaved(t *testing.T) {
 			Start:     start,
 			Duration:  5 * time.Second,
 			FinalName: "WebTransaction/Go/5",
-			CleanURL:  "/url/5",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -1003,7 +1073,6 @@ func TestLongestTraceSaved(t *testing.T) {
 			Start:     start,
 			Duration:  4 * time.Second,
 			FinalName: "WebTransaction/Go/4",
-			CleanURL:  "/url/4",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -1019,14 +1088,14 @@ func TestLongestTraceSaved(t *testing.T) {
 	"12345",
 	[
 		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url/5",
+			1417136460000000,5000,"WebTransaction/Go/5","/url",
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
 					[[0,5000,"WebTransaction/Go/5",{},[]]]
 				],
 				{
-					"agentAttributes":{},
+					"agentAttributes":{"request.uri":"/url"},
 					"userAttributes":{},
 					"intrinsics":{
 						"guid":"txn-id-5",
@@ -1054,6 +1123,7 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 	ht := newHarvestTraces()
 
 	ht.Witness(HarvestTrace{
@@ -1061,7 +1131,6 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  3 * time.Second,
 			FinalName: "WebTransaction/Go/3",
-			CleanURL:  "/url/3",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -1071,7 +1140,6 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  5 * time.Second,
 			FinalName: "WebTransaction/Go/5",
-			CleanURL:  "/url/5",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -1081,7 +1149,6 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 			Start:     start,
 			Duration:  4 * time.Second,
 			FinalName: "WebTransaction/Go/4",
-			CleanURL:  "/url/4",
 			Attrs:     attr,
 		},
 		Trace: tr.TxnTrace,
@@ -1092,14 +1159,14 @@ func TestLongestTraceSavedOldCAT(t *testing.T) {
 	"12345",
 	[
 		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url/5",
+			1417136460000000,5000,"WebTransaction/Go/5","/url",
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
 					[[0,5000,"WebTransaction/Go/5",{},[]]]
 				],
 				{
-					"agentAttributes":{},
+					"agentAttributes":{"request.uri":"/url"},
 					"userAttributes":{},
 					"intrinsics":{}
 				}
@@ -1163,6 +1230,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
+	attr.Agent.Add(attributeRequestURI, "/url", nil)
 	ht := newHarvestTraces()
 
 	ht.Witness(HarvestTrace{
@@ -1170,7 +1238,6 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			Start:     start,
 			Duration:  3 * time.Second,
 			FinalName: "WebTransaction/Go/3",
-			CleanURL:  "/url/3",
 			Attrs:     attr,
 			CrossProcess: TxnCrossProcess{
 				Type: txnCrossProcessSynthetics,
@@ -1186,7 +1253,6 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			Start:     start,
 			Duration:  5 * time.Second,
 			FinalName: "WebTransaction/Go/5",
-			CleanURL:  "/url/5",
 			Attrs:     attr,
 			CrossProcess: TxnCrossProcess{
 				Type: txnCrossProcessSynthetics,
@@ -1202,7 +1268,6 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			Start:     start,
 			Duration:  4 * time.Second,
 			FinalName: "WebTransaction/Go/4",
-			CleanURL:  "/url/4",
 			Attrs:     attr,
 			CrossProcess: TxnCrossProcess{
 				Type: txnCrossProcessSynthetics,
@@ -1219,14 +1284,14 @@ func TestTxnTraceSynthetics(t *testing.T) {
 	"12345",
 	[
 		[
-			1417136460000000,3000,"WebTransaction/Go/3","/url/3",
+			1417136460000000,3000,"WebTransaction/Go/3","/url",
 			[
 				0,{},{},
 				[0,3000,"ROOT",{},
 					[[0,3000,"WebTransaction/Go/3",{},[]]]
 				],
 				{
-					"agentAttributes":{},
+					"agentAttributes":{"request.uri":"/url"},
 					"userAttributes":{},
 					"intrinsics":{
 						"synthetics_resource_id":"resource"
@@ -1236,14 +1301,14 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			"",null,false,null,"resource"
 		],
 		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url/5",
+			1417136460000000,5000,"WebTransaction/Go/5","/url",
 			[
 				0,{},{},
 				[0,5000,"ROOT",{},
 					[[0,5000,"WebTransaction/Go/5",{},[]]]
 				],
 				{
-					"agentAttributes":{},
+					"agentAttributes":{"request.uri":"/url"},
 					"userAttributes":{},
 					"intrinsics":{
 						"synthetics_resource_id":"resource"
@@ -1253,14 +1318,14 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			"",null,false,null,"resource"
 		],
 		[
-			1417136460000000,4000,"WebTransaction/Go/4","/url/4",
+			1417136460000000,4000,"WebTransaction/Go/4","/url",
 			[
 				0,{},{},
 				[0,4000,"ROOT",{},
 					[[0,4000,"WebTransaction/Go/4",{},[]]]
 				],
 				{
-					"agentAttributes":{},
+					"agentAttributes":{"request.uri":"/url"},
 					"userAttributes":{},
 					"intrinsics":{
 						"synthetics_resource_id":"resource"

@@ -42,7 +42,9 @@ func (h *harvestedTxnTrace) UnmarshalJSON(data []byte) error {
 	h.startTimeMs = arr[0].(float64)
 	h.durationToResponse = arr[1].(float64)
 	h.transactionName = arr[2].(string)
-	h.requestURL = arr[3].(string)
+	if nil != arr[3] {
+		h.requestURL = arr[3].(string)
+	}
 	// Item 4 -- the trace -- will be dealt with shortly.
 	h.catGUID = arr[5].(string)
 	// Item 6 intentionally ignored.

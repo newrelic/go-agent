@@ -24,6 +24,9 @@ const (
 	AttributeRequestContentLength = "request.headers.contentLength"
 	// AttributeRequestHost is the request's "Host" header.
 	AttributeRequestHost = "request.headers.host"
+	// AttributeRequestURI is the request's URL without query parameters,
+	// fragment, user, or password.
+	AttributeRequestURI = "request.uri"
 	// AttributeResponseContentType is the response "Content-Type" header.
 	AttributeResponseContentType = "response.headers.contentType"
 	// AttributeResponseContentLength is the response "Content-Length" header.

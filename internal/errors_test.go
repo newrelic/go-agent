@@ -34,7 +34,6 @@ func TestErrorTraceMarshal(t *testing.T) {
 		},
 		TxnEvent: TxnEvent{
 			FinalName: "my_txn_name",
-			CleanURL:  "my_request_uri",
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -63,8 +62,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 				"priority":0.500000,
 				"sampled":false
 			},
-			"stack_trace":[],
-			"request_uri":"my_request_uri"
+			"stack_trace":[]
 		}
 	]`
 	testExpectedJSON(t, expect, string(js))
@@ -80,7 +78,6 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 		},
 		TxnEvent: TxnEvent{
 			FinalName: "my_txn_name",
-			CleanURL:  "my_request_uri",
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled: false,
@@ -102,8 +99,7 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 			"agentAttributes":{},
 			"userAttributes":{},
 			"intrinsics":{},
-			"stack_trace":[],
-			"request_uri":"my_request_uri"
+			"stack_trace":[]
 		}
 	]`
 	testExpectedJSON(t, expect, string(js))
@@ -116,7 +112,7 @@ func TestErrorTraceAttributes(t *testing.T) {
 	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
-	attr.Agent.Add(attributeRequestMethod, "GET", nil)
+	attr.Agent.Add(attributeRequestURI, "my_request_uri", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
@@ -129,7 +125,6 @@ func TestErrorTraceAttributes(t *testing.T) {
 		},
 		TxnEvent: TxnEvent{
 			FinalName: "my_txn_name",
-			CleanURL:  "my_request_uri",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
@@ -149,15 +144,14 @@ func TestErrorTraceAttributes(t *testing.T) {
 		"my_msg",
 		"my_class",
 		{
-			"agentAttributes":{"request.method":"GET"},
+			"agentAttributes":{"request.uri":"my_request_uri"},
 			"userAttributes":{"zip":456},
 			"intrinsics":{
 				"guid":"txn-id",
 				"traceId":"txn-id",
 				"priority":0.500000,
 				"sampled":false
-			},
-			"request_uri":"my_request_uri"
+			}
 		}
 	]`
 	testExpectedJSON(t, expect, string(js))
@@ -170,7 +164,7 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 	cfg := CreateAttributeConfig(aci, true)
 	attr := NewAttributes(cfg)
 	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
-	attr.Agent.Add(attributeRequestMethod, "GET", nil)
+	attr.Agent.Add(attributeRequestURI, "my_request_uri", nil)
 	AddUserAttribute(attr, "zap", 123, DestAll)
 	AddUserAttribute(attr, "zip", 456, DestAll)
 
@@ -183,7 +177,6 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 		},
 		TxnEvent: TxnEvent{
 			FinalName: "my_txn_name",
-			CleanURL:  "my_request_uri",
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled: false,
@@ -201,10 +194,9 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 		"my_msg",
 		"my_class",
 		{
-			"agentAttributes":{"request.method":"GET"},
+			"agentAttributes":{"request.uri":"my_request_uri"},
 			"userAttributes":{"zip":456},
-			"intrinsics":{},
-			"request_uri":"my_request_uri"
+			"intrinsics":{}
 		}
 	]`
 	testExpectedJSON(t, expect, string(js))
@@ -222,7 +214,6 @@ func TestErrorsLifecycle(t *testing.T) {
 	he := newHarvestErrors(3)
 	MergeTxnErrors(&he, ers, TxnEvent{
 		FinalName: "txnName",
-		CleanURL:  "requestURI",
 		Attrs:     nil,
 		BetterCAT: BetterCAT{
 			Enabled:  true,
@@ -251,8 +242,7 @@ func TestErrorsLifecycle(t *testing.T) {
                "traceId":"txn-id",
                "priority":0.500000,
                "sampled":false
-            },
-            "request_uri":"requestURI"
+            }
          }
       ],
       [
@@ -268,8 +258,7 @@ func TestErrorsLifecycle(t *testing.T) {
                "traceId":"txn-id",
                "priority":0.500000,
                "sampled":false
-            },
-            "request_uri":"requestURI"
+            }
          }
       ],
       [
@@ -285,8 +274,7 @@ func TestErrorsLifecycle(t *testing.T) {
                "traceId":"txn-id",
                "priority":0.500000,
                "sampled":false
-            },
-            "request_uri":"requestURI"
+            }
          }
       ]
    ]
@@ -317,7 +305,6 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	he := newHarvestErrors(max)
 	MergeTxnErrors(&he, ers, TxnEvent{
 		FinalName: "WebTransaction/Go/hello",
-		CleanURL:  "/url",
 		Attrs:     attr,
 	})
 

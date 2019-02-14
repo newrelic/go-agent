@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"errors"
+
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/cat"
 )
@@ -68,6 +69,7 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"request.method":   "GET",
 			"httpResponseCode": 200,
+			"request.uri":      "newrelic.com",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})

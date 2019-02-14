@@ -3,6 +3,7 @@ package newrelic
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal"
@@ -79,7 +80,6 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 		Msg:             "hello",
 		Klass:           "*errors.errorString",
 		Caller:          "go-agent.TestAddAttributeSecurityPolicyDisablesInclude",
-		URL:             "",
 		AgentAttributes: map[string]interface{}{AttributeRequestUserAgent: val},
 		UserAttributes:  map[string]interface{}{},
 	}})
@@ -129,7 +129,6 @@ func TestUserAttributeBasics(t *testing.T) {
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
 		Caller:          "go-agent.TestUserAttributeBasics",
-		URL:             "",
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
@@ -144,7 +143,6 @@ func TestUserAttributeBasics(t *testing.T) {
 	}})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:      "OtherTransaction/Go/hello",
-		CleanURL:        "",
 		NumSegments:     0,
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
@@ -191,7 +189,6 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
 		Caller:          "go-agent.TestUserAttributeConfiguration",
-		URL:             "",
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
@@ -206,7 +203,6 @@ func TestUserAttributeConfiguration(t *testing.T) {
 	}})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:      "OtherTransaction/Go/hello",
-		CleanURL:        "",
 		NumSegments:     0,
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_txn_traces": 3},
@@ -237,6 +233,7 @@ var (
 		AttributeRequestContentType:    "text/html; charset=utf-8",
 		AttributeRequestContentLength:  753,
 		AttributeRequestHost:           "my_domain.com",
+		AttributeRequestURI:            "/hello",
 	}
 	// Agent attributes expected in errors and traces from usualAttributeTestTransaction.
 	agent2 = mergeAttributes(agent1, map[string]interface{}{
@@ -284,7 +281,6 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
 		Caller:          "go-agent.agentAttributeTestcase",
-		URL:             "/hello",
 		AgentAttributes: e.Error.Agent,
 		UserAttributes:  e.Error.User,
 	}})
@@ -299,7 +295,6 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 	}})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:      "WebTransaction/Go/hello",
-		CleanURL:        "/hello",
 		NumSegments:     0,
 		AgentAttributes: e.TxnTrace.Agent,
 		UserAttributes:  e.TxnTrace.User,
@@ -433,6 +428,7 @@ var (
 		AttributeRequestContentType,
 		AttributeRequestContentLength,
 		AttributeRequestHost,
+		AttributeRequestURI,
 		AttributeResponseContentType,
 		AttributeResponseContentLength,
 		AttributeHostDisplayName,
@@ -503,4 +499,107 @@ func TestAgentAttributesExcludedFromTxnTraces(t *testing.T) {
 			Agent: map[string]interface{}{},
 			User:  user1},
 	})
+}
+
+func TestRequestURIPresent(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	u, err := url.Parse("/hello?remove=me")
+	if nil != err {
+		t.Error(err)
+	}
+	txn.SetWebRequest(customRequest{u: u})
+	txn.NoticeError(errors.New("zap"))
+	txn.End()
+
+	agentAttributes := map[string]interface{}{"request.uri": "/hello"}
+	userAttributes := map[string]interface{}{}
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:         "WebTransaction/Go/hello",
+		Msg:             "zap",
+		Klass:           "*errors.errorString",
+		Caller:          "go-agent.TestRequestURIPresent",
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "*errors.errorString",
+			"error.message":   "zap",
+			"transactionName": "WebTransaction/Go/hello",
+		},
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		NumSegments:     0,
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+}
+
+func TestRequestURIExcluded(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, AttributeRequestURI)
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	u, err := url.Parse("/hello?remove=me")
+	if nil != err {
+		t.Error(err)
+	}
+	txn.SetWebRequest(customRequest{u: u})
+	txn.NoticeError(errors.New("zap"))
+	txn.End()
+
+	agentAttributes := map[string]interface{}{}
+	userAttributes := map[string]interface{}{}
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "F",
+		},
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:         "WebTransaction/Go/hello",
+		Msg:             "zap",
+		Klass:           "*errors.errorString",
+		Caller:          "go-agent.TestRequestURIExcluded",
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "*errors.errorString",
+			"error.message":   "zap",
+			"transactionName": "WebTransaction/Go/hello",
+		},
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		NumSegments:     0,
+		AgentAttributes: agentAttributes,
+		UserAttributes:  userAttributes,
+	}})
 }

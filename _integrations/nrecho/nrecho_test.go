@@ -32,7 +32,7 @@ func TestBasicRoute(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +54,7 @@ func TestBasicRoute(t *testing.T) {
 			"httpResponseCode":             "200",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
+			"request.uri":                  "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})
@@ -67,7 +68,7 @@ func TestNilApp(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +93,7 @@ func TestTransactionContext(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +116,7 @@ func TestNotFoundHandler(t *testing.T) {
 	e.Use(Middleware(app))
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +138,7 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("POST", "/hello", nil)
+	req, err := http.NewRequest("POST", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +161,7 @@ func TestReturnsHTTPError(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,6 +180,7 @@ func TestReturnsHTTPError(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "418",
 			"request.method":   "GET",
+			"request.uri":      "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})
@@ -194,7 +196,7 @@ func TestReturnsError(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,6 +215,7 @@ func TestReturnsError(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "500",
 			"request.method":   "GET",
+			"request.uri":      "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})
@@ -228,7 +231,7 @@ func TestResponseCode(t *testing.T) {
 	})
 
 	response := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/hello", nil)
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,6 +251,7 @@ func TestResponseCode(t *testing.T) {
 			"httpResponseCode":             "418",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
+			"request.uri":                  "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})

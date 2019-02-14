@@ -112,7 +112,6 @@ func TestMergeFailedHarvest(t *testing.T) {
 	})
 	MergeTxnErrors(&h.ErrorTraces, ers, TxnEvent{
 		FinalName: "finalName",
-		CleanURL:  "requestURI",
 		Attrs:     nil,
 	})
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
@@ -175,7 +174,6 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Msg:     "msg",
 		Klass:   "klass",
 		Caller:  "internal.TestMergeFailedHarvest",
-		URL:     "requestURI",
 	}})
 
 	nextHarvest := NewHarvest(start2)

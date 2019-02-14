@@ -348,6 +348,54 @@ func TestIncludeDisabled(t *testing.T) {
 	}
 }
 
+func agentAttributesMap(attrs *Attributes, d destinationSet) map[string]interface{} {
+	buf := &bytes.Buffer{}
+	agentAttributesJSON(attrs, buf, d)
+	var m map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &m)
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func TestRequestAgentAttributesEmptyInput(t *testing.T) {
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
+	attrs := NewAttributes(cfg)
+	RequestAgentAttributes(attrs, "", nil, nil)
+	got := agentAttributesMap(attrs, DestAll)
+	expectAttributes(t, got, map[string]interface{}{})
+}
+
+func TestRequestAgentAttributesPresent(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://www.newrelic.com?remove=me", nil)
+	if nil != err {
+		t.Fatal(err)
+	}
+	req.Header.Set("Accept", "the-accept")
+	req.Header.Set("Content-Type", "the-content-type")
+	req.Header.Set("Host", "the-host")
+	req.Header.Set("User-Agent", "the-agent")
+	req.Header.Set("Referer", "http://www.example.com")
+	req.Header.Set("Content-Length", "123")
+
+	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
+
+	attrs := NewAttributes(cfg)
+	RequestAgentAttributes(attrs, req.Method, req.Header, req.URL)
+	got := agentAttributesMap(attrs, DestAll)
+	expectAttributes(t, got, map[string]interface{}{
+		"request.headers.contentType":   "the-content-type",
+		"request.headers.host":          "the-host",
+		"request.headers.User-Agent":    "the-agent",
+		"request.headers.referer":       "http://www.example.com",
+		"request.headers.contentLength": 123,
+		"request.method":                "GET",
+		"request.uri":                   "http://www.newrelic.com",
+		"request.headers.accept":        "the-accept",
+	})
+}
+
 func BenchmarkAgentAttributes(b *testing.B) {
 	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 
@@ -368,8 +416,38 @@ func BenchmarkAgentAttributes(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		attrs := NewAttributes(cfg)
-		RequestAgentAttributes(attrs, req.Method, req.Header)
+		RequestAgentAttributes(attrs, req.Method, req.Header, req.URL)
 		buf := bytes.Buffer{}
 		agentAttributesJSON(attrs, &buf, destTxnTrace)
+	}
+}
+
+func TestGetAgentValue(t *testing.T) {
+	// Test nil safe
+	var attrs *Attributes
+	outstr, outother := attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
+	if outstr != "" || outother != nil {
+		t.Error(outstr, outother)
+	}
+
+	c := sampleAttributeConfigInput
+	c.TransactionTracer.Exclude = []string{"request.uri"}
+	cfg := CreateAttributeConfig(c, true)
+	attrs = NewAttributes(cfg)
+	attrs.Agent.Add(attributeResponseHeadersContentLength, "", 123)
+	attrs.Agent.Add(attributeRequestMethod, "GET", nil)
+	attrs.Agent.Add(attributeRequestURI, "/url", nil) // disabled by configuration
+
+	outstr, outother = attrs.GetAgentValue(attributeResponseHeadersContentLength, destTxnTrace)
+	if outstr != "" || outother != 123 {
+		t.Error(outstr, outother)
+	}
+	outstr, outother = attrs.GetAgentValue(attributeRequestMethod, destTxnTrace)
+	if outstr != "GET" || outother != nil {
+		t.Error(outstr, outother)
+	}
+	outstr, outother = attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
+	if outstr != "" || outother != nil {
+		t.Error(outstr, outother)
 	}
 }
