@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.5.0
+
 * Added support for [New Relic Browser](https://docs.newrelic.com/docs/browser)
   using the new `BrowserTimingHeader` method on the
   [`Transaction`](https://godoc.org/github.com/newrelic/go-agent#Transaction)
