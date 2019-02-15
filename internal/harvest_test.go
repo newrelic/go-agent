@@ -265,7 +265,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"WebTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -288,7 +288,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"WebTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -306,7 +306,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -326,7 +326,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", "", false, []float64{1, 123, 123, 123, 123, 123 * 123}},
@@ -374,7 +374,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"WebTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -393,7 +393,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"WebTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -409,7 +409,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"Errors/all", "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -425,7 +425,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
 		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
-		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundRollup, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
 	})
