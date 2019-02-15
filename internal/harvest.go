@@ -145,7 +145,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		totalTimeRollup = totalTimeBackground
 	}
 
-	metrics.addDuration(args.FinalName, "", args.Duration, args.Duration, forced)
+	metrics.addDuration(args.FinalName, "", args.Duration, 0, forced)
 	metrics.addDuration(durationRollup, "", args.Duration, args.Duration, forced)
 
 	metrics.addDuration(totalTimeRollup, "", args.TotalTime, args.TotalTime, forced)

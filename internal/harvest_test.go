@@ -264,7 +264,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	metrics := newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -287,7 +287,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -305,7 +305,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -325,7 +325,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -373,7 +373,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	metrics := newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -392,7 +392,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{webName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{webName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{webRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{dispatcherMetric, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{"WebTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -408,7 +408,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
@@ -424,7 +424,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	metrics = newMetricTable(100, time.Now())
 	CreateTxnMetrics(args, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{backgroundName, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{backgroundName, "", true, []float64{1, 123, 0, 123, 123, 123 * 123}},
 		{backgroundRollup, "", true, []float64{1, 123, 123, 123, 123, 123 * 123}},
 		{"OtherTransactionTotalTime", "", true, []float64{1, 150, 150, 150, 150, 150 * 150}},
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
