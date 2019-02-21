@@ -31,10 +31,6 @@ func startNewRelicSegment(request *request.Request) {
 	httpCtx := request.HTTPRequest.Context()
 	txn := newrelic.FromContext(httpCtx)
 
-	if nil == txn {
-		return
-	}
-
 	var segment endable
 	if request.ClientInfo.ServiceName == "dynamodb" {
 		segment = &newrelic.DatastoreSegment{
