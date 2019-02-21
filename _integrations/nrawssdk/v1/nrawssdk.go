@@ -38,7 +38,7 @@ func StartNewRelicSegment(request *request.Request) {
 	var segment endable
 	if request.ClientInfo.ServiceName == "dynamodb" {
 		segment = &newrelic.DatastoreSegment{
-			Product:            newrelic.DatastoreProduct("DynamoDB"),
+			Product:            newrelic.DatastoreDynamoDB,
 			Collection:         getTableName(request.Params),
 			Operation:          request.Operation.Name,
 			ParameterizedQuery: "",
