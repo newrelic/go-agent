@@ -27,7 +27,7 @@ func getTableName(params interface{}) string {
 	return tableName
 }
 
-func StartNewRelicSegment(request *request.Request) {
+func startNewRelicSegment(request *request.Request) {
 	httpCtx := request.HTTPRequest.Context()
 	txn := newrelic.FromContext(httpCtx)
 
@@ -56,7 +56,7 @@ func StartNewRelicSegment(request *request.Request) {
 	request.HTTPRequest = request.HTTPRequest.WithContext(ctx)
 }
 
-func EndNewRelicSegment(request *request.Request) {
+func endNewRelicSegment(request *request.Request) {
 	httpCtx := request.HTTPRequest.Context()
 
 	if segment, ok := httpCtx.Value(segmentContextKey).(endable); ok {
@@ -66,12 +66,12 @@ func EndNewRelicSegment(request *request.Request) {
 
 func InstrumentHandlers(handlers *request.Handlers) {
 	handlers.Validate.SetFrontNamed(request.NamedHandler{
-		Name: "StartNewRelicSegment",
-		Fn:   StartNewRelicSegment,
+		Name: "startNewRelicSegment",
+		Fn:   startNewRelicSegment,
 	})
 	handlers.Complete.SetBackNamed(request.NamedHandler{
-		Name: "EndNewRelicSegment",
-		Fn:   EndNewRelicSegment,
+		Name: "endNewRelicSegment",
+		Fn:   endNewRelicSegment,
 	})
 }
 
