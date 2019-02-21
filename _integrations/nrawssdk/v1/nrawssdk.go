@@ -75,7 +75,7 @@ func InstrumentHandlers(handlers *request.Handlers) {
 	})
 }
 
-func SessionWithNewRelic(s *session.Session) *session.Session {
+func InstrumentSession(s *session.Session) *session.Session {
 	InstrumentHandlers(&s.Handlers)
 	return s
 }

@@ -74,7 +74,7 @@ func InstrumentHandlers(handlers *aws.Handlers) {
 	})
 }
 
-func ConfigWithNewRelic(cfg aws.Config) aws.Config {
+func InstrumentConfig(cfg aws.Config) aws.Config {
 	InstrumentHandlers(&cfg.Handlers)
 	return cfg
 }
