@@ -17,10 +17,19 @@ type endable interface{ End() error }
 func getTableName(params interface{}) string {
 	var tableName string
 
-	v := reflect.ValueOf(params).Elem()
-	n := v.FieldByName("TableName")
-	if name, ok := n.Interface().(string); ok {
-		tableName = name
+	v := reflect.ValueOf(params)
+	if v.IsValid() && v.Kind() == reflect.Ptr {
+		e := v.Elem()
+		if e.Kind() == reflect.Struct {
+			n := e.FieldByName("TableName")
+			if n.IsValid() {
+				if name, ok := n.Interface().(*string); ok {
+					if nil != name {
+						tableName = *name
+					}
+				}
+			}
+		}
 	}
 
 	return tableName
