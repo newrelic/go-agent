@@ -43,6 +43,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.ErrorCollector.Attributes.Exclude = append(cfg.ErrorCollector.Attributes.Exclude, "6")
 	cfg.TransactionTracer.Attributes.Include = append(cfg.TransactionTracer.Attributes.Include, "7")
 	cfg.TransactionTracer.Attributes.Exclude = append(cfg.TransactionTracer.Attributes.Exclude, "8")
+	cfg.BrowserMonitoring.Attributes.Include = append(cfg.BrowserMonitoring.Attributes.Include, "9")
+	cfg.BrowserMonitoring.Attributes.Exclude = append(cfg.BrowserMonitoring.Attributes.Exclude, "10")
 	cfg.Transport = &http.Transport{}
 	cfg.Logger = NewLogger(os.Stdout)
 
@@ -58,6 +60,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.ErrorCollector.Attributes.Exclude[0] = "zap"
 	cfg.TransactionTracer.Attributes.Include[0] = "zap"
 	cfg.TransactionTracer.Attributes.Exclude[0] = "zap"
+	cfg.BrowserMonitoring.Attributes.Include[0] = "zap"
+	cfg.BrowserMonitoring.Attributes.Exclude[0] = "zap"
 
 	expect := internal.CompactJSONString(`[
 	{
@@ -69,11 +73,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"AppName":"my appname",
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
 			"BrowserMonitoring":{
-				"Attributes":{
-					"Enabled":false,
-					"Exclude":null,
-					"Include":null
-				},
+				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":true},

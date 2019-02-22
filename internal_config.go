@@ -43,6 +43,7 @@ func copyConfigReferenceFields(cfg Config) Config {
 	cp.ErrorCollector.Attributes = copyDestConfig(cfg.ErrorCollector.Attributes)
 	cp.TransactionEvents.Attributes = copyDestConfig(cfg.TransactionEvents.Attributes)
 	cp.TransactionTracer.Attributes = copyDestConfig(cfg.TransactionTracer.Attributes)
+	cp.BrowserMonitoring.Attributes = copyDestConfig(cfg.BrowserMonitoring.Attributes)
 
 	return cp
 }
