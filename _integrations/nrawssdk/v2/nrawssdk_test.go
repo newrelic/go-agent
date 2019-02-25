@@ -70,12 +70,12 @@ func TestInstrumentRequestExternal(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"External/all", "", true, nil},
-		{"External/allOther", "", true, nil},
-		{"External/lambda.us-west-2.amazonaws.com/all", "", false, nil},
-		{"External/lambda.us-west-2.amazonaws.com/all", "OtherTransaction/Go/lambda-txn", false, nil},
-		{"OtherTransaction/Go/lambda-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
@@ -99,16 +99,16 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"Datastore/DynamoDB/all", "", true, nil},
-		{"Datastore/DynamoDB/allOther", "", true, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allOther", "", true, nil},
-		{"Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", "", false, nil},
-		{"Datastore/operation/DynamoDB/DescribeTable", "", false, nil},
-		{"Datastore/statement/DynamoDB/thebesttable/DescribeTable", "", false, nil},
-		{"Datastore/statement/DynamoDB/thebesttable/DescribeTable", "OtherTransaction/Go/dynamodb-txn", false, nil},
-		{"OtherTransaction/Go/dynamodb-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
@@ -171,12 +171,12 @@ func TestInstrumentConfigExternal(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"External/all", "", true, nil},
-		{"External/allOther", "", true, nil},
-		{"External/lambda.us-west-2.amazonaws.com/all", "", false, nil},
-		{"External/lambda.us-west-2.amazonaws.com/all", "OtherTransaction/Go/lambda-txn", false, nil},
-		{"OtherTransaction/Go/lambda-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
@@ -201,16 +201,16 @@ func TestInstrumentConfigDatastore(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"Datastore/DynamoDB/all", "", true, nil},
-		{"Datastore/DynamoDB/allOther", "", true, nil},
-		{"Datastore/all", "", true, nil},
-		{"Datastore/allOther", "", true, nil},
-		{"Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", "", false, nil},
-		{"Datastore/operation/DynamoDB/DescribeTable", "", false, nil},
-		{"Datastore/statement/DynamoDB/thebesttable/DescribeTable", "", false, nil},
-		{"Datastore/statement/DynamoDB/thebesttable/DescribeTable", "OtherTransaction/Go/dynamodb-txn", false, nil},
-		{"OtherTransaction/Go/dynamodb-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
@@ -274,8 +274,8 @@ func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Go/lambda-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
@@ -299,8 +299,8 @@ func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{"OtherTransaction/Go/dynamodb-txn", "", true, nil},
-		{"OtherTransaction/all", "", true, nil},
+		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 }
 
