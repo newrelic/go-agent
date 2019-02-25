@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 )
@@ -36,8 +36,15 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+type fakeCreds struct{}
+
+func (c fakeCreds) Retrieve() (aws.Credentials, error) {
+	return aws.Credentials{}, nil
+}
+
 func newConfig(instrument bool) aws.Config {
 	cfg, _ := external.LoadDefaultAWSConfig()
+	cfg.Credentials = fakeCreds{}
 	cfg.Region = endpoints.UsWest2RegionID
 	cfg.HTTPClient.Transport = &fakeTransport{}
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -36,9 +37,17 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+type fakeCreds struct{}
+
+func (c *fakeCreds) Retrieve() (credentials.Value, error) {
+	return credentials.Value{}, nil
+}
+func (c *fakeCreds) IsExpired() bool { return false }
+
 func newSession() *session.Session {
 	r := "us-west-2"
 	ses := session.New()
+	ses.Config.Credentials = credentials.NewCredentials(&fakeCreds{})
 	ses.Config.HTTPClient.Transport = &fakeTransport{}
 	ses.Config.Region = &r
 	return ses
