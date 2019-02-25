@@ -210,10 +210,28 @@ type Config struct {
 }
 
 // AttributeDestinationConfig controls the attributes included with errors and
-// transaction events.
+// transaction events.  For more information, see:
+// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/agent-attributes
 type AttributeDestinationConfig struct {
+	// Enabled controls whether or not this destination will get any
+	// attributes at all.  For example, to prevent any attributes from being
+	// added to errors, set:
+	//
+	//	cfg.ErrorCollector.Attributes.Enabled = false
+	//
 	Enabled bool
 	Include []string
+	// Exclude allows you to prevent the capture of certain attributes.  For
+	// example, to prevent the capture of the request URL attribute
+	// ("request.uri"), set:
+	//
+	//	cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, newrelic.AttributeRequestURI)
+	//
+	// The '*' character acts as a wildcard.  For example, to prevent the
+	// capture of all request related attributes, set:
+	//
+	//	cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, "request.*")
+	//
 	Exclude []string
 }
 
