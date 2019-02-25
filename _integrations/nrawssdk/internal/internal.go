@@ -35,6 +35,9 @@ func getTableName(params interface{}) string {
 	return tableName
 }
 
+// StartSegment starts a segment of either type DatastoreSegment or
+// ExternalSegment given the serviceName provided. The segment is then added to
+// the request context.
 func StartSegment(httpRequest *http.Request, serviceName, operation string,
 	params interface{}) *http.Request {
 
@@ -62,6 +65,7 @@ func StartSegment(httpRequest *http.Request, serviceName, operation string,
 	return httpRequest.WithContext(ctx)
 }
 
+// EndSegment will end any segment found in the given context.
 func EndSegment(ctx context.Context) {
 	if segment, ok := ctx.Value(segmentContextKey).(endable); ok {
 		segment.End()

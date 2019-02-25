@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetTableName(t *testing.T) {
-	var str string = "this is a string"
+	str := "this is a string"
 	var emptyStr string
 	strPtr := &str
 	emptyStrPtr := &emptyStr
