@@ -4,17 +4,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrawssdk/common"
+	internal "github.com/newrelic/go-agent/_integrations/nrawssdk/internal"
 )
 
 func startSegment(req *request.Request) {
-	req.HTTPRequest = common.StartSegment(req.HTTPRequest,
+	req.HTTPRequest = internal.StartSegment(req.HTTPRequest,
 		req.ClientInfo.ServiceName, req.Operation.Name, req.Params)
 }
 
 func endSegment(req *request.Request) {
 	ctx := req.HTTPRequest.Context()
-	common.EndSegment(ctx)
+	internal.EndSegment(ctx)
 }
 
 // InstrumentHandlers will add instrumentation to the given *request.Handlers.
