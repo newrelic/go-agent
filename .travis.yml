@@ -13,6 +13,8 @@ matrix:
   - go: "1.10"
   - go: "1.11"
   - go: "1.11"
+    env: INTEGRATION=_integrations/nrawssdk
+  - go: "1.11"
     env: INTEGRATION=_integrations/nrecho
   - go: "1.11"
     env: INTEGRATION=_integrations/nrgin/v1
