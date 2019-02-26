@@ -44,7 +44,7 @@ func ExtendValidator(v Validator, field interface{}) Validator {
 }
 
 // WantMetric is a metric expectation.  If Data is nil, then any data values are
-// acceptable.
+// acceptable.  If Data has len 1, then only the metric count is validated.
 type WantMetric struct {
 	Name   string
 	Scope  string
@@ -222,11 +222,14 @@ func expectMetrics(t Validator, mt *metricTable, expect []WantMetric, exactMatch
 
 		if nil != e.Data {
 			expectMetricField(t, id, e.Data[0], m.data.countSatisfied, "countSatisfied")
-			expectMetricField(t, id, e.Data[1], m.data.totalTolerated, "totalTolerated")
-			expectMetricField(t, id, e.Data[2], m.data.exclusiveFailed, "exclusiveFailed")
-			expectMetricField(t, id, e.Data[3], m.data.min, "min")
-			expectMetricField(t, id, e.Data[4], m.data.max, "max")
-			expectMetricField(t, id, e.Data[5], m.data.sumSquares, "sumSquares")
+
+			if len(e.Data) > 1 {
+				expectMetricField(t, id, e.Data[1], m.data.totalTolerated, "totalTolerated")
+				expectMetricField(t, id, e.Data[2], m.data.exclusiveFailed, "exclusiveFailed")
+				expectMetricField(t, id, e.Data[3], m.data.min, "min")
+				expectMetricField(t, id, e.Data[4], m.data.max, "max")
+				expectMetricField(t, id, e.Data[5], m.data.sumSquares, "sumSquares")
+			}
 		}
 	}
 	if exactMatch {

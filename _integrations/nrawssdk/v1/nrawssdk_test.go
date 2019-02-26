@@ -2,6 +2,7 @@ package nrawssdk
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -353,4 +354,103 @@ func TestDoublyInstrumented(t *testing.T) {
 	if found := hs.Send.Len(); 2 != found {
 		t.Error("unexpected number of Send handlers found:", found)
 	}
+}
+
+type firstFailingTransport struct{}
+
+var failing = true
+
+func (t firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if failing {
+		failing = false
+		return nil, errors.New("Oops this failed")
+	}
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+	}, nil
+}
+
+func TestRetrySend(t *testing.T) {
+	app := testApp(t)
+	txn := app.StartTransaction("lambda-txn", nil, nil)
+
+	ses := newSession()
+	ses.Config.HTTPClient.Transport = &firstFailingTransport{}
+
+	client := lambda.New(ses)
+	input := &lambda.InvokeInput{
+		ClientContext:  aws.String("MyApp"),
+		FunctionName:   aws.String("non-existent-function"),
+		InvocationType: aws.String("Event"),
+		LogType:        aws.String("Tail"),
+		Payload:        []byte("{}"),
+	}
+
+	req, out := client.InvokeRequest(input)
+	req = InstrumentRequest(req, txn)
+
+	err := req.Send()
+	if nil != err {
+		t.Error(err)
+	}
+	if 200 != *out.StatusCode {
+		t.Error("wrong status code on response", out.StatusCode)
+	}
+
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+}
+
+func TestRequestSentTwice(t *testing.T) {
+	app := testApp(t)
+	txn := app.StartTransaction("lambda-txn", nil, nil)
+
+	client := lambda.New(newSession())
+	input := &lambda.InvokeInput{
+		ClientContext:  aws.String("MyApp"),
+		FunctionName:   aws.String("non-existent-function"),
+		InvocationType: aws.String("Event"),
+		LogType:        aws.String("Tail"),
+		Payload:        []byte("{}"),
+	}
+
+	req, out := client.InvokeRequest(input)
+	req = InstrumentRequest(req, txn)
+
+	firstErr := req.Send()
+	if nil != firstErr {
+		t.Error(firstErr)
+	}
+	if 200 != *out.StatusCode {
+		t.Error("wrong status code on response", out.StatusCode)
+	}
+
+	secondErr := req.Send()
+	if nil != secondErr {
+		t.Error(secondErr)
+	}
+	if 200 != *out.StatusCode {
+		t.Error("wrong status code on response", out.StatusCode)
+	}
+
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
 }
