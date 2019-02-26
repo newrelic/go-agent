@@ -356,13 +356,13 @@ func TestDoublyInstrumented(t *testing.T) {
 	}
 }
 
-type firstFailingTransport struct{}
+type firstFailingTransport struct {
+	failing bool
+}
 
-var failing = true
-
-func (t firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	if failing {
-		failing = false
+func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.failing {
+		t.failing = false
 		return nil, errors.New("Oops this failed")
 	}
 	return &http.Response{
@@ -377,7 +377,7 @@ func TestRetrySend(t *testing.T) {
 	txn := app.StartTransaction("lambda-txn", nil, nil)
 
 	ses := newSession()
-	ses.Config.HTTPClient.Transport = &firstFailingTransport{}
+	ses.Config.HTTPClient.Transport = &firstFailingTransport{failing: true}
 
 	client := lambda.New(ses)
 	input := &lambda.InvokeInput{
