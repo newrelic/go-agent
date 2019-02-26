@@ -339,21 +339,18 @@ func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
 }
 
 func TestDoublyInstrumented(t *testing.T) {
-	countHandlers := func(hs *request.Handlers, t *testing.T, expected int) {
-		if found := hs.Validate.Len(); expected != found {
-			t.Error("unexpected number of Validate handlers found:", found)
-		}
-		if found := hs.Complete.Len(); expected != found {
-			t.Error("unexpected number of Complete handlers found:", found)
-		}
+	hs := &request.Handlers{}
+	if found := hs.Send.Len(); 0 != found {
+		t.Error("unexpected number of Send handlers found:", found)
 	}
 
-	hs := &request.Handlers{}
-	countHandlers(hs, t, 0)
+	InstrumentHandlers(hs)
+	if found := hs.Send.Len(); 2 != found {
+		t.Error("unexpected number of Send handlers found:", found)
+	}
 
 	InstrumentHandlers(hs)
-	countHandlers(hs, t, 1)
-
-	InstrumentHandlers(hs)
-	countHandlers(hs, t, 1)
+	if found := hs.Send.Len(); 2 != found {
+		t.Error("unexpected number of Send handlers found:", found)
+	}
 }

@@ -21,11 +21,11 @@ func endSegment(req *aws.Request) {
 // these will be Datastore segments and for all others they will be External
 // segments.
 func InstrumentHandlers(handlers *aws.Handlers) {
-	handlers.Validate.SetFrontNamed(aws.NamedHandler{
+	handlers.Send.SetFrontNamed(aws.NamedHandler{
 		Name: "StartNewRelicSegment",
 		Fn:   startSegment,
 	})
-	handlers.Complete.SetBackNamed(aws.NamedHandler{
+	handlers.Send.SetBackNamed(aws.NamedHandler{
 		Name: "EndNewRelicSegment",
 		Fn:   endSegment,
 	})
