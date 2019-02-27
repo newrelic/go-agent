@@ -20,11 +20,19 @@ import (
 func testApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
 	cfg.Enabled = false
+	cfg.CrossApplicationTracer.Enabled = false
+	cfg.DistributedTracer.Enabled = true
+
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
-	internal.HarvestTesting(app, nil)
+
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+
+	internal.HarvestTesting(app, replyfn)
 	return app
 }
 
@@ -81,6 +89,8 @@ func TestInstrumentRequestExternal(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
@@ -118,6 +128,8 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
@@ -190,6 +202,8 @@ func TestInstrumentSessionExternal(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
@@ -230,6 +244,8 @@ func TestInstrumentSessionDatastore(t *testing.T) {
 		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
@@ -307,6 +323,8 @@ func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
@@ -334,6 +352,8 @@ func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
@@ -402,6 +422,8 @@ func TestRetrySend(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
@@ -446,6 +468,8 @@ func TestRequestSentTwice(t *testing.T) {
 	txn.End()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
