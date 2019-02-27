@@ -8,12 +8,13 @@ import (
 
 func startSegment(req *aws.Request) {
 	req.HTTPRequest = internal.StartSegment(req.HTTPRequest,
-		req.Metadata.ServiceName, req.Operation.Name, req.Params)
+		req.Metadata.ServiceName, req.Operation.Name,
+		req.Metadata.SigningRegion, req.Params)
 }
 
 func endSegment(req *aws.Request) {
 	ctx := req.HTTPRequest.Context()
-	internal.EndSegment(ctx)
+	internal.EndSegment(ctx, req.HTTPResponse.Header)
 }
 
 // InstrumentHandlers will add instrumentation to the given *request.Handlers.
