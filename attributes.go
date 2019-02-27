@@ -58,4 +58,7 @@ const (
 	SpanAttributePeerHostname = "peer.hostname"
 	SpanAttributeHTTPURL      = "http.url"
 	SpanAttributeHTTPMethod   = "http.method"
+	SpanAttributeAWSOperation = "aws.operation"
+	SpanAttributeAWSRequestID = "aws.requestId"
+	SpanAttributeAWSRegion    = "aws.region"
 )

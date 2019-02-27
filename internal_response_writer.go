@@ -5,6 +5,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+
+	"github.com/newrelic/go-agent/internal"
 )
 
 func (txn *txn) CloseNotify() <-chan bool {
@@ -49,98 +51,114 @@ func upgradeTxn(txn *txn) Transaction {
 	default: // No optional interfaces implemented
 		return struct {
 			Transaction
-		}{txn}
+			internal.AddAgentSpanAttributer
+		}{txn, txn}
 	case i0:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
-		}{txn, txn}
+		}{txn, txn, txn}
 	case i1:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.Flusher
-		}{txn, txn}
+		}{txn, txn, txn}
 	case i0 | i1:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			http.Flusher
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i2:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.Hijacker
-		}{txn, txn}
+		}{txn, txn, txn}
 	case i0 | i2:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			http.Hijacker
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i1 | i2:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.Flusher
 			http.Hijacker
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i0 | i1 | i2:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			http.Flusher
 			http.Hijacker
-		}{txn, txn, txn, txn}
+		}{txn, txn, txn, txn, txn}
 	case i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			io.ReaderFrom
-		}{txn, txn}
+		}{txn, txn, txn}
 	case i0 | i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i1 | i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.Flusher
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i0 | i1 | i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			http.Flusher
 			io.ReaderFrom
-		}{txn, txn, txn, txn}
+		}{txn, txn, txn, txn, txn}
 	case i2 | i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn}
+		}{txn, txn, txn, txn}
 	case i0 | i2 | i3:
 		return struct {
 			Transaction
+			internal.AddAgentSpanAttributer
 			http.CloseNotifier
 			http.Hijacker
 			io.ReaderFrom
-		}{txn, txn, txn, txn}
+		}{txn, txn, txn, txn, txn}
 	case i1 | i2 | i3:
 		return struct {
 			Transaction
-			http.Flusher
-			http.Hijacker
-			io.ReaderFrom
-		}{txn, txn, txn, txn}
-	case i0 | i1 | i2 | i3:
-		return struct {
-			Transaction
-			http.CloseNotifier
+			internal.AddAgentSpanAttributer
 			http.Flusher
 			http.Hijacker
 			io.ReaderFrom
 		}{txn, txn, txn, txn, txn}
+	case i0 | i1 | i2 | i3:
+		return struct {
+			Transaction
+			internal.AddAgentSpanAttributer
+			http.CloseNotifier
+			http.Flusher
+			http.Hijacker
+			io.ReaderFrom
+		}{txn, txn, txn, txn, txn, txn}
 	}
 }

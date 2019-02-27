@@ -30,7 +30,7 @@ type SpanEvent struct {
 	Component     string
 	Kind          string
 	IsEntrypoint  bool
-	Attributes    map[SpanAttribute]string
+	Attributes    spanAttributeMap
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.

@@ -1014,3 +1014,9 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 func (txn *txn) Application() Application {
 	return txn.app
 }
+
+var _ internal.AddAgentSpanAttributer = &txn{}
+
+func (txn *txn) AddAgentSpanAttribute(key internal.SpanAttribute, val string) {
+	txn.TxnData.AddAgentSpanAttribute(key, val)
+}

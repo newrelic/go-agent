@@ -461,3 +461,135 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 		},
 	})
 }
+
+func TestAddAgentSpanAttribute(t *testing.T) {
+	// Test that AddAgentSpanAttribute successfully adds attributes to
+	// spans.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.CrossApplicationTracer.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := StartSegment(txn, "hi")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	s.End()
+	txn.End()
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "Custom/hi",
+				"sampled":  true,
+				"category": "generic",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"aws.operation": "secret",
+				"aws.requestId": "123",
+				"aws.region":    "west",
+			},
+		},
+	})
+}
+
+func TestAddAgentSpanAttributeExcluded(t *testing.T) {
+	// Test that span attributes added by AddAgentSpanAttribute are subject
+	// to span attribute configuration.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.SpanEvents.Attributes.Exclude = []string{
+			SpanAttributeAWSOperation,
+			SpanAttributeAWSRequestID,
+			SpanAttributeAWSRegion,
+		}
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := StartSegment(txn, "hi")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	s.End()
+	txn.End()
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "Custom/hi",
+				"sampled":  true,
+				"category": "generic",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
+	// Test that AddAgentSpanAttribute does not have problems if called when
+	// there is no active span.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.CrossApplicationTracer.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	// Do not panic if there are no active spans!
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	txn.End()
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttributeNilTransaction(t *testing.T) {
+	// Test that AddAgentSpanAttribute does not panic if the transaction is
+	// nil.
+	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSOperation, "secret")
+}

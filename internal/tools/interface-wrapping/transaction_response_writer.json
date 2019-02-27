@@ -3,7 +3,8 @@
 	"variable_name": "txn",
 	"test_variable_name": "txn.writer",
 	"required_interfaces": [
-		"Transaction"
+		"Transaction",
+		"internal.AddAgentSpanAttributer"
 	],
 	"optional_interfaces": [
 		"http.CloseNotifier",

@@ -104,19 +104,30 @@ type SegmentStartTime struct {
 	Depth int
 }
 
+type spanAttributeMap map[SpanAttribute]string
+
+func (m *spanAttributeMap) add(key SpanAttribute, val string) {
+	if *m == nil {
+		*m = make(spanAttributeMap)
+	}
+	(*m)[key] = val
+}
+
 type segmentFrame struct {
 	segmentTime
-	children time.Duration
-	spanID   string
+	children   time.Duration
+	spanID     string
+	attributes spanAttributeMap
 }
 
 type segmentEnd struct {
-	start     segmentTime
-	stop      segmentTime
-	duration  time.Duration
-	exclusive time.Duration
-	SpanID    string
-	ParentID  string
+	start      segmentTime
+	stop       segmentTime
+	duration   time.Duration
+	exclusive  time.Duration
+	SpanID     string
+	ParentID   string
+	attributes spanAttributeMap
 }
 
 func (end segmentEnd) spanEvent() *SpanEvent {
@@ -128,6 +139,7 @@ func (end segmentEnd) spanEvent() *SpanEvent {
 		ParentID:     end.ParentID,
 		Timestamp:    end.start.Time,
 		Duration:     end.duration,
+		Attributes:   end.attributes,
 		IsEntrypoint: false,
 	}
 }
@@ -158,6 +170,13 @@ func TracerRootChildren(t *TxnData) time.Duration {
 		lostChildren += t.stack[i].children
 	}
 	return t.finishedChildren + lostChildren
+}
+
+// AddAgentSpanAttribute allows attributes to be added to spans.
+func (t *TxnData) AddAgentSpanAttribute(key SpanAttribute, val string) {
+	if len(t.stack) > 0 {
+		t.stack[len(t.stack)-1].attributes.add(key, val)
+	}
 }
 
 // StartSegment begins a segment.
@@ -234,8 +253,9 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 		children += t.stack[i].children
 	}
 	s := segmentEnd{
-		stop:  t.time(now),
-		start: frame.segmentTime,
+		stop:       t.time(now),
+		start:      frame.segmentTime,
+		attributes: frame.attributes,
 	}
 	if s.stop.Time.After(s.start.Time) {
 		s.duration = s.stop.Time.Sub(s.start.Time)
@@ -365,10 +385,8 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 		evt.Category = spanCategoryHTTP
 		evt.Kind = "client"
 		evt.Component = "http"
-		evt.Attributes = map[SpanAttribute]string{
-			spanAttributeHTTPURL:    SafeURL(u),
-			spanAttributeHTTPMethod: method,
-		}
+		evt.Attributes.add(spanAttributeHTTPURL, SafeURL(u))
+		evt.Attributes.add(spanAttributeHTTPMethod, method)
 		t.saveSpanEvent(evt)
 	}
 
@@ -524,12 +542,10 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.Attributes = map[SpanAttribute]string{
-			spanAttributeDBStatement:  p.ParameterizedQuery,
-			spanAttributeDBInstance:   p.Database,
-			spanAttributePeerAddress:  datastoreSpanAddress(p.Host, p.PortPathOrID),
-			spanAttributePeerHostname: p.Host,
-		}
+		evt.Attributes.add(spanAttributeDBStatement, p.ParameterizedQuery)
+		evt.Attributes.add(spanAttributeDBInstance, p.Database)
+		evt.Attributes.add(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		evt.Attributes.add(spanAttributePeerHostname, p.Host)
 		p.Tracer.saveSpanEvent(evt)
 	}
 

@@ -35,6 +35,20 @@ const (
 // SpanAttribute is an attribute put in span events.
 type SpanAttribute string
 
+// AddAgentSpanAttributer should be implemented by the Transaction.
+type AddAgentSpanAttributer interface {
+	AddAgentSpanAttribute(key SpanAttribute, val string)
+}
+
+// AddAgentSpanAttribute allows instrumentation packages to add span attributes.
+func AddAgentSpanAttribute(txn interface{}, key SpanAttribute, val string) {
+	if aa, ok := txn.(AddAgentSpanAttributer); ok {
+		aa.AddAgentSpanAttribute(key, val)
+	}
+}
+
+// These span event string constants must match the contents of the top level
+// attributes.go file.
 const (
 	spanAttributeDBStatement  SpanAttribute = "db.statement"
 	spanAttributeDBInstance   SpanAttribute = "db.instance"
@@ -42,6 +56,11 @@ const (
 	spanAttributePeerHostname SpanAttribute = "peer.hostname"
 	spanAttributeHTTPURL      SpanAttribute = "http.url"
 	spanAttributeHTTPMethod   SpanAttribute = "http.method"
+	// These span attributes are added by aws sdk instrumentation.
+	// https://source.datanerd.us/agents/agent-specs/blob/master/implementation_guides/aws-sdk.md#span-and-segment-attributes
+	SpanAttributeAWSOperation SpanAttribute = "aws.operation"
+	SpanAttributeAWSRequestID SpanAttribute = "aws.requestId"
+	SpanAttributeAWSRegion    SpanAttribute = "aws.region"
 )
 
 func (sa SpanAttribute) String() string { return string(sa) }
@@ -73,6 +92,9 @@ var (
 		spanAttributePeerHostname,
 		spanAttributeHTTPURL,
 		spanAttributeHTTPMethod,
+		SpanAttributeAWSOperation,
+		SpanAttributeAWSRequestID,
+		SpanAttributeAWSRegion,
 	}
 )
 
