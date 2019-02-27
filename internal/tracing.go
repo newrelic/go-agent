@@ -201,6 +201,7 @@ func (t *TxnData) CurrentSpanIdentifier() string {
 }
 
 func (t *TxnData) saveSpanEvent(e *SpanEvent) {
+	e.Attributes = t.Attrs.filterSpanAttributes(e.Attributes)
 	if len(t.spanEvents) < maxSpanEvents {
 		t.spanEvents = append(t.spanEvents, e)
 	}
@@ -362,9 +363,11 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = externalHostMetric(key)
 		evt.Category = spanCategoryHTTP
-		evt.ExternalExtras = &spanExternalExtras{
-			URL:    SafeURL(u),
-			Method: method,
+		evt.Kind = "client"
+		evt.Component = "http"
+		evt.Attributes = map[SpanAttribute]string{
+			spanAttributeHTTPURL:    SafeURL(u),
+			spanAttributeHTTPMethod: method,
 		}
 		t.saveSpanEvent(evt)
 	}
@@ -519,12 +522,13 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = scopedMetric
 		evt.Category = spanCategoryDatastore
-		evt.DatastoreExtras = &spanDatastoreExtras{
-			Component: p.Product,
-			Statement: p.ParameterizedQuery,
-			Instance:  p.Database,
-			Address:   datastoreSpanAddress(p.Host, p.PortPathOrID),
-			Hostname:  p.Host,
+		evt.Kind = "client"
+		evt.Component = p.Product
+		evt.Attributes = map[SpanAttribute]string{
+			spanAttributeDBStatement:  p.ParameterizedQuery,
+			spanAttributeDBInstance:   p.Database,
+			spanAttributePeerAddress:  datastoreSpanAddress(p.Host, p.PortPathOrID),
+			spanAttributePeerHostname: p.Host,
 		}
 		p.Tracer.saveSpanEvent(evt)
 	}

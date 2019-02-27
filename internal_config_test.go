@@ -45,6 +45,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionTracer.Attributes.Exclude = append(cfg.TransactionTracer.Attributes.Exclude, "8")
 	cfg.BrowserMonitoring.Attributes.Include = append(cfg.BrowserMonitoring.Attributes.Include, "9")
 	cfg.BrowserMonitoring.Attributes.Exclude = append(cfg.BrowserMonitoring.Attributes.Exclude, "10")
+	cfg.SpanEvents.Attributes.Include = append(cfg.SpanEvents.Attributes.Include, "11")
+	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, "12")
 	cfg.Transport = &http.Transport{}
 	cfg.Logger = NewLogger(os.Stdout)
 
@@ -62,6 +64,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionTracer.Attributes.Exclude[0] = "zap"
 	cfg.BrowserMonitoring.Attributes.Include[0] = "zap"
 	cfg.BrowserMonitoring.Attributes.Exclude[0] = "zap"
+	cfg.SpanEvents.Attributes.Include[0] = "zap"
+	cfg.SpanEvents.Attributes.Exclude[0] = "zap"
 
 	expect := internal.CompactJSONString(`[
 	{
@@ -101,7 +105,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Logger":"*logger.logFile",
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
-			"SpanEvents":{"Enabled":true},
+			"SpanEvents":{
+				"Attributes":{
+					"Enabled":true,"Exclude":["12"],"Include":["11"]
+				},
+				"Enabled":true
+			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true
@@ -237,7 +246,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Logger":null,
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
-			"SpanEvents":{"Enabled":true},
+			"SpanEvents":{
+				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+				"Enabled":true
+			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true

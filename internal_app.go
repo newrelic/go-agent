@@ -88,6 +88,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 			TransactionEvents: convertAttributeDestinationConfig(config.TransactionEvents.Attributes),
 			TransactionTracer: convertAttributeDestinationConfig(config.TransactionTracer.Attributes),
 			BrowserMonitoring: convertAttributeDestinationConfig(config.BrowserMonitoring.Attributes),
+			SpanEvents:        convertAttributeDestinationConfig(config.SpanEvents.Attributes),
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
 	}
 }

@@ -8,6 +8,17 @@
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
+* Added span event attribute configuration.  Now you may control which
+  attributes are captured in span events using the
+  `Config.SpanEvents.Attributes` settings. For example, if you want to disable
+  the collection of `"db.statement"` in your span events, modify your config
+  like this:
+
+```go
+cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
+	newrelic.SpanAttributeDBStatement)
+```
+
 ## 2.5.0
 
 * Added support for [New Relic Browser](https://docs.newrelic.com/docs/browser)

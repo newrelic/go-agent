@@ -32,6 +32,20 @@ const (
 	attributeResponseCode
 )
 
+// SpanAttribute is an attribute put in span events.
+type SpanAttribute string
+
+const (
+	spanAttributeDBStatement  SpanAttribute = "db.statement"
+	spanAttributeDBInstance   SpanAttribute = "db.instance"
+	spanAttributePeerAddress  SpanAttribute = "peer.address"
+	spanAttributePeerHostname SpanAttribute = "peer.hostname"
+	spanAttributeHTTPURL      SpanAttribute = "http.url"
+	spanAttributeHTTPMethod   SpanAttribute = "http.method"
+)
+
+func (sa SpanAttribute) String() string { return string(sa) }
+
 var (
 	usualDests         = DestAll &^ destBrowser
 	tracesDests        = destTxnTrace | destError
@@ -51,6 +65,14 @@ var (
 		attributeResponseHeadersContentType:   {name: "response.headers.contentType", defaultDests: usualDests},
 		attributeResponseHeadersContentLength: {name: "response.headers.contentLength", defaultDests: usualDests},
 		attributeResponseCode:                 {name: "httpResponseCode", defaultDests: usualDests},
+	}
+	spanAttributes = []SpanAttribute{
+		spanAttributeDBStatement,
+		spanAttributeDBInstance,
+		spanAttributePeerAddress,
+		spanAttributePeerHostname,
+		spanAttributeHTTPURL,
+		spanAttributeHTTPMethod,
 	}
 )
 
@@ -73,12 +95,13 @@ const (
 	destError
 	destTxnTrace
 	destBrowser
+	destSpan
 )
 
 const (
 	destNone destinationSet = 0
 	// DestAll contains all destinations.
-	DestAll destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser
+	DestAll destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser | destSpan
 )
 
 const (
@@ -105,6 +128,7 @@ type AttributeConfig struct {
 	// over modifiers appearing earlier.
 	wildcardModifiers []*attributeModifier
 	agentDests        map[AgentAttributeID]destinationSet
+	spanDests         map[SpanAttribute]destinationSet
 }
 
 type includeExclude struct {
@@ -196,6 +220,7 @@ type AttributeConfigInput struct {
 	TransactionEvents AttributeDestinationConfig
 	BrowserMonitoring AttributeDestinationConfig
 	TransactionTracer AttributeDestinationConfig
+	SpanEvents        AttributeDestinationConfig
 }
 
 var (
@@ -205,6 +230,7 @@ var (
 		TransactionEvents: AttributeDestinationConfig{Enabled: true},
 		TransactionTracer: AttributeDestinationConfig{Enabled: true},
 		BrowserMonitoring: AttributeDestinationConfig{Enabled: true},
+		SpanEvents:        AttributeDestinationConfig{Enabled: true},
 	}
 )
 
@@ -220,12 +246,17 @@ func CreateAttributeConfig(input AttributeConfigInput, includeEnabled bool) *Att
 	processDest(c, includeEnabled, &input.TransactionEvents, destTxnEvent)
 	processDest(c, includeEnabled, &input.TransactionTracer, destTxnTrace)
 	processDest(c, includeEnabled, &input.BrowserMonitoring, destBrowser)
+	processDest(c, includeEnabled, &input.SpanEvents, destSpan)
 
 	sort.Sort(byMatch(c.wildcardModifiers))
 
 	c.agentDests = make(map[AgentAttributeID]destinationSet)
 	for id, info := range agentAttributeInfo {
 		c.agentDests[id] = applyAttributeConfig(c, info.name, info.defaultDests)
+	}
+	c.spanDests = make(map[SpanAttribute]destinationSet, len(spanAttributes))
+	for _, id := range spanAttributes {
+		c.spanDests[id] = applyAttributeConfig(c, id.String(), destSpan)
 	}
 
 	return c
@@ -242,6 +273,17 @@ type agentAttributeValue struct {
 }
 
 type agentAttributes map[AgentAttributeID]agentAttributeValue
+
+func (a *Attributes) filterSpanAttributes(s map[SpanAttribute]string) map[SpanAttribute]string {
+	if nil != a {
+		for key := range s {
+			if a.config.spanDests[key]&destSpan == 0 {
+				delete(s, key)
+			}
+		}
+	}
+	return s
+}
 
 // GetAgentValue is used to access agent attributes.  This function returns ("",
 // nil) if the attribute doesn't exist or it doesn't match the destinations

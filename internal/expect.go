@@ -505,9 +505,15 @@ func ExpectSpanEvents(v Validator, events *spanEvents, expect []WantEvent) {
 				e.Intrinsics = mergeAttributes(map[string]interface{}{
 					// The following intrinsics should always be present in
 					// span events:
-					"type":      "Span",
-					"timestamp": MatchAnything,
-					"duration":  MatchAnything,
+					"type":          "Span",
+					"timestamp":     MatchAnything,
+					"duration":      MatchAnything,
+					"traceId":       MatchAnything,
+					"guid":          MatchAnything,
+					"transactionId": MatchAnything,
+					// All span events are currently sampled.
+					"sampled":  true,
+					"priority": MatchAnything,
 				}, e.Intrinsics)
 			}
 			expectEvent(v, event, e)

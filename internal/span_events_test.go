@@ -31,20 +31,6 @@ var (
 		Category:      spanCategoryGeneric,
 		IsEntrypoint:  true,
 	}
-
-	sampleSpanDatastoreExtras = spanDatastoreExtras{
-		Component: "mySql",
-		Statement: "SELECT * from foo",
-		Instance:  "123",
-		Address:   "{host}:{portPathOrId}",
-		Hostname:  "host",
-	}
-
-	sampleSpanExternalExtras = spanExternalExtras{
-		URL:       "http://url.com",
-		Method:    "GET",
-		Component: "http",
-	}
 )
 
 func TestSpanEventGenericRootMarshal(t *testing.T) {
@@ -74,30 +60,39 @@ func TestSpanEventDatastoreMarshal(t *testing.T) {
 	e.IsEntrypoint = false
 	e.ParentID = "parent-id"
 	e.Category = spanCategoryDatastore
-	e.DatastoreExtras = &sampleSpanDatastoreExtras
+	e.Kind = "client"
+	e.Component = "mySql"
+	e.Attributes = map[SpanAttribute]string{
+		spanAttributeDBStatement:  "SELECT * from foo",
+		spanAttributeDBInstance:   "123",
+		spanAttributePeerAddress:  "{host}:{portPathOrId}",
+		spanAttributePeerHostname: "host",
+	}
 
-	testSpanEventJSON(t, &e, `[
-	{
-		"type":"Span",
-		"traceId":"trace-id",
-		"guid":"guid",
-		"parentId":"parent-id",
-		"transactionId":"txn-id",
-		"sampled":true,
-		"priority":0.500000,
-		"timestamp":1488393111000,
-		"duration":2,
-		"name":"myName",
-		"category":"datastore",
-		"component":"mySql",
-		"db.statement":"SELECT * from foo",
-		"db.instance":"123",
-		"peer.address":"{host}:{portPathOrId}",
-		"peer.hostname":"host",
-		"span.kind":"client"
-	},
-	{},
-	{}]`)
+	expectEvent(t, &e, WantEvent{
+		Intrinsics: map[string]interface{}{
+			"type":          "Span",
+			"traceId":       "trace-id",
+			"guid":          "guid",
+			"parentId":      "parent-id",
+			"transactionId": "txn-id",
+			"sampled":       true,
+			"priority":      0.500000,
+			"timestamp":     1.488393111e+12,
+			"duration":      2,
+			"name":          "myName",
+			"category":      "datastore",
+			"component":     "mySql",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"db.statement":  "SELECT * from foo",
+			"db.instance":   "123",
+			"peer.address":  "{host}:{portPathOrId}",
+			"peer.hostname": "host",
+		},
+	})
 }
 
 func TestSpanEventDatastoreWithoutHostMarshal(t *testing.T) {
@@ -107,35 +102,40 @@ func TestSpanEventDatastoreWithoutHostMarshal(t *testing.T) {
 	e.IsEntrypoint = false
 	e.ParentID = "parent-id"
 	e.Category = spanCategoryDatastore
-	e.DatastoreExtras = &sampleSpanDatastoreExtras
-	e.DatastoreExtras.Hostname = ""
-	e.DatastoreExtras.Address = ""
+	e.Kind = "client"
+	e.Component = "mySql"
+	e.Attributes = map[SpanAttribute]string{
+		spanAttributeDBStatement: "SELECT * from foo",
+		spanAttributeDBInstance:  "123",
+	}
 
 	// According to CHANGELOG.md, as of version 1.5, if `Host` and
 	// `PortPathOrID` are not provided in a Datastore segment, they
 	// do not appear as `"unknown"` in transaction traces and slow
 	// query traces.  To maintain parity with the other offerings of
 	// the Go Agent, neither do Span Events.
-	testSpanEventJSON(t, &e, `[
-	{
-		"type":"Span",
-		"traceId":"trace-id",
-		"guid":"guid",
-		"parentId":"parent-id",
-		"transactionId":"txn-id",
-		"sampled":true,
-		"priority":0.500000,
-		"timestamp":1488393111000,
-		"duration":2,
-		"name":"myName",
-		"category":"datastore",
-		"component":"mySql",
-		"db.statement":"SELECT * from foo",
-		"db.instance":"123",
-		"span.kind":"client"
-	},
-	{},
-	{}]`)
+	expectEvent(t, &e, WantEvent{
+		Intrinsics: map[string]interface{}{
+			"type":          "Span",
+			"traceId":       "trace-id",
+			"guid":          "guid",
+			"parentId":      "parent-id",
+			"transactionId": "txn-id",
+			"sampled":       true,
+			"priority":      0.500000,
+			"timestamp":     1.488393111e+12,
+			"duration":      2,
+			"name":          "myName",
+			"category":      "datastore",
+			"component":     "mySql",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"db.statement": "SELECT * from foo",
+			"db.instance":  "123",
+		},
+	})
 }
 
 func TestSpanEventExternalMarshal(t *testing.T) {
@@ -145,28 +145,35 @@ func TestSpanEventExternalMarshal(t *testing.T) {
 	e.ParentID = "parent-id"
 	e.IsEntrypoint = false
 	e.Category = spanCategoryHTTP
-	e.ExternalExtras = &sampleSpanExternalExtras
+	e.Kind = "client"
+	e.Component = "http"
+	e.Attributes = map[SpanAttribute]string{
+		spanAttributeHTTPURL:    "http://url.com",
+		spanAttributeHTTPMethod: "GET",
+	}
 
-	testSpanEventJSON(t, &e, `[
-	{
-		"type":"Span",
-		"traceId":"trace-id",
-		"guid":"guid",
-		"parentId":"parent-id",
-		"transactionId":"txn-id",
-		"sampled":true,
-		"priority":0.500000,
-		"timestamp":1488393111000,
-		"duration":2,
-		"name":"myName",
-		"category":"http",
-		"http.url":"http://url.com",
-		"http.method":"GET",
-		"span.kind":"client",
-		"component":"http"
-	},
-	{},
-	{}]`)
+	expectEvent(t, &e, WantEvent{
+		Intrinsics: map[string]interface{}{
+			"type":          "Span",
+			"traceId":       "trace-id",
+			"guid":          "guid",
+			"parentId":      "parent-id",
+			"transactionId": "txn-id",
+			"sampled":       true,
+			"priority":      0.500000,
+			"timestamp":     1.488393111e+12,
+			"duration":      2,
+			"name":          "myName",
+			"category":      "http",
+			"component":     "http",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"http.url":    "http://url.com",
+			"http.method": "GET",
+		},
+	})
 }
 
 func TestSpanEventsEndpointMethod(t *testing.T) {

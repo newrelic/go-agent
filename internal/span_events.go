@@ -17,33 +17,20 @@ const (
 
 // SpanEvent represents a span event, necessary to support Distributed Tracing.
 type SpanEvent struct {
-	TraceID         string
-	GUID            string
-	ParentID        string
-	TransactionID   string
-	Sampled         bool
-	Priority        Priority
-	Timestamp       time.Time
-	Duration        time.Duration
-	Name            string
-	Category        spanCategory
-	IsEntrypoint    bool
-	DatastoreExtras *spanDatastoreExtras
-	ExternalExtras  *spanExternalExtras
-}
-
-type spanDatastoreExtras struct {
-	Component string
-	Statement string
-	Instance  string
-	Address   string
-	Hostname  string
-}
-
-type spanExternalExtras struct {
-	URL       string
-	Method    string
-	Component string
+	TraceID       string
+	GUID          string
+	ParentID      string
+	TransactionID string
+	Sampled       bool
+	Priority      Priority
+	Timestamp     time.Time
+	Duration      time.Duration
+	Name          string
+	Category      spanCategory
+	Component     string
+	Kind          string
+	IsEntrypoint  bool
+	Attributes    map[SpanAttribute]string
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -67,42 +54,27 @@ func (e *SpanEvent) WriteJSON(buf *bytes.Buffer) {
 	if e.IsEntrypoint {
 		w.boolField("nr.entryPoint", true)
 	}
-	if ex := e.DatastoreExtras; nil != ex {
-		if "" != ex.Component {
-			w.stringField("component", ex.Component)
-		}
-		if "" != ex.Statement {
-			w.stringField("db.statement", ex.Statement)
-		}
-		if "" != ex.Instance {
-			w.stringField("db.instance", ex.Instance)
-		}
-		if "" != ex.Address {
-			w.stringField("peer.address", ex.Address)
-		}
-		if "" != ex.Hostname {
-			w.stringField("peer.hostname", ex.Hostname)
-		}
-		w.stringField("span.kind", "client")
+	if e.Component != "" {
+		w.stringField("component", e.Component)
 	}
-
-	if ex := e.ExternalExtras; nil != ex {
-		if "" != ex.URL {
-			w.stringField("http.url", ex.URL)
-		}
-		if "" != ex.Method {
-			w.stringField("http.method", ex.Method)
-		}
-		w.stringField("span.kind", "client")
-		w.stringField("component", "http")
+	if e.Kind != "" {
+		w.stringField("span.kind", e.Kind)
 	}
-
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
+	// user attributes section is unused
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
+
+	w = jsonFieldsWriter{buf: buf}
+	for key, val := range e.Attributes {
+		if val != "" {
+			w.stringField(key.String(), val)
+		}
+	}
+
 	buf.WriteByte('}')
 	buf.WriteByte(']')
 }
