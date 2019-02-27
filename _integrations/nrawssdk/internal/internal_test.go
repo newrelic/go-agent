@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +36,43 @@ func TestGetTableName(t *testing.T) {
 	for i, test := range testcases {
 		if out := getTableName(test.params); test.expected != out {
 			t.Error(i, out, test.params, test.expected)
+		}
+	}
+}
+
+func TestGetRequestID(t *testing.T) {
+	primary := "X-Amzn-Requestid"
+	secondary := "X-Amz-Request-Id"
+
+	testcases := []struct {
+		hdr      http.Header
+		expected string
+	}{
+		{hdr: http.Header{
+			"hello": []string{"world"},
+		}, expected: ""},
+
+		{hdr: http.Header{
+			strings.ToUpper(primary): []string{"hello"},
+		}, expected: ""},
+
+		{hdr: http.Header{
+			primary: []string{"hello"},
+		}, expected: "hello"},
+
+		{hdr: http.Header{
+			secondary: []string{"hello"},
+		}, expected: "hello"},
+
+		{hdr: http.Header{
+			primary:   []string{"hello"},
+			secondary: []string{"world"},
+		}, expected: "hello"},
+	}
+
+	for i, test := range testcases {
+		if out := getRequestID(test.hdr); test.expected != out {
+			t.Error(i, out, test.hdr, test.expected)
 		}
 	}
 }
