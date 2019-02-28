@@ -44,7 +44,7 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		StatusCode: 200,
 		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
 		Header: http.Header{
-			"X-Amzn-Requestid": []string{requestId},
+			"X-Amzn-Requestid": []string{requestID},
 		},
 	}, nil
 }
@@ -66,7 +66,7 @@ func newSession() *session.Session {
 }
 
 const (
-	requestId = "testing request id"
+	requestID = "testing request id"
 	txnName   = "aws-txn"
 )
 
@@ -102,12 +102,12 @@ var (
 		AgentAttributes: map[string]interface{}{
 			"aws.operation": "Invoke",
 			"aws.region":    "us-west-2",
-			"aws.requestId": requestId,
+			"aws.requestId": requestID,
 			"http.method":   "POST",
 			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
 		},
 	}
-	externalSpanNoRequestId = internal.WantEvent{
+	externalSpanNoRequestID = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
 			"name":          "External/lambda.us-west-2.amazonaws.com/all",
 			"sampled":       true,
@@ -145,7 +145,7 @@ var (
 		AgentAttributes: map[string]interface{}{
 			"aws.operation": "DescribeTable",
 			"aws.region":    "us-west-2",
-			"aws.requestId": requestId,
+			"aws.requestId": requestID,
 			"db.statement":  "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
 			"peer.address":  "dynamodb.us-west-2.amazonaws.com:unknown",
 			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
@@ -458,7 +458,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 		StatusCode: 200,
 		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
 		Header: http.Header{
-			"X-Amzn-Requestid": []string{requestId},
+			"X-Amzn-Requestid": []string{requestID},
 		},
 	}, nil
 }
@@ -494,7 +494,7 @@ func TestRetrySend(t *testing.T) {
 
 	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpanNoRequestId, externalSpan})
+		genericSpan, externalSpanNoRequestID, externalSpan})
 }
 
 func TestRequestSentTwice(t *testing.T) {
@@ -545,9 +545,9 @@ func TestRequestSentTwice(t *testing.T) {
 		genericSpan, externalSpan, externalSpan})
 }
 
-type noRequestIdTransport struct{}
+type noRequestIDTransport struct{}
 
-func (t *noRequestIdTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
@@ -555,12 +555,12 @@ func (t *noRequestIdTransport) RoundTrip(r *http.Request) (*http.Response, error
 	}, nil
 }
 
-func TestNoRequestIdFound(t *testing.T) {
+func TestNoRequestIDFound(t *testing.T) {
 	app := testApp(t)
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
-	ses.Config.HTTPClient.Transport = &noRequestIdTransport{}
+	ses.Config.HTTPClient.Transport = &noRequestIDTransport{}
 
 	client := lambda.New(ses)
 	input := &lambda.InvokeInput{
@@ -586,5 +586,5 @@ func TestNoRequestIdFound(t *testing.T) {
 
 	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpanNoRequestId})
+		genericSpan, externalSpanNoRequestID})
 }
