@@ -147,6 +147,7 @@ var (
 			"aws.operation": "DescribeTable",
 			"aws.region":    "us-west-2",
 			"aws.requestId": requestID,
+			"db.collection": "thebesttable",
 			"db.statement":  "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
 			"peer.address":  "dynamodb.us-west-2.amazonaws.com:unknown",
 			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
