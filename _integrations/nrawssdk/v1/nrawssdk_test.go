@@ -597,3 +597,58 @@ func TestRequestSentTwice(t *testing.T) {
 		externalSpan,
 	})
 }
+
+type noRequestIdTransport struct{}
+
+func (t *noRequestIdTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+	}, nil
+}
+
+func TestNoRequestIdFound(t *testing.T) {
+	app := testApp(t)
+	txn := app.StartTransaction("lambda-txn", nil, nil)
+
+	ses := newSession()
+	ses.Config.HTTPClient.Transport = &noRequestIdTransport{}
+
+	client := lambda.New(ses)
+	input := &lambda.InvokeInput{
+		ClientContext:  aws.String("MyApp"),
+		FunctionName:   aws.String("non-existent-function"),
+		InvocationType: aws.String("Event"),
+		LogType:        aws.String("Tail"),
+		Payload:        []byte("{}"),
+	}
+
+	req, out := client.InvokeRequest(input)
+	req = InstrumentRequest(req, txn)
+
+	err := req.Send()
+	if nil != err {
+		t.Error(err)
+	}
+	if 200 != *out.StatusCode {
+		t.Error("wrong status code on response", out.StatusCode)
+	}
+
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpanNoRequestId,
+	})
+}

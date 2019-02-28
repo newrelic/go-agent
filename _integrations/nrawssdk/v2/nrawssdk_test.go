@@ -559,3 +559,54 @@ func TestRequestSentTwice(t *testing.T) {
 		externalSpan,
 	})
 }
+
+type noRequestIdTransport struct{}
+
+func (t *noRequestIdTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	return &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+	}, nil
+}
+
+func TestNoRequestIdFound(t *testing.T) {
+	app := testApp(t)
+	txn := app.StartTransaction("lambda-txn", nil, nil)
+
+	cfg := newConfig(false)
+	cfg.HTTPClient.Transport = &noRequestIdTransport{}
+
+	client := lambda.New(cfg)
+	input := &lambda.InvokeInput{
+		ClientContext:  aws.String("MyApp"),
+		FunctionName:   aws.String("non-existent-function"),
+		InvocationType: lambda.InvocationTypeEvent,
+		LogType:        lambda.LogTypeTail,
+		Payload:        []byte("{}"),
+	}
+	req := client.InvokeRequest(input)
+	req.Request = InstrumentRequest(req.Request, txn)
+
+	_, err := req.Send()
+	if nil != err {
+		t.Error(err)
+	}
+
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpanNoRequestId,
+	})
+}
