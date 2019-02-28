@@ -54,6 +54,7 @@ const (
 const (
 	SpanAttributeDBStatement  = "db.statement"
 	SpanAttributeDBInstance   = "db.instance"
+	SpanAttributeDBCollection = "db.collection"
 	SpanAttributePeerAddress  = "peer.address"
 	SpanAttributePeerHostname = "peer.hostname"
 	SpanAttributeHTTPURL      = "http.url"

@@ -546,6 +546,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		evt.Attributes.add(spanAttributeDBInstance, p.Database)
 		evt.Attributes.add(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		evt.Attributes.add(spanAttributePeerHostname, p.Host)
+		evt.Attributes.add(spanAttributeDBCollection, p.Collection)
 		p.Tracer.saveSpanEvent(evt)
 	}
 

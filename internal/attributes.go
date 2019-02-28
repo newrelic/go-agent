@@ -52,6 +52,7 @@ func AddAgentSpanAttribute(txn interface{}, key SpanAttribute, val string) {
 const (
 	spanAttributeDBStatement  SpanAttribute = "db.statement"
 	spanAttributeDBInstance   SpanAttribute = "db.instance"
+	spanAttributeDBCollection SpanAttribute = "db.collection"
 	spanAttributePeerAddress  SpanAttribute = "peer.address"
 	spanAttributePeerHostname SpanAttribute = "peer.hostname"
 	spanAttributeHTTPURL      SpanAttribute = "http.url"
@@ -88,6 +89,7 @@ var (
 	spanAttributes = []SpanAttribute{
 		spanAttributeDBStatement,
 		spanAttributeDBInstance,
+		spanAttributeDBCollection,
 		spanAttributePeerAddress,
 		spanAttributePeerHostname,
 		spanAttributeHTTPURL,

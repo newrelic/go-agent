@@ -161,6 +161,7 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				"db.statement":  "myquery",
 				"db.instance":   "dbname",
+				"db.collection": "mycollection",
 				"peer.address":  "myhost:myport",
 				"peer.hostname": "myhost",
 			},
@@ -258,6 +259,7 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 		cfg.SpanEvents.Attributes.Exclude = []string{
 			SpanAttributeDBStatement,
 			SpanAttributeDBInstance,
+			SpanAttributeDBCollection,
 			SpanAttributePeerAddress,
 			SpanAttributePeerHostname,
 			SpanAttributeHTTPURL,
@@ -329,6 +331,7 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 		cfg.Attributes.Exclude = []string{
 			SpanAttributeDBStatement,
 			SpanAttributeDBInstance,
+			SpanAttributeDBCollection,
 			SpanAttributePeerAddress,
 			SpanAttributePeerHostname,
 			SpanAttributeHTTPURL,
@@ -440,6 +443,7 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				"db.instance":   "dbname",
+				"db.collection": "mycollection",
 				"peer.address":  "myhost:myport",
 				"peer.hostname": "myhost",
 				"db.statement":  "'myoperation' on 'mycollection' using 'MySQL'",
