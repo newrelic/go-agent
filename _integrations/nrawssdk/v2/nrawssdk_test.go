@@ -66,24 +66,25 @@ func newConfig(instrument bool) aws.Config {
 	return cfg
 }
 
-const requestId = "testing request id"
+const (
+	requestId = "testing request id"
+	txnName   = "aws-txn"
+)
 
 var (
-	genericSpan = func(name string) internal.WantEvent {
-		return internal.WantEvent{
-			Intrinsics: map[string]interface{}{
-				"name":          name,
-				"sampled":       true,
-				"category":      "generic",
-				"priority":      internal.MatchAnything,
-				"guid":          internal.MatchAnything,
-				"transactionId": internal.MatchAnything,
-				"nr.entryPoint": true,
-				"traceId":       internal.MatchAnything,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		}
+	genericSpan = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":          "OtherTransaction/Go/" + txnName,
+			"sampled":       true,
+			"category":      "generic",
+			"priority":      internal.MatchAnything,
+			"guid":          internal.MatchAnything,
+			"transactionId": internal.MatchAnything,
+			"nr.entryPoint": true,
+			"traceId":       internal.MatchAnything,
+		},
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
 	}
 	externalSpan = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
@@ -151,11 +152,34 @@ var (
 			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
 		},
 	}
+
+	txnMetrics = []internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	}
+	externalMetrics = append(txnMetrics, []internal.WantMetric{
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
+	}...)
+	datastoreMetrics = append(txnMetrics, []internal.WantMetric{
+		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
+	}...)
 )
 
 func TestInstrumentRequestExternal(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newConfig(false))
 	input := &lambda.InvokeInput{
@@ -175,25 +199,14 @@ func TestInstrumentRequestExternal(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: nil},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/lambda-txn"),
-		externalSpan,
-	})
+		genericSpan, externalSpan})
 }
 
 func TestInstrumentRequestDatastore(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("dynamodb-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := dynamodb.New(newConfig(false))
 	input := &dynamodb.DescribeTableInput{
@@ -210,24 +223,9 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, datastoreMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/dynamodb-txn"),
-		datastoreSpan,
-	})
+		genericSpan, datastoreSpan})
 }
 
 func TestInstrumentRequestExternalNoTxn(t *testing.T) {
@@ -266,7 +264,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentConfigExternal(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newConfig(true))
 
@@ -288,25 +286,14 @@ func TestInstrumentConfigExternal(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: nil},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/lambda-txn"),
-		externalSpan,
-	})
+		genericSpan, externalSpan})
 }
 
 func TestInstrumentConfigDatastore(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("dynamodb-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := dynamodb.New(newConfig(true))
 
@@ -324,24 +311,9 @@ func TestInstrumentConfigDatastore(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/dynamodb-txn", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, datastoreMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/dynamodb-txn"),
-		datastoreSpan,
-	})
+		genericSpan, datastoreSpan})
 }
 
 func TestInstrumentConfigExternalNoTxn(t *testing.T) {
@@ -382,7 +354,7 @@ func TestInstrumentConfigDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newConfig(true))
 
@@ -403,17 +375,12 @@ func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, txnMetrics)
 }
 
 func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("dynamodb-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := dynamodb.New(newConfig(true))
 
@@ -430,12 +397,7 @@ func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, txnMetrics)
 }
 
 func TestDoublyInstrumented(t *testing.T) {
@@ -476,7 +438,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 
 func TestRetrySend(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	cfg := newConfig(false)
 	cfg.HTTPClient.Transport = &firstFailingTransport{failing: true}
@@ -505,20 +467,17 @@ func TestRetrySend(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
+		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/lambda-txn"),
-		externalSpanNoRequestId,
-		externalSpan,
-	})
+		genericSpan, externalSpanNoRequestId, externalSpan})
 }
 
 func TestRequestSentTwice(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newConfig(false))
 	input := &lambda.InvokeInput{
@@ -549,15 +508,12 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
+		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/lambda-txn"),
-		externalSpan,
-		externalSpan,
-	})
+		genericSpan, externalSpan, externalSpan})
 }
 
 type noRequestIdTransport struct{}
@@ -572,7 +528,7 @@ func (t *noRequestIdTransport) RoundTrip(r *http.Request) (*http.Response, error
 
 func TestNoRequestIdFound(t *testing.T) {
 	app := testApp(t)
-	txn := app.StartTransaction("lambda-txn", nil, nil)
+	txn := app.StartTransaction(txnName, nil, nil)
 
 	cfg := newConfig(false)
 	cfg.HTTPClient.Transport = &noRequestIdTransport{}
@@ -595,18 +551,7 @@ func TestNoRequestIdFound(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: nil},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-	})
+	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan("OtherTransaction/Go/lambda-txn"),
-		externalSpanNoRequestId,
-	})
+		genericSpan, externalSpanNoRequestId})
 }
