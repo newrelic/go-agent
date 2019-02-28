@@ -42,6 +42,9 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Header: http.Header{
+			"X-Amzn-Requestid": []string{requestId},
+		},
 	}, nil
 }
 
@@ -62,6 +65,93 @@ func newConfig(instrument bool) aws.Config {
 	}
 	return cfg
 }
+
+const requestId = "testing request id"
+
+var (
+	genericSpan = func(name string) internal.WantEvent {
+		return internal.WantEvent{
+			Intrinsics: map[string]interface{}{
+				"name":          name,
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          internal.MatchAnything,
+				"transactionId": internal.MatchAnything,
+				"nr.entryPoint": true,
+				"traceId":       internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		}
+	}
+	externalSpan = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":          "External/lambda.us-west-2.amazonaws.com/all",
+			"sampled":       true,
+			"category":      "http",
+			"priority":      internal.MatchAnything,
+			"guid":          internal.MatchAnything,
+			"transactionId": internal.MatchAnything,
+			"traceId":       internal.MatchAnything,
+			"parentId":      internal.MatchAnything,
+			"component":     "http",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.operation": "Invoke",
+			"aws.region":    "us-west-2",
+			"aws.requestId": requestId,
+			"http.method":   "POST",
+			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+		},
+	}
+	externalSpanNoRequestId = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":          "External/lambda.us-west-2.amazonaws.com/all",
+			"sampled":       true,
+			"category":      "http",
+			"priority":      internal.MatchAnything,
+			"guid":          internal.MatchAnything,
+			"transactionId": internal.MatchAnything,
+			"traceId":       internal.MatchAnything,
+			"parentId":      internal.MatchAnything,
+			"component":     "http",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.operation": "Invoke",
+			"aws.region":    "us-west-2",
+			"http.method":   "POST",
+			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+		},
+	}
+	datastoreSpan = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":          "Datastore/statement/DynamoDB/thebesttable/DescribeTable",
+			"sampled":       true,
+			"category":      "datastore",
+			"priority":      internal.MatchAnything,
+			"guid":          internal.MatchAnything,
+			"transactionId": internal.MatchAnything,
+			"traceId":       internal.MatchAnything,
+			"parentId":      internal.MatchAnything,
+			"component":     "DynamoDB",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.operation": "DescribeTable",
+			"aws.region":    "us-west-2",
+			"aws.requestId": requestId,
+			"db.statement":  "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
+			"peer.address":  "dynamodb.us-west-2.amazonaws.com:unknown",
+			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
+		},
+	}
+)
 
 func TestInstrumentRequestExternal(t *testing.T) {
 	app := testApp(t)
@@ -94,6 +184,10 @@ func TestInstrumentRequestExternal(t *testing.T) {
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpan,
 	})
 }
 
@@ -129,6 +223,10 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/dynamodb-txn"),
+		datastoreSpan,
 	})
 }
 
@@ -200,6 +298,10 @@ func TestInstrumentConfigExternal(t *testing.T) {
 		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpan,
+	})
 }
 
 func TestInstrumentConfigDatastore(t *testing.T) {
@@ -235,6 +337,10 @@ func TestInstrumentConfigDatastore(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/dynamodb-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/dynamodb-txn"),
+		datastoreSpan,
 	})
 }
 
@@ -362,6 +468,9 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 		Status:     "200 OK",
 		StatusCode: 200,
 		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Header: http.Header{
+			"X-Amzn-Requestid": []string{requestId},
+		},
 	}, nil
 }
 
@@ -399,6 +508,11 @@ func TestRetrySend(t *testing.T) {
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
 		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpanNoRequestId,
+		externalSpan,
 	})
 }
 
@@ -438,5 +552,10 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/lambda-txn", Forced: false, Data: []float64{2}},
 		{Name: "OtherTransaction/Go/lambda-txn", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		genericSpan("OtherTransaction/Go/lambda-txn"),
+		externalSpan,
+		externalSpan,
 	})
 }
