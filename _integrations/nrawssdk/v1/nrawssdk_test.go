@@ -159,13 +159,13 @@ var (
 		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	}
-	externalMetrics = append(txnMetrics, []internal.WantMetric{
+	externalMetrics = append([]internal.WantMetric{
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
-	}...)
-	datastoreMetrics = append(txnMetrics, []internal.WantMetric{
+	}, txnMetrics...)
+	datastoreMetrics = append([]internal.WantMetric{
 		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
@@ -174,7 +174,7 @@ var (
 		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
-	}...)
+	}, txnMetrics...)
 )
 
 func TestInstrumentRequestExternal(t *testing.T) {
