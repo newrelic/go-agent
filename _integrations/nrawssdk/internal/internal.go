@@ -69,7 +69,7 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 			Collection:         getTableName(input.Params),
 			Operation:          input.Operation,
 			ParameterizedQuery: "",
-			QueryParameters:    map[string]interface{}{},
+			QueryParameters:    nil,
 			Host:               input.HTTPRequest.URL.Host,
 			PortPathOrID:       input.HTTPRequest.URL.Port(),
 			DatabaseName:       "",
