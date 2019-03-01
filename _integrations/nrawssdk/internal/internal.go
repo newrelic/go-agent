@@ -45,37 +45,45 @@ func getRequestID(hdr http.Header) string {
 	return id
 }
 
+// StartSegmentInputs is used as the input to StartSegment.
+type StartSegmentInputs struct {
+	HTTPRequest *http.Request
+	ServiceName string
+	Operation   string
+	Region      string
+	Params      interface{}
+}
+
 // StartSegment starts a segment of either type DatastoreSegment or
 // ExternalSegment given the serviceName provided. The segment is then added to
 // the request context.
-func StartSegment(httpRequest *http.Request, serviceName, operation, region string,
-	params interface{}) *http.Request {
+func StartSegment(input StartSegmentInputs) *http.Request {
 
-	httpCtx := httpRequest.Context()
+	httpCtx := input.HTTPRequest.Context()
 	txn := newrelic.FromContext(httpCtx)
 
 	var segment endable
-	if serviceName == "dynamodb" {
+	if input.ServiceName == "dynamodb" {
 		segment = &newrelic.DatastoreSegment{
 			Product:            newrelic.DatastoreDynamoDB,
-			Collection:         getTableName(params),
-			Operation:          operation,
+			Collection:         getTableName(input.Params),
+			Operation:          input.Operation,
 			ParameterizedQuery: "",
 			QueryParameters:    map[string]interface{}{},
-			Host:               httpRequest.URL.Host,
-			PortPathOrID:       httpRequest.URL.Port(),
+			Host:               input.HTTPRequest.URL.Host,
+			PortPathOrID:       input.HTTPRequest.URL.Port(),
 			DatabaseName:       "",
 			StartTime:          newrelic.StartSegmentNow(txn),
 		}
 	} else {
-		segment = newrelic.StartExternalSegment(txn, httpRequest)
+		segment = newrelic.StartExternalSegment(txn, input.HTTPRequest)
 	}
 
-	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, operation)
-	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRegion, region)
+	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, input.Operation)
+	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRegion, input.Region)
 
 	ctx := context.WithValue(httpCtx, segmentContextKey, segment)
-	return httpRequest.WithContext(ctx)
+	return input.HTTPRequest.WithContext(ctx)
 }
 
 // EndSegment will end any segment found in the given context.

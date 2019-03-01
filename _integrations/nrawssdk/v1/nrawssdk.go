@@ -8,9 +8,14 @@ import (
 )
 
 func startSegment(req *request.Request) {
-	req.HTTPRequest = internal.StartSegment(req.HTTPRequest,
-		req.ClientInfo.ServiceName, req.Operation.Name,
-		req.ClientInfo.SigningRegion, req.Params)
+	input := internal.StartSegmentInputs{
+		HTTPRequest: req.HTTPRequest,
+		ServiceName: req.ClientInfo.ServiceName,
+		Operation:   req.Operation.Name,
+		Region:      req.ClientInfo.SigningRegion,
+		Params:      req.Params,
+	}
+	req.HTTPRequest = internal.StartSegment(input)
 }
 
 func endSegment(req *request.Request) {

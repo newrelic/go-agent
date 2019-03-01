@@ -7,9 +7,14 @@ import (
 )
 
 func startSegment(req *aws.Request) {
-	req.HTTPRequest = internal.StartSegment(req.HTTPRequest,
-		req.Metadata.ServiceName, req.Operation.Name,
-		req.Metadata.SigningRegion, req.Params)
+	input := internal.StartSegmentInputs{
+		HTTPRequest: req.HTTPRequest,
+		ServiceName: req.Metadata.ServiceName,
+		Operation:   req.Operation.Name,
+		Region:      req.Metadata.SigningRegion,
+		Params:      req.Params,
+	}
+	req.HTTPRequest = internal.StartSegment(input)
 }
 
 func endSegment(req *aws.Request) {
