@@ -61,7 +61,7 @@ func newConfig(instrument bool) aws.Config {
 	cfg.HTTPClient.Transport = &fakeTransport{}
 
 	if instrument {
-		cfg = InstrumentConfig(cfg)
+		InstrumentHandlers(&cfg.Handlers)
 	}
 	return cfg
 }
@@ -191,7 +191,8 @@ func TestInstrumentRequestExternal(t *testing.T) {
 		Payload:        []byte("{}"),
 	}
 	req := client.InvokeRequest(input)
-	req.Request = InstrumentRequest(req.Request, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	_, err := req.Send()
 	if nil != err {
@@ -215,7 +216,8 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 	}
 
 	req := client.DescribeTableRequest(input)
-	req.Request = InstrumentRequest(req.Request, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	_, err := req.Send()
 	if nil != err {
@@ -240,7 +242,7 @@ func TestInstrumentRequestExternalNoTxn(t *testing.T) {
 	}
 
 	req := client.InvokeRequest(input)
-	req.Request = InstrumentRequest(req.Request, nil)
+	InstrumentHandlers(&req.Handlers)
 
 	_, err := req.Send()
 	if nil != err {
@@ -255,7 +257,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 	}
 
 	req := client.DescribeTableRequest(input)
-	req.Request = InstrumentRequest(req.Request, nil)
+	InstrumentHandlers(&req.Handlers)
 
 	_, err := req.Send()
 	if nil != err {
@@ -453,7 +455,8 @@ func TestRetrySend(t *testing.T) {
 		Payload:        []byte("{}"),
 	}
 	req := client.InvokeRequest(input)
-	req.Request = InstrumentRequest(req.Request, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	_, err := req.Send()
 	if nil != err {
@@ -489,7 +492,8 @@ func TestRequestSentTwice(t *testing.T) {
 		Payload:        []byte("{}"),
 	}
 	req := client.InvokeRequest(input)
-	req.Request = InstrumentRequest(req.Request, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	_, firstErr := req.Send()
 	if nil != firstErr {
@@ -543,7 +547,8 @@ func TestNoRequestIDFound(t *testing.T) {
 		Payload:        []byte("{}"),
 	}
 	req := client.InvokeRequest(input)
-	req.Request = InstrumentRequest(req.Request, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	_, err := req.Send()
 	if nil != err {

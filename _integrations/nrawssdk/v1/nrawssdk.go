@@ -2,8 +2,6 @@ package nrawssdk
 
 import (
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	newrelic "github.com/newrelic/go-agent"
 	internal "github.com/newrelic/go-agent/_integrations/nrawssdk/internal"
 	agentinternal "github.com/newrelic/go-agent/internal"
 )
@@ -27,26 +25,17 @@ func endSegment(req *request.Request) {
 }
 
 // InstrumentHandlers will add instrumentation to the given *request.Handlers.
-// A segment will be created for each out going request. For DynamoDB calls,
-// these will be Datastore segments and for all others they will be External
-// segments.
-func InstrumentHandlers(handlers *request.Handlers) {
-	handlers.Send.SetFrontNamed(request.NamedHandler{
-		Name: "StartNewRelicSegment",
-		Fn:   startSegment,
-	})
-	handlers.Send.SetBackNamed(request.NamedHandler{
-		Name: "EndNewRelicSegment",
-		Fn:   endSegment,
-	})
-}
-
-// InstrumentSession will insert instrumentation to add transaction segments to
-// all requests using the given Session. These segments will only appear if the
-// Transaction is also added to every request context.
+// A segment will be created for each out going request. The Transaction must
+// be added to the request's Context in order for the segment to be recorded.
+// For DynamoDB calls, these segments will be Datastore type and for all
+// others they will be External type. Additionally, three attributes will be
+// added to Transaction Traces and Spans: aws.region, aws.requestId, and
+// aws.operation.
+//
+// To add instrumentation to the Session:
 //
 //    ses := session.New()
-//    ses = nrawssdk.InstrumentSession(ses)
+//    nrawssdk.InstrumentHandlers(&ses.Handlers)
 //    lambdaClient   = lambda.New(ses, aws.NewConfig())
 //
 //    req, out := lambdaClient.InvokeRequest(&lambda.InvokeInput{
@@ -58,13 +47,8 @@ func InstrumentHandlers(handlers *request.Handlers) {
 //    }
 //    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    err := req.Send()
-func InstrumentSession(s *session.Session) *session.Session {
-	InstrumentHandlers(&s.Handlers)
-	return s
-}
-
-// InstrumentRequest will add transaction segments to the given request and add
-// the Transaction to the request's context.
+//
+// To add instrumentation to a Request:
 //
 //    req, out := lambdaClient.InvokeRequest(&lambda.InvokeInput{
 //        ClientContext:  aws.String("MyApp"),
@@ -73,10 +57,16 @@ func InstrumentSession(s *session.Session) *session.Session {
 //        LogType:        aws.String("Tail"),
 //        Payload:        []byte("{}"),
 //    }
-//    req = nrawssdk.InstrumentRequest(req, txn)
+//    nrawssdk.InstrumentHandlers(&req.Handlers)
+//    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    err := req.Send()
-func InstrumentRequest(req *request.Request, txn newrelic.Transaction) *request.Request {
-	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
-	return req
+func InstrumentHandlers(handlers *request.Handlers) {
+	handlers.Send.SetFrontNamed(request.NamedHandler{
+		Name: "StartNewRelicSegment",
+		Fn:   startSegment,
+	})
+	handlers.Send.SetBackNamed(request.NamedHandler{
+		Name: "EndNewRelicSegment",
+		Fn:   endSegment,
+	})
 }

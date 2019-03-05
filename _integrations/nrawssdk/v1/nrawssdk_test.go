@@ -191,7 +191,8 @@ func TestInstrumentRequestExternal(t *testing.T) {
 	}
 
 	req, out := client.InvokeRequest(input)
-	req = InstrumentRequest(req, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	err := req.Send()
 	if nil != err {
@@ -218,7 +219,8 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 	}
 
 	req, _ := client.DescribeTableRequest(input)
-	req = InstrumentRequest(req, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	err := req.Send()
 	if nil != err {
@@ -243,7 +245,7 @@ func TestInstrumentRequestExternalNoTxn(t *testing.T) {
 	}
 
 	req, out := client.InvokeRequest(input)
-	req = InstrumentRequest(req, nil)
+	InstrumentHandlers(&req.Handlers)
 
 	err := req.Send()
 	if nil != err {
@@ -261,7 +263,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 	}
 
 	req, _ := client.DescribeTableRequest(input)
-	req = InstrumentRequest(req, nil)
+	InstrumentHandlers(&req.Handlers)
 
 	err := req.Send()
 	if nil != err {
@@ -274,7 +276,7 @@ func TestInstrumentSessionExternal(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := lambda.New(ses)
 
 	input := &lambda.InvokeInput{
@@ -308,7 +310,7 @@ func TestInstrumentSessionDatastore(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := dynamodb.New(ses)
 
 	input := &dynamodb.DescribeTableInput{
@@ -332,7 +334,7 @@ func TestInstrumentSessionDatastore(t *testing.T) {
 
 func TestInstrumentSessionExternalNoTxn(t *testing.T) {
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := lambda.New(ses)
 
 	input := &lambda.InvokeInput{
@@ -357,7 +359,7 @@ func TestInstrumentSessionExternalNoTxn(t *testing.T) {
 
 func TestInstrumentSessionDatastoreNoTxn(t *testing.T) {
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := dynamodb.New(ses)
 
 	input := &dynamodb.DescribeTableInput{
@@ -378,7 +380,7 @@ func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := lambda.New(ses)
 
 	input := &lambda.InvokeInput{
@@ -409,7 +411,7 @@ func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
-	ses = InstrumentSession(ses)
+	InstrumentHandlers(&ses.Handlers)
 	client := dynamodb.New(ses)
 
 	input := &dynamodb.DescribeTableInput{
@@ -481,7 +483,8 @@ func TestRetrySend(t *testing.T) {
 	}
 
 	req, out := client.InvokeRequest(input)
-	req = InstrumentRequest(req, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	err := req.Send()
 	if nil != err {
@@ -512,7 +515,8 @@ func TestRequestSentTwice(t *testing.T) {
 	}
 
 	req, out := client.InvokeRequest(input)
-	req = InstrumentRequest(req, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	firstErr := req.Send()
 	if nil != firstErr {
@@ -573,7 +577,8 @@ func TestNoRequestIDFound(t *testing.T) {
 	}
 
 	req, out := client.InvokeRequest(input)
-	req = InstrumentRequest(req, txn)
+	InstrumentHandlers(&req.Handlers)
+	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 
 	err := req.Send()
 	if nil != err {
