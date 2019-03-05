@@ -4,7 +4,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	newrelic "github.com/newrelic/go-agent"
 	internal "github.com/newrelic/go-agent/_integrations/nrawssdk/internal"
+	agentinternal "github.com/newrelic/go-agent/internal"
 )
+
+func init() { agentinternal.TrackUsage("integration", "library", "aws-sdk-go-v2") }
 
 func startSegment(req *aws.Request) {
 	input := internal.StartSegmentInputs{
