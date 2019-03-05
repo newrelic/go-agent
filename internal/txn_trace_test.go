@@ -104,10 +104,10 @@ func TestTxnTrace(t *testing.T) {
 	                           3000,
 	                           "Datastore/statement/MySQL/my_table/SELECT",
 	                           {
-	                              "database_name":"my_db",
-	                              "host":"db-server-1",
-	                              "port_path_or_id":"3306",
-	                              "query":"INSERT INTO users (name, age) VALUES ($1, $2)",
+	                              "db.instance":"my_db",
+	                              "peer.hostname":"db-server-1",
+	                              "peer.address":"db-server-1:3306",
+	                              "db.statement":"INSERT INTO users (name, age) VALUES ($1, $2)",
 	                              "query_parameters":{
 	                                 "zip":1
 	                              }
@@ -119,7 +119,7 @@ func TestTxnTrace(t *testing.T) {
 	                           5000,
 	                           "External/example.com/all",
 	                           {
-	                              "uri":"http://example.com/zip/zap"
+	                              "http.url":"http://example.com/zip/zap"
 	                           },
 	                           []
 	                        ]
@@ -151,7 +151,7 @@ func TestTxnTrace(t *testing.T) {
 	                           13000,
 	                           "Datastore/operation/MySQL/SELECT",
 	                           {
-	                              "query":"'SELECT' on 'unknown' using 'MySQL'"
+	                              "db.statement":"'SELECT' on 'unknown' using 'MySQL'"
 	                           },
 	                           []
 	                        ],
@@ -288,10 +288,10 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	                           3000,
 	                           "Datastore/statement/MySQL/my_table/SELECT",
 	                           {
-	                              "database_name":"my_db",
-	                              "host":"db-server-1",
-	                              "port_path_or_id":"3306",
-	                              "query":"INSERT INTO users (name, age) VALUES ($1, $2)",
+	                              "db.instance":"my_db",
+	                              "peer.hostname":"db-server-1",
+	                              "peer.address":"db-server-1:3306",
+	                              "db.statement":"INSERT INTO users (name, age) VALUES ($1, $2)",
 	                              "query_parameters":{
 	                                 "zip":1
 	                              }
@@ -303,7 +303,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	                           5000,
 	                           "External/example.com/all",
 	                           {
-	                              "uri":"http://example.com/zip/zap"
+	                              "http.url":"http://example.com/zip/zap"
 	                           },
 	                           []
 	                        ]
@@ -335,7 +335,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	                           13000,
 	                           "Datastore/operation/MySQL/SELECT",
 	                           {
-	                              "query":"'SELECT' on 'unknown' using 'MySQL'"
+	                              "db.statement":"'SELECT' on 'unknown' using 'MySQL'"
 	                           },
 	                           []
 	                        ],

@@ -509,7 +509,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 	if p.Tracer.TxnTrace.considerNode(end) {
 		p.Tracer.TxnTrace.witnessNode(end, scopedMetric, &traceNodeParams{
 			Host:            p.Host,
-			PortPathOrID:    p.PortPathOrID,
+			PeerAddress:     datastoreSpanAddress(p.Host, p.PortPathOrID),
 			Database:        p.Database,
 			Query:           p.ParameterizedQuery,
 			queryParameters: queryParams,

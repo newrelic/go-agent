@@ -23,7 +23,7 @@ type traceNodeParams struct {
 	CleanURL        string
 	Database        string
 	Host            string
-	PortPathOrID    string
+	PeerAddress     string
 	Query           string
 	TransactionGUID string
 	queryParameters queryParameters
@@ -36,19 +36,19 @@ func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
 		w.writerField("backtrace", p.StackTrace)
 	}
 	if "" != p.CleanURL {
-		w.stringField("uri", p.CleanURL)
+		w.stringField("http.url", p.CleanURL)
 	}
 	if "" != p.Database {
-		w.stringField("database_name", p.Database)
+		w.stringField("db.instance", p.Database)
 	}
 	if "" != p.Host {
-		w.stringField("host", p.Host)
+		w.stringField("peer.hostname", p.Host)
 	}
-	if "" != p.PortPathOrID {
-		w.stringField("port_path_or_id", p.PortPathOrID)
+	if "" != p.PeerAddress {
+		w.stringField("peer.address", p.PeerAddress)
 	}
 	if "" != p.Query {
-		w.stringField("query", p.Query)
+		w.stringField("db.statement", p.Query)
 	}
 	if "" != p.TransactionGUID {
 		w.stringField("transaction_guid", p.TransactionGUID)

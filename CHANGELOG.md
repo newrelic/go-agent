@@ -1,5 +1,13 @@
 ## ChangeLog
 
+* Update attribute names of Datastore and External segments on Transaction
+  Traces to be in line with attribute names on Spans. Specifically:
+    * `"uri"` => `"http.url"`
+    * `"query"` => `"db.statement"`
+    * `"database_name"` => `"db.instance"`
+    * `"host"` => `"peer.hostname"`
+    * `"port_path_or_id"` + `"host"` => `"peer.address"`
+
 * Added integration support for
   [`aws-sdk-go`](https://github.com/aws/aws-sdk-go) and
   [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  When using, a
