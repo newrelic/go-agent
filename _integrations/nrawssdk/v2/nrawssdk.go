@@ -2,7 +2,6 @@ package nrawssdk
 
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
-	newrelic "github.com/newrelic/go-agent"
 	internal "github.com/newrelic/go-agent/_integrations/nrawssdk/internal"
 	agentinternal "github.com/newrelic/go-agent/internal"
 )
@@ -25,28 +24,19 @@ func endSegment(req *aws.Request) {
 	internal.EndSegment(ctx, req.HTTPResponse.Header)
 }
 
-// InstrumentHandlers will add instrumentation to the given *request.Handlers.
-// A segment will be created for each out going request. For DynamoDB calls,
-// these will be Datastore segments and for all others they will be External
-// segments.
-func InstrumentHandlers(handlers *aws.Handlers) {
-	handlers.Send.SetFrontNamed(aws.NamedHandler{
-		Name: "StartNewRelicSegment",
-		Fn:   startSegment,
-	})
-	handlers.Send.SetBackNamed(aws.NamedHandler{
-		Name: "EndNewRelicSegment",
-		Fn:   endSegment,
-	})
-}
-
-// InstrumentConfig will insert instrumentation to add transaction segments to
-// all requests using the given Config. These segments will only appear if the
-// Transaction is also added to every request context.
+// InstrumentHandlers will add instrumentation to the given *aws.Handlers.
+// A segment will be created for each out going request. The Transaction must
+// be added to the request's Context in order for the segment to be recorded.
+// For DynamoDB calls, these segments will be Datastore type and for all
+// others they will be External type. Additionally, three attributes will be
+// added to Transaction Traces and Spans: aws.region, aws.requestId, and
+// aws.operation.
+//
+// To add instrumentation to a Config:
 //
 //    cfg, _ := external.LoadDefaultAWSConfig()
 //    cfg.Region = endpoints.UsWest2RegionID
-//    cfg = nrawssdk.InstrumentConfig(cfg)
+//    nrawssdk.InstrumentHandlers(&cfg.Handlers)
 //    lambdaClient   = lambda.New(cfg)
 //
 //    req := lambdaClient.InvokeRequest(&lambda.InvokeInput{
@@ -58,13 +48,8 @@ func InstrumentHandlers(handlers *aws.Handlers) {
 //    }
 //    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    resp, err := req.Send()
-func InstrumentConfig(cfg aws.Config) aws.Config {
-	InstrumentHandlers(&cfg.Handlers)
-	return cfg
-}
-
-// InstrumentRequest will add transaction segments to the given request and add
-// the Transaction to the request's context.
+//
+// To add instrumentation to a Request:
 //
 //    req := lambdaClient.InvokeRequest(&lambda.InvokeInput{
 //        ClientContext:  aws.String("MyApp"),
@@ -73,10 +58,16 @@ func InstrumentConfig(cfg aws.Config) aws.Config {
 //        LogType:        lambda.LogTypeTail,
 //        Payload:        []byte("{}"),
 //    }
-//    req = nrawssdk.InstrumentRequest(req, txn)
+//    nrawssdk.InstrumentHandlers(&req.Handlers)
+//    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    resp, err := req.Send()
-func InstrumentRequest(req *aws.Request, txn newrelic.Transaction) *aws.Request {
-	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
-	return req
+func InstrumentHandlers(handlers *aws.Handlers) {
+	handlers.Send.SetFrontNamed(aws.NamedHandler{
+		Name: "StartNewRelicSegment",
+		Fn:   startSegment,
+	})
+	handlers.Send.SetBackNamed(aws.NamedHandler{
+		Name: "EndNewRelicSegment",
+		Fn:   endSegment,
+	})
 }
