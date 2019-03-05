@@ -8,6 +8,12 @@
     * `"host"` => `"peer.hostname"`
     * `"port_path_or_id"` + `"host"` => `"peer.address"`
 
+* External segments in Transaction Traces when
+  `Config.CrossApplicationTracer.Enabled = true` will now link to the
+  downstream Transaction Trace if there is one. Additionally, the segment name
+  will now include the name of the downstream application and the name of the
+  downstream transaction.
+
 * Added integration support for
   [`aws-sdk-go`](https://github.com/aws/aws-sdk-go) and
   [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  When using, a

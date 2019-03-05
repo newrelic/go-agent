@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -204,6 +205,16 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	tr.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	tr.TxnTrace.SegmentThreshold = 0
 
+	tr.CrossProcess.Init(true, false, replyAccountOne)
+	tr.CrossProcess.GUID = "0123456789"
+	appData, err := tr.CrossProcess.CreateAppData("WebTransaction/Go/otherService", 2*time.Second, 3*time.Second, 123)
+	if nil != err {
+		t.Fatal(err)
+	}
+	resp := &http.Response{
+		Header: AppDataToHTTPHeader(appData),
+	}
+
 	t1 := StartSegment(tr, start.Add(1*time.Second))
 	t2 := StartSegment(tr, start.Add(2*time.Second))
 	EndDatastoreSegment(EndDatastoreParams{
@@ -220,7 +231,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(tr, start.Add(4*time.Second))
-	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
+	EndExternalSegment(tr, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", resp)
 	EndBasicSegment(tr, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(tr, start.Add(7*time.Second))
 	t5 := StartSegment(tr, start.Add(8*time.Second))
@@ -301,9 +312,10 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	                        [
 	                           4000,
 	                           5000,
-	                           "External/example.com/all",
+				   "ExternalTransaction/example.com/1#1/WebTransaction/Go/otherService",
 	                           {
-	                              "http.url":"http://example.com/zip/zap"
+	                              "http.url":"http://example.com/zip/zap",
+				      "transaction_guid":"0123456789"
 	                           },
 	                           []
 	                        ]

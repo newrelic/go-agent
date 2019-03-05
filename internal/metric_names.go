@@ -195,6 +195,13 @@ func datastoreInstanceMetric(key DatastoreMetricKey) string {
 		"/" + key.PortPathOrID
 }
 
+func externalScopedMetric(key externalMetricKey) string {
+	if "" != key.ExternalCrossProcessID && "" != key.ExternalTransactionName {
+		return externalTransactionMetric(key)
+	}
+	return externalHostMetric(key)
+}
+
 // External/{host}/all
 func externalHostMetric(key externalMetricKey) string {
 	return "External/" + key.Host + "/all"

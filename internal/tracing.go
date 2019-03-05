@@ -374,7 +374,7 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		t.TxnTrace.witnessNode(end, externalHostMetric(key), &traceNodeParams{
+		t.TxnTrace.witnessNode(end, externalScopedMetric(key), &traceNodeParams{
 			CleanURL:        SafeURL(u),
 			TransactionGUID: transactionGUID,
 		})
