@@ -25,17 +25,23 @@ func endSegment(req *aws.Request) {
 }
 
 // InstrumentHandlers will add instrumentation to the given *aws.Handlers.
-// A segment will be created for each out going request. The Transaction must
-// be added to the request's Context in order for the segment to be recorded.
-// For DynamoDB calls, these segments will be Datastore type and for all
-// others they will be External type. Additionally, three attributes will be
-// added to Transaction Traces and Spans: aws.region, aws.requestId, and
-// aws.operation.
 //
-// To add instrumentation to a Config:
+// A Segment will be created for each out going request. The Transaction must
+// be added to the `http.Request`'s Context in order for the segment to be
+// recorded.  For DynamoDB calls, these segments will be
+// `newrelic.DatastoreSegment` type and for all others they will be
+// `newrelic.ExternalSegment` type.
+//
+// Additional attributes will be added to Transaction Trace Segments and Span
+// Events: aws.region, aws.requestId, and aws.operation.
+//
+// To add instrumentation to a Config and see segments created for each
+// invocation that uses that Config, call InstrumentHandlers with the config's
+// Handlers and add the current Transaction to the `http.Request`'s Context:
 //
 //    cfg, _ := external.LoadDefaultAWSConfig()
 //    cfg.Region = endpoints.UsWest2RegionID
+//    // Add instrumentation to handlers
 //    nrawssdk.InstrumentHandlers(&cfg.Handlers)
 //    lambdaClient   = lambda.New(cfg)
 //
@@ -46,10 +52,13 @@ func endSegment(req *aws.Request) {
 //        LogType:        lambda.LogTypeTail,
 //        Payload:        []byte("{}"),
 //    }
+//    // Add txn to http.Request's context
 //    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    resp, err := req.Send()
 //
-// To add instrumentation to a Request:
+// To add instrumentation to a Request and see a segment created just for the
+// individual request, call InstrumentHandlers with the `aws.Request`'s
+// Handlers and add the current Transaction to the `http.Request`'s Context:
 //
 //    req := lambdaClient.InvokeRequest(&lambda.InvokeInput{
 //        ClientContext:  aws.String("MyApp"),
@@ -58,7 +67,9 @@ func endSegment(req *aws.Request) {
 //        LogType:        lambda.LogTypeTail,
 //        Payload:        []byte("{}"),
 //    }
+//    // Add instrumentation to handlers
 //    nrawssdk.InstrumentHandlers(&req.Handlers)
+//    // Add txn to http.Request's context
 //    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    resp, err := req.Send()
 func InstrumentHandlers(handlers *aws.Handlers) {
