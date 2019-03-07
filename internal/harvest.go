@@ -131,15 +131,25 @@ func supportMetric(metrics *metricTable, b bool, metricName string) {
 
 // CreateTxnMetrics creates metrics for a transaction.
 func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
+	withoutFirstSegment := removeFirstSegment(args.FinalName)
+
 	// Duration Metrics
-	rollup := backgroundRollup
+	var durationRollup string
+	var totalTimeRollup string
 	if args.IsWeb {
-		rollup = webRollup
+		durationRollup = webRollup
+		totalTimeRollup = totalTimeWeb
 		metrics.addDuration(dispatcherMetric, "", args.Duration, 0, forced)
+	} else {
+		durationRollup = backgroundRollup
+		totalTimeRollup = totalTimeBackground
 	}
 
-	metrics.addDuration(args.FinalName, "", args.Duration, args.Exclusive, forced)
-	metrics.addDuration(rollup, "", args.Duration, args.Exclusive, forced)
+	metrics.addDuration(args.FinalName, "", args.Duration, 0, forced)
+	metrics.addDuration(durationRollup, "", args.Duration, 0, forced)
+
+	metrics.addDuration(totalTimeRollup, "", args.TotalTime, args.TotalTime, forced)
+	metrics.addDuration(totalTimeRollup+"/"+withoutFirstSegment, "", args.TotalTime, args.TotalTime, unforced)
 
 	// Better CAT Metrics
 	if cat := args.BetterCAT; cat.Enabled {
@@ -182,7 +192,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	if args.Zone != ApdexNone {
 		metrics.addApdex(apdexRollup, "", args.ApdexThreshold, args.Zone, forced)
 
-		mname := apdexPrefix + removeFirstSegment(args.FinalName)
+		mname := apdexPrefix + withoutFirstSegment
 		metrics.addApdex(mname, "", args.ApdexThreshold, args.Zone, unforced)
 	}
 

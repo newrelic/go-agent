@@ -8,7 +8,13 @@ import (
 	"github.com/newrelic/go-agent/internal/cat"
 )
 
-func testTxnEventJSON(t *testing.T, e *TxnEvent, expect string) {
+func testTxnEventJSON(t testing.TB, e *TxnEvent, expect string) {
+	// Type assertion to support early Go versions.
+	if h, ok := t.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
 	js, err := json.Marshal(e)
 	if nil != err {
 		t.Error(err)
@@ -28,10 +34,11 @@ var (
 			ID:       "txn-id",
 			Priority: 0.5,
 		},
-		Start:    timeFromUnixMilliseconds(1488393111000),
-		Duration: 2 * time.Second,
-		Zone:     ApdexNone,
-		Attrs:    nil,
+		Start:     timeFromUnixMilliseconds(1488393111000),
+		Duration:  2 * time.Second,
+		TotalTime: 3 * time.Second,
+		Zone:      ApdexNone,
+		Attrs:     nil,
 	}
 
 	sampleTxnEventWithOldCAT = TxnEvent{
@@ -39,10 +46,11 @@ var (
 		BetterCAT: BetterCAT{
 			Enabled: false,
 		},
-		Start:    timeFromUnixMilliseconds(1488393111000),
-		Duration: 2 * time.Second,
-		Zone:     ApdexNone,
-		Attrs:    nil,
+		Start:     timeFromUnixMilliseconds(1488393111000),
+		Duration:  2 * time.Second,
+		TotalTime: 3 * time.Second,
+		Zone:      ApdexNone,
+		Attrs:     nil,
 	}
 
 	sampleTxnEventWithError = TxnEvent{
@@ -52,11 +60,12 @@ var (
 			ID:       "txn-id",
 			Priority: 0.5,
 		},
-		Start:    timeFromUnixMilliseconds(1488393111000),
-		Duration: 2 * time.Second,
-		Zone:     ApdexNone,
-		Attrs:    nil,
-		HasError: true,
+		Start:     timeFromUnixMilliseconds(1488393111000),
+		Duration:  2 * time.Second,
+		TotalTime: 3 * time.Second,
+		Zone:      ApdexNone,
+		Attrs:     nil,
+		HasError:  true,
 	}
 )
 
@@ -69,6 +78,7 @@ func TestTxnEventMarshal(t *testing.T) {
 		"timestamp":1.488393111e+09,
 		"error":false,
 		"duration":2,
+		"totalTime":3,
 		"guid":"txn-id",
 		"traceId":"txn-id",
 		"priority":0.500000,
@@ -89,6 +99,7 @@ func TestTxnEventMarshalWithApdex(t *testing.T) {
 		"nr.apdexPerfZone":"F",
 		"error":false,
 		"duration":2,
+		"totalTime":3,
 		"guid":"txn-id",
 		"traceId":"txn-id",
 		"priority":0.500000,
@@ -117,6 +128,7 @@ func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 		"externalDuration":1122.334,
 		"databaseCallCount":33,
 		"databaseDuration":5566.778,
+		"totalTime":3,
 		"guid":"txn-id",
 		"traceId":"txn-id",
 		"priority":0.500000,
@@ -147,6 +159,7 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 		"timestamp":1.488393111e+09,
 		"error":false,
 		"duration":2,
+		"totalTime":3,
 		"parent.type": "Browser",
 		"parent.app": "caller-app",
 		"parent.account": "caller-account",
@@ -183,7 +196,8 @@ func TestTxnEventMarshalWithInboundCallerOldCAT(t *testing.T) {
 		"name":"myOldName",
 		"timestamp":1.488393111e+09,
 		"error":false,
-		"duration":2
+		"duration":2,
+		"totalTime":3
 	},
 	{},
 	{}]`)
@@ -208,6 +222,7 @@ func TestTxnEventMarshalWithAttributes(t *testing.T) {
 		"timestamp":1.488393111e+09,
 		"error":false,
 		"duration":2,
+		"totalTime":3,
 		"guid":"txn-id",
 		"traceId":"txn-id",
 		"priority":0.500000,
@@ -324,6 +339,7 @@ func TestTxnEventMarshalWithError(t *testing.T) {
 		"timestamp":1.488393111e+09,
 		"error":true,
 		"duration":2,
+		"totalTime":3,
 		"guid":"txn-id",
 		"traceId":"txn-id",
 		"priority":0.500000,

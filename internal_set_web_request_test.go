@@ -72,6 +72,8 @@ func TestSetWebRequestNil(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -104,6 +106,8 @@ func TestSetWebRequestNilPointer(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -136,6 +140,8 @@ func TestSetWebRequestHTTPRequest(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -168,6 +174,8 @@ func TestSetWebRequestCustomRequest(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -200,6 +208,8 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
@@ -236,6 +246,8 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
@@ -288,6 +300,8 @@ func TestSetWebRequestIncompleteRequest(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},

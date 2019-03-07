@@ -29,6 +29,7 @@ type TxnEvent struct {
 	FinalName string
 	Start     time.Time
 	Duration  time.Duration
+	TotalTime time.Duration
 	Queuing   time.Duration
 	Zone      ApdexZone
 	Attrs     *Attributes
@@ -64,11 +65,9 @@ type TxnData struct {
 	Errors         TxnErrors // Lazily initialized.
 	Stop           time.Time
 	ApdexThreshold time.Duration
-	Exclusive      time.Duration
 
-	finishedChildren time.Duration
-	stamp            segmentStamp
-	stack            []segmentFrame
+	stamp           segmentStamp
+	threadIDCounter uint64
 
 	LazilyCalculateSampled func() bool
 	SpanEventsEnabled      bool
@@ -88,6 +87,45 @@ type TxnData struct {
 	// These better CAT supportability fields are left outside of
 	// TxnEvent.BetterCAT to minimize the size of transaction event memory.
 	DistributedTracingSupport
+}
+
+// Thread contains a segment stack that is used to track segment parenting time
+// within a single goroutine.
+type Thread struct {
+	threadID uint64
+	stack    []segmentFrame
+	// start and end are used to track the TotalTime this Thread was active.
+	start time.Time
+	end   time.Time
+}
+
+// RecordActivity indicates that activity happened at this time on this
+// goroutine which helps track total time.
+func (thread *Thread) RecordActivity(now time.Time) {
+	if thread.start.IsZero() || now.Before(thread.start) {
+		thread.start = now
+	}
+	if now.After(thread.end) {
+		thread.end = now
+	}
+}
+
+// TotalTime returns the amount to time that this thread contributes to the
+// total time.
+func (thread *Thread) TotalTime() time.Duration {
+	if thread.start.Before(thread.end) {
+		return thread.end.Sub(thread.start)
+	}
+	return 0
+}
+
+// NewThread returns a new Thread to track segments in a new goroutine.
+func NewThread(txndata *TxnData) *Thread {
+	// Each thread needs a unique ID.
+	txndata.threadIDCounter++
+	return &Thread{
+		threadID: txndata.threadIDCounter,
+	}
 }
 
 type segmentStamp uint64
@@ -127,6 +165,7 @@ type segmentEnd struct {
 	exclusive  time.Duration
 	SpanID     string
 	ParentID   string
+	threadID   uint64
 	attributes spanAttributeMap
 }
 
@@ -163,33 +202,24 @@ func (t *TxnData) time(now time.Time) segmentTime {
 	}
 }
 
-// TracerRootChildren is used to calculate a transaction's exclusive duration.
-func TracerRootChildren(t *TxnData) time.Duration {
-	var lostChildren time.Duration
-	for i := 0; i < len(t.stack); i++ {
-		lostChildren += t.stack[i].children
-	}
-	return t.finishedChildren + lostChildren
-}
-
 // AddAgentSpanAttribute allows attributes to be added to spans.
-func (t *TxnData) AddAgentSpanAttribute(key SpanAttribute, val string) {
-	if len(t.stack) > 0 {
-		t.stack[len(t.stack)-1].attributes.add(key, val)
+func (thread *Thread) AddAgentSpanAttribute(key SpanAttribute, val string) {
+	if len(thread.stack) > 0 {
+		thread.stack[len(thread.stack)-1].attributes.add(key, val)
 	}
 }
 
 // StartSegment begins a segment.
-func StartSegment(t *TxnData, now time.Time) SegmentStartTime {
+func StartSegment(t *TxnData, thread *Thread, now time.Time) SegmentStartTime {
 	tm := t.time(now)
-	t.stack = append(t.stack, segmentFrame{
+	thread.stack = append(thread.stack, segmentFrame{
 		segmentTime: tm,
 		children:    0,
 	})
 
 	return SegmentStartTime{
 		Stamp: tm.Stamp,
-		Depth: len(t.stack) - 1,
+		Depth: len(thread.stack) - 1,
 	}
 }
 
@@ -209,14 +239,14 @@ func (t *TxnData) getRootSpanID() string {
 
 // CurrentSpanIdentifier returns the identifier of the span at the top of the
 // segment stack.
-func (t *TxnData) CurrentSpanIdentifier() string {
-	if 0 == len(t.stack) {
+func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
+	if 0 == len(thread.stack) {
 		return t.getRootSpanID()
 	}
-	if "" == t.stack[len(t.stack)-1].spanID {
-		t.stack[len(t.stack)-1].spanID = NewSpanID()
+	if "" == thread.stack[len(thread.stack)-1].spanID {
+		thread.stack[len(thread.stack)-1].spanID = NewSpanID()
 	}
-	return t.stack[len(t.stack)-1].spanID
+	return thread.stack[len(thread.stack)-1].spanID
 }
 
 func (t *TxnData) saveSpanEvent(e *SpanEvent) {
@@ -233,24 +263,24 @@ var (
 		`see https://github.com/newrelic/go-agent/blob/master/GUIDE.md#segments`)
 )
 
-func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, error) {
+func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time) (segmentEnd, error) {
 	if 0 == start.Stamp {
 		return segmentEnd{}, errMalformedSegment
 	}
-	if start.Depth >= len(t.stack) {
+	if start.Depth >= len(thread.stack) {
 		return segmentEnd{}, errSegmentOrder
 	}
 	if start.Depth < 0 {
 		return segmentEnd{}, errMalformedSegment
 	}
-	frame := t.stack[start.Depth]
+	frame := thread.stack[start.Depth]
 	if start.Stamp != frame.Stamp {
 		return segmentEnd{}, errSegmentOrder
 	}
 
 	var children time.Duration
-	for i := start.Depth; i < len(t.stack); i++ {
-		children += t.stack[i].children
+	for i := start.Depth; i < len(thread.stack); i++ {
+		children += thread.stack[i].children
 	}
 	s := segmentEnd{
 		stop:       t.time(now),
@@ -268,13 +298,11 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 	// (depth < (len(t.stack) - 1)), that's ok: could be a panic popped
 	// some stack frames (and the consumer was not using defer).
 
-	if 0 == start.Depth {
-		t.finishedChildren += s.duration
-	} else {
-		t.stack[start.Depth-1].children += s.duration
+	if start.Depth > 0 {
+		thread.stack[start.Depth-1].children += s.duration
 	}
 
-	t.stack = t.stack[0:start.Depth]
+	thread.stack = thread.stack[0:start.Depth]
 
 	if t.SpanEventsEnabled && t.LazilyCalculateSampled() {
 		s.SpanID = frame.spanID
@@ -284,15 +312,20 @@ func endSegment(t *TxnData, start SegmentStartTime, now time.Time) (segmentEnd, 
 		// Note that the current span identifier is the parent's
 		// identifier because we've already popped the segment that's
 		// ending off of the stack.
-		s.ParentID = t.CurrentSpanIdentifier()
+		s.ParentID = t.CurrentSpanIdentifier(thread)
 	}
+
+	s.threadID = thread.threadID
+
+	thread.RecordActivity(s.start.Time)
+	thread.RecordActivity(s.stop.Time)
 
 	return s, nil
 }
 
 // EndBasicSegment ends a basic segment.
-func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name string) error {
-	end, err := endSegment(t, start, now)
+func EndBasicSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time, name string) error {
+	end, err := endSegment(t, thread, start, now)
 	if nil != err {
 		return err
 	}
@@ -324,8 +357,8 @@ func EndBasicSegment(t *TxnData, start SegmentStartTime, now time.Time, name str
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response) error {
-	end, err := endSegment(t, start, now)
+func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response) error {
+	end, err := endSegment(t, thread, start, now)
 	if nil != err {
 		return err
 	}
@@ -395,7 +428,8 @@ func EndExternalSegment(t *TxnData, start SegmentStartTime, now time.Time, u *ur
 
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
-	Tracer             *TxnData
+	TxnData            *TxnData
+	Thread             *Thread
 	Start              SegmentStartTime
 	Now                time.Time
 	Product            string
@@ -448,7 +482,7 @@ func datastoreSpanAddress(host, portPathOrID string) string {
 
 // EndDatastoreSegment ends a datastore segment.
 func EndDatastoreSegment(p EndDatastoreParams) error {
-	end, err := endSegment(p.Tracer, p.Start, p.Now)
+	end, err := endSegment(p.TxnData, p.Thread, p.Start, p.Now)
 	if nil != err {
 		return err
 	}
@@ -487,27 +521,27 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		Host:         p.Host,
 		PortPathOrID: p.PortPathOrID,
 	}
-	if nil == p.Tracer.datastoreSegments {
-		p.Tracer.datastoreSegments = make(map[DatastoreMetricKey]*metricData)
+	if nil == p.TxnData.datastoreSegments {
+		p.TxnData.datastoreSegments = make(map[DatastoreMetricKey]*metricData)
 	}
-	p.Tracer.datastoreCallCount++
-	p.Tracer.datastoreDuration += end.duration
+	p.TxnData.datastoreCallCount++
+	p.TxnData.datastoreDuration += end.duration
 	m := metricDataFromDuration(end.duration, end.exclusive)
-	if data, ok := p.Tracer.datastoreSegments[key]; ok {
+	if data, ok := p.TxnData.datastoreSegments[key]; ok {
 		data.aggregate(m)
 	} else {
 		// Use `new` in place of &m so that m is not
 		// automatically moved to the heap.
 		cpy := new(metricData)
 		*cpy = m
-		p.Tracer.datastoreSegments[key] = cpy
+		p.TxnData.datastoreSegments[key] = cpy
 	}
 
 	scopedMetric := datastoreScopedMetric(key)
 	queryParams := vetQueryParameters(p.QueryParameters)
 
-	if p.Tracer.TxnTrace.considerNode(end) {
-		p.Tracer.TxnTrace.witnessNode(end, scopedMetric, &traceNodeParams{
+	if p.TxnData.TxnTrace.considerNode(end) {
+		p.TxnData.TxnTrace.witnessNode(end, scopedMetric, &traceNodeParams{
 			Host:            p.Host,
 			PeerAddress:     datastoreSpanAddress(p.Host, p.PortPathOrID),
 			Database:        p.Database,
@@ -516,16 +550,16 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		})
 	}
 
-	if p.Tracer.slowQueryWorthy(end.duration) {
-		if nil == p.Tracer.SlowQueries {
-			p.Tracer.SlowQueries = newSlowQueries(maxTxnSlowQueries)
+	if p.TxnData.slowQueryWorthy(end.duration) {
+		if nil == p.TxnData.SlowQueries {
+			p.TxnData.SlowQueries = newSlowQueries(maxTxnSlowQueries)
 		}
 		// Frames to skip:
 		//   this function
 		//   endDatastore
 		//   DatastoreSegment.End
 		skipFrames := 3
-		p.Tracer.SlowQueries.observeInstance(slowQueryInstance{
+		p.TxnData.SlowQueries.observeInstance(slowQueryInstance{
 			Duration:           end.duration,
 			DatastoreMetric:    scopedMetric,
 			ParameterizedQuery: p.ParameterizedQuery,
@@ -547,7 +581,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		evt.Attributes.add(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		evt.Attributes.add(spanAttributePeerHostname, p.Host)
 		evt.Attributes.add(spanAttributeDBCollection, p.Collection)
-		p.Tracer.saveSpanEvent(evt)
+		p.TxnData.saveSpanEvent(evt)
 	}
 
 	return nil

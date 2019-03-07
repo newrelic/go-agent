@@ -1,5 +1,39 @@
 ## ChangeLog
 
+* Introduced `Transaction.NewGoroutine() Transaction` method which allows
+  transactions to create segments in multiple goroutines!
+
+`NewGoroutine` returns a new reference to the `Transaction`.  This must be
+called any time you are passing the `Transaction` to another goroutine which
+makes segments.  Each segment-creating goroutine must have its own `Transaction`
+reference.  It does not matter if you call this before or after the other
+goroutine has started.
+
+All `Transaction` methods can be used in any `Transaction` reference.  The
+`Transaction` will end when `End()` is called in any goroutine.
+
+Example passing a new `Transaction` reference directly to another goroutine:
+
+```go
+	go func(txn newrelic.Transaction) {
+		defer newrelic.StartSegment(txn, "async").End()
+		time.Sleep(100 * time.Millisecond)
+	}(txn.NewGoroutine())
+```
+
+Example passing a new `Transaction` reference on a channel to another
+goroutine:
+
+```go
+	ch := make(chan newrelic.Transaction)
+	go func() {
+		txn := <-ch
+		defer newrelic.StartSegment(txn, "async").End()
+		time.Sleep(100 * time.Millisecond)
+	}()
+	ch <- txn.NewGoroutine()
+```
+
 * Update attribute names of Datastore and External segments on Transaction
   Traces to be in line with attribute names on Spans. Specifically:
     * `"uri"` => `"http.url"`

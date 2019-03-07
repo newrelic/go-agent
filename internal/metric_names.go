@@ -7,6 +7,10 @@ const (
 	webRollup        = "WebTransaction"
 	backgroundRollup = "OtherTransaction/all"
 
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Total-Time-Async.md
+	totalTimeWeb        = "WebTransactionTotalTime"
+	totalTimeBackground = "OtherTransactionTotalTime"
+
 	errorsPrefix = "Errors/"
 
 	// "HttpDispatcher" metric is used for the overview graph, and

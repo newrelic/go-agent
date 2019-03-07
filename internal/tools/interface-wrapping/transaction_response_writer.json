@@ -1,10 +1,9 @@
 {
 	"comment": "used in internal_response_writer.go",
-	"variable_name": "txn",
-	"test_variable_name": "txn.writer",
+	"variable_name": "thd",
+	"test_variable_name": "thd.txn.writer",
 	"required_interfaces": [
-		"Transaction",
-		"internal.AddAgentSpanAttributer"
+		"threadWithExtras"
 	],
 	"optional_interfaces": [
 		"http.CloseNotifier",

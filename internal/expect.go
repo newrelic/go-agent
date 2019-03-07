@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+
+	"github.com/newrelic/go-agent/internal/racedetector"
 )
 
 var (
@@ -54,10 +56,14 @@ type WantMetric struct {
 
 // WantError is a traced error expectation.
 type WantError struct {
-	TxnName         string
-	Msg             string
-	Klass           string
-	Caller          string
+	TxnName string
+	Msg     string
+	Klass   string
+	Caller  string
+	// NotNoticed should be true if the stack trace was not generated within
+	// txn.NoticeError.  This field is provided to account for extra stack
+	// frames when running tests with -race.
+	NotNoticed      bool
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
@@ -133,6 +139,8 @@ func ExpectTxnMetrics(t Validator, mt *metricTable, want WantTxn) {
 		metrics = []WantMetric{
 			{Name: "WebTransaction/Go/" + want.Name, Scope: "", Forced: true, Data: nil},
 			{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+			{Name: "WebTransactionTotalTime/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
+			{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 			{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 			{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 			{Name: "Apdex/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
@@ -143,6 +151,8 @@ func ExpectTxnMetrics(t Validator, mt *metricTable, want WantTxn) {
 		metrics = []WantMetric{
 			{Name: "OtherTransaction/Go/" + want.Name, Scope: "", Forced: true, Data: nil},
 			{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+			{Name: "OtherTransactionTotalTime/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
+			{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		}
 	}
 	if want.NumErrors > 0 {
@@ -566,6 +576,7 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 					"type":      "Transaction",
 					"timestamp": MatchAnything,
 					"duration":  MatchAnything,
+					"totalTime": MatchAnything,
 					"error":     MatchAnything,
 				}, e.Intrinsics)
 			}
@@ -575,7 +586,14 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 }
 
 func expectError(v Validator, err *tracedError, expect WantError) {
-	caller := topCallerNameBase(err.ErrorData.Stack)
+	extraSkipFrames := 0
+	if !expect.NotNoticed && racedetector.Enabled {
+		// If the race detector is enabled then the stacktraces produced
+		// by txn.NoticeError will have an extra stack frame caused by
+		// embedding the txn into the thread.
+		extraSkipFrames = 1
+	}
+	caller := topCallerNameBase(err.ErrorData.Stack, extraSkipFrames)
 	validateStringField(v, "caller", expect.Caller, caller)
 	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
 	validateStringField(v, "klass", expect.Klass, err.Klass)

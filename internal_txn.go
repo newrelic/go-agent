@@ -41,13 +41,53 @@ type txn struct {
 	wroteHeader bool
 
 	internal.TxnData
+
+	mainThread   internal.Thread
+	asyncThreads []*internal.Thread
 }
 
-func newTxn(input txnInput, name string) *txn {
+type thread struct {
+	*txn
+	// thread does not have locking because it should only be accessed while
+	// the txn is locked.
+	thread *internal.Thread
+}
+
+func (txn *txn) markStart(now time.Time) {
+	txn.Start = now
+	// The mainThread is considered active now.
+	txn.mainThread.RecordActivity(now)
+
+}
+
+func (txn *txn) markEnd(now time.Time, thread *internal.Thread) {
+	txn.Stop = now
+	// The thread on which End() was called is considered active now.
+	thread.RecordActivity(now)
+	txn.Duration = txn.Stop.Sub(txn.Start)
+
+	// TotalTime is the sum of "active time" across all threads.  A thread
+	// was active when it started the transaction, stopped the transaction,
+	// started a segment, or stopped a segment.
+	txn.TotalTime = txn.mainThread.TotalTime()
+	for _, thd := range txn.asyncThreads {
+		txn.TotalTime += thd.TotalTime()
+	}
+	// Ensure that TotalTime is at least as large as Duration so that the
+	// graphs look sensible.  This can happen under the following situation:
+	// goroutine1: txn.start----|segment1|
+	// goroutine2:                                   |segment2|----txn.end
+	if txn.Duration > txn.TotalTime {
+		txn.TotalTime = txn.Duration
+	}
+}
+
+func newTxn(input txnInput, name string) *thread {
 	txn := &txn{
 		txnInput: input,
 	}
-	txn.Start = time.Now()
+	txn.markStart(time.Now())
+
 	txn.Name = name
 	txn.Attrs = internal.NewAttributes(input.attrConfig)
 
@@ -74,7 +114,10 @@ func newTxn(input txnInput, name string) *txn {
 	noGUID := txn.Config.DistributedTracer.Enabled
 	txn.CrossProcess.Init(doOldCAT, noGUID, input.Reply)
 
-	return txn
+	return &thread{
+		txn:    txn,
+		thread: &txn.mainThread,
+	}
 }
 
 // lazilyCalculateSampled calculates and returns whether or not the transaction
@@ -142,7 +185,8 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	return nil
 }
 
-func (txn *txn) SetWebResponse(w http.ResponseWriter) Transaction {
+func (thd *thread) SetWebResponse(w http.ResponseWriter) Transaction {
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -151,7 +195,10 @@ func (txn *txn) SetWebResponse(w http.ResponseWriter) Transaction {
 	// data flowing through as expected.
 	txn.writer = w
 
-	return upgradeTxn(txn)
+	return upgradeTxn(&thread{
+		thread: thd.thread,
+		txn:    txn,
+	})
 }
 
 func (txn *txn) slowQueriesEnabled() bool {
@@ -380,7 +427,8 @@ func (txn *txn) WriteHeader(code int) {
 	headersJustWritten(txn, code, hdr)
 }
 
-func (txn *txn) End() error {
+func (thd *thread) End() error {
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -397,12 +445,7 @@ func (txn *txn) End() error {
 		txn.noticeErrorInternal(e)
 	}
 
-	txn.Stop = time.Now()
-	txn.Duration = txn.Stop.Sub(txn.Start)
-	if children := internal.TracerRootChildren(&txn.TxnData); txn.Duration > children {
-		txn.Exclusive = txn.Duration - children
-	}
-
+	txn.markEnd(time.Now(), thd.thread)
 	txn.freezeName()
 	// Make a sampling decision if there have been no segments or outbound
 	// payloads.
@@ -589,17 +632,18 @@ func (txn *txn) Ignore() error {
 	return nil
 }
 
-func (txn *txn) StartSegmentNow() SegmentStartTime {
+func (thd *thread) StartSegmentNow() SegmentStartTime {
 	var s internal.SegmentStartTime
+	txn := thd.txn
 	txn.Lock()
 	if !txn.finished {
-		s = internal.StartSegment(&txn.TxnData, time.Now())
+		s = internal.StartSegment(&txn.TxnData, thd.thread, time.Now())
 	}
 	txn.Unlock()
 	return SegmentStartTime{
 		segment: segment{
-			start: s,
-			txn:   txn,
+			start:  s,
+			thread: thd,
 		},
 	}
 }
@@ -672,25 +716,47 @@ func (txn *txn) BrowserTimingHeader() (*BrowserTimingHeader, error) {
 	}, nil
 }
 
+func createThread(txn *txn) *internal.Thread {
+	newThread := internal.NewThread(&txn.TxnData)
+	txn.asyncThreads = append(txn.asyncThreads, newThread)
+	return newThread
+}
+
+func (thd *thread) NewGoroutine() Transaction {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		// If the transaction has finished, return the same thread.
+		return upgradeTxn(thd)
+	}
+	return upgradeTxn(&thread{
+		thread: createThread(txn),
+		txn:    txn,
+	})
+}
+
 type segment struct {
-	start internal.SegmentStartTime
-	txn   *txn
+	start  internal.SegmentStartTime
+	thread *thread
 }
 
 func endSegment(s *Segment) error {
 	if nil == s {
 		return nil
 	}
-	txn := s.StartTime.txn
-	if nil == txn {
+	thd := s.StartTime.thread
+	if nil == thd {
 		return nil
 	}
+	txn := thd.txn
 	var err error
 	txn.Lock()
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = internal.EndBasicSegment(&txn.TxnData, s.StartTime.start, time.Now(), s.Name)
+		err = internal.EndBasicSegment(&txn.TxnData, thd.thread, s.StartTime.start, time.Now(), s.Name)
 	}
 	txn.Unlock()
 	return err
@@ -700,10 +766,11 @@ func endDatastore(s *DatastoreSegment) error {
 	if nil == s {
 		return nil
 	}
-	txn := s.StartTime.txn
-	if nil == txn {
+	thd := s.StartTime.thread
+	if nil == thd {
 		return nil
 	}
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -730,7 +797,8 @@ func endDatastore(s *DatastoreSegment) error {
 		s.PortPathOrID = ""
 	}
 	return internal.EndDatastoreSegment(internal.EndDatastoreParams{
-		Tracer:             &txn.TxnData,
+		TxnData:            &txn.TxnData,
+		Thread:             thd.thread,
 		Start:              s.StartTime.start,
 		Now:                time.Now(),
 		Product:            string(s.Product),
@@ -782,10 +850,11 @@ func endExternal(s *ExternalSegment) error {
 	if nil == s {
 		return nil
 	}
-	txn := s.StartTime.txn
-	if nil == txn {
+	thd := s.StartTime.thread
+	if nil == thd {
 		return nil
 	}
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -797,7 +866,7 @@ func endExternal(s *ExternalSegment) error {
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, m, s.Response)
+	return internal.EndExternalSegment(&txn.TxnData, thd.thread, s.StartTime.start, time.Now(), u, m, s.Response)
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending
@@ -826,17 +895,17 @@ func oldCATOutboundHeaders(txn *txn) http.Header {
 }
 
 func outboundHeaders(s *ExternalSegment) http.Header {
-	txn := s.StartTime.txn
+	thd := s.StartTime.thread
 
-	if nil == txn {
+	if nil == thd {
 		return http.Header{}
 	}
-
+	txn := thd.txn
 	hdr := oldCATOutboundHeaders(txn)
 
 	// hdr may be empty, or it may contain headers.  If DistributedTracer
 	// is enabled, add more to the existing hdr
-	if p := txn.CreateDistributedTracePayload().HTTPSafe(); "" != p {
+	if p := thd.CreateDistributedTracePayload().HTTPSafe(); "" != p {
 		hdr.Add(DistributedTracePayloadHeader, p)
 		return hdr
 	}
@@ -853,9 +922,10 @@ type shimPayload struct{}
 func (s shimPayload) Text() string     { return "" }
 func (s shimPayload) HTTPSafe() string { return "" }
 
-func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload) {
+func (thd *thread) CreateDistributedTracePayload() (payload DistributedTracePayload) {
 	payload = shimPayload{}
 
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -891,7 +961,7 @@ func (txn *txn) CreateDistributedTracePayload() (payload DistributedTracePayload
 
 	sampled := txn.lazilyCalculateSampled()
 	if sampled && txn.SpanEventsEnabled {
-		p.ID = txn.CurrentSpanIdentifier()
+		p.ID = txn.CurrentSpanIdentifier(thd.thread)
 	}
 
 	// limit the number of outbound sampled=true payloads to prevent too
@@ -1015,8 +1085,6 @@ func (txn *txn) Application() Application {
 	return txn.app
 }
 
-var _ internal.AddAgentSpanAttributer = &txn{}
-
-func (txn *txn) AddAgentSpanAttribute(key internal.SpanAttribute, val string) {
-	txn.TxnData.AddAgentSpanAttribute(key, val)
+func (thd *thread) AddAgentSpanAttribute(key internal.SpanAttribute, val string) {
+	thd.thread.AddAgentSpanAttribute(key, val)
 }
