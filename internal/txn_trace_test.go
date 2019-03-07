@@ -848,32 +848,69 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// not above stack trace threshold w/out params
 	t2 := StartSegment(txndata, thread, start.Add(2*time.Second))
-	EndDatastoreSegment(EndDatastoreParams{
-		TxnData:    txndata,
-		Thread:     thread,
-		Start:      t2,
-		Now:        start.Add(4 * time.Second),
-		Product:    "MySQL",
-		Collection: "my_table",
-		Operation:  "SELECT",
-	})
+	EndBasicSegment(txndata, thread, t2, start.Add(4*time.Second), "t2")
 
 	// node above stack trace threshold w/ params
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
 	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
 
-	p := txndata.TxnTrace.nodes[0].params
-	if nil != p {
-		t.Error(p)
-	}
-	p = txndata.TxnTrace.nodes[1].params
-	if nil == p || nil == p.StackTrace || "" != p.CleanURL {
-		t.Error(p)
-	}
-	p = txndata.TxnTrace.nodes[2].params
-	if nil == p || nil == p.StackTrace || "http://example.com/zip/zap" != p.CleanURL {
-		t.Error(p)
-	}
+	ht := newHarvestTraces()
+	ht.Witness(HarvestTrace{
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  3 * time.Second,
+			TotalTime: 4 * time.Second,
+			FinalName: "WebTransaction/Go/3",
+		},
+		Trace: txndata.TxnTrace,
+	})
+
+	ExpectTxnTraces(t, ht, []WantTxnTrace{
+		{
+			MetricName:      "WebTransaction/Go/3",
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+			Intrinsics:      map[string]interface{}{"totalTime": 4},
+			Root: WantTraceSegment{
+				SegmentName:         "ROOT",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  3000,
+				Attributes:          map[string]interface{}{},
+				Children: []WantTraceSegment{{
+					SegmentName:         "WebTransaction/Go/3",
+					RelativeStartMillis: 0,
+					RelativeStopMillis:  3000,
+					Attributes:          map[string]interface{}{"exclusive_duration_millis": 3000},
+					Children: []WantTraceSegment{
+						{
+							SegmentName:         "Custom/t1",
+							RelativeStartMillis: 1000,
+							RelativeStopMillis:  2000,
+							Attributes:          map[string]interface{}{},
+							Children:            []WantTraceSegment{},
+						},
+						{
+							SegmentName:         "Custom/t2",
+							RelativeStartMillis: 2000,
+							RelativeStopMillis:  4000,
+							Attributes:          map[string]interface{}{"backtrace": MatchAnything},
+							Children:            []WantTraceSegment{},
+						},
+						{
+							SegmentName:         "External/example.com/all",
+							RelativeStartMillis: 4000,
+							RelativeStopMillis:  6000,
+							Attributes: map[string]interface{}{
+								"backtrace": MatchAnything,
+								"http.url":  "http://example.com/zip/zap",
+							},
+							Children: []WantTraceSegment{},
+						},
+					},
+				}},
+			},
+		},
+	})
 }
 
 func TestTxnTraceSynthetics(t *testing.T) {
