@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"runtime"
 
+	"time"
+
 	"github.com/newrelic/go-agent/internal/racedetector"
 )
 
@@ -91,6 +93,19 @@ type WantTxnTrace struct {
 	NumSegments     int
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
+	Intrinsics      map[string]interface{}
+	// If the Root's SegmentName is populated then the segments will be
+	// tested, otherwise NumSegments will be tested.
+	Root WantTraceSegment
+}
+
+// WantTraceSegment is a transaction trace segment expectation.
+type WantTraceSegment struct {
+	SegmentName         string
+	RelativeStartMillis int
+	RelativeStopMillis  int
+	Attributes          map[string]interface{}
+	Children            []WantTraceSegment
 }
 
 // WantSlowQuery is a slowQuery expectation.
@@ -642,18 +657,35 @@ func countSegments(node []interface{}) int {
 	return count
 }
 
-func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
-	js, err := got.MarshalJSON()
-	if nil != err {
-		v.Error("unable to marshal txn trace json", err)
-		return
+func expectTraceSegment(v Validator, nodeObj interface{}, expect WantTraceSegment) {
+	node := nodeObj.([]interface{})
+	start := int(node[0].(float64))
+	stop := int(node[1].(float64))
+	name := node[2].(string)
+	attributes := node[3].(map[string]interface{})
+	children := node[4].([]interface{})
+
+	validateStringField(v, "segmentName", expect.SegmentName, name)
+	if start != expect.RelativeStartMillis {
+		v.Error("segmentStartTime", expect.SegmentName, start, expect.RelativeStartMillis)
 	}
-	var unmarshalled []interface{}
-	err = json.Unmarshal(js, &unmarshalled)
-	if nil != err {
-		v.Error("unable to unmarshal error json", err)
-		return
+	if stop != expect.RelativeStopMillis {
+		v.Error("segmentStopTime", expect.SegmentName, stop, expect.RelativeStopMillis)
 	}
+	if nil != expect.Attributes {
+		expectAttributes(v, attributes, expect.Attributes)
+	}
+	if len(children) != len(expect.Children) {
+		v.Error("segmentChildrenCount", expect.SegmentName, len(children), len(expect.Children))
+	} else {
+		for idx, child := range children {
+			expectTraceSegment(v, child, expect.Children[idx])
+		}
+	}
+}
+
+func expectTxnTrace(v Validator, got interface{}, expect WantTxnTrace) {
+	unmarshalled := got.([]interface{})
 	duration := unmarshalled[1].(float64)
 	name := unmarshalled[2].(string)
 	var arrayURL string
@@ -666,6 +698,7 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 	attributes := traceData[4].(map[string]interface{})
 	userAttributes := attributes["userAttributes"].(map[string]interface{})
 	agentAttributes := attributes["agentAttributes"].(map[string]interface{})
+	intrinsics := attributes["intrinsics"].(map[string]interface{})
 
 	validateStringField(v, "metric name", expect.MetricName, name)
 
@@ -683,11 +716,18 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 			validateStringField(v, "request url in array", expectURL, arrayURL)
 		}
 	}
-	numSegments := countSegments(rootNode)
-	// The expectation segment count does not include the two root nodes.
-	numSegments -= 2
-	if expect.NumSegments != numSegments {
-		v.Error("wrong number of segments", expect.NumSegments, numSegments)
+	if nil != expect.Intrinsics {
+		expectAttributes(v, intrinsics, expect.Intrinsics)
+	}
+	if expect.Root.SegmentName != "" {
+		expectTraceSegment(v, rootNode, expect.Root)
+	} else {
+		numSegments := countSegments(rootNode)
+		// The expectation segment count does not include the two root nodes.
+		numSegments -= 2
+		if expect.NumSegments != numSegments {
+			v.Error("wrong number of segments", expect.NumSegments, numSegments)
+		}
 	}
 }
 
@@ -695,11 +735,34 @@ func expectTxnTrace(v Validator, got json.Marshaler, expect WantTxnTrace) {
 func ExpectTxnTraces(v Validator, traces *harvestTraces, want []WantTxnTrace) {
 	if len(want) != traces.Len() {
 		v.Error("number of traces do not match", len(want), traces.Len())
+		return
+	}
+	if len(want) == 0 {
+		return
+	}
+	js, err := traces.Data("agentRunID", time.Now())
+	if nil != err {
+		v.Error("error creasing harvest traces data", err)
+		return
 	}
 
-	actual := traces.slice()
+	var unmarshalled []interface{}
+	err = json.Unmarshal(js, &unmarshalled)
+	if nil != err {
+		v.Error("unable to unmarshal error json", err)
+		return
+	}
+	if "agentRunID" != unmarshalled[0].(string) {
+		v.Error("traces agent run id wrong", unmarshalled[0])
+		return
+	}
+	gotTraces := unmarshalled[1].([]interface{})
+	if len(gotTraces) != len(want) {
+		v.Error("number of traces in json does not match", len(gotTraces), len(want))
+		return
+	}
 	for i, expected := range want {
-		expectTxnTrace(v, actual[i], expected)
+		expectTxnTrace(v, gotTraces[i], expected)
 	}
 }
 

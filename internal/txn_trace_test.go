@@ -77,130 +77,101 @@ func TestTxnTrace(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   20000,
-	   "WebTransaction/Go/hello",
-	   "/url",
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         20000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               20000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":20000},
-	               [
-	                  [
-	                     1000,
-	                     6000,
-	                     "Custom/t1",
-	                     {},
-	                     [
-	                        [
-	                           2000,
-	                           3000,
-	                           "Datastore/statement/MySQL/my_table/SELECT",
-	                           {
-	                              "db.instance":"my_db",
-	                              "peer.hostname":"db-server-1",
-	                              "peer.address":"db-server-1:3306",
-	                              "db.statement":"INSERT INTO users (name, age) VALUES ($1, $2)",
-	                              "query_parameters":{
-	                                 "zip":1
-	                              }
-	                           },
-	                           []
-	                        ],
-	                        [
-	                           4000,
-	                           5000,
-	                           "External/example.com/all",
-	                           {
-	                              "http.url":"http://example.com/zip/zap"
-	                           },
-	                           []
-	                        ]
-	                     ]
-	                  ],
-	                  [
-	                     7000,
-	                     16000,
-	                     "Custom/t4",
-	                     {},
-	                     [
-	                        [
-	                           8000,
-	                           11000,
-	                           "Custom/t5",
-	                           {},
-	                           [
-	                              [
-	                                 9000,
-	                                 10000,
-	                                 "Custom/t6",
-	                                 {},
-	                                 []
-	                              ]
-	                           ]
-	                        ],
-	                        [
-	                           12000,
-	                           13000,
-	                           "Datastore/operation/MySQL/SELECT",
-	                           {
-	                              "db.statement":"'SELECT' on 'unknown' using 'MySQL'"
-	                           },
-	                           []
-	                        ],
-	                        [
-	                           14000,
-	                           15000,
-	                           "External/unknown/all",
-	                           {},
-	                           []
-	                        ]
-	                     ]
-	                  ]
-	               ]
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{
-	            "request.uri":"/url"
-	         },
-	         "userAttributes":{
-	            "zap":123
-	         },
-	         "intrinsics":{
-	         	"totalTime":30,
-	         	"guid":"txn-id",
-	         	"traceId":"txn-id",
-	         	"priority":0.500000,
-	         	"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{"zap": 123},
+		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+		Intrinsics: map[string]interface{}{
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+			"totalTime": 30,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children: []WantTraceSegment{
+					{
+						SegmentName:         "Custom/t1",
+						RelativeStartMillis: 1000,
+						RelativeStopMillis:  6000,
+						Attributes:          map[string]interface{}{},
+						Children: []WantTraceSegment{
+							{
+								SegmentName:         "Datastore/statement/MySQL/my_table/SELECT",
+								RelativeStartMillis: 2000,
+								RelativeStopMillis:  3000,
+								Attributes: map[string]interface{}{
+									"db.instance":      "my_db",
+									"peer.hostname":    "db-server-1",
+									"peer.address":     "db-server-1:3306",
+									"db.statement":     "INSERT INTO users (name, age) VALUES ($1, $2)",
+									"query_parameters": "map[zip:1]",
+								},
+								Children: []WantTraceSegment{},
+							},
+							{
+								SegmentName:         "External/example.com/all",
+								RelativeStartMillis: 4000,
+								RelativeStopMillis:  5000,
+								Attributes: map[string]interface{}{
+									"http.url": "http://example.com/zip/zap",
+								},
+								Children: []WantTraceSegment{},
+							},
+						},
+					},
+					{
+						SegmentName:         "Custom/t4",
+						RelativeStartMillis: 7000,
+						RelativeStopMillis:  16000,
+						Attributes:          map[string]interface{}{},
+						Children: []WantTraceSegment{
+							{
+								SegmentName:         "Custom/t5",
+								RelativeStartMillis: 8000,
+								RelativeStopMillis:  11000,
+								Attributes:          map[string]interface{}{},
+								Children: []WantTraceSegment{
+									{
+										SegmentName:         "Custom/t6",
+										RelativeStartMillis: 9000,
+										RelativeStopMillis:  10000,
+										Attributes:          map[string]interface{}{},
+										Children:            []WantTraceSegment{},
+									},
+								},
+							},
+							{
+								SegmentName:         "Datastore/operation/MySQL/SELECT",
+								RelativeStartMillis: 12000,
+								RelativeStopMillis:  13000,
+								Attributes: map[string]interface{}{
+									"db.statement": "'SELECT' on 'unknown' using 'MySQL'",
+								},
+								Children: []WantTraceSegment{},
+							},
+							{
+								SegmentName:         "External/unknown/all",
+								RelativeStartMillis: 14000,
+								RelativeStopMillis:  15000,
+								Attributes:          map[string]interface{}{},
+								Children:            []WantTraceSegment{},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceNoNodes(t *testing.T) {
@@ -227,55 +198,31 @@ func TestTxnTraceNoNodes(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `[
-	   1417136460000000,
-	   20000,
-	   "WebTransaction/Go/hello",
-	   null,
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         20000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               20000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":20000},
-	               [
-	               ]
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{},
-	         "userAttributes":{},
-	         "intrinsics":{
-	         	"totalTime":30,
-	         	"guid":"txn-id",
-	         	"traceId":"txn-id",
-	         	"priority":0.500000,
-	         	"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]`
-
-	js, err := ht.slice()[0].MarshalJSON()
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+		Intrinsics: map[string]interface{}{
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+			"totalTime": 30,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children:            []WantTraceSegment{},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceAsync(t *testing.T) {
@@ -362,96 +309,69 @@ func TestTxnTraceAsync(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `[
-   1417136460000000,
-   20000,
-   "WebTransaction/Go/hello",
-   null,
-   [
-      0,
-      {},
-      {},
-      [
-         0,
-         20000,
-         "ROOT",
-         {},
-         [
-            [
-               0,
-               20000,
-               "WebTransaction/Go/hello",
-               {"exclusive_duration_millis":20000},
-               [
-                  [
-                     1000,
-                     8000,
-                     "Custom/thread1.segment1",
-                     {},
-                     [
-                        [
-                           2000,
-                           4000,
-                           "Custom/thread1.segment2",
-                           {},
-                           []
-                        ]
-                     ]
-                  ],
-                  [
-                     3000,
-                     5000,
-                     "Custom/thread2.segment1",
-                     {},
-                     []
-                  ],
-                  [
-                     6000,
-                     10000,
-                     "Custom/thread3.segment1",
-                     {},
-                     [
-                        [
-                           7000,
-                           9000,
-                           "Custom/thread3.segment2",
-                           {},
-                           []
-                        ]
-                     ]
-                  ]
-               ]
-            ]
-         ]
-      ],
-      {
-         "agentAttributes":{
-
-         },
-         "userAttributes":{
-
-         },
-         "intrinsics":{
-            "totalTime":30,
-            "guid":"txn-id",
-            "traceId":"txn-id",
-            "priority":0.500000,
-            "sampled":false
-         }
-      }
-   ],
-   "",
-   null,
-   false,
-   null,
-   ""
-]`
-
-	js, err := ht.slice()[0].MarshalJSON()
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 30,
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children: []WantTraceSegment{
+					{
+						SegmentName:         "Custom/thread1.segment1",
+						RelativeStartMillis: 1000,
+						RelativeStopMillis:  8000,
+						Attributes:          map[string]interface{}{},
+						Children: []WantTraceSegment{
+							{
+								SegmentName:         "Custom/thread1.segment2",
+								RelativeStartMillis: 2000,
+								RelativeStopMillis:  4000,
+								Attributes:          map[string]interface{}{},
+								Children:            []WantTraceSegment{},
+							},
+						},
+					},
+					{
+						SegmentName:         "Custom/thread2.segment1",
+						RelativeStartMillis: 3000,
+						RelativeStopMillis:  5000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/thread3.segment1",
+						RelativeStartMillis: 6000,
+						RelativeStopMillis:  10000,
+						Attributes:          map[string]interface{}{},
+						Children: []WantTraceSegment{
+							{
+								SegmentName:         "Custom/thread3.segment2",
+								RelativeStartMillis: 7000,
+								RelativeStopMillis:  9000,
+								Attributes:          map[string]interface{}{},
+								Children:            []WantTraceSegment{},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceOldCAT(t *testing.T) {
@@ -491,63 +411,36 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   20000,
-	   "WebTransaction/Go/hello",
-	   "/url",
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         20000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               20000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":20000},
-	               [
-	                        [
-	                           4000,
-	                           5000,
-				   "ExternalTransaction/example.com/1#1/WebTransaction/Go/otherService",
-	                           {
-	                              "http.url":"http://example.com/zip/zap",
-				      "transaction_guid":"0123456789"
-	                           },
-	                           []
-	                        ]
-	               ]
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{"request.uri":"/url"},
-	         "userAttributes":{
-	            "zap":123
-	         },
-	         "intrinsics":{
-	            "totalTime":30
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{"zap": 123},
+		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+		Intrinsics:      map[string]interface{}{"totalTime": 30},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children: []WantTraceSegment{
+					{
+						SegmentName:         "ExternalTransaction/example.com/1#1/WebTransaction/Go/otherService",
+						RelativeStartMillis: 4000,
+						RelativeStopMillis:  5000,
+						Attributes: map[string]interface{}{
+							"http.url":         "http://example.com/zip/zap",
+							"transaction_guid": "0123456789",
+						},
+						Children: []WantTraceSegment{},
+					},
+				},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceExcludeURI(t *testing.T) {
@@ -579,53 +472,31 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 		Trace: tr.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   20000,
-	   "WebTransaction/Go/hello",
-	   null,
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         20000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               20000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":20000},
-	               []
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{},
-	         "userAttributes":{},
-	         "intrinsics":{
-	            "totalTime":0,
-		        "guid":"txn-id",
-	         	"traceId":"txn-id",
-	         	"priority":0.500000,
-	         	"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 0,
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children:            []WantTraceSegment{},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
@@ -655,53 +526,31 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   20000,
-	   "WebTransaction/Go/hello",
-	   null,
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         20000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               20000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":20000},
-	               []
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{},
-	         "userAttributes":{},
-	         "intrinsics":{
-	         	"totalTime":30,
-	         	"guid":"txn-id",
-	         	"traceId":"txn-id",
-	         	"priority":0.500000,
-	         	"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 30,
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  20000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  20000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Children:            []WantTraceSegment{},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceSlowestNodesSaved(t *testing.T) {
@@ -742,89 +591,67 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   123000,
-	   "WebTransaction/Go/hello",
-	   "/url",
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         123000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               123000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":123000},
-	               [
-	                  [
-	                     0,
-	                     5000,
-	                     "Custom/5",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     9000,
-	                     15000,
-	                     "Custom/6",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     18000,
-	                     25000,
-	                     "Custom/7",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     27000,
-	                     35000,
-	                     "Custom/8",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     36000,
-	                     45000,
-	                     "Custom/9",
-	                     {},
-	                     []
-	                  ]
-	               ]
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{"request.uri":"/url"},
-	         "userAttributes":{},
-	         "intrinsics":{
-	         	"totalTime":200,
-	         	"guid":"txn-id",
-	         	"traceId":"txn-id",
-	         	"priority":0.500000,
-	         	"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 200,
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  123000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  123000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 123000},
+				Children: []WantTraceSegment{
+					{
+						SegmentName:         "Custom/5",
+						RelativeStartMillis: 0,
+						RelativeStopMillis:  5000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/6",
+						RelativeStartMillis: 9000,
+						RelativeStopMillis:  15000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/7",
+						RelativeStartMillis: 18000,
+						RelativeStopMillis:  25000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/8",
+						RelativeStartMillis: 27000,
+						RelativeStopMillis:  35000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/9",
+						RelativeStartMillis: 36000,
+						RelativeStopMillis:  45000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+				},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceSegmentThreshold(t *testing.T) {
@@ -865,75 +692,53 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `["12345",[[
-	   1417136460000000,
-	   123000,
-	   "WebTransaction/Go/hello",
-	   "/url",
-	   [
-	      0,
-	      {},
-	      {},
-	      [
-	         0,
-	         123000,
-	         "ROOT",
-	         {},
-	         [
-	            [
-	               0,
-	               123000,
-	               "WebTransaction/Go/hello",
-	               {"exclusive_duration_millis":123000},
-	               [
-	                  [
-	                     18000,
-	                     25000,
-	                     "Custom/7",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     27000,
-	                     35000,
-	                     "Custom/8",
-	                     {},
-	                     []
-	                  ],
-	                  [
-	                     36000,
-	                     45000,
-	                     "Custom/9",
-	                     {},
-	                     []
-	                  ]
-	               ]
-	            ]
-	         ]
-	      ],
-	      {
-	         "agentAttributes":{"request.uri":"/url"},
-	         "userAttributes":{},
-	         "intrinsics":{
-				"totalTime":200,
-				"guid":"txn-id",
-				"traceId":"txn-id",
-				"priority":0.500000,
-				"sampled":false
-	         }
-	      }
-	   ],
-	   "",
-	   null,
-	   false,
-	   null,
-	   ""
-	]]]`
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/hello",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 200,
+			"guid":      "txn-id",
+			"traceId":   "txn-id",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  123000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/hello",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  123000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 123000},
+				Children: []WantTraceSegment{
+					{
+						SegmentName:         "Custom/7",
+						RelativeStartMillis: 18000,
+						RelativeStopMillis:  25000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/8",
+						RelativeStartMillis: 27000,
+						RelativeStopMillis:  35000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+					{
+						SegmentName:         "Custom/9",
+						RelativeStartMillis: 36000,
+						RelativeStopMillis:  45000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
+					},
+				},
+			}},
+		},
+	}})
 }
 
 func TestEmptyHarvestTraces(t *testing.T) {
@@ -1001,38 +806,31 @@ func TestLongestTraceSaved(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `
-[
-	"12345",
-	[
-		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url",
-			[
-				0,{},{},
-				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":5000},[]]]
-				],
-				{
-					"agentAttributes":{"request.uri":"/url"},
-					"userAttributes":{},
-					"intrinsics":{
-						"totalTime":6,
-						"guid":"txn-id-5",
-						"traceId":"txn-id-5",
-						"priority":0.500000,
-						"sampled":false
-					}
-				}
-			],
-			"",null,false,null,""
-		]
-	]
-]`
-	js, err := ht.Data("12345", start)
-	if nil != err {
-		t.Fatal(err)
-	}
-	testExpectedJSON(t, expect, string(js))
+	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		MetricName:      "WebTransaction/Go/5",
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+		Intrinsics: map[string]interface{}{
+			"totalTime": 6,
+			"guid":      "txn-id-5",
+			"traceId":   "txn-id-5",
+			"priority":  0.500000,
+			"sampled":   false,
+		},
+		Root: WantTraceSegment{
+			SegmentName:         "ROOT",
+			RelativeStartMillis: 0,
+			RelativeStopMillis:  5000,
+			Attributes:          map[string]interface{}{},
+			Children: []WantTraceSegment{{
+				SegmentName:         "WebTransaction/Go/5",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  5000,
+				Attributes:          map[string]interface{}{"exclusive_duration_millis": 5000},
+				Children:            []WantTraceSegment{},
+			}},
+		},
+	}})
 }
 
 func TestTxnTraceStackTraceThreshold(t *testing.T) {
@@ -1137,65 +935,118 @@ func TestTxnTraceSynthetics(t *testing.T) {
 		Trace: txndata.TxnTrace,
 	})
 
-	expect := `
-[
-	"12345",
-	[
-		[
-			1417136460000000,3000,"WebTransaction/Go/3","/url",
-			[
-				0,{},{},
-				[0,3000,"ROOT",{},
-					[[0,3000,"WebTransaction/Go/3",{"exclusive_duration_millis":3000},[]]]
-				],
-				{
-					"agentAttributes":{"request.uri":"/url"},
-					"userAttributes":{},
-					"intrinsics":{
-						"totalTime":4,
-						"synthetics_resource_id":"resource"
-					}
-				}
-			],
-			"",null,false,null,"resource"
-		],
-		[
-			1417136460000000,5000,"WebTransaction/Go/5","/url",
-			[
-				0,{},{},
-				[0,5000,"ROOT",{},
-					[[0,5000,"WebTransaction/Go/5",{"exclusive_duration_millis":5000},[]]]
-				],
-				{
-					"agentAttributes":{"request.uri":"/url"},
-					"userAttributes":{},
-					"intrinsics":{
-						"totalTime":6,
-						"synthetics_resource_id":"resource"
-					}
-				}
-			],
-			"",null,false,null,"resource"
-		],
-		[
-			1417136460000000,4000,"WebTransaction/Go/4","/url",
-			[
-				0,{},{},
-				[0,4000,"ROOT",{},
-					[[0,4000,"WebTransaction/Go/4",{"exclusive_duration_millis":4000},[]]]
-				],
-				{
-					"agentAttributes":{"request.uri":"/url"},
-					"userAttributes":{},
-					"intrinsics":{
-						"totalTime":5,
-						"synthetics_resource_id":"resource"
-					}
-				}
-			],
-			"",null,false,null,"resource"
-		]
-	]
+	ExpectTxnTraces(t, ht, []WantTxnTrace{
+		{
+			MetricName:      "WebTransaction/Go/3",
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+			Intrinsics: map[string]interface{}{
+				"totalTime":              4,
+				"synthetics_resource_id": "resource",
+			},
+			Root: WantTraceSegment{
+				SegmentName:         "ROOT",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  3000,
+				Attributes:          map[string]interface{}{},
+				Children: []WantTraceSegment{{
+					SegmentName:         "WebTransaction/Go/3",
+					RelativeStartMillis: 0,
+					RelativeStopMillis:  3000,
+					Attributes:          map[string]interface{}{"exclusive_duration_millis": 3000},
+					Children:            []WantTraceSegment{},
+				}},
+			},
+		},
+		{
+			MetricName:      "WebTransaction/Go/5",
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+			Intrinsics: map[string]interface{}{
+				"totalTime":              6,
+				"synthetics_resource_id": "resource",
+			},
+			Root: WantTraceSegment{
+				SegmentName:         "ROOT",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  5000,
+				Attributes:          map[string]interface{}{},
+				Children: []WantTraceSegment{{
+					SegmentName:         "WebTransaction/Go/5",
+					RelativeStartMillis: 0,
+					RelativeStopMillis:  5000,
+					Attributes:          map[string]interface{}{"exclusive_duration_millis": 5000},
+					Children:            []WantTraceSegment{},
+				}},
+			},
+		},
+		{
+			MetricName:      "WebTransaction/Go/4",
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
+			Intrinsics: map[string]interface{}{
+				"totalTime":              5,
+				"synthetics_resource_id": "resource",
+			},
+			Root: WantTraceSegment{
+				SegmentName:         "ROOT",
+				RelativeStartMillis: 0,
+				RelativeStopMillis:  4000,
+				Attributes:          map[string]interface{}{},
+				Children: []WantTraceSegment{{
+					SegmentName:         "WebTransaction/Go/4",
+					RelativeStartMillis: 0,
+					RelativeStopMillis:  4000,
+					Attributes:          map[string]interface{}{"exclusive_duration_millis": 4000},
+					Children:            []WantTraceSegment{},
+				}},
+			},
+		},
+	})
+}
+
+func TestTraceJSON(t *testing.T) {
+	// Have one test compare exact JSON to ensure that all misc fields (such
+	// as the trailing `null,false,null,""`) are what we expect.
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{}
+	txndata.TxnTrace.Enabled = true
+	ht := newHarvestTraces()
+	ht.Witness(HarvestTrace{
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  3 * time.Second,
+			TotalTime: 4 * time.Second,
+			FinalName: "WebTransaction/Go/trace",
+			Attrs:     nil,
+		},
+		Trace: txndata.TxnTrace,
+	})
+
+	expect := `[
+   "12345",
+   [
+      [
+         1417136460000000,
+         3000,
+         "WebTransaction/Go/trace",
+         null,
+         [0,{},{},
+            [
+               0,
+               3000,
+               "ROOT",
+               {},
+               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+            ],
+            {
+               "agentAttributes":{},
+               "userAttributes":{},
+               "intrinsics":{"totalTime":4}
+            }
+         ],"",null,false,null,""
+      ]
+   ]
 ]`
 
 	js, err := ht.Data("12345", start)
