@@ -53,8 +53,9 @@
 
 * Added integration support for
   [`aws-sdk-go`](https://github.com/aws/aws-sdk-go) and
-  [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  When using, a
-  segment will be created for each out going request. For DynamoDB calls, these
+  [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  
+  
+  When using, a segment will be created for each out going request. For DynamoDB calls, these
   will be Datastore segments and for all others they will be External segments.
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
