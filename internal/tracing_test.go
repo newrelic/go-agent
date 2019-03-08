@@ -1,12 +1,14 @@
 package internal
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/newrelic/go-agent/internal/cat"
 	"github.com/newrelic/go-agent/internal/crossagent"
 )
 
@@ -713,4 +715,40 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	if txndata.spanEvents[0].Category != spanCategoryHTTP {
 		t.Error(txndata.spanEvents[0].Category)
 	}
+}
+
+func TestExternalSegmentCAT(t *testing.T) {
+	// Test that when the reading the response CAT headers fails, an external
+	// segment is still created.
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{}
+	txndata.CrossProcess.Enabled = true
+	thread := &Thread{}
+
+	resp := &http.Response{Header: http.Header{}}
+	resp.Header.Add(cat.NewRelicAppDataName, "bad header value")
+
+	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
+	err := EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", resp)
+
+	if nil != err {
+		t.Error("EndExternalSegment returned an err:", err)
+	}
+	if txndata.externalCallCount != 1 {
+		t.Error(txndata.externalCallCount)
+	}
+	if txndata.externalDuration != 3*time.Second {
+		t.Error(txndata.externalDuration)
+	}
+
+	metrics := newMetricTable(100, time.Now())
+	txndata.FinalName = "OtherTransaction/Go/zip"
+	txndata.IsWeb = false
+	MergeBreakdownMetrics(txndata, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{"External/all", "", true, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/allOther", "", true, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/f1.com/all", "", false, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/f1.com/all", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
+	})
 }
