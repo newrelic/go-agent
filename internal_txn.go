@@ -866,7 +866,7 @@ func endExternal(s *ExternalSegment) error {
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, thd.thread, s.StartTime.start, time.Now(), u, m, s.Response)
+	return internal.EndExternalSegment(&txn.TxnData, thd.thread, s.StartTime.start, time.Now(), u, m, s.Response, txn.Config.Logger)
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending

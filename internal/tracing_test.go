@@ -1,13 +1,16 @@
 package internal
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/newrelic/go-agent/internal/cat"
 	"github.com/newrelic/go-agent/internal/crossagent"
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
 func TestStartEndSegment(t *testing.T) {
@@ -404,13 +407,13 @@ func TestSegmentExternal(t *testing.T) {
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t2 := StartSegment(txndata, thread, start.Add(2*time.Second))
-	EndExternalSegment(txndata, thread, t2, start.Add(3*time.Second), nil, "", nil)
-	EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil)
+	EndExternalSegment(txndata, thread, t2, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
+	EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
 	t3 := StartSegment(txndata, thread, start.Add(5*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil)
+	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
 	t4 := StartSegment(txndata, thread, start.Add(7*time.Second))
 	t4.Stamp++
-	EndExternalSegment(txndata, thread, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil)
+	EndExternalSegment(txndata, thread, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil, logger.ShimLogger{})
 
 	if txndata.externalCallCount != 3 {
 		t.Error(txndata.externalCallCount)
@@ -704,7 +707,7 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	txndata.SpanEventsEnabled = true
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	EndExternalSegment(txndata, thread, t1, start.Add(3*time.Second), nil, "", nil)
+	EndExternalSegment(txndata, thread, t1, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
 
 	// Since an external segment has just ended, there should be exactly one HTTP span event in txndata.spanEvents[]
 	if 1 != len(txndata.spanEvents) {
@@ -713,4 +716,40 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	if txndata.spanEvents[0].Category != spanCategoryHTTP {
 		t.Error(txndata.spanEvents[0].Category)
 	}
+}
+
+func TestExternalSegmentCAT(t *testing.T) {
+	// Test that when the reading the response CAT headers fails, an external
+	// segment is still created.
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{}
+	txndata.CrossProcess.Enabled = true
+	thread := &Thread{}
+
+	resp := &http.Response{Header: http.Header{}}
+	resp.Header.Add(cat.NewRelicAppDataName, "bad header value")
+
+	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
+	err := EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", resp, logger.ShimLogger{})
+
+	if nil != err {
+		t.Error("EndExternalSegment returned an err:", err)
+	}
+	if txndata.externalCallCount != 1 {
+		t.Error(txndata.externalCallCount)
+	}
+	if txndata.externalDuration != 3*time.Second {
+		t.Error(txndata.externalDuration)
+	}
+
+	metrics := newMetricTable(100, time.Now())
+	txndata.FinalName = "OtherTransaction/Go/zip"
+	txndata.IsWeb = false
+	MergeBreakdownMetrics(txndata, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{"External/all", "", true, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/allOther", "", true, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/f1.com/all", "", false, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/f1.com/all", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
+	})
 }
