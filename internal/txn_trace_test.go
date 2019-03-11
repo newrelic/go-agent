@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
 func TestTxnTrace(t *testing.T) {
@@ -34,7 +35,7 @@ func TestTxnTrace(t *testing.T) {
 		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
+	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil, logger.ShimLogger{})
 	EndBasicSegment(txndata, thread, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(txndata, thread, start.Add(7*time.Second))
 	t5 := StartSegment(txndata, thread, start.Add(8*time.Second))
@@ -52,7 +53,7 @@ func TestTxnTrace(t *testing.T) {
 		// no collection
 	})
 	t8 := StartSegment(txndata, thread, start.Add(14*time.Second))
-	EndExternalSegment(txndata, thread, t8, start.Add(15*time.Second), nil, "", nil)
+	EndExternalSegment(txndata, thread, t8, start.Add(15*time.Second), nil, "", nil, logger.ShimLogger{})
 	EndBasicSegment(txndata, thread, t4, start.Add(16*time.Second), "t4")
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
@@ -392,7 +393,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		Header: AppDataToHTTPHeader(appData),
 	}
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", resp)
+	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", resp, logger.ShimLogger{})
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
@@ -852,7 +853,7 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// node above stack trace threshold w/ params
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil)
+	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil, logger.ShimLogger{})
 
 	ht := newHarvestTraces()
 	ht.Witness(HarvestTrace{

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/newrelic/go-agent/internal/logger"
 	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
@@ -357,7 +358,7 @@ func EndBasicSegment(t *TxnData, thread *Thread, start SegmentStartTime, now tim
 }
 
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response) error {
+func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response, lg logger.Logger) error {
 	end, err := endSegment(t, thread, start, now)
 	if nil != err {
 		return err
@@ -370,9 +371,15 @@ func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now 
 
 	var appData *cat.AppDataHeader
 	if resp != nil {
-		appData, err = t.CrossProcess.ParseAppData(HTTPHeaderToAppData(resp.Header))
+		hdr := HTTPHeaderToAppData(resp.Header)
+		appData, err = t.CrossProcess.ParseAppData(hdr)
 		if err != nil {
-			return err
+			if lg.DebugEnabled() {
+				lg.Debug("failure to parse cross application response header", map[string]interface{}{
+					"err":    err.Error(),
+					"header": hdr,
+				})
+			}
 		}
 	}
 

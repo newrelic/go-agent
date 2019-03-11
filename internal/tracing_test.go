@@ -10,6 +10,7 @@ import (
 
 	"github.com/newrelic/go-agent/internal/cat"
 	"github.com/newrelic/go-agent/internal/crossagent"
+	"github.com/newrelic/go-agent/internal/logger"
 )
 
 func TestStartEndSegment(t *testing.T) {
@@ -406,13 +407,13 @@ func TestSegmentExternal(t *testing.T) {
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t2 := StartSegment(txndata, thread, start.Add(2*time.Second))
-	EndExternalSegment(txndata, thread, t2, start.Add(3*time.Second), nil, "", nil)
-	EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil)
+	EndExternalSegment(txndata, thread, t2, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
+	EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
 	t3 := StartSegment(txndata, thread, start.Add(5*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil)
+	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
 	t4 := StartSegment(txndata, thread, start.Add(7*time.Second))
 	t4.Stamp++
-	EndExternalSegment(txndata, thread, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil)
+	EndExternalSegment(txndata, thread, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil, logger.ShimLogger{})
 
 	if txndata.externalCallCount != 3 {
 		t.Error(txndata.externalCallCount)
@@ -706,7 +707,7 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	txndata.SpanEventsEnabled = true
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	EndExternalSegment(txndata, thread, t1, start.Add(3*time.Second), nil, "", nil)
+	EndExternalSegment(txndata, thread, t1, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
 
 	// Since an external segment has just ended, there should be exactly one HTTP span event in txndata.spanEvents[]
 	if 1 != len(txndata.spanEvents) {
@@ -729,7 +730,7 @@ func TestExternalSegmentCAT(t *testing.T) {
 	resp.Header.Add(cat.NewRelicAppDataName, "bad header value")
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	err := EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", resp)
+	err := EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", resp, logger.ShimLogger{})
 
 	if nil != err {
 		t.Error("EndExternalSegment returned an err:", err)
