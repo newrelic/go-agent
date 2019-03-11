@@ -1,8 +1,11 @@
 ## ChangeLog
 
-* Added support for async: the ability to instrument multiple concurrent 
-  goroutines, or goroutines that access or manipulate the same Transaction. 
-  
+* Fixed a bug that would cause External Segments not to be created under
+  certain error conditions related to Cross Application Tracing.
+
+* Added support for async: the ability to instrument multiple concurrent
+  goroutines, or goroutines that access or manipulate the same Transaction.
+
   The new `Transaction.NewGoroutine() Transaction` method allows
   transactions to create segments in multiple goroutines!
 
