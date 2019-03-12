@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.6.0
+
 ### New Features
 
 * Added support for async: the ability to instrument multiple concurrent
