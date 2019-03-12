@@ -20,25 +20,25 @@
 
   Example passing a new `Transaction` reference directly to another goroutine:
 
-```go
-	go func(txn newrelic.Transaction) {
-		defer newrelic.StartSegment(txn, "async").End()
-		time.Sleep(100 * time.Millisecond)
-	}(txn.NewGoroutine())
-```
+  ```go
+  	go func(txn newrelic.Transaction) {
+  		defer newrelic.StartSegment(txn, "async").End()
+  		time.Sleep(100 * time.Millisecond)
+  	}(txn.NewGoroutine())
+  ```
 
   Example passing a new `Transaction` reference on a channel to another
   goroutine:
 
-```go
-	ch := make(chan newrelic.Transaction)
-	go func() {
-		txn := <-ch
-		defer newrelic.StartSegment(txn, "async").End()
-		time.Sleep(100 * time.Millisecond)
-	}()
-	ch <- txn.NewGoroutine()
-```
+  ```go
+  	ch := make(chan newrelic.Transaction)
+  	go func() {
+  		txn := <-ch
+  		defer newrelic.StartSegment(txn, "async").End()
+  		time.Sleep(100 * time.Millisecond)
+  	}()
+  	ch <- txn.NewGoroutine()
+  ```
 
 * Update attribute names of Datastore and External segments on Transaction
   Traces to be in line with attribute names on Spans. Specifically:
@@ -70,10 +70,10 @@
   want to disable the collection of `"db.statement"` in your span events, modify
   your config like this:
 
-```go
-cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
-	newrelic.SpanAttributeDBStatement)
-```
+  ```go
+  cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
+  	newrelic.SpanAttributeDBStatement)
+  ```
 
 To disable the collection of all attributes from your transaction trace
 segments, modify your config like this:
