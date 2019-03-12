@@ -76,12 +76,12 @@
   	newrelic.SpanAttributeDBStatement)
   ```
 
-To disable the collection of all attributes from your transaction trace
-segments, modify your config like this:
+  To disable the collection of all attributes from your transaction trace
+  segments, modify your config like this:
 
-```go
-cfg.TransactionTracer.Segments.Attributes.Enabled = false
-```
+  ```go
+  cfg.TransactionTracer.Segments.Attributes.Enabled = false
+  ```
 
 ## 2.5.0
 
