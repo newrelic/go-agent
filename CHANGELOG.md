@@ -49,6 +49,25 @@
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
+  * Added span event and transaction trace segment attribute configuration.  You
+    may control which attributes are captured in span events and transaction trace
+    segments using the `Config.SpanEvents.Attributes` and
+    `Config.TransactionTracer.Segments.Attributes` settings. For example, if you
+    want to disable the collection of `"db.statement"` in your span events, modify
+    your config like this:
+
+    ```go
+    cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
+    	newrelic.SpanAttributeDBStatement)
+    ```
+
+    To disable the collection of all attributes from your transaction trace
+    segments, modify your config like this:
+
+    ```go
+    cfg.TransactionTracer.Segments.Attributes.Enabled = false
+    ```
+
 ### Bug Fixes
 
 * Fixed a bug that would prevent External Segments from being created under
@@ -69,25 +88,6 @@
     * `"database_name"` => `"db.instance"`
     * `"host"` => `"peer.hostname"`
     * `"port_path_or_id"` + `"host"` => `"peer.address"`
-
-* Added span event and transaction trace segment attribute configuration.  You
-  may control which attributes are captured in span events and transaction trace
-  segments using the `Config.SpanEvents.Attributes` and
-  `Config.TransactionTracer.Segments.Attributes` settings. For example, if you
-  want to disable the collection of `"db.statement"` in your span events, modify
-  your config like this:
-
-  ```go
-  cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
-  	newrelic.SpanAttributeDBStatement)
-  ```
-
-  To disable the collection of all attributes from your transaction trace
-  segments, modify your config like this:
-
-  ```go
-  cfg.TransactionTracer.Segments.Attributes.Enabled = false
-  ```
 
 ## 2.5.0
 
