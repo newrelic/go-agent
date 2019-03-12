@@ -48,18 +48,19 @@
     * `"host"` => `"peer.hostname"`
     * `"port_path_or_id"` + `"host"` => `"peer.address"`
 
-* External segments in Transaction Traces when
-  `Config.CrossApplicationTracer.Enabled = true` will now link to the
-  downstream Transaction Trace if there is one. Additionally, the segment name
-  will now include the name of the downstream application and the name of the
-  downstream transaction.
+* Improved linking between Cross Application Transaction Traces in the APM UI.
+  When `Config.CrossApplicationTracer.Enabled = true`, External segments in the
+  Transaction Traces details will now link to the downstream Transaction Trace
+  if there is one. Additionally, the segment name will now include the name of
+  the downstream application and the name of the downstream transaction.
 
 * Added integration support for
   [`aws-sdk-go`](https://github.com/aws/aws-sdk-go) and
   [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  
 
-  When using, a segment will be created for each out going request. For DynamoDB calls, these
-  will be Datastore segments and for all others they will be External segments.
+  When using these SDKs, a segment will be created for each out going request.
+  For DynamoDB calls, these will be Datastore segments and for all others they
+  will be External segments.
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
