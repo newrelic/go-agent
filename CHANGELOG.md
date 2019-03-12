@@ -1,5 +1,7 @@
 ## ChangeLog
 
+### New Features
+
 * Added support for async: the ability to instrument multiple concurrent
   goroutines, or goroutines that access or manipulate the same Transaction.
 
@@ -47,6 +49,19 @@
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
+### Bug Fixes
+
+* Fixed a bug that would prevent External Segments from being created under
+  certain error conditions related to Cross Application Tracing.
+
+### Miscellaneous
+
+* Improved linking between Cross Application Transaction Traces in the APM UI.
+  When `Config.CrossApplicationTracer.Enabled = true`, External segments in the
+  Transaction Traces details will now link to the downstream Transaction Trace
+  if there is one. Additionally, the segment name will now include the name of
+  the downstream application and the name of the downstream transaction.
+
 * Update attribute names of Datastore and External segments on Transaction
   Traces to be in line with attribute names on Spans. Specifically:
     * `"uri"` => `"http.url"`
@@ -54,15 +69,6 @@
     * `"database_name"` => `"db.instance"`
     * `"host"` => `"peer.hostname"`
     * `"port_path_or_id"` + `"host"` => `"peer.address"`
-
-* Fixed a bug that would prevent External Segments from being created under
-  certain error conditions related to Cross Application Tracing.
-
-* Improved linking between Cross Application Transaction Traces in the APM UI.
-  When `Config.CrossApplicationTracer.Enabled = true`, External segments in the
-  Transaction Traces details will now link to the downstream Transaction Trace
-  if there is one. Additionally, the segment name will now include the name of
-  the downstream application and the name of the downstream transaction.
 
 * Added span event and transaction trace segment attribute configuration.  You
   may control which attributes are captured in span events and transaction trace
