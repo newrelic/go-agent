@@ -1,6 +1,6 @@
 ## ChangeLog
 
-* Fixed a bug that would cause External Segments not to be created under
+* Fixed a bug that would prevent External Segments from being created under
   certain error conditions related to Cross Application Tracing.
 
 * Added support for async: the ability to instrument multiple concurrent
