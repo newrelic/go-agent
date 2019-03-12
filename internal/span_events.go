@@ -70,9 +70,7 @@ func (e *SpanEvent) WriteJSON(buf *bytes.Buffer) {
 
 	w = jsonFieldsWriter{buf: buf}
 	for key, val := range e.Attributes {
-		if val != "" {
-			w.stringField(key.String(), val)
-		}
+		w.writerField(key.String(), val)
 	}
 
 	buf.WriteByte('}')

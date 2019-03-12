@@ -1110,6 +1110,6 @@ func BenchmarkWitnessNode(b *testing.B) {
 			duration:  time.Duration(RandUint32()) * time.Millisecond,
 			exclusive: 0,
 		}
-		trace.witnessNode(end, "myNode", nil)
+		trace.witnessNode(end, "myNode", nil, "")
 	}
 }

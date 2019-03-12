@@ -57,21 +57,29 @@
 * Added integration support for
   [`aws-sdk-go`](https://github.com/aws/aws-sdk-go) and
   [`aws-sdk-go-v2`](https://github.com/aws/aws-sdk-go-v2).  
-  
+
   When using, a segment will be created for each out going request. For DynamoDB calls, these
   will be Datastore segments and for all others they will be External segments.
   * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
   * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
-* Added span event attribute configuration.  Now you may control which
-  attributes are captured in span events using the
-  `Config.SpanEvents.Attributes` settings. For example, if you want to disable
-  the collection of `"db.statement"` in your span events, modify your config
-  like this:
+* Added span event and transaction trace segment attribute configuration.  You
+  may control which attributes are captured in span events and transaction trace
+  segments using the `Config.SpanEvents.Attributes` and
+  `Config.TransactionTracer.Segments.Attributes` settings. For example, if you
+  want to disable the collection of `"db.statement"` in your span events, modify
+  your config like this:
 
 ```go
 cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 	newrelic.SpanAttributeDBStatement)
+```
+
+To disable the collection of all attributes from your transaction trace
+segments, modify your config like this:
+
+```go
+cfg.TransactionTracer.Segments.Attributes.Enabled = false
 ```
 
 ## 2.5.0

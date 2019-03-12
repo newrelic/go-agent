@@ -49,6 +49,15 @@ func inboundCrossProcessRequestFactory() *http.Request {
 	return req
 }
 
+func outboundCrossProcessResponse() http.Header {
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	app := testApp(crossProcessReplyFn, cfgFn, nil)
+	rw := httptest.NewRecorder()
+	txn := app.StartTransaction("txn", rw, inboundCrossProcessRequestFactory())
+	txn.WriteHeader(200)
+	return rw.HeaderMap
+}
+
 func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	// Test that the CAT response header is present when the consumer uses
 	// txn.WriteHeader.

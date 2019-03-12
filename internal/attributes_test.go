@@ -68,6 +68,8 @@ func destToString(d destinationSet) string {
 		{Name: "trace", Dest: destTxnTrace},
 		{Name: "error", Dest: destError},
 		{Name: "browser", Dest: destBrowser},
+		{Name: "span", Dest: destSpan},
+		{Name: "segment", Dest: destSegment},
 	} {
 		if 0 != d&ds.Dest {
 			if "" == out {
@@ -130,7 +132,10 @@ func runAttributeTestcase(t *testing.T, js json.RawMessage) {
 	out := applyAttributeConfig(cfg, tc.Key, inputDests)
 
 	if out != expectedDests {
-		t.Error(tc.Testname, destToString(expectedDests),
+		t.Errorf(`name="%s"  input="%s"  expected="%s"  got="%s"`,
+			tc.Testname,
+			destToString(inputDests),
+			destToString(expectedDests),
 			destToString(out))
 	}
 }

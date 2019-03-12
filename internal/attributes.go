@@ -57,6 +57,9 @@ const (
 	spanAttributePeerHostname SpanAttribute = "peer.hostname"
 	spanAttributeHTTPURL      SpanAttribute = "http.url"
 	spanAttributeHTTPMethod   SpanAttribute = "http.method"
+	// query parameters only appear in segments, not span events, but is
+	// listed as span attributes to simplify code.
+	spanAttributeQueryParameters SpanAttribute = "query_parameters"
 	// These span attributes are added by aws sdk instrumentation.
 	// https://source.datanerd.us/agents/agent-specs/blob/master/implementation_guides/aws-sdk.md#span-and-segment-attributes
 	SpanAttributeAWSOperation SpanAttribute = "aws.operation"
@@ -94,6 +97,7 @@ var (
 		spanAttributePeerHostname,
 		spanAttributeHTTPURL,
 		spanAttributeHTTPMethod,
+		spanAttributeQueryParameters,
 		SpanAttributeAWSOperation,
 		SpanAttributeAWSRequestID,
 		SpanAttributeAWSRegion,
@@ -120,12 +124,13 @@ const (
 	destTxnTrace
 	destBrowser
 	destSpan
+	destSegment
 )
 
 const (
 	destNone destinationSet = 0
 	// DestAll contains all destinations.
-	DestAll destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser | destSpan
+	DestAll destinationSet = destTxnEvent | destTxnTrace | destError | destBrowser | destSpan | destSegment
 )
 
 const (
@@ -245,6 +250,7 @@ type AttributeConfigInput struct {
 	BrowserMonitoring AttributeDestinationConfig
 	TransactionTracer AttributeDestinationConfig
 	SpanEvents        AttributeDestinationConfig
+	TraceSegments     AttributeDestinationConfig
 }
 
 var (
@@ -255,6 +261,7 @@ var (
 		TransactionTracer: AttributeDestinationConfig{Enabled: true},
 		BrowserMonitoring: AttributeDestinationConfig{Enabled: true},
 		SpanEvents:        AttributeDestinationConfig{Enabled: true},
+		TraceSegments:     AttributeDestinationConfig{Enabled: true},
 	}
 )
 
@@ -271,6 +278,7 @@ func CreateAttributeConfig(input AttributeConfigInput, includeEnabled bool) *Att
 	processDest(c, includeEnabled, &input.TransactionTracer, destTxnTrace)
 	processDest(c, includeEnabled, &input.BrowserMonitoring, destBrowser)
 	processDest(c, includeEnabled, &input.SpanEvents, destSpan)
+	processDest(c, includeEnabled, &input.TraceSegments, destSegment)
 
 	sort.Sort(byMatch(c.wildcardModifiers))
 
@@ -280,7 +288,7 @@ func CreateAttributeConfig(input AttributeConfigInput, includeEnabled bool) *Att
 	}
 	c.spanDests = make(map[SpanAttribute]destinationSet, len(spanAttributes))
 	for _, id := range spanAttributes {
-		c.spanDests[id] = applyAttributeConfig(c, id.String(), destSpan)
+		c.spanDests[id] = applyAttributeConfig(c, id.String(), destSpan|destSegment)
 	}
 
 	return c
@@ -298,10 +306,10 @@ type agentAttributeValue struct {
 
 type agentAttributes map[AgentAttributeID]agentAttributeValue
 
-func (a *Attributes) filterSpanAttributes(s map[SpanAttribute]string) map[SpanAttribute]string {
+func (a *Attributes) filterSpanAttributes(s map[SpanAttribute]jsonWriter, d destinationSet) map[SpanAttribute]jsonWriter {
 	if nil != a {
 		for key := range s {
-			if a.config.spanDests[key]&destSpan == 0 {
+			if a.config.spanDests[key]&d == 0 {
 				delete(s, key)
 			}
 		}

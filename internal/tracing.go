@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/newrelic/go-agent/internal/jsonx"
 	"github.com/newrelic/go-agent/internal/logger"
 	"github.com/newrelic/go-agent/internal/sysinfo"
 )
@@ -90,6 +91,11 @@ type TxnData struct {
 	DistributedTracingSupport
 }
 
+func (t *TxnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {
+	attrs = t.Attrs.filterSpanAttributes(attrs, destSegment)
+	t.TxnTrace.witnessNode(end, name, attrs, externalGUID)
+}
+
 // Thread contains a segment stack that is used to track segment parenting time
 // within a single goroutine.
 type Thread struct {
@@ -143,13 +149,38 @@ type SegmentStartTime struct {
 	Depth int
 }
 
-type spanAttributeMap map[SpanAttribute]string
+type stringJSONWriter string
 
-func (m *spanAttributeMap) add(key SpanAttribute, val string) {
+func (s stringJSONWriter) WriteJSON(buf *bytes.Buffer) {
+	jsonx.AppendString(buf, string(s))
+}
+
+// spanAttributeMap is used for span attributes and segment attributes. The
+// value is a jsonWriter to allow for segment query parameters.
+type spanAttributeMap map[SpanAttribute]jsonWriter
+
+func (m *spanAttributeMap) addString(key SpanAttribute, val string) {
+	if "" != val {
+		m.add(key, stringJSONWriter(val))
+	}
+}
+
+func (m *spanAttributeMap) add(key SpanAttribute, val jsonWriter) {
 	if *m == nil {
 		*m = make(spanAttributeMap)
 	}
 	(*m)[key] = val
+}
+
+func (m spanAttributeMap) copy() spanAttributeMap {
+	if len(m) == 0 {
+		return nil
+	}
+	cpy := make(spanAttributeMap, len(m))
+	for k, v := range m {
+		cpy[k] = v
+	}
+	return cpy
 }
 
 type segmentFrame struct {
@@ -206,7 +237,7 @@ func (t *TxnData) time(now time.Time) segmentTime {
 // AddAgentSpanAttribute allows attributes to be added to spans.
 func (thread *Thread) AddAgentSpanAttribute(key SpanAttribute, val string) {
 	if len(thread.stack) > 0 {
-		thread.stack[len(thread.stack)-1].attributes.add(key, val)
+		thread.stack[len(thread.stack)-1].attributes.addString(key, val)
 	}
 }
 
@@ -251,7 +282,7 @@ func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
 }
 
 func (t *TxnData) saveSpanEvent(e *SpanEvent) {
-	e.Attributes = t.Attrs.filterSpanAttributes(e.Attributes)
+	e.Attributes = t.Attrs.filterSpanAttributes(e.Attributes, destSpan)
 	if len(t.spanEvents) < maxSpanEvents {
 		t.spanEvents = append(t.spanEvents, e)
 	}
@@ -345,7 +376,8 @@ func EndBasicSegment(t *TxnData, thread *Thread, start SegmentStartTime, now tim
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		t.TxnTrace.witnessNode(end, customSegmentMetric(name), nil)
+		attributes := end.attributes.copy()
+		t.saveTraceSegment(end, customSegmentMetric(name), attributes, "")
 	}
 
 	if evt := end.spanEvent(); evt != nil {
@@ -414,10 +446,9 @@ func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now 
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		t.TxnTrace.witnessNode(end, externalScopedMetric(key), &traceNodeParams{
-			CleanURL:        SafeURL(u),
-			TransactionGUID: transactionGUID,
-		})
+		attributes := end.attributes.copy()
+		attributes.addString(spanAttributeHTTPURL, SafeURL(u))
+		t.saveTraceSegment(end, externalScopedMetric(key), attributes, transactionGUID)
 	}
 
 	if evt := end.spanEvent(); evt != nil {
@@ -425,8 +456,8 @@ func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now 
 		evt.Category = spanCategoryHTTP
 		evt.Kind = "client"
 		evt.Component = "http"
-		evt.Attributes.add(spanAttributeHTTPURL, SafeURL(u))
-		evt.Attributes.add(spanAttributeHTTPMethod, method)
+		evt.Attributes.addString(spanAttributeHTTPURL, SafeURL(u))
+		evt.Attributes.addString(spanAttributeHTTPMethod, method)
 		t.saveSpanEvent(evt)
 	}
 
@@ -548,13 +579,15 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 	queryParams := vetQueryParameters(p.QueryParameters)
 
 	if p.TxnData.TxnTrace.considerNode(end) {
-		p.TxnData.TxnTrace.witnessNode(end, scopedMetric, &traceNodeParams{
-			Host:            p.Host,
-			PeerAddress:     datastoreSpanAddress(p.Host, p.PortPathOrID),
-			Database:        p.Database,
-			Query:           p.ParameterizedQuery,
-			queryParameters: queryParams,
-		})
+		attributes := end.attributes.copy()
+		attributes.addString(spanAttributeDBStatement, p.ParameterizedQuery)
+		attributes.addString(spanAttributeDBInstance, p.Database)
+		attributes.addString(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		attributes.addString(spanAttributePeerHostname, p.Host)
+		if len(queryParams) > 0 {
+			attributes.add(spanAttributeQueryParameters, queryParams)
+		}
+		p.TxnData.saveTraceSegment(end, scopedMetric, attributes, "")
 	}
 
 	if p.TxnData.slowQueryWorthy(end.duration) {
@@ -583,11 +616,11 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.Attributes.add(spanAttributeDBStatement, p.ParameterizedQuery)
-		evt.Attributes.add(spanAttributeDBInstance, p.Database)
-		evt.Attributes.add(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
-		evt.Attributes.add(spanAttributePeerHostname, p.Host)
-		evt.Attributes.add(spanAttributeDBCollection, p.Collection)
+		evt.Attributes.addString(spanAttributeDBStatement, p.ParameterizedQuery)
+		evt.Attributes.addString(spanAttributeDBInstance, p.Database)
+		evt.Attributes.addString(spanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		evt.Attributes.addString(spanAttributePeerHostname, p.Host)
+		evt.Attributes.addString(spanAttributeDBCollection, p.Collection)
 		p.TxnData.saveSpanEvent(evt)
 	}
 

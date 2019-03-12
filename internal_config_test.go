@@ -47,6 +47,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.BrowserMonitoring.Attributes.Exclude = append(cfg.BrowserMonitoring.Attributes.Exclude, "10")
 	cfg.SpanEvents.Attributes.Include = append(cfg.SpanEvents.Attributes.Include, "11")
 	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, "12")
+	cfg.TransactionTracer.Segments.Attributes.Include = append(cfg.TransactionTracer.Segments.Attributes.Include, "13")
+	cfg.TransactionTracer.Segments.Attributes.Exclude = append(cfg.TransactionTracer.Segments.Attributes.Exclude, "14")
 	cfg.Transport = &http.Transport{}
 	cfg.Logger = NewLogger(os.Stdout)
 
@@ -66,6 +68,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.BrowserMonitoring.Attributes.Exclude[0] = "zap"
 	cfg.SpanEvents.Attributes.Include[0] = "zap"
 	cfg.SpanEvents.Attributes.Exclude[0] = "zap"
+	cfg.TransactionTracer.Segments.Attributes.Include[0] = "zap"
+	cfg.TransactionTracer.Segments.Attributes.Exclude[0] = "zap"
 
 	expect := internal.CompactJSONString(`[
 	{
@@ -119,6 +123,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
 				"Enabled":true,
 				"SegmentThreshold":2000000,
+				"Segments":{"Attributes":{"Enabled":true,"Exclude":["14"],"Include":["13"]}},
 				"StackTraceThreshold":500000000,
 				"Threshold":{
 					"Duration":500000000,
@@ -258,6 +263,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true,
 				"SegmentThreshold":2000000,
+				"Segments":{"Attributes":{"Enabled":true,"Exclude":null,"Include":null}},
 				"StackTraceThreshold":500000000,
 				"Threshold":{
 					"Duration":500000000,

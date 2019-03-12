@@ -13,61 +13,11 @@ import (
 
 type traceNodeHeap []traceNode
 
-// traceNodeParams is used for trace node parameters.  A struct is used in place
-// of a map[string]interface{} to facilitate testing and reduce JSON Marshal
-// overhead.  If too many fields get added here, it probably makes sense to
-// start using a map.  This struct is not embedded into traceNode to minimize
-// the size of traceNode:  Not all nodes will have parameters.
 type traceNodeParams struct {
+	attributes              map[SpanAttribute]jsonWriter
 	StackTrace              StackTrace
-	CleanURL                string
-	Database                string
-	Host                    string
-	PeerAddress             string
-	Query                   string
 	TransactionGUID         string
-	queryParameters         queryParameters
 	exclusiveDurationMillis *float64
-}
-
-func (p *traceNodeParams) WriteJSON(buf *bytes.Buffer) {
-	w := jsonFieldsWriter{buf: buf}
-	buf.WriteByte('{')
-	if nil != p.StackTrace {
-		w.writerField("backtrace", p.StackTrace)
-	}
-	if "" != p.CleanURL {
-		w.stringField("http.url", p.CleanURL)
-	}
-	if "" != p.Database {
-		w.stringField("db.instance", p.Database)
-	}
-	if "" != p.Host {
-		w.stringField("peer.hostname", p.Host)
-	}
-	if "" != p.PeerAddress {
-		w.stringField("peer.address", p.PeerAddress)
-	}
-	if "" != p.Query {
-		w.stringField("db.statement", p.Query)
-	}
-	if "" != p.TransactionGUID {
-		w.stringField("transaction_guid", p.TransactionGUID)
-	}
-	if nil != p.queryParameters {
-		w.writerField("query_parameters", p.queryParameters)
-	}
-	if nil != p.exclusiveDurationMillis {
-		w.floatField("exclusive_duration_millis", *p.exclusiveDurationMillis)
-	}
-	buf.WriteByte('}')
-}
-
-// MarshalJSON is used for testing.
-func (p *traceNodeParams) MarshalJSON() ([]byte, error) {
-	buf := &bytes.Buffer{}
-	p.WriteJSON(buf)
-	return buf.Bytes(), nil
 }
 
 type traceNode struct {
@@ -75,8 +25,8 @@ type traceNode struct {
 	stop     segmentTime
 	threadID uint64
 	duration time.Duration
-	params   *traceNodeParams
-	name     string
+	traceNodeParams
+	name string
 }
 
 func (h traceNodeHeap) Len() int           { return len(h) }
@@ -111,15 +61,16 @@ func (trace *TxnTrace) considerNode(end segmentEnd) bool {
 	return trace.Enabled && (end.duration >= trace.SegmentThreshold)
 }
 
-func (trace *TxnTrace) witnessNode(end segmentEnd, name string, params *traceNodeParams) {
+func (trace *TxnTrace) witnessNode(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {
 	node := traceNode{
 		start:    end.start,
 		stop:     end.stop,
 		duration: end.duration,
 		threadID: end.threadID,
 		name:     name,
-		params:   params,
 	}
+	node.attributes = attrs
+	node.TransactionGUID = externalGUID
 	if !trace.considerNode(end) {
 		return
 	}
@@ -127,17 +78,13 @@ func (trace *TxnTrace) witnessNode(end segmentEnd, name string, params *traceNod
 		trace.nodes = make(traceNodeHeap, 0, startingTxnTraceNodes)
 	}
 	if end.exclusive >= trace.StackTraceThreshold {
-		if node.params == nil {
-			p := new(traceNodeParams)
-			node.params = p
-		}
 		// skip the following stack frames:
 		//   this method
 		//   function in tracing.go      (EndBasicSegment, EndExternalSegment, EndDatastoreSegment)
 		//   function in internal_txn.go (endSegment, endExternal, endDatastore)
 		//   segment end method
 		skip := 4
-		node.params.StackTrace = GetStackTrace(skip)
+		node.StackTrace = GetStackTrace(skip)
 	}
 	if max := trace.getMaxNodes(); len(trace.nodes) < max {
 		trace.nodes = append(trace.nodes, node)
@@ -165,7 +112,7 @@ type nodeDetails struct {
 	name          string
 	relativeStart time.Duration
 	relativeStop  time.Duration
-	params        *traceNodeParams
+	traceNodeParams
 }
 
 func printNodeStart(buf *bytes.Buffer, n nodeDetails) {
@@ -181,11 +128,23 @@ func printNodeStart(buf *bytes.Buffer, n nodeDetails) {
 	buf.WriteByte(',')
 	jsonx.AppendString(buf, n.name)
 	buf.WriteByte(',')
-	if nil == n.params {
-		buf.WriteString("{}")
-	} else {
-		n.params.WriteJSON(buf)
+
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('{')
+	if nil != n.StackTrace {
+		w.writerField("backtrace", n.StackTrace)
 	}
+	if nil != n.exclusiveDurationMillis {
+		w.floatField("exclusive_duration_millis", *n.exclusiveDurationMillis)
+	}
+	if "" != n.TransactionGUID {
+		w.stringField("transaction_guid", n.TransactionGUID)
+	}
+	for k, v := range n.attributes {
+		w.writerField(k.String(), v)
+	}
+	buf.WriteByte('}')
+
 	buf.WriteByte(',')
 	buf.WriteByte('[')
 }
@@ -214,10 +173,10 @@ func printChildren(buf *bytes.Buffer, traceStart time.Time, nodes sortedTraceNod
 			buf.WriteByte(',')
 		}
 		printNodeStart(buf, nodeDetails{
-			name:          nodes[next].name,
-			relativeStart: nodes[next].start.Time.Sub(traceStart),
-			relativeStop:  nodes[next].stop.Time.Sub(traceStart),
-			params:        nodes[next].params,
+			name:            nodes[next].name,
+			relativeStart:   nodes[next].start.Time.Sub(traceStart),
+			relativeStop:    nodes[next].stop.Time.Sub(traceStart),
+			traceNodeParams: nodes[next].traceNodeParams,
 		})
 		next = printChildren(buf, traceStart, nodes, next+1, &nodes[next].stop.Stamp, threadID)
 		buf.WriteString("]]")
@@ -293,14 +252,13 @@ func (trace *HarvestTrace) writeJSON(buf *bytes.Buffer) {
 	// will calculate exclusive time, which doesn't work for this root node
 	// since all async goroutines are children of this root.
 	exclusiveDurationMillis := trace.Duration.Seconds() * 1000.0
-	printNodeStart(buf, nodeDetails{ // begin inner root
+	details := nodeDetails{ // begin inner root
 		name:          trace.FinalName,
 		relativeStart: 0,
 		relativeStop:  trace.Duration,
-		params: &traceNodeParams{
-			exclusiveDurationMillis: &exclusiveDurationMillis,
-		},
-	})
+	}
+	details.exclusiveDurationMillis = &exclusiveDurationMillis
+	printNodeStart(buf, details)
 
 	for next := 0; next < len(nodes); {
 		if next > 0 {

@@ -111,6 +111,11 @@ type Config struct {
 		// Attributes controls the attributes included with transaction
 		// traces.
 		Attributes AttributeDestinationConfig
+		// Segments.Attributes controls the attributes included with
+		// each trace segment.
+		Segments struct {
+			Attributes AttributeDestinationConfig
+		}
 	}
 
 	// BrowserMonitoring contains settings which control the behavior of
@@ -270,6 +275,7 @@ func NewConfig(appname, license string) Config {
 	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
 	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
+	c.TransactionTracer.Segments.Attributes.Enabled = true
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default

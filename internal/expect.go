@@ -101,9 +101,12 @@ type WantTxnTrace struct {
 
 // WantTraceSegment is a transaction trace segment expectation.
 type WantTraceSegment struct {
-	SegmentName         string
-	RelativeStartMillis int
-	RelativeStopMillis  int
+	SegmentName string
+	// RelativeStartMillis and RelativeStopMillis will be tested if they are
+	// provided:  This makes it easy for top level tests which cannot
+	// control duration.
+	RelativeStartMillis interface{}
+	RelativeStopMillis  interface{}
 	Attributes          map[string]interface{}
 	Children            []WantTraceSegment
 }
@@ -666,11 +669,21 @@ func expectTraceSegment(v Validator, nodeObj interface{}, expect WantTraceSegmen
 	children := node[4].([]interface{})
 
 	validateStringField(v, "segmentName", expect.SegmentName, name)
-	if start != expect.RelativeStartMillis {
-		v.Error("segmentStartTime", expect.SegmentName, start, expect.RelativeStartMillis)
+	if nil != expect.RelativeStartMillis {
+		expectStart, ok := expect.RelativeStartMillis.(int)
+		if !ok {
+			v.Error("invalid expect.RelativeStartMillis", expect.RelativeStartMillis)
+		} else if expectStart != start {
+			v.Error("segmentStartTime", expect.SegmentName, start, expectStart)
+		}
 	}
-	if stop != expect.RelativeStopMillis {
-		v.Error("segmentStopTime", expect.SegmentName, stop, expect.RelativeStopMillis)
+	if nil != expect.RelativeStopMillis {
+		expectStop, ok := expect.RelativeStopMillis.(int)
+		if !ok {
+			v.Error("invalid expect.RelativeStopMillis", expect.RelativeStopMillis)
+		} else if expectStop != stop {
+			v.Error("segmentStopTime", expect.SegmentName, stop, expectStop)
+		}
 	}
 	if nil != expect.Attributes {
 		expectAttributes(v, attributes, expect.Attributes)
