@@ -336,15 +336,6 @@ func (a *Attributes) GetAgentValue(id AgentAttributeID, d destinationSet) (strin
 	return v.stringVal, v.otherVal
 }
 
-// StringVal is used to access agent attributes with string values.  This
-// function exists to avoid exposing agent attribute storage internals.
-func (attr agentAttributes) StringVal(id AgentAttributeID) string {
-	if v, ok := attr[id]; ok {
-		return v.stringVal
-	}
-	return ""
-}
-
 // AddAgentAttributer allows instrumentation to add agent attributes without
 // exposing a Transaction method.
 type AddAgentAttributer interface {

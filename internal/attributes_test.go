@@ -401,22 +401,6 @@ func TestRequestAgentAttributesPresent(t *testing.T) {
 	})
 }
 
-func TestAgentAttributeStringVal(t *testing.T) {
-	input := sampleAttributeConfigInput
-	cfg := CreateAttributeConfig(input, false)
-	attrs := NewAttributes(cfg)
-
-	val := attrs.Agent.StringVal(AttributeAWSLambdaARN)
-	if val != "" {
-		t.Error(val)
-	}
-	attrs.Agent.Add(AttributeAWSLambdaARN, "value", nil)
-	val = attrs.Agent.StringVal(AttributeAWSLambdaARN)
-	if val != "value" {
-		t.Error(val)
-	}
-}
-
 func BenchmarkAgentAttributes(b *testing.B) {
 	cfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 

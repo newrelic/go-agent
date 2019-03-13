@@ -486,6 +486,7 @@ func (txn *txn) serverlessJSON(executionEnv string) ([]byte, error) {
 	gz.Flush()
 	gz.Close()
 
+	arn, _ := txn.Attrs.GetAgentValue(internal.AttributeAWSLambdaARN, internal.DestAll)
 	return json.Marshal([]interface{}{
 		lambdaMetadataVersion,
 		"NR_LAMBDA_MONITORING",
@@ -501,7 +502,7 @@ func (txn *txn) serverlessJSON(executionEnv string) ([]byte, error) {
 			ProtocolVersion:      internal.ProcotolVersion,
 			AgentVersion:         Version,
 			ExecutionEnvironment: executionEnv,
-			ARN:                  txn.Attrs.Agent.StringVal(internal.AttributeAWSLambdaARN),
+			ARN:                  arn,
 			AgentLanguage:        agentLanguage,
 		},
 		base64.StdEncoding.EncodeToString(dataBuf.Bytes()),
