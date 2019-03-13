@@ -51,6 +51,7 @@ func copyConfigReferenceFields(cfg Config) Config {
 }
 
 const (
+	// agentLanguage is used in the connect JSON and the Lambda JSON
 	agentLanguage = "go"
 )
 

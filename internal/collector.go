@@ -297,10 +297,10 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 
 	reply.Reply.PreconnectReply = preconnect.Preconnect
 
-	reply.Reply.AdaptiveSampler = newAdaptiveSampler(adaptiveSamplerInput{
-		Period: time.Duration(reply.Reply.SamplingTargetPeriodInSeconds) * time.Second,
-		Target: reply.Reply.SamplingTarget,
-	}, time.Now())
+	reply.Reply.AdaptiveSampler = NewAdaptiveSampler(
+		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
+		reply.Reply.SamplingTarget,
+		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
 	return reply.Reply, resp

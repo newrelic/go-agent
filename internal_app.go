@@ -94,6 +94,36 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	}
 }
 
+const (
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Lambda.md#distributed-tracing
+	serverlessDefaultPrimaryAppID = "Unknown"
+)
+
+const (
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Lambda.md#adaptive-sampling
+	serverlessSamplerPeriod = 60 * time.Second
+	serverlessSamplerTarget = 10
+)
+
+func newServerlessConnectReply(config Config) *internal.ConnectReply {
+	reply := internal.ConnectReplyDefaults()
+
+	reply.ApdexThresholdSeconds = config.ServerlessMode.ApdexThreshold.Seconds()
+
+	reply.AccountID = config.ServerlessMode.AccountID
+	reply.TrustedAccountKey = config.ServerlessMode.TrustedAccountKey
+	reply.PrimaryAppID = config.ServerlessMode.PrimaryAppID
+
+	if "" == reply.PrimaryAppID {
+		reply.PrimaryAppID = serverlessDefaultPrimaryAppID
+	}
+
+	reply.AdaptiveSampler = internal.NewAdaptiveSampler(serverlessSamplerPeriod,
+		serverlessSamplerTarget, time.Now())
+
+	return reply
+}
+
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
 	h.CreateFinalMetrics()
 	h.Metrics = h.Metrics.ApplyRules(run.MetricRules)
@@ -301,6 +331,9 @@ func (app *app) Shutdown(timeout time.Duration) {
 	if !app.config.Enabled {
 		return
 	}
+	if app.config.ServerlessMode.Enabled {
+		return
+	}
 
 	select {
 	case app.initiateShutdown <- struct{}{}:
@@ -350,6 +383,9 @@ func runSampler(app *app, period time.Duration) {
 
 func (app *app) WaitForConnection(timeout time.Duration) error {
 	if !app.config.Enabled {
+		return nil
+	}
+	if app.config.ServerlessMode.Enabled {
 		return nil
 	}
 	deadline := time.Now().Add(timeout)
@@ -408,15 +444,17 @@ func newApp(c Config) (Application, error) {
 		"enabled": app.config.Enabled,
 	})
 
-	if !app.config.Enabled {
-		return app, nil
+	if app.config.ServerlessMode.Enabled {
+		reply := newServerlessConnectReply(c)
+		app.run = newAppRun(c, reply)
 	}
 
-	go app.process()
-	go app.connectRoutine()
-
-	if app.config.RuntimeSampler.Enabled {
-		go runSampler(app, internal.RuntimeSamplerPeriod)
+	if app.config.Enabled && !app.config.ServerlessMode.Enabled {
+		go app.process()
+		go app.connectRoutine()
+		if app.config.RuntimeSampler.Enabled {
+			go runSampler(app, internal.RuntimeSamplerPeriod)
+		}
 	}
 
 	return app, nil
@@ -494,10 +532,15 @@ var (
 	errHighSecurityEnabled        = errors.New("high security enabled")
 	errCustomEventsDisabled       = errors.New("custom events disabled")
 	errCustomEventsRemoteDisabled = errors.New("custom events disabled by server")
+	errCustomEventsServerless     = errors.New("custom events are not supported by serverless")
 )
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
+	if app.config.ServerlessMode.Enabled {
+		return errCustomEventsServerless
+	}
+
 	if app.config.HighSecurity {
 		return errHighSecurityEnabled
 	}
@@ -526,13 +569,17 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 }
 
 var (
-	errMetricInf       = errors.New("invalid metric value: inf")
-	errMetricNaN       = errors.New("invalid metric value: NaN")
-	errMetricNameEmpty = errors.New("missing metric name")
+	errMetricInf        = errors.New("invalid metric value: inf")
+	errMetricNaN        = errors.New("invalid metric value: NaN")
+	errMetricNameEmpty  = errors.New("missing metric name")
+	errMetricServerless = errors.New("custom metrics are not supported in serverless mode")
 )
 
 // RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
 func (app *app) RecordCustomMetric(name string, value float64) error {
+	if app.config.ServerlessMode.Enabled {
+		return errMetricServerless
+	}
 	if math.IsNaN(value) {
 		return errMetricNaN
 	}
@@ -558,6 +605,12 @@ func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	if nil != app.testHarvest {
 		data.MergeIntoHarvest(app.testHarvest)
 		return
+	}
+
+	if app.config.Enabled && app.config.ServerlessMode.Enabled {
+		if t, ok := data.(serverlessTransaction); ok {
+			t.serverlessDump()
+		}
 	}
 
 	if "" == id {

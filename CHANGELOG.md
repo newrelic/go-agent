@@ -1,5 +1,15 @@
 ## ChangeLog
 
+* Added support for AWS Lambda functions in the new
+  [nrlambda](_integrations/nrlambda)
+  package.  Please email <lambda_preview@newrelic.com> you are interested in
+  learning more or previewing New Relic Lambda monitoring.  This instrumentation
+  package requires `aws-lambda-go` version
+  [v1.9.0](https://github.com/aws/aws-lambda-go/releases) and above.
+
+  * [documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda)
+  * [working example](_integrations/nrlambda/example/main.go)
+
 ## 2.6.0
 
 ### New Features

@@ -23,10 +23,7 @@ func TestDefaultReplyValidSampler(t *testing.T) {
 
 func TestAdaptiveSampler(t *testing.T) {
 	start := time.Now()
-	sampler := newAdaptiveSampler(adaptiveSamplerInput{
-		Period: 60 * time.Second,
-		Target: 2,
-	}, start)
+	sampler := NewAdaptiveSampler(60*time.Second, 2, start)
 
 	// first period -- we're guaranteed to get 2 sampled
 	// due to our target, and we'll send through a total of 4
@@ -61,10 +58,7 @@ func TestAdaptiveSampler(t *testing.T) {
 
 func TestAdaptiveSamplerSkipPeriod(t *testing.T) {
 	start := time.Now()
-	sampler := newAdaptiveSampler(adaptiveSamplerInput{
-		Period: 60 * time.Second,
-		Target: 2,
-	}, start)
+	sampler := NewAdaptiveSampler(60*time.Second, 2, start)
 
 	// same as the previous test, we know we can get two through
 	// and we'll send a total of 4 through
@@ -85,10 +79,7 @@ func TestAdaptiveSamplerTarget(t *testing.T) {
 	var target uint64
 	target = 20
 	start := time.Now()
-	sampler := newAdaptiveSampler(adaptiveSamplerInput{
-		Period: 60 * time.Second,
-		Target: target,
-	}, start)
+	sampler := NewAdaptiveSampler(60*time.Second, target, start)
 
 	// we should always sample up to the number of target events
 	for i := 0; uint64(i) < target; i++ {

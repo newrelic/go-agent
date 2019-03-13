@@ -213,6 +213,32 @@ type Config struct {
 		// Enabled controls whether runtime statistics are captured.
 		Enabled bool
 	}
+
+	// ServerlessMode contains fields which control behavior when running in
+	// AWS Lambda.
+	ServerlessMode struct {
+		// Enabling ServerlessMode will print each transaction's data to
+		// stdout.  No goroutines will be spawned in serverless mode,
+		// and no data will be sent directly to the New Relic backend.
+		// nrlambda.NewConfig sets Enabled to true.
+		Enabled bool
+		// ApdexThreshold sets the Apdex threshold when in
+		// ServerlessMode.  The default is 500 milliseconds.
+		// nrlambda.NewConfig populates this field using the
+		// NEW_RELIC_APDEX_T environment variable.
+		// https://docs.newrelic.com/docs/apm/new-relic-apm/apdex/apdex-measure-user-satisfaction
+		ApdexThreshold time.Duration
+		// AccountID, TrustedAccountKey, and PrimaryAppID are used for
+		// distributed tracing in ServerlessMode.  AccountID and
+		// TrustedAccountKey must be populated for distributed tracing
+		// to be enabled. nrlambda.NewConfig populates these fields
+		// using the NEW_RELIC_ACCOUNT_ID,
+		// NEW_RELIC_TRUSTED_ACCOUNT_KEY, and
+		// NEW_RELIC_PRIMARY_APPLICATION_ID environment variables.
+		AccountID         string
+		TrustedAccountKey string
+		PrimaryAppID      string
+	}
 }
 
 // AttributeDestinationConfig controls the attributes included with errors and
@@ -292,6 +318,9 @@ func NewConfig(appname, license string) Config {
 	c.DatastoreTracer.SlowQuery.Enabled = true
 	c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
 
+	c.ServerlessMode.ApdexThreshold = 500 * time.Millisecond
+	c.ServerlessMode.Enabled = false
+
 	return c
 }
 
@@ -312,7 +341,7 @@ var (
 // Validate checks the config for improper fields.  If the config is invalid,
 // newrelic.NewApplication returns an error.
 func (c Config) Validate() error {
-	if c.Enabled {
+	if c.Enabled && !c.ServerlessMode.Enabled {
 		if len(c.License) != licenseLength {
 			return errLicenseLen
 		}
@@ -322,7 +351,7 @@ func (c Config) Validate() error {
 			return errLicenseLen
 		}
 	}
-	if "" == c.AppName && c.Enabled {
+	if "" == c.AppName && c.Enabled && !c.ServerlessMode.Enabled {
 		return errAppNameMissing
 	}
 	if c.HighSecurity && "" != c.SecurityPoliciesToken {

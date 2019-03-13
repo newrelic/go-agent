@@ -44,6 +44,14 @@ const (
 	AttributeRequestReferer = "request.headers.referer"
 )
 
+// AWS Lambda specific attributes:
+const (
+	AttributeAWSRequestID            = "aws.requestId"
+	AttributeAWSLambdaARN            = "aws.lambda.arn"
+	AttributeAWSLambdaColdStart      = "aws.lambda.coldStart"
+	AttributeAWSLambdaEventSourceARN = "aws.lambda.eventSource.arn"
+)
+
 // Attributes destined for Span Events:
 //
 // To disable the capture of one of these span event attributes, db.statement

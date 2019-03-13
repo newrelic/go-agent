@@ -109,6 +109,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Logger":"*logger.logFile",
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
+			"ServerlessMode":{
+				"AccountID":"",
+				"ApdexThreshold":500000000,
+				"Enabled":false,
+				"PrimaryAppID":"",
+				"TrustedAccountKey":""
+			},
 			"SpanEvents":{
 				"Attributes":{
 					"Enabled":true,"Exclude":["12"],"Include":["11"]
@@ -251,6 +258,13 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Logger":null,
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
+			"ServerlessMode":{
+				"AccountID":"",
+				"ApdexThreshold":500000000,
+				"Enabled":false,
+				"PrimaryAppID":"",
+				"TrustedAccountKey":""
+			},
 			"SpanEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true
@@ -440,5 +454,14 @@ func TestGatherMetadata(t *testing.T) {
 		"NEW_RELIC_METADATA_EMPTY":          "",
 	}) {
 		t.Error(metadata)
+	}
+}
+
+func TestValidateServerless(t *testing.T) {
+	// AppName and License can be empty in serverless mode.
+	c := NewConfig("", "")
+	c.ServerlessMode.Enabled = true
+	if err := c.Validate(); nil != err {
+		t.Error(err)
 	}
 }

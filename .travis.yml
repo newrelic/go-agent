@@ -26,6 +26,8 @@ matrix:
     env: INTEGRATION=_integrations/nrlogxi/v1
   - go: "1.11"
     env: INTEGRATION=_integrations/nrpkgerrors
+  - go: "1.11"
+    env: INTEGRATION=_integrations/nrlambda
 
 # Skip the install step. Don't `go get` dependencies.
 install: true

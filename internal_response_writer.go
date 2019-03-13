@@ -24,6 +24,8 @@ func (thd *thread) ReadFrom(r io.Reader) (int64, error) {
 
 type threadWithExtras interface {
 	Transaction
+	serverlessTransaction
+	internal.AddAgentAttributer
 	internal.AddAgentSpanAttributer
 }
 
