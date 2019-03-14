@@ -9,16 +9,17 @@ import (
 // appRun contains information regarding a single connection session with the
 // collector.  It is immutable after creation at application connect.
 type appRun struct {
-	*internal.ConnectReply
+	Reply *internal.ConnectReply
 
 	// AttributeConfig is calculated on every connect since it depends on
 	// the security policies.
 	AttributeConfig *internal.AttributeConfig
+	Config          Config
 }
 
 func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	return &appRun{
-		ConnectReply: reply,
+		Reply: reply,
 		AttributeConfig: internal.CreateAttributeConfig(internal.AttributeConfigInput{
 			Attributes:        convertAttributeDestinationConfig(config.Attributes),
 			ErrorCollector:    convertAttributeDestinationConfig(config.ErrorCollector.Attributes),
@@ -28,6 +29,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 			SpanEvents:        convertAttributeDestinationConfig(config.SpanEvents.Attributes),
 			TraceSegments:     convertAttributeDestinationConfig(config.TransactionTracer.Segments.Attributes),
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
+		Config: config,
 	}
 }
 

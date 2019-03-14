@@ -128,6 +128,7 @@ func TestShouldSaveTrace(t *testing.T) {
 		},
 	} {
 		txn := &txn{}
+		txn.appRun = &appRun{}
 		txn.Config.TransactionTracer.Enabled = tc.tracerEnabled
 		txn.Config.TransactionTracer.Threshold.Duration = tc.threshold
 		txn.Reply = &internal.ConnectReply{CollectTraces: tc.collectTraces}
@@ -145,6 +146,7 @@ func TestShouldSaveTrace(t *testing.T) {
 
 func TestLazilyCalculateSampledTrue(t *testing.T) {
 	tx := &txn{}
+	tx.appRun = &appRun{}
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
@@ -164,6 +166,7 @@ func TestLazilyCalculateSampledTrue(t *testing.T) {
 
 func TestLazilyCalculateSampledFalse(t *testing.T) {
 	tx := &txn{}
+	tx.appRun = &appRun{}
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
@@ -183,6 +186,7 @@ func TestLazilyCalculateSampledFalse(t *testing.T) {
 
 func TestLazilyCalculateSampledCATDisabled(t *testing.T) {
 	tx := &txn{}
+	tx.appRun = &appRun{}
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = false

@@ -20,12 +20,10 @@ import (
 
 type txnInput struct {
 	// This ResponseWriter should only be accessed using txn.getWriter()
-	writer     http.ResponseWriter
-	app        Application
-	Config     Config
-	Reply      *internal.ConnectReply
-	Consumer   dataConsumer
-	attrConfig *internal.AttributeConfig
+	writer   http.ResponseWriter
+	app      Application
+	Consumer dataConsumer
+	*appRun
 }
 
 type txn struct {
@@ -94,7 +92,7 @@ func newTxn(input txnInput, name string) *thread {
 	txn.markStart(time.Now())
 
 	txn.Name = name
-	txn.Attrs = internal.NewAttributes(input.attrConfig)
+	txn.Attrs = internal.NewAttributes(input.AttributeConfig)
 
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true

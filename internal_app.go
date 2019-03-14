@@ -71,12 +71,12 @@ type app struct {
 
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
 	h.CreateFinalMetrics()
-	h.Metrics = h.Metrics.ApplyRules(run.MetricRules)
+	h.Metrics = h.Metrics.ApplyRules(run.Reply.MetricRules)
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
 		cmd := p.EndpointMethod()
-		data, err := p.Data(run.RunID.String(), harvestStart)
+		data, err := p.Data(run.Reply.RunID.String(), harvestStart)
 
 		if nil != err {
 			app.config.Logger.Warn("unable to create harvest data", map[string]interface{}{
@@ -90,11 +90,11 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 		}
 
 		call := internal.RpmCmd{
-			Collector:         run.Collector,
-			RunID:             run.RunID.String(),
+			Collector:         run.Reply.Collector,
+			RunID:             run.Reply.RunID.String(),
 			Name:              cmd,
 			Data:              data,
-			RequestHeadersMap: run.RequestHeadersMap,
+			RequestHeadersMap: run.Reply.RequestHeadersMap,
 		}
 
 		resp := internal.CollectorRequest(call, app.rpmControls)
@@ -116,7 +116,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 		}
 
 		if resp.ShouldSaveHarvestData() {
-			app.Consume(run.RunID, p)
+			app.Consume(run.Reply.RunID, p)
 		}
 	}
 }
@@ -182,7 +182,7 @@ func debug(data internal.Harvestable, lg Logger) {
 }
 
 func processConnectMessages(run *appRun, lg Logger) {
-	for _, msg := range run.Messages {
+	for _, msg := range run.Reply.Messages {
 		event := "collector message"
 		cn := map[string]interface{}{"msg": msg.Message}
 
@@ -217,7 +217,7 @@ func (app *app) process() {
 				h = internal.NewHarvest(now)
 			}
 		case d := <-app.dataChan:
-			if nil != run && run.RunID == d.id {
+			if nil != run && run.Reply.RunID == d.id {
 				d.data.MergeIntoHarvest(h)
 			}
 		case <-app.initiateShutdown:
@@ -231,7 +231,7 @@ func (app *app) process() {
 				for done := false; !done; {
 					select {
 					case d := <-app.dataChan:
-						if run.RunID == d.id {
+						if run.Reply.RunID == d.id {
 							d.data.MergeIntoHarvest(h)
 						}
 					default:
@@ -265,7 +265,7 @@ func (app *app) process() {
 
 			app.config.Logger.Info("application connected", map[string]interface{}{
 				"app": app.config.AppName,
-				"run": run.RunID.String(),
+				"run": run.Reply.RunID.String(),
 			})
 			processConnectMessages(run, app.config.Logger)
 		}
@@ -314,7 +314,7 @@ func runSampler(app *app, period time.Duration) {
 		case now := <-t.C:
 			current := internal.GetSample(now, app.config.Logger)
 			run, _ := app.getState()
-			app.Consume(run.RunID, internal.GetStats(internal.Samples{
+			app.Consume(run.Reply.RunID, internal.GetStats(internal.Samples{
 				Previous: previous,
 				Current:  current,
 			}))
@@ -341,7 +341,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 		if nil != err {
 			return err
 		}
-		if run.RunID != "" {
+		if run.Reply.RunID != "" {
 			return nil
 		}
 		if time.Now().After(deadline) {
@@ -459,12 +459,10 @@ func (app *app) setState(run *appRun, err error) {
 func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
 	run, _ := app.getState()
 	txn := upgradeTxn(newTxn(txnInput{
-		app:        app,
-		Config:     app.config,
-		Reply:      run.ConnectReply,
-		writer:     w,
-		Consumer:   app,
-		attrConfig: run.AttributeConfig,
+		app:      app,
+		appRun:   run,
+		writer:   w,
+		Consumer: app,
 	}, name))
 
 	if nil != r {
@@ -500,15 +498,15 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 	}
 
 	run, _ := app.getState()
-	if !run.CollectCustomEvents {
+	if !run.Reply.CollectCustomEvents {
 		return errCustomEventsRemoteDisabled
 	}
 
-	if !run.SecurityPolicies.CustomEvents.Enabled() {
+	if !run.Reply.SecurityPolicies.CustomEvents.Enabled() {
 		return errSecurityPolicy
 	}
 
-	app.Consume(run.RunID, event)
+	app.Consume(run.Reply.RunID, event)
 
 	return nil
 }
@@ -535,7 +533,7 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 		return errMetricNameEmpty
 	}
 	run, _ := app.getState()
-	app.Consume(run.RunID, internal.CustomMetric{
+	app.Consume(run.Reply.RunID, internal.CustomMetric{
 		RawInputName: name,
 		Value:        value,
 	})
