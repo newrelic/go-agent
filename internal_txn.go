@@ -204,26 +204,6 @@ func (thd *thread) SetWebResponse(w http.ResponseWriter) Transaction {
 	})
 }
 
-func (txn *txn) slowQueriesEnabled() bool {
-	return txn.Config.DatastoreTracer.SlowQuery.Enabled &&
-		txn.Reply.CollectTraces
-}
-
-func (txn *txn) txnTracesEnabled() bool {
-	return txn.Config.TransactionTracer.Enabled &&
-		txn.Reply.CollectTraces
-}
-
-func (txn *txn) txnEventsEnabled() bool {
-	return txn.Config.TransactionEvents.Enabled &&
-		txn.Reply.CollectAnalyticsEvents
-}
-
-func (txn *txn) errorEventsEnabled() bool {
-	return txn.Config.ErrorCollector.CaptureEvents &&
-		txn.Reply.CollectErrorEvents
-}
-
 func (txn *txn) freezeName() {
 	if txn.ignore || ("" != txn.FinalName) {
 		return

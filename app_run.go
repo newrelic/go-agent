@@ -62,3 +62,23 @@ func newServerlessConnectReply(config Config) *internal.ConnectReply {
 
 	return reply
 }
+
+func (run *appRun) slowQueriesEnabled() bool {
+	return run.Config.DatastoreTracer.SlowQuery.Enabled &&
+		run.Reply.CollectTraces
+}
+
+func (run *appRun) txnTracesEnabled() bool {
+	return run.Config.TransactionTracer.Enabled &&
+		run.Reply.CollectTraces
+}
+
+func (run *appRun) txnEventsEnabled() bool {
+	return run.Config.TransactionEvents.Enabled &&
+		run.Reply.CollectAnalyticsEvents
+}
+
+func (run *appRun) errorEventsEnabled() bool {
+	return run.Config.ErrorCollector.CaptureEvents &&
+		run.Reply.CollectErrorEvents
+}
