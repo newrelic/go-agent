@@ -53,6 +53,12 @@ func newServerlessConnectReply(config Config) *internal.ConnectReply {
 	reply.TrustedAccountKey = config.ServerlessMode.TrustedAccountKey
 	reply.PrimaryAppID = config.ServerlessMode.PrimaryAppID
 
+	if "" == reply.TrustedAccountKey {
+		// The trust key does not need to be provided by customers whose
+		// account ID is the same as the trust key.
+		reply.TrustedAccountKey = reply.AccountID
+	}
+
 	if "" == reply.PrimaryAppID {
 		reply.PrimaryAppID = serverlessDefaultPrimaryAppID
 	}

@@ -1552,3 +1552,68 @@ func TestDistributedTraceDisabledSpanEventsEnabled(t *testing.T) {
 	// ensure no span events created
 	app.ExpectSpanEventsCount(t, 0)
 }
+
+func TestCreatePayloadAppNotConnected(t *testing.T) {
+	// Test that an app which isn't connected does not create distributed
+	// trace payloads.
+	app := testApp(nil, enableBetterCAT, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	payload := txn.CreateDistributedTracePayload()
+	if payload.Text() != "" || payload.HTTPSafe() != "" {
+		t.Error(payload.Text(), payload.HTTPSafe())
+	}
+}
+func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
+	// Test that an app whose reply is missing the trust key does not create
+	// distributed trace payloads.
+	app := testApp(func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.TrustedAccountKey = ""
+	}, enableBetterCAT, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	payload := txn.CreateDistributedTracePayload()
+	if payload.Text() != "" || payload.HTTPSafe() != "" {
+		t.Error(payload.Text(), payload.HTTPSafe())
+	}
+}
+
+func TestAcceptPayloadAppNotConnected(t *testing.T) {
+	// Test that an app which isn't connected does not accept distributed
+	// trace payloads.
+	app := testApp(nil, enableBetterCAT, t)
+	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
+		StartTransaction("name", nil, nil).
+		CreateDistributedTracePayload()
+	if payload.Text() == "" {
+		t.Fatal(payload)
+	}
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, backgroundUnknownCaller)
+}
+
+func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
+	// Test that an app whose reply is missing a trust key does not accept
+	// distributed trace payloads.
+	app := testApp(func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.TrustedAccountKey = ""
+	}, enableBetterCAT, t)
+	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
+		StartTransaction("name", nil, nil).
+		CreateDistributedTracePayload()
+	if payload.Text() == "" {
+		t.Fatal(payload)
+	}
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, backgroundUnknownCaller)
+}
