@@ -140,7 +140,7 @@ func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMRespons
 	req.Header.Add("Accept-Encoding", "identity, deflate")
 	req.Header.Add("Content-Type", "application/octet-stream")
 	req.Header.Add("User-Agent", userAgentPrefix+cs.AgentVersion)
-	req.Header.Add("Content-Encoding", "deflate")
+	req.Header.Add("Content-Encoding", "gzip")
 	for k, v := range cmd.RequestHeadersMap {
 		req.Header.Add(k, v)
 	}
