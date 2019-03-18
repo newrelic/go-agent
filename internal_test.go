@@ -739,23 +739,6 @@ func TestIgnoreAlreadyEnded(t *testing.T) {
 	}})
 }
 
-func TestResponseCodeIsError(t *testing.T) {
-	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
-
-	if is := responseCodeIsError(&cfg, 200); is {
-		t.Error(is)
-	}
-	if is := responseCodeIsError(&cfg, 400); !is {
-		t.Error(is)
-	}
-	if is := responseCodeIsError(&cfg, 404); is {
-		t.Error(is)
-	}
-	if is := responseCodeIsError(&cfg, 503); !is {
-		t.Error(is)
-	}
-}
-
 func TestExternalSegmentMethod(t *testing.T) {
 	req, err := http.NewRequest("POST", "http://request.com/", nil)
 	if err != nil {

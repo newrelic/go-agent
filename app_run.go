@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
@@ -87,4 +88,16 @@ func (run *appRun) txnEventsEnabled() bool {
 func (run *appRun) errorEventsEnabled() bool {
 	return run.Config.ErrorCollector.CaptureEvents &&
 		run.Reply.CollectErrorEvents
+}
+
+func (run *appRun) responseCodeIsError(code int) bool {
+	if code < http.StatusBadRequest { // 400
+		return false
+	}
+	for _, ignoreCode := range run.Config.ErrorCollector.IgnoreStatusCodes {
+		if code == ignoreCode {
+			return false
+		}
+	}
+	return true
 }

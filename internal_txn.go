@@ -281,18 +281,6 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	}
 }
 
-func responseCodeIsError(cfg *Config, code int) bool {
-	if code < http.StatusBadRequest { // 400
-		return false
-	}
-	for _, ignoreCode := range cfg.ErrorCollector.IgnoreStatusCodes {
-		if code == ignoreCode {
-			return false
-		}
-	}
-	return true
-}
-
 func headersJustWritten(txn *txn, code int, hdr http.Header) {
 	txn.Lock()
 	defer txn.Unlock()
@@ -308,7 +296,7 @@ func headersJustWritten(txn *txn, code int, hdr http.Header) {
 	internal.ResponseHeaderAttributes(txn.Attrs, hdr)
 	internal.ResponseCodeAttribute(txn.Attrs, code)
 
-	if responseCodeIsError(&txn.Config, code) {
+	if txn.appRun.responseCodeIsError(code) {
 		e := internal.TxnErrorFromResponseCode(time.Now(), code)
 		e.Stack = internal.GetStackTrace(1)
 		txn.noticeErrorInternal(e)
