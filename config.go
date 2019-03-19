@@ -335,7 +335,6 @@ var (
 	errAppNameMissing                   = errors.New("string AppName required")
 	errAppNameLimit                     = fmt.Errorf("max of %d rollup application names", appNameLimit)
 	errHighSecurityWithSecurityPolicies = errors.New("SecurityPoliciesToken and HighSecurity are incompatible; please ensure HighSecurity is set to false if SecurityPoliciesToken is a non-empty string and a security policy has been set for your account")
-	errMixedTracers                     = errors.New("CrossApplicationTracer and DistributedTracer cannot be enabled simultaneously; please choose CrossApplicationTracer (available since v1.11) or DistributedTracer (available since v2.1)")
 )
 
 // Validate checks the config for improper fields.  If the config is invalid,
@@ -356,9 +355,6 @@ func (c Config) Validate() error {
 	}
 	if c.HighSecurity && "" != c.SecurityPoliciesToken {
 		return errHighSecurityWithSecurityPolicies
-	}
-	if c.CrossApplicationTracer.Enabled && c.DistributedTracer.Enabled {
-		return errMixedTracers
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit

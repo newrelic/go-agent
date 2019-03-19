@@ -113,7 +113,7 @@ func newTxn(input txnInput, name string) *thread {
 	// CrossProcess. To support Synthetics with either BetterCAT or Old CAT,
 	// Initialize the CrossProcess field of the transaction, passing in
 	// the top-level configuration.
-	doOldCAT := txn.Config.CrossApplicationTracer.Enabled
+	doOldCAT := txn.appRun.crossApplicationTracingEnabled()
 	noGUID := txn.Config.DistributedTracer.Enabled
 	txn.CrossProcess.Init(doOldCAT, noGUID, input.Reply)
 

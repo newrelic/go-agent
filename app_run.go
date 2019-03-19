@@ -90,6 +90,13 @@ func (run *appRun) errorEventsEnabled() bool {
 		run.Reply.CollectErrorEvents
 }
 
+func (run *appRun) crossApplicationTracingEnabled() bool {
+	// Distributed tracing takes priority over cross-app-tracing per:
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Distributed-Tracing.md#distributed-trace-payload
+	return run.Config.CrossApplicationTracer.Enabled &&
+		!run.Config.DistributedTracer.Enabled
+}
+
 func (run *appRun) responseCodeIsError(code int) bool {
 	if code < http.StatusBadRequest { // 400
 		return false

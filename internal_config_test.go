@@ -394,16 +394,6 @@ func TestValidate(t *testing.T) {
 	if err := c.Validate(); err != nil {
 		t.Error(err)
 	}
-	c = Config{
-		License: "0123456789012345678901234567890123456789",
-		AppName: "my-app",
-		Enabled: true,
-	}
-	c.CrossApplicationTracer.Enabled = true
-	c.DistributedTracer.Enabled = true
-	if err := c.Validate(); err != errMixedTracers {
-		t.Error(err)
-	}
 }
 
 func TestValidateWithPoliciesToken(t *testing.T) {
