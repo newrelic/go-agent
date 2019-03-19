@@ -139,18 +139,28 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	app.ExpectMetrics(t, backgroundMetrics)
 }
 
-func TestNoticeErrorRemotelyDisabled(t *testing.T) {
+func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
+	// This tests that the connect reply field "collect_errors" controls the
+	// collection of traced-errors, not error-events.
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrors = false }
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.NoticeError(myError{})
-	if errorsRemotelyDisabled != err {
+	if err != nil {
 		t.Error(err)
 	}
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
-	app.ExpectErrorEvents(t, []internal.WantEvent{})
-	app.ExpectMetrics(t, backgroundMetrics)
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "newrelic.myError",
+			"error.message":   "my msg",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
 }
 
 func TestNoticeErrorNil(t *testing.T) {

@@ -250,7 +250,9 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		h.TxnEvents.AddTxnEvent(alloc, priority)
 	}
 
-	internal.MergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.TxnEvent)
+	if txn.Reply.CollectErrors {
+		internal.MergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.TxnEvent)
+	}
 
 	if txn.errorEventsEnabled() {
 		for _, e := range txn.Errors {
@@ -586,13 +588,12 @@ func (txn *txn) AddAttribute(name string, value interface{}) error {
 }
 
 var (
-	errorsLocallyDisabled  = errors.New("errors locally disabled")
-	errorsRemotelyDisabled = errors.New("errors remotely disabled")
-	errNilError            = errors.New("nil error")
-	errAlreadyEnded        = errors.New("transaction has already ended")
-	errSecurityPolicy      = errors.New("disabled by security policy")
-	errTransactionIgnored  = errors.New("transaction has been ignored")
-	errBrowserDisabled     = errors.New("browser disabled by local configuration")
+	errorsLocallyDisabled = errors.New("errors locally disabled")
+	errNilError           = errors.New("nil error")
+	errAlreadyEnded       = errors.New("transaction has already ended")
+	errSecurityPolicy     = errors.New("disabled by security policy")
+	errTransactionIgnored = errors.New("transaction has been ignored")
+	errBrowserDisabled    = errors.New("browser disabled by local configuration")
 )
 
 const (
@@ -603,10 +604,6 @@ const (
 func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsLocallyDisabled
-	}
-
-	if !txn.Reply.CollectErrors {
-		return errorsRemotelyDisabled
 	}
 
 	if nil == txn.Errors {
