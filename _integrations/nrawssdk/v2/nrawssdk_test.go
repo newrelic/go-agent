@@ -19,7 +19,6 @@ import (
 func testApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
 	cfg.Enabled = false
-	cfg.CrossApplicationTracer.Enabled = false
 	cfg.DistributedTracer.Enabled = true
 
 	app, err := newrelic.NewApplication(cfg)

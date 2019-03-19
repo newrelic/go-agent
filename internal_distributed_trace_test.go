@@ -304,7 +304,6 @@ func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 
 func TestPayloadTransactionsDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) {
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.DistributedTracer.Enabled = true
 		cfg.SpanEvents.Enabled = true
 		cfg.TransactionEvents.Enabled = false

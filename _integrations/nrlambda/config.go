@@ -28,7 +28,6 @@ func newConfigInternal(getenv func(string) string) newrelic.Config {
 	cfg.ServerlessMode.PrimaryAppID = getenv("NEW_RELIC_PRIMARY_APPLICATION_ID")
 
 	cfg.DistributedTracer.Enabled = true
-	cfg.CrossApplicationTracer.Enabled = false
 
 	if s := getenv("NEW_RELIC_APDEX_T"); "" != s {
 		if apdex, err := time.ParseDuration(s + "s"); nil == err {

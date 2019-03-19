@@ -58,7 +58,6 @@ func makeApplication(name string) (newrelic.Application, error) {
 	// Distributed Tracing and Cross Application Tracing cannot both be
 	// enabled at the same time.
 	cfg.DistributedTracer.Enabled = true
-	cfg.CrossApplicationTracer.Enabled = false
 
 	app, err := newrelic.NewApplication(cfg)
 

@@ -20,7 +20,6 @@ func TestTraceSegments(t *testing.T) {
 
 		// Disable span event attributes to ensure they are separate.
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Enabled = false
 
 	}
@@ -103,7 +102,6 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 
 		// Disable span event attributes to ensure they are separate.
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Enabled = false
 
 	}
@@ -195,7 +193,6 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 
 		// Disable span event attributes to ensure they are separate.
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Enabled = false
 
 	}
@@ -276,7 +273,6 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 
 		// Disable span event attributes to ensure they are separate.
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Enabled = false
 
 	}

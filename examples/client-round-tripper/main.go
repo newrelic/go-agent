@@ -44,7 +44,6 @@ func main() {
 	cfg := newrelic.NewConfig("Client App RoundTripper", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	cfg.DistributedTracer.Enabled = true
-	cfg.CrossApplicationTracer.Enabled = false
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
 		fmt.Println(err)

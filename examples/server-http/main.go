@@ -50,7 +50,6 @@ func makeApplication() (newrelic.Application, error) {
 	cfg := newrelic.NewConfig("HTTP Server App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	cfg.DistributedTracer.Enabled = true
-	cfg.CrossApplicationTracer.Enabled = false
 	app, err := newrelic.NewApplication(cfg)
 
 	if nil != err {

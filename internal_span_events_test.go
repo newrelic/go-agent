@@ -15,7 +15,6 @@ func TestSpanEventSuccess(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -62,7 +61,6 @@ func TestSpanEventsLocallyDisabled(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
@@ -82,7 +80,6 @@ func TestSpanEventsRemotelyDisabled(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -100,7 +97,6 @@ func TestSpanEventsDisabledWithoutDistributedTracing(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = false
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -118,7 +114,6 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -191,7 +186,6 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
@@ -255,7 +249,6 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Exclude = []string{
 			SpanAttributeDBStatement,
 			SpanAttributeDBInstance,
@@ -327,7 +320,6 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.Attributes.Exclude = []string{
 			SpanAttributeDBStatement,
 			SpanAttributeDBInstance,
@@ -401,7 +393,6 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -474,7 +465,6 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
@@ -520,7 +510,6 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 		cfg.SpanEvents.Attributes.Exclude = []string{
 			SpanAttributeAWSOperation,
 			SpanAttributeAWSRequestID,
@@ -567,7 +556,6 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
-		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)

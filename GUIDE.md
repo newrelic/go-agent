@@ -387,11 +387,10 @@ version 2.1.0 of the Go Agent.
 
 The config's `DistributedTracer.Enabled` field has to be set. When true, the
 agent will add distributed tracing headers in outbound requests, and scan
-incoming requests for distributed tracing headers. Distributed tracing and
-cross-application tracing cannot be used simultaneously:
+incoming requests for distributed tracing headers. Distributed tracing will
+override cross-application tracing.
 
 ```go
-config.CrossApplicationTracer.Enabled = false
 config.DistributedTracer.Enabled = true
 ```
 
