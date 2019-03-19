@@ -96,7 +96,7 @@ func TestCollectorRequest(t *testing.T) {
 				testField("Accept-Encoding", r.Header.Get("Accept-Encoding"), "identity, deflate")
 				testField("Content-Type", r.Header.Get("Content-Type"), "application/octet-stream")
 				testField("User-Agent", r.Header.Get("User-Agent"), "NewRelic-Go-Agent/agent_version")
-				testField("Content-Encoding", r.Header.Get("Content-Encoding"), "deflate")
+				testField("Content-Encoding", r.Header.Get("Content-Encoding"), "gzip")
 				testField("zip", r.Header.Get("zip"), "zap")
 				return &http.Response{
 					StatusCode: 200,
