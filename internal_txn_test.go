@@ -29,7 +29,7 @@ func TestShouldSaveTrace(t *testing.T) {
 		},
 		{
 			name:          "insufficient duration, only synthetics enabled",
-			expected:      true,
+			expected:      false,
 			synthetics:    true,
 			tracerEnabled: false,
 			collectTraces: false,
@@ -83,7 +83,7 @@ func TestShouldSaveTrace(t *testing.T) {
 		},
 		{
 			name:          "sufficient duration, only synthetics enabled",
-			expected:      true,
+			expected:      false,
 			synthetics:    true,
 			tracerEnabled: false,
 			collectTraces: false,
