@@ -108,3 +108,10 @@ func (run *appRun) responseCodeIsError(code int) bool {
 	}
 	return true
 }
+
+func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration {
+	if run.Config.TransactionTracer.Threshold.IsApdexFailing {
+		return internal.ApdexFailingThreshold(apdexThreshold)
+	}
+	return run.Config.TransactionTracer.Threshold.Duration
+}

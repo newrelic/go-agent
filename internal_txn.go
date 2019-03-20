@@ -219,13 +219,6 @@ func (txn *txn) getsApdex() bool {
 	return txn.IsWeb
 }
 
-func (txn *txn) txnTraceThreshold() time.Duration {
-	if txn.Config.TransactionTracer.Threshold.IsApdexFailing {
-		return internal.ApdexFailingThreshold(txn.ApdexThreshold)
-	}
-	return txn.Config.TransactionTracer.Threshold.Duration
-}
-
 func (txn *txn) shouldSaveTrace() bool {
 	if !txn.txnTracesEnabled() {
 		return false
@@ -233,7 +226,7 @@ func (txn *txn) shouldSaveTrace() bool {
 	if txn.CrossProcess.IsSynthetics() {
 		return true
 	}
-	return txn.Duration >= txn.txnTraceThreshold()
+	return txn.Duration >= txn.txnTraceThreshold(txn.ApdexThreshold)
 }
 
 func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
