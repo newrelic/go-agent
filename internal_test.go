@@ -596,14 +596,13 @@ func TestResponseCode404Filtered(t *testing.T) {
 func TestResponseCodeCustomFilter(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.ErrorCollector.IgnoreStatusCodes =
-			append(cfg.ErrorCollector.IgnoreStatusCodes,
-				http.StatusNotFound)
+			append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
 	}
 	app := testApp(nil, cfgFn, t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello", w, helloRequest)
 
-	txn.WriteHeader(http.StatusNotFound)
+	txn.WriteHeader(405)
 
 	txn.End()
 
