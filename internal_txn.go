@@ -586,7 +586,7 @@ func (txn *txn) AddAttribute(name string, value interface{}) error {
 }
 
 var (
-	errorsLocallyDisabled = errors.New("errors locally disabled")
+	errorsDisabled        = errors.New("errors disabled")
 	errNilError           = errors.New("nil error")
 	errAlreadyEnded       = errors.New("transaction has already ended")
 	errSecurityPolicy     = errors.New("disabled by security policy")
@@ -601,7 +601,7 @@ const (
 
 func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 	if !txn.Config.ErrorCollector.Enabled {
-		return errorsLocallyDisabled
+		return errorsDisabled
 	}
 
 	if nil == txn.Errors {

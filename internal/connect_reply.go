@@ -76,6 +76,17 @@ type ConnectReply struct {
 	// exists here in ConnectReply since it is specific to a set of rules
 	// and is shared between transactions.
 	rulesCache *rulesCache
+
+	ServerSideConfig struct {
+		TransactionTracerEnabled *bool `json:"transaction_tracer.enabled"`
+		// TransactionTracerThreshold should contain either a number or
+		// "apdex_f" if it is non-nil.
+		TransactionTracerThreshold           interface{} `json:"transaction_tracer.transaction_threshold"`
+		TransactionTracerStackTraceThreshold *float64    `json:"transaction_tracer.stack_trace_threshold"`
+		ErrorCollectorEnabled                *bool       `json:"error_collector.enabled"`
+		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
+		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
+	} `json:"agent_config"`
 }
 
 type trustedAccountSet map[int]struct{}
@@ -123,9 +134,9 @@ func ConnectReplyDefaults() *ConnectReply {
 // CalculateApdexThreshold calculates the apdex threshold.
 func CalculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 	if t, ok := c.KeyTxnApdex[txnName]; ok {
-		return floatSecondsToDuration(t)
+		return FloatSecondsToDuration(t)
 	}
-	return floatSecondsToDuration(c.ApdexThresholdSeconds)
+	return FloatSecondsToDuration(c.ApdexThresholdSeconds)
 }
 
 // CreateFullTxnName uses collector rules and the appropriate metric prefix to

@@ -29,10 +29,10 @@ func TestRemoveFirstSegment(t *testing.T) {
 }
 
 func TestFloatSecondsToDuration(t *testing.T) {
-	if d := floatSecondsToDuration(0.123); d != 123*time.Millisecond {
+	if d := FloatSecondsToDuration(0.123); d != 123*time.Millisecond {
 		t.Error(d)
 	}
-	if d := floatSecondsToDuration(456.0); d != 456*time.Second {
+	if d := FloatSecondsToDuration(456.0); d != 456*time.Second {
 		t.Error(d)
 	}
 }

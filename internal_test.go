@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"net/http"
@@ -609,6 +610,63 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, webMetrics)
+}
+
+func TestResponseCodeServerSideFilterObserved(t *testing.T) {
+	// Test that server-side ignore_status_codes are observed.
+	cfgFn := func(cfg *Config) {
+		cfg.ErrorCollector.IgnoreStatusCodes = nil
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"error_collector.ignore_status_codes":[405]}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.WriteHeader(405)
+
+	txn.End()
+
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantEvent{})
+	app.ExpectMetrics(t, webMetrics)
+}
+
+func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
+	// Test that server-side ignore_status_codes are used in place of local
+	// Config.ErrorCollector.IgnoreStatusCodes.
+	cfgFn := func(cfg *Config) {
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"error_collector.ignore_status_codes":[402]}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello", w, helloRequest)
+
+	txn.WriteHeader(404)
+
+	txn.End()
+
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName:    "WebTransaction/Go/hello",
+		Msg:        "Not Found",
+		Klass:      "404",
+		Caller:     "go-agent.(*txn).WriteHeader",
+		NotNoticed: true,
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "404",
+			"error.message":   "Not Found",
+			"transactionName": "WebTransaction/Go/hello",
+		},
+		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
+			"httpResponseCode": "404",
+		}),
+	}})
+	app.ExpectMetrics(t, webErrorMetrics)
 }
 
 func TestResponseCodeAfterEnd(t *testing.T) {
@@ -1510,6 +1568,44 @@ func TestTraceDisabledLocally(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
+func TestTraceDisabledByServerSideConfig(t *testing.T) {
+	// Test that server-side-config trace-enabled-setting can disable transaction
+	// traces.
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":false}}`), reply)
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
+func TestTraceEnabledByServerSideConfig(t *testing.T) {
+	// Test that server-side-config trace-enabled-setting can enable
+	// transaction traces (and hence server-side-config has priority).
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Enabled = false
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true}}`), reply)
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "WebTransaction/Go/hello",
+		NumSegments: 0,
+	}})
 }
 
 func TestTraceDisabledRemotely(t *testing.T) {

@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -159,6 +160,43 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 						Attributes: map[string]interface{}{
 							"http.url":      "http://example.com",
 							"aws.operation": "secret",
+						},
+					},
+				},
+			}},
+		},
+	}})
+}
+
+func TestTraceStacktraceServerSideConfig(t *testing.T) {
+	// Test that the server-side-config stack trace threshold is observed.
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.stack_trace_threshold":0}}`), reply)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.StackTraceThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	basicSegment := StartSegment(txn, "basic")
+	basicSegment.End()
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/hello",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/hello",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
+					{
+						SegmentName: "Custom/basic",
+						Attributes: map[string]interface{}{
+							"backtrace": internal.MatchAnything,
 						},
 					},
 				},

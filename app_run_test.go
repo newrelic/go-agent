@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -72,6 +73,30 @@ func TestTxnTraceThreshold(t *testing.T) {
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 3 * time.Second
 	run = newAppRun(cfg, internal.ConnectReplyDefaults())
+	threshold = run.txnTraceThreshold(1 * time.Second)
+	if threshold != 3*time.Second {
+		t.Error(threshold)
+	}
+
+	// Test that the trace threshold can be overwritten by server-side-config.
+	// with "apdex_f".
+	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg.TransactionTracer.Threshold.IsApdexFailing = false
+	cfg.TransactionTracer.Threshold.Duration = 3 * time.Second
+	reply := internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.transaction_threshold":"apdex_f"}}`), &reply)
+	run = newAppRun(cfg, reply)
+	threshold = run.txnTraceThreshold(1 * time.Second)
+	if threshold != 4*time.Second {
+		t.Error(threshold)
+	}
+
+	// Test that the trace threshold can be overwritten by server-side-config.
+	// with a numberic value.
+	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.transaction_threshold":3}}`), &reply)
+	run = newAppRun(cfg, reply)
 	threshold = run.txnTraceThreshold(1 * time.Second)
 	if threshold != 3*time.Second {
 		t.Error(threshold)

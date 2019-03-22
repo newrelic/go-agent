@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"runtime"
 	"strconv"
 	"testing"
@@ -130,13 +131,64 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	err := txn.NoticeError(myError{})
-	if errorsLocallyDisabled != err {
+	if errorsDisabled != err {
 		t.Error(err)
 	}
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, backgroundMetrics)
+}
+
+func TestErrorsDisabledByServerSideConfig(t *testing.T) {
+	// Test that errors can be disabled by server-side-config.
+	cfgFn := func(cfg *Config) {}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":false}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(myError{})
+	if errorsDisabled != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantEvent{})
+	app.ExpectMetrics(t, backgroundMetrics)
+}
+
+func TestErrorsEnabledByServerSideConfig(t *testing.T) {
+	// Test that errors can be enabled by server-side-config.
+	cfgFn := func(cfg *Config) {
+		cfg.ErrorCollector.Enabled = false
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":true}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.NoticeError(myError{})
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my msg",
+		Klass:   "newrelic.myError",
+		Caller:  "go-agent.TestErrorsEnabledByServerSideConfig",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "newrelic.myError",
+			"error.message":   "my msg",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
 }
 
 func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {

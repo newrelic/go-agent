@@ -1,5 +1,17 @@
 ## ChangeLog
 
+* Added support for server side configuration.  Server side configuration allows
+ you to set the following configuration settings in the New Relic APM UI:
+
+  * `Config.TransactionTracer.Enabled`
+  * `Config.ErrorCollector.Enabled`
+  * `Config.CrossApplicationTracer.Enabled`
+  * `Config.TransactionTracer.Threshold`
+  * `Config.TransactionTracer.StackTraceThreshold`
+  * `Config.ErrorCollector.IgnoreStatusCodes`
+
+  For more information see the [server side configuration documentation](https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/server-side-agent-configuration).
+
 * Added support for AWS Lambda functions in the new
   [nrlambda](_integrations/nrlambda)
   package.  Please email <lambda_preview@newrelic.com> you are interested in

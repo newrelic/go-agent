@@ -39,7 +39,8 @@ func timeToFloatMilliseconds(t time.Time) float64 {
 	return float64(t.UnixNano()) / float64(1000*1000)
 }
 
-func floatSecondsToDuration(seconds float64) time.Duration {
+// FloatSecondsToDuration turns a float64 in seconds into a time.Duration.
+func FloatSecondsToDuration(seconds float64) time.Duration {
 	nanos := seconds * 1000 * 1000 * 1000
 	return time.Duration(nanos) * time.Nanosecond
 }

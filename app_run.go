@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -19,7 +20,7 @@ type appRun struct {
 }
 
 func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
-	return &appRun{
+	run := &appRun{
 		Reply: reply,
 		AttributeConfig: internal.CreateAttributeConfig(internal.AttributeConfigInput{
 			Attributes:        convertAttributeDestinationConfig(config.Attributes),
@@ -32,6 +33,47 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
 		Config: config,
 	}
+
+	// Overwrite local settings with any server-side-config settings
+	// present. NOTE!  This requires that the Config provided to this
+	// function is a value and not a pointer: We do not want to change the
+	// input Config with values particular to this connection.
+
+	if v := run.Reply.ServerSideConfig.TransactionTracerEnabled; nil != v {
+		run.Config.TransactionTracer.Enabled = *v
+	}
+	if v := run.Reply.ServerSideConfig.ErrorCollectorEnabled; nil != v {
+		run.Config.ErrorCollector.Enabled = *v
+	}
+	if v := run.Reply.ServerSideConfig.CrossApplicationTracerEnabled; nil != v {
+		run.Config.CrossApplicationTracer.Enabled = *v
+	}
+	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; nil != v {
+		switch val := v.(type) {
+		case float64:
+			run.Config.TransactionTracer.Threshold.IsApdexFailing = false
+			run.Config.TransactionTracer.Threshold.Duration = internal.FloatSecondsToDuration(val)
+		case string:
+			if val == "apdex_f" {
+				run.Config.TransactionTracer.Threshold.IsApdexFailing = true
+			}
+		}
+	}
+	if v := run.Reply.ServerSideConfig.TransactionTracerStackTraceThreshold; nil != v {
+		run.Config.TransactionTracer.StackTraceThreshold = internal.FloatSecondsToDuration(*v)
+	}
+	if v := run.Reply.ServerSideConfig.ErrorCollectorIgnoreStatusCodes; nil != v {
+		run.Config.ErrorCollector.IgnoreStatusCodes = v
+	}
+
+	if "" != run.Reply.RunID {
+		js, _ := json.Marshal(settings(run.Config))
+		run.Config.Logger.Debug("final configuration", map[string]interface{}{
+			"config": internal.JSONString(js),
+		})
+	}
+
+	return run
 }
 
 const (

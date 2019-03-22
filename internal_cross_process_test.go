@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -153,5 +154,88 @@ func TestCATRoundTripper(t *testing.T) {
 			"nr.tripId":         internal.MatchAnything,
 			"nr.pathHash":       internal.MatchAnything,
 		},
+	}})
+}
+
+func TestCrossProcessLocallyDisabled(t *testing.T) {
+	// Test that the CAT can be disabled by local configuration.
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
+	app := testApp(crossProcessReplyFn, cfgFn, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
+	txn.Write([]byte("response text"))
+	txn.End()
+
+	if "" != w.Header().Get(cat.NewRelicAppDataName) {
+		t.Error(w.Header().Get(cat.NewRelicAppDataName))
+	}
+
+	app.ExpectMetrics(t, webMetrics)
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "S",
+		},
+		// Do not test attributes here:  In Go 1.5
+		// response.headers.contentType will be not be present.
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestCrossProcessDisabledByServerSideConfig(t *testing.T) {
+	// Test that the CAT can be disabled by server-side-config.
+	cfgFn := func(cfg *Config) {}
+	replyfn := func(reply *internal.ConnectReply) {
+		crossProcessReplyFn(reply)
+		json.Unmarshal([]byte(`{"agent_config":{"cross_application_tracer.enabled":false}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
+	txn.Write([]byte("response text"))
+	txn.End()
+
+	if "" != w.Header().Get(cat.NewRelicAppDataName) {
+		t.Error(w.Header().Get(cat.NewRelicAppDataName))
+	}
+
+	app.ExpectMetrics(t, webMetrics)
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/hello",
+			"nr.apdexPerfZone": "S",
+		},
+		// Do not test attributes here:  In Go 1.5
+		// response.headers.contentType will be not be present.
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
+	}})
+}
+
+func TestCrossProcessEnabledByServerSideConfig(t *testing.T) {
+	// Test that the CAT can be enabled by server-side-config.
+	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
+	replyfn := func(reply *internal.ConnectReply) {
+		crossProcessReplyFn(reply)
+		json.Unmarshal([]byte(`{"agent_config":{"cross_application_tracer.enabled":true}}`), reply)
+	}
+	app := testApp(replyfn, cfgFn, t)
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
+	txn.Write([]byte("response text"))
+	txn.End()
+
+	if "" == w.Header().Get(cat.NewRelicAppDataName) {
+		t.Error(w.Header().Get(cat.NewRelicAppDataName))
+	}
+
+	app.ExpectMetrics(t, webMetrics)
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: catIntrinsics,
+		// Do not test attributes here:  In Go 1.5
+		// response.headers.contentType will be not be present.
+		AgentAttributes: nil,
+		UserAttributes:  map[string]interface{}{},
 	}})
 }
