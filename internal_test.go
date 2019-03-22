@@ -1608,6 +1608,24 @@ func TestTraceEnabledByServerSideConfig(t *testing.T) {
 	}})
 }
 
+func TestTraceDisabledRemotelyOverridesServerSideConfig(t *testing.T) {
+	// Test that the connect reply "collect_traces" setting overrides the
+	// "transaction_tracer.enabled" server side config setting.
+	cfgfn := func(cfg *Config) {
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Enabled = true
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true},"collect_traces":false}`), reply)
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn.End()
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
 func TestTraceDisabledRemotely(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false

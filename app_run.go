@@ -66,6 +66,26 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 		run.Config.ErrorCollector.IgnoreStatusCodes = v
 	}
 
+	if !run.Reply.CollectErrorEvents {
+		run.Config.ErrorCollector.CaptureEvents = false
+	}
+	if !run.Reply.CollectAnalyticsEvents {
+		run.Config.TransactionEvents.Enabled = false
+	}
+	if !run.Reply.CollectTraces {
+		run.Config.TransactionTracer.Enabled = false
+		run.Config.DatastoreTracer.SlowQuery.Enabled = false
+	}
+	if !run.Reply.CollectSpanEvents {
+		run.Config.SpanEvents.Enabled = false
+	}
+
+	// Distributed tracing takes priority over cross-app-tracing per:
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Distributed-Tracing.md#distributed-trace-payload
+	if run.Config.DistributedTracer.Enabled {
+		run.Config.CrossApplicationTracer.Enabled = false
+	}
+
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config))
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
@@ -110,33 +130,6 @@ func newServerlessConnectReply(config Config) *internal.ConnectReply {
 		serverlessSamplerTarget, time.Now())
 
 	return reply
-}
-
-func (run *appRun) slowQueriesEnabled() bool {
-	return run.Config.DatastoreTracer.SlowQuery.Enabled &&
-		run.Reply.CollectTraces
-}
-
-func (run *appRun) txnTracesEnabled() bool {
-	return run.Config.TransactionTracer.Enabled &&
-		run.Reply.CollectTraces
-}
-
-func (run *appRun) txnEventsEnabled() bool {
-	return run.Config.TransactionEvents.Enabled &&
-		run.Reply.CollectAnalyticsEvents
-}
-
-func (run *appRun) errorEventsEnabled() bool {
-	return run.Config.ErrorCollector.CaptureEvents &&
-		run.Reply.CollectErrorEvents
-}
-
-func (run *appRun) crossApplicationTracingEnabled() bool {
-	// Distributed tracing takes priority over cross-app-tracing per:
-	// https://source.datanerd.us/agents/agent-specs/blob/master/Distributed-Tracing.md#distributed-trace-payload
-	return run.Config.CrossApplicationTracer.Enabled &&
-		!run.Config.DistributedTracer.Enabled
 }
 
 func (run *appRun) responseCodeIsError(code int) bool {

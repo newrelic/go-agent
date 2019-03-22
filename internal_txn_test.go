@@ -128,10 +128,15 @@ func TestShouldSaveTrace(t *testing.T) {
 		},
 	} {
 		txn := &txn{}
-		txn.appRun = &appRun{}
-		txn.Config.TransactionTracer.Enabled = tc.tracerEnabled
-		txn.Config.TransactionTracer.Threshold.Duration = tc.threshold
-		txn.Reply = &internal.ConnectReply{CollectTraces: tc.collectTraces}
+
+		cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+		cfg.TransactionTracer.Enabled = tc.tracerEnabled
+		cfg.TransactionTracer.Threshold.Duration = tc.threshold
+		cfg.TransactionTracer.Threshold.IsApdexFailing = false
+		reply := internal.ConnectReplyDefaults()
+		reply.CollectTraces = tc.collectTraces
+		txn.appRun = newAppRun(cfg, reply)
+
 		txn.Duration = tc.duration
 		if tc.synthetics {
 			txn.CrossProcess.Synthetics = &cat.SyntheticsHeader{}

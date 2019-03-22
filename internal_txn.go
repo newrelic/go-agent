@@ -98,22 +98,22 @@ func newTxn(input txnInput, name string) *thread {
 		txn.BetterCAT.Enabled = true
 		txn.BetterCAT.Priority = internal.NewPriority()
 		txn.BetterCAT.ID = internal.NewSpanID()
-		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled && txn.Reply.CollectSpanEvents
+		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled
 		txn.LazilyCalculateSampled = txn.lazilyCalculateSampled
 	}
 
 	txn.Attrs.Agent.Add(internal.AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
-	txn.TxnTrace.Enabled = txn.txnTracesEnabled()
+	txn.TxnTrace.Enabled = txn.Config.TransactionTracer.Enabled
 	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
 	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
-	txn.SlowQueriesEnabled = txn.slowQueriesEnabled()
+	txn.SlowQueriesEnabled = txn.Config.DatastoreTracer.SlowQuery.Enabled
 	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
 
 	// Synthetics support is tied up with a transaction's Old CAT field,
 	// CrossProcess. To support Synthetics with either BetterCAT or Old CAT,
 	// Initialize the CrossProcess field of the transaction, passing in
 	// the top-level configuration.
-	doOldCAT := txn.appRun.crossApplicationTracingEnabled()
+	doOldCAT := txn.Config.CrossApplicationTracer.Enabled
 	noGUID := txn.Config.DistributedTracer.Enabled
 	txn.CrossProcess.Init(doOldCAT, noGUID, input.Reply)
 
@@ -220,7 +220,7 @@ func (txn *txn) getsApdex() bool {
 }
 
 func (txn *txn) shouldSaveTrace() bool {
-	if !txn.txnTracesEnabled() {
+	if !txn.Config.TransactionTracer.Enabled {
 		return false
 	}
 	if txn.CrossProcess.IsSynthetics() {
@@ -241,7 +241,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	internal.CreateTxnMetrics(&txn.TxnData, h.Metrics)
 	internal.MergeBreakdownMetrics(&txn.TxnData, h.Metrics)
 
-	if txn.txnEventsEnabled() {
+	if txn.Config.TransactionEvents.Enabled {
 		// Allocate a new TxnEvent to prevent a reference to the large transaction.
 		alloc := new(internal.TxnEvent)
 		*alloc = txn.TxnData.TxnEvent
@@ -252,7 +252,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 		internal.MergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.TxnEvent)
 	}
 
-	if txn.errorEventsEnabled() {
+	if txn.Config.ErrorCollector.CaptureEvents {
 		for _, e := range txn.Errors {
 			errEvent := &internal.ErrorEvent{
 				ErrorData: *e,

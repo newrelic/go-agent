@@ -31,30 +31,35 @@ func TestResponseCodeIsError(t *testing.T) {
 }
 
 func TestCrossAppTracingEnabled(t *testing.T) {
+	// CAT should be enabled by default.
 	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
-
-	// CAT should be enabled by default.
-	if enabled := run.crossApplicationTracingEnabled(); !enabled {
+	if enabled := run.Config.CrossApplicationTracer.Enabled; !enabled {
 		t.Error(enabled)
 	}
 
 	// DT gets priority over CAT.
-	run.Config.DistributedTracer.Enabled = true
-	run.Config.CrossApplicationTracer.Enabled = true
-	if enabled := run.crossApplicationTracingEnabled(); enabled {
+	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg.DistributedTracer.Enabled = true
+	cfg.CrossApplicationTracer.Enabled = true
+	run = newAppRun(cfg, internal.ConnectReplyDefaults())
+	if enabled := run.Config.CrossApplicationTracer.Enabled; enabled {
 		t.Error(enabled)
 	}
 
-	run.Config.DistributedTracer.Enabled = false
-	run.Config.CrossApplicationTracer.Enabled = false
-	if enabled := run.crossApplicationTracingEnabled(); enabled {
+	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg.DistributedTracer.Enabled = false
+	cfg.CrossApplicationTracer.Enabled = false
+	run = newAppRun(cfg, internal.ConnectReplyDefaults())
+	if enabled := run.Config.CrossApplicationTracer.Enabled; enabled {
 		t.Error(enabled)
 	}
 
-	run.Config.DistributedTracer.Enabled = false
-	run.Config.CrossApplicationTracer.Enabled = true
-	if enabled := run.crossApplicationTracingEnabled(); !enabled {
+	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg.DistributedTracer.Enabled = false
+	cfg.CrossApplicationTracer.Enabled = true
+	run = newAppRun(cfg, internal.ConnectReplyDefaults())
+	if enabled := run.Config.CrossApplicationTracer.Enabled; !enabled {
 		t.Error(enabled)
 	}
 }
