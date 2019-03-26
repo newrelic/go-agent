@@ -1,5 +1,7 @@
 ## ChangeLog
 
+### New Features
+
 * Added support for server side configuration.  Server side configuration allows
  you to set the following configuration settings in the New Relic APM UI:
 
