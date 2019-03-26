@@ -86,7 +86,7 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *Harvest) CreateFinalMetrics() {
+func (h *Harvest) CreateFinalMetrics(rules metricRules) {
 	h.Metrics.addSingleCount(instanceReporting, forced)
 
 	h.Metrics.addCount(customEventsSeen, h.CustomEvents.numSeen(), forced)
@@ -102,6 +102,8 @@ func (h *Harvest) CreateFinalMetrics() {
 	h.Metrics.addCount(spanEventsSent, h.SpanEvents.numSaved(), forced)
 
 	createTrackUsageMetrics(h.Metrics)
+
+	h.Metrics = h.Metrics.ApplyRules(rules)
 }
 
 // PayloadCreator is a data type in the harvest.

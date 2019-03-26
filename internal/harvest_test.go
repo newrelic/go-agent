@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -8,8 +9,17 @@ import (
 func TestCreateFinalMetrics(t *testing.T) {
 	now := time.Now()
 
+	var rules metricRules
+	if err := json.Unmarshal([]byte(`[{
+		"match_expression": "rename_me",
+		"replacement": "been_renamed"
+	}]`), &rules); nil != err {
+		t.Fatal(err)
+	}
+
 	h := NewHarvest(now)
-	h.CreateFinalMetrics()
+	h.Metrics.addCount("rename_me", 1.0, unforced)
+	h.CreateFinalMetrics(rules)
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{customEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
@@ -20,6 +30,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{errorEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
 		{spanEventsSeen, "", true, []float64{0, 0, 0, 0, 0, 0}},
 		{spanEventsSent, "", true, []float64{0, 0, 0, 0, 0, 0}},
+		{"been_renamed", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
 	})
 
 	h = NewHarvest(now)
@@ -46,7 +57,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.ErrorEvents.Add(&ErrorEvent{}, 0)
 	h.ErrorEvents.Add(&ErrorEvent{}, 0)
 
-	h.CreateFinalMetrics()
+	h.CreateFinalMetrics(nil)
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{customEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
