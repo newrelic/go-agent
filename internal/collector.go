@@ -239,8 +239,11 @@ type eventData struct {
 	EventTypeMax int `json:"event_type_max"`
 }
 
+// ConnectEventData is the event_data key in the connect request payload
 type ConnectEventData map[string]eventData
 
+// NewConnectEventData creates a new ConnectEventData with values set for the
+// maximums for each event type
 func NewConnectEventData() ConnectEventData {
 	return ConnectEventData{
 		"analytic_event_data": eventData{maxTxnEvents},
