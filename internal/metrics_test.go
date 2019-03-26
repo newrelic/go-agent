@@ -155,19 +155,12 @@ func TestApplyNilRules(t *testing.T) {
 func TestForced(t *testing.T) {
 	mt := newMetricTable(0, start)
 
-	if mt.numDropped != 0 {
-		t.Fatal(mt.numDropped)
-	}
-
 	mt.addDuration("unforced", "", 1*time.Second, 1*time.Second, unforced)
 	mt.addDuration("forced", "", 2*time.Second, 2*time.Second, forced)
 
-	if mt.numDropped != 1 {
-		t.Fatal(mt.numDropped)
-	}
-
 	ExpectMetrics(t, mt, []WantMetric{
 		{"forced", "", true, []float64{1, 2, 2, 2, 2, 4}},
+		{supportabilityDropped, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 }

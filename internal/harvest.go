@@ -101,10 +101,6 @@ func (h *Harvest) CreateFinalMetrics() {
 	h.Metrics.addCount(spanEventsSeen, h.SpanEvents.numSeen(), forced)
 	h.Metrics.addCount(spanEventsSent, h.SpanEvents.numSaved(), forced)
 
-	if h.Metrics.numDropped > 0 {
-		h.Metrics.addCount(supportabilityDropped, float64(h.Metrics.numDropped), forced)
-	}
-
 	createTrackUsageMetrics(h.Metrics)
 }
 

@@ -32,8 +32,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 
-	h.Metrics.addSingleCount("drop me!", unforced)
-
 	customE, err := CreateCustomEvent("my event type", map[string]interface{}{"zip": 1}, time.Now())
 	if nil != err {
 		t.Fatal(err)
@@ -57,7 +55,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{txnEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{errorEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
 		{errorEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{supportabilityDropped, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{spanEventsSeen, "", true, []float64{2, 0, 0, 0, 0, 0}},
 		{spanEventsSent, "", true, []float64{1, 0, 0, 0, 0, 0}},
 	})
