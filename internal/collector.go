@@ -235,6 +235,23 @@ type preconnectRequest struct {
 	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
 }
 
+type eventData struct {
+	EventTypeMax int `json:"event_type_max"`
+}
+
+// ConnectEventData is the event_data key in the connect request payload
+type ConnectEventData map[string]eventData
+
+// NewConnectEventData creates a new ConnectEventData with values set for the
+// maximums for each event type
+func NewConnectEventData() ConnectEventData {
+	return ConnectEventData{
+		"analytic_event_data": eventData{maxTxnEvents},
+		"custom_event_data":   eventData{maxCustomEvents},
+		"error_event_data":    eventData{maxErrorEvents},
+	}
+}
+
 // ConnectAttempt tries to connect an application.
 func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, RPMResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{
