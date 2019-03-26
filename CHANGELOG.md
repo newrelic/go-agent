@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.7.0
+
 ### New Features
 
 * Added support for server side configuration.  Server side configuration allows

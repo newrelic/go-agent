@@ -4,7 +4,7 @@ import "github.com/newrelic/go-agent/internal"
 
 const (
 	major = "2"
-	minor = "6"
+	minor = "7"
 	patch = "0"
 
 	// Version is the full string version of this Go Agent.
