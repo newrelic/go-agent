@@ -364,7 +364,6 @@ func TestWrapHandleFunc(t *testing.T) {
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.myErrorHandler",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -395,7 +394,6 @@ func TestWrapHandle(t *testing.T) {
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.myErrorHandler",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -458,11 +456,9 @@ func TestPanicError(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "OtherTransaction/Go/hello",
-		Msg:        "my msg",
-		Klass:      internal.PanicErrorKlass,
-		Caller:     "go-agent.(*thread).End",
-		NotNoticed: true,
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my msg",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -485,11 +481,9 @@ func TestPanicString(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "OtherTransaction/Go/hello",
-		Msg:        "my string",
-		Klass:      internal.PanicErrorKlass,
-		Caller:     "go-agent.(*thread).End",
-		NotNoticed: true,
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my string",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -512,11 +506,9 @@ func TestPanicInt(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "OtherTransaction/Go/hello",
-		Msg:        "22",
-		Klass:      internal.PanicErrorKlass,
-		Caller:     "go-agent.(*thread).End",
-		NotNoticed: true,
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "22",
+		Klass:   internal.PanicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -557,11 +549,9 @@ func TestResponseCodeError(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "WebTransaction/Go/hello",
-		Msg:        "Bad Request",
-		Klass:      "400",
-		Caller:     "go-agent.(*txn).WriteHeader",
-		NotNoticed: true,
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "Bad Request",
+		Klass:   "400",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -650,11 +640,9 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 	txn.End()
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "WebTransaction/Go/hello",
-		Msg:        "Not Found",
-		Klass:      "404",
-		Caller:     "go-agent.(*txn).WriteHeader",
-		NotNoticed: true,
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "Not Found",
+		Klass:   "404",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -724,7 +712,6 @@ func TestQueueTime(t *testing.T) {
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestQueueTime",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -779,7 +766,6 @@ func TestIgnoreAlreadyEnded(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestIgnoreAlreadyEnded",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

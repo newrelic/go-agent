@@ -79,7 +79,6 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "hello",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestAddAttributeSecurityPolicyDisablesInclude",
 		AgentAttributes: map[string]interface{}{AttributeRequestUserAgent: val},
 		UserAttributes:  map[string]interface{}{},
 	}})
@@ -128,7 +127,6 @@ func TestUserAttributeBasics(t *testing.T) {
 		TxnName:         "OtherTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestUserAttributeBasics",
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
@@ -188,7 +186,6 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		TxnName:         "OtherTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestUserAttributeConfiguration",
 		AgentAttributes: map[string]interface{}{},
 		UserAttributes:  map[string]interface{}{"only_errors": 1},
 	}})
@@ -280,7 +277,6 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.agentAttributeTestcase",
 		AgentAttributes: e.Error.Agent,
 		UserAttributes:  e.Error.User,
 	}})
@@ -531,7 +527,6 @@ func TestRequestURIPresent(t *testing.T) {
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestRequestURIPresent",
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})
@@ -583,7 +578,6 @@ func TestRequestURIExcluded(t *testing.T) {
 		TxnName:         "WebTransaction/Go/hello",
 		Msg:             "zap",
 		Klass:           "*errors.errorString",
-		Caller:          "go-agent.TestRequestURIExcluded",
 		AgentAttributes: agentAttributes,
 		UserAttributes:  userAttributes,
 	}})

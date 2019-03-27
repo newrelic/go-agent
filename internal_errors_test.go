@@ -25,7 +25,6 @@ func TestNoticeErrorBackground(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorBackground",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -49,7 +48,6 @@ func TestNoticeErrorWeb(t *testing.T) {
 		TxnName: "WebTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorWeb",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -89,7 +87,6 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     highSecurityErrorMsg,
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorHighSecurity",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -114,7 +111,6 @@ func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     securityPolicyErrorMsg,
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorMessageSecurityPolicy",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -177,7 +173,6 @@ func TestErrorsEnabledByServerSideConfig(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestErrorsEnabledByServerSideConfig",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -241,7 +236,6 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorEventsLocallyDisabled",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, backgroundErrorMetrics)
@@ -260,7 +254,6 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
-		Caller:  "go-agent.TestNoticeErrorEventsRemotelyDisabled",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, backgroundErrorMetrics)
@@ -283,7 +276,6 @@ func TestErrorWithClasser(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "zap",
-		Caller:  "go-agent.TestErrorWithClasser",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -307,7 +299,6 @@ func TestErrorWithClasserReturnsEmpty(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.errorWithClass",
-		Caller:  "go-agent.TestErrorWithClasserReturnsEmpty",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -342,11 +333,9 @@ func TestErrorWithStackTrace(t *testing.T) {
 	}
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:    "OtherTransaction/Go/hello",
-		Msg:        "my msg",
-		Klass:      "newrelic.withStackTrace",
-		Caller:     "go-agent.makeErrorWithStackTrace",
-		NotNoticed: true,
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my msg",
+		Klass:   "newrelic.withStackTrace",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -371,7 +360,6 @@ func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.withStackTrace",
-		Caller:  "go-agent.TestErrorWithStackTraceReturnsNil",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -398,7 +386,6 @@ func TestNewrelicErrorNoAttributes(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
 		Klass:   "my class",
-		Caller:  "go-agent.TestNewrelicErrorNoAttributes",
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -429,7 +416,6 @@ func TestNewrelicErrorValidAttributes(t *testing.T) {
 		TxnName:        "OtherTransaction/Go/hello",
 		Msg:            "my msg",
 		Klass:          "my class",
-		Caller:         "go-agent.TestNewrelicErrorValidAttributes",
 		UserAttributes: extraAttributes,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -463,7 +449,6 @@ func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
 		TxnName:        "OtherTransaction/Go/hello",
 		Msg:            "message removed by high security setting",
 		Klass:          "my class",
-		Caller:         "go-agent.TestNewrelicErrorAttributesHighSecurity",
 		UserAttributes: map[string]interface{}{},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -497,7 +482,6 @@ func TestNewrelicErrorAttributesSecurityPolicy(t *testing.T) {
 		TxnName:        "OtherTransaction/Go/hello",
 		Msg:            "my msg",
 		Klass:          "my class",
-		Caller:         "go-agent.TestNewrelicErrorAttributesSecurityPolicy",
 		UserAttributes: map[string]interface{}{},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -533,7 +517,6 @@ func TestNewrelicErrorAttributeOverridesNormalAttribute(t *testing.T) {
 		TxnName:        "OtherTransaction/Go/hello",
 		Msg:            "my msg",
 		Klass:          "my class",
-		Caller:         "go-agent.TestNewrelicErrorAttributeOverridesNormalAttribute",
 		UserAttributes: extraAttributes,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -590,7 +573,6 @@ func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 		TxnName:        "OtherTransaction/Go/hello",
 		Msg:            "my msg",
 		Klass:          "my class",
-		Caller:         "go-agent.TestExtraErrorAttributeRemovedThroughConfiguration",
 		UserAttributes: map[string]interface{}{"zip": "zap"},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{

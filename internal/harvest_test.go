@@ -180,11 +180,9 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 	}})
 	ExpectErrors(t, h.ErrorTraces, []WantError{{
-		TxnName:    "finalName",
-		Msg:        "msg",
-		Klass:      "klass",
-		Caller:     "internal.TestMergeFailedHarvest",
-		NotNoticed: true,
+		TxnName: "finalName",
+		Msg:     "msg",
+		Klass:   "klass",
 	}})
 
 	nextHarvest := NewHarvest(start2)

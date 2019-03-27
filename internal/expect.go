@@ -56,14 +56,9 @@ type WantMetric struct {
 
 // WantError is a traced error expectation.
 type WantError struct {
-	TxnName string
-	Msg     string
-	Klass   string
-	Caller  string
-	// NotNoticed should be true if the stack trace was not generated within
-	// txn.NoticeError.  This field is provided to account for extra stack
-	// frames when running tests with -race.
-	NotNoticed      bool
+	TxnName         string
+	Msg             string
+	Klass           string
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
