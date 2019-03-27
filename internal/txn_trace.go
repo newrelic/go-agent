@@ -78,13 +78,7 @@ func (trace *TxnTrace) witnessNode(end segmentEnd, name string, attrs spanAttrib
 		trace.nodes = make(traceNodeHeap, 0, startingTxnTraceNodes)
 	}
 	if end.exclusive >= trace.StackTraceThreshold {
-		// skip the following stack frames:
-		//   this method
-		//   function in tracing.go      (EndBasicSegment, EndExternalSegment, EndDatastoreSegment)
-		//   function in internal_txn.go (endSegment, endExternal, endDatastore)
-		//   segment end method
-		skip := 4
-		node.StackTrace = GetStackTrace(skip)
+		node.StackTrace = GetStackTrace()
 	}
 	if max := trace.getMaxNodes(); len(trace.nodes) < max {
 		trace.nodes = append(trace.nodes, node)

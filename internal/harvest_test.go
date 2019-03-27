@@ -117,7 +117,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		When:  time.Now(),
 		Msg:   "msg",
 		Klass: "klass",
-		Stack: GetStackTrace(0),
+		Stack: GetStackTrace(),
 	})
 	MergeTxnErrors(&h.ErrorTraces, ers, TxnEvent{
 		FinalName: "finalName",

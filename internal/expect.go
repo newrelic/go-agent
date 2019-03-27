@@ -6,8 +6,6 @@ import (
 	"runtime"
 
 	"time"
-
-	"github.com/newrelic/go-agent/internal/racedetector"
 )
 
 var (
@@ -604,15 +602,6 @@ func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
 }
 
 func expectError(v Validator, err *tracedError, expect WantError) {
-	extraSkipFrames := 0
-	if !expect.NotNoticed && racedetector.Enabled {
-		// If the race detector is enabled then the stacktraces produced
-		// by txn.NoticeError will have an extra stack frame caused by
-		// embedding the txn into the thread.
-		extraSkipFrames = 1
-	}
-	caller := topCallerNameBase(err.ErrorData.Stack, extraSkipFrames)
-	validateStringField(v, "caller", expect.Caller, caller)
 	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
 	validateStringField(v, "klass", expect.Klass, err.Klass)
 	validateStringField(v, "msg", expect.Msg, err.Msg)
@@ -636,6 +625,9 @@ func expectError(v Validator, err *tracedError, expect WantError) {
 	}
 	if nil != expect.AgentAttributes {
 		expectAttributes(v, agentAttributes, expect.AgentAttributes)
+	}
+	if stack := attributes["stack_trace"]; nil == stack {
+		v.Error("missing error stack trace")
 	}
 }
 

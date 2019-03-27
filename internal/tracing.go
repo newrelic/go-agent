@@ -594,11 +594,6 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		if nil == p.TxnData.SlowQueries {
 			p.TxnData.SlowQueries = newSlowQueries(maxTxnSlowQueries)
 		}
-		// Frames to skip:
-		//   this function
-		//   endDatastore
-		//   DatastoreSegment.End
-		skipFrames := 3
 		p.TxnData.SlowQueries.observeInstance(slowQueryInstance{
 			Duration:           end.duration,
 			DatastoreMetric:    scopedMetric,
@@ -607,7 +602,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 			Host:               p.Host,
 			PortPathOrID:       p.PortPathOrID,
 			DatabaseName:       p.Database,
-			StackTrace:         GetStackTrace(skipFrames),
+			StackTrace:         GetStackTrace(),
 		})
 	}
 

@@ -250,7 +250,7 @@ func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
 
 func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
 	e := TxnErrorFromResponseCode(time.Now(), 503)
-	e.Stack = GetStackTrace(0)
+	e.Stack = GetStackTrace()
 
 	txnName := "WebTransaction/Go/zip/zap"
 	event := &ErrorEvent{

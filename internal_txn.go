@@ -298,7 +298,7 @@ func headersJustWritten(txn *txn, code int, hdr http.Header) {
 
 	if txn.appRun.responseCodeIsError(code) {
 		e := internal.TxnErrorFromResponseCode(time.Now(), code)
-		e.Stack = internal.GetStackTrace(1)
+		e.Stack = internal.GetStackTrace()
 		txn.noticeErrorInternal(e)
 	}
 }
@@ -513,7 +513,7 @@ func (thd *thread) End() error {
 	r := recover()
 	if nil != r {
 		e := internal.TxnErrorFromPanic(time.Now(), r)
-		e.Stack = internal.GetStackTrace(0)
+		e.Stack = internal.GetStackTrace()
 		txn.noticeErrorInternal(e)
 	}
 
@@ -654,7 +654,7 @@ func (txn *txn) NoticeError(err error) error {
 		// it will be truncated during JSON creation.
 	}
 	if nil == e.Stack {
-		e.Stack = internal.GetStackTrace(2)
+		e.Stack = internal.GetStackTrace()
 	}
 
 	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity && txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
