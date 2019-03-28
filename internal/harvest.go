@@ -80,7 +80,10 @@ func (h *Harvest) Ready(now time.Time) *Harvest {
 		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.numSaved(), forced)
 
 		ready.configurableHarvest = h.configurableHarvest
-		h.configurableHarvest = newConfigurableHarvest(now)
+		// TODO: Make sure that nil is okay here, the reply controls the limits
+		// of the number of events storeable in the harvest.
+		// TODO: Write a test for that.
+		h.configurableHarvest = newConfigurableHarvest(now, nil)
 	}
 
 	// NOTE!  This must happen after the configurable harvest conditional to
@@ -149,7 +152,15 @@ func newFixedHarvest(now time.Time) *fixedHarvest {
 	}
 }
 
-func newConfigurableHarvest(now time.Time) *configurableHarvest {
+func newConfigurableHarvest(now time.Time, reply *ConnectReply) *configurableHarvest {
+	if nil != reply && nil != reply.EventData {
+		// TODO: Test that these values are picked up correctly
+		return &configurableHarvest{
+			CustomEvents: newCustomEvents(reply.EventData.CustomEvents.EventTypeMax),
+			TxnEvents:    newTxnEvents(reply.EventData.TxnEvents.EventTypeMax),
+			ErrorEvents:  newErrorEvents(reply.EventData.ErrorEvents.EventTypeMax),
+		}
+	}
 	return &configurableHarvest{
 		CustomEvents: newCustomEvents(maxCustomEvents),
 		TxnEvents:    newTxnEvents(maxTxnEvents),
@@ -158,13 +169,20 @@ func newConfigurableHarvest(now time.Time) *configurableHarvest {
 }
 
 // NewHarvest returns a new Harvest.
-func NewHarvest(now time.Time, configurableHarvestPeriod time.Duration) *Harvest {
+func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
+	// TODO: Test that harvest period is picked up correctly from
+	// connect reply
+	configurableHarvestPeriod := fixedHarvestPeriod
+	if nil != reply && nil != reply.EventData {
+		configurableHarvestPeriod = time.Duration(reply.EventData.EventReportPeriodMs) * time.Millisecond
+	}
+
 	return &Harvest{
 		configurableHarvestTimer: newHarvestTimer(now, configurableHarvestPeriod),
 		fixedHarvestTimer:        newHarvestTimer(now, fixedHarvestPeriod),
 
 		fixedHarvest:        newFixedHarvest(now),
-		configurableHarvest: newConfigurableHarvest(now),
+		configurableHarvest: newConfigurableHarvest(now, reply),
 	}
 }
 

@@ -46,7 +46,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := NewHarvest(now, 0)
+	h := NewHarvest(now, nil)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
 	h.CreateFinalMetrics(rules)
 	ExpectMetrics(t, h.Metrics, []WantMetric{
@@ -54,7 +54,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{"been_renamed", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
 	})
 
-	h = NewHarvest(now, 0)
+	h = NewHarvest(now, nil)
 	h.Metrics = newMetricTable(0, now)
 	h.CustomEvents = newCustomEvents(1)
 	h.TxnEvents = newTxnEvents(1)
@@ -85,7 +85,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 }
 
 func TestEmptyPayloads(t *testing.T) {
-	h := NewHarvest(time.Now(), 0)
+	h := NewHarvest(time.Now(), nil)
 	payloads := h.Payloads(true)
 	if len(payloads) != 8 {
 		t.Error(len(payloads))
@@ -121,7 +121,9 @@ func payloadEndpointMethods(ps []PayloadCreator) map[string]struct{} {
 
 func TestHarvestNothingReady(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, 60*time.Second)
+	reply := ConnectReplyDefaults()
+	reply.EventData = &harvestData{EventReportPeriodMs: 60000}
+	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
 	ready := h.Ready(now.Add(10 * time.Second))
@@ -143,7 +145,9 @@ func TestHarvestNothingReady(t *testing.T) {
 
 func TestConfigurableHarvestReady(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, 50*time.Second)
+	reply := ConnectReplyDefaults()
+	reply.EventData = &harvestData{EventReportPeriodMs: 50000}
+	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
 	ready := h.Ready(now.Add(51 * time.Second))
@@ -180,7 +184,9 @@ func TestConfigurableHarvestReady(t *testing.T) {
 
 func TestFixedHarvestReady(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, 70*time.Second)
+	reply := ConnectReplyDefaults()
+	reply.EventData = &harvestData{EventReportPeriodMs: 70000}
+	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
 	ready := h.Ready(now.Add(61 * time.Second))
@@ -215,7 +221,9 @@ func TestFixedHarvestReady(t *testing.T) {
 
 func TestFixedAndConfigurableReady(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, 60*time.Second)
+	reply := ConnectReplyDefaults()
+	reply.EventData = &harvestData{EventReportPeriodMs: 60000}
+	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
 	ready := h.Ready(now.Add(61 * time.Second))
@@ -261,7 +269,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	start1 := time.Now()
 	start2 := start1.Add(1 * time.Minute)
 
-	h := NewHarvest(start1, 0)
+	h := NewHarvest(start1, nil)
 	h.Metrics.addCount("zip", 1, forced)
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
 		FinalName: "finalName",
@@ -360,7 +368,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Klass:   "klass",
 	}})
 
-	nextHarvest := NewHarvest(start2, 0)
+	nextHarvest := NewHarvest(start2, nil)
 	if start2 != nextHarvest.Metrics.metricPeriodStart {
 		t.Error(nextHarvest.Metrics.metricPeriodStart)
 	}
@@ -518,7 +526,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 func TestHarvestSplitTxnEvents(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, 0)
+	h := NewHarvest(now, nil)
 	for i := 0; i < maxTxnEvents; i++ {
 		h.TxnEvents.AddTxnEvent(&TxnEvent{}, Priority(float32(i)))
 	}

@@ -157,7 +157,7 @@ func (app *app) connectRoutine() {
 
 func debug(data internal.Harvestable, lg Logger) {
 	now := time.Now()
-	h := internal.NewHarvest(now, 0)
+	h := internal.NewHarvest(now, nil)
 	data.MergeIntoHarvest(h)
 	ps := h.Payloads(false)
 	for _, p := range ps {
@@ -260,10 +260,7 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
-			// TODO: This value should be populated from the
-			// "event_data.event_report_period" connect reply field.
-			configurableHarvestPeriod := 60 * time.Second
-			h = internal.NewHarvest(time.Now(), configurableHarvestPeriod)
+			h = internal.NewHarvest(time.Now(), run.Reply)
 			app.setState(run, nil)
 
 			app.config.Logger.Info("application connected", map[string]interface{}{
@@ -436,7 +433,7 @@ func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
 		replyfn(reply)
 		app.placeholderRun = newAppRun(app.config, reply)
 	}
-	app.testHarvest = internal.NewHarvest(time.Now(), 0)
+	app.testHarvest = internal.NewHarvest(time.Now(), nil)
 }
 
 func (app *app) getState() (*appRun, error) {

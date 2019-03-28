@@ -403,7 +403,7 @@ const (
 )
 
 func (txn *txn) serverlessDataJSON() ([]byte, error) {
-	harvest := internal.NewHarvest(txn.Start, 0)
+	harvest := internal.NewHarvest(txn.Start, nil)
 	txn.MergeIntoHarvest(harvest)
 	payloads := harvest.Payloads(false)
 	harvestPayloads := make(map[string]json.RawMessage, len(payloads))
