@@ -165,8 +165,8 @@ func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
 		configurableHarvestTimer: newHarvestTimer(now, harvestData.eventReportPeriod()),
 		fixedHarvestTimer:        newHarvestTimer(now, fixedHarvestPeriod),
 
-		fixedHarvest:        newFixedHarvest(now),
 		configurableHarvest: newConfigurableHarvest(now, reply),
+		fixedHarvest:        newFixedHarvest(now),
 	}
 }
 
