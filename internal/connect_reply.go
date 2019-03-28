@@ -89,7 +89,7 @@ type ConnectReply struct {
 	} `json:"agent_config"`
 
 	// Faster Event Harvest
-	EventData *harvestData `json:"event_data"`
+	EventData harvestData `json:"event_data"`
 }
 
 type harvestData struct {
@@ -101,6 +101,26 @@ type harvestData struct {
 
 type replyEventData struct {
 	EventTypeMax int `json:"event_type_max"`
+}
+
+func (r *ConnectReply) getHarvestData() harvestData {
+	if nil != r {
+		return r.EventData
+	}
+	return harvestDataDefaults()
+}
+
+func harvestDataDefaults() harvestData {
+	return harvestData{
+		EventReportPeriodMs: 60 * 1000, // 60 seconds
+		TxnEvents:           replyEventData{maxTxnEvents},
+		CustomEvents:        replyEventData{maxCustomEvents},
+		ErrorEvents:         replyEventData{maxErrorEvents},
+	}
+}
+
+func (h harvestData) eventReportPeriod() time.Duration {
+	return time.Duration(h.EventReportPeriodMs) * time.Millisecond
 }
 
 type trustedAccountSet map[int]struct{}
@@ -142,6 +162,8 @@ func ConnectReplyDefaults() *ConnectReply {
 
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
+
+		EventData: harvestDataDefaults(),
 	}
 }
 

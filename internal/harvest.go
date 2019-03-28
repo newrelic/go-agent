@@ -80,9 +80,6 @@ func (h *Harvest) Ready(now time.Time) *Harvest {
 		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.numSaved(), forced)
 
 		ready.configurableHarvest = h.configurableHarvest
-		// TODO: Make sure that nil is okay here, the reply controls the limits
-		// of the number of events storeable in the harvest.
-		// TODO: Write a test for that.
 		h.configurableHarvest = newConfigurableHarvest(now, nil)
 	}
 
@@ -153,32 +150,19 @@ func newFixedHarvest(now time.Time) *fixedHarvest {
 }
 
 func newConfigurableHarvest(now time.Time, reply *ConnectReply) *configurableHarvest {
-	if nil != reply && nil != reply.EventData {
-		// TODO: Test that these values are picked up correctly
-		return &configurableHarvest{
-			CustomEvents: newCustomEvents(reply.EventData.CustomEvents.EventTypeMax),
-			TxnEvents:    newTxnEvents(reply.EventData.TxnEvents.EventTypeMax),
-			ErrorEvents:  newErrorEvents(reply.EventData.ErrorEvents.EventTypeMax),
-		}
-	}
+	harvestData := reply.getHarvestData()
 	return &configurableHarvest{
-		CustomEvents: newCustomEvents(maxCustomEvents),
-		TxnEvents:    newTxnEvents(maxTxnEvents),
-		ErrorEvents:  newErrorEvents(maxErrorEvents),
+		CustomEvents: newCustomEvents(harvestData.CustomEvents.EventTypeMax),
+		TxnEvents:    newTxnEvents(harvestData.TxnEvents.EventTypeMax),
+		ErrorEvents:  newErrorEvents(harvestData.ErrorEvents.EventTypeMax),
 	}
 }
 
 // NewHarvest returns a new Harvest.
 func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
-	// TODO: Test that harvest period is picked up correctly from
-	// connect reply
-	configurableHarvestPeriod := fixedHarvestPeriod
-	if nil != reply && nil != reply.EventData {
-		configurableHarvestPeriod = time.Duration(reply.EventData.EventReportPeriodMs) * time.Millisecond
-	}
-
+	harvestData := reply.getHarvestData()
 	return &Harvest{
-		configurableHarvestTimer: newHarvestTimer(now, configurableHarvestPeriod),
+		configurableHarvestTimer: newHarvestTimer(now, harvestData.eventReportPeriod()),
 		fixedHarvestTimer:        newHarvestTimer(now, fixedHarvestPeriod),
 
 		fixedHarvest:        newFixedHarvest(now),

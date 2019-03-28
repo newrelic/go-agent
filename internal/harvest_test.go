@@ -122,7 +122,7 @@ func payloadEndpointMethods(ps []PayloadCreator) map[string]struct{} {
 func TestHarvestNothingReady(t *testing.T) {
 	now := time.Now()
 	reply := ConnectReplyDefaults()
-	reply.EventData = &harvestData{EventReportPeriodMs: 60000}
+	reply.EventData.EventReportPeriodMs = 60000
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
@@ -146,7 +146,7 @@ func TestHarvestNothingReady(t *testing.T) {
 func TestConfigurableHarvestReady(t *testing.T) {
 	now := time.Now()
 	reply := ConnectReplyDefaults()
-	reply.EventData = &harvestData{EventReportPeriodMs: 50000}
+	reply.EventData.EventReportPeriodMs = 50000
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
@@ -185,7 +185,7 @@ func TestConfigurableHarvestReady(t *testing.T) {
 func TestFixedHarvestReady(t *testing.T) {
 	now := time.Now()
 	reply := ConnectReplyDefaults()
-	reply.EventData = &harvestData{EventReportPeriodMs: 70000}
+	reply.EventData.EventReportPeriodMs = 70000
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
@@ -222,7 +222,7 @@ func TestFixedHarvestReady(t *testing.T) {
 func TestFixedAndConfigurableReady(t *testing.T) {
 	now := time.Now()
 	reply := ConnectReplyDefaults()
-	reply.EventData = &harvestData{EventReportPeriodMs: 60000}
+	reply.EventData.EventReportPeriodMs = 60000
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
