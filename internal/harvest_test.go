@@ -619,3 +619,63 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 		{"OtherTransactionTotalTime/zip/zap", "", false, []float64{1, 150, 150, 150, 150, 150 * 150}},
 	})
 }
+
+func TestNewHarvestSetsDefaultValues(t *testing.T) {
+	now := time.Now()
+	reply := ConnectReplyDefaults()
+	h := NewHarvest(now, reply)
+
+	if period := h.configurableHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if period := h.fixedHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != maxTxnEvents {
+		t.Error("wrong txn event capacity", cap(events))
+	}
+	if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != maxCustomEvents {
+		t.Error("wrong custom event capacity", cap(events))
+	}
+	if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != maxErrorEvents {
+		t.Error("wrong error event capacity", cap(events))
+	}
+}
+
+func TestNewHarvestUsesConnectReply(t *testing.T) {
+	now := time.Now()
+	reply := ConnectReplyDefaults()
+	if err := json.Unmarshal([]byte(`{
+		"event_data": {
+			"event_report_period_ms": 5000,
+			"analytic_event_data": {
+				"event_type_max": 1
+			},
+			"custom_event_data": {
+				"event_type_max": 2
+			},
+			"error_event_data": {
+				"event_type_max": 3
+			}
+		}
+	}`), &reply); nil != err {
+		t.Fatal(err)
+	}
+	h := NewHarvest(now, reply)
+
+	if period := h.configurableHarvestTimer.period; 5*time.Second != period {
+		t.Error(period)
+	}
+	if period := h.fixedHarvestTimer.period; time.Minute != period {
+		t.Error(period)
+	}
+	if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != 1 {
+		t.Error("wrong txn event capacity", cap(events))
+	}
+	if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != 2 {
+		t.Error("wrong custom event capacity", cap(events))
+	}
+	if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != 3 {
+		t.Error("wrong error event capacity", cap(events))
+	}
+}
