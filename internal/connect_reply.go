@@ -87,6 +87,20 @@ type ConnectReply struct {
 		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
 	} `json:"agent_config"`
+
+	// Faster Event Harvest
+	EventData *harvestData `json:"event_data"`
+}
+
+type harvestData struct {
+	EventReportPeriodMs int            `json:"event_report_period_ms"`
+	TxnEvents           replyEventData `json:"analytic_event_data"`
+	CustomEvents        replyEventData `json:"custom_event_data"`
+	ErrorEvents         replyEventData `json:"error_event_data"`
+}
+
+type replyEventData struct {
+	EventTypeMax int `json:"event_type_max"`
 }
 
 type trustedAccountSet map[int]struct{}
