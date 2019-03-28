@@ -212,7 +212,7 @@ func (app *app) process() {
 		case <-harvestTicker.C:
 			if nil != run {
 				now := time.Now()
-				if ready := h.Ready(now); nil != ready {
+				if ready := h.Ready(now, run.Reply); nil != ready {
 					go app.doHarvest(ready, now, run)
 				}
 			}

@@ -66,7 +66,7 @@ const (
 
 // Ready returns a new Harvest which contains the data types ready for harvest,
 // or nil if no data is ready for harvest.
-func (h *Harvest) Ready(now time.Time) *Harvest {
+func (h *Harvest) Ready(now time.Time, reply *ConnectReply) *Harvest {
 	ready := &Harvest{}
 
 	if h.configurableHarvestTimer.ready(now) {
@@ -80,7 +80,7 @@ func (h *Harvest) Ready(now time.Time) *Harvest {
 		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.numSaved(), forced)
 
 		ready.configurableHarvest = h.configurableHarvest
-		h.configurableHarvest = newConfigurableHarvest(now, nil)
+		h.configurableHarvest = newConfigurableHarvest(now, reply)
 	}
 
 	// NOTE!  This must happen after the configurable harvest conditional to

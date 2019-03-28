@@ -126,7 +126,7 @@ func TestHarvestNothingReady(t *testing.T) {
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
-	ready := h.Ready(now.Add(10 * time.Second))
+	ready := h.Ready(now.Add(10*time.Second), reply)
 	payloads := ready.Payloads(true)
 	if len(payloads) != 0 {
 		t.Error(payloads)
@@ -150,7 +150,7 @@ func TestConfigurableHarvestReady(t *testing.T) {
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
-	ready := h.Ready(now.Add(51 * time.Second))
+	ready := h.Ready(now.Add(51*time.Second), reply)
 	payloads := ready.Payloads(true)
 	endpoints := payloadEndpointMethods(payloads)
 	if !reflect.DeepEqual(endpoints, map[string]struct{}{
@@ -189,7 +189,7 @@ func TestFixedHarvestReady(t *testing.T) {
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
-	ready := h.Ready(now.Add(61 * time.Second))
+	ready := h.Ready(now.Add(61*time.Second), reply)
 	payloads := ready.Payloads(true)
 	endpoints := payloadEndpointMethods(payloads)
 	if !reflect.DeepEqual(endpoints, map[string]struct{}{
@@ -226,7 +226,7 @@ func TestFixedAndConfigurableReady(t *testing.T) {
 	h := NewHarvest(now, reply)
 	fixedBefore := h.fixedHarvest
 	configurableBefore := h.configurableHarvest
-	ready := h.Ready(now.Add(61 * time.Second))
+	ready := h.Ready(now.Add(61*time.Second), reply)
 	payloads := ready.Payloads(true)
 	endpoints := payloadEndpointMethods(payloads)
 	if !reflect.DeepEqual(endpoints, map[string]struct{}{
@@ -678,4 +678,49 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != 3 {
 		t.Error("wrong error event capacity", cap(events))
 	}
+}
+
+func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
+	validateHarvest := func(h *Harvest) {
+		if period := h.configurableHarvestTimer.period; 5*time.Second != period {
+			t.Error(period)
+		}
+		if period := h.fixedHarvestTimer.period; time.Minute != period {
+			t.Error(period)
+		}
+		if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != 1 {
+			t.Error("wrong txn event capacity", cap(events))
+		}
+		if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != 2 {
+			t.Error("wrong custom event capacity", cap(events))
+		}
+		if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != 3 {
+			t.Error("wrong error event capacity", cap(events))
+		}
+	}
+
+	now := time.Now()
+	reply := ConnectReplyDefaults()
+	if err := json.Unmarshal([]byte(`{
+		"event_data": {
+			"event_report_period_ms": 5000,
+			"analytic_event_data": {
+				"event_type_max": 1
+			},
+			"custom_event_data": {
+				"event_type_max": 2
+			},
+			"error_event_data": {
+				"event_type_max": 3
+			}
+		}
+	}`), &reply); nil != err {
+		t.Fatal(err)
+	}
+
+	h := NewHarvest(now, reply)
+	validateHarvest(h)
+
+	h.Ready(now.Add(10*time.Second), reply)
+	validateHarvest(h)
 }
