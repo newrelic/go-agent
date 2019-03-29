@@ -455,3 +455,40 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroValueEventTypeMax(t *testing.T) {
+	replyBody := []byte(`{
+		"return_value": {
+			"agent_run_id": "1234567890",
+			"event_data": {
+				"event_report_period_ms": 5000,
+				"analytic_event_data": {
+					"event_type_max": 0
+				},
+				"custom_event_data": {
+					"event_type_max": 0
+				},
+				"error_event_data": {
+					"event_type_max": 0
+				}
+			}
+		}
+    }`)
+	reply, err := constructConnectReply(replyBody, PreconnectReply{})
+
+	if nil != err {
+		t.Fatal(err)
+	}
+	if m := reply.EventData.TxnEvents.EventTypeMax; 10*1000 != m {
+		t.Error("incorrect txn event type max", m)
+	}
+	if m := reply.EventData.CustomEvents.EventTypeMax; 10*1000 != m {
+		t.Error("incorrect custom event type max", m)
+	}
+	if m := reply.EventData.ErrorEvents.EventTypeMax; 100 != m {
+		t.Error("incorrect error event type max", m)
+	}
+	if p := reply.EventData.EventReportPeriodMs; 60*1000 != p {
+		t.Error("incorrect event report period", p)
+	}
+}

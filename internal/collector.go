@@ -311,5 +311,9 @@ func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectRep
 		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
+	if !reply.Reply.EventData.validate() {
+		reply.Reply.EventData = harvestDataDefaults()
+	}
+
 	return reply.Reply, nil
 }

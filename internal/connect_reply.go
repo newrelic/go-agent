@@ -123,6 +123,19 @@ func (h harvestData) eventReportPeriod() time.Duration {
 	return time.Duration(h.EventReportPeriodMs) * time.Millisecond
 }
 
+func (h harvestData) validate() bool {
+	if 0 == h.TxnEvents.EventTypeMax {
+		return false
+	}
+	if 0 == h.CustomEvents.EventTypeMax {
+		return false
+	}
+	if 0 == h.ErrorEvents.EventTypeMax {
+		return false
+	}
+	return true
+}
+
 type trustedAccountSet map[int]struct{}
 
 func (t *trustedAccountSet) IsTrusted(account int) bool {
