@@ -11,21 +11,23 @@ import (
 
 type queryParameters map[string]interface{}
 
-func vetQueryParameters(params map[string]interface{}) queryParameters {
+func vetQueryParameters(params map[string]interface{}) (queryParameters, error) {
 	if nil == params {
-		return nil
+		return nil, nil
 	}
 	// Copying the parameters into a new map is safer than modifying the map
 	// from the customer.
 	vetted := make(map[string]interface{})
+	var retErr error
 	for key, val := range params {
 		val, err := ValidateUserAttribute(key, val)
 		if nil != err {
+			retErr = err
 			continue
 		}
 		vetted[key] = val
 	}
-	return queryParameters(vetted)
+	return queryParameters(vetted), retErr
 }
 
 func (q queryParameters) WriteJSON(buf *bytes.Buffer) {

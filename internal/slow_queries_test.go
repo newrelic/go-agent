@@ -30,6 +30,14 @@ func TestSlowQueriesBasic(t *testing.T) {
 	}
 
 	txnSlows := newSlowQueries(maxTxnSlowQueries)
+	qParams, err := vetQueryParameters(map[string]interface{}{
+		strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
+		"invalid-value": struct{}{},
+		"valid":         123,
+	})
+	if nil == err {
+		t.Error("expected error")
+	}
 	txnSlows.observeInstance(slowQueryInstance{
 		Duration:           2 * time.Second,
 		DatastoreMetric:    "Datastore/statement/MySQL/users/INSERT",
@@ -38,11 +46,7 @@ func TestSlowQueriesBasic(t *testing.T) {
 		PortPathOrID:       "3306",
 		DatabaseName:       "production",
 		StackTrace:         nil,
-		QueryParameters: vetQueryParameters(map[string]interface{}{
-			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
-			"invalid-value": struct{}{},
-			"valid":         123,
-		}),
+		QueryParameters:    qParams,
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)
@@ -91,6 +95,14 @@ func TestSlowQueriesExcludeURI(t *testing.T) {
 		},
 	}
 	txnSlows := newSlowQueries(maxTxnSlowQueries)
+	qParams, err := vetQueryParameters(map[string]interface{}{
+		strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
+		"invalid-value": struct{}{},
+		"valid":         123,
+	})
+	if nil == err {
+		t.Error("expected error")
+	}
 	txnSlows.observeInstance(slowQueryInstance{
 		Duration:           2 * time.Second,
 		DatastoreMetric:    "Datastore/statement/MySQL/users/INSERT",
@@ -99,11 +111,7 @@ func TestSlowQueriesExcludeURI(t *testing.T) {
 		PortPathOrID:       "3306",
 		DatabaseName:       "production",
 		StackTrace:         nil,
-		QueryParameters: vetQueryParameters(map[string]interface{}{
-			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
-			"invalid-value": struct{}{},
-			"valid":         123,
-		}),
+		QueryParameters:    qParams,
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)
@@ -221,6 +229,14 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 	}
 
 	txnSlows := newSlowQueries(maxTxnSlowQueries)
+	qParams, err := vetQueryParameters(map[string]interface{}{
+		strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
+		"invalid-value": struct{}{},
+		"valid":         123,
+	})
+	if nil == err {
+		t.Error("expected error")
+	}
 	txnSlows.observeInstance(slowQueryInstance{
 		Duration:           2 * time.Second,
 		DatastoreMetric:    "Datastore/statement/MySQL/users/INSERT",
@@ -229,11 +245,7 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 		PortPathOrID:       "3306",
 		DatabaseName:       "production",
 		StackTrace:         nil,
-		QueryParameters: vetQueryParameters(map[string]interface{}{
-			strings.Repeat("X", attributeKeyLengthLimit+1): "invalid-key",
-			"invalid-value": struct{}{},
-			"valid":         123,
-		}),
+		QueryParameters:    qParams,
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)

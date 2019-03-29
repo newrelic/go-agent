@@ -20,6 +20,10 @@ func TestTxnTrace(t *testing.T) {
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t2 := StartSegment(txndata, thread, start.Add(2*time.Second))
+	qParams, err := vetQueryParameters(map[string]interface{}{"zip": 1})
+	if nil != err {
+		t.Error("error creating query params", err)
+	}
 	EndDatastoreSegment(EndDatastoreParams{
 		TxnData:            txndata,
 		Thread:             thread,
@@ -29,7 +33,7 @@ func TestTxnTrace(t *testing.T) {
 		Operation:          "SELECT",
 		Collection:         "my_table",
 		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
-		QueryParameters:    vetQueryParameters(map[string]interface{}{"zip": 1}),
+		QueryParameters:    qParams,
 		Database:           "my_db",
 		Host:               "db-server-1",
 		PortPathOrID:       "3306",
