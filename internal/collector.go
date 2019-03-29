@@ -281,21 +281,29 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 		return nil, resp
 	}
 
+	reply, err := constructConnectReply(resp.body, preconnect.Preconnect)
+	if nil != err {
+		return nil, RPMResponse{Err: err}
+	}
+	return reply, resp
+}
+
+func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
 	var reply struct {
 		Reply *ConnectReply `json:"return_value"`
 	}
 	reply.Reply = ConnectReplyDefaults()
-	err = json.Unmarshal(resp.body, &reply)
+	err := json.Unmarshal(body, &reply)
 	if nil != err {
-		return nil, RPMResponse{Err: fmt.Errorf("unable to parse connect reply: %v", err)}
+		return nil, fmt.Errorf("unable to parse connect reply: %v", err)
 	}
 	// Note:  This should never happen.  It would mean the collector
 	// response is malformed.  This exists merely as extra defensiveness.
 	if "" == reply.Reply.RunID {
-		return nil, RPMResponse{Err: errors.New("connect reply missing agent run id")}
+		return nil, errors.New("connect reply missing agent run id")
 	}
 
-	reply.Reply.PreconnectReply = preconnect.Preconnect
+	reply.Reply.PreconnectReply = preconnect
 
 	reply.Reply.AdaptiveSampler = NewAdaptiveSampler(
 		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
@@ -303,5 +311,5 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
-	return reply.Reply, resp
+	return reply.Reply, nil
 }
