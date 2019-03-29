@@ -576,7 +576,8 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 	}
 
 	scopedMetric := datastoreScopedMetric(key)
-	queryParams := vetQueryParameters(p.QueryParameters)
+	// errors in QueryParameters must not stop the recording of the segment
+	queryParams, err := vetQueryParameters(p.QueryParameters)
 
 	if p.TxnData.TxnTrace.considerNode(end) {
 		attributes := end.attributes.copy()
@@ -619,7 +620,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		p.TxnData.saveSpanEvent(evt)
 	}
 
-	return nil
+	return err
 }
 
 // MergeBreakdownMetrics creates segment metrics.

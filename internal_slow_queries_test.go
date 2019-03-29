@@ -810,3 +810,39 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		}})
 	}
 }
+
+func TestSlowQueryParamsInvalid(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+	}
+	app := testApp(nil, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	s1 := DatastoreSegment{
+		StartTime:          StartSegmentNow(txn),
+		Product:            DatastoreMySQL,
+		Collection:         "users",
+		Operation:          "INSERT",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		QueryParameters: map[string]interface{}{
+			"cookies": []string{"chocolate", "sugar", "oatmeal"},
+			"number":  5,
+		},
+	}
+	err := s1.End()
+	if nil == err {
+		t.Error("error should have been returned")
+	}
+	txn.End()
+
+	app.ExpectSlowQueries(t, []internal.WantSlowQuery{{
+		Count:        1,
+		MetricName:   "Datastore/statement/MySQL/users/INSERT",
+		Query:        "INSERT INTO users (name, age) VALUES ($1, $2)",
+		TxnName:      "WebTransaction/Go/hello",
+		TxnURL:       "/hello",
+		DatabaseName: "",
+		Host:         "",
+		PortPathOrID: "",
+		Params:       map[string]interface{}{"number": 5},
+	}})
+}
