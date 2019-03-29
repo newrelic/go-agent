@@ -127,12 +127,12 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 }
 
 func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMResponse {
-	deflated, err := compress(cmd.Data)
+	compressed, err := compress(cmd.Data)
 	if nil != err {
 		return RPMResponse{Err: err}
 	}
 
-	req, err := http.NewRequest("POST", url, deflated)
+	req, err := http.NewRequest("POST", url, compressed)
 	if nil != err {
 		return RPMResponse{Err: err}
 	}
@@ -279,7 +279,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 	if nil != err {
 		// Certain security policy errors must be treated as a disconnect.
 		return nil, RPMResponse{
-			Err:                      fmt.Errorf("unable to process preconnect reply: %v", err),
+			Err: fmt.Errorf("unable to process preconnect reply: %v", err),
 			disconnectSecurityPolicy: isDisconnectSecurityPolicyError(err),
 		}
 	}
