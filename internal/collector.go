@@ -127,12 +127,12 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 }
 
 func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMResponse {
-	deflated, err := compress(cmd.Data)
+	compressed, err := compress(cmd.Data)
 	if nil != err {
 		return RPMResponse{Err: err}
 	}
 
-	req, err := http.NewRequest("POST", url, deflated)
+	req, err := http.NewRequest("POST", url, compressed)
 	if nil != err {
 		return RPMResponse{Err: err}
 	}
