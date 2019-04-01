@@ -41,6 +41,7 @@ type RpmCmd struct {
 	RunID             string
 	Data              []byte
 	RequestHeadersMap map[string]string
+	MaxPayloadSize    int
 }
 
 // RpmControls contains fields which will be the same for all calls made
@@ -130,6 +131,10 @@ func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMRespons
 	compressed, err := compress(cmd.Data)
 	if nil != err {
 		return RPMResponse{Err: err}
+	}
+
+	if l := compressed.Len(); l > cmd.MaxPayloadSize {
+		return RPMResponse{Err: fmt.Errorf("Payload size for %s too large: %d greater than %d", cmd.Name, l, cmd.MaxPayloadSize)}
 	}
 
 	req, err := http.NewRequest("POST", url, compressed)
@@ -249,9 +254,10 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 	}
 
 	call := RpmCmd{
-		Name:      cmdPreconnect,
-		Collector: calculatePreconnectHost(cs.License, preconnectHostOverride),
-		Data:      preconnectData,
+		Name:           cmdPreconnect,
+		Collector:      calculatePreconnectHost(cs.License, preconnectHostOverride),
+		Data:           preconnectData,
+		MaxPayloadSize: maxPayloadSizeInBytes,
 	}
 
 	resp := CollectorRequest(call, cs)
