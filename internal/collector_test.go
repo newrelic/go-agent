@@ -461,15 +461,11 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		"return_value": {
 			"agent_run_id": "1234567890",
 			"event_data": {
-				"event_report_period_ms": 5000,
-				"analytic_event_data": {
-					"event_type_max": 0
-				},
-				"custom_event_data": {
-					"event_type_max": 0
-				},
-				"error_event_data": {
-					"event_type_max": 0
+				"report_period_ms": 5000,
+				"harvest_limits": {
+					"analytic_event_data": 0,
+					"custom_event_data": 0,
+					"error_event_data": 0
 				}
 			}
 		}
@@ -479,13 +475,13 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if m := reply.EventData.TxnEvents.EventTypeMax; 10*1000 != m {
+	if m := reply.EventData.HarvestLimits.TxnEvents; 10*1000 != m {
 		t.Error("incorrect txn event type max", m)
 	}
-	if m := reply.EventData.CustomEvents.EventTypeMax; 10*1000 != m {
+	if m := reply.EventData.HarvestLimits.CustomEvents; 10*1000 != m {
 		t.Error("incorrect custom event type max", m)
 	}
-	if m := reply.EventData.ErrorEvents.EventTypeMax; 100 != m {
+	if m := reply.EventData.HarvestLimits.ErrorEvents; 100 != m {
 		t.Error("incorrect error event type max", m)
 	}
 	if p := reply.EventData.EventReportPeriodMs; 60*1000 != p {

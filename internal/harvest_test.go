@@ -647,15 +647,11 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	reply := ConnectReplyDefaults()
 	if err := json.Unmarshal([]byte(`{
 		"event_data": {
-			"event_report_period_ms": 5000,
-			"analytic_event_data": {
-				"event_type_max": 1
-			},
-			"custom_event_data": {
-				"event_type_max": 2
-			},
-			"error_event_data": {
-				"event_type_max": 3
+			"report_period_ms": 5000,
+			"harvest_limits": {
+				"analytic_event_data": 1,
+				"custom_event_data": 2,
+				"error_event_data": 3
 			}
 		}
 	}`), &reply); nil != err {
@@ -703,15 +699,11 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 	reply := ConnectReplyDefaults()
 	if err := json.Unmarshal([]byte(`{
 		"event_data": {
-			"event_report_period_ms": 5000,
-			"analytic_event_data": {
-				"event_type_max": 1
-			},
-			"custom_event_data": {
-				"event_type_max": 2
-			},
-			"error_event_data": {
-				"event_type_max": 3
+			"report_period_ms": 5000,
+			"harvest_limits": {
+				"analytic_event_data": 1,
+				"custom_event_data": 2,
+				"error_event_data": 3
 			}
 		}
 	}`), &reply); nil != err {

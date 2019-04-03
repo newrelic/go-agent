@@ -93,14 +93,8 @@ type ConnectReply struct {
 }
 
 type harvestData struct {
-	EventReportPeriodMs int            `json:"event_report_period_ms"`
-	TxnEvents           replyEventData `json:"analytic_event_data"`
-	CustomEvents        replyEventData `json:"custom_event_data"`
-	ErrorEvents         replyEventData `json:"error_event_data"`
-}
-
-type replyEventData struct {
-	EventTypeMax int `json:"event_type_max"`
+	EventReportPeriodMs int           `json:"report_period_ms"`
+	HarvestLimits       harvestLimits `json:"harvest_limits"`
 }
 
 func (r *ConnectReply) getHarvestData() harvestData {
@@ -113,9 +107,11 @@ func (r *ConnectReply) getHarvestData() harvestData {
 func harvestDataDefaults() harvestData {
 	return harvestData{
 		EventReportPeriodMs: 60 * 1000, // 60 seconds
-		TxnEvents:           replyEventData{maxTxnEvents},
-		CustomEvents:        replyEventData{maxCustomEvents},
-		ErrorEvents:         replyEventData{maxErrorEvents},
+		HarvestLimits: harvestLimits{
+			TxnEvents:    maxTxnEvents,
+			CustomEvents: maxCustomEvents,
+			ErrorEvents:  maxErrorEvents,
+		},
 	}
 }
 
@@ -124,13 +120,13 @@ func (h harvestData) eventReportPeriod() time.Duration {
 }
 
 func (h harvestData) validate() bool {
-	if 0 == h.TxnEvents.EventTypeMax {
+	if 0 == h.HarvestLimits.TxnEvents {
 		return false
 	}
-	if 0 == h.CustomEvents.EventTypeMax {
+	if 0 == h.HarvestLimits.CustomEvents {
 		return false
 	}
-	if 0 == h.ErrorEvents.EventTypeMax {
+	if 0 == h.HarvestLimits.ErrorEvents {
 		return false
 	}
 	return true
