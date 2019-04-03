@@ -1,7 +1,7 @@
 set -x
 set -e
 
-LATEST_VERSION="go1.11"
+LATEST_VERSION="go1.12"
 
 if [ -n "$INTEGRATION" ]; then
 	cd $INTEGRATION
