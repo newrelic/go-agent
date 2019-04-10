@@ -193,9 +193,9 @@ func TestInstrumentRequestExternal(t *testing.T) {
 	}
 	req := client.InvokeRequest(input)
 	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -218,9 +218,9 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 
 	req := client.DescribeTableRequest(input)
 	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -244,8 +244,9 @@ func TestInstrumentRequestExternalNoTxn(t *testing.T) {
 
 	req := client.InvokeRequest(input)
 	InstrumentHandlers(&req.Handlers)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -259,8 +260,9 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 
 	req := client.DescribeTableRequest(input)
 	InstrumentHandlers(&req.Handlers)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -281,9 +283,9 @@ func TestInstrumentConfigExternal(t *testing.T) {
 	}
 
 	req := client.InvokeRequest(input)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -306,9 +308,9 @@ func TestInstrumentConfigDatastore(t *testing.T) {
 	}
 
 	req := client.DescribeTableRequest(input)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -332,9 +334,9 @@ func TestInstrumentConfigExternalNoTxn(t *testing.T) {
 	}
 
 	req := client.InvokeRequest(input)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, nil)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -348,9 +350,9 @@ func TestInstrumentConfigDatastoreNoTxn(t *testing.T) {
 	}
 
 	req := client.DescribeTableRequest(input)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, nil)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -371,8 +373,9 @@ func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 	}
 
 	req := client.InvokeRequest(input)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -393,8 +396,9 @@ func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
 	}
 
 	req := client.DescribeTableRequest(input)
+	ctx := req.Context()
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -457,9 +461,9 @@ func TestRetrySend(t *testing.T) {
 	}
 	req := client.InvokeRequest(input)
 	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}
@@ -496,14 +500,14 @@ func TestRequestSentTwice(t *testing.T) {
 	}
 	req := client.InvokeRequest(input)
 	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, firstErr := req.Send()
+	_, firstErr := req.Send(ctx)
 	if nil != firstErr {
 		t.Error(firstErr)
 	}
 
-	_, secondErr := req.Send()
+	_, secondErr := req.Send(ctx)
 	if nil != secondErr {
 		t.Error(secondErr)
 	}
@@ -553,9 +557,9 @@ func TestNoRequestIDFound(t *testing.T) {
 	}
 	req := client.InvokeRequest(input)
 	InstrumentHandlers(&req.Handlers)
-	req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
+	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send()
+	_, err := req.Send(ctx)
 	if nil != err {
 		t.Error(err)
 	}

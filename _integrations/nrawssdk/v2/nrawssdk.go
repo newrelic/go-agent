@@ -53,8 +53,8 @@ func endSegment(req *aws.Request) {
 //        Payload:        []byte("{}"),
 //    }
 //    // Add txn to http.Request's context
-//    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
-//    resp, err := req.Send()
+//    ctx := newrelic.NewContext(req.Context(), txn)
+//    resp, err := req.Send(ctx)
 //
 // To add instrumentation to a Request and see a segment created just for the
 // individual request, call InstrumentHandlers with the `aws.Request`'s
@@ -70,8 +70,8 @@ func endSegment(req *aws.Request) {
 //    // Add instrumentation to handlers
 //    nrawssdk.InstrumentHandlers(&req.Handlers)
 //    // Add txn to http.Request's context
-//    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
-//    resp, err := req.Send()
+//    ctx := newrelic.NewContext(req.Context(), txn)
+//    resp, err := req.Send(ctx)
 func InstrumentHandlers(handlers *aws.Handlers) {
 	handlers.Send.SetFrontNamed(aws.NamedHandler{
 		Name: "StartNewRelicSegment",
