@@ -125,7 +125,6 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Util             *utilization.Data          `json:"utilization"`
 		SecurityPolicies *internal.SecurityPolicies `json:"security_policies,omitempty"`
 		Metadata         map[string]string          `json:"metadata"`
-		EventData        internal.ConnectEventData  `json:"event_data"`
 	}{
 		Pid:             pid,
 		Language:        agentLanguage,
@@ -152,7 +151,6 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.NewConnectEventData(),
 	}})
 }
 

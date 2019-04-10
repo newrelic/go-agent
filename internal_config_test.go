@@ -177,11 +177,6 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		},
 		"metadata":{
 			"NEW_RELIC_METADATA_ZAP":"zip"
-		},
-		"event_data": {
-			"analytic_event_data": {"event_type_max": 10000},
-			"custom_event_data": {"event_type_max": 10000},
-			"error_event_data": {"event_type_max": 100}
 		}
 	}]`)
 
@@ -319,12 +314,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"total_ram_mib":1024,
 			"hostname":"my-hostname"
 		},
-		"metadata":{},
-		"event_data": {
-			"analytic_event_data": {"event_type_max": 10000},
-			"custom_event_data": {"event_type_max": 10000},
-			"error_event_data": {"event_type_max": 100}
-		}
+		"metadata":{}
 	}]`)
 
 	metadata := map[string]string{}
