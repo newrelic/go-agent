@@ -100,7 +100,7 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 
 			c.Writer = &replacementResponseWriter{
 				ResponseWriter: c.Writer,
-				txn: txn,
+				txn:            txn,
 				getStatus: func() int {
 					//  gin.Context.Copy() does cp.Writer = &cp.writermem
 					// so now we have access to the current status
