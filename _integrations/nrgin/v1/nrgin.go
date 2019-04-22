@@ -108,9 +108,7 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 				},
 			}
 			c.Set(internal.GinTransactionContextKey, txn)
-
 		}
-
 		c.Next()
 	}
 }
