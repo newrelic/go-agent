@@ -7,10 +7,11 @@
 package nrgin
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 )
 
@@ -31,22 +32,21 @@ var _ http.ResponseWriter = &headerResponseWriter{}
 // gin.ResponseWriter.WriteHeader is called.
 type replacementResponseWriter struct {
 	gin.ResponseWriter
-	txn     newrelic.Transaction
-	code    int
-	written bool
+	txn       newrelic.Transaction
+	written   bool
+	getStatus func() int
 }
 
 var _ gin.ResponseWriter = &replacementResponseWriter{}
 
 func (w *replacementResponseWriter) flushHeader() {
 	if !w.written {
-		w.txn.WriteHeader(w.code)
+		w.txn.WriteHeader(w.getStatus())
 		w.written = true
 	}
 }
 
 func (w *replacementResponseWriter) WriteHeader(code int) {
-	w.code = code
 	w.ResponseWriter.WriteHeader(code)
 }
 
@@ -101,11 +101,17 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 
 			c.Writer = &replacementResponseWriter{
 				ResponseWriter: c.Writer,
-				txn:            txn,
-				code:           http.StatusOK,
+				txn: txn,
+				getStatus: func() int {
+					//  gin.Context.Copy() does cp.Writer = &cp.writermem
+					// so now we have access to the current status
+					return c.Copy().Writer.Status()
+				},
 			}
 			c.Set(internal.GinTransactionContextKey, txn)
+
 		}
+
 		c.Next()
 	}
 }
