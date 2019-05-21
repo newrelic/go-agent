@@ -32,14 +32,18 @@ type DatastoreSegment struct {
 	// used for aggregate metrics:
 	//
 	// Product is the datastore type.  See the constants in
-	// https://github.com/newrelic/go-agent/blob/master/datastore.go
+	// https://github.com/newrelic/go-agent/blob/master/datastore.go.  Product
+	// is one of the fields primarily responsible for the grouping of Datastore
+	// metrics.
 	Product DatastoreProduct
 	// Collection is the table or group being operated upon in the datastore,
 	// e.g. "users_table".  This becomes the db.collection attribute on Span
 	// events and Transaction Trace segments.  Collection is one of the fields
 	// primarily responsible for the grouping of Datastore metrics.
 	Collection string
-	// Operation is the relevant action, e.g. "SELECT" or "GET".
+	// Operation is the relevant action, e.g. "SELECT" or "GET".  Operation is
+	// one of the fields primarily responsible for the grouping of Datastore
+	// metrics.
 	Operation string
 
 	// The following fields are used for extra metrics and added to instance
