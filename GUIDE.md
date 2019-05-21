@@ -220,17 +220,26 @@ Datastore segments appear in the transaction "Breakdown table" and in the
 * [datastore.go](datastore.go)
 * [More info on Databases page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
-Datastore segments are instrumented using `DatastoreSegment`.  Just like basic
-segments, datastore segments begin when the `StartTime` field is populated and
-finish when the `End` method is called.  Here is an example:
+Datastore segments are instrumented using
+[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment).
+Just like basic segments, datastore segments begin when the `StartTime` field
+is populated and finish when the `End` method is called.  Here is an example:
 
 ```go
 s := newrelic.DatastoreSegment{
-	// Product is the datastore type.  See the constants in datastore.go.
+	// Product is the datastore type.  See the constants in
+	// https://github.com/newrelic/go-agent/blob/master/datastore.go.  Product
+	// is one of the fields primarily responsible for the grouping of Datastore
+	// metrics.
 	Product: newrelic.DatastoreMySQL,
-	// Collection is the table or group.
+	// Collection is the table or group being operated upon in the datastore,
+	// e.g. "users_table".  This becomes the db.collection attribute on Span
+	// events and Transaction Trace segments.  Collection is one of the fields
+	// primarily responsible for the grouping of Datastore metrics.
 	Collection: "my_table",
-	// Operation is the relevant action, e.g. "SELECT" or "GET".
+	// Operation is the relevant action, e.g. "SELECT" or "GET".  Operation is
+	// one of the fields primarily responsible for the grouping of Datastore
+	// metrics.
 	Operation: "SELECT",
 }
 s.StartTime = newrelic.StartSegmentNow(txn)
