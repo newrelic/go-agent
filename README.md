@@ -28,6 +28,11 @@ package primitives.  Specifically, more information about instrumenting your dat
 these primitives can be found
 [here](https://github.com/newrelic/go-agent/blob/master/GUIDE.md#datastore-segments).
 
+<!---
+NOTE!  When updating the table below, be sure to update the docs site version too:
+https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements
+-->
+
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
 | [aws/aws-sdk-go](https://github.com/aws/aws-sdk-go) | [_integrations/nrawssdk/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1) | Instrument outbound calls made using Go AWS SDK |
