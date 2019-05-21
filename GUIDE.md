@@ -217,7 +217,6 @@ s.End()
 Datastore segments appear in the transaction "Breakdown table" and in the
 "Databases" page.
 
-* [datastore.go](datastore.go)
 * [More info on Databases page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 Datastore segments are instrumented using
@@ -236,7 +235,7 @@ s := newrelic.DatastoreSegment{
 	// e.g. "users_table".  This becomes the db.collection attribute on Span
 	// events and Transaction Trace segments.  Collection is one of the fields
 	// primarily responsible for the grouping of Datastore metrics.
-	Collection: "my_table",
+	Collection: "users_table",
 	// Operation is the relevant action, e.g. "SELECT" or "GET".  Operation is
 	// one of the fields primarily responsible for the grouping of Datastore
 	// metrics.
