@@ -27,12 +27,24 @@ type Segment struct {
 //
 type DatastoreSegment struct {
 	StartTime SegmentStartTime
-	// Product is the datastore type.  See the constants in datastore.go.
+
+	// Product, Collection, and Operation are highly recommended as they are
+	// used for aggregate metrics:
+	//
+	// Product is the datastore type.  See the constants in
+	// https://github.com/newrelic/go-agent/blob/master/datastore.go
 	Product DatastoreProduct
-	// Collection is the table or group.
+	// Collection is the table or group being operated upon in the datastore,
+	// e.g. "users_table".  This becomes the db.collection attribute on Span
+	// events and Transaction Trace segments.  Collection is one of the fields
+	// primarily responsible for the grouping of Datastore metrics.
 	Collection string
 	// Operation is the relevant action, e.g. "SELECT" or "GET".
 	Operation string
+
+	// The following fields are used for extra metrics and added to instance
+	// data:
+	//
 	// ParameterizedQuery may be set to the query being performed.  It must
 	// not contain any raw parameters, only placeholders.
 	ParameterizedQuery string
@@ -47,8 +59,9 @@ type DatastoreSegment struct {
 	// PortPathOrID can represent either the port, path, or id of the
 	// datastore being connected to.
 	PortPathOrID string
-	// DatabaseName is name of database where the current query is being
-	// executed.
+	// DatabaseName is name of database instance where the current query is
+	// being executed.  This becomes the db.instance attribute on Span events
+	// and Transaction Trace segments.
 	DatabaseName string
 }
 
