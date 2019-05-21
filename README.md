@@ -17,6 +17,33 @@ Go 1.3+ is required, due to the use of http.Client's Timeout field.
 
 Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
+## Integrations
+
+The following [_integration packages](https://godoc.org/github.com/newrelic/go-agent/_integrations)
+extend the base [newrelic](https://godoc.org/github.com/newrelic/go-agent) package
+to support the following frameworks and libraries.
+Frameworks and databases which don't have an integration package may still be
+instrumented using the [newrelic](https://godoc.org/github.com/newrelic/go-agent)
+package primitives.  Specifically, more information about instrumenting your database using
+these primitives can be found
+[here](https://github.com/newrelic/go-agent/blob/master/GUIDE.md#datastore-segments).
+
+| Project | Integration Package |  |
+| ------------- | ------------- | - |
+| [aws/aws-sdk-go](https://github.com/aws/aws-sdk-go) | [_integrations/nrawssdk/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1) | Instrument outbound calls made using Go AWS SDK |
+| [aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2) | [_integrations/nrawssdk/v2](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2) | Instrument outbound calls made using Go AWS SDK v2 |
+| [labstack/echo](https://github.com/labstack/echo) | [_integrations/nrecho](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho) | Instrument inbound requests through the Echo framework |
+| [gin-gonic/gin](https://github.com/gin-gonic/gin) | [_integrations/nrgin/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1) | Instrument inbound requests through the Gin framework |
+| [gorilla/mux](https://github.com/gorilla/mux) | [_integrations/nrgorilla/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1) | Instrument inbound requests through the Gorilla framework |
+| [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [_integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda) | Instrument AWS Lambda applications |
+| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [_integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus) | Send agent log messages to Logrus |
+| [mgutz/logxi](https://github.com/mgutz/logxi) | [_integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogxi/v1) | Send agent log messages to Logxi |
+| [pkg/errors](https://github.com/pkg/errors) | [_integrations/nrpkgerrors](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpkgerrors) | Wrap pkg/errors errors to improve stack traces and error class information |
+
+These integration packages must be imported along
+with the [newrelic](https://godoc.org/github.com/newrelic/go-agent) package, as shown in this
+[nrgin example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrgin/v1/example/main.go).
+
 ## Getting Started
 
 Here are the basic steps to instrumenting your application.  For more
