@@ -4,29 +4,23 @@ import "net/http"
 
 // instrumentation.go contains helpers built on the lower level api.
 
-// WrapHandle facilitates instrumentation of handlers registered with an
-// http.ServeMux.  For example, to instrument this code:
+// WrapHandle instruments http.Handler handlers with transactions.  To
+// instrument this code:
 //
-//    http.Handle("/foo", fooHandler)
+//    http.Handle("/foo", myHandler)
 //
 // Perform this replacement:
 //
-//    http.Handle(newrelic.WrapHandle(app, "/foo", fooHandler))
+//    http.Handle(newrelic.WrapHandle(app, "/foo", myHandler))
 //
-// The Transaction is passed to the handler in place of the original
-// http.ResponseWriter, so it can be accessed using type assertion.
-// For example, to rename the transaction:
+// WrapHandle adds the Transaction to the request's context.  Access it using
+// FromContext to add attributes, create segments, or notice errors:
 //
-//	// 'w' is the variable name of the http.ResponseWriter.
-//	if txn, ok := w.(newrelic.Transaction); ok {
-//		txn.SetName("other-name")
+//	func myHandler(rw ResponseWriter, req *Request) {
+//		if txn := newrelic.FromContext(req.Context()); nil != txn {
+//			txn.AddAttribute("customerLevel", "gold")
+//		}
 //	}
-//
-// The Transaction is added to the request's context, so it may be alternatively
-// accessed like this:
-//
-//	// 'req' is the variable name of the *http.Request.
-//	txn := newrelic.FromContext(req.Context())
 //
 // This function is safe to call if 'app' is nil.
 func WrapHandle(app Application, pattern string, handler http.Handler) (string, http.Handler) {
