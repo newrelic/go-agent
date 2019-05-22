@@ -60,7 +60,11 @@ func Example() {
 	http.ListenAndServe(":8000", nil)
 }
 
-func ExampleNewRoundTripper(txn Transaction) {
+func currentTransaction() Transaction {
+	return nil
+}
+
+func ExampleNewRoundTripper() {
 	client := &http.Client{}
 	// The RoundTripper returned by NewRoundTripper instruments all requests
 	// done by this client with external segments.
@@ -70,6 +74,7 @@ func ExampleNewRoundTripper(txn Transaction) {
 
 	// Be sure to add the current Transaction to each request's context so
 	// the Transport has access to it.
+	txn := currentTransaction()
 	request = RequestWithTransactionContext(request, txn)
 
 	client.Do(request)
