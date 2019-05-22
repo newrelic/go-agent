@@ -109,3 +109,17 @@ func ExampleBrowserTimingHeader() {
 	http.HandleFunc(WrapHandleFunc(getApp(), "/browser", handler))
 	http.ListenAndServe(":8000", nil)
 }
+
+func ExampleDatastoreSegment() {
+	txn := currentTransaction()
+	ds := &DatastoreSegment{
+		StartTime: StartSegmentNow(txn),
+		// Product, Collection, and Operation are the primary metric
+		// aggregation fields which we encourage you to populate.
+		Product:    DatastoreMySQL,
+		Collection: "users_table",
+		Operation:  "SELECT",
+	}
+	// your database call here
+	ds.End()
+}

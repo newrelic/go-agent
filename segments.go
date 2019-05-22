@@ -15,17 +15,9 @@ type Segment struct {
 }
 
 // DatastoreSegment is used to instrument calls to databases and object stores.
-// Here is an example:
-//
-// 	ds := &newrelic.DatastoreSegment{
-// 		StartTime:  newrelic.StartSegmentNow(txn),
-// 		Product:    newrelic.DatastoreMySQL,
-// 		Collection: "my_table",
-// 		Operation:  "SELECT",
-// 	}
-// 	defer ds.End()
-//
 type DatastoreSegment struct {
+	// StartTime should be assigned using StartSegmentNow before each datastore
+	// call is made.
 	StartTime SegmentStartTime
 
 	// Product, Collection, and Operation are highly recommended as they are
