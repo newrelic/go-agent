@@ -151,8 +151,12 @@ type Transaction interface {
 	NewGoroutine() Transaction
 }
 
-// DistributedTracePayload is used to instrument connections between
-// transactions and applications.
+// DistributedTracePayload traces requests between applications or processes.
+// DistributedTracePayloads are automatically added to HTTP requests by
+// StartExternalSegment, so you only need to use this if you are tracing through
+// a message queue or another non-HTTP communication library.  The
+// DistributedTracePayload may be marshalled in one of two formats: HTTPSafe or
+// Text.  All New Relic agents can accept payloads in either format.
 type DistributedTracePayload interface {
 	// HTTPSafe serializes the payload into a string containing http safe
 	// characters.
