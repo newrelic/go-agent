@@ -8,12 +8,14 @@ import (
 // Application represents your application.
 type Application interface {
 	// StartTransaction begins a Transaction.
-	// * The Transaction should only be used in a single goroutine.
+	// * Transaction.NewGoroutine() must be used to pass the Transaction
+	//   between goroutines.
 	// * This method never returns nil.
-	// * If an http.Request is provided then the Transaction is considered
-	//   a web transaction.
-	// * If an http.ResponseWriter is provided then the Transaction can be
-	//   used in its place.  This allows instrumentation of the response
+	// * The Transaction is considered a web transaction if an http.Request
+	//   is provided.
+	// * The transaction returned implements the http.ResponseWriter
+	//   interface.  Provide your ResponseWriter as a parameter and
+	//   then use the Transaction in its place to instrument the response
 	//   code and response headers.
 	StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction
 
