@@ -50,20 +50,14 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
-// NewRoundTripper creates an http.RoundTripper to instrument external requests.
-// The http.RoundTripper returned will create an external segment before
-// delegating to the original RoundTripper provided (or http.DefaultTransport if
-// none is provided).  If the Transaction parameter is nil, the RoundTripper
-// will look for a Transaction in the request's context (using FromContext).
-// This is STRONGLY recommended because it allows you to reuse the same client
-// for multiple transactions.  Example use:
-//
-//   client := &http.Client{}
-//   client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
-//   request, _ := http.NewRequest("GET", "http://example.com", nil)
-//   request = newrelic.RequestWithTransactionContext(request, txn)
-//   resp, err := client.Do(request)
-//
+// NewRoundTripper creates an http.RoundTripper to instrument external requests
+// without using StartExternalSegment.  The RoundTripper returned creates an
+// external segment before delegating to the original RoundTripper provided (or
+// http.DefaultTransport if none is provided).  If the Transaction parameter is
+// nil then the RoundTripper will look for a Transaction in the request's
+// context (using FromContext).  Using a nil Transaction is STRONGLY recommended
+// because it allows the same RoundTripper (and client) to be reused for
+// multiple transactions.
 func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		segment := StartExternalSegment(txn, request)
