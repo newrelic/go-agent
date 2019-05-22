@@ -45,10 +45,10 @@ func appendSlices(slices ...[]byte) []byte {
 	return combined
 }
 
-// WithTags returns the browser timing JavaScript including enclosing <script>
-// and </script> tags.  This method returns nil if the receiver is nil, the
-// feature is disabled, the application is not yet connected, or an error
-// occurs.  The byte slice returned is in UTF-8 format.
+// WithTags returns the browser timing JavaScript which includes the enclosing
+// <script> and </script> tags.  This method returns nil if the receiver is
+// nil, the feature is disabled, the application is not yet connected, or an
+// error occurs.  The byte slice returned is in UTF-8 format.
 func (h *BrowserTimingHeader) WithTags() []byte {
 	withoutTags := h.WithoutTags()
 	if nil == withoutTags {
