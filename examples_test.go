@@ -5,6 +5,7 @@ package newrelic
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -80,4 +81,31 @@ func ExampleNewRoundTripper() {
 	request = RequestWithTransactionContext(request, txn)
 
 	client.Do(request)
+}
+
+func getApp() Application {
+	return nil
+}
+
+func ExampleBrowserTimingHeader() {
+	handler := func(w http.ResponseWriter, req *http.Request) {
+		io.WriteString(w, "<html><head>")
+		// The New Relic browser javascript should be placed as high in the
+		// HTML as possible.  We suggest including it immediately after the
+		// opening <head> tag and any <meta charset> tags.
+		if txn := FromContext(req.Context()); nil != txn {
+			hdr, err := txn.BrowserTimingHeader()
+			if nil != err {
+				log.Printf("unable to create browser timing header: %v", err)
+			}
+			// BrowserTimingHeader() will always return a header whose methods can
+			// be safely called.
+			if js := hdr.WithTags(); js != nil {
+				w.Write(js)
+			}
+		}
+		io.WriteString(w, "</head><body>browser header page</body></html>")
+	}
+	http.HandleFunc(WrapHandleFunc(getApp(), "/browser", handler))
+	http.ListenAndServe(":8000", nil)
 }
