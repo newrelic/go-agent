@@ -3,7 +3,6 @@
 * [Installation](#installation)
 * [Config and Application](#config-and-application)
 * [Logging](#logging)
-  * [logrus](#logrus)
 * [Transactions](#transactions)
 * [Segments](#segments)
   * [Datastore Segments](#datastore-segments)
@@ -65,17 +64,21 @@ app, err := newrelic.NewApplication(config)
 
 ## Logging
 
-* [log.go](log.go)
-
 The agent's logging system is designed to be easily extensible.  By default, no
 logging will occur.  To enable logging, assign the `Config.Logger` field to
-something implementing the `Logger` interface.  A basic logging
-implementation is included.
+something implementing the
+[Logger](https://godoc.org/github.com/newrelic/go-agent#Logger) interface.  Two
+[Logger](https://godoc.org/github.com/newrelic/go-agent#Logger) implementations
+are included:
+[NewLogger](https://godoc.org/github.com/newrelic/go-agent#NewLogger), which
+logs at info level, and
+[NewDebugLogger](https://godoc.org/github.com/newrelic/go-agent#NewDebugLogger)
+which logs at debug level.
 
 To log at debug level to standard out, set:
 
 ```go
-config.Logger = newrelic.NewDebugLogger(os.Stdout)
+cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 ```
 
 To log at info level to a file, set:
@@ -83,21 +86,14 @@ To log at info level to a file, set:
 ```go
 w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 if nil == err {
-  config.Logger = newrelic.NewLogger(w)
+  cfg.Logger = newrelic.NewLogger(w)
 }
 ```
 
-### logrus
+Popular logging libraries `logrus` and `logxi` are supported by integration packages:
 
-* [_integrations/nrlogrus/nrlogrus.go](_integrations/nrlogrus/nrlogrus.go)
-
-If you are using `logrus` and would like to send the agent's log messages to its
-standard logger, import the
-`github.com/newrelic/go-agent/_integrations/nrlogrus` package, then set:
-
-```go
-config.Logger = nrlogrus.StandardLogger()
-```
+* [_integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus)
+* [_integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogxi/v1)
 
 ## Transactions
 
