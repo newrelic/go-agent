@@ -22,7 +22,7 @@ import "net/http"
 //		}
 //	}
 //
-// This function is safe to call if 'app' is nil.
+// This function is safe to call if app is nil.
 func WrapHandle(app Application, pattern string, handler http.Handler) (string, http.Handler) {
 	if app == nil {
 		return pattern, handler
@@ -37,8 +37,30 @@ func WrapHandle(app Application, pattern string, handler http.Handler) (string, 
 	})
 }
 
-// WrapHandleFunc serves the same purpose as WrapHandle for functions registered
-// with ServeMux.HandleFunc.
+// WrapHandleFunc instruments handler functions using transactions.  To
+// instrument this code:
+//
+//	http.HandleFunc("/users", func(w http.ResponseWriter, req *http.Request) {
+//		io.WriteString(w, "users page")
+//	})
+//
+// Perform this replacement:
+//
+//	http.HandleFunc(WrapHandleFunc(app, "/users", func(w http.ResponseWriter, req *http.Request) {
+//		io.WriteString(w, "users page")
+//	}))
+//
+// WrapHandleFunc adds the Transaction to the request's context.  Access it using
+// FromContext to add attributes, create segments, or notice errors:
+//
+//	http.HandleFunc(WrapHandleFunc(app, "/users", func(w http.ResponseWriter, req *http.Request) {
+//		if txn := newrelic.FromContext(req.Context()); nil != txn {
+//			txn.AddAttribute("customerLevel", "gold")
+//		}
+//		io.WriteString(w, "users page")
+//	}))
+//
+// This function is safe to call if app is nil.
 func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
