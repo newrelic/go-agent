@@ -267,8 +267,8 @@ type AttributeDestinationConfig struct {
 	Exclude []string
 }
 
-// NewConfig creates an Config populated with the given appname, license,
-// and expected default values.
+// NewConfig creates a Config populated with default settings and the given
+// appname and license.
 func NewConfig(appname, license string) Config {
 	c := Config{}
 
