@@ -8,17 +8,18 @@ import (
 // Application represents your application.
 type Application interface {
 	// StartTransaction begins a Transaction.
-	// * The Transaction should only be used in a single goroutine.
+	// * Transaction.NewGoroutine() must be used to pass the Transaction
+	//   between goroutines.
 	// * This method never returns nil.
-	// * If an http.Request is provided then the Transaction is considered
-	//   a web transaction.
-	// * If an http.ResponseWriter is provided then the Transaction can be
-	//   used in its place.  This allows instrumentation of the response
+	// * The Transaction is considered a web transaction if an http.Request
+	//   is provided.
+	// * The transaction returned implements the http.ResponseWriter
+	//   interface.  Provide your ResponseWriter as a parameter and
+	//   then use the Transaction in its place to instrument the response
 	//   code and response headers.
 	StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction
 
-	// RecordCustomEvent adds a custom event to the application.  This
-	// feature is incompatible with high security mode.
+	// RecordCustomEvent adds a custom event.
 	//
 	// eventType must consist of alphanumeric characters, underscores, and
 	// colons, and must contain fewer than 255 bytes.
@@ -29,10 +30,12 @@ type Application interface {
 	// restricted keywords, see:
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
+	//
+	// An error is returned if event type or params is invalid.
 	RecordCustomEvent(eventType string, params map[string]interface{}) error
 
-	// RecordCustomMetric records a custom metric.  NOTE! The name you give
-	// will be prefixed by "Custom/".
+	// RecordCustomMetric records a custom metric.  The metric name you
+	// provide will be prefixed by "Custom/".
 	//
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
 	RecordCustomMetric(name string, value float64) error
@@ -46,9 +49,10 @@ type Application interface {
 
 	// Shutdown flushes data to New Relic's servers and stops all
 	// agent-related goroutines managing this application.  After Shutdown
-	// is called, the application is disabled and no more data will be
-	// collected.  This method will block until all final data is sent to
-	// New Relic or the timeout has elapsed.
+	// is called, The application is disabled and will never collect data
+	// again.  This method blocks until all final data is sent to New Relic
+	// or the timeout has elapsed.  Increase the timeout and check debug
+	// logs if you aren't seeing data.
 	Shutdown(timeout time.Duration)
 }
 
