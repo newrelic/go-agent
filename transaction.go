@@ -172,8 +172,8 @@ const (
 	DistributedTracePayloadHeader = "Newrelic"
 )
 
-// TransportType represents the type of connection that the trace payload was
-// transported over.
+// TransportType is used in Transaction.AcceptDistributedTracePayload() to
+// represent the type of connection that the trace payload was transported over.
 type TransportType struct{ name string }
 
 // TransportType names used across New Relic agents:

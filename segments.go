@@ -91,7 +91,8 @@ func (s *ExternalSegment) OutboundHeaders() http.Header {
 	return outboundHeaders(s)
 }
 
-// StartSegmentNow helps avoid Transaction nil checks.
+// StartSegmentNow starts timing a segment.  This function is recommended over
+// Transaction.StartSegmentNow() because it is nil safe.
 func StartSegmentNow(txn Transaction) SegmentStartTime {
 	if nil != txn {
 		return txn.StartSegmentNow()
