@@ -18,18 +18,9 @@ type ErrorAttributer interface {
 	ErrorAttributes() map[string]interface{}
 }
 
-// Error is an error that implements ErrorClasser and ErrorAttributer.  It can
-// be used with Transaction.NoticeError to control exactly how errors are
-// recorded.  Example use:
-//
-// 	txn.NoticeError(newrelic.Error{
-// 		Message: "error message: something went very wrong",
-// 		Class:   "errors are aggregated by class",
-// 		Attributes: map[string]interface{}{
-// 			"important_number": 97232,
-// 			"relevant_string":  "zap",
-// 		},
-// 	})
+// Error is an error that implements ErrorClasser and ErrorAttributer.  Use it
+// with Transaction.NoticeError to directly control error message, class, and
+// attributes.
 type Error struct {
 	// Message is the error message which will be returned by the Error()
 	// method.

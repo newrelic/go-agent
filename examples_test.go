@@ -123,3 +123,71 @@ func ExampleDatastoreSegment() {
 	// your database call here
 	ds.End()
 }
+
+func ExampleError() {
+	txn := currentTransaction()
+	username := "gopher"
+	e := fmt.Errorf("error unable to login user %s", username)
+	// txn.NoticeError(newrelic.Error{...}) instead of txn.NoticeError(e)
+	// allows more control over error fields.  Class is how errors are
+	// aggregated and Attributes are added to the error event and error
+	// trace.
+	txn.NoticeError(Error{
+		Message: e.Error(),
+		Class:   "LoginError",
+		Attributes: map[string]interface{}{
+			"username": username,
+		},
+	})
+}
+
+func ExampleExternalSegment() {
+	txn := currentTransaction()
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	segment := StartExternalSegment(txn, request)
+	response, _ := client.Do(request)
+	segment.Response = response
+	segment.End()
+}
+
+// StartExternalSegment is the recommend way of creating ExternalSegments. If
+// you don't have access to an http.Request, however, you may create an
+// ExternalSegment and control the URL manually.
+func ExampleExternalSegment_url() {
+	txn := currentTransaction()
+	segment := ExternalSegment{
+		StartTime: StartSegmentNow(txn),
+		// URL is parsed using url.Parse so it must include the protocol
+		// scheme (eg. "http://").  The host of the URL is used to
+		// create metrics.  Change the host to alter aggregation.
+		URL: "http://www.example.com",
+	}
+	http.Get("http://www.example.com")
+	segment.End()
+}
+
+func ExampleStartExternalSegment() {
+	txn := currentTransaction()
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	segment := StartExternalSegment(txn, request)
+	response, _ := client.Do(request)
+	segment.Response = response
+	segment.End()
+}
+
+func ExampleStartExternalSegment_context() {
+	txn := currentTransaction()
+	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+
+	// If the transaction is added to the request's context then it does not
+	// need to be provided as a parameter to StartExternalSegment.
+	request = RequestWithTransactionContext(request, txn)
+	segment := StartExternalSegment(nil, request)
+
+	client := &http.Client{}
+	response, _ := client.Do(request)
+	segment.Response = response
+	segment.End()
+}
