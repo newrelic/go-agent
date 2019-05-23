@@ -146,7 +146,8 @@ func ExampleExternalSegment() {
 	client := &http.Client{}
 	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
 	segment := StartExternalSegment(txn, request)
-	client.Do(request)
+	response, _ := client.Do(request)
+	segment.Response = response
 	segment.End()
 }
 
