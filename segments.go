@@ -61,16 +61,18 @@ type DatastoreSegment struct {
 	DatabaseName string
 }
 
-// ExternalSegment is used to instrument external calls.  StartExternalSegment
-// is recommended when you have access to an http.Request.
+// ExternalSegment instruments external calls.  StartExternalSegment is the
+// recommended way to create ExternalSegments.
 type ExternalSegment struct {
 	StartTime SegmentStartTime
 	Request   *http.Request
 	Response  *http.Response
-	// If you do not have access to the request, this URL field should be
-	// used to indicate the endpoint.  NOTE: If non-empty, this field
-	// is parsed using url.Parse and therefore it MUST include the protocol
-	// (eg. "http://").
+
+	// URL is an optional field which can be populated in lieu of Request if
+	// you don't have an http.Request.  Either URL or Request must be
+	// populated.  If both are populated then Request information takes
+	// priority.  URL is parsed using url.Parse so it must include the
+	// protocol scheme (eg. "http://").
 	URL string
 }
 
@@ -118,25 +120,13 @@ func StartSegment(txn Transaction, name string) *Segment {
 	}
 }
 
-// StartExternalSegment makes it easier to instrument external calls.
+// StartExternalSegment starts the instrumentation of an external call and adds
+// distributed tracing headers to the request.  If the Transaction parameter is
+// nil then StartExternalSegment will look for a Transaction in the request's
+// context using FromContext.
 //
-//    segment := newrelic.StartExternalSegment(txn, request)
-//    resp, err := client.Do(request)
-//    segment.Response = resp
-//    segment.End()
-//
-// In addition to starting an external segment, StartExternalSegment also adds
-// distributed tracing headers to the request.  Therefore, it is recommended
-// over populating ExternalSegment structs manually.
-//
-// If the Transaction parameter is nil, StartExternalSegment will look for a
-// Transaction in the request's context using FromContext.  Example:
-//
-//    request = newrelic.RequestWithTransactionContext(request, txn)
-//    segment := newrelic.StartExternalSegment(nil, request)
-//    resp, err := client.Do(request)
-//    segment.Response = resp
-//    segment.End()
+// Using the same http.Client for all of your external requests?  Check out
+// NewRoundTripper: You may not need to use StartExternalSegment at all!
 //
 func StartExternalSegment(txn Transaction, request *http.Request) *ExternalSegment {
 	if nil == txn {

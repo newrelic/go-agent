@@ -67,7 +67,7 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 }
 
 // NewRoundTripper creates an http.RoundTripper to instrument external requests
-// without using StartExternalSegment.  The RoundTripper returned creates an
+// and add distributed tracing headers.  The RoundTripper returned creates an
 // external segment before delegating to the original RoundTripper provided (or
 // http.DefaultTransport if none is provided).  If the Transaction parameter is
 // nil then the RoundTripper will look for a Transaction in the request's
