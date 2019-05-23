@@ -5,38 +5,40 @@ import (
 	"net/url"
 )
 
-// Transaction represents a request or a background task.
-// Each Transaction should only be used in a single goroutine.
+// Transaction instruments one logical unit of work: either an inbound web
+// request or background task.  Start a new Transaction with the
+// Application.StartTransaction() method.
 type Transaction interface {
-	// The transaction's http.ResponseWriter methods will delegate to the
+	// The transaction's http.ResponseWriter methods delegate to the
 	// http.ResponseWriter provided as a parameter to
-	// Application.StartTransaction or Transaction.SetWebResponse. This
+	// Application.StartTransaction or Transaction.SetWebResponse.  This
 	// allows instrumentation of the response code and response headers.
-	// These methods may still be called without panic if the transaction
-	// does not have a http.ResponseWriter.
+	// These methods may be called safely if the transaction does not have a
+	// http.ResponseWriter.
 	http.ResponseWriter
 
-	// End finishes the current transaction, stopping all further
-	// instrumentation.  Subsequent calls to End will have no effect.
+	// End finishes the Transaction.  After that, subsequent calls to End or
+	// other Transaction methods have no effect.  All segments and
+	// instrumentation must be completed before End is called.
 	End() error
 
-	// Ignore ensures that this transaction's data will not be recorded.
+	// Ignore prevents this transaction's data from being recorded.
 	Ignore() error
 
-	// SetName names the transaction.  Transactions will not be grouped
-	// usefully if too many unique names are used.
+	// SetName names the transaction.  Use a limited set of unique names to
+	// ensure that Transactions are grouped usefully.
 	SetName(name string) error
 
-	// NoticeError records an error.  The first five errors per transaction
-	// are recorded (this behavior is subject to potential change in the
-	// future).
+	// NoticeError records an error.  The Transaction saves the first five
+	// errors.  For more control over the recorded error fields, see the
+	// newrelic.Error type.
 	NoticeError(err error) error
 
-	// AddAttribute adds a key value pair to the current transaction.  This
-	// information is attached to errors, transaction events, and error
-	// events.  The key must contain fewer than than 255 bytes.  The value
-	// must be a number, string, or boolean.  Attribute configuration is
-	// applied (see config.go).
+	// AddAttribute adds a key value pair to the transaction event, errors,
+	// and traces.
+	//
+	// The key must contain fewer than than 255 bytes.  The value must be a
+	// number, string, or boolean.
 	//
 	// For more information, see:
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
@@ -60,71 +62,66 @@ type Transaction interface {
 	// implemented by the ResponseWriter.
 	SetWebResponse(http.ResponseWriter) Transaction
 
-	// StartSegmentNow allows the timing of functions, external calls, and
-	// datastore calls.  The segments of each transaction MUST be used in a
-	// single goroutine.  Consumers are encouraged to use the
-	// `StartSegmentNow` functions which checks if the Transaction is nil.
-	// See segments.go
+	// StartSegmentNow starts timing a segment.  The SegmentStartTime
+	// returned can be used as the StartTime field in Segment,
+	// DatastoreSegment, or ExternalSegment.  We recommend using the
+	// StartSegmentNow function instead of this method since it checks if
+	// the Transaction is nil.
 	StartSegmentNow() SegmentStartTime
 
-	// CreateDistributedTracePayload creates a payload to link the calls
-	// between transactions. This method never returns nil. Instead, it may
-	// return a shim implementation whose methods return empty strings.
-	// CreateDistributedTracePayload should be called every time an outbound
-	// call is made since the payload contains a timestamp.
+	// CreateDistributedTracePayload creates a payload used to link
+	// transactions.  CreateDistributedTracePayload should be called every
+	// time an outbound call is made since the payload contains a timestamp.
 	//
 	// StartExternalSegment calls CreateDistributedTracePayload, so you
-	// should not need to use this method for typical outbound HTTP calls.
-	// Just use StartExternalSegment!
+	// don't need to use it for outbound HTTP calls: Just use
+	// StartExternalSegment!
+	//
+	// This method never returns nil.  If the application is disabled or not
+	// yet connected then this method returns a shim implementation whose
+	// methods return empty strings.
 	CreateDistributedTracePayload() DistributedTracePayload
 
-	// AcceptDistributedTracePayload is used at the beginning of a
-	// transaction to identify the caller.
+	// AcceptDistributedTracePayload links transactions by accepting a
+	// distributed trace payload from another transaction.
 	//
 	// Application.StartTransaction calls this method automatically if a
-	// payload is present in the request headers (under the key
-	// DistributedTracePayloadHeader).  Therefore, this method does not need
-	// to be used for typical HTTP transactions.
+	// payload is present in the request headers.  Therefore, this method
+	// does not need to be used for typical HTTP transactions.
 	//
 	// AcceptDistributedTracePayload should be used as early in the
-	// transaction as possible. It may not be called after a call to
+	// transaction as possible.  It may not be called after a call to
 	// CreateDistributedTracePayload.
 	//
-	// The payload parameter may be a DistributedTracePayload or a string.
+	// The payload parameter may be a DistributedTracePayload, a string, or
+	// a []byte.
 	AcceptDistributedTracePayload(t TransportType, payload interface{}) error
 
 	// Application returns the Application which started the transaction.
 	Application() Application
 
-	// BrowserTimingHeader generates the JavaScript required to enable
-	// support for New Relic's Browser product. This should be placed as
-	// high in the generated HTML as possible to generate the best timing
-	// information: we suggest including it immediately after the opening
-	// <head> tag and any <meta charset> tags.
+	// BrowserTimingHeader generates the JavaScript required to enable New
+	// Relic's Browser product.  This code should be placed into your pages
+	// as close to the top of the <head> element as possible, but after any
+	// position-sensitive <meta> tags (for example, X-UA-Compatible or
+	// charset information).
 	//
-	// Note that calling this function has the side effect of freezing the
-	// transaction name: any calls to SetName() after BrowserTimingHeader()
-	// will be ignored.
+	// This function freezes the transaction name: any calls to SetName()
+	// after BrowserTimingHeader() will be ignored.
 	//
 	// The *BrowserTimingHeader return value will be nil if browser
 	// monitoring is disabled, the application is not connected, or an error
 	// occurred.  It is safe to call the pointer's methods if it is nil.
-	//
-	// There is not a corresponding BrowserTimingFooter() function, as New
-	// Relic's Browser support no longer requires a separate footer. The
-	// naming is for consistency with other New Relic language agents.
 	BrowserTimingHeader() (*BrowserTimingHeader, error)
 
-	// NewGoroutine allows you to create segments in multiple goroutines.
+	// NewGoroutine allows you to use the Transaction in multiple
+	// goroutines.
 	//
-	// NewGoroutine returns a new reference to the Transaction.  This must
-	// be called any time you are passing the Transaction to another
-	// goroutine which makes segments.  Each segment-creating goroutine must
-	// have its own Transaction reference.  It does not matter if you call
-	// this before or after the other goroutine has started.
-	//
-	// Each Transaction reference has its own segment stack which assumes
-	// synchronous behavior when creating metrics and traces.
+	// Each goroutine must have its own Transaction reference returned by
+	// NewGoroutine.  You must call NewGoroutine to get a new Transaction
+	// reference every time you wish to pass the Transaction to another
+	// goroutine. It does not matter if you call this before or after the
+	// other goroutine has started.
 	//
 	// All Transaction methods can be used in any Transaction reference.
 	// The Transaction will end when End() is called in any goroutine.
