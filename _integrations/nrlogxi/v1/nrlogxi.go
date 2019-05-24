@@ -1,11 +1,7 @@
-// Package nrlogxi forwards go-agent log messages to mgutz/logxi.  If you would
-// like to use mgutz/logxi for go-agent log messages, wrap your logxi Logger
-// using nrlogxi.New to create a newrelic.Logger.
+// Package nrlogxi supports https://github.com/mgutz/logxi.
 //
-//	l := log.New("newrelic")
-//	l.SetLevel(log.LevelInfo)
-//	cfg.Logger = nrlogxi.New(l)
-//
+// Wrap your logxi Logger using nrlogxi.New to send agent log messages through
+// logxi.
 package nrlogxi
 
 import (
