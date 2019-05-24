@@ -1,4 +1,8 @@
-// Package nrgorilla introduces to support for the gorilla/mux framework.
+// Package nrgorilla instruments https://github.com/gorilla/mux applications.
+//
+// Use this package to instrument inbound requests handled by a gorilla
+// mux.Router.  Call nrgorilla.InstrumentRoutes on your gorilla mux.Router
+// after your routes have been added to it.
 //
 // Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrgorilla/v1/example/main.go
 package nrgorilla
@@ -53,8 +57,8 @@ func routeName(route *mux.Route) string {
 	return n
 }
 
-// InstrumentRoutes adds instrumentation to a router.  This must be used after
-// the routes have been added to the router.
+// InstrumentRoutes instruments requests through the provided mux.Router.  Use
+// this after the routes have been added to the router.
 func InstrumentRoutes(r *mux.Router, app newrelic.Application) *mux.Router {
 	if app != nil {
 		r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {

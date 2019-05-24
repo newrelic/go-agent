@@ -1,5 +1,13 @@
 // Package nrlambda adds support for AWS Lambda.
 //
+// Use this package to instrument your AWS Lambda handler function.  Data is
+// sent to CloudWatch when the Lambda is invoked.  CloudWatch collects Lambda
+// log data and sends it to a New Relic log-ingestion Lambda.  The log-ingestion
+// Lambda sends that data to us.
+//
+// Monitoring AWS Lambda requires several steps shown here:
+// https://docs.newrelic.com/docs/serverless-function-monitoring/aws-lambda-monitoring/get-started/enable-new-relic-monitoring-aws-lambda
+//
 // Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrlambda/example/main.go
 package nrlambda
 
@@ -113,23 +121,30 @@ func WrapHandler(handler lambda.Handler, app newrelic.Application) lambda.Handle
 }
 
 // Wrap wraps the provided handler and returns a new handler with
-// instrumentation. Start should generally be used in place of Wrap: this
-// function is exposed for consumers who are chaining middlewares.
+// instrumentation.  Start should generally be used in place of Wrap.
 func Wrap(handler interface{}, app newrelic.Application) lambda.Handler {
 	return WrapHandler(lambda.NewHandler(handler), app)
 }
 
-// Start should be used in place of lambda.Start.
+// Start should be used in place of lambda.Start.  Replace:
 //
-// lambda.Start(myhandler) => nrlambda.Start(myhandler, app)
+//	lambda.Start(myhandler)
+//
+// With:
+//
+//	nrlambda.Start(myhandler, app)
 //
 func Start(handler interface{}, app newrelic.Application) {
 	lambda.StartHandler(Wrap(handler, app))
 }
 
-// StartHandler should be used in place of lambda.StartHandler.
+// StartHandler should be used in place of lambda.StartHandler.  Replace:
 //
-// lambda.StartHandler(myhandler) => nrlambda.StartHandler(myhandler, app)
+//	lambda.StartHandler(myhandler)
+//
+// With:
+//
+//	nrlambda.StartHandler(myhandler, app)
 //
 func StartHandler(handler lambda.Handler, app newrelic.Application) {
 	lambda.StartHandler(WrapHandler(handler, app))

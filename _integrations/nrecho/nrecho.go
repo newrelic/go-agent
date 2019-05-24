@@ -1,4 +1,11 @@
-// Package nrecho introduces to support for the echo framework.
+// Package nrecho instruments https://github.com/labstack/echo applications.
+//
+// Use this package to instrument inbound requests handled by an echo.Echo
+// instance.
+//
+//	e := echo.New()
+//	// Add the nrecho middleware before other middlewares or routes:
+//	e.Use(nrecho.Middleware(app))
 //
 // Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrecho/example/main.go
 package nrecho
@@ -37,8 +44,9 @@ func transactionName(c echo.Context) string {
 
 // Middleware creates Echo middleware that instruments requests.
 //
-//  e := echo.New()
-//  e.Use(nrecho.Middleware(app))
+//	e := echo.New()
+//	// Add the nrecho middleware before other middlewares or routes:
+//	e.Use(nrecho.Middleware(app))
 //
 func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
 

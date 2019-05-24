@@ -1,3 +1,4 @@
+// Package nrawssdk instruments https://github.com/aws/aws-sdk-go-v2 requests.
 package nrawssdk
 
 import (

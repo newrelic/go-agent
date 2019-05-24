@@ -1,6 +1,11 @@
-// Package nrgin introduces middleware to support the Gin framework.
+// Package nrgin instruments https://github.com/gin-gonic/gin applications.
+//
+// Use this package to instrument inbound requests handled by a gin.Engine.
+// Call nrgin.Middleware to get a gin.HandlerFunc which can be added to your
+// application as a middleware:
 //
 //	router := gin.Default()
+//	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
 // Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrgin/v1/example/main.go
@@ -86,9 +91,10 @@ func Transaction(c Context) newrelic.Transaction {
 	return nil
 }
 
-// Middleware creates Gin middleware that instruments requests.
+// Middleware creates a Gin middleware that instruments requests.
 //
 //	router := gin.Default()
+//	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
 func Middleware(app newrelic.Application) gin.HandlerFunc {
