@@ -1,6 +1,8 @@
-// Package nrpkgerrors introduces support for github.com/pkg/errors.
+// Package nrpkgerrors introduces support for https://github.com/pkg/errors.
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/_integrations/nrpkgerrors/example/main.go
+// This package improves the class and stack-trace fields of pkg/error errors
+// when they are recorded with Transaction.NoticeError.
+//
 package nrpkgerrors
 
 import (
@@ -71,8 +73,9 @@ func (e nrpkgerror) ErrorClass() string {
 	return fmt.Sprintf("%T", cause)
 }
 
-// Wrap wraps an error from github.com/pkg/errors so that the stacktrace
-// provided by the error matches the format expected by the newrelic package.
+// Wrap wraps a pkg/errors error so that when noticed by
+// newrelic.Transaction.NoticeError it gives an improved stacktrace and class
+// type.
 func Wrap(e error) error {
 	return nrpkgerror{e}
 }
