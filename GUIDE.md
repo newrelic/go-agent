@@ -616,14 +616,34 @@ metric name.
 
 ## Browser
 
-To enable support for using
+To enable support for
 [New Relic Browser](https://docs.newrelic.com/docs/browser), your HTML pages
 must include a JavaScript snippet that will load the Browser agent and
 configure it with the correct application name. This snippet is available via
-the `BrowserTimingHeader` method: simply include the byte slice returned by
-`txn.BrowserTimingHeader().WithTags()` as early as possible in the `<head>`
-section of your HTML, load the page, and browser data should be available
-immediately.
+the `Transaction.BrowserTimingHeader` method.  Include the byte slice returned
+by `Transaction.BrowserTimingHeader().WithTags()` as early as possible in the
+`<head>` section of your HTML after any `<meta charset>` tags.
+
+```go
+func indexHandler(w http.ResponseWriter, req *http.Request) {
+    io.WriteString(w, "<html><head>")
+    // The New Relic browser javascript should be placed as high in the
+    // HTML as possible.  We suggest including it immediately after the
+    // opening <head> tag and any <meta charset> tags.
+    if txn := FromContext(req.Context()); nil != txn {
+        hdr, err := txn.BrowserTimingHeader()
+        if nil != err {
+            log.Printf("unable to create browser timing header: %v", err)
+        }
+        // BrowserTimingHeader() will always return a header whose methods can
+        // be safely called.
+        if js := hdr.WithTags(); js != nil {
+            w.Write(js)
+        }
+    }
+    io.WriteString(w, "</head><body>browser header page</body></html>")
+}
+```
 
 
 ## For More Help
