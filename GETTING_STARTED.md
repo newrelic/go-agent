@@ -5,7 +5,7 @@ available in the [GUIDE.md](GUIDE.md).
 
 ## Step 0: Installation
 
-The Go agent is a Go library with no dependencies.  Install it the same way
+The New Relic Go agent is a Go library with no dependencies.  Install it the same way
 you would install any other Go library.  The simplest way is to run:
 
 ```
@@ -38,10 +38,11 @@ func main() {
 }
 ```
 
-Now start your application and within minutes it will appear in the New Relic
-UI.  It won't contain much data (until we complete the steps below!), but it has
-a Go runtime page that shows goroutine counts, garbage collection, memory, and
-CPU usage.
+Now start your application, and within minutes it will appear in the New Relic
+UI.  Your application in New Relic won't contain much data (until we complete 
+the steps below!), but you will already be able to see a 
+[Go runtime](https://docs.newrelic.com/docs/agents/go-agent/features/go-runtime-page-troubleshoot-performance-problems) 
+page that shows goroutine counts, garbage collection, memory, and CPU usage.
 
 ## Step 2: Instrument Requests Using Transactions
 
@@ -70,7 +71,7 @@ http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 #### Popular Web Framework
 
 If you are using a popular framework, then there may be an integration package
-designed to instrument it.  [List of integration packages](./README.md#integrations).
+designed to instrument it.  [List of New Relic Go agent integration packages](./README.md#integrations).
 
 #### Manual Transactions
 
