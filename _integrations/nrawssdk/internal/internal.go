@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"reflect"
+	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
 	agentinternal "github.com/newrelic/go-agent/internal"
@@ -63,7 +64,8 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 	txn := newrelic.FromContext(httpCtx)
 
 	var segment endable
-	if input.ServiceName == "dynamodb" {
+	// Service name capitalization is different for v1 and v2.
+	if strings.ToLower(input.ServiceName) == "dynamodb" {
 		segment = &newrelic.DatastoreSegment{
 			Product:            newrelic.DatastoreDynamoDB,
 			Collection:         getTableName(input.Params),
