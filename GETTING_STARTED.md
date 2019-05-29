@@ -90,6 +90,9 @@ func myHandler(rw http.ResponseWriter, req *http.Request) {
 }
 ```
 
+Be sure to use a limited set of unique names to ensure that transactions are
+grouped usefully.  Don't use dynamic URLs!
+
 [More information about transactions](GUIDE.md#transactions)
 
 ## Step 3: Instrument Segments
