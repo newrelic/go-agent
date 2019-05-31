@@ -23,6 +23,7 @@ func getPortPathOrID(dsn string) (ppoid string) {
 // ParseDSN accepts a DSN string and sets the Host, PortPathOrID, and
 // DatabaseName fields on a newrelic.DatastoreSegment.
 func ParseDSN(s *newrelic.DatastoreSegment, dsn string) {
+	// See https://godoc.org/github.com/mattn/go-sqlite3#SQLiteDriver.Open
 	s.Host = "localhost"
 	s.PortPathOrID = getPortPathOrID(dsn)
 	s.DatabaseName = ""
