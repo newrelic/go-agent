@@ -2,21 +2,20 @@ package nrsqlite3
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestGetPortPathOrID(t *testing.T) {
-	testdbAbsPath, err := filepath.Abs("test.db")
-	if nil != err {
-		t.Fatal(err)
-	}
+	_, here, _, _ := runtime.Caller(0)
+	currentDir := filepath.Dir(here)
 
 	testcases := []struct {
 		dsn      string
 		expected string
 	}{
 		{":memory:", ":memory:"},
-		{"test.db", testdbAbsPath},
+		{"test.db", filepath.Join(currentDir, "test.db")},
 		{"file:/test.db?cache=shared&mode=memory", "/test.db"},
 		{"file::memory:", ":memory:"},
 		{"", ""},
