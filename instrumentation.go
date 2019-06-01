@@ -66,6 +66,8 @@ func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseW
 //
 func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
+		// The specification of http.RoundTripper requires that the request is never modified.
+		request = cloneRequest(request)
 		segment := StartExternalSegment(txn, request)
 
 		if nil == original {
@@ -78,6 +80,18 @@ func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTrip
 
 		return response, err
 	})
+}
+
+func cloneRequest(r *http.Request) *http.Request {
+	// shallow copy of the struct
+	r2 := new(http.Request)
+	*r2 = *r
+	// deep copy of the Header
+	r2.Header = make(http.Header, len(r.Header))
+	for k, s := range r.Header {
+		r2.Header[k] = append([]string(nil), s...)
+	}
+	return r2
 }
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
