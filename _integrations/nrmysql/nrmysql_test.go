@@ -91,7 +91,7 @@ func TestParseDSN(t *testing.T) {
 
 	for _, test := range testcases {
 		s := &newrelic.DatastoreSegment{}
-		ParseDSN(s, test.dsn)
+		parseDSN(s, test.dsn)
 		if test.expHost != s.Host {
 			t.Errorf(`incorrect host, expected="%s", actual="%s"`, test.expHost, s.Host)
 		}
@@ -168,7 +168,7 @@ func TestParseConfig(t *testing.T) {
 			Addr:   test.cfgAddr,
 			DBName: test.cfgDBName,
 		}
-		ParseConfig(s, cfg)
+		parseConfig(s, cfg)
 		if test.expHost != s.Host {
 			t.Errorf(`incorrect host, expected="%s", actual="%s"`, test.expHost, s.Host)
 		}
