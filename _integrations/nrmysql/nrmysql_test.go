@@ -81,6 +81,12 @@ func TestParseDSN(t *testing.T) {
 			expPortPathOrID: "3306",
 			expDatabaseName: "",
 		},
+		{
+			dsn:             "this is not a dsn",
+			expHost:         "",
+			expPortPathOrID: "",
+			expDatabaseName: "",
+		},
 	}
 
 	for _, test := range testcases {

@@ -31,7 +31,6 @@ func ParseDSN(s *newrelic.DatastoreSegment, dsn string) {
 	if nil != err {
 		return
 	}
-
 	ParseConfig(s, cfg)
 }
 
