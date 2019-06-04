@@ -1,0 +1,11 @@
+{
+	"comment": "used in wrapping driver.Driver",
+	"variable_name": "dv",
+	"test_variable_name": "dv.original",
+	"required_interfaces": [
+		"driver.Driver"
+	],
+	"optional_interfaces": [
+		"driver.DriverContext"
+	]
+}
