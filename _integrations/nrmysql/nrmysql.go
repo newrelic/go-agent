@@ -15,7 +15,13 @@ func getHostPortPathOrID(cfg *mysql.Config) (host string, ppoid string) {
 	case "cloudsql":
 		host = cfg.Addr
 	default:
-		host, ppoid, _ = net.SplitHostPort(cfg.Addr)
+		var err error
+		host, ppoid, err = net.SplitHostPort(cfg.Addr)
+		if nil != err {
+			host = cfg.Addr
+		} else if host == "" {
+			host = "localhost"
+		}
 	}
 	return
 }

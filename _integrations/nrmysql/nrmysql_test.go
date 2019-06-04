@@ -3,6 +3,7 @@ package nrmysql
 import (
 	"testing"
 
+	"github.com/go-sql-driver/mysql"
 	newrelic "github.com/newrelic/go-agent"
 )
 
@@ -85,6 +86,83 @@ func TestParseDSN(t *testing.T) {
 	for _, test := range testcases {
 		s := &newrelic.DatastoreSegment{}
 		ParseDSN(s, test.dsn)
+		if test.expHost != s.Host {
+			t.Errorf(`incorrect host, expected="%s", actual="%s"`, test.expHost, s.Host)
+		}
+		if test.expPortPathOrID != s.PortPathOrID {
+			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expPortPathOrID, s.PortPathOrID)
+		}
+		if test.expDatabaseName != s.DatabaseName {
+			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expDatabaseName, s.DatabaseName)
+		}
+	}
+}
+
+func TestParseConfig(t *testing.T) {
+	testcases := []struct {
+		cfgNet          string
+		cfgAddr         string
+		cfgDBName       string
+		expHost         string
+		expPortPathOrID string
+		expDatabaseName string
+	}{
+		{
+			cfgDBName:       "mydb",
+			expDatabaseName: "mydb",
+		},
+		{
+			cfgNet:          "unixgram",
+			cfgAddr:         "/path/to/my/sock",
+			expHost:         "localhost",
+			expPortPathOrID: "/path/to/my/sock",
+		},
+		{
+			cfgNet:          "unixpacket",
+			cfgAddr:         "/path/to/my/sock",
+			expHost:         "localhost",
+			expPortPathOrID: "/path/to/my/sock",
+		},
+		{
+			cfgNet:          "udp",
+			cfgAddr:         "[fe80::1%lo0]:53",
+			expHost:         "fe80::1%lo0",
+			expPortPathOrID: "53",
+		},
+		{
+			cfgNet:          "tcp",
+			cfgAddr:         ":80",
+			expHost:         "localhost",
+			expPortPathOrID: "80",
+		},
+		{
+			cfgNet:          "ip4:1",
+			cfgAddr:         "192.0.2.1",
+			expHost:         "192.0.2.1",
+			expPortPathOrID: "",
+		},
+		{
+			cfgNet:          "tcp6",
+			cfgAddr:         "golang.org:http",
+			expHost:         "golang.org",
+			expPortPathOrID: "http",
+		},
+		{
+			cfgNet:          "ip6:ipv6-icmp",
+			cfgAddr:         "2001:db8::1",
+			expHost:         "2001:db8::1",
+			expPortPathOrID: "",
+		},
+	}
+
+	for _, test := range testcases {
+		s := &newrelic.DatastoreSegment{}
+		cfg := &mysql.Config{
+			Net:    test.cfgNet,
+			Addr:   test.cfgAddr,
+			DBName: test.cfgDBName,
+		}
+		ParseConfig(s, cfg)
 		if test.expHost != s.Host {
 			t.Errorf(`incorrect host, expected="%s", actual="%s"`, test.expHost, s.Host)
 		}
