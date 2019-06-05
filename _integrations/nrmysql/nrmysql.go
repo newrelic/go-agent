@@ -1,5 +1,39 @@
 // +build go1.10
 
+// Package nrmysql instruments https://github.com/go-sql-driver/mysql.
+//
+// Use this package to instrument your MySQL calls without having to manually
+// create DatastoreSegments.  This is done in a two step process:
+//
+// 1. Use this package's driver in place of the mysql driver.
+//
+// If your code is using sql.Open like this:
+//
+//	db, err := sql.Open("mysql", "user@unix(/path/to/socket)/dbname")
+//
+// Then import this package for side effects and open "nrmysql" instead:
+//
+//	import (
+//		_ "github.com/newrelic/go-agent/_integrations/nrmysql"
+//	)
+//
+//	func main() {
+//		db, err := sql.Open("nrmysql", "user@unix(/path/to/socket)/dbname")
+//	}
+//
+// If your code is using mysql.NewConnector, simply use nrmysql.NewConnector
+// instead.
+//
+// 2. Provide a context containing a newrelic.Transaction to all exec and query
+// calls.  For example, instead of the following:
+//
+//	row := db.Query("SELECT count(*) from tables")
+//
+// Do this:
+//
+//	ctx := newrelic.NewContext(context.Background(), txn)
+//	row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
+//
 package nrmysql
 
 import (
@@ -19,8 +53,8 @@ var (
 		ParseQuery: nil, // TODO
 		ParseDSN:   parseDSN,
 	}
-	// Driver can be used in place of mysql.MySQLDriver{} for instrumented
-	// MySQL communication
+	// Driver can be used in place of mysql.MySQLDriver{} as an instrumented
+	// MySQL driver.
 	Driver = newrelic.InstrumentDriver(mysql.MySQLDriver{}, baseBuilder)
 )
 
@@ -28,8 +62,8 @@ func init() {
 	sql.Register("nrmysql", Driver)
 }
 
-// NewConnector can be used in place of mysql.NewConnector for instrumented
-// MySQL communication.
+// NewConnector can be used in place of mysql.NewConnector to get an
+// instrumented MySQL connector.
 func NewConnector(cfg *mysql.Config) (driver.Connector, error) {
 	connector, err := mysql.NewConnector(cfg)
 	if err != nil {
