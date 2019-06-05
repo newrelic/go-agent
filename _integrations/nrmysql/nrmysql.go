@@ -34,6 +34,8 @@
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
 //
+// A working example is shown here:
+// https://github.com/newrelic/go-agent/tree/master/_integrations/nrmysql/example/main.go
 package nrmysql
 
 import (
