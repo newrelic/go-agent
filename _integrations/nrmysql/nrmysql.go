@@ -9,9 +9,15 @@
 //
 // If your code is using sql.Open like this:
 //
-//	db, err := sql.Open("mysql", "user@unix(/path/to/socket)/dbname")
+//	import (
+//		_ "github.com/go-sql-driver/mysql"
+//	)
 //
-// Then import this package for side effects and open "nrmysql" instead:
+//	func main() {
+//		db, err := sql.Open("mysql", "user@unix(/path/to/socket)/dbname")
+//	}
+//
+// Then change the side-effect import to this package, and open "nrmysql" instead:
 //
 //	import (
 //		_ "github.com/newrelic/go-agent/_integrations/nrmysql"
@@ -27,7 +33,7 @@
 // 2. Provide a context containing a newrelic.Transaction to all exec and query
 // calls.  For example, instead of the following:
 //
-//	row := db.Query("SELECT count(*) from tables")
+//	row := db.QueryRow("SELECT count(*) from tables")
 //
 // Do this:
 //
@@ -55,13 +61,10 @@ var (
 		ParseQuery: nil, // TODO
 		ParseDSN:   parseDSN,
 	}
-	// Driver can be used in place of mysql.MySQLDriver{} as an instrumented
-	// MySQL driver.
-	Driver = newrelic.InstrumentDriver(mysql.MySQLDriver{}, baseBuilder)
 )
 
 func init() {
-	sql.Register("nrmysql", Driver)
+	sql.Register("nrmysql", newrelic.InstrumentDriver(mysql.MySQLDriver{}, baseBuilder))
 }
 
 // NewConnector can be used in place of mysql.NewConnector to get an
