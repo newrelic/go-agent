@@ -99,7 +99,7 @@ func TestParseDSN(t *testing.T) {
 			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expPortPathOrID, s.PortPathOrID)
 		}
 		if test.expDatabaseName != s.DatabaseName {
-			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expDatabaseName, s.DatabaseName)
+			t.Errorf(`incorrect database name, expected="%s", actual="%s"`, test.expDatabaseName, s.DatabaseName)
 		}
 	}
 }
@@ -176,7 +176,7 @@ func TestParseConfig(t *testing.T) {
 			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expPortPathOrID, s.PortPathOrID)
 		}
 		if test.expDatabaseName != s.DatabaseName {
-			t.Errorf(`incorrect port path or id, expected="%s", actual="%s"`, test.expDatabaseName, s.DatabaseName)
+			t.Errorf(`incorrect database name, expected="%s", actual="%s"`, test.expDatabaseName, s.DatabaseName)
 		}
 	}
 }
