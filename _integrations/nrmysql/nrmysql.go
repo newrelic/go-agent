@@ -31,7 +31,10 @@
 // instead.
 //
 // 2. Provide a context containing a newrelic.Transaction to all exec and query
-// calls.  For example, instead of the following:
+// methods on sql.DB, sql.Conn, sql.Tx, and sql.Stmt.  This requires using the
+// context methods ExecContext, QueryContext, and QueryRowContext in place of
+// Exec, Query, and QueryRow respectively.  For example, instead of the
+// following:
 //
 //	row := db.QueryRow("SELECT count(*) from tables")
 //
