@@ -255,6 +255,17 @@ s := newrelic.DatastoreSegment{
 defer s.End()
 ```
 
+If you are using the standard library's
+[database/sql](https://golang.org/pkg/database/sql/) package with
+[MySQL](https://github.com/go-sql-driver/mysql),
+[PostgreSQL](https://github.com/lib/pq), or
+[SQLite](https://github.com/mattn/go-sqlite3) then you can avoid creating
+DatastoreSegments by hand by using an integration package:
+
+* [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq)
+* [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql)
+* [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3)
+
 ### External Segments
 
 External segments appear in the transaction "Breakdown table" and in the
