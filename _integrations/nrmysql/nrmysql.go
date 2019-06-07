@@ -54,6 +54,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal/sqlparse"
 )
 
 var (
@@ -61,7 +62,7 @@ var (
 		BaseSegment: newrelic.DatastoreSegment{
 			Product: newrelic.DatastoreMySQL,
 		},
-		ParseQuery: nil, // TODO
+		ParseQuery: sqlparse.ParseQuery,
 		ParseDSN:   parseDSN,
 	}
 )
