@@ -8,7 +8,9 @@ import (
 )
 
 // DriverSegmentBuilder populates DatastoreSegments for sql.Driver
-// instrumentation.
+// instrumentation.  Use this to instrument a database that is not supported by
+// an existing integration package (nrmysql, nrpq, and nrsqlite3). See
+// _integrations/nrmysql for example use.
 type DriverSegmentBuilder struct {
 	BaseSegment DatastoreSegment
 	ParseQuery  func(segment *DatastoreSegment, query string)
@@ -16,13 +18,19 @@ type DriverSegmentBuilder struct {
 }
 
 // InstrumentDriver wraps a driver.Driver, adding instrumentation for exec and
-// query calls made with a transaction-containing context.
+// query calls made with a transaction-containing context.  Use this to
+// instrument a database driver that is not supported by an existing integration
+// package (nrmysql, nrpq, and nrsqlite3). See _integrations/nrmysql for example
+// use.
 func InstrumentDriver(d driver.Driver, bld DriverSegmentBuilder) driver.Driver {
 	return optionalMethodsDriver(&wrapDriver{bld: bld, original: d})
 }
 
 // InstrumentConnector wraps a driver.Connector, adding instrumentation for exec
-// and query calls made with a transaction-containing context.
+// and query calls made with a transaction-containing context.  Use this to
+// instrument a database connector that is not supported by an existing
+// integration package (nrmysql, nrpq, and nrsqlite3). See _integrations/nrmysql
+// for example use.
 func InstrumentConnector(connector driver.Connector, bld DriverSegmentBuilder) driver.Connector {
 	return &wrapConnector{original: connector, bld: bld}
 }
