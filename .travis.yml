@@ -29,6 +29,12 @@ matrix:
     env: INTEGRATION=_integrations/nrpkgerrors
   - go: "1.12"
     env: INTEGRATION=_integrations/nrlambda
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrmysql
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrpq
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrsqlite3
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
