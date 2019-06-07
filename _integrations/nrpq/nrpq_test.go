@@ -232,3 +232,20 @@ func TestParseDSN(t *testing.T) {
 		}
 	}
 }
+
+func TestNewConnector(t *testing.T) {
+	connector, err := NewConnector("client_encoding=")
+	if err == nil {
+		t.Error("error expected from invalid dsn")
+	}
+	if connector != nil {
+		t.Error("nil connector expected from invalid dsn")
+	}
+	connector, err = NewConnector("host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable")
+	if err != nil {
+		t.Error("nil error expected from valid dsn", err)
+	}
+	if connector == nil {
+		t.Error("non-nil connector expected from valid dsn")
+	}
+}
