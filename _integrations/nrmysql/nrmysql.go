@@ -54,6 +54,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/sqlparse"
 )
 
@@ -69,6 +70,7 @@ var (
 
 func init() {
 	sql.Register("nrmysql", newrelic.InstrumentDriver(mysql.MySQLDriver{}, baseBuilder))
+	internal.TrackUsage("integration", "driver", "mysql")
 }
 
 // NewConnector can be used in place of mysql.NewConnector to get an

@@ -76,6 +76,7 @@ import (
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/sqlparse"
 )
 
@@ -91,6 +92,7 @@ var (
 
 func init() {
 	sql.Register("nrsqlite3", InstrumentDriver(&sqlite3.SQLiteDriver{}))
+	internal.TrackUsage("integration", "driver", "sqlite3")
 }
 
 // InstrumentDriver wraps an sqlite3.SQLiteDriver to add instrumentation.
