@@ -1423,22 +1423,33 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 }
 
 func TestRoundTripper(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
-	app := testApp(nil, cfgFn, t)
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	url := "http://example.com/"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	client := &http.Client{}
 	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
-		// TODO test that request headers have been set here.
+		catHdr := r.Header.Get(DistributedTracePayloadHeader)
+		if "" == catHdr {
+			t.Error("cat header missing")
+		}
 		if r.URL.String() != url {
 			t.Error(r.URL.String())
 		}
 		return nil, errors.New("hello")
 	})
 	client.Transport = NewRoundTripper(txn, inner)
-	resp, err := client.Get(url)
+	resp, err := client.Do(req)
 	if resp != nil || err == nil {
 		t.Error(resp, err.Error())
+	}
+	// Ensure that the request was cloned:
+	catHdr := req.Header.Get(DistributedTracePayloadHeader)
+	if "" != catHdr {
+		t.Error("cat header unexpectedly present")
 	}
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1448,6 +1459,11 @@ func TestRoundTripper(t *testing.T) {
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Data: nil},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Data: nil},
 	}, backgroundErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1456,6 +1472,10 @@ func TestRoundTripper(t *testing.T) {
 			"transactionName":   "OtherTransaction/Go/hello",
 			"externalCallCount": 1,
 			"externalDuration":  internal.MatchAnything,
+			"guid":              internal.MatchAnything,
+			"traceId":           internal.MatchAnything,
+			"priority":          internal.MatchAnything,
+			"sampled":           internal.MatchAnything,
 		},
 	}})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -1463,6 +1483,10 @@ func TestRoundTripper(t *testing.T) {
 			"name":              "OtherTransaction/Go/hello",
 			"externalCallCount": 1,
 			"externalDuration":  internal.MatchAnything,
+			"guid":              internal.MatchAnything,
+			"traceId":           internal.MatchAnything,
+			"priority":          internal.MatchAnything,
+			"sampled":           internal.MatchAnything,
 		},
 	}})
 }

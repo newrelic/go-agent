@@ -1,6 +1,8 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // instrumentation.go contains helpers built on the lower level api.
 

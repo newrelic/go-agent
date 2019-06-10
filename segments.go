@@ -1,6 +1,8 @@
 package newrelic
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
