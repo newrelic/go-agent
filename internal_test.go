@@ -1427,6 +1427,7 @@ func TestRoundTripper(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, nil)
 	url := "http://example.com/"
 	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("zip", "zap")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1435,6 +1436,10 @@ func TestRoundTripper(t *testing.T) {
 		catHdr := r.Header.Get(DistributedTracePayloadHeader)
 		if "" == catHdr {
 			t.Error("cat header missing")
+		}
+		// Test that headers are preserved during reqest cloning:
+		if z := r.Header.Get("zip"); z != "zap" {
+			t.Error("missing header", z)
 		}
 		if r.URL.String() != url {
 			t.Error(r.URL.String())
