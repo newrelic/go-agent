@@ -61,6 +61,7 @@ import (
 
 	"github.com/lib/pq"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/sqlparse"
 )
 
@@ -90,6 +91,7 @@ func NewConnector(dsn string) (driver.Connector, error) {
 
 func init() {
 	sql.Register("nrpostgres", newrelic.InstrumentDriver(&pq.Driver{}, baseBuilder))
+	internal.TrackUsage("integration", "driver", "postgres")
 }
 
 var dsnSplit = regexp.MustCompile(`(\w+)\s*=\s*('[^=]*'|[^'\s]+)`)
