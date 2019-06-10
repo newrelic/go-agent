@@ -107,11 +107,7 @@ func (r *ConnectReply) getHarvestData() harvestData {
 func harvestDataDefaults() harvestData {
 	return harvestData{
 		EventReportPeriodMs: 60 * 1000, // 60 seconds
-		HarvestLimits: harvestLimits{
-			TxnEvents:    maxTxnEvents,
-			CustomEvents: maxCustomEvents,
-			ErrorEvents:  maxErrorEvents,
-		},
+		HarvestLimits:       newHarvestLimits(),
 	}
 }
 
@@ -127,6 +123,9 @@ func (h harvestData) validate() bool {
 		return false
 	}
 	if 0 == h.HarvestLimits.ErrorEvents {
+		return false
+	}
+	if 0 == h.EventReportPeriodMs {
 		return false
 	}
 	return true
