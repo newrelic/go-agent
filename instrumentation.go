@@ -94,6 +94,8 @@ func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTrip
 	})
 }
 
+// cloneRequest mimics implementation of
+// https://godoc.org/github.com/google/go-github/github#BasicAuthTransport.RoundTrip
 func cloneRequest(r *http.Request) *http.Request {
 	// shallow copy of the struct
 	r2 := new(http.Request)
