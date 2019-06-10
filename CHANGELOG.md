@@ -3,52 +3,52 @@
 ### New Features
 
 * Introduce support for databases using
-[database/sql](https://golang.org/pkg/database/sql/).  This new functionality
-allows you to instrument MySQL, PostgreSQL, and SQLite calls without manually
-creating
-[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)s.
-
-| Database Library Supported | Integration Package |
-| ------------- | ------------- |
-| [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql) |
-| [lib/pq](https://github.com/lib/pq) | [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq) |
-| [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3) |
-
-Using these database integration packages is easy!  First replace the driver
-with our integration version:
-
-```go
-import (
-	// import our integration package in place of "github.com/go-sql-driver/mysql"
-	_ "github.com/newrelic/go-agent/_integrations/nrmysql"
-)
-
-func main() {
-	// open "nrmysql" in place of "mysql"
-	db, err := sql.Open("nrmysql", "user@unix(/path/to/socket)/dbname")
-}
-```
-
-Second, use the `ExecContext`, `QueryContext`, and `QueryRowContext` methods of
-[sql.DB](https://golang.org/pkg/database/sql/#DB),
-[sql.Conn](https://golang.org/pkg/database/sql/#Conn),
-[sql.Tx](https://golang.org/pkg/database/sql/#Tx), and
-[sql.Stmt](https://golang.org/pkg/database/sql/#Stmt) and provide a
-transaction-containing context.  Calls to `Exec`, `Query`, and `QueryRow` do not
-get instrumented.
-
-```go
-ctx := newrelic.NewContext(context.Background(), txn)
-row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
-```
-
-If you are using a [database/sql](https://golang.org/pkg/database/sql/) database
-not listed above, you can write your own instrumentation for it using
-[InstrumentConnector](https://godoc.org/github.com/newrelic/go-agent#InstrumentConnector),
-[InstrumentDriver](https://godoc.org/github.com/newrelic/go-agent#InstrumentDriver),
-and
-[DriverSegmentBuilder](https://godoc.org/github.com/newrelic/go-agent#DriverSegmentBuilder).
-The integration packages act as examples of how to do this.
+  [database/sql](https://golang.org/pkg/database/sql/).  This new functionality
+  allows you to instrument MySQL, PostgreSQL, and SQLite calls without manually
+  creating
+  [DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment)s.
+  
+  | Database Library Supported | Integration Package |
+  | ------------- | ------------- |
+  | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql) |
+  | [lib/pq](https://github.com/lib/pq) | [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq) |
+  | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3) |
+  
+  Using these database integration packages is easy!  First replace the driver
+  with our integration version:
+  
+  ```go
+  import (
+  	// import our integration package in place of "github.com/go-sql-driver/mysql"
+  	_ "github.com/newrelic/go-agent/_integrations/nrmysql"
+  )
+  
+  func main() {
+  	// open "nrmysql" in place of "mysql"
+  	db, err := sql.Open("nrmysql", "user@unix(/path/to/socket)/dbname")
+  }
+  ```
+  
+  Second, use the `ExecContext`, `QueryContext`, and `QueryRowContext` methods of
+  [sql.DB](https://golang.org/pkg/database/sql/#DB),
+  [sql.Conn](https://golang.org/pkg/database/sql/#Conn),
+  [sql.Tx](https://golang.org/pkg/database/sql/#Tx), and
+  [sql.Stmt](https://golang.org/pkg/database/sql/#Stmt) and provide a
+  transaction-containing context.  Calls to `Exec`, `Query`, and `QueryRow` do not
+  get instrumented.
+  
+  ```go
+  ctx := newrelic.NewContext(context.Background(), txn)
+  row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
+  ```
+  
+  If you are using a [database/sql](https://golang.org/pkg/database/sql/) database
+  not listed above, you can write your own instrumentation for it using
+  [InstrumentConnector](https://godoc.org/github.com/newrelic/go-agent#InstrumentConnector),
+  [InstrumentDriver](https://godoc.org/github.com/newrelic/go-agent#InstrumentDriver),
+  and
+  [DriverSegmentBuilder](https://godoc.org/github.com/newrelic/go-agent#DriverSegmentBuilder).
+  The integration packages act as examples of how to do this.
 
 ## 2.7.0
 
