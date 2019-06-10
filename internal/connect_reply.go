@@ -129,6 +129,9 @@ func (h harvestData) validate() bool {
 	if 0 == h.HarvestLimits.ErrorEvents {
 		return false
 	}
+	if 0 == h.EventReportPeriodMs {
+		return false
+	}
 	return true
 }
 
