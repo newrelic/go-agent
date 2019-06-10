@@ -76,6 +76,12 @@
   * [documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda)
   * [working example](_integrations/nrlambda/example/main.go)
 
+### Bug Fixes
+
+* The [http.RoundTripper](https://golang.org/pkg/net/http/#RoundTripper) returned
+  by [NewRoundTripper](https://godoc.org/github.com/newrelic/go-agent#NewRoundTripper)
+  no longer modifies the request.  Our thanks to @jlordiales for the contribution.
+
 ## 2.6.0
 
 ### New Features
