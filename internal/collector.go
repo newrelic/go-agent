@@ -235,6 +235,37 @@ type preconnectRequest struct {
 	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
 }
 
+// ConnectEventData is the event_data key in the connect request payload
+type ConnectEventData struct {
+	HarvestLimits harvestLimits `json:"harvest_limits"`
+}
+
+// harvestLimits is used in both the connect request and reply's event_data key
+// to specify the max number of events of each type allowable by the agent
+type harvestLimits struct {
+	TxnEvents    int `json:"analytic_event_data"`
+	CustomEvents int `json:"custom_event_data"`
+	ErrorEvents  int `json:"error_event_data"`
+}
+
+// newHarvestLimits creates a harvestLimits with the currently set max values
+// for each event type.
+func newHarvestLimits() harvestLimits {
+	return harvestLimits{
+		TxnEvents:    maxTxnEvents,
+		CustomEvents: maxCustomEvents,
+		ErrorEvents:  maxErrorEvents,
+	}
+}
+
+// NewConnectEventData creates a new ConnectEventData with values set for the
+// maximums for each event type
+func NewConnectEventData() ConnectEventData {
+	return ConnectEventData{
+		HarvestLimits: newHarvestLimits(),
+	}
+}
+
 // ConnectAttempt tries to connect an application.
 func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, RPMResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{
@@ -281,21 +312,29 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 		return nil, resp
 	}
 
+	reply, err := constructConnectReply(resp.body, preconnect.Preconnect)
+	if nil != err {
+		return nil, RPMResponse{Err: err}
+	}
+	return reply, resp
+}
+
+func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
 	var reply struct {
 		Reply *ConnectReply `json:"return_value"`
 	}
 	reply.Reply = ConnectReplyDefaults()
-	err = json.Unmarshal(resp.body, &reply)
+	err := json.Unmarshal(body, &reply)
 	if nil != err {
-		return nil, RPMResponse{Err: fmt.Errorf("unable to parse connect reply: %v", err)}
+		return nil, fmt.Errorf("unable to parse connect reply: %v", err)
 	}
 	// Note:  This should never happen.  It would mean the collector
 	// response is malformed.  This exists merely as extra defensiveness.
 	if "" == reply.Reply.RunID {
-		return nil, RPMResponse{Err: errors.New("connect reply missing agent run id")}
+		return nil, errors.New("connect reply missing agent run id")
 	}
 
-	reply.Reply.PreconnectReply = preconnect.Preconnect
+	reply.Reply.PreconnectReply = preconnect
 
 	reply.Reply.AdaptiveSampler = NewAdaptiveSampler(
 		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
@@ -303,5 +342,9 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
-	return reply.Reply, resp
+	if !reply.Reply.EventData.validate() {
+		reply.Reply.EventData = harvestDataDefaults()
+	}
+
+	return reply.Reply, nil
 }

@@ -455,3 +455,89 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroValueEventTypeMax(t *testing.T) {
+	testcases := [][]byte{
+		[]byte(`{
+			"return_value": {
+				"agent_run_id": "1234567890",
+				"event_data": {
+					"report_period_ms": 5000,
+					"harvest_limits": {
+						"analytic_event_data": 0,
+						"custom_event_data": 10,
+						"error_event_data": 10
+					}
+				}
+			}
+		}`),
+		[]byte(`{
+			"return_value": {
+				"agent_run_id": "1234567890",
+				"event_data": {
+					"report_period_ms": 5000,
+					"harvest_limits": {
+						"analytic_event_data": 10,
+						"custom_event_data": 0,
+						"error_event_data": 10
+					}
+				}
+			}
+		}`),
+		[]byte(`{
+			"return_value": {
+				"agent_run_id": "1234567890",
+				"event_data": {
+					"report_period_ms": 5000,
+					"harvest_limits": {
+						"analytic_event_data": 10,
+						"custom_event_data": 10,
+						"error_event_data": 0
+					}
+				}
+			}
+		}`),
+		[]byte(`{
+			"return_value": {
+				"agent_run_id": "1234567890",
+				"event_data": {
+					"report_period_ms": 0,
+					"harvest_limits": {
+						"analytic_event_data": 10,
+						"custom_event_data": 10,
+						"error_event_data": 10
+					}
+				}
+			}
+		}`),
+		[]byte(`{
+			"return_value": {
+				"agent_run_id": "1234567890",
+				"event_data": { "report_period_ms": 0 }
+			}
+		}`),
+		[]byte(`{
+			"return_value": { "agent_run_id": "1234567890" }
+		}`),
+	}
+
+	for _, test := range testcases {
+		reply, err := constructConnectReply(test, PreconnectReply{})
+
+		if nil != err {
+			t.Fatal(err)
+		}
+		if m := reply.EventData.HarvestLimits.TxnEvents; 10*1000 != m {
+			t.Error("incorrect txn event type max", m)
+		}
+		if m := reply.EventData.HarvestLimits.CustomEvents; 10*1000 != m {
+			t.Error("incorrect custom event type max", m)
+		}
+		if m := reply.EventData.HarvestLimits.ErrorEvents; 100 != m {
+			t.Error("incorrect error event type max", m)
+		}
+		if p := reply.EventData.EventReportPeriodMs; 60*1000 != p {
+			t.Error("incorrect event report period", p)
+		}
+	}
+}

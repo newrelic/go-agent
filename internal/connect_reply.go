@@ -87,6 +87,48 @@ type ConnectReply struct {
 		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
 	} `json:"agent_config"`
+
+	// Faster Event Harvest
+	EventData harvestData `json:"event_data"`
+}
+
+type harvestData struct {
+	EventReportPeriodMs int           `json:"report_period_ms"`
+	HarvestLimits       harvestLimits `json:"harvest_limits"`
+}
+
+func (r *ConnectReply) getHarvestData() harvestData {
+	if nil != r {
+		return r.EventData
+	}
+	return harvestDataDefaults()
+}
+
+func harvestDataDefaults() harvestData {
+	return harvestData{
+		EventReportPeriodMs: 60 * 1000, // 60 seconds
+		HarvestLimits:       newHarvestLimits(),
+	}
+}
+
+func (h harvestData) eventReportPeriod() time.Duration {
+	return time.Duration(h.EventReportPeriodMs) * time.Millisecond
+}
+
+func (h harvestData) validate() bool {
+	if 0 == h.HarvestLimits.TxnEvents {
+		return false
+	}
+	if 0 == h.HarvestLimits.CustomEvents {
+		return false
+	}
+	if 0 == h.HarvestLimits.ErrorEvents {
+		return false
+	}
+	if 0 == h.EventReportPeriodMs {
+		return false
+	}
+	return true
 }
 
 type trustedAccountSet map[int]struct{}
@@ -128,6 +170,8 @@ func ConnectReplyDefaults() *ConnectReply {
 
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
+
+		EventData: harvestDataDefaults(),
 	}
 }
 
