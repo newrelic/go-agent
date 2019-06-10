@@ -107,11 +107,7 @@ func (r *ConnectReply) getHarvestData() harvestData {
 func harvestDataDefaults() harvestData {
 	return harvestData{
 		EventReportPeriodMs: 60 * 1000, // 60 seconds
-		HarvestLimits: harvestLimits{
-			TxnEvents:    maxTxnEvents,
-			CustomEvents: maxCustomEvents,
-			ErrorEvents:  maxErrorEvents,
-		},
+		HarvestLimits:       newHarvestLimits(),
 	}
 }
 

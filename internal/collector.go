@@ -248,15 +248,21 @@ type harvestLimits struct {
 	ErrorEvents  int `json:"error_event_data"`
 }
 
+// newHarvestLimits creates a harvestLimits with the currently set max values
+// for each event type.
+func newHarvestLimits() harvestLimits {
+	return harvestLimits{
+		TxnEvents:    maxTxnEvents,
+		CustomEvents: maxCustomEvents,
+		ErrorEvents:  maxErrorEvents,
+	}
+}
+
 // NewConnectEventData creates a new ConnectEventData with values set for the
 // maximums for each event type
 func NewConnectEventData() ConnectEventData {
 	return ConnectEventData{
-		HarvestLimits: harvestLimits{
-			TxnEvents:    maxTxnEvents,
-			CustomEvents: maxCustomEvents,
-			ErrorEvents:  maxErrorEvents,
-		},
+		HarvestLimits: newHarvestLimits(),
 	}
 }
 
