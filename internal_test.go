@@ -1427,10 +1427,10 @@ func TestRoundTripper(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, nil)
 	url := "http://example.com/"
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("zip", "zap")
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Add("zip", "zap")
 	client := &http.Client{}
 	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		catHdr := r.Header.Get(DistributedTracePayloadHeader)
