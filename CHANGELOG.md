@@ -41,7 +41,7 @@
   ctx := newrelic.NewContext(context.Background(), txn)
   row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
   ```
-
+  
   If you are using a [database/sql](https://golang.org/pkg/database/sql/) database
   not listed above, you can write your own instrumentation for it using
   [InstrumentSQLConnector](https://godoc.org/github.com/newrelic/go-agent#InstrumentSQLConnector),
@@ -49,6 +49,8 @@
   and
   [SQLDriverSegmentBuilder](https://godoc.org/github.com/newrelic/go-agent#SQLDriverSegmentBuilder).
   The integration packages act as examples of how to do this.
+  
+  For more information, see the [Go agent documentation on instrumenting datastore segments](https://docs.newrelic.com/docs/agents/go-agent/instrumentation/instrument-go-segments#go-datastore-segments).
 
 ### Bug Fixes
 
