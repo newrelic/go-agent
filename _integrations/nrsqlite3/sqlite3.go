@@ -28,7 +28,7 @@
 //	}
 //
 // If you are registering a custom sqlite3 driver with special behavior then
-// you must wrap your driver instance using nrsqlite3.InstrumentDriver.  For
+// you must wrap your driver instance using nrsqlite3.InstrumentSQLDriver.  For
 // example, if your code looks like this:
 //
 //	func main() {
@@ -43,7 +43,7 @@
 // Then instrument the driver like this:
 //
 //	func main() {
-//		sql.Register("sqlite3_with_extensions", nrsqlite3.InstrumentDriver(&sqlite3.SQLiteDriver{
+//		sql.Register("sqlite3_with_extensions", nrsqlite3.InstrumentSQLDriver(&sqlite3.SQLiteDriver{
 //			Extensions: []string{
 //				"sqlite3_mod_regexp",
 //			},
@@ -81,7 +81,7 @@ import (
 )
 
 var (
-	baseBuilder = newrelic.DriverSegmentBuilder{
+	baseBuilder = newrelic.SQLDriverSegmentBuilder{
 		BaseSegment: newrelic.DatastoreSegment{
 			Product: newrelic.DatastoreSQLite,
 		},
@@ -91,11 +91,11 @@ var (
 )
 
 func init() {
-	sql.Register("nrsqlite3", InstrumentDriver(&sqlite3.SQLiteDriver{}))
+	sql.Register("nrsqlite3", InstrumentSQLDriver(&sqlite3.SQLiteDriver{}))
 	internal.TrackUsage("integration", "driver", "sqlite3")
 }
 
-// InstrumentDriver wraps an sqlite3.SQLiteDriver to add instrumentation.
+// InstrumentSQLDriver wraps an sqlite3.SQLiteDriver to add instrumentation.
 // For example, if you are registering a custom SQLiteDriver like this:
 //
 //	sql.Register("sqlite3_with_extensions",
@@ -108,14 +108,14 @@ func init() {
 // Then add instrumentation like this:
 //
 //	sql.Register("sqlite3_with_extensions",
-//		nrsqlite3.InstrumentDriver(&sqlite3.SQLiteDriver{
+//		nrsqlite3.InstrumentSQLDriver(&sqlite3.SQLiteDriver{
 //			Extensions: []string{
 //				"sqlite3_mod_regexp",
 //			},
 //		}))
 //
-func InstrumentDriver(d *sqlite3.SQLiteDriver) driver.Driver {
-	return newrelic.InstrumentDriver(d, baseBuilder)
+func InstrumentSQLDriver(d *sqlite3.SQLiteDriver) driver.Driver {
+	return newrelic.InstrumentSQLDriver(d, baseBuilder)
 }
 
 func getPortPathOrID(dsn string) (ppoid string) {

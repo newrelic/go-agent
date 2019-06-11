@@ -7,71 +7,74 @@ import (
 	"database/sql/driver"
 )
 
-// DriverSegmentBuilder populates DatastoreSegments for sql.Driver
+// SQLDriverSegmentBuilder populates DatastoreSegments for sql.Driver
 // instrumentation.  Use this to instrument a database that is not supported by
 // an existing integration package (nrmysql, nrpq, and nrsqlite3). See
-// _integrations/nrmysql for example use.
-type DriverSegmentBuilder struct {
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrmysql/nrmysql.go
+// for example use.
+type SQLDriverSegmentBuilder struct {
 	BaseSegment DatastoreSegment
 	ParseQuery  func(segment *DatastoreSegment, query string)
 	ParseDSN    func(segment *DatastoreSegment, dataSourceName string)
 }
 
-// InstrumentDriver wraps a driver.Driver, adding instrumentation for exec and
-// query calls made with a transaction-containing context.  Use this to
+// InstrumentSQLDriver wraps a driver.Driver, adding instrumentation for exec
+// and query calls made with a transaction-containing context.  Use this to
 // instrument a database driver that is not supported by an existing integration
-// package (nrmysql, nrpq, and nrsqlite3). See _integrations/nrmysql for example
-// use.
-func InstrumentDriver(d driver.Driver, bld DriverSegmentBuilder) driver.Driver {
+// package (nrmysql, nrpq, and nrsqlite3). See
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrmysql/nrmysql.go
+// for example use.
+func InstrumentSQLDriver(d driver.Driver, bld SQLDriverSegmentBuilder) driver.Driver {
 	return optionalMethodsDriver(&wrapDriver{bld: bld, original: d})
 }
 
-// InstrumentConnector wraps a driver.Connector, adding instrumentation for exec
-// and query calls made with a transaction-containing context.  Use this to
+// InstrumentSQLConnector wraps a driver.Connector, adding instrumentation for
+// exec and query calls made with a transaction-containing context.  Use this to
 // instrument a database connector that is not supported by an existing
-// integration package (nrmysql, nrpq, and nrsqlite3). See _integrations/nrmysql
+// integration package (nrmysql, nrpq, and nrsqlite3). See
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrmysql/nrmysql.go
 // for example use.
-func InstrumentConnector(connector driver.Connector, bld DriverSegmentBuilder) driver.Connector {
+func InstrumentSQLConnector(connector driver.Connector, bld SQLDriverSegmentBuilder) driver.Connector {
 	return &wrapConnector{original: connector, bld: bld}
 }
 
-func (bld DriverSegmentBuilder) useDSN(dsn string) DriverSegmentBuilder {
+func (bld SQLDriverSegmentBuilder) useDSN(dsn string) SQLDriverSegmentBuilder {
 	if f := bld.ParseDSN; nil != f {
 		f(&bld.BaseSegment, dsn)
 	}
 	return bld
 }
 
-func (bld DriverSegmentBuilder) useQuery(query string) DriverSegmentBuilder {
+func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilder {
 	if f := bld.ParseQuery; nil != f {
 		f(&bld.BaseSegment, query)
 	}
 	return bld
 }
 
-func (bld DriverSegmentBuilder) startSegment(ctx context.Context) DatastoreSegment {
+func (bld SQLDriverSegmentBuilder) startSegment(ctx context.Context) DatastoreSegment {
 	segment := bld.BaseSegment
 	segment.StartTime = StartSegmentNow(FromContext(ctx))
 	return segment
 }
 
 type wrapDriver struct {
-	bld      DriverSegmentBuilder
+	bld      SQLDriverSegmentBuilder
 	original driver.Driver
 }
 
 type wrapConnector struct {
-	bld      DriverSegmentBuilder
+	bld      SQLDriverSegmentBuilder
 	original driver.Connector
 }
 
 type wrapConn struct {
-	bld      DriverSegmentBuilder
+	bld      SQLDriverSegmentBuilder
 	original driver.Conn
 }
 
 type wrapStmt struct {
-	bld      DriverSegmentBuilder
+	bld      SQLDriverSegmentBuilder
 	original driver.Stmt
 }
 
@@ -116,7 +119,7 @@ func (w *wrapConnector) Driver() driver.Driver {
 	})
 }
 
-func prepare(original driver.Stmt, err error, bld DriverSegmentBuilder, query string) (driver.Stmt, error) {
+func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query string) (driver.Stmt, error) {
 	if nil != err {
 		return nil, err
 	}

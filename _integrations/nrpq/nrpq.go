@@ -66,7 +66,7 @@ import (
 )
 
 var (
-	baseBuilder = newrelic.DriverSegmentBuilder{
+	baseBuilder = newrelic.SQLDriverSegmentBuilder{
 		BaseSegment: newrelic.DatastoreSegment{
 			Product: newrelic.DatastorePostgres,
 		},
@@ -86,11 +86,11 @@ func NewConnector(dsn string) (driver.Connector, error) {
 	}
 	bld := baseBuilder
 	bld.ParseDSN(&bld.BaseSegment, dsn)
-	return newrelic.InstrumentConnector(connector, bld), nil
+	return newrelic.InstrumentSQLConnector(connector, bld), nil
 }
 
 func init() {
-	sql.Register("nrpostgres", newrelic.InstrumentDriver(&pq.Driver{}, baseBuilder))
+	sql.Register("nrpostgres", newrelic.InstrumentSQLDriver(&pq.Driver{}, baseBuilder))
 	internal.TrackUsage("integration", "driver", "postgres")
 }
 

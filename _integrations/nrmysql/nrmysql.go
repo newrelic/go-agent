@@ -59,7 +59,7 @@ import (
 )
 
 var (
-	baseBuilder = newrelic.DriverSegmentBuilder{
+	baseBuilder = newrelic.SQLDriverSegmentBuilder{
 		BaseSegment: newrelic.DatastoreSegment{
 			Product: newrelic.DatastoreMySQL,
 		},
@@ -69,7 +69,7 @@ var (
 )
 
 func init() {
-	sql.Register("nrmysql", newrelic.InstrumentDriver(mysql.MySQLDriver{}, baseBuilder))
+	sql.Register("nrmysql", newrelic.InstrumentSQLDriver(mysql.MySQLDriver{}, baseBuilder))
 	internal.TrackUsage("integration", "driver", "mysql")
 }
 
@@ -82,7 +82,7 @@ func NewConnector(cfg *mysql.Config) (driver.Connector, error) {
 	}
 	bld := baseBuilder
 	parseConfig(&bld.BaseSegment, cfg)
-	return newrelic.InstrumentConnector(connector, bld), nil
+	return newrelic.InstrumentSQLConnector(connector, bld), nil
 }
 
 func parseDSN(s *newrelic.DatastoreSegment, dsn string) {
