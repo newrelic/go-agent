@@ -72,7 +72,7 @@ func (s testStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (d
 }
 
 var (
-	testBuilder = DriverSegmentBuilder{
+	testBuilder = SQLDriverSegmentBuilder{
 		BaseSegment: DatastoreSegment{
 			Product: DatastoreMySQL,
 		},
@@ -93,7 +93,7 @@ var (
 func TestDriverStmtExecContext(t *testing.T) {
 	// Test that driver.Stmt.ExecContext calls get instrumented.
 	app := testApp(nil, nil, t)
-	dr := InstrumentDriver(testDriver{}, testBuilder)
+	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	stmt, _ := conn.Prepare("myoperation,mycollection")
@@ -106,7 +106,7 @@ func TestDriverStmtExecContext(t *testing.T) {
 func TestDriverStmtQueryContext(t *testing.T) {
 	// Test that driver.Stmt.PrepareContext calls get instrumented.
 	app := testApp(nil, nil, t)
-	dr := InstrumentDriver(testDriver{}, testBuilder)
+	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	stmt, _ := conn.(driver.ConnPrepareContext).PrepareContext(nil, "myoperation,mycollection")
@@ -119,7 +119,7 @@ func TestDriverStmtQueryContext(t *testing.T) {
 func TestDriverConnExecContext(t *testing.T) {
 	// Test that driver.Conn.ExecContext calls get instrumented.
 	app := testApp(nil, nil, t)
-	dr := InstrumentDriver(testDriver{}, testBuilder)
+	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	ctx := NewContext(context.Background(), txn)
@@ -131,7 +131,7 @@ func TestDriverConnExecContext(t *testing.T) {
 func TestDriverConnQueryContext(t *testing.T) {
 	// Test that driver.Conn.QueryContext calls get instrumented.
 	app := testApp(nil, nil, t)
-	dr := InstrumentDriver(testDriver{}, testBuilder)
+	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	ctx := NewContext(context.Background(), txn)
@@ -143,7 +143,7 @@ func TestDriverConnQueryContext(t *testing.T) {
 func TestDriverContext(t *testing.T) {
 	// Test that driver.OpenConnector returns an instrumented connector.
 	app := testApp(nil, nil, t)
-	dr := InstrumentDriver(testDriver{}, testBuilder)
+	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	connector, _ := dr.(driver.DriverContext).OpenConnector("myhost,myport,mydatabase")
 	conn, _ := connector.Connect(nil)
@@ -153,7 +153,7 @@ func TestDriverContext(t *testing.T) {
 	app.ExpectMetrics(t, driverTestMetrics)
 }
 
-func TestInstrumentConnector(t *testing.T) {
+func TestInstrumentSQLConnector(t *testing.T) {
 	// Test that connections returned by an instrumented driver.Connector
 	// are instrumented.
 	app := testApp(nil, nil, t)
@@ -161,7 +161,7 @@ func TestInstrumentConnector(t *testing.T) {
 	bld.BaseSegment.Host = "myhost"
 	bld.BaseSegment.PortPathOrID = "myport"
 	bld.BaseSegment.DatabaseName = "mydatabase"
-	connector := InstrumentConnector(testConnector{}, bld)
+	connector := InstrumentSQLConnector(testConnector{}, bld)
 	txn := app.StartTransaction("hello", nil, nil)
 	conn, _ := connector.Connect(nil)
 	ctx := NewContext(context.Background(), txn)
@@ -173,7 +173,7 @@ func TestInstrumentConnector(t *testing.T) {
 func TestConnectorToDriver(t *testing.T) {
 	// Test that driver.Connector.Driver returns an instrumented Driver.
 	app := testApp(nil, nil, t)
-	connector := InstrumentConnector(testConnector{}, testBuilder)
+	connector := InstrumentSQLConnector(testConnector{}, testBuilder)
 	txn := app.StartTransaction("hello", nil, nil)
 	dr := connector.Driver()
 	conn, _ := dr.Open("myhost,myport,mydatabase")

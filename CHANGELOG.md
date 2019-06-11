@@ -44,10 +44,10 @@
 
   If you are using a [database/sql](https://golang.org/pkg/database/sql/) database
   not listed above, you can write your own instrumentation for it using
-  [InstrumentConnector](https://godoc.org/github.com/newrelic/go-agent#InstrumentConnector),
-  [InstrumentDriver](https://godoc.org/github.com/newrelic/go-agent#InstrumentDriver),
+  [InstrumentSQLConnector](https://godoc.org/github.com/newrelic/go-agent#InstrumentSQLConnector),
+  [InstrumentSQLDriver](https://godoc.org/github.com/newrelic/go-agent#InstrumentSQLDriver),
   and
-  [DriverSegmentBuilder](https://godoc.org/github.com/newrelic/go-agent#DriverSegmentBuilder).
+  [SQLDriverSegmentBuilder](https://godoc.org/github.com/newrelic/go-agent#SQLDriverSegmentBuilder).
   The integration packages act as examples of how to do this.
 
 ### Bug Fixes
