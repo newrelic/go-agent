@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.8.0
+
 ### New Features
 
 * Introduce support for databases using
