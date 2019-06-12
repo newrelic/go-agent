@@ -173,7 +173,8 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	if nil == r {
 		return nil
 	}
-	if h := r.Header(); nil != h {
+	h := r.Header()
+	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
 
 		if p := h.Get(DistributedTracePayloadHeader); p != "" {
@@ -183,7 +184,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
-	internal.RequestAgentAttributes(txn.Attrs, r.Method(), r.Header(), r.URL())
+	internal.RequestAgentAttributes(txn.Attrs, r.Method(), h, r.URL())
 
 	return nil
 }
