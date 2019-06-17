@@ -12,6 +12,7 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrgrpc/sampleapp"
 	"github.com/newrelic/go-agent/internal"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -189,4 +190,33 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			}},
 		},
 	}})
+}
+
+func TestClientUnaryMetadata(t *testing.T) {
+	// Test that metadata on the outgoing request are presevered
+	app := testApp(t)
+	txn := app.StartTransaction("metadata", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	md := metadata.New(map[string]string{
+		"testing":  "hello world",
+		"newrelic": "payload",
+	})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	resp, err := client.DoUnaryUnary(ctx, &sampleapp.Message{})
+	if nil != err {
+		t.Fatal("client call to DoUnaryUnary failed", err)
+	}
+	var hdrs map[string][]string
+	err = json.Unmarshal([]byte(resp.Text), &hdrs)
+	if nil != err {
+		t.Fatal("cannot unmarshall client response", err)
+	}
+	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] || "payload" == hdr[0] {
+		t.Error("distributed trace header not sent", hdrs)
+	}
+	if hdr, ok := hdrs["testing"]; !ok || len(hdr) != 1 || "hello world" != hdr[0] {
+		t.Error("testing header not sent", hdrs)
+	}
 }

@@ -32,8 +32,11 @@ func UnaryClientInterceptor(ctx context.Context, method string, req, reply inter
 
 		payload := txn.CreateDistributedTracePayload()
 		if txt := payload.Text(); "" != txt {
-			md := metadata.Pairs(newrelic.DistributedTracePayloadHeader, txt)
-			// TODO: test that headers are preserved
+			md, ok := metadata.FromOutgoingContext(ctx)
+			if !ok {
+				md = metadata.New(nil)
+			}
+			md.Set(newrelic.DistributedTracePayloadHeader, txt)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
 
