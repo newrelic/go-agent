@@ -220,3 +220,18 @@ func TestClientUnaryMetadata(t *testing.T) {
 		t.Error("testing header not sent", hdrs)
 	}
 }
+
+func TestNilTxn(t *testing.T) {
+	resp, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
+	if nil != err {
+		t.Fatal("client call to DoUnaryUnary failed", err)
+	}
+	var hdrs map[string][]string
+	err = json.Unmarshal([]byte(resp.Text), &hdrs)
+	if nil != err {
+		t.Fatal("cannot unmarshall client response", err)
+	}
+	if _, ok := hdrs["newrelic"]; ok {
+		t.Error("distributed trace header sent", hdrs)
+	}
+}
