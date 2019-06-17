@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -68,7 +69,7 @@ func TestGetURL(t *testing.T) {
 
 var client testapp.TestApplicationClient
 
-func init() {
+func TestMain(m *testing.M) {
 	lis := bufconn.Listen(1024 * 1024)
 	s := grpc.NewServer()
 	testapp.RegisterTestApplicationServer(s, &testapp.Server{})
@@ -89,8 +90,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	//defer conn.Close()
+	defer conn.Close()
 	client = testapp.NewTestApplicationClient(conn)
+
+	os.Exit(m.Run())
 }
 
 func testApp(t *testing.T) newrelic.Application {
