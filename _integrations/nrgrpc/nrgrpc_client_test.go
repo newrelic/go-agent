@@ -67,7 +67,7 @@ func TestGetURL(t *testing.T) {
 	}
 }
 
-var client testapp.TestApplicationClient
+var conn *grpc.ClientConn
 
 func TestMain(m *testing.M) {
 	lis := bufconn.Listen(1024 * 1024)
@@ -79,19 +79,20 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
+	var err error
 	bufDialer := func(string, time.Duration) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.Dial("bufnet",
+	conn, err = grpc.Dial("bufnet",
 		grpc.WithDialer(bufDialer),
 		grpc.WithInsecure(),
+		grpc.WithBlock(), // create the connection synchronously
 		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
 	)
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
-	client = testapp.NewTestApplicationClient(conn)
 
 	os.Exit(m.Run())
 }
@@ -121,6 +122,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	txn := app.StartTransaction("UnaryUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
+	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
 		t.Fatal("client call to DoUnaryUnary failed", err)
@@ -207,6 +209,7 @@ func TestClientUnaryMetadata(t *testing.T) {
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
+	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
 		t.Fatal("client call to DoUnaryUnary failed", err)
@@ -225,6 +228,7 @@ func TestClientUnaryMetadata(t *testing.T) {
 }
 
 func TestNilTxn(t *testing.T) {
+	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
 	if nil != err {
 		t.Fatal("client call to DoUnaryUnary failed", err)
