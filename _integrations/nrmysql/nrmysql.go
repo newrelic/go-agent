@@ -27,9 +27,6 @@
 //		db, err := sql.Open("nrmysql", "user@unix(/path/to/socket)/dbname")
 //	}
 //
-// If your code is using mysql.NewConnector, simply use nrmysql.NewConnector
-// instead.
-//
 // 2. Provide a context containing a newrelic.Transaction to all exec and query
 // methods on sql.DB, sql.Conn, sql.Tx, and sql.Stmt.  This requires using the
 // context methods ExecContext, QueryContext, and QueryRowContext in place of
@@ -49,7 +46,6 @@ package nrmysql
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"net"
 
 	"github.com/go-sql-driver/mysql"
@@ -71,18 +67,6 @@ var (
 func init() {
 	sql.Register("nrmysql", newrelic.InstrumentSQLDriver(mysql.MySQLDriver{}, baseBuilder))
 	internal.TrackUsage("integration", "driver", "mysql")
-}
-
-// NewConnector can be used in place of mysql.NewConnector to get an
-// instrumented MySQL connector.
-func NewConnector(cfg *mysql.Config) (driver.Connector, error) {
-	connector, err := mysql.NewConnector(cfg)
-	if err != nil {
-		return connector, err
-	}
-	bld := baseBuilder
-	parseConfig(&bld.BaseSegment, cfg)
-	return newrelic.InstrumentSQLConnector(connector, bld), nil
 }
 
 func parseDSN(s *newrelic.DatastoreSegment, dsn string) {
