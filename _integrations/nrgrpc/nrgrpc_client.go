@@ -25,6 +25,7 @@ func getURL(method, target string) string {
 	return "grpc://" + host + method
 }
 
+// UnaryClientInterceptor TODO
 func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	if txn := newrelic.FromContext(ctx); nil != txn {
 		seg := newrelic.StartExternalSegment(txn, nil)
