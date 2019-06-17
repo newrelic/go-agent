@@ -1,4 +1,4 @@
-package sampleapp
+package testapp
 
 import (
 	"context"
@@ -16,7 +16,7 @@ func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, erro
 	return &Message{Text: string(js)}, nil
 }
 
-func (s *Server) DoUnaryStream(msg *Message, stream SampleApplication_DoUnaryStreamServer) error {
+func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStreamServer) error {
 	for i := 0; i < 3; i++ {
 		if err := stream.Send(&Message{Text: "Hello from DoUnaryStream"}); nil != err {
 			return err
@@ -25,7 +25,7 @@ func (s *Server) DoUnaryStream(msg *Message, stream SampleApplication_DoUnaryStr
 	return nil
 }
 
-func (s *Server) DoStreamUnary(stream SampleApplication_DoStreamUnaryServer) error {
+func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error {
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
@@ -36,7 +36,7 @@ func (s *Server) DoStreamUnary(stream SampleApplication_DoStreamUnaryServer) err
 	}
 }
 
-func (s *Server) DoStreamStream(stream SampleApplication_DoStreamStreamServer) error {
+func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) error {
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {

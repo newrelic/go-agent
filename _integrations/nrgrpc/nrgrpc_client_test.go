@@ -9,7 +9,7 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrgrpc/sampleapp"
+	"github.com/newrelic/go-agent/_integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/internal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -23,34 +23,34 @@ func TestGetURL(t *testing.T) {
 		expected string
 	}{
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   "",
 			expected: "",
 		},
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   ":8080",
-			expected: "grpc://:8080/SampleApplication/DoUnaryUnary",
+			expected: "grpc://:8080/TestApplication/DoUnaryUnary",
 		},
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   "localhost:8080",
-			expected: "grpc://localhost:8080/SampleApplication/DoUnaryUnary",
+			expected: "grpc://localhost:8080/TestApplication/DoUnaryUnary",
 		},
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   "dns:///localhost:8080",
-			expected: "grpc://localhost:8080/SampleApplication/DoUnaryUnary",
+			expected: "grpc://localhost:8080/TestApplication/DoUnaryUnary",
 		},
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   "unix:/path/to/socket",
-			expected: "grpc://localhost/SampleApplication/DoUnaryUnary",
+			expected: "grpc://localhost/TestApplication/DoUnaryUnary",
 		},
 		{
-			method:   "/SampleApplication/DoUnaryUnary",
+			method:   "/TestApplication/DoUnaryUnary",
 			target:   "unix:///path/to/socket",
-			expected: "grpc://localhost/SampleApplication/DoUnaryUnary",
+			expected: "grpc://localhost/TestApplication/DoUnaryUnary",
 		},
 	}
 
@@ -66,12 +66,12 @@ func TestGetURL(t *testing.T) {
 	}
 }
 
-var client sampleapp.SampleApplicationClient
+var client testapp.TestApplicationClient
 
 func init() {
 	lis := bufconn.Listen(1024 * 1024)
 	s := grpc.NewServer()
-	sampleapp.RegisterSampleApplicationServer(s, &sampleapp.Server{})
+	testapp.RegisterTestApplicationServer(s, &testapp.Server{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			panic(err)
@@ -90,7 +90,7 @@ func init() {
 		panic(err)
 	}
 	//defer conn.Close()
-	client = sampleapp.NewSampleApplicationClient(conn)
+	client = testapp.NewTestApplicationClient(conn)
 }
 
 func testApp(t *testing.T) newrelic.Application {
@@ -118,7 +118,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	txn := app.StartTransaction("UnaryUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
-	resp, err := client.DoUnaryUnary(ctx, &sampleapp.Message{})
+	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
 		t.Fatal("client call to DoUnaryUnary failed", err)
 	}
@@ -142,7 +142,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
-		// FIXME: should be External/bufnet/gRPC/SampleApplication/DoUnaryUnary
+		// FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
 		{Name: "External/bufnet/all", Scope: "OtherTransaction/Go/UnaryUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
@@ -160,14 +160,14 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
 				"component": "http",                // FIXME: should be gRPC
-				"name":      "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/SampleApplication/DoUnaryUnary
+				"name":      "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url": "grpc://bufnet/SampleApplication/DoUnaryUnary",
-				// FIXME: also include "http.method": "SampleApplication/DoUnaryUnary"
+				"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
+				// FIXME: also include "http.method": "TestApplication/DoUnaryUnary"
 			},
 		},
 	})
@@ -181,9 +181,9 @@ func TestUnaryClientInterceptor(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/SampleApplication/DoUnaryUnary
+						SegmentName: "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
 						Attributes: map[string]interface{}{
-							"http.url": "grpc://bufnet/SampleApplication/DoUnaryUnary",
+							"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
 						},
 					},
 				},
@@ -204,7 +204,7 @@ func TestClientUnaryMetadata(t *testing.T) {
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	resp, err := client.DoUnaryUnary(ctx, &sampleapp.Message{})
+	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
 		t.Fatal("client call to DoUnaryUnary failed", err)
 	}

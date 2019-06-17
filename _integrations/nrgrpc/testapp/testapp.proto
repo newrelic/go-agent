@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-service SampleApplication {
+service TestApplication {
     rpc DoUnaryUnary(Message) returns (Message) {}
     rpc DoUnaryStream(Message) returns (stream Message) {}
     rpc DoStreamUnary(stream Message) returns (Message) {}
