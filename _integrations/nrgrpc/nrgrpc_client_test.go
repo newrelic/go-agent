@@ -525,3 +525,31 @@ func TestNilTxnClientUnary(t *testing.T) {
 		t.Error("distributed trace header sent", hdrs)
 	}
 }
+
+func TestNilTxnClientStreaming(t *testing.T) {
+	client := testapp.NewTestApplicationClient(conn)
+	stream, err := client.DoStreamUnary(context.Background())
+	if nil != err {
+		t.Fatal("client call to DoStreamUnary failed", err)
+	}
+	for i := 0; i < 3; i++ {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal("failure to Send", err)
+		}
+	}
+	msg, err := stream.CloseAndRecv()
+	if nil != err {
+		t.Fatal("failure to CloseAndRecv", err)
+	}
+	var hdrs map[string][]string
+	err = json.Unmarshal([]byte(msg.Text), &hdrs)
+	if nil != err {
+		t.Fatal("cannot unmarshall client response", err)
+	}
+	if _, ok := hdrs["newrelic"]; ok {
+		t.Error("distributed trace header sent", hdrs)
+	}
+}
