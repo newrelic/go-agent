@@ -3,6 +3,7 @@ package nrgrpc
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net"
 	"net/url"
 	"os"
@@ -88,6 +89,7 @@ func TestMain(m *testing.M) {
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
 		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
+		grpc.WithStreamInterceptor(StreamClientInterceptor),
 	)
 	if err != nil {
 		panic(err)
@@ -189,6 +191,95 @@ func TestUnaryClientInterceptor(t *testing.T) {
 						SegmentName: "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
 						Attributes: map[string]interface{}{
 							"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
+						},
+					},
+				},
+			}},
+		},
+	}})
+}
+
+func TestUnaryStreamClientInterceptor(t *testing.T) {
+	app := testApp(t)
+	txn := app.StartTransaction("UnaryStream", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	client := testapp.NewTestApplicationClient(conn)
+	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
+	if nil != err {
+		t.Fatal("client call to DoUnaryStream failed", err)
+	}
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if nil != err {
+			t.Fatal("error receiving message", err)
+		}
+		var hdrs map[string][]string
+		err = json.Unmarshal([]byte(msg.Text), &hdrs)
+		if nil != err {
+			t.Fatal("cannot unmarshall client response", err)
+		}
+		if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+			t.Error("distributed trace header not sent", hdrs)
+		}
+	}
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/UnaryStream", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/UnaryStream", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
+		// FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
+		{Name: "External/bufnet/all", Scope: "OtherTransaction/Go/UnaryStream", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/UnaryStream",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category":  "http",
+				"component": "http",                // FIXME: should be gRPC
+				"name":      "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"http.url": "grpc://bufnet/TestApplication/DoUnaryStream",
+				// FIXME: also include "http.method": "TestApplication/DoUnaryStream"
+			},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/UnaryStream",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/UnaryStream",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
+					{
+						SegmentName: "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
+						Attributes: map[string]interface{}{
+							"http.url": "grpc://bufnet/TestApplication/DoUnaryStream",
 						},
 					},
 				},

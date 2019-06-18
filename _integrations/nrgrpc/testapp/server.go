@@ -20,8 +20,10 @@ func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, erro
 
 // DoUnaryStream is a unary request, stream response method.
 func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStreamServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&Message{Text: "Hello from DoUnaryStream"}); nil != err {
+		if err := stream.Send(&Message{Text: string(js)}); nil != err {
 			return err
 		}
 	}

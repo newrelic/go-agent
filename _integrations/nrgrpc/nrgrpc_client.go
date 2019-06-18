@@ -2,6 +2,7 @@ package nrgrpc
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -50,4 +51,30 @@ func UnaryClientInterceptor(ctx context.Context, method string, req, reply inter
 	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
 	defer seg.End()
 	return invoker(ctx, method, req, reply, cc, opts...)
+}
+
+type wrappedClientStream struct {
+	grpc.ClientStream
+	segment *newrelic.ExternalSegment
+}
+
+func (s wrappedClientStream) RecvMsg(m interface{}) error {
+	err := s.ClientStream.RecvMsg(m)
+	if err == io.EOF {
+		s.segment.End()
+	}
+	return err
+}
+
+// StreamClientInterceptor TODO
+func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
+	s, err := streamer(ctx, desc, cc, method, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return wrappedClientStream{
+		segment:      seg,
+		ClientStream: s,
+	}, nil
 }
