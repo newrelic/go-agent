@@ -227,7 +227,7 @@ func TestClientUnaryMetadata(t *testing.T) {
 	}
 }
 
-func TestNilTxn(t *testing.T) {
+func TestNilTxnClientUnary(t *testing.T) {
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
 	if nil != err {
