@@ -32,10 +32,12 @@ func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStrea
 
 // DoStreamUnary is a stream request, unary response method.
 func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&Message{Text: "Hello from DoStreamUnary"})
+			return stream.SendAndClose(&Message{Text: string(js)})
 		} else if nil != err {
 			return err
 		}

@@ -288,6 +288,101 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	}})
 }
 
+func TestStreamUnaryClientInterceptor(t *testing.T) {
+	// TODO:
+	t.Skip("skipping for now because this one is too hard!")
+
+	app := testApp(t)
+	txn := app.StartTransaction("StreamUnary", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	client := testapp.NewTestApplicationClient(conn)
+	stream, err := client.DoStreamUnary(ctx)
+	if nil != err {
+		t.Fatal("client call to DoStreamUnary failed", err)
+	}
+	for i := 0; i < 3; i++ {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal("failure to Send", err)
+		}
+	}
+	msg, err := stream.CloseAndRecv()
+	if nil != err {
+		t.Fatal("failure to CloseAndRecv", err)
+	}
+	var hdrs map[string][]string
+	err = json.Unmarshal([]byte(msg.Text), &hdrs)
+	if nil != err {
+		t.Fatal("cannot unmarshall client response", err)
+	}
+	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+		t.Error("distributed trace header not sent", hdrs)
+	}
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/StreamUnary", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/StreamUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
+		// FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
+		{Name: "External/bufnet/all", Scope: "OtherTransaction/Go/StreamUnary", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/StreamUnary",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category":  "http",
+				"component": "http",                // FIXME: should be gRPC
+				"name":      "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"http.url": "grpc://bufnet/TestApplication/DoStreamUnary",
+				// FIXME: also include "http.method": "TestApplication/DoStreamUnary"
+			},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/StreamUnary",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/StreamUnary",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
+					{
+						SegmentName: "External/bufnet/all", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
+						Attributes: map[string]interface{}{
+							"http.url": "grpc://bufnet/TestApplication/DoStreamUnary",
+						},
+					},
+				},
+			}},
+		},
+	}})
+}
+
 func TestClientUnaryMetadata(t *testing.T) {
 	// Test that metadata on the outgoing request are presevered
 	app := testApp(t)
