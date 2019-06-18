@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.8.1
+
 ### Bug Fixes
 
 * Removed `nrmysql.NewConnector` since
