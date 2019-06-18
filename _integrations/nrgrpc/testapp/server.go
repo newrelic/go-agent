@@ -46,6 +46,8 @@ func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error
 
 // DoStreamStream is a stream request, stream response method.
 func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
@@ -53,7 +55,7 @@ func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) err
 		} else if nil != err {
 			return err
 		}
-		if err := stream.Send(&Message{Text: "Hello from DoStreamStream"}); nil != err {
+		if err := stream.Send(&Message{Text: string(js)}); nil != err {
 			return err
 		}
 	}
