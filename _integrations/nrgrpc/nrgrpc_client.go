@@ -25,11 +25,11 @@ func getURL(method, target string) string {
 	return "grpc://" + host + method
 }
 
-// UnaryClientInterceptor TODO
-func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+func startClientSegment(ctx context.Context, url string) (*newrelic.ExternalSegment, context.Context) {
+	var seg *newrelic.ExternalSegment
 	if txn := newrelic.FromContext(ctx); nil != txn {
-		seg := newrelic.StartExternalSegment(txn, nil)
-		seg.URL = getURL(method, cc.Target())
+		seg = newrelic.StartExternalSegment(txn, nil)
+		seg.URL = url
 
 		payload := txn.CreateDistributedTracePayload()
 		if txt := payload.Text(); "" != txt {
@@ -40,8 +40,14 @@ func UnaryClientInterceptor(ctx context.Context, method string, req, reply inter
 			md.Set(newrelic.DistributedTracePayloadHeader, txt)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
-
-		defer seg.End()
 	}
+
+	return seg, ctx
+}
+
+// UnaryClientInterceptor TODO
+func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
+	defer seg.End()
 	return invoker(ctx, method, req, reply, cc, opts...)
 }
