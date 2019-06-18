@@ -289,9 +289,6 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 }
 
 func TestStreamUnaryClientInterceptor(t *testing.T) {
-	// TODO:
-	t.Skip("skipping for now because this one is too hard!")
-
 	app := testApp(t)
 	txn := app.StartTransaction("StreamUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)

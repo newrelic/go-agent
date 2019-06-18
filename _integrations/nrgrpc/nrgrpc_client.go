@@ -55,12 +55,13 @@ func UnaryClientInterceptor(ctx context.Context, method string, req, reply inter
 
 type wrappedClientStream struct {
 	grpc.ClientStream
-	segment *newrelic.ExternalSegment
+	segment       *newrelic.ExternalSegment
+	isStreamUnary bool
 }
 
 func (s wrappedClientStream) RecvMsg(m interface{}) error {
 	err := s.ClientStream.RecvMsg(m)
-	if err == io.EOF {
+	if err == io.EOF || s.isStreamUnary {
 		s.segment.End()
 	}
 	return err
@@ -74,7 +75,8 @@ func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grp
 		return nil, err
 	}
 	return wrappedClientStream{
-		segment:      seg,
-		ClientStream: s,
+		segment:       seg,
+		ClientStream:  s,
+		isStreamUnary: desc.ClientStreams == true && desc.ServerStreams == false,
 	}, nil
 }
