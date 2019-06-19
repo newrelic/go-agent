@@ -10,8 +10,43 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/internal"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+func TestTranslateCode(t *testing.T) {
+	testcases := []struct {
+		grpcCode codes.Code
+		httpCode int
+	}{
+		{grpcCode: 0, httpCode: 200},
+		{grpcCode: 1, httpCode: 499},
+		{grpcCode: 2, httpCode: 500},
+		{grpcCode: 3, httpCode: 400},
+		{grpcCode: 4, httpCode: 504},
+		{grpcCode: 5, httpCode: 404},
+		{grpcCode: 6, httpCode: 409},
+		{grpcCode: 7, httpCode: 403},
+		{grpcCode: 8, httpCode: 429},
+		{grpcCode: 9, httpCode: 400},
+		{grpcCode: 10, httpCode: 409},
+		{grpcCode: 11, httpCode: 400},
+		{grpcCode: 12, httpCode: 501},
+		{grpcCode: 13, httpCode: 500},
+		{grpcCode: 14, httpCode: 503},
+		{grpcCode: 15, httpCode: 500},
+		{grpcCode: 16, httpCode: 401},
+		{grpcCode: 100, httpCode: 0},
+	}
+
+	for _, test := range testcases {
+		actual := translateCode(test.grpcCode)
+		if actual != test.httpCode {
+			t.Errorf("incorrect response code: grpcCode=%d httpCode=%d actual=%d",
+				test.grpcCode, test.httpCode, actual)
+		}
+	}
+}
 
 func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server, *grpc.ClientConn) {
 	s := grpc.NewServer(

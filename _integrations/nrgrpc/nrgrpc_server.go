@@ -7,6 +7,7 @@ import (
 
 	newrelic "github.com/newrelic/go-agent"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -43,6 +44,38 @@ func newServerRequest(ctx context.Context, method string) serverRequest {
 		url:    url,
 		method: method,
 	}
+}
+
+// translateCode translates a grpc response code to its corresponding http
+// response code as per https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
+func translateCode(code codes.Code) int {
+	switch code {
+	case codes.OK:
+		return http.StatusOK
+	case codes.Canceled:
+		return 499
+	case codes.Unknown, codes.DataLoss, codes.Internal:
+		return http.StatusInternalServerError
+	case codes.InvalidArgument, codes.FailedPrecondition, codes.OutOfRange:
+		return http.StatusBadRequest
+	case codes.DeadlineExceeded:
+		return http.StatusGatewayTimeout
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.AlreadyExists, codes.Aborted:
+		return http.StatusConflict
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
+	case codes.Unimplemented:
+		return http.StatusNotImplemented
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
+	case codes.Unauthenticated:
+		return http.StatusUnauthorized
+	}
+	return 0
 }
 
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
