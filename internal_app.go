@@ -591,7 +591,7 @@ func (app *app) ExpectErrorEventsAbsent(t internal.Validator, names []string) {
 }
 
 func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "txn events")
+	t = internal.ExtendValidator(t, "spans events")
 	internal.ExpectSpanEvents(t, app.testHarvest.SpanEvents, want)
 }
 
