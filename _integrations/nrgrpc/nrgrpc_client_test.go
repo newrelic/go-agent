@@ -209,6 +209,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	if nil != err {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
+	var recved int
 	for {
 		msg, err := stream.Recv()
 		if err == io.EOF {
@@ -225,6 +226,10 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 			t.Error("distributed trace header not sent", hdrs)
 		}
+		recved++
+	}
+	if recved != 3 {
+		t.Fatal("received incorrect number of messages from server", recved)
 	}
 	txn.End()
 
@@ -392,11 +397,11 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	}
 	waitc := make(chan struct{})
 	go func() {
+		var recved int
 		for {
 			msg, err := stream.Recv()
 			if err == io.EOF {
-				close(waitc)
-				return
+				break
 			}
 			if err != nil {
 				t.Fatal("failure to Recv", err)
@@ -409,7 +414,12 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 				t.Error("distributed trace header not sent", hdrs)
 			}
+			recved++
 		}
+		if recved != 3 {
+			t.Fatal("received incorrect number of messages from server", recved)
+		}
+		close(waitc)
 	}()
 	for i := 0; i < 3; i++ {
 		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamStream"}); err != nil {
