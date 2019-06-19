@@ -26,6 +26,8 @@ func getURL(method, target string) string {
 	return "grpc://" + host + method
 }
 
+// startClientSegment starts an ExternalSegment and adds Distributed Trace
+// headers to the outgoing grpc metadata in the context.
 func startClientSegment(ctx context.Context, url string) (*newrelic.ExternalSegment, context.Context) {
 	var seg *newrelic.ExternalSegment
 	if txn := newrelic.FromContext(ctx); nil != txn {
