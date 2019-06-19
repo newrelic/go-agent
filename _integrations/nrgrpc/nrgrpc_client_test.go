@@ -114,6 +114,7 @@ func testApp(t *testing.T) newrelic.Application {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 		reply.AccountID = "123"
 		reply.TrustedAccountKey = "123"
+		reply.PrimaryAppID = "456"
 	}
 	internal.HarvestTesting(app, replyfn)
 	return app

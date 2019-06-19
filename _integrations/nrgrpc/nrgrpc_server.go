@@ -48,7 +48,6 @@ func newServerRequest(ctx context.Context, method string) serverRequest {
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		txn := app.StartTransaction(info.FullMethod, nil, nil)
-		// TODO: Read incoming DT headers
 		txn.SetWebRequest(newServerRequest(ctx, info.FullMethod))
 		defer txn.End()
 
