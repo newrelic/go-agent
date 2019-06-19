@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 
+	newrelic "github.com/newrelic/go-agent"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -13,6 +14,7 @@ type Server struct{}
 
 // DoUnaryUnary is a unary request, unary response method.
 func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, error) {
+	defer newrelic.StartSegment(newrelic.FromContext(ctx), "DoUnaryUnary").End()
 	md, _ := metadata.FromIncomingContext(ctx)
 	js, _ := json.Marshal(md)
 	return &Message{Text: string(js)}, nil

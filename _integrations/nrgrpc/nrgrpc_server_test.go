@@ -60,18 +60,9 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoUnaryUnary", Scope: "OtherTransaction/Go/TestApplication/DoUnaryUnary", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/TestApplication/DoUnaryUnary",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
 	})
 }
