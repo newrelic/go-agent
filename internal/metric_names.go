@@ -159,6 +159,8 @@ type DatastoreMetricKey struct {
 
 type externalMetricKey struct {
 	Host                    string
+	Library                 string
+	Method                  string
 	ExternalCrossProcessID  string
 	ExternalTransactionName string
 }
@@ -199,11 +201,17 @@ func datastoreInstanceMetric(key DatastoreMetricKey) string {
 		"/" + key.PortPathOrID
 }
 
-func externalScopedMetric(key externalMetricKey) string {
+func (key externalMetricKey) scopedMetric() string {
 	if "" != key.ExternalCrossProcessID && "" != key.ExternalTransactionName {
 		return externalTransactionMetric(key)
 	}
-	return externalHostMetric(key)
+
+	if key.Method == "" {
+		// External/{host}/{library}
+		return "External/" + key.Host + "/" + key.Library
+	}
+	// External/{host}/{library}/{method}
+	return "External/" + key.Host + "/" + key.Library + "/" + key.Method
 }
 
 // External/{host}/all

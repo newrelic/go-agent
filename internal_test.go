@@ -816,6 +816,16 @@ func TestExternalSegmentMethod(t *testing.T) {
 		t.Error(m)
 	}
 
+	// Method field overrides request and response.
+	m = externalSegmentMethod(&ExternalSegment{
+		Method:   "GET",
+		Request:  req,
+		Response: response,
+	})
+	if "GET" != m {
+		t.Error(m)
+	}
+
 	req, err = http.NewRequest("", "http://request.com/", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1241,7 +1251,7 @@ func TestTraceExternal(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/example.com/http", Scope: scope, Forced: false, Data: nil},
 	}, webErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1260,6 +1270,65 @@ func TestTraceExternal(t *testing.T) {
 			"externalDuration":  internal.MatchAnything,
 		},
 	}})
+}
+
+func TestExternalSegmentCustomFields(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.CrossApplicationTracer.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, helloRequest)
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       "https://otherhost.com/path/zip/zap?secret=ssshhh",
+		Host:      "example.com",
+		Method:    "PUT",
+		Library:   "mylibrary",
+	}
+	err := s.End()
+	if nil != err {
+		t.Error(err)
+	}
+	txn.End()
+	scope := "WebTransaction/Go/hello"
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/example.com/mylibrary/PUT", Scope: scope, Forced: false, Data: nil},
+	}, webMetrics...))
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "WebTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId":  internal.MatchAnything,
+				"name":      "External/example.com/mylibrary/PUT",
+				"category":  "http",
+				"component": "http",
+				"span.kind": "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"http.url":    "https://otherhost.com/path/zip/zap",
+				"http.method": "PUT",
+			},
+		},
+	})
 }
 
 func TestTraceExternalBadURL(t *testing.T) {
@@ -1309,7 +1378,7 @@ func TestTraceExternalBackground(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/example.com/http", Scope: scope, Forced: false, Data: nil},
 	}, backgroundErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1346,7 +1415,7 @@ func TestTraceExternalMissingURL(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
 		{Name: "External/unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/unknown/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/unknown/http", Scope: scope, Forced: false, Data: nil},
 	}, webErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1463,7 +1532,7 @@ func TestRoundTripper(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Data: nil},
@@ -1520,7 +1589,7 @@ func TestRoundTripperOldCAT(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
 	}, backgroundErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

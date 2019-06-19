@@ -881,23 +881,24 @@ func endDatastore(s *DatastoreSegment) error {
 }
 
 func externalSegmentMethod(s *ExternalSegment) string {
+	if "" != s.Method {
+		return s.Method
+	}
 	r := s.Request
-
-	// Is this a client request?
 	if nil != s.Response && nil != s.Response.Request {
 		r = s.Response.Request
+	}
 
-		// Golang's http package states that when a client's
-		// Request has an empty string for Method, the
-		// method is GET.
-		if "" == r.Method {
-			return "GET"
+	if nil != r {
+		if "" != r.Method {
+			return r.Method
 		}
+		// Golang's http package states that when a client's Request has
+		// an empty string for Method, the method is GET.
+		return "GET"
 	}
-	if nil == r {
-		return ""
-	}
-	return r.Method
+
+	return ""
 }
 
 func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
@@ -929,12 +930,22 @@ func endExternal(s *ExternalSegment) error {
 	if txn.finished {
 		return errAlreadyEnded
 	}
-	m := externalSegmentMethod(s)
 	u, err := externalSegmentURL(s)
 	if nil != err {
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, thd.thread, s.StartTime.start, time.Now(), u, m, s.Response, txn.Config.Logger)
+	return internal.EndExternalSegment(internal.EndExternalParams{
+		TxnData:  &txn.TxnData,
+		Thread:   thd.thread,
+		Start:    s.StartTime.start,
+		Now:      time.Now(),
+		Logger:   txn.Config.Logger,
+		Response: s.Response,
+		URL:      u,
+		Host:     s.Host,
+		Library:  s.Library,
+		Method:   externalSegmentMethod(s),
+	})
 }
 
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending

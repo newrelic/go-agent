@@ -407,14 +407,43 @@ func TestSegmentExternal(t *testing.T) {
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t2 := StartSegment(txndata, thread, start.Add(2*time.Second))
-	EndExternalSegment(txndata, thread, t2, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
-	EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t2,
+		Now:     start.Add(3 * time.Second),
+		Logger:  logger.ShimLogger{},
+	})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t1,
+		Now:     start.Add(4 * time.Second),
+		URL:     parseURL("http://f1.com"),
+		Host:    "f1",
+		Logger:  logger.ShimLogger{},
+	})
 	t3 := StartSegment(txndata, thread, start.Add(5*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://f1.com"), "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t3,
+		Now:     start.Add(6 * time.Second),
+		URL:     parseURL("http://f1.com"),
+		Host:    "f1",
+		Logger:  logger.ShimLogger{},
+	})
 	t4 := StartSegment(txndata, thread, start.Add(7*time.Second))
 	t4.Stamp++
-	EndExternalSegment(txndata, thread, t4, start.Add(8*time.Second), parseURL("http://invalid-token.com"), "", nil, logger.ShimLogger{})
-
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t4,
+		Now:     start.Add(8 * time.Second),
+		URL:     parseURL("http://invalid-token.com"),
+		Host:    "invalid-token.com",
+		Logger:  logger.ShimLogger{},
+	})
 	if txndata.externalCallCount != 3 {
 		t.Error(txndata.externalCallCount)
 	}
@@ -428,10 +457,10 @@ func TestSegmentExternal(t *testing.T) {
 	ExpectMetrics(t, metrics, []WantMetric{
 		{"External/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
 		{"External/allWeb", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/f1.com/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
+		{"External/f1/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
 		{"External/unknown/all", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"External/f1.com/all", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/all", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"External/f1/http", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
+		{"External/unknown/http", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 
 	metrics = newMetricTable(100, time.Now())
@@ -441,10 +470,10 @@ func TestSegmentExternal(t *testing.T) {
 	ExpectMetrics(t, metrics, []WantMetric{
 		{"External/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
 		{"External/allOther", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/f1.com/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
+		{"External/f1/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
 		{"External/unknown/all", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"External/f1.com/all", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/all", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{"External/f1/http", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
+		{"External/unknown/http", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
@@ -707,7 +736,14 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	txndata.SpanEventsEnabled = true
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	EndExternalSegment(txndata, thread, t1, start.Add(3*time.Second), nil, "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t1,
+		Now:     start.Add(3 * time.Second),
+		URL:     nil,
+		Logger:  logger.ShimLogger{},
+	})
 
 	// Since an external segment has just ended, there should be exactly one HTTP span event in txndata.spanEvents[]
 	if 1 != len(txndata.spanEvents) {
@@ -730,7 +766,14 @@ func TestExternalSegmentCAT(t *testing.T) {
 	resp.Header.Add(cat.NewRelicAppDataName, "bad header value")
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	err := EndExternalSegment(txndata, thread, t1, start.Add(4*time.Second), parseURL("http://f1.com"), "", resp, logger.ShimLogger{})
+	err := EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t1,
+		Now:     start.Add(4 * time.Second),
+		URL:     parseURL("http://f1.com"),
+		Logger:  logger.ShimLogger{},
+	})
 
 	if nil != err {
 		t.Error("EndExternalSegment returned an err:", err)
@@ -750,6 +793,6 @@ func TestExternalSegmentCAT(t *testing.T) {
 		{"External/all", "", true, []float64{1, 3, 3, 3, 3, 9}},
 		{"External/allOther", "", true, []float64{1, 3, 3, 3, 3, 9}},
 		{"External/f1.com/all", "", false, []float64{1, 3, 3, 3, 3, 9}},
-		{"External/f1.com/all", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
+		{"External/f1.com/http", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
 	})
 }

@@ -39,7 +39,14 @@ func TestTxnTrace(t *testing.T) {
 		PortPathOrID:       "3306",
 	})
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t3,
+		Now:     start.Add(5 * time.Second),
+		URL:     parseURL("http://example.com/zip/zap?secret=shhh"),
+		Logger:  logger.ShimLogger{},
+	})
 	EndBasicSegment(txndata, thread, t1, start.Add(6*time.Second), "t1")
 	t4 := StartSegment(txndata, thread, start.Add(7*time.Second))
 	t5 := StartSegment(txndata, thread, start.Add(8*time.Second))
@@ -57,7 +64,14 @@ func TestTxnTrace(t *testing.T) {
 		// no collection
 	})
 	t8 := StartSegment(txndata, thread, start.Add(14*time.Second))
-	EndExternalSegment(txndata, thread, t8, start.Add(15*time.Second), nil, "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t8,
+		Now:     start.Add(15 * time.Second),
+		URL:     nil,
+		Logger:  logger.ShimLogger{},
+	})
 	EndBasicSegment(txndata, thread, t4, start.Add(16*time.Second), "t4")
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
@@ -124,7 +138,7 @@ func TestTxnTrace(t *testing.T) {
 								Children: []WantTraceSegment{},
 							},
 							{
-								SegmentName:         "External/example.com/all",
+								SegmentName:         "External/example.com/http",
 								RelativeStartMillis: 4000,
 								RelativeStopMillis:  5000,
 								Attributes: map[string]interface{}{
@@ -165,7 +179,7 @@ func TestTxnTrace(t *testing.T) {
 								Children: []WantTraceSegment{},
 							},
 							{
-								SegmentName:         "External/unknown/all",
+								SegmentName:         "External/unknown/http",
 								RelativeStartMillis: 14000,
 								RelativeStopMillis:  15000,
 								Attributes:          map[string]interface{}{},
@@ -397,7 +411,15 @@ func TestTxnTraceOldCAT(t *testing.T) {
 		Header: AppDataToHTTPHeader(appData),
 	}
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(5*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", resp, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData:  txndata,
+		Thread:   thread,
+		Start:    t3,
+		Now:      start.Add(5 * time.Second),
+		URL:      parseURL("http://example.com/zip/zap?secret=shhh"),
+		Response: resp,
+		Logger:   logger.ShimLogger{},
+	})
 
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
@@ -857,7 +879,14 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// node above stack trace threshold w/ params
 	t3 := StartSegment(txndata, thread, start.Add(4*time.Second))
-	EndExternalSegment(txndata, thread, t3, start.Add(6*time.Second), parseURL("http://example.com/zip/zap?secret=shhh"), "", nil, logger.ShimLogger{})
+	EndExternalSegment(EndExternalParams{
+		TxnData: txndata,
+		Thread:  thread,
+		Start:   t3,
+		Now:     start.Add(6 * time.Second),
+		URL:     parseURL("http://example.com/zip/zap?secret=shhh"),
+		Logger:  logger.ShimLogger{},
+	})
 
 	ht := newHarvestTraces()
 	ht.Witness(HarvestTrace{
@@ -902,7 +931,7 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 							Children:            []WantTraceSegment{},
 						},
 						{
-							SegmentName:         "External/example.com/all",
+							SegmentName:         "External/example.com/http",
 							RelativeStartMillis: 4000,
 							RelativeStopMillis:  6000,
 							Attributes: map[string]interface{}{

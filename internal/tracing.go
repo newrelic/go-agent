@@ -389,25 +389,46 @@ func EndBasicSegment(t *TxnData, thread *Thread, start SegmentStartTime, now tim
 	return nil
 }
 
+// EndExternalParams contains the parameters for EndExternalSegment.
+type EndExternalParams struct {
+	TxnData  *TxnData
+	Thread   *Thread
+	Start    SegmentStartTime
+	Now      time.Time
+	Logger   logger.Logger
+	Response *http.Response
+	URL      *url.URL
+	Host     string
+	Library  string
+	Method   string
+}
+
 // EndExternalSegment ends an external segment.
-func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time, u *url.URL, method string, resp *http.Response, lg logger.Logger) error {
-	end, err := endSegment(t, thread, start, now)
+func EndExternalSegment(p EndExternalParams) error {
+	t := p.TxnData
+	end, err := endSegment(t, p.Thread, p.Start, p.Now)
 	if nil != err {
 		return err
 	}
 
-	host := HostFromURL(u)
-	if "" == host {
-		host = "unknown"
+	// Use the Host field if present, otherwise use host in the URL.
+	if p.Host == "" && p.URL != nil {
+		p.Host = p.URL.Host
+	}
+	if p.Host == "" {
+		p.Host = "unknown"
+	}
+	if p.Library == "" {
+		p.Library = "http"
 	}
 
 	var appData *cat.AppDataHeader
-	if resp != nil {
-		hdr := HTTPHeaderToAppData(resp.Header)
+	if p.Response != nil {
+		hdr := HTTPHeaderToAppData(p.Response.Header)
 		appData, err = t.CrossProcess.ParseAppData(hdr)
 		if err != nil {
-			if lg.DebugEnabled() {
-				lg.Debug("failure to parse cross application response header", map[string]interface{}{
+			if p.Logger.DebugEnabled() {
+				p.Logger.Debug("failure to parse cross application response header", map[string]interface{}{
 					"err":    err.Error(),
 					"header": hdr,
 				})
@@ -425,7 +446,9 @@ func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now 
 	}
 
 	key := externalMetricKey{
-		Host:                    host,
+		Host:                    p.Host,
+		Library:                 p.Library,
+		Method:                  p.Method,
 		ExternalCrossProcessID:  crossProcessID,
 		ExternalTransactionName: transactionName,
 	}
@@ -447,17 +470,17 @@ func EndExternalSegment(t *TxnData, thread *Thread, start SegmentStartTime, now 
 
 	if t.TxnTrace.considerNode(end) {
 		attributes := end.attributes.copy()
-		attributes.addString(spanAttributeHTTPURL, SafeURL(u))
-		t.saveTraceSegment(end, externalScopedMetric(key), attributes, transactionGUID)
+		attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
+		t.saveTraceSegment(end, key.scopedMetric(), attributes, transactionGUID)
 	}
 
 	if evt := end.spanEvent(); evt != nil {
-		evt.Name = externalHostMetric(key)
+		evt.Name = key.scopedMetric()
 		evt.Category = spanCategoryHTTP
 		evt.Kind = "client"
 		evt.Component = "http"
-		evt.Attributes.addString(spanAttributeHTTPURL, SafeURL(u))
-		evt.Attributes.addString(spanAttributeHTTPMethod, method)
+		evt.Attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
+		evt.Attributes.addString(spanAttributeHTTPMethod, p.Method)
 		t.saveSpanEvent(evt)
 	}
 
@@ -649,13 +672,10 @@ func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
 			// Unscoped CAT metrics
 			metrics.add(externalAppMetric(key), "", *data, unforced)
 			metrics.add(txnMetric, "", *data, unforced)
-
-			// Scoped External Metric
-			metrics.add(txnMetric, scope, *data, unforced)
-		} else {
-			// Scoped External Metric
-			metrics.add(hostMetric, scope, *data, unforced)
 		}
+
+		// Scoped External Metric
+		metrics.add(key.scopedMetric(), scope, *data, unforced)
 	}
 
 	// Datastore Segment Metrics

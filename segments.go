@@ -76,6 +76,19 @@ type ExternalSegment struct {
 	// priority.  URL is parsed using url.Parse so it must include the
 	// protocol scheme (eg. "http://").
 	URL string
+	// Host is an optional field that is automatically populated from the
+	// Request or URL.  It is used for external metrics.  Use this field to
+	// override the host in the URL or Request.
+	Host string
+	// Method is an optional field that is automatically populated from the
+	// Request.  It is used for external metrics and the "http.method" Span
+	// attribute.  Use this field to override the method from the Request.
+	// It should be the http method or procedure making the external call.
+	Method string
+	// Library is an optional field that defaults to "http".  It is used for
+	// external metrics.  It should be the framework making the external
+	// call.
+	Library string
 }
 
 // End finishes the segment.

@@ -164,7 +164,7 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/all",
+				"name":      "External/example.com/http/GET",
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
@@ -231,7 +231,7 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/all",
+				"name":      "External/example.com/http/GET",
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
@@ -302,7 +302,7 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/all",
+				"name":      "External/example.com/http/GET",
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
@@ -373,7 +373,7 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/all",
+				"name":      "External/example.com/http/GET",
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
@@ -443,7 +443,7 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/all",
+				"name":      "External/example.com/http/GET",
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
