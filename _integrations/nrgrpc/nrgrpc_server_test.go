@@ -126,8 +126,9 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"request.method":              "/TestApplication/DoUnaryUnary",
+			"httpResponseCode":            200,
 			"request.headers.contentType": "application/grpc",
+			"request.method":              "/TestApplication/DoUnaryUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
 		},
 	}})

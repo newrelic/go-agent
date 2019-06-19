@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type serverRequest struct {
@@ -86,10 +87,10 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 
 		ctx = newrelic.NewContext(ctx, txn)
 		resp, err = handler(ctx, req)
+		txn.WriteHeader(translateCode(status.Code(err)))
 		if err != nil {
 			// TODO: NoticeError
 		}
-		// TODO: Save response code
 		return
 	}
 }
