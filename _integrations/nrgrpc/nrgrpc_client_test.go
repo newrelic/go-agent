@@ -553,3 +553,52 @@ func TestNilTxnClientStreaming(t *testing.T) {
 		t.Error("distributed trace header sent", hdrs)
 	}
 }
+
+func TestClientStreamingError(t *testing.T) {
+	// Test that when creating the stream returns an error, no external
+	// segments are created
+	app := testApp(t)
+	txn := app.StartTransaction("UnaryStream", nil, nil)
+	client := testapp.NewTestApplicationClient(conn)
+
+	ctx := newrelic.NewContext(context.Background(), txn)
+	ctx, _ = context.WithTimeout(ctx, 0)
+	_, err := client.DoUnaryStream(ctx, &testapp.Message{})
+	if nil == err {
+		t.Fatal("client call to DoUnaryStream did not return error")
+	}
+	txn.End()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/UnaryStream", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/UnaryStream", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/UnaryStream",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/UnaryStream",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/UnaryStream",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children:    []internal.WantTraceSegment{},
+			}},
+		},
+	}})
+}
