@@ -70,17 +70,18 @@ func init() {
 func init() { proto.RegisterFile("testapp.proto", fileDescriptor_98d4e818d9f182b1) }
 
 var fileDescriptor_98d4e818d9f182b1 = []byte{
-	// 152 bytes of a gzipped FileDescriptorProto
+	// 165 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2d, 0x49, 0x2d, 0x2e,
 	0x49, 0x2c, 0x28, 0xd0, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x57, 0x92, 0xe5, 0x62, 0xf7, 0x4d, 0x2d,
 	0x2e, 0x4e, 0x4c, 0x4f, 0x15, 0x12, 0xe2, 0x62, 0x29, 0x49, 0xad, 0x28, 0x91, 0x60, 0x54, 0x60,
-	0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x8d, 0xb6, 0x32, 0x72, 0xf1, 0x87, 0xa4, 0x16, 0x97, 0x38, 0x16,
+	0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x8d, 0x1e, 0x30, 0x72, 0xf1, 0x87, 0xa4, 0x16, 0x97, 0x38, 0x16,
 	0x14, 0xe4, 0x64, 0x26, 0x27, 0x96, 0x64, 0xe6, 0xe7, 0x09, 0xa9, 0x70, 0xf1, 0xb8, 0xe4, 0x87,
 	0xe6, 0x25, 0x16, 0x55, 0x82, 0x09, 0x21, 0x0e, 0x3d, 0xa8, 0x09, 0x52, 0x70, 0x96, 0x12, 0x83,
 	0x90, 0x3a, 0x17, 0x2f, 0x54, 0x55, 0x70, 0x49, 0x51, 0x6a, 0x62, 0x2e, 0x76, 0x65, 0x06, 0x8c,
 	0x10, 0x85, 0x10, 0x35, 0x78, 0xcc, 0xd3, 0x60, 0x14, 0xd2, 0xe2, 0xe2, 0x83, 0x29, 0xc4, 0x67,
-	0xa4, 0x06, 0xa3, 0x01, 0x63, 0x12, 0x1b, 0xd8, 0x77, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff,
-	0xeb, 0xe8, 0x29, 0x14, 0xee, 0x00, 0x00, 0x00,
+	0xa4, 0x06, 0xa3, 0x01, 0xa3, 0x90, 0x26, 0x97, 0x20, 0xb2, 0x1b, 0x5d, 0x8b, 0x8a, 0xf2, 0x8b,
+	0xb0, 0x2b, 0x4f, 0x62, 0x03, 0x07, 0x84, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0xb1, 0x26, 0xf5,
+	0x2d, 0x19, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -99,6 +100,7 @@ type TestApplicationClient interface {
 	DoUnaryStream(ctx context.Context, in *Message, opts ...grpc.CallOption) (TestApplication_DoUnaryStreamClient, error)
 	DoStreamUnary(ctx context.Context, opts ...grpc.CallOption) (TestApplication_DoStreamUnaryClient, error)
 	DoStreamStream(ctx context.Context, opts ...grpc.CallOption) (TestApplication_DoStreamStreamClient, error)
+	DoUnaryUnaryError(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
 }
 
 type testApplicationClient struct {
@@ -215,12 +217,22 @@ func (x *testApplicationDoStreamStreamClient) Recv() (*Message, error) {
 	return m, nil
 }
 
+func (c *testApplicationClient) DoUnaryUnaryError(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
+	out := new(Message)
+	err := c.cc.Invoke(ctx, "/TestApplication/DoUnaryUnaryError", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TestApplicationServer is the server API for TestApplication service.
 type TestApplicationServer interface {
 	DoUnaryUnary(context.Context, *Message) (*Message, error)
 	DoUnaryStream(*Message, TestApplication_DoUnaryStreamServer) error
 	DoStreamUnary(TestApplication_DoStreamUnaryServer) error
 	DoStreamStream(TestApplication_DoStreamStreamServer) error
+	DoUnaryUnaryError(context.Context, *Message) (*Message, error)
 }
 
 // UnimplementedTestApplicationServer can be embedded to have forward compatible implementations.
@@ -238,6 +250,9 @@ func (*UnimplementedTestApplicationServer) DoStreamUnary(srv TestApplication_DoS
 }
 func (*UnimplementedTestApplicationServer) DoStreamStream(srv TestApplication_DoStreamStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method DoStreamStream not implemented")
+}
+func (*UnimplementedTestApplicationServer) DoUnaryUnaryError(ctx context.Context, req *Message) (*Message, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DoUnaryUnaryError not implemented")
 }
 
 func RegisterTestApplicationServer(s *grpc.Server, srv TestApplicationServer) {
@@ -335,6 +350,24 @@ func (x *testApplicationDoStreamStreamServer) Recv() (*Message, error) {
 	return m, nil
 }
 
+func _TestApplication_DoUnaryUnaryError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Message)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestApplicationServer).DoUnaryUnaryError(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/TestApplication/DoUnaryUnaryError",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestApplicationServer).DoUnaryUnaryError(ctx, req.(*Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _TestApplication_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "TestApplication",
 	HandlerType: (*TestApplicationServer)(nil),
@@ -342,6 +375,10 @@ var _TestApplication_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DoUnaryUnary",
 			Handler:    _TestApplication_DoUnaryUnary_Handler,
+		},
+		{
+			MethodName: "DoUnaryUnaryError",
+			Handler:    _TestApplication_DoUnaryUnaryError_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

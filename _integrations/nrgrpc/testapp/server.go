@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"io"
 
+	newrelic "github.com/newrelic/go-agent"
+	codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 )
 
 // Server is a gRPC server.
@@ -13,6 +16,7 @@ type Server struct{}
 
 // DoUnaryUnary is a unary request, unary response method.
 func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, error) {
+	defer newrelic.StartSegment(newrelic.FromContext(ctx), "DoUnaryUnary").End()
 	md, _ := metadata.FromIncomingContext(ctx)
 	js, _ := json.Marshal(md)
 	return &Message{Text: string(js)}, nil
@@ -59,4 +63,10 @@ func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) err
 			return err
 		}
 	}
+}
+
+// DoUnaryUnaryError is a unary request, unary response method that returns an
+// error.
+func (s *Server) DoUnaryUnaryError(ctx context.Context, msg *Message) (*Message, error) {
+	return &Message{}, status.New(codes.DataLoss, "oooooops!").Err()
 }
