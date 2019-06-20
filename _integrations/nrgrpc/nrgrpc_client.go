@@ -79,6 +79,6 @@ func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grp
 	return wrappedClientStream{
 		segment:       seg,
 		ClientStream:  s,
-		isUnaryServer: desc.ServerStreams == false,
+		isUnaryServer: !desc.ServerStreams,
 	}, nil
 }
