@@ -25,19 +25,16 @@ func (r serverRequest) Transport() newrelic.TransportType { return newrelic.Tran
 
 func newServerRequest(ctx context.Context, method string) serverRequest {
 	var hdrs http.Header
-	var target string
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
 		for k, vs := range md {
 			for _, v := range vs {
-				hdrs.Set(k, v)
-				if ":authority" == k {
-					target = v
-				}
+				hdrs.Add(k, v)
 			}
 		}
 	}
 
+	target := hdrs.Get(":authority")
 	url, _ := url.Parse(getURL(method, target))
 
 	return serverRequest{
