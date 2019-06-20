@@ -201,6 +201,25 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 	}})
+	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "500",
+			"error.message":   "Internal Server Error",
+			"guid":            internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"sampled":         internal.MatchAnything,
+			"traceId":         internal.MatchAnything,
+			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            500,
+			"request.headers.User-Agent":  internal.MatchAnything,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "/TestApplication/DoUnaryUnaryError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
 }
 
 func TestUnaryServerInterceptorNilApp(t *testing.T) {
