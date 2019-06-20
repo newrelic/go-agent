@@ -397,6 +397,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	}
 	waitc := make(chan struct{})
 	go func() {
+		defer close(waitc)
 		var recved int
 		for {
 			msg, err := stream.Recv()
@@ -419,7 +420,6 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		if recved != 3 {
 			t.Fatal("received incorrect number of messages from server", recved)
 		}
-		close(waitc)
 	}()
 	for i := 0; i < 3; i++ {
 		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamStream"}); err != nil {
