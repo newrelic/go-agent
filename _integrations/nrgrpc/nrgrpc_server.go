@@ -89,7 +89,7 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 		resp, err = handler(ctx, req)
 		txn.WriteHeader(translateCode(status.Code(err)))
 		if err != nil {
-			// TODO: NoticeError
+			txn.NoticeError(err)
 		}
 		return
 	}

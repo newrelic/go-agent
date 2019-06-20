@@ -154,3 +154,51 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		},
 	})
 }
+
+func TestUnaryServerInterceptorError(t *testing.T) {
+	app := testApp(t)
+
+	s, conn := newTestServerAndConn(t, app)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	_, err := client.DoUnaryUnaryError(context.Background(), &testapp.Message{})
+	if nil == err {
+		t.Fatal("DoUnaryUnaryError should have returned an error")
+	}
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"guid":             internal.MatchAnything,
+			"name":             "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
+			"nr.apdexPerfZone": internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            500,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "/TestApplication/DoUnaryUnaryError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
+		},
+	}})
+}
