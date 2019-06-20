@@ -202,3 +202,15 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		},
 	}})
 }
+
+func TestUnaryServerInterceptorNilApp(t *testing.T) {
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	_, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
+	if nil != err {
+		t.Fatal("unable to call client DoUnaryUnary", err)
+	}
+}

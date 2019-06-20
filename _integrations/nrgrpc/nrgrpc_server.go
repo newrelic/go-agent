@@ -80,6 +80,10 @@ func translateCode(code codes.Code) int {
 }
 
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
+	if nil == app {
+		return nil
+	}
+
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		txn := app.StartTransaction(info.FullMethod, nil, nil)
 		txn.SetWebRequest(newServerRequest(ctx, info.FullMethod))
