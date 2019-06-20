@@ -571,8 +571,9 @@ func TestClientStreamingError(t *testing.T) {
 	txn := app.StartTransaction("UnaryStream", nil, nil)
 	client := testapp.NewTestApplicationClient(conn)
 
-	ctx := newrelic.NewContext(context.Background(), txn)
-	ctx, _ = context.WithTimeout(ctx, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	defer cancel()
+	ctx = newrelic.NewContext(ctx, txn)
 	_, err := client.DoUnaryStream(ctx, &testapp.Message{})
 	if nil == err {
 		t.Fatal("client call to DoUnaryStream did not return error")
