@@ -4,18 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net"
 	"net/url"
-	"os"
 	"testing"
-	"time"
 
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/_integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/internal"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/test/bufconn"
 )
 
 func TestGetURL(t *testing.T) {
@@ -68,37 +63,6 @@ func TestGetURL(t *testing.T) {
 	}
 }
 
-var conn *grpc.ClientConn
-
-func TestMain(m *testing.M) {
-	lis := bufconn.Listen(1024 * 1024)
-	s := grpc.NewServer()
-	testapp.RegisterTestApplicationServer(s, &testapp.Server{})
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			panic(err)
-		}
-	}()
-
-	var err error
-	bufDialer := func(string, time.Duration) (net.Conn, error) {
-		return lis.Dial()
-	}
-	conn, err = grpc.Dial("bufnet",
-		grpc.WithDialer(bufDialer),
-		grpc.WithInsecure(),
-		grpc.WithBlock(), // create the connection synchronously
-		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
-		grpc.WithStreamInterceptor(StreamClientInterceptor),
-	)
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-
-	os.Exit(m.Run())
-}
-
 func testApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
 	cfg.Enabled = false
@@ -124,6 +88,10 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	app := testApp(t)
 	txn := app.StartTransaction("UnaryUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
+
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
@@ -204,6 +172,10 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	app := testApp(t)
 	txn := app.StartTransaction("UnaryStream", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
+
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
@@ -299,6 +271,10 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	txn := app.StartTransaction("StreamUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(ctx)
 	if nil != err {
@@ -390,6 +366,10 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	app := testApp(t)
 	txn := app.StartTransaction("StreamStream", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
+
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamStream(ctx)
@@ -503,6 +483,10 @@ func TestClientUnaryMetadata(t *testing.T) {
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
@@ -522,6 +506,10 @@ func TestClientUnaryMetadata(t *testing.T) {
 }
 
 func TestNilTxnClientUnary(t *testing.T) {
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
 	if nil != err {
@@ -538,6 +526,10 @@ func TestNilTxnClientUnary(t *testing.T) {
 }
 
 func TestNilTxnClientStreaming(t *testing.T) {
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(context.Background())
 	if nil != err {
@@ -570,6 +562,11 @@ func TestClientStreamingError(t *testing.T) {
 	// segments are created
 	app := testApp(t)
 	txn := app.StartTransaction("UnaryStream", nil, nil)
+
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
 	client := testapp.NewTestApplicationClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 0)
