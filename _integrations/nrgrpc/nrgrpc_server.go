@@ -76,6 +76,7 @@ func translateCode(code codes.Code) int {
 	return 0
 }
 
+// UnaryServerInterceptor TODO
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
 	if nil == app {
 		return nil
