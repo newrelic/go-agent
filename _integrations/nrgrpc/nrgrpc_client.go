@@ -74,7 +74,7 @@ func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grp
 	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
 	s, err := streamer(ctx, desc, cc, method, opts...)
 	if err != nil {
-		return nil, err
+		return s, err
 	}
 	return wrappedClientStream{
 		segment:       seg,
