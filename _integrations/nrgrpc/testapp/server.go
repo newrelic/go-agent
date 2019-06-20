@@ -20,8 +20,10 @@ func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, erro
 
 // DoUnaryStream is a unary request, stream response method.
 func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStreamServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&Message{Text: "Hello from DoUnaryStream"}); nil != err {
+		if err := stream.Send(&Message{Text: string(js)}); nil != err {
 			return err
 		}
 	}
@@ -30,10 +32,12 @@ func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStrea
 
 // DoStreamUnary is a stream request, unary response method.
 func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&Message{Text: "Hello from DoStreamUnary"})
+			return stream.SendAndClose(&Message{Text: string(js)})
 		} else if nil != err {
 			return err
 		}
@@ -42,6 +46,8 @@ func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error
 
 // DoStreamStream is a stream request, stream response method.
 func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	js, _ := json.Marshal(md)
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
@@ -49,7 +55,7 @@ func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) err
 		} else if nil != err {
 			return err
 		}
-		if err := stream.Send(&Message{Text: "Hello from DoStreamStream"}); nil != err {
+		if err := stream.Send(&Message{Text: string(js)}); nil != err {
 			return err
 		}
 	}
