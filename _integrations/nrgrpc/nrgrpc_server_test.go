@@ -48,6 +48,10 @@ func TestTranslateCode(t *testing.T) {
 	}
 }
 
+// newTestServerAndConn creates a new *grpc.Server and *grpc.ClientConn for use
+// in testing. It adds instrumentation to both. If app is nil, then
+// instrumentation is not applied to the server. Be sure to Stop() the server
+// and Close() the connection when done with them.
 func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server, *grpc.ClientConn) {
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(UnaryServerInterceptor(app)),
@@ -59,11 +63,10 @@ func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server,
 		s.Serve(lis)
 	}()
 
-	var err error
 	bufDialer := func(string, time.Duration) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err = grpc.Dial("bufnet",
+	conn, err := grpc.Dial("bufnet",
 		grpc.WithDialer(bufDialer),
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
@@ -71,7 +74,7 @@ func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server,
 		grpc.WithStreamInterceptor(StreamClientInterceptor),
 	)
 	if err != nil {
-		t.Fatal("failure to create Dial", err)
+		t.Fatal("failure to create ClientConn", err)
 	}
 
 	return s, conn
