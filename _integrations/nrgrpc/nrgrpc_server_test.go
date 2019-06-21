@@ -320,6 +320,96 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	})
 }
 
+func TestStreamUnaryServerInterceptor(t *testing.T) {
+	app := testApp(t)
+
+	s, conn := newTestServerAndConn(t, app)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	txn := app.StartTransaction("client", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+	stream, err := client.DoStreamUnary(ctx)
+	if nil != err {
+		t.Fatal("client call to DoStreamUnary failed", err)
+	}
+	for i := 0; i < 3; i++ {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal("failure to Send", err)
+		}
+	}
+	_, err = stream.CloseAndRecv()
+	if nil != err {
+		t.Fatal("failure to CloseAndRecv", err)
+	}
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestApplication/DoStreamUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoStreamUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoStreamUnary", Scope: "WebTransaction/Go/TestApplication/DoStreamUnary", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestApplication/DoStreamUnary", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamUnary", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"guid":                     internal.MatchAnything,
+			"name":                     "WebTransaction/Go/TestApplication/DoStreamUnary",
+			"nr.apdexPerfZone":         internal.MatchAnything,
+			"parent.account":           123,
+			"parent.app":               456,
+			"parent.transportDuration": internal.MatchAnything,
+			"parent.transportType":     "HTTP",
+			"parent.type":              "App",
+			"parentId":                 internal.MatchAnything,
+			"parentSpanId":             internal.MatchAnything,
+			"priority":                 internal.MatchAnything,
+			"sampled":                  internal.MatchAnything,
+			"traceId":                  internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            200,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoStreamUnary",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
+		},
+	}})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"nr.entryPoint": true,
+				"parentId":      internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category": "generic",
+				"name":     "Custom/DoStreamUnary",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
 func TestUnaryServerInterceptorNilApp(t *testing.T) {
 	s, conn := newTestServerAndConn(t, nil)
 	defer s.Stop()

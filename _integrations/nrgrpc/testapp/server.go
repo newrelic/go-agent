@@ -37,6 +37,7 @@ func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStrea
 
 // DoStreamUnary is a stream request, unary response method.
 func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error {
+	defer newrelic.StartSegment(newrelic.FromContext(stream.Context()), "DoStreamUnary").End()
 	md, _ := metadata.FromIncomingContext(stream.Context())
 	js, _ := json.Marshal(md)
 	for {
