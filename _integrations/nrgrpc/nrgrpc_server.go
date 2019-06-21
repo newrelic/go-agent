@@ -113,6 +113,7 @@ func newWrappedServerStream(stream grpc.ServerStream, txn newrelic.Transaction) 
 	}
 }
 
+// StreamServerInterceptor TODO
 func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
 	if nil == app {
 		return nil
