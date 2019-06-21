@@ -410,6 +410,109 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	})
 }
 
+func TestStreamStreamServerInterceptor(t *testing.T) {
+	app := testApp(t)
+
+	s, conn := newTestServerAndConn(t, app)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	txn := app.StartTransaction("client", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+	stream, err := client.DoStreamStream(ctx)
+	if nil != err {
+		t.Fatal("client call to DoStreamStream failed", err)
+	}
+	waitc := make(chan struct{})
+	go func() {
+		defer close(waitc)
+		var recved int
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatal("failure to Recv", err)
+			}
+			recved++
+		}
+		if recved != 3 {
+			t.Fatal("received incorrect number of messages from server", recved)
+		}
+	}()
+	for i := 0; i < 3; i++ {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamStream"}); err != nil {
+			t.Fatal("failure to Send", err)
+		}
+	}
+	stream.CloseSend()
+	<-waitc
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestApplication/DoStreamStream", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoStreamStream", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoStreamStream", Scope: "WebTransaction/Go/TestApplication/DoStreamStream", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestApplication/DoStreamStream", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamStream", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"guid":                     internal.MatchAnything,
+			"name":                     "WebTransaction/Go/TestApplication/DoStreamStream",
+			"nr.apdexPerfZone":         internal.MatchAnything,
+			"parent.account":           123,
+			"parent.app":               456,
+			"parent.transportDuration": internal.MatchAnything,
+			"parent.transportType":     "HTTP",
+			"parent.type":              "App",
+			"parentId":                 internal.MatchAnything,
+			"parentSpanId":             internal.MatchAnything,
+			"priority":                 internal.MatchAnything,
+			"sampled":                  internal.MatchAnything,
+			"traceId":                  internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            200,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoStreamStream",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
+		},
+	}})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "WebTransaction/Go/TestApplication/DoStreamStream",
+				"nr.entryPoint": true,
+				"parentId":      internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category": "generic",
+				"name":     "Custom/DoStreamStream",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
 func TestUnaryServerInterceptorNilApp(t *testing.T) {
 	s, conn := newTestServerAndConn(t, nil)
 	defer s.Stop()
