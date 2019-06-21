@@ -37,6 +37,8 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 
 		method = strings.TrimPrefix(method, "/")
 		seg.URL = getURL(method, target).String()
+		seg.Library = "gRPC"
+		seg.Method = method
 
 		payload := txn.CreateDistributedTracePayload()
 		if txt := payload.Text(); "" != txt {
