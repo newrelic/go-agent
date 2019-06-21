@@ -70,18 +70,18 @@ func init() {
 func init() { proto.RegisterFile("testapp.proto", fileDescriptor_98d4e818d9f182b1) }
 
 var fileDescriptor_98d4e818d9f182b1 = []byte{
-	// 165 bytes of a gzipped FileDescriptorProto
+	// 175 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2d, 0x49, 0x2d, 0x2e,
 	0x49, 0x2c, 0x28, 0xd0, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x57, 0x92, 0xe5, 0x62, 0xf7, 0x4d, 0x2d,
 	0x2e, 0x4e, 0x4c, 0x4f, 0x15, 0x12, 0xe2, 0x62, 0x29, 0x49, 0xad, 0x28, 0x91, 0x60, 0x54, 0x60,
-	0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x8d, 0x1e, 0x30, 0x72, 0xf1, 0x87, 0xa4, 0x16, 0x97, 0x38, 0x16,
-	0x14, 0xe4, 0x64, 0x26, 0x27, 0x96, 0x64, 0xe6, 0xe7, 0x09, 0xa9, 0x70, 0xf1, 0xb8, 0xe4, 0x87,
-	0xe6, 0x25, 0x16, 0x55, 0x82, 0x09, 0x21, 0x0e, 0x3d, 0xa8, 0x09, 0x52, 0x70, 0x96, 0x12, 0x83,
-	0x90, 0x3a, 0x17, 0x2f, 0x54, 0x55, 0x70, 0x49, 0x51, 0x6a, 0x62, 0x2e, 0x76, 0x65, 0x06, 0x8c,
-	0x10, 0x85, 0x10, 0x35, 0x78, 0xcc, 0xd3, 0x60, 0x14, 0xd2, 0xe2, 0xe2, 0x83, 0x29, 0xc4, 0x67,
-	0xa4, 0x06, 0xa3, 0x01, 0xa3, 0x90, 0x26, 0x97, 0x20, 0xb2, 0x1b, 0x5d, 0x8b, 0x8a, 0xf2, 0x8b,
-	0xb0, 0x2b, 0x4f, 0x62, 0x03, 0x07, 0x84, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0xb1, 0x26, 0xf5,
-	0x2d, 0x19, 0x01, 0x00, 0x00,
+	0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x8d, 0xfa, 0x98, 0xb8, 0xf8, 0x43, 0x52, 0x8b, 0x4b, 0x1c, 0x0b,
+	0x0a, 0x72, 0x32, 0x93, 0x13, 0x4b, 0x32, 0xf3, 0xf3, 0x84, 0x54, 0xb8, 0x78, 0x5c, 0xf2, 0x43,
+	0xf3, 0x12, 0x8b, 0x2a, 0xc1, 0x84, 0x10, 0x87, 0x1e, 0xd4, 0x04, 0x29, 0x38, 0x4b, 0x89, 0x41,
+	0x48, 0x9d, 0x8b, 0x17, 0xaa, 0x2a, 0xb8, 0xa4, 0x28, 0x35, 0x31, 0x17, 0xbb, 0x32, 0x03, 0x46,
+	0x88, 0x42, 0x88, 0x1a, 0x3c, 0xe6, 0x69, 0x30, 0x0a, 0x69, 0x71, 0xf1, 0xc1, 0x14, 0xe2, 0x33,
+	0x52, 0x83, 0xd1, 0x80, 0x51, 0x48, 0x93, 0x4b, 0x10, 0xd9, 0x8d, 0xae, 0x45, 0x45, 0xf9, 0x45,
+	0x38, 0x1c, 0xaa, 0xc3, 0x25, 0x84, 0xe2, 0x50, 0x3c, 0x6a, 0x0d, 0x18, 0x93, 0xd8, 0xc0, 0xc1,
+	0x66, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0xb8, 0xca, 0x5d, 0x32, 0x47, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -101,6 +101,7 @@ type TestApplicationClient interface {
 	DoStreamUnary(ctx context.Context, opts ...grpc.CallOption) (TestApplication_DoStreamUnaryClient, error)
 	DoStreamStream(ctx context.Context, opts ...grpc.CallOption) (TestApplication_DoStreamStreamClient, error)
 	DoUnaryUnaryError(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
+	DoUnaryStreamError(ctx context.Context, in *Message, opts ...grpc.CallOption) (TestApplication_DoUnaryStreamErrorClient, error)
 }
 
 type testApplicationClient struct {
@@ -226,6 +227,38 @@ func (c *testApplicationClient) DoUnaryUnaryError(ctx context.Context, in *Messa
 	return out, nil
 }
 
+func (c *testApplicationClient) DoUnaryStreamError(ctx context.Context, in *Message, opts ...grpc.CallOption) (TestApplication_DoUnaryStreamErrorClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_TestApplication_serviceDesc.Streams[3], "/TestApplication/DoUnaryStreamError", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &testApplicationDoUnaryStreamErrorClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type TestApplication_DoUnaryStreamErrorClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type testApplicationDoUnaryStreamErrorClient struct {
+	grpc.ClientStream
+}
+
+func (x *testApplicationDoUnaryStreamErrorClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // TestApplicationServer is the server API for TestApplication service.
 type TestApplicationServer interface {
 	DoUnaryUnary(context.Context, *Message) (*Message, error)
@@ -233,6 +266,7 @@ type TestApplicationServer interface {
 	DoStreamUnary(TestApplication_DoStreamUnaryServer) error
 	DoStreamStream(TestApplication_DoStreamStreamServer) error
 	DoUnaryUnaryError(context.Context, *Message) (*Message, error)
+	DoUnaryStreamError(*Message, TestApplication_DoUnaryStreamErrorServer) error
 }
 
 // UnimplementedTestApplicationServer can be embedded to have forward compatible implementations.
@@ -253,6 +287,9 @@ func (*UnimplementedTestApplicationServer) DoStreamStream(srv TestApplication_Do
 }
 func (*UnimplementedTestApplicationServer) DoUnaryUnaryError(ctx context.Context, req *Message) (*Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoUnaryUnaryError not implemented")
+}
+func (*UnimplementedTestApplicationServer) DoUnaryStreamError(req *Message, srv TestApplication_DoUnaryStreamErrorServer) error {
+	return status.Errorf(codes.Unimplemented, "method DoUnaryStreamError not implemented")
 }
 
 func RegisterTestApplicationServer(s *grpc.Server, srv TestApplicationServer) {
@@ -368,6 +405,27 @@ func _TestApplication_DoUnaryUnaryError_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TestApplication_DoUnaryStreamError_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Message)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TestApplicationServer).DoUnaryStreamError(m, &testApplicationDoUnaryStreamErrorServer{stream})
+}
+
+type TestApplication_DoUnaryStreamErrorServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type testApplicationDoUnaryStreamErrorServer struct {
+	grpc.ServerStream
+}
+
+func (x *testApplicationDoUnaryStreamErrorServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _TestApplication_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "TestApplication",
 	HandlerType: (*TestApplicationServer)(nil),
@@ -397,6 +455,11 @@ var _TestApplication_serviceDesc = grpc.ServiceDesc{
 			Handler:       _TestApplication_DoStreamStream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "DoUnaryStreamError",
+			Handler:       _TestApplication_DoUnaryStreamError_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "testapp.proto",

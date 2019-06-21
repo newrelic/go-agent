@@ -7,6 +7,7 @@ service TestApplication {
     rpc DoStreamStream(stream Message) returns (stream Message) {}
 
     rpc DoUnaryUnaryError(Message) returns (Message) {}
+    rpc DoUnaryStreamError(Message) returns (stream Message) {}
 }
 
 message Message {

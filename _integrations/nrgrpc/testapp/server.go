@@ -73,3 +73,9 @@ func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) err
 func (s *Server) DoUnaryUnaryError(ctx context.Context, msg *Message) (*Message, error) {
 	return &Message{}, status.New(codes.DataLoss, "oooooops!").Err()
 }
+
+// DoUnaryStreamError is a unary request, unary response method that returns an
+// error.
+func (s *Server) DoUnaryStreamError(msg *Message, stream TestApplication_DoUnaryStreamErrorServer) error {
+	return status.New(codes.DataLoss, "oooooops!").Err()
+}

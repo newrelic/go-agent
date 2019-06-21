@@ -513,6 +513,77 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	})
 }
 
+func TestStreamServerInterceptorError(t *testing.T) {
+	app := testApp(t)
+
+	s, conn := newTestServerAndConn(t, app)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	stream, err := client.DoUnaryStreamError(context.Background(), &testapp.Message{})
+	if nil != err {
+		t.Fatal("client call to DoUnaryStream failed", err)
+	}
+	_, err = stream.Recv()
+	if nil == err {
+		t.Fatal("DoUnaryStreamError should have returned an error")
+	}
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/WebTransaction/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"guid":             internal.MatchAnything,
+			"name":             "WebTransaction/Go/TestApplication/DoUnaryStreamError",
+			"nr.apdexPerfZone": internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            500,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoUnaryStreamError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
+		},
+	}})
+	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "500",
+			"error.message":   "Internal Server Error",
+			"guid":            internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"sampled":         internal.MatchAnything,
+			"traceId":         internal.MatchAnything,
+			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            500,
+			"request.headers.User-Agent":  internal.MatchAnything,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoUnaryStreamError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+}
+
 func TestUnaryServerInterceptorNilApp(t *testing.T) {
 	s, conn := newTestServerAndConn(t, nil)
 	defer s.Stop()
