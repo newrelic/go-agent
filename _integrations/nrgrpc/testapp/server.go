@@ -24,6 +24,7 @@ func (s *Server) DoUnaryUnary(ctx context.Context, msg *Message) (*Message, erro
 
 // DoUnaryStream is a unary request, stream response method.
 func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStreamServer) error {
+	defer newrelic.StartSegment(newrelic.FromContext(stream.Context()), "DoUnaryStream").End()
 	md, _ := metadata.FromIncomingContext(stream.Context())
 	js, _ := json.Marshal(md)
 	for i := 0; i < 3; i++ {
@@ -36,6 +37,7 @@ func (s *Server) DoUnaryStream(msg *Message, stream TestApplication_DoUnaryStrea
 
 // DoStreamUnary is a stream request, unary response method.
 func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error {
+	defer newrelic.StartSegment(newrelic.FromContext(stream.Context()), "DoStreamUnary").End()
 	md, _ := metadata.FromIncomingContext(stream.Context())
 	js, _ := json.Marshal(md)
 	for {
@@ -50,6 +52,7 @@ func (s *Server) DoStreamUnary(stream TestApplication_DoStreamUnaryServer) error
 
 // DoStreamStream is a stream request, stream response method.
 func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) error {
+	defer newrelic.StartSegment(newrelic.FromContext(stream.Context()), "DoStreamStream").End()
 	md, _ := metadata.FromIncomingContext(stream.Context())
 	js, _ := json.Marshal(md)
 	for {
@@ -69,4 +72,10 @@ func (s *Server) DoStreamStream(stream TestApplication_DoStreamStreamServer) err
 // error.
 func (s *Server) DoUnaryUnaryError(ctx context.Context, msg *Message) (*Message, error) {
 	return &Message{}, status.New(codes.DataLoss, "oooooops!").Err()
+}
+
+// DoUnaryStreamError is a unary request, unary response method that returns an
+// error.
+func (s *Server) DoUnaryStreamError(msg *Message, stream TestApplication_DoUnaryStreamErrorServer) error {
+	return status.New(codes.DataLoss, "oooooops!").Err()
 }

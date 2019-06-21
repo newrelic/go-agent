@@ -95,3 +95,38 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 		return
 	}
 }
+
+type wrappedServerStream struct {
+	grpc.ServerStream
+	txn newrelic.Transaction
+}
+
+func (s wrappedServerStream) Context() context.Context {
+	ctx := s.ServerStream.Context()
+	return newrelic.NewContext(ctx, s.txn)
+}
+
+func newWrappedServerStream(stream grpc.ServerStream, txn newrelic.Transaction) grpc.ServerStream {
+	return wrappedServerStream{
+		ServerStream: stream,
+		txn:          txn,
+	}
+}
+
+// StreamServerInterceptor TODO
+func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
+	if nil == app {
+		return nil
+	}
+
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		method := strings.TrimPrefix(info.FullMethod, "/")
+		txn := app.StartTransaction(method, nil, nil)
+		txn.SetWebRequest(newServerRequest(ss.Context(), method))
+		defer txn.End()
+
+		err := handler(srv, newWrappedServerStream(ss, txn))
+		txn.WriteHeader(translateCode(status.Code(err)))
+		return err
+	}
+}
