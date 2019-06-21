@@ -95,3 +95,12 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 		return
 	}
 }
+
+func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
+	if nil == app {
+		return nil
+	}
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		return handler(srv, ss)
+	}
+}

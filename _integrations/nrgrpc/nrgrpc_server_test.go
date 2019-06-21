@@ -2,7 +2,9 @@ package nrgrpc
 
 import (
 	"context"
+	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,6 +57,7 @@ func TestTranslateCode(t *testing.T) {
 func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server, *grpc.ClientConn) {
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(UnaryServerInterceptor(app)),
+		grpc.StreamInterceptor(StreamServerInterceptor(app)),
 	)
 	testapp.RegisterTestApplicationServer(s, &testapp.Server{})
 	lis := bufconn.Listen(1024 * 1024)
@@ -231,8 +234,38 @@ func TestUnaryServerInterceptorNilApp(t *testing.T) {
 	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
-	_, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
+	msg, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
 	if nil != err {
 		t.Fatal("unable to call client DoUnaryUnary", err)
+	}
+	if !strings.Contains(msg.Text, "content-type") {
+		t.Error("incorrect message received")
+	}
+}
+
+func TestStreamServerInterceptorNilApp(t *testing.T) {
+	s, conn := newTestServerAndConn(t, nil)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	stream, err := client.DoStreamUnary(context.Background())
+	if nil != err {
+		t.Fatal("client call to DoStreamUnary failed", err)
+	}
+	for i := 0; i < 3; i++ {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal("failure to Send", err)
+		}
+	}
+	msg, err := stream.CloseAndRecv()
+	if nil != err {
+		t.Fatal("failure to CloseAndRecv", err)
+	}
+	if !strings.Contains(msg.Text, "content-type") {
+		t.Error("incorrect message received")
 	}
 }
