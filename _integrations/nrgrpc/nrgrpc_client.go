@@ -3,6 +3,7 @@ package nrgrpc
 import (
 	"context"
 	"io"
+	"net/url"
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -10,10 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func getURL(method, target string) string {
-	if "" == target {
-		return ""
-	}
+func getURL(method, target string) *url.URL {
 	var host string
 	// target can be anything from
 	// https://github.com/grpc/grpc/blob/master/doc/naming.md
@@ -23,16 +21,22 @@ func getURL(method, target string) string {
 	} else {
 		host = strings.TrimPrefix(target, "dns:///")
 	}
-	return "grpc://" + host + method
+	return &url.URL{
+		Scheme: "grpc",
+		Host:   host,
+		Path:   method,
+	}
 }
 
 // startClientSegment starts an ExternalSegment and adds Distributed Trace
 // headers to the outgoing grpc metadata in the context.
-func startClientSegment(ctx context.Context, url string) (*newrelic.ExternalSegment, context.Context) {
+func startClientSegment(ctx context.Context, method, target string) (*newrelic.ExternalSegment, context.Context) {
 	var seg *newrelic.ExternalSegment
 	if txn := newrelic.FromContext(ctx); nil != txn {
 		seg = newrelic.StartExternalSegment(txn, nil)
-		seg.URL = url
+
+		method = strings.TrimPrefix(method, "/")
+		seg.URL = getURL(method, target).String()
 
 		payload := txn.CreateDistributedTracePayload()
 		if txt := payload.Text(); "" != txt {
@@ -50,7 +54,7 @@ func startClientSegment(ctx context.Context, url string) (*newrelic.ExternalSegm
 
 // UnaryClientInterceptor TODO
 func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
+	seg, ctx := startClientSegment(ctx, method, cc.Target())
 	defer seg.End()
 	return invoker(ctx, method, req, reply, cc, opts...)
 }
@@ -71,7 +75,7 @@ func (s wrappedClientStream) RecvMsg(m interface{}) error {
 
 // StreamClientInterceptor TODO
 func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	seg, ctx := startClientSegment(ctx, getURL(method, cc.Target()))
+	seg, ctx := startClientSegment(ctx, method, cc.Target())
 	s, err := streamer(ctx, desc, cc, method, opts...)
 	if err != nil {
 		return s, err

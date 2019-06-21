@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net/url"
 	"testing"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -22,7 +21,12 @@ func TestGetURL(t *testing.T) {
 		{
 			method:   "/TestApplication/DoUnaryUnary",
 			target:   "",
-			expected: "",
+			expected: "grpc:///TestApplication/DoUnaryUnary",
+		},
+		{
+			method:   "TestApplication/DoUnaryUnary",
+			target:   "",
+			expected: "grpc://TestApplication/DoUnaryUnary",
 		},
 		{
 			method:   "/TestApplication/DoUnaryUnary",
@@ -31,6 +35,11 @@ func TestGetURL(t *testing.T) {
 		},
 		{
 			method:   "/TestApplication/DoUnaryUnary",
+			target:   "localhost:8080",
+			expected: "grpc://localhost:8080/TestApplication/DoUnaryUnary",
+		},
+		{
+			method:   "TestApplication/DoUnaryUnary",
 			target:   "localhost:8080",
 			expected: "grpc://localhost:8080/TestApplication/DoUnaryUnary",
 		},
@@ -53,12 +62,9 @@ func TestGetURL(t *testing.T) {
 
 	for _, test := range testcases {
 		actual := getURL(test.method, test.target)
-		if actual != test.expected {
+		if actual.String() != test.expected {
 			t.Errorf("incorrect URL:\n\tmethod=%s,\n\ttarget=%s,\n\texpected=%s,\n\tactual=%s",
-				test.method, test.target, test.expected, actual)
-		}
-		if _, err := url.Parse(actual); nil != err {
-			t.Error("the resultant url is not a url!", err)
+				test.method, test.target, test.expected, actual.String())
 		}
 	}
 }

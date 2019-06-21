@@ -131,7 +131,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            200,
 			"request.headers.contentType": "application/grpc",
-			"request.method":              "/TestApplication/DoUnaryUnary",
+			"request.method":              "TestApplication/DoUnaryUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
 		},
 	}})
@@ -200,7 +200,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            500,
 			"request.headers.contentType": "application/grpc",
-			"request.method":              "/TestApplication/DoUnaryUnaryError",
+			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 	}})
@@ -218,7 +218,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"httpResponseCode":            500,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
-			"request.method":              "/TestApplication/DoUnaryUnaryError",
+			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 		UserAttributes: map[string]interface{}{},

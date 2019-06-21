@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
 	"google.golang.org/grpc"
@@ -35,7 +36,7 @@ func newServerRequest(ctx context.Context, method string) serverRequest {
 	}
 
 	target := hdrs.Get(":authority")
-	url, _ := url.Parse(getURL(method, target))
+	url := getURL(method, target)
 
 	return serverRequest{
 		header: hdrs,
@@ -83,8 +84,9 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		txn := app.StartTransaction(info.FullMethod, nil, nil)
-		txn.SetWebRequest(newServerRequest(ctx, info.FullMethod))
+		method := strings.TrimPrefix(info.FullMethod, "/")
+		txn := app.StartTransaction(method, nil, nil)
+		txn.SetWebRequest(newServerRequest(ctx, method))
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
