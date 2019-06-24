@@ -77,8 +77,10 @@ type ExternalSegment struct {
 	// protocol scheme (eg. "http://").
 	URL string
 	// Host is an optional field that is automatically populated from the
-	// Request or URL.  It is used for external metrics.  Use this field to
-	// override the host in the URL or Request.
+	// Request or URL.  It is used for external metrics, transaction trace
+	// segment names, and span event names.  Use this field to override the
+	// host in the URL or Request.  This field does not override the host in
+	// the request.uri attribute.
 	Host string
 	// Method is an optional field that is automatically populated from the
 	// Request.  It is used for external metrics and the "http.method" Span
