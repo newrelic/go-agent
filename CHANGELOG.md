@@ -1,5 +1,24 @@
 ## ChangeLog
 
+* Improve [logrus](https://github.com/sirupsen/logrus) support by introducing
+  [nrlogrus.Transform](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus#Transform),
+  a function which allows you to turn a
+  [logrus.Logger](https://godoc.org/github.com/sirupsen/logrus#Logger) instance into a
+  [newrelic.Logger](https://godoc.org/github.com/newrelic/go-agent#Logger).
+  Example use:
+
+  ```go
+  l := logrus.New()
+  l.SetLevel(logrus.DebugLevel)
+  cfg := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+  cfg.Logger = nrlogrus.Transform(l)
+  ```
+
+  As a result of this change, the
+  [nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus)
+  package requires [logrus](https://github.com/sirupsen/logrus) version `v1.1.0`
+  and above.
+
 ## 2.8.1
 
 ### Bug Fixes

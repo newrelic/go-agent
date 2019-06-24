@@ -37,6 +37,8 @@ matrix:
     env: INTEGRATION=_integrations/nrsqlite3
   - go: "1.12"
     env: INTEGRATION=_integrations/nrgrpc
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrlogrus
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
