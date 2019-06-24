@@ -76,7 +76,7 @@ func TestTraceSegments(t *testing.T) {
 						},
 					},
 					{
-						SegmentName: "External/example.com/all",
+						SegmentName: "External/example.com/http/GET",
 						Attributes: map[string]interface{}{
 							"backtrace":     internal.MatchAnything,
 							"http.url":      "http://example.com",
@@ -156,7 +156,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 						},
 					},
 					{
-						SegmentName: "External/example.com/all",
+						SegmentName: "External/example.com/http/GET",
 						Attributes: map[string]interface{}{
 							"http.url":      "http://example.com",
 							"aws.operation": "secret",
@@ -275,7 +275,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 						Attributes:  map[string]interface{}{},
 					},
 					{
-						SegmentName: "External/example.com/all",
+						SegmentName: "External/example.com/http/GET",
 						Attributes:  map[string]interface{}{},
 					},
 				},
@@ -355,7 +355,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 						Attributes:  map[string]interface{}{},
 					},
 					{
-						SegmentName: "External/example.com/all",
+						SegmentName: "External/example.com/http/GET",
 						Attributes:  map[string]interface{}{},
 					},
 				},

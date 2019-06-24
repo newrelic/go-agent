@@ -134,7 +134,7 @@ func TestCATRoundTripper(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/all", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
 	}, backgroundErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

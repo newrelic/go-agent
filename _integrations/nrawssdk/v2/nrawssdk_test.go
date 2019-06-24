@@ -87,7 +87,7 @@ var (
 	}
 	externalSpan = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
-			"name":          "External/lambda.us-west-2.amazonaws.com/all",
+			"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
 			"sampled":       true,
 			"category":      "http",
 			"priority":      internal.MatchAnything,
@@ -109,7 +109,7 @@ var (
 	}
 	externalSpanNoRequestID = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
-			"name":          "External/lambda.us-west-2.amazonaws.com/all",
+			"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
 			"sampled":       true,
 			"category":      "http",
 			"priority":      internal.MatchAnything,
@@ -165,7 +165,7 @@ var (
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
+		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
 	}...)
 	datastoreMetrics = append(txnMetrics, []internal.WantMetric{
 		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
@@ -476,7 +476,7 @@ func TestRetrySend(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
 		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
@@ -520,7 +520,7 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
+		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
 		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
