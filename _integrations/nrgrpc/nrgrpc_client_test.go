@@ -124,8 +124,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
-		// FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
-		{Name: "External/bufnet/http", Scope: "OtherTransaction/Go/UnaryUnary", Forced: false, Data: nil},
+		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryUnary", Scope: "OtherTransaction/Go/UnaryUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
@@ -141,15 +140,15 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http",                 // FIXME: should be gRPC
-				"name":      "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
+				"component": "http", // FIXME: should be gRPC
+				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
-				// FIXME: also include "http.method": "TestApplication/DoUnaryUnary"
+				"http.url":    "grpc://bufnet/TestApplication/DoUnaryUnary",
+				"http.method": "TestApplication/DoUnaryUnary",
 			},
 		},
 	})
@@ -163,7 +162,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryUnary
+						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
 						Attributes: map[string]interface{}{
 							"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
 						},
@@ -222,8 +221,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
-		// FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
-		{Name: "External/bufnet/http", Scope: "OtherTransaction/Go/UnaryStream", Forced: false, Data: nil},
+		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryStream", Scope: "OtherTransaction/Go/UnaryStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
@@ -239,15 +237,15 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http",                 // FIXME: should be gRPC
-				"name":      "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
+				"component": "http", // FIXME: should be gRPC
+				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url": "grpc://bufnet/TestApplication/DoUnaryStream",
-				// FIXME: also include "http.method": "TestApplication/DoUnaryStream"
+				"http.url":    "grpc://bufnet/TestApplication/DoUnaryStream",
+				"http.method": "TestApplication/DoUnaryStream",
 			},
 		},
 	})
@@ -261,7 +259,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoUnaryStream
+						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryStream",
 						Attributes: map[string]interface{}{
 							"http.url": "grpc://bufnet/TestApplication/DoUnaryStream",
 						},
@@ -318,8 +316,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
-		// FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
-		{Name: "External/bufnet/http", Scope: "OtherTransaction/Go/StreamUnary", Forced: false, Data: nil},
+		{Name: "External/bufnet/gRPC/TestApplication/DoStreamUnary", Scope: "OtherTransaction/Go/StreamUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
@@ -335,15 +332,15 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http",                 // FIXME: should be gRPC
-				"name":      "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
+				"component": "http", // FIXME: should be gRPC
+				"name":      "External/bufnet/gRPC/TestApplication/DoStreamUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url": "grpc://bufnet/TestApplication/DoStreamUnary",
-				// FIXME: also include "http.method": "TestApplication/DoStreamUnary"
+				"http.url":    "grpc://bufnet/TestApplication/DoStreamUnary",
+				"http.method": "TestApplication/DoStreamUnary",
 			},
 		},
 	})
@@ -357,7 +354,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamUnary
+						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamUnary",
 						Attributes: map[string]interface{}{
 							"http.url": "grpc://bufnet/TestApplication/DoStreamUnary",
 						},
@@ -427,8 +424,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
-		// FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamStream
-		{Name: "External/bufnet/http", Scope: "OtherTransaction/Go/StreamStream", Forced: false, Data: nil},
+		{Name: "External/bufnet/gRPC/TestApplication/DoStreamStream", Scope: "OtherTransaction/Go/StreamStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
@@ -444,15 +440,15 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http",                 // FIXME: should be gRPC
-				"name":      "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamStream
+				"component": "http", // FIXME: should be gRPC
+				"name":      "External/bufnet/gRPC/TestApplication/DoStreamStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url": "grpc://bufnet/TestApplication/DoStreamStream",
-				// FIXME: also include "http.method": "TestApplication/DoStreamStream"
+				"http.url":    "grpc://bufnet/TestApplication/DoStreamStream",
+				"http.method": "TestApplication/DoStreamStream",
 			},
 		},
 	})
@@ -466,7 +462,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/bufnet/http", // FIXME: should be External/bufnet/gRPC/TestApplication/DoStreamStream
+						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamStream",
 						Attributes: map[string]interface{}{
 							"http.url": "grpc://bufnet/TestApplication/DoStreamStream",
 						},
