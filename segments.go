@@ -85,7 +85,7 @@ type ExternalSegment struct {
 	// Method is an optional field that is automatically populated from the
 	// Request.  It is used for external metrics and the "http.method" Span
 	// attribute.  Use this field to override the method from the Request.
-	// It should be the http method or procedure making the external call.
+	// It should be the http method or procedure being called.
 	Method string
 	// Library is an optional field that defaults to "http".  It is used for
 	// external metrics.  It should be the framework making the external
