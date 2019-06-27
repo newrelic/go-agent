@@ -140,16 +140,13 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http", // FIXME: should be gRPC
+				"component": "gRPC",
 				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"http.url":    "grpc://bufnet/TestApplication/DoUnaryUnary",
-				"http.method": "TestApplication/DoUnaryUnary",
-			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -163,9 +160,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
-						Attributes: map[string]interface{}{
-							"http.url": "grpc://bufnet/TestApplication/DoUnaryUnary",
-						},
+						Attributes:  map[string]interface{}{},
 					},
 				},
 			}},
@@ -237,16 +232,13 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http", // FIXME: should be gRPC
+				"component": "gRPC",
 				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"http.url":    "grpc://bufnet/TestApplication/DoUnaryStream",
-				"http.method": "TestApplication/DoUnaryStream",
-			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -260,9 +252,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryStream",
-						Attributes: map[string]interface{}{
-							"http.url": "grpc://bufnet/TestApplication/DoUnaryStream",
-						},
+						Attributes:  map[string]interface{}{},
 					},
 				},
 			}},
@@ -332,16 +322,13 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http", // FIXME: should be gRPC
+				"component": "gRPC",
 				"name":      "External/bufnet/gRPC/TestApplication/DoStreamUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"http.url":    "grpc://bufnet/TestApplication/DoStreamUnary",
-				"http.method": "TestApplication/DoStreamUnary",
-			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -355,9 +342,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamUnary",
-						Attributes: map[string]interface{}{
-							"http.url": "grpc://bufnet/TestApplication/DoStreamUnary",
-						},
+						Attributes:  map[string]interface{}{},
 					},
 				},
 			}},
@@ -440,16 +425,13 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":  "http",
-				"component": "http", // FIXME: should be gRPC
+				"component": "gRPC",
 				"name":      "External/bufnet/gRPC/TestApplication/DoStreamStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"http.url":    "grpc://bufnet/TestApplication/DoStreamStream",
-				"http.method": "TestApplication/DoStreamStream",
-			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -463,9 +445,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamStream",
-						Attributes: map[string]interface{}{
-							"http.url": "grpc://bufnet/TestApplication/DoStreamStream",
-						},
+						Attributes:  map[string]interface{}{},
 					},
 				},
 			}},

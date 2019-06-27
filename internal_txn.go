@@ -881,8 +881,8 @@ func endDatastore(s *DatastoreSegment) error {
 }
 
 func externalSegmentMethod(s *ExternalSegment) string {
-	if "" != s.Method {
-		return s.Method
+	if "" != s.Procedure {
+		return s.Procedure
 	}
 	r := s.Request
 	if nil != s.Response && nil != s.Response.Request {

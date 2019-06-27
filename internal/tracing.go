@@ -470,7 +470,9 @@ func EndExternalSegment(p EndExternalParams) error {
 
 	if t.TxnTrace.considerNode(end) {
 		attributes := end.attributes.copy()
-		attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
+		if p.Library == "http" {
+			attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
+		}
 		t.saveTraceSegment(end, key.scopedMetric(), attributes, transactionGUID)
 	}
 
@@ -478,9 +480,11 @@ func EndExternalSegment(p EndExternalParams) error {
 		evt.Name = key.scopedMetric()
 		evt.Category = spanCategoryHTTP
 		evt.Kind = "client"
-		evt.Component = "http"
-		evt.Attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
-		evt.Attributes.addString(spanAttributeHTTPMethod, p.Method)
+		evt.Component = p.Library
+		if p.Library == "http" {
+			evt.Attributes.addString(spanAttributeHTTPURL, SafeURL(p.URL))
+			evt.Attributes.addString(spanAttributeHTTPMethod, p.Method)
+		}
 		t.saveSpanEvent(evt)
 	}
 

@@ -816,11 +816,11 @@ func TestExternalSegmentMethod(t *testing.T) {
 		t.Error(m)
 	}
 
-	// Method field overrides request and response.
+	// Procedure field overrides request and response.
 	m = externalSegmentMethod(&ExternalSegment{
-		Method:   "GET",
-		Request:  req,
-		Response: response,
+		Procedure: "GET",
+		Request:   req,
+		Response:  response,
 	})
 	if "GET" != m {
 		t.Error(m)
@@ -1285,9 +1285,9 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		URL:       "https://otherhost.com/path/zip/zap?secret=ssshhh",
-		Host:      "example.com",
-		Method:    "PUT",
-		Library:   "mylibrary",
+		Host:      "bufnet",
+		Procedure: "TestApplication/DoUnaryUnary",
+		Library:   "grpc",
 	}
 	err := s.End()
 	if nil != err {
@@ -1300,8 +1300,8 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
-		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/mylibrary/PUT", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/bufnet/grpc/TestApplication/DoUnaryUnary", Scope: scope, Forced: false, Data: nil},
 	}, webMetrics...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -1317,15 +1317,15 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/mylibrary/PUT",
+				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
-				"component": "http",
+				"component": "grpc",
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
+			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url":    "https://otherhost.com/path/zip/zap",
-				"http.method": "PUT",
+				// "http.url" and "http.method" are not saved if
+				// library is not "http".
 			},
 		},
 	})
@@ -1343,9 +1343,9 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, helloRequest)
 	req, _ := http.NewRequest("GET", "https://www.something.com/path/zip/zap?secret=ssshhh", nil)
 	s := StartExternalSegment(txn, req)
-	s.Host = "example.com"
-	s.Method = "PUT"
-	s.Library = "mylibrary"
+	s.Host = "bufnet"
+	s.Procedure = "TestApplication/DoUnaryUnary"
+	s.Library = "grpc"
 	err := s.End()
 	if nil != err {
 		t.Error(err)
@@ -1357,8 +1357,8 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
-		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/mylibrary/PUT", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/bufnet/grpc/TestApplication/DoUnaryUnary", Scope: scope, Forced: false, Data: nil},
 	}, webMetrics...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -1374,15 +1374,15 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/mylibrary/PUT",
+				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
-				"component": "http",
+				"component": "grpc",
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
+			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url":    "https://www.something.com/path/zip/zap",
-				"http.method": "PUT",
+				// "http.url" and "http.method" are not saved if
+				// library is not "http".
 			},
 		},
 	})
@@ -1403,9 +1403,9 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		Response:  resp,
-		Host:      "example.com",
-		Method:    "PUT",
-		Library:   "mylibrary",
+		Host:      "bufnet",
+		Procedure: "TestApplication/DoUnaryUnary",
+		Library:   "grpc",
 	}
 	err := s.End()
 	if nil != err {
@@ -1418,8 +1418,8 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allWeb", Scope: "", Forced: true, Data: nil},
-		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/mylibrary/PUT", Scope: scope, Forced: false, Data: nil},
+		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/bufnet/grpc/TestApplication/DoUnaryUnary", Scope: scope, Forced: false, Data: nil},
 	}, webMetrics...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -1435,15 +1435,15 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
-				"name":      "External/example.com/mylibrary/PUT",
+				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
-				"component": "http",
+				"component": "grpc",
 				"span.kind": "client",
 			},
-			UserAttributes: map[string]interface{}{},
+			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"http.url":    "https://www.something.com/path/zip/zap",
-				"http.method": "PUT",
+				// "http.url" and "http.method" are not saved if
+				// library is not "http".
 			},
 		},
 	})

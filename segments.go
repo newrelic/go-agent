@@ -80,16 +80,16 @@ type ExternalSegment struct {
 	// Request or URL.  It is used for external metrics, transaction trace
 	// segment names, and span event names.  Use this field to override the
 	// host in the URL or Request.  This field does not override the host in
-	// the request.uri attribute.
+	// the "http.url" attribute.
 	Host string
-	// Method is an optional field that is automatically populated from the
-	// Request.  It is used for external metrics and the "http.method" Span
-	// attribute.  Use this field to override the method from the Request.
-	// It should be the http method or procedure being called.
-	Method string
+	// Procedure is an optional field that can be set to the remote
+	// procedure being called.  If set, this value will be used in metrics,
+	// transaction trace segment names, and span event names.  If unset, the
+	// request's http method is used.
+	Procedure string
 	// Library is an optional field that defaults to "http".  It is used for
-	// external metrics.  It should be the framework making the external
-	// call.
+	// external metrics and the "component" span attribute.  It should be
+	// the framework making the external call.
 	Library string
 }
 
