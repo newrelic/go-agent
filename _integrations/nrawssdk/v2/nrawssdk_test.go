@@ -57,7 +57,9 @@ func newConfig(instrument bool) aws.Config {
 	cfg, _ := external.LoadDefaultAWSConfig()
 	cfg.Credentials = fakeCreds{}
 	cfg.Region = endpoints.UsWest2RegionID
-	cfg.HTTPClient.Transport = &fakeTransport{}
+	cfg.HTTPClient = &http.Client{
+		Transport: &fakeTransport{},
+	}
 
 	if instrument {
 		InstrumentHandlers(&cfg.Handlers)
@@ -449,7 +451,9 @@ func TestRetrySend(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	cfg := newConfig(false)
-	cfg.HTTPClient.Transport = &firstFailingTransport{failing: true}
+	cfg.HTTPClient = &http.Client{
+		Transport: &firstFailingTransport{failing: true},
+	}
 
 	client := lambda.New(cfg)
 	input := &lambda.InvokeInput{
@@ -545,7 +549,9 @@ func TestNoRequestIDFound(t *testing.T) {
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	cfg := newConfig(false)
-	cfg.HTTPClient.Transport = &noRequestIDTransport{}
+	cfg.HTTPClient = &http.Client{
+		Transport: &noRequestIDTransport{},
+	}
 
 	client := lambda.New(cfg)
 	input := &lambda.InvokeInput{
