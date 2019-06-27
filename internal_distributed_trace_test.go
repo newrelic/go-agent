@@ -1528,7 +1528,7 @@ func TestDistributedTraceCrossAgent(t *testing.T) {
 			// if span events are disabled but distributed tracing is enabled, then
 			// we expect there are zero span events
 			extraAsserts = func(app expectApp, t internal.Validator) {
-				app.ExpectSpanEventsCount(t, 0)
+				app.ExpectSpanEvents(t, nil)
 			}
 		}
 		runDistributedTraceCrossAgentTestcase(t, tc, extraAsserts)
@@ -1549,7 +1549,7 @@ func TestDistributedTraceDisabledSpanEventsEnabled(t *testing.T) {
 	}
 
 	// ensure no span events created
-	app.ExpectSpanEventsCount(t, 0)
+	app.ExpectSpanEvents(t, nil)
 }
 
 func TestCreatePayloadAppNotConnected(t *testing.T) {

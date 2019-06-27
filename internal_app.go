@@ -605,11 +605,6 @@ func (app *app) ExpectSpanEventsAbsent(t internal.Validator, names []string) {
 	internal.ExpectSpanEventsAbsent(t, app.testHarvest.SpanEvents, names)
 }
 
-func (app *app) ExpectSpanEventsCount(t internal.Validator, c int) {
-	t = internal.ExtendValidator(t, "span events")
-	internal.ExpectSpanEventsCount(t, app.testHarvest.SpanEvents, c)
-}
-
 func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
 	t = internal.ExtendValidator(t, "txn events")
 	internal.ExpectTxnEvents(t, app.testHarvest.TxnEvents, want)

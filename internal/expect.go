@@ -200,7 +200,6 @@ type Expect interface {
 	ExpectSpanEvents(t Validator, want []WantEvent)
 	ExpectSpanEventsPresent(t Validator, want []WantEvent)
 	ExpectSpanEventsAbsent(t Validator, names []string)
-	ExpectSpanEventsCount(t Validator, c int)
 }
 
 func expectMetricField(t Validator, id metricID, v1, v2 float64, fieldName string) {
@@ -473,14 +472,6 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
 			}
 			expectEvent(v, event, e)
 		}
-	}
-}
-
-// ExpectSpanEventsCount allows us to count how many events the system generated
-func ExpectSpanEventsCount(v Validator, events *spanEvents, c int) {
-	len := len(events.analyticsEvents.events)
-	if len != c {
-		v.Error(fmt.Sprintf("expected %d span events, found %d", c, len))
 	}
 }
 
