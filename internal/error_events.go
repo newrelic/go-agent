@@ -38,29 +38,26 @@ func (e *ErrorEvent) WriteJSON(buf *bytes.Buffer) {
 }
 
 type errorEvents struct {
-	events *analyticsEvents
+	*analyticsEvents
 }
 
 func newErrorEvents(max int) *errorEvents {
 	return &errorEvents{
-		events: newAnalyticsEvents(max),
+		analyticsEvents: newAnalyticsEvents(max),
 	}
 }
 
 func (events *errorEvents) Add(e *ErrorEvent, priority Priority) {
-	events.events.addEvent(analyticsEvent{priority, e})
+	events.addEvent(analyticsEvent{priority, e})
 }
 
 func (events *errorEvents) MergeIntoHarvest(h *Harvest) {
-	h.ErrorEvents.events.mergeFailed(events.events)
+	h.ErrorEvents.mergeFailed(events.analyticsEvents)
 }
 
 func (events *errorEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	return events.events.CollectorJSON(agentRunID)
+	return events.CollectorJSON(agentRunID)
 }
-
-func (events *errorEvents) numSeen() float64  { return events.events.NumSeen() }
-func (events *errorEvents) numSaved() float64 { return events.events.NumSaved() }
 
 func (events *errorEvents) EndpointMethod() string {
 	return cmdErrorEvents

@@ -312,13 +312,13 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 
 // ExpectCustomEvents allows testing of custom events.  It passes if cs exactly matches expect.
 func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantEvent) {
-	if len(cs.events.events) != len(expect) {
-		v.Error("number of custom events does not match", len(cs.events.events),
+	if len(cs.analyticsEvents.events) != len(expect) {
+		v.Error("number of custom events does not match", len(cs.analyticsEvents.events),
 			len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := cs.events.events[i].jsonWriter.(*CustomEvent)
+		event, ok := cs.analyticsEvents.events[i].jsonWriter.(*CustomEvent)
 		if !ok {
 			v.Error("wrong custom event")
 		} else {
@@ -429,7 +429,7 @@ func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
 // ExpectErrorEventsPresent allows testing of events with requiring an exact match
 func ExpectErrorEventsPresent(v Validator, events *errorEvents, expect []WantEvent) {
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*ErrorEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*ErrorEvent)
 		if !ok {
 			v.Error("wrong span event in ExpectErrorEventsPresent")
 		} else {
@@ -440,7 +440,7 @@ func ExpectErrorEventsPresent(v Validator, events *errorEvents, expect []WantEve
 
 // ExpectErrorEventsAbsent allows testing that a set of attribute names are absent from the event data
 func ExpectErrorEventsAbsent(v Validator, events *errorEvents, names []string) {
-	for _, eventHarvested := range events.events.events {
+	for _, eventHarvested := range events.analyticsEvents.events {
 		event, ok := eventHarvested.jsonWriter.(*ErrorEvent)
 		if !ok {
 			v.Error("wrong span event in ExpectErrorEventsAbsent")
@@ -452,13 +452,13 @@ func ExpectErrorEventsAbsent(v Validator, events *errorEvents, names []string) {
 
 // ExpectErrorEvents allows testing of error events.  It passes if events exactly matches expect.
 func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
-	if len(events.events.events) != len(expect) {
+	if len(events.analyticsEvents.events) != len(expect) {
 		v.Error("number of custom events does not match",
-			len(events.events.events), len(expect))
+			len(events.analyticsEvents.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*ErrorEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*ErrorEvent)
 		if !ok {
 			v.Error("wrong error event")
 		} else {
@@ -478,7 +478,7 @@ func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
 
 // ExpectSpanEventsCount allows us to count how many events the system generated
 func ExpectSpanEventsCount(v Validator, events *spanEvents, c int) {
-	len := len(events.events.events)
+	len := len(events.analyticsEvents.events)
 	if len != c {
 		v.Error(fmt.Sprintf("expected %d span events, found %d", c, len))
 	}
@@ -488,7 +488,7 @@ func ExpectSpanEventsCount(v Validator, events *spanEvents, c int) {
 // without also requiring an exact match
 func ExpectSpanEventsPresent(v Validator, events *spanEvents, expect []WantEvent) {
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*SpanEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*SpanEvent)
 		if !ok {
 			v.Error("wrong span event in ExpectSpanEventsPresent")
 		} else {
@@ -500,7 +500,7 @@ func ExpectSpanEventsPresent(v Validator, events *spanEvents, expect []WantEvent
 // ExpectSpanEventsAbsent allows us to ensure that a set of attribute names are absent
 // from the event data
 func ExpectSpanEventsAbsent(v Validator, events *spanEvents, names []string) {
-	for _, eventHarvested := range events.events.events {
+	for _, eventHarvested := range events.analyticsEvents.events {
 		event, ok := eventHarvested.jsonWriter.(*SpanEvent)
 		if !ok {
 			v.Error("wrong span event in ExpectSpanEventsAbsent")
@@ -512,13 +512,13 @@ func ExpectSpanEventsAbsent(v Validator, events *spanEvents, names []string) {
 
 // ExpectSpanEvents allows testing of span events.  It passes if events exactly matches expect.
 func ExpectSpanEvents(v Validator, events *spanEvents, expect []WantEvent) {
-	if len(events.events.events) != len(expect) {
+	if len(events.analyticsEvents.events) != len(expect) {
 		v.Error("number of span events does not match",
-			len(events.events.events), len(expect))
+			len(events.analyticsEvents.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*SpanEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*SpanEvent)
 		if !ok {
 			v.Error("wrong span event")
 		} else {
@@ -546,7 +546,7 @@ func ExpectSpanEvents(v Validator, events *spanEvents, expect []WantEvent) {
 // without also requiring an exact match
 func ExpectTxnEventsPresent(v Validator, events *txnEvents, expect []WantEvent) {
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*TxnEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*TxnEvent)
 		if !ok {
 			v.Error("wrong txn event in ExpectTxnEventsPresent")
 		} else {
@@ -558,7 +558,7 @@ func ExpectTxnEventsPresent(v Validator, events *txnEvents, expect []WantEvent) 
 // ExpectTxnEventsAbsent allows us to ensure that a set of attribute names are absent
 // from the event data
 func ExpectTxnEventsAbsent(v Validator, events *txnEvents, names []string) {
-	for _, eventHarvested := range events.events.events {
+	for _, eventHarvested := range events.analyticsEvents.events {
 		event, ok := eventHarvested.jsonWriter.(*TxnEvent)
 		if !ok {
 			v.Error("wrong txn event in ExpectTxnEventsAbsent")
@@ -570,13 +570,13 @@ func ExpectTxnEventsAbsent(v Validator, events *txnEvents, names []string) {
 
 // ExpectTxnEvents allows testing of txn events.
 func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
-	if len(events.events.events) != len(expect) {
+	if len(events.analyticsEvents.events) != len(expect) {
 		v.Error("number of txn events does not match",
-			len(events.events.events), len(expect))
+			len(events.analyticsEvents.events), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := events.events.events[i].jsonWriter.(*TxnEvent)
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(*TxnEvent)
 		if !ok {
 			v.Error("wrong txn event")
 		} else {

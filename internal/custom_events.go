@@ -5,12 +5,12 @@ import (
 )
 
 type customEvents struct {
-	events *analyticsEvents
+	*analyticsEvents
 }
 
 func newCustomEvents(max int) *customEvents {
 	return &customEvents{
-		events: newAnalyticsEvents(max),
+		analyticsEvents: newAnalyticsEvents(max),
 	}
 }
 
@@ -19,19 +19,16 @@ func (cs *customEvents) Add(e *CustomEvent) {
 	// As a result, customEvents do not inherit their priority from the transaction, though
 	// they are still sampled according to priority sampling.
 	priority := NewPriority()
-	cs.events.addEvent(analyticsEvent{priority, e})
+	cs.addEvent(analyticsEvent{priority, e})
 }
 
 func (cs *customEvents) MergeIntoHarvest(h *Harvest) {
-	h.CustomEvents.events.mergeFailed(cs.events)
+	h.CustomEvents.mergeFailed(cs.analyticsEvents)
 }
 
 func (cs *customEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	return cs.events.CollectorJSON(agentRunID)
+	return cs.CollectorJSON(agentRunID)
 }
-
-func (cs *customEvents) numSeen() float64  { return cs.events.NumSeen() }
-func (cs *customEvents) numSaved() float64 { return cs.events.NumSaved() }
 
 func (cs *customEvents) EndpointMethod() string {
 	return cmdCustomEvents

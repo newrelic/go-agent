@@ -314,17 +314,17 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if 0 != h.Metrics.failedHarvests {
 		t.Error(h.Metrics.failedHarvests)
 	}
-	if 0 != h.CustomEvents.events.failedHarvests {
-		t.Error(h.CustomEvents.events.failedHarvests)
+	if 0 != h.CustomEvents.analyticsEvents.failedHarvests {
+		t.Error(h.CustomEvents.analyticsEvents.failedHarvests)
 	}
-	if 0 != h.TxnEvents.events.failedHarvests {
-		t.Error(h.TxnEvents.events.failedHarvests)
+	if 0 != h.TxnEvents.analyticsEvents.failedHarvests {
+		t.Error(h.TxnEvents.analyticsEvents.failedHarvests)
 	}
-	if 0 != h.ErrorEvents.events.failedHarvests {
-		t.Error(h.ErrorEvents.events.failedHarvests)
+	if 0 != h.ErrorEvents.analyticsEvents.failedHarvests {
+		t.Error(h.ErrorEvents.analyticsEvents.failedHarvests)
 	}
-	if 0 != h.SpanEvents.events.failedHarvests {
-		t.Error(h.SpanEvents.events.failedHarvests)
+	if 0 != h.SpanEvents.analyticsEvents.failedHarvests {
+		t.Error(h.SpanEvents.analyticsEvents.failedHarvests)
 	}
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{"zip", "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -383,17 +383,17 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if 1 != nextHarvest.Metrics.failedHarvests {
 		t.Error(nextHarvest.Metrics.failedHarvests)
 	}
-	if 1 != nextHarvest.CustomEvents.events.failedHarvests {
-		t.Error(nextHarvest.CustomEvents.events.failedHarvests)
+	if 1 != nextHarvest.CustomEvents.analyticsEvents.failedHarvests {
+		t.Error(nextHarvest.CustomEvents.analyticsEvents.failedHarvests)
 	}
-	if 1 != nextHarvest.TxnEvents.events.failedHarvests {
-		t.Error(nextHarvest.TxnEvents.events.failedHarvests)
+	if 1 != nextHarvest.TxnEvents.analyticsEvents.failedHarvests {
+		t.Error(nextHarvest.TxnEvents.analyticsEvents.failedHarvests)
 	}
-	if 1 != nextHarvest.ErrorEvents.events.failedHarvests {
-		t.Error(nextHarvest.ErrorEvents.events.failedHarvests)
+	if 1 != nextHarvest.ErrorEvents.analyticsEvents.failedHarvests {
+		t.Error(nextHarvest.ErrorEvents.analyticsEvents.failedHarvests)
 	}
-	if 1 != nextHarvest.SpanEvents.events.failedHarvests {
-		t.Error(nextHarvest.SpanEvents.events.failedHarvests)
+	if 1 != nextHarvest.SpanEvents.analyticsEvents.failedHarvests {
+		t.Error(nextHarvest.SpanEvents.analyticsEvents.failedHarvests)
 	}
 	ExpectMetrics(t, nextHarvest.Metrics, []WantMetric{
 		{"zip", "", true, []float64{1, 0, 0, 0, 0, 0}},
@@ -631,14 +631,14 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if period := h.fixedHarvestTimer.period; time.Minute != period {
 		t.Error("wrong harvest period", period)
 	}
-	if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != maxTxnEvents {
-		t.Error("wrong txn event capacity", cap(events))
+	if cp := h.configurableHarvest.TxnEvents.capacity(); cp != maxTxnEvents {
+		t.Error("wrong txn event capacity", cp)
 	}
-	if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != maxCustomEvents {
-		t.Error("wrong custom event capacity", cap(events))
+	if cp := h.configurableHarvest.CustomEvents.capacity(); cp != maxCustomEvents {
+		t.Error("wrong custom event capacity", cp)
 	}
-	if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != maxErrorEvents {
-		t.Error("wrong error event capacity", cap(events))
+	if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != maxErrorEvents {
+		t.Error("wrong error event capacity", cp)
 	}
 }
 
@@ -665,14 +665,14 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	if period := h.fixedHarvestTimer.period; time.Minute != period {
 		t.Error(period)
 	}
-	if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != 1 {
-		t.Error("wrong txn event capacity", cap(events))
+	if cp := h.configurableHarvest.TxnEvents.capacity(); cp != 1 {
+		t.Error("wrong txn event capacity", cp)
 	}
-	if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != 2 {
-		t.Error("wrong custom event capacity", cap(events))
+	if cp := h.configurableHarvest.CustomEvents.capacity(); cp != 2 {
+		t.Error("wrong custom event capacity", cp)
 	}
-	if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != 3 {
-		t.Error("wrong error event capacity", cap(events))
+	if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != 3 {
+		t.Error("wrong error event capacity", cp)
 	}
 }
 
@@ -684,14 +684,14 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 		if period := h.fixedHarvestTimer.period; time.Minute != period {
 			t.Error(period)
 		}
-		if events := h.configurableHarvest.TxnEvents.events.events; cap(events) != 1 {
-			t.Error("wrong txn event capacity", cap(events))
+		if cp := h.configurableHarvest.TxnEvents.capacity(); cp != 1 {
+			t.Error("wrong txn event capacity", cp)
 		}
-		if events := h.configurableHarvest.CustomEvents.events.events; cap(events) != 2 {
-			t.Error("wrong custom event capacity", cap(events))
+		if cp := h.configurableHarvest.CustomEvents.capacity(); cp != 2 {
+			t.Error("wrong custom event capacity", cp)
 		}
-		if events := h.configurableHarvest.ErrorEvents.events.events; cap(events) != 3 {
-			t.Error("wrong error event capacity", cap(events))
+		if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != 3 {
+			t.Error("wrong error event capacity", cp)
 		}
 	}
 

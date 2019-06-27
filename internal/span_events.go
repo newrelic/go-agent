@@ -87,12 +87,12 @@ func (e *SpanEvent) MarshalJSON() ([]byte, error) {
 }
 
 type spanEvents struct {
-	events *analyticsEvents
+	*analyticsEvents
 }
 
 func newSpanEvents(max int) *spanEvents {
 	return &spanEvents{
-		events: newAnalyticsEvents(max),
+		analyticsEvents: newAnalyticsEvents(max),
 	}
 }
 
@@ -105,7 +105,7 @@ func (events *spanEvents) addEvent(e *SpanEvent, cat *BetterCAT) {
 }
 
 func (events *spanEvents) addEventPopulated(e *SpanEvent) {
-	events.events.addEvent(analyticsEvent{priority: e.Priority, jsonWriter: e})
+	events.analyticsEvents.addEvent(analyticsEvent{priority: e.Priority, jsonWriter: e})
 }
 
 // MergeFromTransaction merges the span events from a transaction into the
@@ -131,15 +131,12 @@ func (events *spanEvents) MergeFromTransaction(txndata *TxnData) {
 }
 
 func (events *spanEvents) MergeIntoHarvest(h *Harvest) {
-	h.SpanEvents.events.mergeFailed(events.events)
+	h.SpanEvents.mergeFailed(events.analyticsEvents)
 }
 
 func (events *spanEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	return events.events.CollectorJSON(agentRunID)
+	return events.CollectorJSON(agentRunID)
 }
-
-func (events *spanEvents) numSeen() float64  { return events.events.NumSeen() }
-func (events *spanEvents) numSaved() float64 { return events.events.NumSaved() }
 
 func (events *spanEvents) EndpointMethod() string {
 	return cmdSpanEvents

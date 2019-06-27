@@ -151,12 +151,12 @@ func (e *TxnEvent) MarshalJSON() ([]byte, error) {
 }
 
 type txnEvents struct {
-	events *analyticsEvents
+	*analyticsEvents
 }
 
 func newTxnEvents(max int) *txnEvents {
 	return &txnEvents{
-		events: newAnalyticsEvents(max),
+		analyticsEvents: newAnalyticsEvents(max),
 	}
 }
 
@@ -167,31 +167,28 @@ func (events *txnEvents) AddTxnEvent(e *TxnEvent, priority Priority) {
 	if e.CrossProcess.IsSynthetics() {
 		priority += 2.0
 	}
-	events.events.addEvent(analyticsEvent{priority: priority, jsonWriter: e})
+	events.addEvent(analyticsEvent{priority: priority, jsonWriter: e})
 }
 
 func (events *txnEvents) MergeIntoHarvest(h *Harvest) {
-	h.TxnEvents.events.mergeFailed(events.events)
+	h.TxnEvents.mergeFailed(events.analyticsEvents)
 }
 
 func (events *txnEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	return events.events.CollectorJSON(agentRunID)
+	return events.CollectorJSON(agentRunID)
 }
-
-func (events *txnEvents) numSeen() float64  { return events.events.NumSeen() }
-func (events *txnEvents) numSaved() float64 { return events.events.NumSaved() }
 
 func (events *txnEvents) EndpointMethod() string {
 	return cmdTxnEvents
 }
 
 func (events *txnEvents) payloads(limit int) []PayloadCreator {
-	if events.numSaved() < float64(limit) {
+	if events.NumSaved() < float64(limit) {
 		return []PayloadCreator{events}
 	}
-	e1, e2 := events.events.split()
+	e1, e2 := events.split()
 	return []PayloadCreator{
-		&txnEvents{events: e1},
-		&txnEvents{events: e2},
+		&txnEvents{analyticsEvents: e1},
+		&txnEvents{analyticsEvents: e2},
 	}
 }

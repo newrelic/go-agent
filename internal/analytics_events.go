@@ -39,6 +39,10 @@ func newAnalyticsEvents(max int) *analyticsEvents {
 	}
 }
 
+func (events *analyticsEvents) capacity() int {
+	return cap(events.events)
+}
+
 func (events *analyticsEvents) addEvent(e analyticsEvent) {
 	events.numSeen++
 

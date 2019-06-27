@@ -308,7 +308,7 @@ func TestTxnEventsSynthetics(t *testing.T) {
 	events.AddTxnEvent(regular, 1.99999)
 
 	// Check that the event was saved.
-	if saved := events.events.events[0].jsonWriter; saved != regular {
+	if saved := events.analyticsEvents.events[0].jsonWriter; saved != regular {
 		t.Errorf("unexpected saved event: expected=%v; got=%v", regular, saved)
 	}
 
@@ -321,11 +321,11 @@ func TestTxnEventsSynthetics(t *testing.T) {
 	events.AddTxnEvent(synthetics, 0.0)
 
 	// Check that the event was saved and its priority was appropriately augmented.
-	if saved := events.events.events[0].jsonWriter; saved != synthetics {
+	if saved := events.analyticsEvents.events[0].jsonWriter; saved != synthetics {
 		t.Errorf("unexpected saved event: expected=%v; got=%v", synthetics, saved)
 	}
 
-	if priority := events.events.events[0].priority; priority != 2.0 {
+	if priority := events.analyticsEvents.events[0].priority; priority != 2.0 {
 		t.Errorf("synthetics event has unexpected priority: %f", priority)
 	}
 }

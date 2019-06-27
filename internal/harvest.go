@@ -70,14 +70,14 @@ func (h *Harvest) Ready(now time.Time, reply *ConnectReply) *Harvest {
 	ready := &Harvest{}
 
 	if h.configurableHarvestTimer.ready(now) {
-		h.Metrics.addCount(customEventsSeen, h.CustomEvents.numSeen(), forced)
-		h.Metrics.addCount(customEventsSent, h.CustomEvents.numSaved(), forced)
+		h.Metrics.addCount(customEventsSeen, h.CustomEvents.NumSeen(), forced)
+		h.Metrics.addCount(customEventsSent, h.CustomEvents.NumSaved(), forced)
 
-		h.Metrics.addCount(txnEventsSeen, h.TxnEvents.numSeen(), forced)
-		h.Metrics.addCount(txnEventsSent, h.TxnEvents.numSaved(), forced)
+		h.Metrics.addCount(txnEventsSeen, h.TxnEvents.NumSeen(), forced)
+		h.Metrics.addCount(txnEventsSent, h.TxnEvents.NumSaved(), forced)
 
-		h.Metrics.addCount(errorEventsSeen, h.ErrorEvents.numSeen(), forced)
-		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.numSaved(), forced)
+		h.Metrics.addCount(errorEventsSeen, h.ErrorEvents.NumSeen(), forced)
+		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.NumSaved(), forced)
 
 		ready.configurableHarvest = h.configurableHarvest
 		h.configurableHarvest = newConfigurableHarvest(now, reply)
@@ -86,8 +86,8 @@ func (h *Harvest) Ready(now time.Time, reply *ConnectReply) *Harvest {
 	// NOTE!  This must happen after the configurable harvest conditional to
 	// ensure that the metrics contain the event supportability metrics.
 	if h.fixedHarvestTimer.ready(now) {
-		h.Metrics.addCount(spanEventsSeen, h.SpanEvents.numSeen(), forced)
-		h.Metrics.addCount(spanEventsSent, h.SpanEvents.numSaved(), forced)
+		h.Metrics.addCount(spanEventsSeen, h.SpanEvents.NumSeen(), forced)
+		h.Metrics.addCount(spanEventsSent, h.SpanEvents.NumSaved(), forced)
 
 		ready.fixedHarvest = h.fixedHarvest
 		h.fixedHarvest = newFixedHarvest(now)
