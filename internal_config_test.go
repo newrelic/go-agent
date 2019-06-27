@@ -101,7 +101,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
 				"Enabled":true,
-				"IgnoreStatusCodes":[404,405]
+				"IgnoreStatusCodes":[0,5,404,405]
 			},
 			"HighSecurity":false,
 			"HostDisplayName":"",

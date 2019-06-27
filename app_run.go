@@ -2,7 +2,6 @@ package newrelic
 
 import (
 	"encoding/json"
-	"net/http"
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
@@ -133,7 +132,8 @@ func newServerlessConnectReply(config Config) *internal.ConnectReply {
 }
 
 func (run *appRun) responseCodeIsError(code int) bool {
-	if code < http.StatusBadRequest { // 400
+	// Response codes below 100 are allowed to be errors to support gRPC.
+	if code < 400 && code >= 100 {
 		return false
 	}
 	for _, ignoreCode := range run.Config.ErrorCollector.IgnoreStatusCodes {

@@ -314,6 +314,9 @@ func NewConfig(appname, license string) Config {
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
 	c.ErrorCollector.IgnoreStatusCodes = []int{
+		// https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
+		0,                   // gRPC OK
+		5,                   // gRPC NOT_FOUND
 		http.StatusNotFound, // 404
 	}
 	c.ErrorCollector.Attributes.Enabled = true

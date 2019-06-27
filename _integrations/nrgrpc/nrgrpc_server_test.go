@@ -12,43 +12,8 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/internal"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/test/bufconn"
 )
-
-func TestTranslateCode(t *testing.T) {
-	testcases := []struct {
-		grpcCode codes.Code
-		httpCode int
-	}{
-		{grpcCode: 0, httpCode: 200},
-		{grpcCode: 1, httpCode: 499},
-		{grpcCode: 2, httpCode: 500},
-		{grpcCode: 3, httpCode: 400},
-		{grpcCode: 4, httpCode: 504},
-		{grpcCode: 5, httpCode: 404},
-		{grpcCode: 6, httpCode: 409},
-		{grpcCode: 7, httpCode: 403},
-		{grpcCode: 8, httpCode: 429},
-		{grpcCode: 9, httpCode: 400},
-		{grpcCode: 10, httpCode: 409},
-		{grpcCode: 11, httpCode: 400},
-		{grpcCode: 12, httpCode: 501},
-		{grpcCode: 13, httpCode: 500},
-		{grpcCode: 14, httpCode: 503},
-		{grpcCode: 15, httpCode: 500},
-		{grpcCode: 16, httpCode: 401},
-		{grpcCode: 100, httpCode: 0},
-	}
-
-	for _, test := range testcases {
-		actual := translateCode(test.grpcCode)
-		if actual != test.httpCode {
-			t.Errorf("incorrect response code: grpcCode=%d httpCode=%d actual=%d",
-				test.grpcCode, test.httpCode, actual)
-		}
-	}
-}
 
 // newTestServerAndConn creates a new *grpc.Server and *grpc.ClientConn for use
 // in testing. It adds instrumentation to both. If app is nil, then
@@ -132,7 +97,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            200,
+			"httpResponseCode":            0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
@@ -201,7 +166,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            500,
+			"httpResponseCode":            15,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
@@ -209,8 +174,8 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	}})
 	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "500",
-			"error.message":   "Internal Server Error",
+			"error.class":     "15",
+			"error.message":   "response code 15",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -218,7 +183,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            500,
+			"httpResponseCode":            15,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
@@ -291,7 +256,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            200,
+			"httpResponseCode":            0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStream",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
@@ -381,7 +346,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            200,
+			"httpResponseCode":            0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoStreamUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
@@ -484,7 +449,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            200,
+			"httpResponseCode":            0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoStreamStream",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
@@ -557,7 +522,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            500,
+			"httpResponseCode":            15,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
@@ -565,8 +530,8 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	}})
 	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "500",
-			"error.message":   "Internal Server Error",
+			"error.class":     "15",
+			"error.message":   "response code 15",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -574,7 +539,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            500,
+			"httpResponseCode":            15,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",

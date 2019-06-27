@@ -8,7 +8,6 @@ import (
 
 	newrelic "github.com/newrelic/go-agent"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -45,38 +44,6 @@ func newServerRequest(ctx context.Context, method string) serverRequest {
 	}
 }
 
-// translateCode translates a grpc response code to its corresponding http
-// response code as per https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
-func translateCode(code codes.Code) int {
-	switch code {
-	case codes.OK:
-		return http.StatusOK
-	case codes.Canceled:
-		return 499
-	case codes.Unknown, codes.DataLoss, codes.Internal:
-		return http.StatusInternalServerError
-	case codes.InvalidArgument, codes.FailedPrecondition, codes.OutOfRange:
-		return http.StatusBadRequest
-	case codes.DeadlineExceeded:
-		return http.StatusGatewayTimeout
-	case codes.NotFound:
-		return http.StatusNotFound
-	case codes.AlreadyExists, codes.Aborted:
-		return http.StatusConflict
-	case codes.PermissionDenied:
-		return http.StatusForbidden
-	case codes.ResourceExhausted:
-		return http.StatusTooManyRequests
-	case codes.Unimplemented:
-		return http.StatusNotImplemented
-	case codes.Unavailable:
-		return http.StatusServiceUnavailable
-	case codes.Unauthenticated:
-		return http.StatusUnauthorized
-	}
-	return 0
-}
-
 // UnaryServerInterceptor TODO
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
 	if nil == app {
@@ -91,7 +58,7 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 
 		ctx = newrelic.NewContext(ctx, txn)
 		resp, err = handler(ctx, req)
-		txn.WriteHeader(translateCode(status.Code(err)))
+		txn.WriteHeader(int(status.Code(err)))
 		return
 	}
 }
@@ -126,7 +93,7 @@ func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerIntercep
 		defer txn.End()
 
 		err := handler(srv, newWrappedServerStream(ss, txn))
-		txn.WriteHeader(translateCode(status.Code(err)))
+		txn.WriteHeader(int(status.Code(err)))
 		return err
 	}
 }

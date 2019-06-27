@@ -1,5 +1,11 @@
 ## ChangeLog
 
+* Response codes below `100`, except `0` and `5`, are now recorded as
+  errors.  This is to support `gRPC` status codes.  If you start seeing
+  new status code errors that you would like to ignore, add them to
+  `Config.ErrorCollector.IgnoreStatusCodes` or your server side configuration
+  settings.
+
 * Improve [logrus](https://github.com/sirupsen/logrus) support by introducing
   [nrlogrus.Transform](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus#Transform),
   a function which allows you to turn a

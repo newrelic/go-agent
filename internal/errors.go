@@ -36,10 +36,17 @@ func TxnErrorFromPanic(now time.Time, v interface{}) ErrorData {
 
 // TxnErrorFromResponseCode creates a new TxnError from an http response code.
 func TxnErrorFromResponseCode(now time.Time, code int) ErrorData {
+	codeStr := strconv.Itoa(code)
+	msg := http.StatusText(code)
+	if msg == "" {
+		// Use a generic message if the code was not an http code
+		// to support gRPC.
+		msg = "response code " + codeStr
+	}
 	return ErrorData{
 		When:  now,
-		Msg:   http.StatusText(code),
-		Klass: strconv.Itoa(code),
+		Msg:   msg,
+		Klass: codeStr,
 	}
 }
 

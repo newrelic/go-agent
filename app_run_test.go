@@ -13,21 +13,31 @@ func TestResponseCodeIsError(t *testing.T) {
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 504)
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
 
-	if is := run.responseCodeIsError(200); is {
-		t.Error(is)
+	for _, tc := range []struct {
+		Code    int
+		IsError bool
+	}{
+		{Code: 0, IsError: false}, // gRPC
+		{Code: 1, IsError: true},  // gRPC
+		{Code: 5, IsError: false}, // gRPC
+		{Code: 6, IsError: true},  // gRPC
+		{Code: 99, IsError: true},
+		{Code: 100, IsError: false},
+		{Code: 199, IsError: false},
+		{Code: 200, IsError: false},
+		{Code: 300, IsError: false},
+		{Code: 399, IsError: false},
+		{Code: 400, IsError: true},
+		{Code: 404, IsError: false},
+		{Code: 503, IsError: true},
+		{Code: 504, IsError: false},
+	} {
+		if is := run.responseCodeIsError(tc.Code); is != tc.IsError {
+			t.Errorf("responseCodeIsError for %d, wanted=%v got=%v",
+				tc.Code, tc.IsError, is)
+		}
 	}
-	if is := run.responseCodeIsError(400); !is {
-		t.Error(is)
-	}
-	if is := run.responseCodeIsError(404); is {
-		t.Error(is)
-	}
-	if is := run.responseCodeIsError(503); !is {
-		t.Error(is)
-	}
-	if is := run.responseCodeIsError(504); is {
-		t.Error(is)
-	}
+
 }
 
 func TestCrossAppTracingEnabled(t *testing.T) {

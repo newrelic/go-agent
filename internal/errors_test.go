@@ -216,12 +216,13 @@ func TestErrorsLifecycle(t *testing.T) {
 	ers := NewTxnErrors(5)
 
 	when := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	ers.Add(TxnErrorFromResponseCode(when, 15))
 	ers.Add(TxnErrorFromResponseCode(when, 400))
 	ers.Add(TxnErrorFromPanic(when, errors.New("oh no panic")))
 	ers.Add(TxnErrorFromPanic(when, 123))
 	ers.Add(TxnErrorFromPanic(when, 123))
 
-	he := newHarvestErrors(3)
+	he := newHarvestErrors(4)
 	MergeTxnErrors(&he, ers, TxnEvent{
 		FinalName: "txnName",
 		Attrs:     nil,
@@ -240,6 +241,23 @@ func TestErrorsLifecycle(t *testing.T) {
 [
    "agentRunID",
    [
+      [
+         1.41713646e+12,
+         "txnName",
+         "response code 15",
+         "15",
+         {
+            "agentAttributes":{},
+            "userAttributes":{},
+            "intrinsics":{
+               "totalTime":2,
+               "guid":"txn-id",
+               "traceId":"txn-id",
+               "priority":0.500000,
+               "sampled":false
+            }
+         }
+      ],
       [
          1.41713646e+12,
          "txnName",
