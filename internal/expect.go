@@ -311,19 +311,7 @@ func expectAttributes(v Validator, exists map[string]interface{}, expect map[str
 
 // ExpectCustomEvents allows testing of custom events.  It passes if cs exactly matches expect.
 func ExpectCustomEvents(v Validator, cs *customEvents, expect []WantEvent) {
-	if len(cs.analyticsEvents.events) != len(expect) {
-		v.Error("number of custom events does not match", len(cs.analyticsEvents.events),
-			len(expect))
-		return
-	}
-	for i, e := range expect {
-		event, ok := cs.analyticsEvents.events[i].jsonWriter.(*CustomEvent)
-		if !ok {
-			v.Error("wrong custom event")
-		} else {
-			expectEvent(v, event, e)
-		}
-	}
+	expectEvents(v, cs.analyticsEvents, expect, nil)
 }
 
 func expectEventAbsent(v Validator, e json.Marshaler, names []string) {
@@ -413,6 +401,24 @@ func expectEvent(v Validator, e json.Marshaler, expect WantEvent) {
 	}
 }
 
+func expectEvents(v Validator, events *analyticsEvents, expect []WantEvent, extraAttributes map[string]interface{}) {
+	if len(events.events) != len(expect) {
+		v.Error("number of events does not match", len(events.events), len(expect))
+		return
+	}
+	for i, e := range expect {
+		event, ok := events.events[i].jsonWriter.(json.Marshaler)
+		if !ok {
+			v.Error("event does not implement json.Marshaler")
+			continue
+		}
+		if nil != e.Intrinsics {
+			e.Intrinsics = mergeAttributes(extraAttributes, e.Intrinsics)
+		}
+		expectEvent(v, event, e)
+	}
+}
+
 // Second attributes have priority.
 func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
 	a := make(map[string]interface{})
@@ -451,28 +457,13 @@ func ExpectErrorEventsAbsent(v Validator, events *errorEvents, names []string) {
 
 // ExpectErrorEvents allows testing of error events.  It passes if events exactly matches expect.
 func ExpectErrorEvents(v Validator, events *errorEvents, expect []WantEvent) {
-	if len(events.analyticsEvents.events) != len(expect) {
-		v.Error("number of custom events does not match",
-			len(events.analyticsEvents.events), len(expect))
-		return
-	}
-	for i, e := range expect {
-		event, ok := events.analyticsEvents.events[i].jsonWriter.(*ErrorEvent)
-		if !ok {
-			v.Error("wrong error event")
-		} else {
-			if nil != e.Intrinsics {
-				e.Intrinsics = mergeAttributes(map[string]interface{}{
-					// The following intrinsics should always be present in
-					// error events:
-					"type":      "TransactionError",
-					"timestamp": MatchAnything,
-					"duration":  MatchAnything,
-				}, e.Intrinsics)
-			}
-			expectEvent(v, event, e)
-		}
-	}
+	expectEvents(v, events.analyticsEvents, expect, map[string]interface{}{
+		// The following intrinsics should always be present in
+		// error events:
+		"type":      "TransactionError",
+		"timestamp": MatchAnything,
+		"duration":  MatchAnything,
+	})
 }
 
 // ExpectSpanEventsPresent allows us to test for the presence and value of events
@@ -503,34 +494,19 @@ func ExpectSpanEventsAbsent(v Validator, events *spanEvents, names []string) {
 
 // ExpectSpanEvents allows testing of span events.  It passes if events exactly matches expect.
 func ExpectSpanEvents(v Validator, events *spanEvents, expect []WantEvent) {
-	if len(events.analyticsEvents.events) != len(expect) {
-		v.Error("number of span events does not match",
-			len(events.analyticsEvents.events), len(expect))
-		return
-	}
-	for i, e := range expect {
-		event, ok := events.analyticsEvents.events[i].jsonWriter.(*SpanEvent)
-		if !ok {
-			v.Error("wrong span event")
-		} else {
-			if nil != e.Intrinsics {
-				e.Intrinsics = mergeAttributes(map[string]interface{}{
-					// The following intrinsics should always be present in
-					// span events:
-					"type":          "Span",
-					"timestamp":     MatchAnything,
-					"duration":      MatchAnything,
-					"traceId":       MatchAnything,
-					"guid":          MatchAnything,
-					"transactionId": MatchAnything,
-					// All span events are currently sampled.
-					"sampled":  true,
-					"priority": MatchAnything,
-				}, e.Intrinsics)
-			}
-			expectEvent(v, event, e)
-		}
-	}
+	expectEvents(v, events.analyticsEvents, expect, map[string]interface{}{
+		// The following intrinsics should always be present in
+		// span events:
+		"type":          "Span",
+		"timestamp":     MatchAnything,
+		"duration":      MatchAnything,
+		"traceId":       MatchAnything,
+		"guid":          MatchAnything,
+		"transactionId": MatchAnything,
+		// All span events are currently sampled.
+		"sampled":  true,
+		"priority": MatchAnything,
+	})
 }
 
 // ExpectTxnEventsPresent allows us to test for the presence and value of events
@@ -561,30 +537,15 @@ func ExpectTxnEventsAbsent(v Validator, events *txnEvents, names []string) {
 
 // ExpectTxnEvents allows testing of txn events.
 func ExpectTxnEvents(v Validator, events *txnEvents, expect []WantEvent) {
-	if len(events.analyticsEvents.events) != len(expect) {
-		v.Error("number of txn events does not match",
-			len(events.analyticsEvents.events), len(expect))
-		return
-	}
-	for i, e := range expect {
-		event, ok := events.analyticsEvents.events[i].jsonWriter.(*TxnEvent)
-		if !ok {
-			v.Error("wrong txn event")
-		} else {
-			if nil != e.Intrinsics {
-				e.Intrinsics = mergeAttributes(map[string]interface{}{
-					// The following intrinsics should always be present in
-					// txn events:
-					"type":      "Transaction",
-					"timestamp": MatchAnything,
-					"duration":  MatchAnything,
-					"totalTime": MatchAnything,
-					"error":     MatchAnything,
-				}, e.Intrinsics)
-			}
-			expectEvent(v, event, e)
-		}
-	}
+	expectEvents(v, events.analyticsEvents, expect, map[string]interface{}{
+		// The following intrinsics should always be present in
+		// txn events:
+		"type":      "Transaction",
+		"timestamp": MatchAnything,
+		"duration":  MatchAnything,
+		"totalTime": MatchAnything,
+		"error":     MatchAnything,
+	})
 }
 
 func expectError(v Validator, err *tracedError, expect WantError) {
