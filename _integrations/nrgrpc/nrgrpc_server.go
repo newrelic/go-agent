@@ -23,7 +23,10 @@ func (r serverRequest) URL() *url.URL                     { return r.url }
 func (r serverRequest) Method() string                    { return r.method }
 func (r serverRequest) Transport() newrelic.TransportType { return newrelic.TransportHTTP }
 
-func newServerRequest(ctx context.Context, method string) serverRequest {
+func startTransaction(ctx context.Context, app newrelic.Application, fullMethod string) newrelic.Transaction {
+	method := strings.TrimPrefix(fullMethod, "/")
+	txn := app.StartTransaction(method, nil, nil)
+
 	var hdrs http.Header
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
@@ -37,11 +40,13 @@ func newServerRequest(ctx context.Context, method string) serverRequest {
 	target := hdrs.Get(":authority")
 	url := getURL(method, target)
 
-	return serverRequest{
+	txn.SetWebRequest(serverRequest{
 		header: hdrs,
 		url:    url,
 		method: method,
-	}
+	})
+
+	return txn
 }
 
 // UnaryServerInterceptor TODO
@@ -51,9 +56,7 @@ func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerIntercepto
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		method := strings.TrimPrefix(info.FullMethod, "/")
-		txn := app.StartTransaction(method, nil, nil)
-		txn.SetWebRequest(newServerRequest(ctx, method))
+		txn := startTransaction(ctx, app, info.FullMethod)
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
@@ -87,9 +90,7 @@ func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerIntercep
 	}
 
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		method := strings.TrimPrefix(info.FullMethod, "/")
-		txn := app.StartTransaction(method, nil, nil)
-		txn.SetWebRequest(newServerRequest(ss.Context(), method))
+		txn := startTransaction(ss.Context(), app, info.FullMethod)
 		defer txn.End()
 
 		err := handler(srv, newWrappedServerStream(ss, txn))
