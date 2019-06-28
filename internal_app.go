@@ -580,44 +580,14 @@ func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantEven
 	internal.ExpectErrorEvents(t, app.testHarvest.ErrorEvents, want)
 }
 
-func (app *app) ExpectErrorEventsPresent(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "error events")
-	internal.ExpectErrorEventsPresent(t, app.testHarvest.ErrorEvents, want)
-}
-
-func (app *app) ExpectErrorEventsAbsent(t internal.Validator, names []string) {
-	t = internal.ExtendValidator(t, "error events")
-	internal.ExpectErrorEventsAbsent(t, app.testHarvest.ErrorEvents, names)
-}
-
 func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
 	t = internal.ExtendValidator(t, "spans events")
 	internal.ExpectSpanEvents(t, app.testHarvest.SpanEvents, want)
 }
 
-func (app *app) ExpectSpanEventsPresent(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "span events")
-	internal.ExpectSpanEventsPresent(t, app.testHarvest.SpanEvents, want)
-}
-
-func (app *app) ExpectSpanEventsAbsent(t internal.Validator, names []string) {
-	t = internal.ExtendValidator(t, "span events")
-	internal.ExpectSpanEventsAbsent(t, app.testHarvest.SpanEvents, names)
-}
-
 func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
 	t = internal.ExtendValidator(t, "txn events")
 	internal.ExpectTxnEvents(t, app.testHarvest.TxnEvents, want)
-}
-
-func (app *app) ExpectTxnEventsPresent(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "txn events")
-	internal.ExpectTxnEventsPresent(t, app.testHarvest.TxnEvents, want)
-}
-
-func (app *app) ExpectTxnEventsAbsent(t internal.Validator, names []string) {
-	t = internal.ExtendValidator(t, "txn events")
-	internal.ExpectTxnEventsAbsent(t, app.testHarvest.TxnEvents, names)
 }
 
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {

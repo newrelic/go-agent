@@ -1411,28 +1411,48 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	}
 	app.ExpectMetricsPresent(t, wantMetrics)
 
-	//Run through target events and assert for each
+	// Add extra fields that are not listed in the JSON file so that we can
+	// always do exact intrinsic set match.
+
+	extraTxnFields := &fieldExpectations{Expected: []string{"name"}}
+	if tc.WebTransaction {
+		extraTxnFields.Expected = append(extraTxnFields.Expected, "nr.apdexPerfZone")
+	}
+
+	extraSpanFields := &fieldExpectations{
+		Expected: []string{"name", "category", "nr.entryPoint"},
+	}
+
+	// There is a single test with an error (named "exception"), so these
+	// error expectations can be hard coded. TODO: Move some of these.
+	// fields into the cross agent tests.
+	extraErrorFields := &fieldExpectations{
+		Expected: []string{"parent.type", "parent.account", "parent.app",
+			"parent.transportType", "error.message", "transactionName",
+			"parent.transportDuration", "error.class"},
+	}
+
 	for _, value := range tc.Intrinsics.TargetEvents {
 		switch value {
 		case "Transaction":
 			assertTestCaseIntrinsics(t,
+				app.ExpectTxnEvents,
 				tc.Intrinsics.Common,
 				tc.Intrinsics.Transaction,
-				app.ExpectTxnEventsPresent,
-				app.ExpectTxnEventsAbsent)
+				extraTxnFields)
 		case "Span":
 			assertTestCaseIntrinsics(t,
+				app.ExpectSpanEvents,
 				tc.Intrinsics.Common,
 				tc.Intrinsics.Span,
-				app.ExpectSpanEventsPresent,
-				app.ExpectSpanEventsAbsent)
+				extraSpanFields)
 
 		case "TransactionError":
 			assertTestCaseIntrinsics(t,
+				app.ExpectErrorEvents,
 				tc.Intrinsics.Common,
 				tc.Intrinsics.TransactionError,
-				app.ExpectErrorEventsPresent,
-				app.ExpectErrorEventsAbsent)
+				extraErrorFields)
 		}
 	}
 
@@ -1476,20 +1496,14 @@ func assertTestCaseOutboundPayload(expect fieldExpectations, t internal.Validato
 }
 
 func assertTestCaseIntrinsics(t internal.Validator,
-	f1 *fieldExpectations,
-	f2 *fieldExpectations,
-	present func(internal.Validator, []internal.WantEvent),
-	absent func(internal.Validator, []string)) {
+	expect func(internal.Validator, []internal.WantEvent),
+	fields ...*fieldExpectations) {
 
 	intrinsics := map[string]interface{}{}
-	f1.add(intrinsics)
-	f2.add(intrinsics)
-	present(t, []internal.WantEvent{{Intrinsics: intrinsics}})
-
-	var unexpected []string
-	unexpected = append(unexpected, f1.unexpected()...)
-	unexpected = append(unexpected, f2.unexpected()...)
-	absent(t, unexpected)
+	for _, f := range fields {
+		f.add(intrinsics)
+	}
+	expect(t, []internal.WantEvent{{Intrinsics: intrinsics}})
 }
 
 func TestDistributedTraceCrossAgent(t *testing.T) {
