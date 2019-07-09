@@ -1,5 +1,31 @@
 ## ChangeLog
 
+### New Features
+
+* Added support for [gRPC](https://github.com/grpc/grpc-go) with the new
+[_integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgrpc)
+package.  This package supports instrumentation for servers and clients.
+
+  * [Server Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/server/server.go)
+  * [Client Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/client/client.go)
+
+* Added new
+  [ExternalSegment](https://godoc.org/github.com/newrelic/go-agent#ExternalSegment)
+  fields `Host`, `Procedure`, and `Library`.  These optional fields are
+  automatically populated from the segment's `URL` or `Request` if unset.  Use
+  them to directly control external metrics, transaction segment attributes, and
+  span attributes.
+  * `Host` is used for external metrics, transaction trace segment names, and
+    span event names.  The host of segment's `Request` or `URL` is the default.
+  * `Procedure` is used for transaction breakdown metrics.  If set, it should be
+    set to the remote procedure being called.  The HTTP method of the segment's `Request` is the default.
+  * `Library` is used for external metrics and the `"component"` span attribute.
+    If set, it should be set to the framework making the call. `"http"` is the default.
+
+  With the addition of these new fields, external transaction breakdown metrics
+  are changed: `External/myhost.com/all` will now report as
+  `External/myhost.com/http/GET` (provided the HTTP method is `GET`).
+
 * Response codes below `100`, except `0` and `5`, are now recorded as
   errors.  This is to support `gRPC` status codes.  If you start seeing
   new status code errors that you would like to ignore, add them to

@@ -54,7 +54,28 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 	return seg, ctx
 }
 
-// UnaryClientInterceptor TODO
+// UnaryClientInterceptor instruments client unary RPCs.  This interceptor
+// records each unary call with an external segment.  Using it requires two steps:
+//
+// 1. Use this function with grpc.WithChainUnaryInterceptor or
+// grpc.WithUnaryInterceptor when creating a grpc.ClientConn.  Example:
+//
+//	conn, err := grpc.Dial(
+//		"localhost:8080",
+//		grpc.WithUnaryInterceptor(nrgrpc.UnaryClientInterceptor),
+//		grpc.WithStreamInterceptor(nrgrpc.StreamClientInterceptor),
+//	)
+//
+// 2. Ensure that calls made with this grpc.ClientConn are done with a context
+// which contains a newrelic.Transaction.
+//
+// Full example:
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/client/client.go
+//
+// This interceptor only instruments unary calls.  You must use both
+// UnaryClientInterceptor and StreamClientInterceptor to instrument unary and
+// streaming calls.  These interceptors add headers to the call metadata if
+// distributed tracing is enabled.
 func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	seg, ctx := startClientSegment(ctx, method, cc.Target())
 	defer seg.End()
@@ -75,7 +96,28 @@ func (s wrappedClientStream) RecvMsg(m interface{}) error {
 	return err
 }
 
-// StreamClientInterceptor TODO
+// StreamClientInterceptor instruments client streaming RPCs.  This interceptor
+// records streaming each call with an external segment.  Using it requires two steps:
+//
+// 1. Use this function with grpc.WithChainStreamInterceptor or
+// grpc.WithStreamInterceptor when creating a grpc.ClientConn.  Example:
+//
+//	conn, err := grpc.Dial(
+//		"localhost:8080",
+//		grpc.WithUnaryInterceptor(nrgrpc.UnaryClientInterceptor),
+//		grpc.WithStreamInterceptor(nrgrpc.StreamClientInterceptor),
+//	)
+//
+// 2. Ensure that calls made with this grpc.ClientConn are done with a context
+// which contains a newrelic.Transaction.
+//
+// Full example:
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/client/client.go
+//
+// This interceptor only instruments streaming calls.  You must use both
+// UnaryClientInterceptor and StreamClientInterceptor to instrument unary and
+// streaming calls.  These interceptors add headers to the call metadata if
+// distributed tracing is enabled.
 func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 	seg, ctx := startClientSegment(ctx, method, cc.Target())
 	s, err := streamer(ctx, desc, cc, method, opts...)

@@ -49,7 +49,29 @@ func startTransaction(ctx context.Context, app newrelic.Application, fullMethod 
 	return txn
 }
 
-// UnaryServerInterceptor TODO
+// UnaryServerInterceptor instruments server unary RPCs.
+//
+// Use this function with grpc.UnaryInterceptor and a newrelic.Application to
+// create a grpc.ServerOption to pass to grpc.NewServer.  This interceptor
+// records each unary call with a transaction.  You must use both
+// UnaryServerInterceptor and StreamServerInterceptor to instrument unary and
+// streaming calls.
+//
+// Example:
+//
+//	cfg := newrelic.NewConfig("gRPC Server", os.Getenv("NEW_RELIC_LICENSE_KEY"))
+//	app, _ := newrelic.NewApplication(cfg)
+//	server := grpc.NewServer(
+//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
+//
+// These interceptors add the transaction to the call context so it may be
+// accessed in your method handlers using newrelic.FromContext.
+//
+// Full example:
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/server/server.go
+//
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
 	if nil == app {
 		return nil
@@ -83,7 +105,29 @@ func newWrappedServerStream(stream grpc.ServerStream, txn newrelic.Transaction) 
 	}
 }
 
-// StreamServerInterceptor TODO
+// StreamServerInterceptor instruments server streaming RPCs.
+//
+// Use this function with grpc.StreamInterceptor and a newrelic.Application to
+// create a grpc.ServerOption to pass to grpc.NewServer.  This interceptor
+// records each streaming call with a transaction.  You must use both
+// UnaryServerInterceptor and StreamServerInterceptor to instrument unary and
+// streaming calls.
+//
+// Example:
+//
+//	cfg := newrelic.NewConfig("gRPC Server", os.Getenv("NEW_RELIC_LICENSE_KEY"))
+//	app, _ := newrelic.NewApplication(cfg)
+//	server := grpc.NewServer(
+//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
+//
+// These interceptors add the transaction to the call context so it may be
+// accessed in your method handlers using newrelic.FromContext.
+//
+// Full example:
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/server/server.go
+//
 func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
 	if nil == app {
 		return nil
