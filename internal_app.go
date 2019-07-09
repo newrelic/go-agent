@@ -70,7 +70,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply.MetricRules)
+	h.CreateFinalMetrics(run.Reply)
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {

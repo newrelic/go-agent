@@ -194,16 +194,25 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *fixedHarvest) CreateFinalMetrics(rules metricRules) {
+func (h *fixedHarvest) CreateFinalMetrics(reply *ConnectReply) {
 	if nil == h {
 		return
 	}
 
 	h.Metrics.addSingleCount(instanceReporting, forced)
 
+	// Configurable event harvest supportability metrics:
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
+	hd := reply.getHarvestData()
+	period := hd.eventReportPeriod()
+	h.Metrics.addDuration(supportReportPeriod, "", period, period, forced)
+	h.Metrics.addValue(supportTxnEventLimit, "", float64(hd.HarvestLimits.TxnEvents), forced)
+	h.Metrics.addValue(supportCustomEventLimit, "", float64(hd.HarvestLimits.CustomEvents), forced)
+	h.Metrics.addValue(supportErrorEventLimit, "", float64(hd.HarvestLimits.ErrorEvents), forced)
+
 	createTrackUsageMetrics(h.Metrics)
 
-	h.Metrics = h.Metrics.ApplyRules(rules)
+	h.Metrics = h.Metrics.ApplyRules(reply.MetricRules)
 }
 
 // PayloadCreator is a data type in the harvest.

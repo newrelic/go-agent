@@ -46,6 +46,11 @@ func (events *analyticsEvents) capacity() int {
 func (events *analyticsEvents) addEvent(e analyticsEvent) {
 	events.numSeen++
 
+	if events.capacity() == 0 {
+		// Configurable event harvest limits may be zero.
+		return
+	}
+
 	if len(events.events) < cap(events.events) {
 		events.events = append(events.events, e)
 		if len(events.events) == cap(events.events) {
@@ -84,7 +89,7 @@ func (events *analyticsEvents) Merge(other *analyticsEvents) {
 }
 
 func (events *analyticsEvents) CollectorJSON(agentRunID string) ([]byte, error) {
-	if 0 == events.numSeen {
+	if 0 == len(events.events) {
 		return nil, nil
 	}
 

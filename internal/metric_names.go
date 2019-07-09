@@ -64,6 +64,12 @@ const (
 	supportTracingAcceptNull             = "Supportability/DistributedTrace/AcceptPayload/Ignored/Null"
 	supportTracingCreatePayloadSuccess   = "Supportability/DistributedTrace/CreatePayload/Success"
 	supportTracingCreatePayloadException = "Supportability/DistributedTrace/CreatePayload/Exception"
+
+	// Configurable event harvest supportability metrics
+	supportReportPeriod     = "Supportability/EventHarvest/ReportPeriod"
+	supportTxnEventLimit    = "Supportability/EventHarvest/AnalyticEventData/HarvestLimit"
+	supportCustomEventLimit = "Supportability/EventHarvest/CustomEventData/HarvestLimit"
+	supportErrorEventLimit  = "Supportability/EventHarvest/ErrorEventData/HarvestLimit"
 )
 
 // DistributedTracingSupport is used to track distributed tracing activity for

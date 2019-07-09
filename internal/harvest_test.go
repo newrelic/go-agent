@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -38,49 +37,56 @@ func TestCreateFinalMetrics(t *testing.T) {
 	emptyHarvest := &Harvest{}
 	emptyHarvest.CreateFinalMetrics(nil)
 
-	var rules metricRules
-	if err := json.Unmarshal([]byte(`[{
-		"match_expression": "rename_me",
-		"replacement": "been_renamed"
-	}]`), &rules); nil != err {
+	replyJSON := []byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"metric_name_rules":[{
+			"match_expression": "rename_me",
+			"replacement": "been_renamed"
+		}],
+		"event_harvest_config":{
+			"report_period_ms": 2000,
+			"harvest_limits": {
+				"analytic_event_data": 22,
+				"custom_event_data": 33,
+				"error_event_data": 44
+			}
+		}
+	}}`)
+	reply, err := constructConnectReply(replyJSON, PreconnectReply{})
+	if err != nil {
 		t.Fatal(err)
 	}
-
 	h := NewHarvest(now, nil)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(rules)
+	h.CreateFinalMetrics(reply)
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"been_renamed", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
+		{"Supportability/EventHarvest/ReportPeriod", "", true, []float64{1, 2, 2, 2, 2, 2 * 2}},
+		{"Supportability/EventHarvest/AnalyticEventData/HarvestLimit", "", true, []float64{1, 22, 22, 22, 22, 22 * 22}},
+		{"Supportability/EventHarvest/CustomEventData/HarvestLimit", "", true, []float64{1, 33, 33, 33, 33, 33 * 33}},
+		{"Supportability/EventHarvest/ErrorEventData/HarvestLimit", "", true, []float64{1, 44, 44, 44, 44, 44 * 44}},
 	})
 
-	h = NewHarvest(now, nil)
-	h.Metrics = newMetricTable(0, now)
-	h.CustomEvents = newCustomEvents(1)
-	h.TxnEvents = newTxnEvents(1)
-	h.ErrorEvents = newErrorEvents(1)
-	h.SpanEvents = newSpanEvents(1)
+	// Test again without any metric rules or event_harvest_config.
 
-	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
-	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
-
-	customE, err := CreateCustomEvent("my event type", map[string]interface{}{"zip": 1}, time.Now())
-	if nil != err {
+	replyJSON = []byte(`{"return_value":{
+		"agent_run_id": "12345"
+	}}`)
+	reply, err = constructConnectReply(replyJSON, PreconnectReply{})
+	if err != nil {
 		t.Fatal(err)
 	}
-	h.CustomEvents.Add(customE)
-	h.CustomEvents.Add(customE)
-
-	txnE := &TxnEvent{}
-	h.TxnEvents.AddTxnEvent(txnE, 0)
-	h.TxnEvents.AddTxnEvent(txnE, 0)
-
-	h.ErrorEvents.Add(&ErrorEvent{}, 0)
-	h.ErrorEvents.Add(&ErrorEvent{}, 0)
-
-	h.CreateFinalMetrics(nil)
+	h = NewHarvest(now, nil)
+	h.Metrics.addCount("rename_me", 1.0, unforced)
+	h.CreateFinalMetrics(reply)
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{"rename_me", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
+		{"Supportability/EventHarvest/ReportPeriod", "", true, []float64{1, 60, 60, 60, 60, 60 * 60}},
+		{"Supportability/EventHarvest/AnalyticEventData/HarvestLimit", "", true, []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
+		{"Supportability/EventHarvest/CustomEventData/HarvestLimit", "", true, []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
+		{"Supportability/EventHarvest/ErrorEventData/HarvestLimit", "", true, []float64{1, 100, 100, 100, 100, 100 * 100}},
 	})
 }
 
@@ -644,9 +650,9 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 
 func TestNewHarvestUsesConnectReply(t *testing.T) {
 	now := time.Now()
-	reply := ConnectReplyDefaults()
-	if err := json.Unmarshal([]byte(`{
-		"event_data": {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"event_harvest_config": {
 			"report_period_ms": 5000,
 			"harvest_limits": {
 				"analytic_event_data": 1,
@@ -654,7 +660,8 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 				"error_event_data": 3
 			}
 		}
-	}`), &reply); nil != err {
+	}}`), PreconnectReply{})
+	if err != nil {
 		t.Fatal(err)
 	}
 	h := NewHarvest(now, reply)
@@ -696,9 +703,9 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 	}
 
 	now := time.Now()
-	reply := ConnectReplyDefaults()
-	if err := json.Unmarshal([]byte(`{
-		"event_data": {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"event_harvest_config": {
 			"report_period_ms": 5000,
 			"harvest_limits": {
 				"analytic_event_data": 1,
@@ -706,7 +713,8 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 				"error_event_data": 3
 			}
 		}
-	}`), &reply); nil != err {
+	}}`), PreconnectReply{})
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -715,4 +723,117 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 
 	h.Ready(now.Add(10*time.Second), reply)
 	validateHarvest(h)
+}
+
+func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
+	now := time.Now()
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"event_harvest_config": {
+			"harvest_limits": {
+				"analytic_event_data": 0,
+				"custom_event_data": 0,
+				"error_event_data": 0
+			}
+		}
+	}}`), PreconnectReply{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHarvest(now, reply)
+	if period := h.configurableHarvestTimer.period; time.Minute != period {
+		t.Error(period)
+	}
+	if period := h.fixedHarvestTimer.period; time.Minute != period {
+		t.Error(period)
+	}
+	if cp := h.configurableHarvest.TxnEvents.capacity(); cp != 0 {
+		t.Error("wrong txn event capacity", cp)
+	}
+	if cp := h.configurableHarvest.CustomEvents.capacity(); cp != 0 {
+		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != 0 {
+		t.Error("wrong error event capacity", cp)
+	}
+
+	// Add events to ensure that adding events to zero-capacity pools is
+	// safe.
+	h.TxnEvents.AddTxnEvent(&TxnEvent{}, 1.0)
+	h.CustomEvents.Add(&CustomEvent{})
+	h.ErrorEvents.Add(&ErrorEvent{}, 1.0)
+
+	// Create the payloads to ensure doing so with zero-capacity poosl is
+	// safe.
+	payloads := h.Ready(now.Add(2*time.Minute), reply).Payloads(false)
+	for _, p := range payloads {
+		js, err := p.Data("agentRunID", now.Add(2*time.Minute))
+		if nil != err {
+			t.Error(err)
+			continue
+		}
+		// Only metric data should be present.
+		if string(js) != "" && p.EndpointMethod() != "metric_data" {
+			t.Error(p.EndpointMethod(), string(js))
+		}
+	}
+}
+
+func TestConfigurableHarvestZeroReportPeriod(t *testing.T) {
+	now := time.Now()
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"event_harvest_config": {
+			"report_period_ms": 0
+		}
+	}}`), PreconnectReply{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := NewHarvest(now, reply)
+	if period := h.configurableHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if period := h.fixedHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if cp := h.configurableHarvest.TxnEvents.capacity(); cp != maxTxnEvents {
+		t.Error("wrong txn event capacity", cp)
+	}
+	if cp := h.configurableHarvest.CustomEvents.capacity(); cp != maxCustomEvents {
+		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != maxErrorEvents {
+		t.Error("wrong error event capacity", cp)
+	}
+}
+
+func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
+	now := time.Now()
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+		"agent_run_id": "12345",
+		"event_harvest_config": {
+			"report_period_ms": -1
+		}
+	}}`), PreconnectReply{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := NewHarvest(now, reply)
+	if period := h.configurableHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if period := h.fixedHarvestTimer.period; time.Minute != period {
+		t.Error("wrong harvest period", period)
+	}
+	if cp := h.configurableHarvest.TxnEvents.capacity(); cp != maxTxnEvents {
+		t.Error("wrong txn event capacity", cp)
+	}
+	if cp := h.configurableHarvest.CustomEvents.capacity(); cp != maxCustomEvents {
+		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.configurableHarvest.ErrorEvents.capacity(); cp != maxErrorEvents {
+		t.Error("wrong error event capacity", cp)
+	}
 }

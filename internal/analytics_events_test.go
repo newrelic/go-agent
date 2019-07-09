@@ -320,3 +320,20 @@ func TestSplitNotFullEven(t *testing.T) {
 		t.Error(string(j2))
 	}
 }
+
+func TestAnalyticsEventsZeroCapacity(t *testing.T) {
+	// Analytics events methods should be safe when configurable harvest
+	// settings have an event limit of zero.
+	events := newAnalyticsEvents(0)
+	if 0 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
+		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
+	}
+	events.addEvent(sampleAnalyticsEvent(0.5))
+	if 1 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
+		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
+	}
+	js, err := events.CollectorJSON("agentRunID")
+	if err != nil || js != nil {
+		t.Error(err, string(js))
+	}
+}
