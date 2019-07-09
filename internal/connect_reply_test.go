@@ -187,3 +187,20 @@ func BenchmarkDefaultRules(b *testing.B) {
 		}
 	}
 }
+
+func TestNegativeHarvestLimits(t *testing.T) {
+	// Test that negative harvest event limits will cause a connect error.
+	// Harvest event limits are never expected to be negative:  This is just
+	// extra defensiveness.
+	_, err := constructConnectReply([]byte(`{"return_value":{
+			"agent_run_id": "12345",
+			"event_harvest_config": {
+				"harvest_limits": {
+					"error_event_data": -1
+				}
+			}
+		}}`), PreconnectReply{})
+	if err == nil {
+		t.Fatal("expected error missing")
+	}
+}

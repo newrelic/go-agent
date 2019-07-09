@@ -152,9 +152,9 @@ func newFixedHarvest(now time.Time) *fixedHarvest {
 func newConfigurableHarvest(now time.Time, reply *ConnectReply) *configurableHarvest {
 	harvestData := reply.getHarvestData()
 	return &configurableHarvest{
-		CustomEvents: newCustomEvents(harvestData.HarvestLimits.CustomEvents),
-		TxnEvents:    newTxnEvents(harvestData.HarvestLimits.TxnEvents),
-		ErrorEvents:  newErrorEvents(harvestData.HarvestLimits.ErrorEvents),
+		CustomEvents: newCustomEvents(int(harvestData.HarvestLimits.CustomEvents)),
+		TxnEvents:    newTxnEvents(int(harvestData.HarvestLimits.TxnEvents)),
+		ErrorEvents:  newErrorEvents(int(harvestData.HarvestLimits.ErrorEvents)),
 	}
 }
 

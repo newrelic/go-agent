@@ -243,9 +243,9 @@ type ConnectEventData struct {
 // harvestLimits is used in both the connect request and reply's event_data key
 // to specify the max number of events of each type allowable by the agent
 type harvestLimits struct {
-	TxnEvents    int `json:"analytic_event_data"`
-	CustomEvents int `json:"custom_event_data"`
-	ErrorEvents  int `json:"error_event_data"`
+	TxnEvents    uint `json:"analytic_event_data"`
+	CustomEvents uint `json:"custom_event_data"`
+	ErrorEvents  uint `json:"error_event_data"`
 }
 
 // newHarvestLimits creates a harvestLimits with the currently set max values
