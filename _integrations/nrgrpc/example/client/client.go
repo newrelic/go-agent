@@ -94,7 +94,7 @@ func mustGetEnv(key string) string {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("gRPC Server", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
+	cfg := newrelic.NewConfig("gRPC Client", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
