@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.9.0
+
 ### New Features
 
 * Added support for [gRPC](https://github.com/grpc/grpc-go) monitoring with the new
