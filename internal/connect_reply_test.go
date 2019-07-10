@@ -204,3 +204,13 @@ func TestNegativeHarvestLimits(t *testing.T) {
 		t.Fatal("expected error missing")
 	}
 }
+
+func TestDefaultEventHarvestConfigJSON(t *testing.T) {
+	js, err := json.Marshal(DefaultEventHarvestConfig())
+	if err != nil {
+		t.Error(err)
+	}
+	if string(js) != `{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":10000,"error_event_data":100}}` {
+		t.Error(string(js))
+	}
+}

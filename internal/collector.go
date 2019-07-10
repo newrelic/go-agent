@@ -235,37 +235,6 @@ type preconnectRequest struct {
 	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
 }
 
-// ConnectEventData is the event_data key in the connect request payload
-type ConnectEventData struct {
-	HarvestLimits harvestLimits `json:"harvest_limits"`
-}
-
-// harvestLimits is used in both the connect request and reply's event_data key
-// to specify the max number of events of each type allowable by the agent
-type harvestLimits struct {
-	TxnEvents    uint `json:"analytic_event_data"`
-	CustomEvents uint `json:"custom_event_data"`
-	ErrorEvents  uint `json:"error_event_data"`
-}
-
-// newHarvestLimits creates a harvestLimits with the currently set max values
-// for each event type.
-func newHarvestLimits() harvestLimits {
-	return harvestLimits{
-		TxnEvents:    maxTxnEvents,
-		CustomEvents: maxCustomEvents,
-		ErrorEvents:  maxErrorEvents,
-	}
-}
-
-// NewConnectEventData creates a new ConnectEventData with values set for the
-// maximums for each event type
-func NewConnectEventData() ConnectEventData {
-	return ConnectEventData{
-		HarvestLimits: newHarvestLimits(),
-	}
-}
-
 // ConnectAttempt tries to connect an application.
 func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, RPMResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{

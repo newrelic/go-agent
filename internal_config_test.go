@@ -179,6 +179,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"NEW_RELIC_METADATA_ZAP":"zip"
 		},
 		"event_harvest_config": {
+			"report_period_ms": 60000,
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
@@ -323,6 +324,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		},
 		"metadata":{},
 		"event_harvest_config": {
+			"report_period_ms": 60000,
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,

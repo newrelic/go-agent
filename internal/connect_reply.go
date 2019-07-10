@@ -89,29 +89,42 @@ type ConnectReply struct {
 	} `json:"agent_config"`
 
 	// Faster Event Harvest
-	EventData harvestData `json:"event_harvest_config"`
+	EventData EventHarvestConfig `json:"event_harvest_config"`
 }
 
-type harvestData struct {
-	EventReportPeriodMs int           `json:"report_period_ms"`
-	HarvestLimits       harvestLimits `json:"harvest_limits"`
+// EventHarvestConfig contains fields relating to faster event harvest.
+// This structure is used in the connect request (to send up defaults)
+// and in the connect response (to get the server values).
+//
+// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event_harvest_config-hash
+// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
+type EventHarvestConfig struct {
+	EventReportPeriodMs int `json:"report_period_ms"`
+	HarvestLimits       struct {
+		TxnEvents    uint `json:"analytic_event_data"`
+		CustomEvents uint `json:"custom_event_data"`
+		ErrorEvents  uint `json:"error_event_data"`
+	} `json:"harvest_limits"`
 }
 
-func (r *ConnectReply) getHarvestData() harvestData {
+func (r *ConnectReply) getHarvestData() EventHarvestConfig {
 	if nil != r {
 		return r.EventData
 	}
-	return harvestDataDefaults()
+	return DefaultEventHarvestConfig()
 }
 
-func harvestDataDefaults() harvestData {
-	return harvestData{
-		EventReportPeriodMs: defaultConfigurableEventHarvestMs,
-		HarvestLimits:       newHarvestLimits(),
-	}
+// DefaultEventHarvestConfig provides faster event harvest defaults.
+func DefaultEventHarvestConfig() EventHarvestConfig {
+	cfg := EventHarvestConfig{}
+	cfg.EventReportPeriodMs = defaultConfigurableEventHarvestMs
+	cfg.HarvestLimits.TxnEvents = maxTxnEvents
+	cfg.HarvestLimits.CustomEvents = maxCustomEvents
+	cfg.HarvestLimits.ErrorEvents = maxErrorEvents
+	return cfg
 }
 
-func (h harvestData) eventReportPeriod() time.Duration {
+func (h EventHarvestConfig) eventReportPeriod() time.Duration {
 	return time.Duration(h.EventReportPeriodMs) * time.Millisecond
 }
 
@@ -155,7 +168,7 @@ func ConnectReplyDefaults() *ConnectReply {
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
 
-		EventData: harvestDataDefaults(),
+		EventData: DefaultEventHarvestConfig(),
 	}
 }
 
