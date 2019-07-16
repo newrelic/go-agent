@@ -1,5 +1,20 @@
 ## ChangeLog
 
+* Added support for custom events and custom metrics when using
+  [nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda).
+  Example Lambda handler which creates custom event:
+
+```go
+func handler(ctx context.Context) {
+	if txn := newrelic.FromContext(ctx); nil != txn {
+		txn.Application().RecordCustomEvent("myEvent", map[string]interface{}{
+			"zip": "zap",
+		})
+	}
+	fmt.Println("hello world!")
+}
+```
+
 ## 2.9.0
 
 ### New Features

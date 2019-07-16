@@ -1,15 +1,10 @@
 package newrelic
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -397,107 +392,6 @@ func (txn *txn) WriteHeader(code int) {
 	}
 
 	headersJustWritten(txn, code, hdr)
-}
-
-const (
-	lambdaMetadataVersion = 2
-)
-
-func (txn *txn) serverlessDataJSON() ([]byte, error) {
-	harvest := internal.NewHarvest(txn.Start, nil)
-	txn.MergeIntoHarvest(harvest)
-	payloads := harvest.Payloads(false)
-	harvestPayloads := make(map[string]json.RawMessage, len(payloads))
-	for _, p := range payloads {
-		agentRunID := ""
-		cmd := p.EndpointMethod()
-		data, err := p.Data(agentRunID, txn.Stop)
-		if err != nil {
-			txn.Config.Logger.Error("error creating payload json", map[string]interface{}{
-				"command": cmd,
-				"error":   err.Error(),
-			})
-			continue
-		}
-		if nil == data {
-			continue
-		}
-		// NOTE!  This code relies on the fact that each payload is
-		// using a different endpoint method.  Sometimes the transaction
-		// events payload might be split, but since there is only one
-		// transaction event per serverless transaction, that's not an
-		// issue.  Likewise, if we ever split normal transaction events
-		// apart from synthetics events, the transaction will either be
-		// normal or synthetic, so that won't be an issue.  Log an error
-		// if this happens for future defensiveness.
-		if _, ok := harvestPayloads[cmd]; ok {
-			txn.Config.Logger.Error("data with duplicate command name lost", map[string]interface{}{
-				"command": cmd,
-			})
-		}
-		harvestPayloads[cmd] = json.RawMessage(data)
-	}
-
-	return json.Marshal(harvestPayloads)
-}
-
-func (txn *txn) serverlessJSON(executionEnv string) ([]byte, error) {
-	data, err := txn.serverlessDataJSON()
-	if nil != err {
-		return nil, err
-	}
-
-	var dataBuf bytes.Buffer
-	gz := gzip.NewWriter(&dataBuf)
-	gz.Write(data)
-	gz.Flush()
-	gz.Close()
-
-	arn, _ := txn.Attrs.GetAgentValue(internal.AttributeAWSLambdaARN, internal.DestAll)
-	return json.Marshal([]interface{}{
-		lambdaMetadataVersion,
-		"NR_LAMBDA_MONITORING",
-		struct {
-			MetadataVersion      int    `json:"metadata_version"`
-			ARN                  string `json:"arn,omitempty"`
-			ProtocolVersion      int    `json:"protocol_version"`
-			ExecutionEnvironment string `json:"execution_environment,omitempty"`
-			AgentVersion         string `json:"agent_version"`
-			AgentLanguage        string `json:"agent_language"`
-		}{
-			MetadataVersion:      lambdaMetadataVersion,
-			ProtocolVersion:      internal.ProcotolVersion,
-			AgentVersion:         Version,
-			ExecutionEnvironment: executionEnv,
-			ARN:                  arn,
-			AgentLanguage:        agentLanguage,
-		},
-		base64.StdEncoding.EncodeToString(dataBuf.Bytes()),
-	})
-}
-
-var (
-	_ serverlessTransaction = &txn{}
-)
-
-type serverlessTransaction interface {
-	// serverlessJSON creates the Lambda JSON that will be printed to stdout
-	// by serverlessDump.  It is exposed through this interface to
-	// facilitate testing.
-	serverlessJSON(executionEnv string) ([]byte, error)
-	// serverlessDump writes the Lambda JSON to stdout.
-	serverlessDump()
-}
-
-func (txn *txn) serverlessDump() {
-	js, err := txn.serverlessJSON(os.Getenv("AWS_EXECUTION_ENV"))
-	if err != nil {
-		txn.Config.Logger.Error("error creating serverless json", map[string]interface{}{
-			"error": err.Error(),
-		})
-	} else {
-		fmt.Println(string(js))
-	}
 }
 
 func (thd *thread) End() error {

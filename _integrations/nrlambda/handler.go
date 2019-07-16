@@ -13,7 +13,9 @@ package nrlambda
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -64,15 +66,20 @@ func responseEvent(ctx context.Context, event interface{}) {
 }
 
 func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
+	var arn, requestID string
+	if lctx, ok := lambdacontext.FromContext(ctx); ok {
+		arn = lctx.InvokedFunctionArn
+		requestID = lctx.AwsRequestID
+	}
+
+	defer internal.ServerlessWrite(h.app, arn, h.writer)
+
 	txn := h.app.StartTransaction(h.functionName, nil, nil)
 	defer txn.End()
 
 	if aa, ok := txn.(internal.AddAgentAttributer); ok {
-		if lctx, ok := lambdacontext.FromContext(ctx); ok {
-			aa.AddAgentAttribute(internal.AttributeAWSRequestID, lctx.AwsRequestID, nil)
-			aa.AddAgentAttribute(internal.AttributeAWSLambdaARN, lctx.InvokedFunctionArn, nil)
-		}
-
+		aa.AddAgentAttribute(internal.AttributeAWSRequestID, requestID, nil)
+		aa.AddAgentAttribute(internal.AttributeAWSLambdaARN, arn, nil)
 		h.firstTransaction.Do(func() {
 			aa.AddAgentAttribute(internal.AttributeAWSLambdaColdStart, "", true)
 		})
@@ -103,6 +110,9 @@ type wrappedHandler struct {
 	// a time, we use a synchronization primitive to determine if this is
 	// the first transaction for defensiveness in case of future changes.
 	firstTransaction sync.Once
+	// writer is used to log the data JSON at the end of each transaction.
+	// This field exists (rather than hardcoded os.Stdout) for testing.
+	writer io.Writer
 }
 
 // WrapHandler wraps the provided handler and returns a new handler with
@@ -117,6 +127,7 @@ func WrapHandler(handler lambda.Handler, app newrelic.Application) lambda.Handle
 		original:     handler,
 		app:          app,
 		functionName: lambdacontext.FunctionName,
+		writer:       os.Stdout,
 	}
 }
 

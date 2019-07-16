@@ -2,10 +2,7 @@ package newrelic
 
 import (
 	"bytes"
-	"compress/gzip"
-	"encoding/base64"
-	"encoding/json"
-	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -180,36 +177,66 @@ func TestServerlessRecordCustomMetric(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
 	app := testApp(nil, cfgFn, t)
 	err := app.RecordCustomMetric("myMetric", 123.0)
-	if err != errMetricServerless {
+	if err != nil {
 		t.Error(err)
+	}
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}},
+	})
+
+	buf := &bytes.Buffer{}
+	internal.ServerlessWrite(app, "my-arn", buf)
+
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Data should contain only metrics.  Metric timestamps make exact
+	// comparison tough.
+	metricData := string(data["metric_data"])
+	if !strings.Contains(metricData, `[[{"name":"Custom/myMetric"},[1,123,123,123,123,15129]]]`) {
+		t.Error(metricData)
+	}
+	if len(data) != 1 {
+		t.Fatal(data)
 	}
 }
 
 func TestServerlessRecordCustomEvent(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
 	app := testApp(nil, cfgFn, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != errCustomEventsServerless {
+
+	attributes := map[string]interface{}{"zip": 1}
+	err := app.RecordCustomEvent("myType", attributes)
+	if err != nil {
 		t.Error(err)
 	}
-}
+	app.ExpectCustomEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "myType",
+			"timestamp": internal.MatchAnything,
+		},
+		UserAttributes: attributes,
+	}})
 
-func decodeUncompress(input string) ([]byte, error) {
-	decoded, err := base64.StdEncoding.DecodeString(input)
-	if nil != err {
-		return nil, err
+	buf := &bytes.Buffer{}
+	internal.ServerlessWrite(app, "my-arn", buf)
+
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	buf := bytes.NewBuffer(decoded)
-	gz, err := gzip.NewReader(buf)
-	if nil != err {
-		return nil, err
+	// Data should contain only custom events.  Dynamic timestamp makes exact
+	// comparison difficult.
+	eventData := string(data["custom_event_data"])
+	if !strings.Contains(eventData, `{"zip":1}`) {
+		t.Error(eventData)
 	}
-	var out bytes.Buffer
-	io.Copy(&out, gz)
-	gz.Close()
-
-	return out.Bytes(), nil
+	if len(data) != 1 {
+		t.Fatal(data)
+	}
 }
 
 func TestServerlessJSON(t *testing.T) {
@@ -220,102 +247,28 @@ func TestServerlessJSON(t *testing.T) {
 	txn := app.StartTransaction("hello", nil, nil)
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeAWSLambdaARN, "thearn", nil)
 	txn.End()
-	payloadJSON, err := txn.(serverlessTransaction).serverlessJSON("executionEnv")
-	if nil != err {
+
+	buf := &bytes.Buffer{}
+	internal.ServerlessWrite(app, "lambda-test-arn", buf)
+
+	metadata, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
 		t.Fatal(err)
 	}
-	var payload []interface{}
-	err = json.Unmarshal(payloadJSON, &payload)
-	if nil != err {
-		t.Fatal(err)
-	}
-	if len(payload) != 4 {
-		t.Fatal(payload)
-	}
-	if v := payload[0].(float64); v != lambdaMetadataVersion {
-		t.Fatal(payload[0], lambdaMetadataVersion)
-	}
-	if v := payload[1].(string); v != "NR_LAMBDA_MONITORING" {
-		t.Fatal(payload[1])
-	}
-	dataJSON, err := decodeUncompress(payload[3].(string))
-	if nil != err {
-		t.Fatal(err)
-	}
-	var data map[string]interface{}
-	err = json.Unmarshal(dataJSON, &data)
-	if nil != err {
-		t.Fatal(err)
-	}
+
 	// Data should contain txn event and metrics.  Timestamps make exact
 	// JSON comparison tough.
-	if _, ok := data["metric_data"]; !ok {
+	if v := data["metric_data"]; nil == v {
 		t.Fatal(data)
 	}
-	if _, ok := data["analytic_event_data"]; !ok {
+	if v := data["analytic_event_data"]; nil == v {
 		t.Fatal(data)
 	}
-
-	metadata, ok := payload[2].(map[string]interface{})
-	if !ok {
-		t.Fatal(payload[2])
+	if v := string(metadata["arn"]); v != `"lambda-test-arn"` {
+		t.Fatal(v)
 	}
-	if v, ok := metadata["metadata_version"].(float64); !ok || v != float64(lambdaMetadataVersion) {
-		t.Fatal(metadata["metadata_version"])
-	}
-	if v, ok := metadata["arn"].(string); !ok || v != "thearn" {
-		t.Fatal(metadata["arn"])
-	}
-	if v, ok := metadata["protocol_version"].(float64); !ok || v != float64(internal.ProcotolVersion) {
-		t.Fatal(metadata["protocol_version"])
-	}
-	if v, ok := metadata["execution_environment"].(string); !ok || v != "executionEnv" {
-		t.Fatal(metadata["execution_environment"])
-	}
-	if v, ok := metadata["agent_version"].(string); !ok || v != Version {
-		t.Fatal(metadata["agent_version"])
-	}
-	if v, ok := metadata["agent_language"].(string); !ok || v != agentLanguage {
-		t.Fatal(metadata["agent_language"])
-	}
-}
-
-func TestServerlessJSONMissingARN(t *testing.T) {
-	// serverlessPayloadJSON should not panic if the Lambda ARN is missing.
-	// The Lambda ARN is not expected to be missing, but to be safe we need
-	// to ensure that txn.Attrs.Agent.StringVal won't panic if its not
-	// there.
-	cfgFn := func(cfg *Config) {
-		cfg.ServerlessMode.Enabled = true
-	}
-	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
-	txn.End()
-	payloadJSON, err := txn.(serverlessTransaction).serverlessJSON("executionEnv")
-	if nil != err {
-		t.Fatal(err)
-	}
-	if nil == payloadJSON {
-		t.Error("missing JSON")
-	}
-}
-
-func BenchmarkServerlessJSON(b *testing.B) {
-	cfgFn := func(cfg *Config) {
-		cfg.ServerlessMode.Enabled = true
-	}
-	app := testApp(nil, cfgFn, b)
-	txn := app.StartTransaction("hello", nil, nil)
-	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeAWSLambdaARN, "thearn", nil)
-	segment := StartSegment(txn, "mySegment")
-	segment.End()
-	txn.End()
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	for i := 0; i < b.N; i++ {
-		txn.(serverlessTransaction).serverlessJSON("executionEnv")
+	if v := string(metadata["agent_version"]); v != `"`+Version+`"` {
+		t.Fatal(v)
 	}
 }
 

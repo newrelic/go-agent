@@ -3,6 +3,7 @@ package newrelic
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"os"
@@ -67,6 +68,8 @@ type app struct {
 	// err is non-nil if the application will never be connected again
 	// (disconnect, license exception, shutdown).
 	err error
+
+	serverless *internal.ServerlessHarvest
 }
 
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
@@ -389,16 +392,17 @@ func newApp(c Config) (Application, error) {
 		"enabled": app.config.Enabled,
 	})
 
-	if app.config.ServerlessMode.Enabled {
-		reply := newServerlessConnectReply(c)
-		app.run = newAppRun(c, reply)
-	}
-
-	if app.config.Enabled && !app.config.ServerlessMode.Enabled {
-		go app.process()
-		go app.connectRoutine()
-		if app.config.RuntimeSampler.Enabled {
-			go runSampler(app, internal.RuntimeSamplerPeriod)
+	if app.config.Enabled {
+		if app.config.ServerlessMode.Enabled {
+			reply := newServerlessConnectReply(c)
+			app.run = newAppRun(c, reply)
+			app.serverless = internal.NewServerlessHarvest(c.Logger, Version, os.Getenv)
+		} else {
+			go app.process()
+			go app.connectRoutine()
+			if app.config.RuntimeSampler.Enabled {
+				go runSampler(app, internal.RuntimeSamplerPeriod)
+			}
 		}
 	}
 
@@ -411,7 +415,10 @@ type expectApp interface {
 }
 
 func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, error) {
-	cfg.Enabled = false
+	// Prevent spawning app goroutines in tests.
+	if !cfg.ServerlessMode.Enabled {
+		cfg.Enabled = false
+	}
 	application, err := newApp(cfg)
 	if nil != err {
 		return nil, err
@@ -475,15 +482,10 @@ var (
 	errHighSecurityEnabled        = errors.New("high security enabled")
 	errCustomEventsDisabled       = errors.New("custom events disabled")
 	errCustomEventsRemoteDisabled = errors.New("custom events disabled by server")
-	errCustomEventsServerless     = errors.New("custom events are not supported by serverless")
 )
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
-	if app.config.ServerlessMode.Enabled {
-		return errCustomEventsServerless
-	}
-
 	if app.config.HighSecurity {
 		return errHighSecurityEnabled
 	}
@@ -512,17 +514,13 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 }
 
 var (
-	errMetricInf        = errors.New("invalid metric value: inf")
-	errMetricNaN        = errors.New("invalid metric value: NaN")
-	errMetricNameEmpty  = errors.New("missing metric name")
-	errMetricServerless = errors.New("custom metrics are not supported in serverless mode")
+	errMetricInf       = errors.New("invalid metric value: inf")
+	errMetricNaN       = errors.New("invalid metric value: NaN")
+	errMetricNameEmpty = errors.New("missing metric name")
 )
 
 // RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
 func (app *app) RecordCustomMetric(name string, value float64) error {
-	if app.config.ServerlessMode.Enabled {
-		return errMetricServerless
-	}
 	if math.IsNaN(value) {
 		return errMetricNaN
 	}
@@ -540,20 +538,24 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 	return nil
 }
 
+var (
+	_ internal.ServerlessWriter = &app{}
+)
+
+func (app *app) ServerlessWrite(arn string, writer io.Writer) {
+	app.serverless.Write(arn, writer)
+}
+
 func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	if "" != debugLogging {
 		debug(data, app.config.Logger)
 	}
 
+	app.serverless.Consume(data)
+
 	if nil != app.testHarvest {
 		data.MergeIntoHarvest(app.testHarvest)
 		return
-	}
-
-	if app.config.Enabled && app.config.ServerlessMode.Enabled {
-		if t, ok := data.(serverlessTransaction); ok {
-			t.serverlessDump()
-		}
 	}
 
 	if "" == id {

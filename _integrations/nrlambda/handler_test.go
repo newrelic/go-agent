@@ -1,6 +1,7 @@
 package nrlambda
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,12 +14,30 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
+func dataShouldContain(tb testing.TB, data map[string]json.RawMessage, keys ...string) {
+	if h, ok := tb.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
+	if len(data) != len(keys) {
+		tb.Errorf("data key length mismatch, expected=%v got=%v",
+			len(keys), len(data))
+		return
+	}
+	for _, k := range keys {
+		_, ok := data[k]
+		if !ok {
+			tb.Errorf("data does not contain key %v", k)
+		}
+	}
+}
+
 func testApp(getenv func(string) string, t *testing.T) newrelic.Application {
 	if nil == getenv {
 		getenv = func(string) string { return "" }
 	}
 	cfg := newConfigInternal(getenv)
-	cfg.Enabled = false
 
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
@@ -47,6 +66,8 @@ func TestColdStart(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	ctx := context.Background()
 	lctx := &lambdacontext.LambdaContext{
@@ -74,7 +95,18 @@ func TestColdStart(t *testing.T) {
 			"aws.lambda.coldStart": true,
 		},
 	}})
+	metadata, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
+	if v := string(metadata["arn"]); v != `"function-arn"` {
+		t.Error(metadata)
+	}
+
 	// Invoke the handler again to test the cold-start attribute absence.
+	buf = &bytes.Buffer{}
+	w.writer = buf
 	internal.HarvestTesting(app, nil)
 	resp, err = wrapped.Invoke(ctx, nil)
 	if nil != err || string(resp) != "null" {
@@ -94,6 +126,14 @@ func TestColdStart(t *testing.T) {
 			"aws.lambda.arn": "function-arn",
 		},
 	}})
+	metadata, data, err = internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
+	if v := string(metadata["arn"]); v != `"function-arn"` {
+		t.Error(metadata)
+	}
 }
 
 func TestErrorCapture(t *testing.T) {
@@ -103,6 +143,8 @@ func TestErrorCapture(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	resp, err := wrapped.Invoke(context.Background(), nil)
 	if err != returnError || string(resp) != "" {
@@ -135,6 +177,12 @@ func TestErrorCapture(t *testing.T) {
 			"aws.lambda.coldStart": true,
 		},
 	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data",
+		"error_event_data", "error_data")
 }
 
 func TestWrapNilApp(t *testing.T) {
@@ -155,6 +203,8 @@ func TestSetWebRequest(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	req := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
@@ -197,6 +247,11 @@ func TestSetWebRequest(t *testing.T) {
 			"request.uri":          "//:4000",
 		},
 	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
 func makePayload(app newrelic.Application) string {
@@ -210,6 +265,8 @@ func TestDistributedTracing(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	req := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
@@ -263,6 +320,11 @@ func TestDistributedTracing(t *testing.T) {
 			"request.uri":          "//:4000",
 		},
 	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
 func TestEventARN(t *testing.T) {
@@ -271,6 +333,8 @@ func TestEventARN(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	req := events.DynamoDBEvent{
 		Records: []events.DynamoDBEventRecord{{
@@ -309,6 +373,11 @@ func TestEventARN(t *testing.T) {
 			"aws.lambda.eventSource.arn": "ARN",
 		},
 	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
 func TestAPIGatewayProxyResponse(t *testing.T) {
@@ -326,6 +395,8 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 	wrapped := Wrap(originalHandler, app)
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
 
 	resp, err := wrapped.Invoke(context.Background(), nil)
 	if nil != err {
@@ -350,4 +421,45 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 			"response.headers.contentType": "text/html",
 		},
 	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
+}
+
+func TestCustomEvent(t *testing.T) {
+	originalHandler := func(c context.Context) {
+		if txn := newrelic.FromContext(c); nil != txn {
+			txn.Application().RecordCustomEvent("myEvent", map[string]interface{}{
+				"zip": "zap",
+			})
+		}
+	}
+	app := testApp(nil, t)
+	wrapped := Wrap(originalHandler, app)
+	w := wrapped.(*wrappedHandler)
+	w.functionName = "functionName"
+	buf := &bytes.Buffer{}
+	w.writer = buf
+
+	resp, err := wrapped.Invoke(context.Background(), nil)
+	if nil != err || string(resp) != "null" {
+		t.Error("unexpected response", err, string(resp))
+	}
+	app.(internal.Expect).ExpectCustomEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "myEvent",
+			"timestamp": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{
+			"zip": "zap",
+		},
+		AgentAttributes: map[string]interface{}{},
+	}})
+	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	if err != nil {
+		t.Error(err)
+	}
+	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data", "custom_event_data")
 }

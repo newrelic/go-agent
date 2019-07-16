@@ -50,11 +50,6 @@ func copyConfigReferenceFields(cfg Config) Config {
 	return cp
 }
 
-const (
-	// agentLanguage is used in the connect JSON and the Lambda JSON
-	agentLanguage = "go"
-)
-
 func transportSetting(t http.RoundTripper) interface{} {
 	if nil == t {
 		return nil
@@ -128,7 +123,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		EventData        internal.EventHarvestConfig `json:"event_harvest_config"`
 	}{
 		Pid:             pid,
-		Language:        agentLanguage,
+		Language:        internal.AgentLanguage,
 		Version:         version,
 		Host:            internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
 		HostDisplayName: internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
