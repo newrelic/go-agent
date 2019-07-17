@@ -38,7 +38,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 	emptyHarvest.CreateFinalMetrics(nil)
 
 	replyJSON := []byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"metric_name_rules":[{
 			"match_expression": "rename_me",
 			"replacement": "been_renamed"
@@ -71,7 +70,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 	// Test again without any metric rules or event_harvest_config.
 
 	replyJSON = []byte(`{"return_value":{
-		"agent_run_id": "12345"
 	}}`)
 	reply, err = constructConnectReply(replyJSON, PreconnectReply{})
 	if err != nil {
@@ -651,7 +649,6 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 func TestNewHarvestUsesConnectReply(t *testing.T) {
 	now := time.Now()
 	reply, err := constructConnectReply([]byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"event_harvest_config": {
 			"report_period_ms": 5000,
 			"harvest_limits": {
@@ -704,7 +701,6 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 
 	now := time.Now()
 	reply, err := constructConnectReply([]byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"event_harvest_config": {
 			"report_period_ms": 5000,
 			"harvest_limits": {
@@ -728,7 +724,6 @@ func TestConfigurableHarvestCorrectlyResetOnHarvest(t *testing.T) {
 func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	now := time.Now()
 	reply, err := constructConnectReply([]byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"event_harvest_config": {
 			"harvest_limits": {
 				"analytic_event_data": 0,
@@ -783,7 +778,6 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 func TestConfigurableHarvestZeroReportPeriod(t *testing.T) {
 	now := time.Now()
 	reply, err := constructConnectReply([]byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"event_harvest_config": {
 			"report_period_ms": 0
 		}
@@ -812,7 +806,6 @@ func TestConfigurableHarvestZeroReportPeriod(t *testing.T) {
 func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
 	now := time.Now()
 	reply, err := constructConnectReply([]byte(`{"return_value":{
-		"agent_run_id": "12345",
 		"event_harvest_config": {
 			"report_period_ms": -1
 		}

@@ -235,6 +235,10 @@ type preconnectRequest struct {
 	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
 }
 
+var (
+	errMissingAgentRunID = errors.New("connect reply missing agent run id")
+)
+
 // ConnectAttempt tries to connect an application.
 func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, RPMResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{
@@ -285,6 +289,13 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs 
 	if nil != err {
 		return nil, RPMResponse{Err: err}
 	}
+
+	// Note:  This should never happen.  It would mean the collector
+	// response is malformed.  This exists merely as extra defensiveness.
+	if "" == reply.RunID {
+		return nil, RPMResponse{Err: errMissingAgentRunID}
+	}
+
 	return reply, resp
 }
 
@@ -296,11 +307,6 @@ func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectRep
 	err := json.Unmarshal(body, &reply)
 	if nil != err {
 		return nil, fmt.Errorf("unable to parse connect reply: %v", err)
-	}
-	// Note:  This should never happen.  It would mean the collector
-	// response is malformed.  This exists merely as extra defensiveness.
-	if "" == reply.Reply.RunID {
-		return nil, errors.New("connect reply missing agent run id")
 	}
 
 	reply.Reply.PreconnectReply = preconnect

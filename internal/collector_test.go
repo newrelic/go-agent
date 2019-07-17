@@ -390,8 +390,8 @@ func TestConnectAttemptMissingRunID(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
-		t.Fatal("missing error")
+	if errMissingAgentRunID != resp.Err {
+		t.Fatal("wrong error", resp.Err)
 	}
 }
 
@@ -460,7 +460,6 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 	testcases := [][]byte{
 		[]byte(`{
 			"return_value": {
-				"agent_run_id": "1234567890",
 				"event_data": {
 					"report_period_ms": 5000,
 					"harvest_limits": {
@@ -473,7 +472,6 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		}`),
 		[]byte(`{
 			"return_value": {
-				"agent_run_id": "1234567890",
 				"event_data": {
 					"report_period_ms": 5000,
 					"harvest_limits": {
@@ -486,7 +484,6 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		}`),
 		[]byte(`{
 			"return_value": {
-				"agent_run_id": "1234567890",
 				"event_data": {
 					"report_period_ms": 5000,
 					"harvest_limits": {
@@ -499,7 +496,6 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		}`),
 		[]byte(`{
 			"return_value": {
-				"agent_run_id": "1234567890",
 				"event_data": {
 					"report_period_ms": 0,
 					"harvest_limits": {
@@ -512,12 +508,11 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		}`),
 		[]byte(`{
 			"return_value": {
-				"agent_run_id": "1234567890",
 				"event_data": { "report_period_ms": 0 }
 			}
 		}`),
 		[]byte(`{
-			"return_value": { "agent_run_id": "1234567890" }
+			"return_value": { }
 		}`),
 	}
 

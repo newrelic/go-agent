@@ -193,7 +193,6 @@ func TestNegativeHarvestLimits(t *testing.T) {
 	// Harvest event limits are never expected to be negative:  This is just
 	// extra defensiveness.
 	_, err := constructConnectReply([]byte(`{"return_value":{
-			"agent_run_id": "12345",
 			"event_harvest_config": {
 				"harvest_limits": {
 					"error_event_data": -1
