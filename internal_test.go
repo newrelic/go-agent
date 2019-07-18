@@ -136,6 +136,11 @@ const (
 	testLicenseKey = "0123456789012345678901234567890123456789"
 )
 
+type expectApp interface {
+	internal.Expect
+	Application
+}
+
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
 	cfg := NewConfig("my app", testLicenseKey)
 
@@ -143,11 +148,19 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 		cfgfn(&cfg)
 	}
 
-	app, err := newTestApp(replyfn, cfg)
+	// Prevent spawning app goroutines in tests.
+	if !cfg.ServerlessMode.Enabled {
+		cfg.Enabled = false
+	}
+
+	app, err := newApp(cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
-	return app
+
+	internal.HarvestTesting(app, replyfn)
+
+	return app.(expectApp)
 }
 
 func TestRecordCustomEventSuccess(t *testing.T) {

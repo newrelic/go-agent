@@ -409,26 +409,6 @@ func newApp(c Config) (Application, error) {
 	return app, nil
 }
 
-type expectApp interface {
-	internal.Expect
-	Application
-}
-
-func newTestApp(replyfn func(*internal.ConnectReply), cfg Config) (expectApp, error) {
-	// Prevent spawning app goroutines in tests.
-	if !cfg.ServerlessMode.Enabled {
-		cfg.Enabled = false
-	}
-	application, err := newApp(cfg)
-	if nil != err {
-		return nil, err
-	}
-	app := application.(*app)
-	app.HarvestTesting(replyfn)
-
-	return app, nil
-}
-
 var (
 	_ internal.HarvestTestinger = &app{}
 	_ internal.Expect           = &app{}
