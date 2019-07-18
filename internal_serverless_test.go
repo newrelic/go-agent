@@ -177,29 +177,8 @@ func TestServerlessRecordCustomMetric(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
 	app := testApp(nil, cfgFn, t)
 	err := app.RecordCustomMetric("myMetric", 123.0)
-	if err != nil {
+	if err != errMetricServerless {
 		t.Error(err)
-	}
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}},
-	})
-
-	buf := &bytes.Buffer{}
-	internal.ServerlessWrite(app, "my-arn", buf)
-
-	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Data should contain only metrics.  Metric timestamps make exact
-	// comparison tough.
-	metricData := string(data["metric_data"])
-	if !strings.Contains(metricData, `[[{"name":"Custom/myMetric"},[1,123,123,123,123,15129]]]`) {
-		t.Error(metricData)
-	}
-	if len(data) != 1 {
-		t.Fatal(data)
 	}
 }
 

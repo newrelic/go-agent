@@ -1,6 +1,6 @@
 ## ChangeLog
 
-* Added support for custom events and custom metrics when using
+* Added support for custom events when using
   [nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda).
   Example Lambda handler which creates custom event:
 

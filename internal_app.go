@@ -494,13 +494,17 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 }
 
 var (
-	errMetricInf       = errors.New("invalid metric value: inf")
-	errMetricNaN       = errors.New("invalid metric value: NaN")
-	errMetricNameEmpty = errors.New("missing metric name")
+	errMetricInf        = errors.New("invalid metric value: inf")
+	errMetricNaN        = errors.New("invalid metric value: NaN")
+	errMetricNameEmpty  = errors.New("missing metric name")
+	errMetricServerless = errors.New("custom metrics are not currently supported in serverless mode")
 )
 
 // RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
 func (app *app) RecordCustomMetric(name string, value float64) error {
+	if app.config.ServerlessMode.Enabled {
+		return errMetricServerless
+	}
 	if math.IsNaN(value) {
 		return errMetricNaN
 	}
