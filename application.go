@@ -35,7 +35,8 @@ type Application interface {
 	RecordCustomEvent(eventType string, params map[string]interface{}) error
 
 	// RecordCustomMetric records a custom metric.  The metric name you
-	// provide will be prefixed by "Custom/".
+	// provide will be prefixed by "Custom/".  Custom metrics are not
+	// currently supported in serverless mode.
 	//
 	// https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
 	RecordCustomMetric(name string, value float64) error
