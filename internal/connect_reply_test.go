@@ -213,3 +213,14 @@ func TestDefaultEventHarvestConfigJSON(t *testing.T) {
 		t.Error(string(js))
 	}
 }
+
+func TestReplyTraceIDGenerator(t *testing.T) {
+	// Test that the default connect reply has a populated trace id
+	// generator that works.
+	reply := ConnectReplyDefaults()
+	id1 := reply.TraceIDGenerator.GenerateTraceID()
+	id2 := reply.TraceIDGenerator.GenerateTraceID()
+	if len(id1) != 16 || len(id2) != 16 || id1 == id2 {
+		t.Error(id1, id2)
+	}
+}

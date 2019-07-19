@@ -71,6 +71,7 @@ type TxnData struct {
 	stamp           segmentStamp
 	threadIDCounter uint64
 
+	TraceIDGenerator       *TraceIDGenerator
 	LazilyCalculateSampled func() bool
 	SpanEventsEnabled      bool
 	rootSpanID             string
@@ -255,16 +256,9 @@ func StartSegment(t *TxnData, thread *Thread, now time.Time) SegmentStartTime {
 	}
 }
 
-// NewSpanID returns a random identifier in the format used for spans and
-// transactions.
-func NewSpanID() string {
-	bits := RandUint64()
-	return fmt.Sprintf("%016x", bits)
-}
-
 func (t *TxnData) getRootSpanID() string {
 	if "" == t.rootSpanID {
-		t.rootSpanID = NewSpanID()
+		t.rootSpanID = t.TraceIDGenerator.GenerateTraceID()
 	}
 	return t.rootSpanID
 }
@@ -276,7 +270,7 @@ func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
 		return t.getRootSpanID()
 	}
 	if "" == thread.stack[len(thread.stack)-1].spanID {
-		thread.stack[len(thread.stack)-1].spanID = NewSpanID()
+		thread.stack[len(thread.stack)-1].spanID = t.TraceIDGenerator.GenerateTraceID()
 	}
 	return thread.stack[len(thread.stack)-1].spanID
 }
@@ -339,7 +333,7 @@ func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Tim
 	if t.SpanEventsEnabled && t.LazilyCalculateSampled() {
 		s.SpanID = frame.spanID
 		if "" == s.SpanID {
-			s.SpanID = NewSpanID()
+			s.SpanID = t.TraceIDGenerator.GenerateTraceID()
 		}
 		// Note that the current span identifier is the parent's
 		// identifier because we've already popped the segment that's

@@ -296,33 +296,26 @@ func TestDefaultSpanEvent(t *testing.T) {
 	}
 }
 
-func TestNewSpanID(t *testing.T) {
-	id := NewSpanID()
-	if len(id) != 16 {
-		t.Error(id)
-	}
-}
-
 func TestGetRootSpanID(t *testing.T) {
-	txndata := &TxnData{}
-	id := txndata.getRootSpanID()
-	if id == "" {
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
+	if id := txndata.getRootSpanID(); id != "d9466896a525ccbf" {
 		t.Error(id)
 	}
-	txndata.rootSpanID = "0123456789ABCDEF"
-	id = txndata.getRootSpanID()
-	if id != "0123456789ABCDEF" {
+	if id := txndata.getRootSpanID(); id != "d9466896a525ccbf" {
 		t.Error(id)
 	}
 }
 
 func TestCurrentSpanIdentifier(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
-	txndata.rootSpanID = "0123456789ABCDEF"
 	id := txndata.CurrentSpanIdentifier(thread)
-	if id != "0123456789ABCDEF" {
+	if id != "d9466896a525ccbf" {
 		t.Error(id)
 	}
 
@@ -334,22 +327,15 @@ func TestCurrentSpanIdentifier(t *testing.T) {
 	}
 
 	id = txndata.CurrentSpanIdentifier(thread)
-	if id != "0123456789ABCDEF" {
+	if id != "d9466896a525ccbf" {
 		t.Error(id)
 	}
 
 	// After starting a new segment, there should be a new current span id.
 	StartSegment(txndata, thread, start.Add(2*time.Second))
 	id2 := txndata.CurrentSpanIdentifier(thread)
-	if id2 == "0123456789ABCDEF" ||
-		id2 != thread.stack[0].spanID {
+	if id2 != "bcfb32e050b264b8" {
 		t.Error(id2)
-	}
-
-	// The current segment has not ended, so there should be no new current span id.
-	id = txndata.CurrentSpanIdentifier(thread)
-	if id != id2 {
-		t.Error(id)
 	}
 }
 
@@ -646,7 +632,9 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 
 func TestGenericSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
@@ -667,7 +655,9 @@ func TestGenericSpanEventCreation(t *testing.T) {
 
 func TestSpanEventNotSampled(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
 
 	txndata.LazilyCalculateSampled = func() bool { return false }
@@ -683,7 +673,9 @@ func TestSpanEventNotSampled(t *testing.T) {
 
 func TestSpanEventNotEnabled(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
 
 	txndata.LazilyCalculateSampled = func() bool { return true }
@@ -699,7 +691,9 @@ func TestSpanEventNotEnabled(t *testing.T) {
 
 func TestDatastoreSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
@@ -728,7 +722,9 @@ func TestDatastoreSpanEventCreation(t *testing.T) {
 
 func TestHTTPSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread := &Thread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
@@ -758,7 +754,9 @@ func TestExternalSegmentCAT(t *testing.T) {
 	// Test that when the reading the response CAT headers fails, an external
 	// segment is still created.
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	txndata.CrossProcess.Enabled = true
 	thread := &Thread{}
 

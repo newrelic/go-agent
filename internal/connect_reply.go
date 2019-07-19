@@ -64,6 +64,10 @@ type ConnectReply struct {
 	} `json:"messages"`
 
 	AdaptiveSampler AdaptiveSampler
+	// TraceIDGenerator creates random IDs for distributed tracing.  It
+	// exists here in the connect reply so it can be modified to create
+	// deterministic identifiers in tests.
+	TraceIDGenerator *TraceIDGenerator `json:"-"`
 
 	// BetterCAT/Distributed Tracing
 	AccountID                     string `json:"account_id"`
@@ -169,6 +173,8 @@ func ConnectReplyDefaults() *ConnectReply {
 		SamplingTargetPeriodInSeconds: 60,
 
 		EventData: DefaultEventHarvestConfig(),
+
+		TraceIDGenerator: NewTraceIDGenerator(int64(time.Now().UnixNano())),
 	}
 }
 

@@ -12,6 +12,7 @@ func TestSpanEventSuccess(t *testing.T) {
 	// transaction has a root span event.
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -28,10 +29,10 @@ func TestSpanEventSuccess(t *testing.T) {
 				"sampled":       true,
 				"category":      "generic",
 				"priority":      internal.MatchAnything,
-				"guid":          internal.MatchAnything,
-				"transactionId": internal.MatchAnything,
+				"guid":          "0e97aeb2f79d5d27",
+				"transactionId": "d9466896a525ccbf",
 				"nr.entryPoint": true,
-				"traceId":       internal.MatchAnything,
+				"traceId":       "d9466896a525ccbf",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -42,10 +43,10 @@ func TestSpanEventSuccess(t *testing.T) {
 				"sampled":       true,
 				"category":      "generic",
 				"priority":      internal.MatchAnything,
-				"guid":          internal.MatchAnything,
-				"transactionId": internal.MatchAnything,
-				"traceId":       internal.MatchAnything,
-				"parentId":      internal.MatchAnything,
+				"guid":          "bcfb32e050b264b8",
+				"transactionId": "d9466896a525ccbf",
+				"traceId":       "d9466896a525ccbf",
+				"parentId":      "0e97aeb2f79d5d27",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

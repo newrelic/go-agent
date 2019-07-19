@@ -246,7 +246,9 @@ func TestTxnTraceNoNodes(t *testing.T) {
 
 func TestTxnTraceAsync(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{}
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
 	thread1 := &Thread{}
 	txndata.TxnTrace.Enabled = true
 	txndata.TxnTrace.StackTraceThreshold = 1 * time.Hour

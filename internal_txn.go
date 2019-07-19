@@ -92,7 +92,8 @@ func newTxn(input txnInput, name string) *thread {
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
 		txn.BetterCAT.Priority = internal.NewPriority()
-		txn.BetterCAT.ID = internal.NewSpanID()
+		txn.TraceIDGenerator = input.Reply.TraceIDGenerator
+		txn.BetterCAT.ID = txn.TraceIDGenerator.GenerateTraceID()
 		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled
 		txn.LazilyCalculateSampled = txn.lazilyCalculateSampled
 	}
