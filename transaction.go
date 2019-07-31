@@ -31,7 +31,12 @@ type Transaction interface {
 
 	// NoticeError records an error.  The Transaction saves the first five
 	// errors.  For more control over the recorded error fields, see the
-	// newrelic.Error type.
+	// newrelic.Error type.  In certain situations, using this method may
+	// result in an error being recorded twice:  Errors are automatically
+	// recorded when Transaction.WriteHeader receives a status code above
+	// 400 or below 100 that is not in the IgnoreStatusCodes configuration
+	// list.  This method is unaffected by the IgnoreStatusCodes
+	// configuration list.
 	NoticeError(err error) error
 
 	// AddAttribute adds a key value pair to the transaction event, errors,

@@ -19,7 +19,10 @@
 * [Custom Events](#custom-events)
 * [Request Queuing](#request-queuing)
 * [Error Reporting](#error-reporting)
-  * [Advanced Error Reporting](#advanced-error-reporting)
+  * [NoticeError](#noticeerror)
+    * [Advanced NoticeError Use](#advanced-noticeerror-use)
+  * [Panics](#panics)
+  * [Error Response Codes](#error-response-codes)
 * [Naming Transactions and Metrics](#naming-transactions-and-metrics)
 * [Browser](#browser)
 * [For More Help](#for-more-help)
@@ -525,6 +528,14 @@ band on the application overview chart showing queue time.
 
 ## Error Reporting
 
+The Go Agent captures errors in three different ways:
+
+1. [the Transaction.NoticeError method](#noticeerror)
+2. [panics recovered in defer Transaction.End](#panics)
+3. [error response status codes recorded with Transaction.WriteHeader](#error-response-codes)
+
+### NoticeError
+
 You may track errors using the `Transaction.NoticeError` method.  The easiest
 way to get started with `NoticeError` is to use errors based on
 [Go's standard error interface](https://blog.golang.org/error-handling-and-go).
@@ -550,7 +561,7 @@ txn.NoticeError(newrelic.Error{
 })
 ```
 
-Using the `newrelic.Error` struct requires you to manually marshall your error
+Using the `newrelic.Error` struct requires you to manually marshal your error
 data into the `Message`, `Class`, and `Attributes` fields.  However, there's two
 **advantages** to using the `newrelic.Error` struct.
 
@@ -559,7 +570,7 @@ in the *Error Analytics* section of APM.  Second, the `Attributes` field allows
 you to send through key/value pairs with additional error debugging information
 (also exposed in the *Error Analytics* section of APM).
 
-### Advanced Error Reporting
+### Advanced NoticeError Use
 
 You're not limited to using Go's built-in error type or the provided
 `newrelic.Error` struct.  The Go Agent provides three error interfaces
@@ -610,6 +621,39 @@ txn.NoticeError(MyErrorWithClass{})
 
 While this is an oversimplified example, these interfaces give you a great deal
 of control over what error information is available for your application.
+
+### Panics
+
+When the Transaction is ended using `defer`, the Transaction will recover any
+panic that occurs, record it as an error, and re-throw it.  As a result, panics
+may appear to be originating from `Transaction.End`.
+
+```go
+func unstableTask(app newrelic.Application) {
+	txn := app.StartTransaction("unstableTask", nil, nil)
+	defer txn.End()
+
+	// This panic will be recorded as an error.
+	panic("something went wrong")
+}
+```
+
+### Error Response Codes
+
+Since the
+[Transaction](https://godoc.org/github.com/newrelic/go-agent#Transaction)
+implements
+[http.ResponseWriter](https://golang.org/pkg/net/http/#ResponseWriter), you can
+use `Transaction.WriteHeader` to record the response status code.  The
+transaction will record an error if the status code is above 400 or below 100
+and not in the ignored status codes configuration list.  The ignored status
+codes list is configured by the `Config.ErrorCollector.IgnoreStatusCodes` field
+or within the New Relic UI if your application has server side configuration
+enabled.
+
+As a result, using `Transaction.NoticeError` in situations where your code is
+returning an erroneous status code may result in redundant errors.
+`NoticeError` is not affected by the ignored status codes configuration list.
 
 ## Naming Transactions and Metrics
 
