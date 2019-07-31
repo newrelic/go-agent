@@ -33,6 +33,7 @@ type appData struct {
 }
 
 type app struct {
+	Logger
 	config      Config
 	rpmControls internal.RpmControls
 	testHarvest *internal.Harvest
@@ -81,7 +82,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 		data, err := p.Data(run.Reply.RunID.String(), harvestStart)
 
 		if nil != err {
-			app.config.Logger.Warn("unable to create harvest data", map[string]interface{}{
+			app.Warn("unable to create harvest data", map[string]interface{}{
 				"cmd":   cmd,
 				"error": err.Error(),
 			})
@@ -110,7 +111,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 		}
 
 		if nil != resp.Err {
-			app.config.Logger.Warn("harvest failure", map[string]interface{}{
+			app.Warn("harvest failure", map[string]interface{}{
 				"cmd":         cmd,
 				"error":       resp.Err.Error(),
 				"retain_data": resp.ShouldSaveHarvestData(),
@@ -146,7 +147,7 @@ func (app *app) connectRoutine() {
 		}
 
 		if nil != resp.Err {
-			app.config.Logger.Warn("application connect failure", map[string]interface{}{
+			app.Warn("application connect failure", map[string]interface{}{
 				"error": resp.Err.Error(),
 			})
 		}
@@ -253,11 +254,11 @@ func (app *app) process() {
 
 			if resp.IsDisconnect() {
 				app.setState(nil, resp.Err)
-				app.config.Logger.Error("application disconnected", map[string]interface{}{
+				app.Error("application disconnected", map[string]interface{}{
 					"app": app.config.AppName,
 				})
 			} else if resp.IsRestartException() {
-				app.config.Logger.Info("application restarted", map[string]interface{}{
+				app.Info("application restarted", map[string]interface{}{
 					"app": app.config.AppName,
 				})
 				go app.connectRoutine()
@@ -266,11 +267,11 @@ func (app *app) process() {
 			h = internal.NewHarvest(time.Now(), run.Reply)
 			app.setState(run, nil)
 
-			app.config.Logger.Info("application connected", map[string]interface{}{
+			app.Info("application connected", map[string]interface{}{
 				"app": app.config.AppName,
 				"run": run.Reply.RunID.String(),
 			})
-			processConnectMessages(run, app.config.Logger)
+			processConnectMessages(run, app)
 		}
 	}
 }
@@ -296,18 +297,18 @@ func (app *app) Shutdown(timeout time.Duration) {
 	}
 	t.Stop()
 
-	app.config.Logger.Info("application shutdown", map[string]interface{}{
+	app.Info("application shutdown", map[string]interface{}{
 		"app": app.config.AppName,
 	})
 }
 
 func runSampler(app *app, period time.Duration) {
-	previous := internal.GetSample(time.Now(), app.config.Logger)
+	previous := internal.GetSample(time.Now(), app)
 	t := time.NewTicker(period)
 	for {
 		select {
 		case now := <-t.C:
-			current := internal.GetSample(now, app.config.Logger)
+			current := internal.GetSample(now, app)
 			run, _ := app.getState()
 			app.Consume(run.Reply.RunID, internal.GetStats(internal.Samples{
 				Previous: previous,
@@ -355,6 +356,7 @@ func newApp(c Config) (Application, error) {
 		c.Logger = logger.ShimLogger{}
 	}
 	app := &app{
+		Logger:         c.Logger,
 		config:         c,
 		placeholderRun: newAppRun(c, internal.ConnectReplyDefaults()),
 
@@ -378,7 +380,7 @@ func newApp(c Config) (Application, error) {
 		},
 	}
 
-	app.config.Logger.Info("application created", map[string]interface{}{
+	app.Info("application created", map[string]interface{}{
 		"app":     app.config.AppName,
 		"version": Version,
 		"enabled": app.config.Enabled,
@@ -524,7 +526,7 @@ func (app *app) ServerlessWrite(arn string, writer io.Writer) {
 
 func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 	if "" != debugLogging {
-		debug(data, app.config.Logger)
+		debug(data, app)
 	}
 
 	app.serverless.Consume(data)
