@@ -1,5 +1,9 @@
 ## ChangeLog
 
+## 2.10.0
+
+### New Features
+
 * Added support for custom events when using
   [nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda).
   Example Lambda handler which creates custom event:
