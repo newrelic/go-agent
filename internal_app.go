@@ -301,14 +301,6 @@ func (app *app) Shutdown(timeout time.Duration) {
 	})
 }
 
-func convertAttributeDestinationConfig(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
-	return internal.AttributeDestinationConfig{
-		Enabled: c.Enabled,
-		Include: c.Include,
-		Exclude: c.Exclude,
-	}
-}
-
 func runSampler(app *app, period time.Duration) {
 	previous := internal.GetSample(time.Now(), app.config.Logger)
 	t := time.NewTicker(period)

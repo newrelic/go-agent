@@ -19,16 +19,23 @@ type appRun struct {
 }
 
 func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
+	convertConfig := func(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
+		return internal.AttributeDestinationConfig{
+			Enabled: c.Enabled,
+			Include: c.Include,
+			Exclude: c.Exclude,
+		}
+	}
 	run := &appRun{
 		Reply: reply,
 		AttributeConfig: internal.CreateAttributeConfig(internal.AttributeConfigInput{
-			Attributes:        convertAttributeDestinationConfig(config.Attributes),
-			ErrorCollector:    convertAttributeDestinationConfig(config.ErrorCollector.Attributes),
-			TransactionEvents: convertAttributeDestinationConfig(config.TransactionEvents.Attributes),
-			TransactionTracer: convertAttributeDestinationConfig(config.TransactionTracer.Attributes),
-			BrowserMonitoring: convertAttributeDestinationConfig(config.BrowserMonitoring.Attributes),
-			SpanEvents:        convertAttributeDestinationConfig(config.SpanEvents.Attributes),
-			TraceSegments:     convertAttributeDestinationConfig(config.TransactionTracer.Segments.Attributes),
+			Attributes:        convertConfig(config.Attributes),
+			ErrorCollector:    convertConfig(config.ErrorCollector.Attributes),
+			TransactionEvents: convertConfig(config.TransactionEvents.Attributes),
+			TransactionTracer: convertConfig(config.TransactionTracer.Attributes),
+			BrowserMonitoring: convertConfig(config.BrowserMonitoring.Attributes),
+			SpanEvents:        convertConfig(config.SpanEvents.Attributes),
+			TraceSegments:     convertConfig(config.TransactionTracer.Segments.Attributes),
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
 		Config: config,
 	}
