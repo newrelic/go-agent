@@ -81,6 +81,7 @@ func TestCollectorRequest(t *testing.T) {
 		RunID:             "run_id",
 		Data:              nil,
 		RequestHeadersMap: map[string]string{"zip": "zap"},
+		MaxPayloadSize:    maxPayloadSizeInBytes,
 	}
 	testField := func(name, v1, v2 string) {
 		if v1 != v2 {
@@ -533,6 +534,75 @@ func TestZeroValueEventTypeMax(t *testing.T) {
 		}
 		if p := reply.EventData.EventReportPeriodMs; 60*1000 != p {
 			t.Error("incorrect event report period", p)
+		}
+	}
+}
+
+func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
+	// Test that CollectorRequest returns an error when MaxPayloadSize is
+	// exceeded
+	cmd := RpmCmd{
+		Name:           "cmd_name",
+		Collector:      "collector.com",
+		RunID:          "run_id",
+		Data:           []byte("abcdefghijklmnopqrstuvwxyz"),
+		MaxPayloadSize: 3,
+	}
+	cs := RpmControls{
+		Client: &http.Client{
+			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+				t.Error("no response should have gone out!")
+				return nil, nil
+			}),
+		},
+		Logger: logger.ShimLogger{IsDebugEnabled: true},
+	}
+	resp := CollectorRequest(cmd, cs)
+	if nil == resp.Err {
+		t.Error("response should have contained error")
+	}
+	if resp.ShouldSaveHarvestData() {
+		t.Error("harvest data should be discarded when max_payload_size_in_bytes is exceeded")
+	}
+}
+
+func TestConnectReplyMaxPayloadSize(t *testing.T) {
+	testcases := []struct {
+		replyBody              string
+		expectedMaxPayloadSize int
+	}{
+		{
+			replyBody:              `{"return_value":{"agent_run_id":"my_agent_run_id"}}`,
+			expectedMaxPayloadSize: 1000 * 1000,
+		},
+		{
+			replyBody:              `{"return_value":{"agent_run_id":"my_agent_run_id","max_payload_size_in_bytes":123}}`,
+			expectedMaxPayloadSize: 123,
+		},
+	}
+
+	controls := func(replyBody string) RpmControls {
+		return RpmControls{
+			Client: &http.Client{
+				Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: 200,
+						Body:       ioutil.NopCloser(strings.NewReader(replyBody)),
+					}, nil
+				}),
+			},
+			Logger: logger.ShimLogger{IsDebugEnabled: true},
+		}
+	}
+
+	for _, test := range testcases {
+		reply, resp := ConnectAttempt(testConfig{}, "", controls(test.replyBody))
+		if nil != resp.Err {
+			t.Error("resp returned unexpected error:", resp.Err)
+		}
+		if test.expectedMaxPayloadSize != reply.MaxPayloadSizeInBytes {
+			t.Errorf("incorrect MaxPayloadSizeInBytes: expected=%d actual=%d",
+				test.expectedMaxPayloadSize, reply.MaxPayloadSizeInBytes)
 		}
 	}
 }

@@ -98,6 +98,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 			Name:              cmd,
 			Data:              data,
 			RequestHeadersMap: run.Reply.RequestHeadersMap,
+			MaxPayloadSize:    run.Reply.MaxPayloadSizeInBytes,
 		}
 
 		resp := internal.CollectorRequest(call, app.rpmControls)
