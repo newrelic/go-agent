@@ -126,7 +126,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 }
 
 func (app *app) connectRoutine() {
-	backoff := internal.ConnectBackoffStart
+	connectAttempt := 0
 	for {
 		reply, resp := internal.ConnectAttempt(config{app.config},
 			app.config.SecurityPoliciesToken, app.rpmControls)
@@ -153,11 +153,21 @@ func (app *app) connectRoutine() {
 			})
 		}
 
-		time.Sleep(backoff)
-		if backoff < internal.ConnectBackoffLimit {
-			backoff *= 2
-		}
+		backoff := getConnectBackoffTime(connectAttempt)
+		time.Sleep(time.Duration(backoff) * time.Second)
+		connectAttempt++
 	}
+}
+
+// Connect backoff time follows the sequence defined at
+// https://source.datanerd.us/agents/agent-specs/blob/master/Collector-Response-Handling.md#retries-and-backoffs
+func getConnectBackoffTime(attempt int) int {
+	connectBackoffTimes := [...]int{15, 15, 30, 60, 120, 300}
+	l := len(connectBackoffTimes)
+	if (attempt < 0) || (attempt >= l) {
+		return connectBackoffTimes[l-1]
+	}
+	return connectBackoffTimes[attempt]
 }
 
 func debug(data internal.Harvestable, lg Logger) {

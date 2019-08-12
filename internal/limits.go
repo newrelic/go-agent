@@ -5,12 +5,6 @@ import "time"
 const (
 	// app behavior
 
-	// ConnectBackoffStart is the initial backoff time between unsuccessful connect
-	// attempts.  It is doubled until the ConnectBackoffLimit is reached.
-	// https://source.datanerd.us/agents/agent-specs/blob/master/Collector-Response-Handling.md#retries-and-backoffs
-	ConnectBackoffStart = 15 * time.Second
-	// ConnectBackoffLimit is the largest connect backoff possible.
-	ConnectBackoffLimit = 240 * time.Second
 	// fixedHarvestPeriod is the period that fixed period data (metrics,
 	// traces, and span events) is sent to New Relic.
 	fixedHarvestPeriod = 60 * time.Second
