@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/url"
 	"strings"
-
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/metadata"
+	"github.com/micro/go-micro/registry"
 	newrelic "github.com/newrelic/go-agent"
 )
 
@@ -71,4 +71,17 @@ func (n *nrWrapper) Call(ctx context.Context, req client.Request, rsp interface{
 
 func ClientWrapper(c client.Client) client.Client {
 	return &nrWrapper{c}
+}
+
+func CallWrapper() client.CallWrapper {
+	return func(cf client.CallFunc) client.CallFunc {
+		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+			if txn := newrelic.FromContext(ctx); nil != txn {
+				var seg newrelic.ExternalSegment
+				ctx, seg = startExternal(ctx, req.Endpoint(), req.Service())
+				defer seg.End()
+			}
+			return cf(ctx, node, req, rsp, opts)
+		}
+	}
 }
