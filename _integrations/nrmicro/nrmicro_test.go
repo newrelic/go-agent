@@ -68,12 +68,12 @@ func createTestApp(t *testing.T) newrelic.Application {
 	return app
 }
 
-func newTestClientAndServer(t *testing.T) (client.Client, server.Server) {
+func newTestClientAndServer(wrapperOption client.Option, t *testing.T) (client.Client, server.Server) {
 	registry := rmemory.NewRegistry()
 	sel := selector.NewSelector(selector.Registry(registry))
 	c := client.NewClient(
 		client.Selector(sel),
-		client.Wrap(ClientWrapper),
+		wrapperOption,
 	)
 	s := server.NewServer(
 		server.Name("testing"),
@@ -87,8 +87,18 @@ func newTestClientAndServer(t *testing.T) (client.Client, server.Server) {
 }
 
 func TestClientCallWithNoTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
 	defer s.Stop()
+	testClientCallWithNoTransaction(c, t)
+}
+
+func TestClientCallWrapperWithNoTransaction(t *testing.T) {
+	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	defer s.Stop()
+	testClientCallWithNoTransaction(c, t)
+}
+
+func testClientCallWithNoTransaction(c client.Client, t *testing.T) {
 
 	ctx := context.Background()
 	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
@@ -102,8 +112,18 @@ func TestClientCallWithNoTransaction(t *testing.T) {
 }
 
 func TestClientCallWithTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
 	defer s.Stop()
+	testClientCallWithTransaction(c, t)
+}
+
+func TestClientCallWrapperWithTransaction(t *testing.T) {
+	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	defer s.Stop()
+	testClientCallWithTransaction(c, t)
+}
+
+func testClientCallWithTransaction(c client.Client, t *testing.T) {
 
 	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
@@ -173,10 +193,19 @@ func TestClientCallWithTransaction(t *testing.T) {
 }
 
 func TestClientCallMetadata(t *testing.T) {
-	// test that context metadata is not changed by the newrelic wrapper
-	c, s := newTestClientAndServer(t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
 	defer s.Stop()
+	testClientCallMetadata(c, t)
+}
 
+func TestCallMetadata(t *testing.T) {
+	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	defer s.Stop()
+	testClientCallMetadata(c, t)
+}
+
+func testClientCallMetadata(c client.Client, t *testing.T) {
+	// test that context metadata is not changed by the newrelic wrapper
 	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp(t)
@@ -194,7 +223,7 @@ func TestClientCallMetadata(t *testing.T) {
 	}
 }
 
-func newTestClientAndBroker(t *testing.T) (client.Client, broker.Broker) {
+func newTestClientAndBroker() (client.Client, broker.Broker) {
 	b := bmemory.NewBroker()
 	c := client.NewClient(
 		client.Broker(b),
@@ -219,7 +248,7 @@ func waitOrTimeout(t *testing.T, wg sync.WaitGroup) {
 var topic = "topic"
 
 func TestClientPublishWithNoTransaction(t *testing.T) {
-	c, b := newTestClientAndBroker(t)
+	c, b := newTestClientAndBroker()
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
@@ -247,7 +276,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 }
 
 func TestClientPublishWithTransaction(t *testing.T) {
-	c, b := newTestClientAndBroker(t)
+	c, b := newTestClientAndBroker()
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
