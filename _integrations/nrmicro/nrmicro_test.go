@@ -276,11 +276,14 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	waitOrTimeout(t, wg)
 
 	txn.End()
+	addr := b.Address()
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "Custom/Publish", Scope: "", Forced: false, Data: nil},
-		{Name: "Custom/Publish", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/" + addr + "/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/" + addr + "/Micro/Publish", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/name", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -299,9 +302,11 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/Publish",
-				"parentId": internal.MatchAnything,
+				"category":  "http",
+				"component": "Micro",
+				"name":      "External/" + addr + "/Micro/Publish",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -317,7 +322,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "Custom/Publish",
+						SegmentName: "External/" + addr + "/Micro/Publish",
 						Attributes:  map[string]interface{}{},
 					},
 				},
