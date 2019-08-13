@@ -70,12 +70,14 @@ func (n *nrWrapper) Call(ctx context.Context, req client.Request, rsp interface{
 	return n.Client.Call(ctx, req, rsp, opts...)
 }
 
+// ClientWrapper TODO
 func ClientWrapper() client.Wrapper {
 	return func(c client.Client) client.Client {
 		return &nrWrapper{c}
 	}
 }
 
+// CallWrapper TODO
 func CallWrapper() client.CallWrapper {
 	return func(cf client.CallFunc) client.CallFunc {
 		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
