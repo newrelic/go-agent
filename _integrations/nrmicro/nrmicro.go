@@ -2,6 +2,8 @@ package nrmicro
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/metadata"
@@ -11,6 +13,8 @@ import (
 type nrWrapper struct {
 	client.Client
 }
+
+var addrMap = make(map[string]string)
 
 func startExternal(ctx context.Context, procedure, host string) (context.Context, newrelic.ExternalSegment) {
 	var seg newrelic.ExternalSegment
@@ -32,8 +36,29 @@ func startExternal(ctx context.Context, procedure, host string) (context.Context
 	return ctx, seg
 }
 
+func extractHost(addr string) string {
+	if host, ok := addrMap[addr]; ok {
+		return host
+	}
+
+	host := addr
+	if strings.HasPrefix(host, "unix://") {
+		host = "localhost"
+	} else if u, err := url.Parse(host); nil == err {
+		if "" != u.Host {
+			host = u.Host
+		} else {
+			host = u.Path
+		}
+	}
+
+	addrMap[addr] = host
+	return host
+}
+
 func (n *nrWrapper) Publish(ctx context.Context, msg client.Message, opts ...client.PublishOption) error {
-	ctx, seg := startExternal(ctx, "Publish", n.Options().Broker.Address())
+	host := extractHost(n.Options().Broker.Address())
+	ctx, seg := startExternal(ctx, "Publish", host)
 	defer seg.End()
 	return n.Client.Publish(ctx, msg, opts...)
 }

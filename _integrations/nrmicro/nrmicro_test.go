@@ -330,3 +330,37 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		},
 	}})
 }
+
+func TestExtractHost(t *testing.T) {
+	testcases := []struct {
+		input  string
+		expect string
+	}{
+		{
+			input:  "192.168.0.10",
+			expect: "192.168.0.10",
+		},
+		{
+			input:  "192.168.0.10:1234",
+			expect: "192.168.0.10:1234",
+		},
+		{
+			input:  "unix:///path/to/file",
+			expect: "localhost",
+		},
+		{
+			input:  "nats://127.0.0.1:4222",
+			expect: "127.0.0.1:4222",
+		},
+		{
+			input:  "scheme://user:pass@host.com:5432/path?k=v#f",
+			expect: "host.com:5432",
+		},
+	}
+
+	for _, test := range testcases {
+		if actual := extractHost(test.input); actual != test.expect {
+			t.Errorf("incorrect host value extracted: actual=%s expected=%s", actual, test.expect)
+		}
+	}
+}
