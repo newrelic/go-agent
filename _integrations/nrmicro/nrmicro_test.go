@@ -82,7 +82,7 @@ func newTestClientAndServer(t *testing.T) (client.Client, server.Server) {
 	return c, s
 }
 
-func TestClientWithNoTransaction(t *testing.T) {
+func TestClientCallWithNoTransaction(t *testing.T) {
 	c, s := newTestClientAndServer(t)
 	defer s.Stop()
 
@@ -97,7 +97,7 @@ func TestClientWithNoTransaction(t *testing.T) {
 	}
 }
 
-func TestClientWithTransaction(t *testing.T) {
+func TestClientCallWithTransaction(t *testing.T) {
 	c, s := newTestClientAndServer(t)
 	defer s.Stop()
 
@@ -168,7 +168,7 @@ func TestClientWithTransaction(t *testing.T) {
 	}})
 }
 
-func TestClientMetadata(t *testing.T) {
+func TestClientCallMetadata(t *testing.T) {
 	// test that context metadata is not changed by the newrelic wrapper
 	c, s := newTestClientAndServer(t)
 	defer s.Stop()
