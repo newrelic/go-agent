@@ -87,7 +87,7 @@ func newTestClientAndServer(wrapperOption client.Option, t *testing.T) (client.C
 }
 
 func TestClientCallWithNoTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithNoTransaction(c, t)
 }
@@ -112,7 +112,7 @@ func testClientCallWithNoTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallWithTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithTransaction(c, t)
 }
@@ -193,7 +193,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallMetadata(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper), t)
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallMetadata(c, t)
 }
@@ -227,7 +227,7 @@ func newTestClientAndBroker() (client.Client, broker.Broker) {
 	b := bmemory.NewBroker()
 	c := client.NewClient(
 		client.Broker(b),
-		client.Wrap(ClientWrapper),
+		client.Wrap(ClientWrapper()),
 	)
 	return c, b
 }
