@@ -79,8 +79,7 @@ func ClientWrapper() client.Wrapper {
 func CallWrapper() client.CallWrapper {
 	return func(cf client.CallFunc) client.CallFunc {
 		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
-			var seg newrelic.ExternalSegment
-			ctx, seg = startExternal(ctx, req.Endpoint(), req.Service())
+			ctx, seg := startExternal(ctx, req.Endpoint(), req.Service())
 			defer seg.End()
 			return cf(ctx, node, req, rsp, opts)
 		}
