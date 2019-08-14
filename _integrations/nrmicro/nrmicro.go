@@ -64,6 +64,12 @@ func (n *nrWrapper) Publish(ctx context.Context, msg client.Message, opts ...cli
 	return n.Client.Publish(ctx, msg, opts...)
 }
 
+func (n *nrWrapper) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
+	ctx, seg := startExternal(ctx, req.Endpoint(), req.Service())
+	defer seg.End()
+	return n.Client.Stream(ctx, req, opts...)
+}
+
 func (n *nrWrapper) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	ctx, seg := startExternal(ctx, req.Endpoint(), req.Service())
 	defer seg.End()

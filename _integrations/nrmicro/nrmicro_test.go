@@ -28,23 +28,32 @@ type TestResponse struct {
 	RequestHeaders string
 }
 
-func (r TestResponse) dtHeadersFound() bool {
-	return r.RequestHeaders != "" && r.RequestHeaders != missingMetadata && r.RequestHeaders != missingHeaders
+func dtHeadersFound(hdr string) bool {
+	return hdr != "" && hdr != missingMetadata && hdr != missingHeaders
 }
 
 type TestHandler struct{}
 
 func (t *TestHandler) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
-	if md, ok := metadata.FromContext(ctx); ok {
-		if dtHeader, ok := md[newrelic.DistributedTracePayloadHeader]; ok {
-			rsp.RequestHeaders = dtHeader
-		} else {
-			rsp.RequestHeaders = missingHeaders
-		}
-	} else {
-		rsp.RequestHeaders = missingMetadata
+	rsp.RequestHeaders = getDTRequestHeaderVal(ctx)
+	return nil
+}
+
+func (t *TestHandler) StreamingMethod(ctx context.Context, stream server.Stream) error {
+	if err := stream.Send(getDTRequestHeaderVal(ctx)); nil != err {
+		return err
 	}
 	return nil
+}
+
+func getDTRequestHeaderVal(ctx context.Context) string {
+	if md, ok := metadata.FromContext(ctx); ok {
+		if dtHeader, ok := md[newrelic.DistributedTracePayloadHeader]; ok {
+			return dtHeader
+		}
+		return missingHeaders
+	}
+	return missingMetadata
 }
 
 func createTestApp(t *testing.T) newrelic.Application {
@@ -133,7 +142,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 	if err := c.Call(ctx, req, &rsp); nil != err {
 		t.Fatal("Error calling test client:", err)
 	}
-	if !rsp.dtHeadersFound() {
+	if !dtHeadersFound(rsp.RequestHeaders) {
 		t.Error("Incorrect header:", rsp.RequestHeaders)
 	}
 
@@ -392,4 +401,132 @@ func TestExtractHost(t *testing.T) {
 			t.Errorf("incorrect host value extracted: actual=%s expected=%s", actual, test.expect)
 		}
 	}
+}
+
+func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+
+	ctx := context.Background()
+	req := c.NewRequest(
+		"testing",
+		"TestHandler.StreamingMethod",
+		&TestRequest{},
+		client.WithContentType("application/json"),
+		client.StreamingRequest(),
+	)
+	stream, err := c.Stream(ctx, req)
+	defer stream.Close()
+	if nil != err {
+		t.Fatal("Error calling test client:", err)
+	}
+
+	var resp string
+	err = stream.Recv(&resp)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if dtHeadersFound(resp) {
+		t.Error("dt headers found:", resp)
+	}
+
+	err = stream.Recv(&resp)
+	if nil == err {
+		t.Fatal("should have received EOF error from server")
+	}
+}
+
+func TestClientStreamWrapperWithTransaction(t *testing.T) {
+	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+
+	app := createTestApp(t)
+	txn := app.StartTransaction("name", nil, nil)
+	ctx := newrelic.NewContext(context.Background(), txn)
+	req := c.NewRequest(
+		"testing",
+		"TestHandler.StreamingMethod",
+		&TestRequest{},
+		client.WithContentType("application/json"),
+		client.StreamingRequest(),
+	)
+	stream, err := c.Stream(ctx, req)
+	defer stream.Close()
+	if nil != err {
+		t.Fatal("Error calling test client:", err)
+	}
+
+	var resp string
+	// second outgoing request to server, ensures we only create a single
+	// metric for the entire streaming cycle
+	if err := stream.Send(&resp); nil != err {
+		t.Fatal(err)
+	}
+
+	// receive the distributed trace headers from the server
+	if err := stream.Recv(&resp); nil != err {
+		t.Fatal(err)
+	}
+	if !dtHeadersFound(resp) {
+		t.Error("dt headers not found:", resp)
+	}
+
+	// exhaust the stream
+	if err := stream.Recv(&resp); nil == err {
+		t.Fatal("should have received EOF error from server")
+	}
+
+	txn.End()
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/name", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/name", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "External/all", Scope: "", Forced: true, Data: nil},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "External/testing/all", Scope: "", Forced: false, Data: nil},
+		{Name: "External/testing/Micro/TestHandler.StreamingMethod", Scope: "OtherTransaction/Go/name", Forced: false, Data: []float64{1}},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/name",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category":  "http",
+				"component": "Micro",
+				"name":      "External/testing/Micro/TestHandler.StreamingMethod",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/name",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/name",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
+					{
+						SegmentName: "External/testing/Micro/TestHandler.StreamingMethod",
+						Attributes:  map[string]interface{}{},
+					},
+				},
+			}},
+		},
+	}})
 }
