@@ -232,7 +232,7 @@ func newTestClientAndBroker() (client.Client, broker.Broker) {
 	return c, b
 }
 
-func waitOrTimeout(t *testing.T, wg sync.WaitGroup) {
+func waitOrTimeout(t *testing.T, wg *sync.WaitGroup) {
 	ch := make(chan struct{})
 	go func() {
 		defer close(ch)
@@ -272,7 +272,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 	if err := c.Publish(ctx, msg); nil != err {
 		t.Fatal("Error calling test client:", err)
 	}
-	waitOrTimeout(t, wg)
+	waitOrTimeout(t, &wg)
 }
 
 func TestClientPublishWithTransaction(t *testing.T) {
@@ -302,7 +302,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	if err := c.Publish(ctx, msg); nil != err {
 		t.Fatal("Error calling test client:", err)
 	}
-	waitOrTimeout(t, wg)
+	waitOrTimeout(t, &wg)
 
 	txn.End()
 	addr := b.Address()
