@@ -13,8 +13,10 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrmicro"
 )
 
+// Greeter is the server struct
 type Greeter struct{}
 
+// Hello is the method on the server being called
 func (g *Greeter) Hello(ctx context.Context, req *proto.HelloRequest, rsp *proto.HelloResponse) error {
 	name := req.GetName()
 	if txn := newrelic.FromContext(ctx); nil != txn {
