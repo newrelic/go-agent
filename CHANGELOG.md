@@ -1,5 +1,16 @@
 ## ChangeLog
 
+### New Features
+
+* Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. Here's an example of creating one and using it to mark a transaction as a web transaction:
+  ```go
+  hdrs := http.Headers{}
+  u, _ := url.Parse("http://example.com")
+  webReq := newrelic.NewStaticWebRequest(hdrs, u, "GET", newrelic.TransportHTTP)
+  txn := app.StartTransaction("My-Transaction", nil, nil)
+  txn.SetWebRequest(webReq)
+  ```
+
 ## 2.10.0
 
 ### New Features

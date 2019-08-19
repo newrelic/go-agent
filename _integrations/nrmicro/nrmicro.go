@@ -2,12 +2,15 @@ package nrmicro
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/micro/go-micro/client"
+	"github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
 )
 
@@ -92,4 +95,52 @@ func CallWrapper() client.CallWrapper {
 			return cf(ctx, node, req, rsp, opts)
 		}
 	}
+}
+
+// HandlerWrapper TODO
+func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
+	return func(fn server.HandlerFunc) server.HandlerFunc {
+		if app == nil {
+			return fn
+		}
+		return func(ctx context.Context, req server.Request, rsp interface{}) error {
+			txn := startTransaction(ctx, app, req)
+			defer txn.End()
+			err := fn(newrelic.NewContext(ctx, txn), req, rsp)
+			var code int
+			if err != nil {
+				if t, ok := err.(*errors.Error); ok {
+					code = int(t.Code)
+				} else {
+					code = 500
+				}
+			} else {
+				code = 200
+			}
+			txn.WriteHeader(code)
+			return err
+		}
+	}
+}
+
+func startTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
+	var hdrs http.Header
+	if md, ok := metadata.FromContext(ctx); ok {
+		hdrs = make(http.Header, len(md))
+		for k, v := range md {
+			hdrs.Add(k, v)
+		}
+	}
+
+	u := &url.URL{
+		Scheme: "micro",
+		Host:   req.Service(),
+		Path:   req.Endpoint(),
+	}
+
+	webReq := newrelic.NewStaticWebRequest(hdrs, u, req.Method(), newrelic.TransportHTTP)
+	txn := app.StartTransaction(req.Endpoint(), nil, nil)
+	txn.SetWebRequest(webReq)
+
+	return txn
 }

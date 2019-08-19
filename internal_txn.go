@@ -155,6 +155,18 @@ func (r requestWrap) Transport() TransportType {
 
 }
 
+type staticWebRequest struct {
+	header    http.Header
+	url       *url.URL
+	method    string
+	transport TransportType
+}
+
+func (r staticWebRequest) Header() http.Header      { return r.header }
+func (r staticWebRequest) URL() *url.URL            { return r.url }
+func (r staticWebRequest) Method() string           { return r.method }
+func (r staticWebRequest) Transport() TransportType { return TransportHTTP }
+
 func (txn *txn) SetWebRequest(r WebRequest) error {
 	txn.Lock()
 	defer txn.Unlock()

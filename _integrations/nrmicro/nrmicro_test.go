@@ -2,6 +2,7 @@ package nrmicro
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	bmemory "github.com/micro/go-micro/broker/memory"
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/client/selector"
+	microerrors "github.com/micro/go-micro/errors"
 	"github.com/micro/go-micro/metadata"
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
@@ -36,6 +38,7 @@ type TestHandler struct{}
 
 func (t *TestHandler) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
 	rsp.RequestHeaders = getDTRequestHeaderVal(ctx)
+	defer newrelic.StartSegment(newrelic.FromContext(ctx), "Method").End()
 	return nil
 }
 
@@ -44,6 +47,20 @@ func (t *TestHandler) StreamingMethod(ctx context.Context, stream server.Stream)
 		return err
 	}
 	return nil
+}
+
+type TestHandlerWithError struct{}
+
+func (t *TestHandlerWithError) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
+	rsp.RequestHeaders = getDTRequestHeaderVal(ctx)
+	return microerrors.Unauthorized("id", "format")
+}
+
+type TestHandlerWithNonMicroError struct{}
+
+func (t *TestHandlerWithNonMicroError) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
+	rsp.RequestHeaders = getDTRequestHeaderVal(ctx)
+	return errors.New("Non-Micro Error")
 }
 
 func getDTRequestHeaderVal(ctx context.Context) string {
@@ -77,7 +94,7 @@ func createTestApp(t *testing.T) newrelic.Application {
 	return app
 }
 
-func newTestClientAndServer(wrapperOption client.Option, t *testing.T) (client.Client, server.Server) {
+func newTestWrappedClientAndServer(app newrelic.Application, wrapperOption client.Option, t *testing.T) (client.Client, server.Server) {
 	registry := rmemory.NewRegistry()
 	sel := selector.NewSelector(selector.Registry(registry))
 	c := client.NewClient(
@@ -87,8 +104,12 @@ func newTestClientAndServer(wrapperOption client.Option, t *testing.T) (client.C
 	s := server.NewServer(
 		server.Name("testing"),
 		server.Registry(registry),
+		server.WrapHandler(HandlerWrapper(app)),
 	)
 	s.Handle(s.NewHandler(new(TestHandler)))
+	s.Handle(s.NewHandler(new(TestHandlerWithError)))
+	s.Handle(s.NewHandler(new(TestHandlerWithNonMicroError)))
+
 	if err := s.Start(); nil != err {
 		t.Fatal(err)
 	}
@@ -96,13 +117,13 @@ func newTestClientAndServer(wrapperOption client.Option, t *testing.T) (client.C
 }
 
 func TestClientCallWithNoTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithNoTransaction(c, t)
 }
 
 func TestClientCallWrapperWithNoTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallWithNoTransaction(c, t)
 }
@@ -121,13 +142,13 @@ func testClientCallWithNoTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallWithTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithTransaction(c, t)
 }
 
 func TestClientCallWrapperWithTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallWithTransaction(c, t)
 }
@@ -202,13 +223,13 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallMetadata(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallMetadata(c, t)
 }
 
 func TestCallMetadata(t *testing.T) {
-	c, s := newTestClientAndServer(client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallMetadata(c, t)
 }
@@ -404,7 +425,7 @@ func TestExtractHost(t *testing.T) {
 }
 
 func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 
 	ctx := context.Background()
@@ -437,7 +458,7 @@ func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
 }
 
 func TestClientStreamWrapperWithTransaction(t *testing.T) {
-	c, s := newTestClientAndServer(client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp(t), client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 
 	app := createTestApp(t)
@@ -527,6 +548,264 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 					},
 				},
 			}},
+		},
+	}})
+}
+
+func TestServerWrapperWithNoApp(t *testing.T) {
+	c, s := newTestWrappedClientAndServer(nil, client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+	ctx := context.Background()
+	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	rsp := TestResponse{}
+	if err := c.Call(ctx, req, &rsp); nil != err {
+		t.Fatal("Error calling test client:", err)
+	}
+	if rsp.RequestHeaders != missingHeaders {
+		t.Error("Header should not be here", rsp.RequestHeaders)
+	}
+}
+
+func TestServerWrapperWithApp(t *testing.T) {
+	app := createTestApp(t)
+	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+	ctx := context.Background()
+	txn := app.StartTransaction("txn", nil, nil)
+	defer txn.End()
+	ctx = newrelic.NewContext(ctx, txn)
+	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	rsp := TestResponse{}
+	if err := c.Call(ctx, req, &rsp); nil != err {
+		t.Fatal("Error calling test client:", err)
+	}
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "DurationByCaller/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestHandler.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestHandler.Method", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestHandler.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/Method", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/Method", Scope: "WebTransaction/Go/TestHandler.Method", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint": true,
+				"parentId":      internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category": "generic",
+				"name":     "Custom/Method",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "WebTransaction/Go/TestHandler.Method",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "WebTransaction/Go/TestHandler.Method",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
+					{
+						SegmentName: "Custom/Method",
+						Attributes:  map[string]interface{}{},
+					},
+				},
+			}},
+		},
+	}})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":                     "WebTransaction/Go/TestHandler.Method",
+			"guid":                     internal.MatchAnything,
+			"priority":                 internal.MatchAnything,
+			"sampled":                  internal.MatchAnything,
+			"traceId":                  internal.MatchAnything,
+			"nr.apdexPerfZone":         "S",
+			"parent.account":           123,
+			"parent.transportType":     "HTTP",
+			"parent.app":               456,
+			"parentId":                 internal.MatchAnything,
+			"parent.type":              "App",
+			"parent.transportDuration": internal.MatchAnything,
+			"parentSpanId":             internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"request.method":                "TestHandler.Method",
+			"request.uri":                   "micro://testing/TestHandler.Method",
+			"request.headers.accept":        "application/json",
+			"request.headers.contentType":   "application/json",
+			"request.headers.contentLength": 3,
+			"httpResponseCode":              "200",
+		},
+	}})
+}
+
+func TestServerWrapperWithAppReturnsError(t *testing.T) {
+	app := createTestApp(t)
+	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+	ctx := context.Background()
+	req := c.NewRequest("testing", "TestHandlerWithError.Method", &TestRequest{}, client.WithContentType("application/json"))
+	rsp := TestResponse{}
+	if err := c.Call(ctx, req, &rsp); nil == err {
+		t.Fatal("Expected an error but did not get one")
+	}
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex/Go/TestHandlerWithError.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/WebTransaction/Go/TestHandlerWithError.Method", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransaction/Go/TestHandlerWithError.Method", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestHandlerWithError.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "WebTransaction/Go/TestHandlerWithError.Method",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "WebTransaction/Go/TestHandlerWithError.Method",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "WebTransaction/Go/TestHandlerWithError.Method",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children:    []internal.WantTraceSegment{},
+			}},
+		},
+	}})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/TestHandlerWithError.Method",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"nr.apdexPerfZone": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"request.method":                "TestHandlerWithError.Method",
+			"request.uri":                   "micro://testing/TestHandlerWithError.Method",
+			"request.headers.accept":        "application/json",
+			"request.headers.contentType":   "application/json",
+			"request.headers.contentLength": 3,
+			"httpResponseCode":              401,
+		},
+	}})
+	app.(internal.Expect).ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/TestHandlerWithError.Method",
+		Msg:     "Unauthorized",
+		Klass:   "401",
+	}})
+	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   "Unauthorized",
+			"error.class":     "401",
+			"transactionName": "WebTransaction/Go/TestHandlerWithError.Method",
+			"traceId":         internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"guid":            internal.MatchAnything,
+			"sampled":         "true",
+		},
+	}})
+}
+
+func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
+	app := createTestApp(t)
+	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	defer s.Stop()
+	ctx := context.Background()
+	req := c.NewRequest("testing", "TestHandlerWithNonMicroError.Method", &TestRequest{}, client.WithContentType("application/json"))
+	rsp := TestResponse{}
+	if err := c.Call(ctx, req, &rsp); nil == err {
+		t.Fatal("Expected an error but did not get one")
+	}
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex/Go/TestHandlerWithNonMicroError.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/WebTransaction/Go/TestHandlerWithNonMicroError.Method", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransaction/Go/TestHandlerWithNonMicroError.Method", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestHandlerWithNonMicroError.Method", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/TestHandlerWithNonMicroError.Method",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"nr.apdexPerfZone": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"request.method":                "TestHandlerWithNonMicroError.Method",
+			"request.uri":                   "micro://testing/TestHandlerWithNonMicroError.Method",
+			"request.headers.accept":        "application/json",
+			"request.headers.contentType":   "application/json",
+			"request.headers.contentLength": 3,
+			"httpResponseCode":              500,
+		},
+	}})
+	app.(internal.Expect).ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/TestHandlerWithNonMicroError.Method",
+		Msg:     "Internal Server Error",
+		Klass:   "500",
+	}})
+	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   "Internal Server Error",
+			"error.class":     "500",
+			"transactionName": "WebTransaction/Go/TestHandlerWithNonMicroError.Method",
+			"traceId":         internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"guid":            internal.MatchAnything,
+			"sampled":         "true",
 		},
 	}})
 }
