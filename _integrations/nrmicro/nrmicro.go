@@ -104,7 +104,7 @@ func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
 			return fn
 		}
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
-			txn := startTransaction(ctx, app, req)
+			txn := startWebTransaction(ctx, app, req)
 			defer txn.End()
 			err := fn(newrelic.NewContext(ctx, txn), req, rsp)
 			var code int
@@ -123,7 +123,26 @@ func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
 	}
 }
 
-func startTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
+// SubscriberWrapper TODO
+func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
+	return func(fn server.SubscriberFunc) server.SubscriberFunc {
+		if app == nil {
+			return fn
+		}
+		return func(ctx context.Context, m server.Message) (err error) {
+			txn, _ := startTransaction(ctx, app, m.Topic())
+			defer txn.End()
+
+			err = fn(ctx, m)
+			if err != nil {
+				txn.NoticeError(err)
+			}
+			return err
+		}
+	}
+}
+
+func startTransaction(ctx context.Context, app newrelic.Application, txnName string) (newrelic.Transaction, http.Header) {
 	var hdrs http.Header
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
@@ -131,7 +150,11 @@ func startTransaction(ctx context.Context, app newrelic.Application, req server.
 			hdrs.Add(k, v)
 		}
 	}
+	return app.StartTransaction(txnName, nil, nil), hdrs
+}
 
+func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
+	txn, hdrs := startTransaction(ctx, app, req.Endpoint())
 	u := &url.URL{
 		Scheme: "micro",
 		Host:   req.Service(),
@@ -139,7 +162,6 @@ func startTransaction(ctx context.Context, app newrelic.Application, req server.
 	}
 
 	webReq := newrelic.NewStaticWebRequest(hdrs, u, req.Method(), newrelic.TransportHTTP)
-	txn := app.StartTransaction(req.Endpoint(), nil, nil)
 	txn.SetWebRequest(webReq)
 
 	return txn
