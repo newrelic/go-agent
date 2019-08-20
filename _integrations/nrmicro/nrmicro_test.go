@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/broker"
 	bmemory "github.com/micro/go-micro/broker/memory"
 	"github.com/micro/go-micro/client"
@@ -16,12 +17,15 @@ import (
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
 	"github.com/newrelic/go-agent/internal"
 )
 
 const (
 	missingHeaders  = "HEADERS NOT FOUND"
 	missingMetadata = "METADATA NOT FOUND"
+	serverName      = "testing"
+	topic           = "topic"
 )
 
 type TestRequest struct{}
@@ -102,7 +106,7 @@ func newTestWrappedClientAndServer(app newrelic.Application, wrapperOption clien
 		wrapperOption,
 	)
 	s := server.NewServer(
-		server.Name("testing"),
+		server.Name(serverName),
 		server.Registry(registry),
 		server.WrapHandler(HandlerWrapper(app)),
 	)
@@ -131,7 +135,7 @@ func TestClientCallWrapperWithNoTransaction(t *testing.T) {
 func testClientCallWithNoTransaction(c client.Client, t *testing.T) {
 
 	ctx := context.Background()
-	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	if err := c.Call(ctx, req, &rsp); nil != err {
 		t.Fatal("Error calling test client:", err)
@@ -155,7 +159,7 @@ func TestClientCallWrapperWithTransaction(t *testing.T) {
 
 func testClientCallWithTransaction(c client.Client, t *testing.T) {
 
-	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp(t)
 	txn := app.StartTransaction("name", nil, nil)
@@ -236,7 +240,7 @@ func TestCallMetadata(t *testing.T) {
 
 func testClientCallMetadata(c client.Client, t *testing.T) {
 	// test that context metadata is not changed by the newrelic wrapper
-	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp(t)
 	txn := app.StartTransaction("name", nil, nil)
@@ -253,15 +257,6 @@ func testClientCallMetadata(c client.Client, t *testing.T) {
 	}
 }
 
-func newTestClientAndBroker() (client.Client, broker.Broker) {
-	b := bmemory.NewBroker()
-	c := client.NewClient(
-		client.Broker(b),
-		client.Wrap(ClientWrapper()),
-	)
-	return c, b
-}
-
 func waitOrTimeout(t *testing.T, wg *sync.WaitGroup) {
 	ch := make(chan struct{})
 	go func() {
@@ -275,10 +270,8 @@ func waitOrTimeout(t *testing.T, wg *sync.WaitGroup) {
 	}
 }
 
-var topic = "topic"
-
 func TestClientPublishWithNoTransaction(t *testing.T) {
-	c, b := newTestClientAndBroker()
+	c, _, b := newTestClientServerAndBroker(createTestApp(t), t)
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
@@ -306,7 +299,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 }
 
 func TestClientPublishWithTransaction(t *testing.T) {
-	c, b := newTestClientAndBroker()
+	c, _, b := newTestClientServerAndBroker(createTestApp(t), t)
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
@@ -430,7 +423,7 @@ func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
 
 	ctx := context.Background()
 	req := c.NewRequest(
-		"testing",
+		serverName,
 		"TestHandler.StreamingMethod",
 		&TestRequest{},
 		client.WithContentType("application/json"),
@@ -465,7 +458,7 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 	txn := app.StartTransaction("name", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 	req := c.NewRequest(
-		"testing",
+		serverName,
 		"TestHandler.StreamingMethod",
 		&TestRequest{},
 		client.WithContentType("application/json"),
@@ -556,7 +549,7 @@ func TestServerWrapperWithNoApp(t *testing.T) {
 	c, s := newTestWrappedClientAndServer(nil, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
-	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	if err := c.Call(ctx, req, &rsp); nil != err {
 		t.Fatal("Error calling test client:", err)
@@ -574,7 +567,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 	txn := app.StartTransaction("txn", nil, nil)
 	defer txn.End()
 	ctx = newrelic.NewContext(ctx, txn)
-	req := c.NewRequest("testing", "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	if err := c.Call(ctx, req, &rsp); nil != err {
 		t.Fatal("Error calling test client:", err)
@@ -666,7 +659,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
-	req := c.NewRequest("testing", "TestHandlerWithError.Method", &TestRequest{}, client.WithContentType("application/json"))
+	req := c.NewRequest(serverName, "TestHandlerWithError.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	if err := c.Call(ctx, req, &rsp); nil == err {
 		t.Fatal("Expected an error but did not get one")
@@ -808,4 +801,208 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 			"sampled":         "true",
 		},
 	}})
+}
+
+func TestServerSubscribeNoApp(t *testing.T) {
+	c, s, b := newTestClientServerAndBroker(nil, t)
+	defer s.Stop()
+
+	var wg sync.WaitGroup
+	if err := b.Connect(); nil != err {
+		t.Fatal("broker connect error:", err)
+	}
+	defer b.Disconnect()
+	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
+		defer wg.Done()
+		return nil
+	})
+	if err != nil {
+		t.Fatal("error registering subscriber", err)
+	}
+	if err := s.Start(); nil != err {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	msg := c.NewMessage(topic, &proto.HelloRequest{Name: "test"})
+	wg.Add(1)
+	if err := c.Publish(ctx, msg); nil != err {
+		t.Fatal("Error calling publish:", err)
+	}
+	waitOrTimeout(t, &wg)
+}
+
+func TestServerSubscribe(t *testing.T) {
+	app := createTestApp(t)
+	c, s, _ := newTestClientServerAndBroker(app, t)
+
+	var wg sync.WaitGroup
+	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
+		txn := newrelic.FromContext(ctx)
+		defer newrelic.StartSegment(txn, "segment").End()
+		defer wg.Done()
+		return nil
+	})
+	if err != nil {
+		t.Fatal("error registering subscriber", err)
+	}
+	if err := s.Start(); nil != err {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	msg := c.NewMessage(topic, &proto.HelloRequest{Name: "test"})
+	wg.Add(1)
+	txn := app.StartTransaction("pub", nil, nil)
+	ctx = newrelic.NewContext(ctx, txn)
+	if err := c.Publish(ctx, msg); nil != err {
+		t.Fatal("Error calling publish:", err)
+	}
+	defer txn.End()
+	waitOrTimeout(t, &wg)
+	s.Stop()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/segment", Scope: "OtherTransaction/Go/topic", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/topic",
+				"nr.entryPoint": true,
+				"parentId":      internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category": "generic",
+				"name":     "Custom/segment",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/topic",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/topic",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{{
+					SegmentName: "Custom/segment",
+					Attributes:  map[string]interface{}{},
+					Children:    []internal.WantTraceSegment{}},
+				},
+			}},
+		},
+	}})
+}
+
+func TestServerSubscribeWithError(t *testing.T) {
+	app := createTestApp(t)
+	c, s, _ := newTestClientServerAndBroker(app, t)
+
+	var wg sync.WaitGroup
+	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
+		defer wg.Done()
+		return errors.New("subscriber error")
+	})
+	if err != nil {
+		t.Fatal("error registering subscriber", err)
+	}
+	if err := s.Start(); nil != err {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	msg := c.NewMessage(topic, &proto.HelloRequest{Name: "test"})
+	wg.Add(1)
+	if err := c.Publish(ctx, msg); nil == err {
+		t.Fatal("Expected error but didn't get one")
+	}
+	waitOrTimeout(t, &wg)
+	s.Stop()
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+	})
+	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/topic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/topic",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/topic",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children:    []internal.WantTraceSegment{},
+			}},
+		},
+	}})
+	app.(internal.Expect).ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/topic",
+		Msg:     "subscriber error",
+		Klass:   "*errors.errorString",
+	}})
+	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   "subscriber error",
+			"error.class":     "*errors.errorString",
+			"transactionName": "OtherTransaction/Go/topic",
+			"traceId":         internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"guid":            internal.MatchAnything,
+			"sampled":         "true",
+		},
+	}})
+}
+
+func newTestClientServerAndBroker(app newrelic.Application, t *testing.T) (client.Client, server.Server, broker.Broker) {
+	b := bmemory.NewBroker()
+	c := client.NewClient(
+		client.Broker(b),
+		client.Wrap(ClientWrapper()),
+	)
+	s := server.NewServer(
+		server.Name(serverName),
+		server.Broker(b),
+		server.WrapSubscriber(SubscriberWrapper(app)),
+	)
+	return c, s, b
 }

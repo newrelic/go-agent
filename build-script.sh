@@ -5,11 +5,7 @@ LATEST_VERSION="go1.12"
 
 if [ -n "$INTEGRATION" ]; then
 	cd $INTEGRATION
-	go get ./...
-	# for some reason travis isn't downloading the github.com/pkg/errors
-	# package for the nrmicro tests, we will instruct it to do so specifically
-	# here
-	go get github.com/pkg/errors
+	go get -t ./...
 fi
 
 go test -race -benchtime=1ms -bench=. ./...
