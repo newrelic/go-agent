@@ -130,9 +130,9 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return fn
 		}
 		return func(ctx context.Context, m server.Message) (err error) {
-			txn, _ := startTransaction(ctx, app, m.Topic())
+			txn := app.StartTransaction(m.Topic(), nil, nil)
 			defer txn.End()
-
+			ctx = newrelic.NewContext(ctx, txn)
 			err = fn(ctx, m)
 			if err != nil {
 				txn.NoticeError(err)
@@ -142,7 +142,7 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 	}
 }
 
-func startTransaction(ctx context.Context, app newrelic.Application, txnName string) (newrelic.Transaction, http.Header) {
+func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
 	var hdrs http.Header
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
@@ -150,11 +150,7 @@ func startTransaction(ctx context.Context, app newrelic.Application, txnName str
 			hdrs.Add(k, v)
 		}
 	}
-	return app.StartTransaction(txnName, nil, nil), hdrs
-}
-
-func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
-	txn, hdrs := startTransaction(ctx, app, req.Endpoint())
+	txn := app.StartTransaction(req.Endpoint(), nil, nil)
 	u := &url.URL{
 		Scheme: "micro",
 		Host:   req.Service(),
