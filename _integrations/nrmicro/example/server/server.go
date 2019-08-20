@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	proto "github.com/micro/examples/helloworld/proto"
 	"github.com/micro/go-micro"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/_integrations/nrmicro"
+	proto "github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
 )
 
 // Greeter is the server struct
