@@ -132,6 +132,10 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 		return func(ctx context.Context, m server.Message) (err error) {
 			txn := app.StartTransaction(m.Topic(), nil, nil)
 			defer txn.End()
+			md, ok := metadata.FromContext(ctx)
+			if ok {
+				txn.AcceptDistributedTracePayload(newrelic.TransportHTTP, md[newrelic.DistributedTracePayloadHeader])
+			}
 			ctx = newrelic.NewContext(ctx, txn)
 			err = fn(ctx, m)
 			if err != nil {

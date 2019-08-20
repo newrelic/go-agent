@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	proto "github.com/micro/examples/helloworld/proto"
 	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/broker"
 	bmemory "github.com/micro/go-micro/broker/memory"
@@ -18,6 +17,7 @@ import (
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
 	"github.com/newrelic/go-agent/internal"
 )
 
@@ -834,13 +834,9 @@ func TestServerSubscribeNoApp(t *testing.T) {
 
 func TestServerSubscribe(t *testing.T) {
 	app := createTestApp(t)
-	c, s, b := newTestClientServerAndBroker(app, t)
+	c, s, _ := newTestClientServerAndBroker(app, t)
 
 	var wg sync.WaitGroup
-	if err := b.Connect(); nil != err {
-		t.Fatal("broker connect error:", err)
-	}
-	defer b.Disconnect()
 	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
 		txn := newrelic.FromContext(ctx)
 		defer newrelic.StartSegment(txn, "segment").End()
@@ -857,9 +853,12 @@ func TestServerSubscribe(t *testing.T) {
 	ctx := context.Background()
 	msg := c.NewMessage(topic, &proto.HelloRequest{Name: "test"})
 	wg.Add(1)
+	txn := app.StartTransaction("pub", nil, nil)
+	ctx = newrelic.NewContext(ctx, txn)
 	if err := c.Publish(ctx, msg); nil != err {
 		t.Fatal("Error calling publish:", err)
 	}
+	defer txn.End()
 	waitOrTimeout(t, &wg)
 	s.Stop()
 
@@ -868,10 +867,13 @@ func TestServerSubscribe(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/topic", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/segment", Scope: "OtherTransaction/Go/topic", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -879,6 +881,7 @@ func TestServerSubscribe(t *testing.T) {
 				"category":      "generic",
 				"name":          "OtherTransaction/Go/topic",
 				"nr.entryPoint": true,
+				"parentId":      internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -913,13 +916,9 @@ func TestServerSubscribe(t *testing.T) {
 
 func TestServerSubscribeWithError(t *testing.T) {
 	app := createTestApp(t)
-	c, s, b := newTestClientServerAndBroker(app, t)
+	c, s, _ := newTestClientServerAndBroker(app, t)
 
 	var wg sync.WaitGroup
-	if err := b.Connect(); nil != err {
-		t.Fatal("broker connect error:", err)
-	}
-	defer b.Disconnect()
 	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
 		defer wg.Done()
 		return errors.New("subscriber error")
