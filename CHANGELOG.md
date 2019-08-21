@@ -2,6 +2,15 @@
 
 ### New Features
 
+* Added support for [Micro](https://github.com/micro/go-micro) monitoring with the new
+[_integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
+package.  This package supports instrumentation for servers, clients, publishers, and subscribers.
+
+  * [Server Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrmicro/example/server/server.go)
+  * [Client Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrmicro/example/client/client.go)
+  * [Publisher and Subscriber Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrmicro/example/pubsub/main.go)
+  * [Full godocs Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
+
 * Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. Here's an example of creating one and using it to mark a transaction as a web transaction:
   ```go
   hdrs := http.Headers{}
