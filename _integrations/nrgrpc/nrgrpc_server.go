@@ -3,7 +3,6 @@ package nrgrpc
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -12,20 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type serverRequest struct {
-	header http.Header
-	url    *url.URL
-	method string
-}
-
-func (r serverRequest) Header() http.Header               { return r.header }
-func (r serverRequest) URL() *url.URL                     { return r.url }
-func (r serverRequest) Method() string                    { return r.method }
-func (r serverRequest) Transport() newrelic.TransportType { return newrelic.TransportHTTP }
-
 func startTransaction(ctx context.Context, app newrelic.Application, fullMethod string) newrelic.Transaction {
 	method := strings.TrimPrefix(fullMethod, "/")
-	txn := app.StartTransaction(method, nil, nil)
 
 	var hdrs http.Header
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
@@ -40,11 +27,9 @@ func startTransaction(ctx context.Context, app newrelic.Application, fullMethod 
 	target := hdrs.Get(":authority")
 	url := getURL(method, target)
 
-	txn.SetWebRequest(serverRequest{
-		header: hdrs,
-		url:    url,
-		method: method,
-	})
+	webReq := newrelic.NewStaticWebRequest(hdrs, url, method, newrelic.TransportHTTP)
+	txn := app.StartTransaction(method, nil, nil)
+	txn.SetWebRequest(webReq)
 
 	return txn
 }

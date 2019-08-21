@@ -48,6 +48,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [lib/pq](https://github.com/lib/pq) | [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq) | Instrument PostgreSQL driver |
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3) | Instrument SQLite driver |
 | [google.golang.org/grpc](https://github.com/grpc/grpc-go) | [_integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgrpc) | Instrument gRPC servers and clients |
+| [micro/go-micro](https://github.com/micro/go-micro) | [_integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
 
 
 These integration packages must be imported along

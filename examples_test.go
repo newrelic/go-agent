@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -190,4 +191,11 @@ func ExampleStartExternalSegment_context() {
 	response, _ := client.Do(request)
 	segment.Response = response
 	segment.End()
+}
+
+func ExampleNewStaticWebRequest() {
+	app := getApp()
+	webReq := NewStaticWebRequest(http.Header{}, &url.URL{Path: "path"}, "GET", TransportHTTP)
+	txn := app.StartTransaction("My-Transaction", nil, nil)
+	txn.SetWebRequest(webReq)
 }

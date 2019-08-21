@@ -215,3 +215,8 @@ func NewWebRequest(request *http.Request) WebRequest {
 	}
 	return requestWrap{request: request}
 }
+
+// NewStaticWebRequest takes the minimum necessary information and creates a static WebRequest out of it
+func NewStaticWebRequest(hdrs http.Header, url *url.URL, method string, transport TransportType) WebRequest {
+	return staticWebRequest{hdrs, url, method, transport}
+}
