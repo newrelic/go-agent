@@ -4,5 +4,6 @@ In this directory you will find several example Go Micro apps that are instrumen
 They can be run the standard way:
 * The sample Pub/Sub app: `go run pubsub/main.go` instruments both a publish and a subscribe method
 * The sample Server app: `go run server/server.go` instruments a handler method
-* The sample Client app: `go run client/client.go` instruments the client
+* The sample Client app: `go run client/client.go` instruments the client.  
+  * Note that in order for this to function, the server app must also be running.
  
