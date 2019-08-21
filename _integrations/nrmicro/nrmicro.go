@@ -2,6 +2,7 @@ package nrmicro
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -165,7 +166,7 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return fn
 		}
 		return func(ctx context.Context, m server.Message) (err error) {
-			txn := app.StartTransaction(m.Topic(), nil, nil)
+			txn := app.StartTransaction(subTxnName(m.Topic()), nil, nil)
 			defer txn.End()
 			md, ok := metadata.FromContext(ctx)
 			if ok {
@@ -179,6 +180,10 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return err
 		}
 	}
+}
+
+func subTxnName(topic string) string {
+	return fmt.Sprintf("Message/Micro/Topic/%s:subscriber", topic)
 }
 
 func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {

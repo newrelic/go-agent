@@ -20,7 +20,7 @@ func mustGetEnv(key string) string {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("Micro", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
+	cfg := newrelic.NewConfig("Micro Client", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
@@ -40,6 +40,7 @@ func main() {
 		// segments for each out going call.
 		micro.WrapClient(nrmicro.ClientWrapper()),
 	)
+	service.Init()
 	ctx := newrelic.NewContext(context.Background(), txn)
 	c := proto.NewGreeterService("greeter", service.Client())
 
