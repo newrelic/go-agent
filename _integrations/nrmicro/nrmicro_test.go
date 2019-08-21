@@ -863,12 +863,12 @@ func TestServerSubscribe(t *testing.T) {
 	s.Stop()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/Micro/Topic/topic:subscriber", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
-		{Name: "Custom/segment", Scope: "OtherTransaction/Go/topic", Forced: false, Data: nil},
+		{Name: "Custom/segment", Scope: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
@@ -879,7 +879,7 @@ func TestServerSubscribe(t *testing.T) {
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
-				"name":          "OtherTransaction/Go/topic",
+				"name":          "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 				"nr.entryPoint": true,
 				"parentId":      internal.MatchAnything,
 			},
@@ -897,12 +897,12 @@ func TestServerSubscribe(t *testing.T) {
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/topic",
+		MetricName: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/topic",
+				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{{
 					SegmentName: "Custom/segment",
@@ -940,23 +940,23 @@ func TestServerSubscribeWithError(t *testing.T) {
 	s.Stop()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/Micro/Topic/topic:subscriber", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/OtherTransaction/Go/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/Message/Micro/Topic/topic:subscriber", Scope: "", Forced: true, Data: nil},
 	})
 	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
-				"name":          "OtherTransaction/Go/topic",
+				"name":          "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
@@ -964,19 +964,19 @@ func TestServerSubscribeWithError(t *testing.T) {
 		},
 	})
 	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/topic",
+		MetricName: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/topic",
+				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children:    []internal.WantTraceSegment{},
 			}},
 		},
 	}})
 	app.(internal.Expect).ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/topic",
+		TxnName: "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 		Msg:     "subscriber error",
 		Klass:   "*errors.errorString",
 	}})
@@ -984,7 +984,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.message":   "subscriber error",
 			"error.class":     "*errors.errorString",
-			"transactionName": "OtherTransaction/Go/topic",
+			"transactionName": "OtherTransaction/Go/Message/Micro/Topic/topic:subscriber",
 			"traceId":         internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"guid":            internal.MatchAnything,

@@ -41,7 +41,7 @@ func publish(s micro.Service, app newrelic.Application) {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("Micro", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
+	cfg := newrelic.NewConfig("Micro Pub/Sub", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
