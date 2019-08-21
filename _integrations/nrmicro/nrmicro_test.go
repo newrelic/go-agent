@@ -17,7 +17,7 @@ import (
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
+	proto "github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
 	"github.com/newrelic/go-agent/internal"
 )
 
