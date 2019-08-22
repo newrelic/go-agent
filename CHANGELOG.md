@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.11.0
+
 ### New Features
 
 * Added support for [Micro](https://github.com/micro/go-micro) monitoring with the new
