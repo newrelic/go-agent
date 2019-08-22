@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -305,4 +306,169 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 		duration:  3 * time.Second,
 		totalTime: 3 * time.Second,
 	})
+}
+
+func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{}) {
+		t.Error(m)
+	}
+}
+
+func TestGetTraceMetadataSuccess(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "bcfb32e050b264b8" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+	StartSegment(txn, "name")
+	// Span id should be different now that a segment has started.
+	metadata = txn.GetTraceMetadata()
+	if metadata.SpanID != "0e97aeb2f79d5d27" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
+		"span_id":  "0e97aeb2f79d5d27",
+		"trace_id": "d9466896a525ccbf",
+	}) {
+		t.Error(m)
+	}
+}
+
+func TestGetTraceMetadataEnded(t *testing.T) {
+	// Test that GetTraceMetadata returns empty strings if the transaction
+	// has been finished.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	txn.End()
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{}) {
+		t.Error(m)
+	}
+}
+
+func TestGetTraceMetadataNotSampled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
+		"trace_id": "d9466896a525ccbf",
+	}) {
+		t.Error(m)
+	}
+}
+
+func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
+		"trace_id": "d9466896a525ccbf",
+	}) {
+		t.Error(m)
+	}
+}
+
+func TestGetTraceMetadataInboundPayload(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		reply.AccountID = "account-id"
+		reply.TrustedAccountKey = "trust-key"
+		reply.PrimaryAppID = "app-id"
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
+	p := payload.(internal.Payload)
+	p.TracedID = "trace-id"
+
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
+	if nil != err {
+		t.Error(err)
+	}
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "9d2c19bd03daf755" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "trace-id" {
+		t.Error(metadata.TraceID)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
+		"span_id":  "9d2c19bd03daf755",
+		"trace_id": "trace-id",
+	}) {
+		t.Error(m)
+	}
 }
