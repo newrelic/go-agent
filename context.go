@@ -9,7 +9,7 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
-// NewContext returns a new Context that carries the provided transcation.
+// NewContext returns a new Context that carries the provided transaction.
 func NewContext(ctx context.Context, txn Transaction) context.Context {
 	return context.WithValue(ctx, internal.TransactionContextKey, txn)
 }
