@@ -25,6 +25,7 @@ type ConnectReply struct {
 	RunID                 AgentRunID        `json:"agent_run_id"`
 	RequestHeadersMap     map[string]string `json:"request_headers_map"`
 	MaxPayloadSizeInBytes int               `json:"max_payload_size_in_bytes"`
+	EntityGUID            string            `json:"entity_guid"`
 
 	// Transaction Name Modifiers
 	SegmentTerms segmentRules `json:"transaction_segment_terms"`
