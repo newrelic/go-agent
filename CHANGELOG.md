@@ -11,7 +11,7 @@ package.  This package supports instrumentation for servers, clients, publishers
   * [Publisher and Subscriber Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrmicro/example/pubsub/main.go)
   * [Full godocs Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
 
-* Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. Here's an example of creating one and using it to mark a transaction as a web transaction:
+* Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. This can be useful when you want to create a web transaction but don't have an `http.Request` object. Here's an example of creating a static `WebRequest` and using it to mark a transaction as a web transaction:
   ```go
   hdrs := http.Headers{}
   u, _ := url.Parse("http://example.com")
