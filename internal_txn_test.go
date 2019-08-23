@@ -518,3 +518,27 @@ func TestGetLinkingMetadata(t *testing.T) {
 		t.Error("wrong metadata map:", m)
 	}
 }
+
+func TestGetLinkingMetadataAppNames(t *testing.T) {
+	testcases := []struct {
+		appName  string
+		expected string
+	}{
+		{appName: "one-name", expected: "one-name"},
+		{appName: "one-name;two-name;three-name", expected: "one-name"},
+		{appName: "", expected: ""},
+	}
+
+	for _, test := range testcases {
+		cfgfn := func(cfg *Config) {
+			cfg.AppName = test.appName
+		}
+		app := testApp(nil, cfgfn, t)
+		txn := app.StartTransaction("hello", nil, nil)
+
+		metadata := txn.GetLinkingMetadata()
+		if metadata.EntityName != test.expected {
+			t.Errorf("wrong EntityName, actual=%s expected=%s", metadata.EntityName, test.expected)
+		}
+	}
+}

@@ -1122,7 +1122,7 @@ func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
 
 func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 	txn := thd.txn
-	metadata.EntityName = txn.appRun.Config.AppName // TODO: get just first app name
+	metadata.EntityName = strings.SplitN(txn.appRun.Config.AppName, ";", 2)[0]
 	metadata.EntityType = "SERVICE"
 	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
 	metadata.Hostname, _ = sysinfo.Hostname()
