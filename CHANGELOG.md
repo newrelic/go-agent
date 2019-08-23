@@ -15,6 +15,25 @@ support instrumentation of publishers and subscribers.
 
 ### New Features
 
+* Added new methods to expose `Transaction` details:
+
+  * `Transaction.GetTraceMetadata()` returns a
+    [TraceMetadata](https://godoc.org/github.com/newrelic/go-agent#TraceMetadata)
+    which contains distributed tracing identifiers.  This struct has a
+    [Map](https://godoc.org/github.com/newrelic/go-agent#TraceMetadata.Map)
+    method to facilitate logging the fields with specific keys for
+    trace/log context linking.
+
+  * `Transaction.GetLinkingMetadata()` returns a
+    [LinkingMetadata](https://godoc.org/github.com/newrelic/go-agent#LinkingMetadata)
+    which contains the fields needed to link data to a trace or entity.  This
+    struct has a
+    [Map](https://godoc.org/github.com/newrelic/go-agent#LinkingMetadata.Map)
+    method to facilitate logging the fields with specific keys for trace/log
+    context linking.
+
+### New Features
+
 * Added support for [Micro](https://github.com/micro/go-micro) monitoring with the new
 [_integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
 package.  This package supports instrumentation for servers, clients, publishers, and subscribers.
