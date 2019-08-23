@@ -155,6 +155,9 @@ type Transaction interface {
 	// GetTraceMetadata returns distributed tracing identifiers.  Empty
 	// string identifiers are returned if the transaction has finished.
 	GetTraceMetadata() TraceMetadata
+
+	// GetLinkingMetadata TODO
+	GetLinkingMetadata() LinkingMetadata
 }
 
 // DistributedTracePayload traces requests between applications or processes.
@@ -223,6 +226,36 @@ func NewWebRequest(request *http.Request) WebRequest {
 // NewStaticWebRequest takes the minimum necessary information and creates a static WebRequest out of it
 func NewStaticWebRequest(hdrs http.Header, url *url.URL, method string, transport TransportType) WebRequest {
 	return staticWebRequest{hdrs, url, method, transport}
+}
+
+// LinkingMetadata TODO
+type LinkingMetadata struct {
+	TraceID    string
+	SpanID     string
+	EntityName string
+	EntityType string
+	EntityGUID string
+	Hostname   string
+}
+
+func metadataMapField(m map[string]interface{}, key, val string) {
+	if val != "" {
+		m[key] = val
+	}
+}
+
+// Map transforms the metadata into a map.  Only non-empty string fields are
+// included in the map.  The specific key names facilitate agent logs in
+// context.
+func (md LinkingMetadata) Map() map[string]interface{} {
+	m := make(map[string]interface{})
+	metadataMapField(m, "trace.id", md.TraceID)
+	metadataMapField(m, "span.id", md.SpanID)
+	metadataMapField(m, "entity.name", md.EntityName)
+	metadataMapField(m, "entity.type", md.EntityType)
+	metadataMapField(m, "entity.guid", md.EntityGUID)
+	metadataMapField(m, "hostname", md.Hostname)
+	return m
 }
 
 // TraceMetadata is returned by Transaction.GetTraceMetadata.  It contains

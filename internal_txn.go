@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 type txnInput struct {
@@ -1115,6 +1116,20 @@ func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
 			metadata.SpanID = txn.CurrentSpanIdentifier(thd.thread)
 		}
 	}
+
+	return
+}
+
+func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
+	txn := thd.txn
+	metadata.EntityName = txn.appRun.Config.AppName // TODO: get just first app name
+	metadata.EntityType = "SERVICE"
+	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
+	metadata.Hostname, _ = sysinfo.Hostname()
+
+	md := thd.GetTraceMetadata()
+	metadata.TraceID = md.TraceID
+	metadata.SpanID = md.SpanID
 
 	return
 }

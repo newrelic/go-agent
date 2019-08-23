@@ -7,6 +7,7 @@ import (
 
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 func TestShouldSaveTrace(t *testing.T) {
@@ -470,5 +471,50 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 		"trace_id": "trace-id",
 	}) {
 		t.Error(m)
+	}
+}
+
+func TestGetLinkingMetadata(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.EntityGUID = "entities-are-guid"
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.AppName = "app-name"
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+
+	metadata := txn.GetLinkingMetadata()
+	host, _ := sysinfo.Hostname()
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error("wrong TraceID:", metadata.TraceID)
+	}
+	if metadata.SpanID != "bcfb32e050b264b8" {
+		t.Error("wrong SpanID:", metadata.SpanID)
+	}
+	if metadata.EntityName != "app-name" {
+		t.Error("wrong EntityName:", metadata.EntityName)
+	}
+	if metadata.EntityType != "SERVICE" {
+		t.Error("wrong EntityType:", metadata.EntityType)
+	}
+	if metadata.EntityGUID != "entities-are-guid" {
+		t.Error("wrong EntityGUID:", metadata.EntityGUID)
+	}
+	if metadata.Hostname != host {
+		t.Error("wrong Hostname:", metadata.Hostname)
+	}
+	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
+		"span.id":     "bcfb32e050b264b8",
+		"trace.id":    "d9466896a525ccbf",
+		"entity.name": "app-name",
+		"entity.type": "SERVICE",
+		"entity.guid": "entities-are-guid",
+		"hostname":    host,
+	}) {
+		t.Error("wrong metadata map:", m)
 	}
 }
