@@ -156,7 +156,8 @@ type Transaction interface {
 	// string identifiers are returned if the transaction has finished.
 	GetTraceMetadata() TraceMetadata
 
-	// GetLinkingMetadata TODO
+	// GetLinkingMetadata returns the fields needed to link data to a trace or
+	// entity.
 	GetLinkingMetadata() LinkingMetadata
 }
 
@@ -228,14 +229,25 @@ func NewStaticWebRequest(hdrs http.Header, url *url.URL, method string, transpor
 	return staticWebRequest{hdrs, url, method, transport}
 }
 
-// LinkingMetadata TODO
+// LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains
+// identifiers needed link data to a trace or entity.
 type LinkingMetadata struct {
-	TraceID    string
-	SpanID     string
+	// TraceID identifies the entire distributed trace.  This field is empty
+	// if distributed tracing is disabled.
+	TraceID string
+	// SpanID identifies the currently active segment.  This field is empty
+	// if distributed tracing is disabled or the transaction is not sampled.
+	SpanID string
+	// EntityName is the Application name as set on the newrelic.Config.  If
+	// multiple application names are specified, only the first is returned.
 	EntityName string
+	// EntityType is the type of this entity and is always the string
+	// "SERVICE".
 	EntityType string
+	// EntityGUID is the unique identifier for this entity.
 	EntityGUID string
-	Hostname   string
+	// Hostname is the hostname this entity is running on.
+	Hostname string
 }
 
 func metadataMapField(m map[string]interface{}, key, val string) {
