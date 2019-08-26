@@ -64,6 +64,45 @@ func testApp(t *testing.T, cfgFn func(*newrelic.Config), replyFn func(*internal.
 	return app
 }
 
+func BenchmarkWithOutTransaction(b *testing.B) {
+	log := newTestLogger(bytes.NewBuffer([]byte("")))
+	ctx := context.Background()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		log.WithContext(ctx).Info("Hello World!")
+	}
+}
+
+func BenchmarkWithOutLogDecoration(b *testing.B) {
+	log := newTestLogger(bytes.NewBuffer([]byte("")))
+	log.Formatter = new(logrus.JSONFormatter)
+	ctx := context.Background()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		log.WithContext(ctx).Info("Hello World!")
+	}
+}
+
+func BenchmarkWithTransaction(b *testing.B) {
+	app := testApp(nil, nil, nil)
+	txn := app.StartTransaction("TestLogDistributedTracingDisabled", nil, nil)
+	log := newTestLogger(bytes.NewBuffer([]byte("")))
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		log.WithContext(ctx).Info("Hello World!")
+	}
+}
+
 func TestLogNoContext(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
