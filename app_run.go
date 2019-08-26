@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
@@ -91,6 +92,9 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	if run.Config.DistributedTracer.Enabled {
 		run.Config.CrossApplicationTracer.Enabled = false
 	}
+
+	// Cache the first application name set on the config
+	run.Config.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
 
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config))
