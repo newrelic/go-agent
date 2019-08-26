@@ -3,8 +3,11 @@ package nrlogrus
 import (
 	newrelic "github.com/newrelic/go-agent"
 	logcontext "github.com/newrelic/go-agent/_integrations/log-plugins"
+	"github.com/newrelic/go-agent/internal"
 	"github.com/sirupsen/logrus"
 )
+
+func init() { internal.TrackUsage("integration", "log-context", "logrus") }
 
 type nrFormatter struct {
 	jsonFormatter logrus.JSONFormatter
