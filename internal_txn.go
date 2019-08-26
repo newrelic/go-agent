@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/internal"
-	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 type txnInput struct {
@@ -1125,7 +1124,7 @@ func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 	metadata.EntityName = strings.SplitN(txn.appRun.Config.AppName, ";", 2)[0]
 	metadata.EntityType = "SERVICE"
 	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
-	metadata.Hostname, _ = sysinfo.Hostname()
+	metadata.Hostname = internal.ThisHost
 
 	md := thd.GetTraceMetadata()
 	metadata.TraceID = md.TraceID
