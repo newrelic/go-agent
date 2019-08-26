@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/sysinfo"
+	"github.com/sirupsen/logrus"
 )
 
 var (

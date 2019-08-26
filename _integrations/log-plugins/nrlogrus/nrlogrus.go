@@ -1,9 +1,9 @@
 package nrlogrus
 
 import (
-	"github.com/Sirupsen/logrus"
 	newrelic "github.com/newrelic/go-agent"
 	logcontext "github.com/newrelic/go-agent/_integrations/log-plugins"
+	"github.com/sirupsen/logrus"
 )
 
 type nrFormatter struct {
