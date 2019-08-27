@@ -38,6 +38,8 @@
 // Supported types for `logger.WithField` and `logger.WithFields` field values
 // are numbers, booleans, strings, and errors.  Func types are dropped and all
 // other types are converted to strings.
+//
+// Requires v1.4.0 of the Logrus package or newer.
 package nrlogrus
 
 import (
