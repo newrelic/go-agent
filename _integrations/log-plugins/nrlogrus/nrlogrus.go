@@ -134,6 +134,7 @@ func writeValue(buf *bytes.Buffer, val interface{}) {
 	case error:
 		jsonx.AppendString(buf, v.Error())
 	default:
+		// TODO: what if this is nested json or something? document this
 		jsonx.AppendString(buf, fmt.Sprintf("%#v", v))
 	}
 }

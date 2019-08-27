@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"testing"
 	"time"
@@ -325,4 +326,38 @@ func TestWithCustomField(t *testing.T) {
 		"timestamp":   float64(1417136460000),
 		"zip":         "zap",
 	})
+}
+
+func TestCustomFieldTypes(t *testing.T) {
+	out := bytes.NewBuffer([]byte{})
+
+	testcases := []struct {
+		input  interface{}
+		output string
+	}{
+		{input: true, output: "true"},
+		{input: false, output: "false"},
+		{input: uint8(42), output: "42"},
+		{input: uint16(42), output: "42"},
+		{input: uint32(42), output: "42"},
+		{input: uint(42), output: "42"},
+		{input: uintptr(42), output: "42"},
+		{input: int8(42), output: "42"},
+		{input: int16(42), output: "42"},
+		{input: int32(42), output: "42"},
+		{input: int64(42), output: "42"},
+		{input: float32(42), output: "42"},
+		{input: float64(42), output: "42"},
+		{input: errors.New("Ooops an error"), output: `"Ooops an error"`},
+		{input: []int{1, 2, 3}, output: `"[]int{1, 2, 3}"`},
+	}
+
+	for _, test := range testcases {
+		out.Reset()
+		writeValue(out, test.input)
+		if out.String() != test.output {
+			t.Errorf("Incorrect output written:\nactual=%s\nexpected=%s",
+				out.String(), test.output)
+		}
+	}
 }
