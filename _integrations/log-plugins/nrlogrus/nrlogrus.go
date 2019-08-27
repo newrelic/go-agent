@@ -1,3 +1,19 @@
+// Package nrlogrus decorates logs for sending to the New Relic backend.
+//
+// Use this package if you are wishing to enable the New Relic logging product
+// and see your log messages in the New Relic UI.
+//
+// To enable, set your log's formatter to the `nrlogrus.NewFormatter()`
+//
+//	logger := logrus.New()
+//	logger.Formatter = nrlogrus.NewFormatter()
+//
+// The logger will now look for a newrelic.Transaction inside its context and
+// decorate logs accordingly.  Therefore, the Transaction must be added to the
+// context and passed to the logger.
+//
+//	ctx := newrelic.NewContext(context.Background(), txn)
+//	logger.WithContext(ctx).Info("Hello New Relic!")
 package nrlogrus
 
 import (
@@ -29,7 +45,8 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	return f.jsonFormatter.Format(next)
 }
 
-// NewFormatter TODO
+// NewFormatter creates a new `logrus.Formatter` that will format logs for
+// sending to New Relic.
 func NewFormatter() logrus.Formatter {
 	return nrFormatter{
 		jsonFormatter: logrus.JSONFormatter{
@@ -39,7 +56,6 @@ func NewFormatter() logrus.Formatter {
 				logrus.FieldKeyLevel: logcontext.KeyLevel,
 				logrus.FieldKeyFunc:  logcontext.KeyMethod,
 				logrus.FieldKeyFile:  logcontext.KeyFile,
-				// TODO: Split file and line number?
 			},
 		},
 	}
