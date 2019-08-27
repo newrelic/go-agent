@@ -1,9 +1,10 @@
 package logcontext
 
 const (
-	KeyMessage   = "message"
-	KeyLevel     = "log.level"
-	KeyMethod    = "method.name"
 	KeyFile      = "file.name"
+	KeyLevel     = "log.level"
+	KeyLine      = "line.number"
+	KeyMessage   = "message"
+	KeyMethod    = "method.name"
 	KeyTimestamp = "timestamp"
 )

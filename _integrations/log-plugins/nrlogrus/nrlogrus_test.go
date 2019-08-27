@@ -109,6 +109,7 @@ func TestLogNoContext(t *testing.T) {
 	log.WithTime(testTime).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"file.name":   matchAnything,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogNoContext",
@@ -122,6 +123,7 @@ func TestLogNoTxn(t *testing.T) {
 	log.WithTime(testTime).WithContext(context.Background()).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"file.name":   matchAnything,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogNoTxn",
@@ -142,6 +144,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogDistributedTracingDisabled",
@@ -170,6 +173,7 @@ func TestLogSampledFalse(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogSampledFalse",
@@ -199,6 +203,7 @@ func TestLogSampledTrue(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogSampledTrue",
@@ -232,6 +237,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryUsedTwice",
@@ -255,6 +261,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World! Again!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryUsedTwice",
@@ -271,15 +278,17 @@ func TestEntryError(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).WithField("func", func() {}).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name":  "AppName",
-		"entity.type":  "SERVICE",
-		"file.name":    matchAnything,
-		"hostname":     host,
-		"log.level":    "info",
-		"logrus_error": `can not add field "func"`,
-		"message":      "Hello World!",
-		"method.name":  "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryError",
-		"timestamp":    float64(1417136460000),
+		"entity.name": "AppName",
+		"entity.type": "SERVICE",
+		"file.name":   matchAnything,
+		"hostname":    host,
+		"line.number": matchAnything,
+		"log.level":   "info",
+		// Since the err field on the Entry is private we cannot record it.
+		//"logrus_error": `can not add field "func"`,
+		"message":     "Hello World!",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryError",
+		"timestamp":   float64(1417136460000),
 	})
 }
 
@@ -296,6 +305,7 @@ func TestWithCustomField(t *testing.T) {
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
+		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestWithCustomField",
