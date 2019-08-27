@@ -76,9 +76,22 @@ func BenchmarkWithOutTransaction(b *testing.B) {
 	}
 }
 
-func BenchmarkWithOutLogDecoration(b *testing.B) {
+func BenchmarkJSONFormatter(b *testing.B) {
 	log := newTestLogger(bytes.NewBuffer([]byte("")))
 	log.Formatter = new(logrus.JSONFormatter)
+	ctx := context.Background()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		log.WithContext(ctx).Info("Hello World!")
+	}
+}
+
+func BenchmarkTextFormatter(b *testing.B) {
+	log := newTestLogger(bytes.NewBuffer([]byte("")))
+	log.Formatter = new(logrus.TextFormatter)
 	ctx := context.Background()
 
 	b.ResetTimer()
