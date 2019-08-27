@@ -258,7 +258,8 @@ func metadataMapField(m map[string]interface{}, key, val string) {
 
 // Map transforms the metadata into a map.  Only non-empty string fields are
 // included in the map.  The specific key names facilitate agent logs in
-// context.
+// context.  These keys are: "trace.id", "span.id", "entity.name",
+// "entity.type", "entity.guid", and "hostname".
 func (md LinkingMetadata) Map() map[string]interface{} {
 	m := make(map[string]interface{})
 	metadataMapField(m, "trace.id", md.TraceID)

@@ -14,6 +14,21 @@
 //
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	logger.WithContext(ctx).Info("Hello New Relic!")
+//
+// Using `logger.WithField`
+// (https://godoc.org/github.com/sirupsen/logrus#Logger.WithField) and
+// `logger.WithFields`
+// (https://godoc.org/github.com/sirupsen/logrus#Logger.WithFields) is
+// supported.  However, if the field key collides with one of the keys used by
+// the New Relic Formatter, the value will be overwritten.  Reserved keys are
+// those returned from `txn.GetLinkingMetadata().Map()`
+// (https://godoc.org/github.com/newrelic/go-agent/#LinkingMetadata.Map) and
+// those found in the `logcontext` package
+// (https://godoc.org/github.com/newrelic/go-agent/_integrations/log-plugins/#pkg-constants).
+//
+// Supported types for `logger.WithField` and `logger.WithFields` field values
+// are numbers, booleans, strings, and errors.  Func types are dropped and all
+// other types are converted to strings.
 package nrlogrus
 
 import (
@@ -70,9 +85,6 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 
 // NewFormatter creates a new `logrus.Formatter` that will format logs for
 // sending to New Relic.
-// TODO: Document name collision
-// TODO: Document e.err is private and cannot record, give workaround
-// TODO: Document supported value types
 func NewFormatter() logrus.Formatter {
 	return nrFormatter{}
 }
