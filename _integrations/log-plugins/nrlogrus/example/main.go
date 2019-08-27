@@ -32,7 +32,7 @@ func doFunction1(txn newrelic.Transaction, e *logrus.Entry) {
 func main() {
 	log := logrus.New()
 	// To enable New Relic log decoration, use the nrlogrus.NewFormatter()
-	log.Formatter = nrlogrus.NewFormatter()
+	log.SetFormatter(nrlogrus.NewFormatter())
 	log.SetLevel(logrus.TraceLevel)
 
 	log.Debug("Logger created")

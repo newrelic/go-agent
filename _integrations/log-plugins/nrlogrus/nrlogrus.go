@@ -3,14 +3,23 @@
 // Use this package if you want to enable the New Relic logging product and see
 // your log messages in the New Relic UI.
 //
+// Since Logrus is completely api-compatible with the stdlib logger, you can
+// replace your `"log"` imports with `log "github.com/sirupsen/logrus"` and
+// follow the steps below to enable the logging product for use with the stdlib
+// Go logger.
+//
 // To enable, set your log's formatter to the `nrlogrus.NewFormatter()`
 //
 //	logger := logrus.New()
-//	logger.Formatter = nrlogrus.NewFormatter()
+//	logger.SetFormatter(nrlogrus.NewFormatter())
 //
 // The logger will now look for a newrelic.Transaction inside its context and
 // decorate logs accordingly.  Therefore, the Transaction must be added to the
-// context and passed to the logger.
+// context and passed to the logger.  For example, this logging call
+//
+//	logger.Info("Hello New Relic!")
+//
+// must be transformed to include the context, such as:
 //
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	logger.WithContext(ctx).Info("Hello New Relic!")
@@ -79,7 +88,6 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		b = &bytes.Buffer{}
 	}
 	writeDataJSON(b, data)
-
 	return b.Bytes(), nil
 }
 
