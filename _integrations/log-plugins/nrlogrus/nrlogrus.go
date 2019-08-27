@@ -91,6 +91,7 @@ func writeDataJSON(buf *bytes.Buffer, data logFields) {
 		writeValue(buf, v)
 	}
 	buf.WriteByte('}')
+	buf.WriteByte('\n')
 }
 
 func writeValue(buf *bytes.Buffer, val interface{}) {
