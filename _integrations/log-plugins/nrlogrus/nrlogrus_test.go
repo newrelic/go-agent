@@ -361,3 +361,28 @@ func TestCustomFieldTypes(t *testing.T) {
 		}
 	}
 }
+
+func TestUnsetCaller(t *testing.T) {
+	out := bytes.NewBuffer([]byte{})
+	log := newTestLogger(out)
+	log.SetReportCaller(false)
+	log.WithTime(testTime).Info("Hello World!")
+	validateOutput(t, out, map[string]interface{}{
+		"log.level": "info",
+		"message":   "Hello World!",
+		"timestamp": float64(1417136460000),
+	})
+}
+
+func TestCustomFieldNameCollision(t *testing.T) {
+	out := bytes.NewBuffer([]byte{})
+	log := newTestLogger(out)
+	log.SetReportCaller(false)
+	log.WithTime(testTime).WithField("timestamp", "Yesterday").Info("Hello World!")
+	validateOutput(t, out, map[string]interface{}{
+		"log.level": "info",
+		"message":   "Hello World!",
+		// Reserved keys will be overwritten
+		"timestamp": float64(1417136460000),
+	})
+}
