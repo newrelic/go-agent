@@ -1,7 +1,7 @@
 // Package nrlogrus decorates logs for sending to the New Relic backend.
 //
-// Use this package if you are wishing to enable the New Relic logging product
-// and see your log messages in the New Relic UI.
+// Use this package if you want to enable the New Relic logging product and see
+// your log messages in the New Relic UI.
 //
 // To enable, set your log's formatter to the `nrlogrus.NewFormatter()`
 //
@@ -34,7 +34,7 @@ type logFields map[string]interface{}
 type nrFormatter struct{}
 
 func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	data := make(logFields, len(e.Data)+12) // TODO: how much to add?
+	data := make(logFields, len(e.Data)+12)
 	for k, v := range e.Data {
 		data[k] = v
 	}
@@ -50,10 +50,7 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	data[logcontext.KeyTimestamp] = uint64(e.Time.UnixNano()) / uint64(1000*1000)
 	data[logcontext.KeyMessage] = e.Message
 	data[logcontext.KeyLevel] = e.Level
-	// TODO: cannot record e.err since it is private, document this
-	// TODO: test for when key names collide, document this
 
-	// TODO: test when the caller is disabled
 	if e.HasCaller() {
 		data[logcontext.KeyFile] = e.Caller.File
 		data[logcontext.KeyLine] = e.Caller.Line
@@ -73,6 +70,9 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 
 // NewFormatter creates a new `logrus.Formatter` that will format logs for
 // sending to New Relic.
+// TODO: Document name collision
+// TODO: Document e.err is private and cannot record, give workaround
+// TODO: Document supported value types
 func NewFormatter() logrus.Formatter {
 	return nrFormatter{}
 }
@@ -134,7 +134,6 @@ func writeValue(buf *bytes.Buffer, val interface{}) {
 	case error:
 		jsonx.AppendString(buf, v.Error())
 	default:
-		// TODO: what if this is nested json or something? document this
 		jsonx.AppendString(buf, fmt.Sprintf("%#v", v))
 	}
 }
