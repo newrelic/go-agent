@@ -17,11 +17,13 @@
 package nrlogrus
 
 import (
-	"encoding/json"
+	"bytes"
+	"fmt"
 
 	newrelic "github.com/newrelic/go-agent"
 	logcontext "github.com/newrelic/go-agent/_integrations/log-plugins"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/jsonx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,15 +36,7 @@ type nrFormatter struct{}
 func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	data := make(logFields, len(e.Data)+12) // TODO: how much to add?
 	for k, v := range e.Data {
-		switch v := v.(type) {
-		case error:
-			// TODO: test this
-			// Otherwise errors are ignored by `encoding/json`
-			// https://github.com/sirupsen/logrus/issues/137
-			data[k] = v.Error()
-		default:
-			data[k] = v
-		}
+		data[k] = v
 	}
 
 	if ctx := e.Context; nil != ctx {
@@ -66,11 +60,80 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		data[logcontext.KeyMethod] = e.Caller.Function
 	}
 
-	return json.Marshal(data)
+	var b *bytes.Buffer
+	if e.Buffer != nil {
+		b = e.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+	writeDataJSON(b, data)
+
+	return b.Bytes(), nil
 }
 
 // NewFormatter creates a new `logrus.Formatter` that will format logs for
 // sending to New Relic.
 func NewFormatter() logrus.Formatter {
 	return nrFormatter{}
+}
+
+func writeDataJSON(buf *bytes.Buffer, data logFields) {
+	buf.WriteByte('{')
+	var needsComma bool
+	for k, v := range data {
+		if needsComma {
+			buf.WriteByte(',')
+		} else {
+			needsComma = true
+		}
+		jsonx.AppendString(buf, k)
+		buf.WriteByte(':')
+		writeValue(buf, v)
+	}
+	buf.WriteByte('}')
+}
+
+func writeValue(buf *bytes.Buffer, val interface{}) {
+	switch v := val.(type) {
+	case string:
+		jsonx.AppendString(buf, v)
+	case bool:
+		if v {
+			buf.WriteString("true")
+		} else {
+			buf.WriteString("false")
+		}
+	case uint8:
+		jsonx.AppendInt(buf, int64(v))
+	case uint16:
+		jsonx.AppendInt(buf, int64(v))
+	case uint32:
+		jsonx.AppendInt(buf, int64(v))
+	case uint64:
+		jsonx.AppendInt(buf, int64(v))
+	case uint:
+		jsonx.AppendInt(buf, int64(v))
+	case uintptr:
+		jsonx.AppendInt(buf, int64(v))
+	case int8:
+		jsonx.AppendInt(buf, int64(v))
+	case int16:
+		jsonx.AppendInt(buf, int64(v))
+	case int32:
+		jsonx.AppendInt(buf, int64(v))
+	case int:
+		jsonx.AppendInt(buf, int64(v))
+	case int64:
+		jsonx.AppendInt(buf, v)
+	case float32:
+		jsonx.AppendFloat(buf, float64(v))
+	case float64:
+		jsonx.AppendFloat(buf, v)
+	case logrus.Level:
+		jsonx.AppendString(buf, v.String())
+	case error:
+		jsonx.AppendString(buf, v.Error())
+	default:
+		jsonx.AppendString(buf, fmt.Sprintf("%#v", v))
+	}
 }
