@@ -1,4 +1,4 @@
-package nrlogrus
+package nrlogrusplugin
 
 import (
 	"bytes"
@@ -126,7 +126,7 @@ func TestLogNoContext(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogNoContext",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestLogNoContext",
 		"timestamp":   float64(1417136460000),
 	})
 }
@@ -140,7 +140,7 @@ func TestLogNoTxn(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogNoTxn",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestLogNoTxn",
 		"timestamp":   float64(1417136460000),
 	})
 }
@@ -161,7 +161,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogDistributedTracingDisabled",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestLogDistributedTracingDisabled",
 		"timestamp":   float64(1417136460000),
 	})
 }
@@ -190,7 +190,7 @@ func TestLogSampledFalse(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogSampledFalse",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestLogSampledFalse",
 		"timestamp":   float64(1417136460000),
 		"trace.id":    "d9466896a525ccbf",
 	})
@@ -220,7 +220,7 @@ func TestLogSampledTrue(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestLogSampledTrue",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestLogSampledTrue",
 		"span.id":     "bcfb32e050b264b8",
 		"timestamp":   float64(1417136460000),
 		"trace.id":    "d9466896a525ccbf",
@@ -254,7 +254,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryUsedTwice",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestEntryUsedTwice",
 		"span.id":     "bcfb32e050b264b8",
 		"timestamp":   float64(1417136460000),
 		"trace.id":    "d9466896a525ccbf",
@@ -278,7 +278,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World! Again!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryUsedTwice",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestEntryUsedTwice",
 		"timestamp":   float64(1417136460000),
 	})
 }
@@ -301,7 +301,7 @@ func TestEntryError(t *testing.T) {
 		// Since the err field on the Entry is private we cannot record it.
 		//"logrus_error": `can not add field "func"`,
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestEntryError",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestEntryError",
 		"timestamp":   float64(1417136460000),
 	})
 }
@@ -322,7 +322,7 @@ func TestWithCustomField(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		"message":     "Hello World!",
-		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus.TestWithCustomField",
+		"method.name": "github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin.TestWithCustomField",
 		"timestamp":   float64(1417136460000),
 		"zip":         "zap",
 	})

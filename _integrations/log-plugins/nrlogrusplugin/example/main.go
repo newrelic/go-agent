@@ -7,7 +7,7 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrus"
+	"github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,8 +31,8 @@ func doFunction1(txn newrelic.Transaction, e *logrus.Entry) {
 
 func main() {
 	log := logrus.New()
-	// To enable New Relic log decoration, use the nrlogrus.NewFormatter()
-	log.SetFormatter(nrlogrus.NewFormatter())
+	// To enable New Relic log decoration, use the nrlogrusplugin.NewFormatter()
+	log.SetFormatter(nrlogrusplugin.NewFormatter())
 	log.SetLevel(logrus.TraceLevel)
 
 	log.Debug("Logger created")

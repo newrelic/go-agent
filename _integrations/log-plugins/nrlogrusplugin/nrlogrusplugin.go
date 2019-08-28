@@ -1,4 +1,4 @@
-// Package nrlogrus decorates logs for sending to the New Relic backend.
+// Package nrlogrusplugin decorates logs for sending to the New Relic backend.
 //
 // Use this package if you want to enable the New Relic logging product and see
 // your log messages in the New Relic UI.
@@ -8,10 +8,10 @@
 // follow the steps below to enable the logging product for use with the stdlib
 // Go logger.
 //
-// To enable, set your log's formatter to the `nrlogrus.NewFormatter()`
+// To enable, set your log's formatter to the `nrlogrusplugin.NewFormatter()`
 //
 //	logger := logrus.New()
-//	logger.SetFormatter(nrlogrus.NewFormatter())
+//	logger.SetFormatter(nrlogrusplugin.NewFormatter())
 //
 // The logger will now look for a newrelic.Transaction inside its context and
 // decorate logs accordingly.  Therefore, the Transaction must be added to the
@@ -40,7 +40,7 @@
 // other types are converted to strings.
 //
 // Requires v1.4.0 of the Logrus package or newer.
-package nrlogrus
+package nrlogrusplugin
 
 import (
 	"bytes"
