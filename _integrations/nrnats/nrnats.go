@@ -44,7 +44,7 @@ func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string
 // https://godoc.org/github.com/nats-io/go-nats#EncodedConn.Subscribe)
 // and nats.QueueSubscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.QueueSubscribe or
 // https://godoc.org/github.com/nats-io/go-nats#EncodedConn.QueueSubscribe)
-func NrSubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
+func SubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
 	if app == nil {
 		return f
 	}

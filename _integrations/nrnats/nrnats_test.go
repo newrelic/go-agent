@@ -140,7 +140,7 @@ func TestNrSubWrapper(t *testing.T) {
 		t.Fatal("Error connecting to NATS server", err)
 	}
 	app := testApp(t)
-	nc.Subscribe(subject, NrSubWrapper(app, subFunc))
+	nc.Subscribe(subject, SubWrapper(app, subFunc))
 	nc.Publish(subject, []byte("data"))
 
 	time.Sleep(100 * time.Millisecond)

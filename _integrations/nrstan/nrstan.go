@@ -9,7 +9,7 @@ import (
 // TODO: more documentation
 // Can be used to wrap the function for STREAMING stan.Subscribe  and stan.QueueSubscribe
 // (https://godoc.org/github.com/nats-io/stan.go#Conn)
-func NrStreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {
+func StreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {
 	if app == nil {
 		return f
 	}

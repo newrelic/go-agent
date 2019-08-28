@@ -52,7 +52,7 @@ func TestNrSubWrapper(t *testing.T) {
 	defer sc.Close()
 
 	app := createTestApp(t)
-	sc.Subscribe(subject, NrStreamingSubWrapper(app, subFunc))
+	sc.Subscribe(subject, StreamingSubWrapper(app, subFunc))
 	sc.Publish(subject, []byte("data"))
 
 	time.Sleep(100 * time.Millisecond)
