@@ -1,6 +1,7 @@
 package nrnats
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -36,4 +37,25 @@ func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string
 		Procedure: proc,
 		Library:   "NATS",
 	}
+}
+
+// TODO: more documentation
+// Can be used to wrap the function for nats.Subscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.Subscribe or
+// https://godoc.org/github.com/nats-io/go-nats#EncodedConn.Subscribe)
+// and nats.QueueSubscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.QueueSubscribe or
+// https://godoc.org/github.com/nats-io/go-nats#EncodedConn.QueueSubscribe)
+func NrSubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
+	if app == nil {
+		return f
+	}
+	return func(msg *nats.Msg) {
+		txn := app.StartTransaction(subTxnName(msg.Subject), nil, nil)
+		defer txn.End()
+		f(msg)
+	}
+}
+
+func subTxnName(subject string) string {
+	return fmt.Sprintf("Message/NATS/Topic/%s:subscriber", subject)
+
 }
