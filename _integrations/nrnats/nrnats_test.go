@@ -3,6 +3,7 @@ package nrnats
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/nats-io/nats-server/test"
 	"github.com/nats-io/nats.go"
@@ -15,6 +16,10 @@ func TestMain(m *testing.M) {
 	defer s.Shutdown()
 	os.Exit(m.Run())
 }
+
+const subject = "example.subject"
+
+func subFunc(*nats.Msg) {}
 
 func testApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
@@ -122,6 +127,41 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 						SegmentName: "External/127.0.0.1:4222/NATS/Publish/mysubject",
 						Attributes:  map[string]interface{}{},
 					},
+				},
+			}},
+		},
+	},
+	})
+}
+
+func TestNrSubWrapper(t *testing.T) {
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		t.Fatal("Error connecting to NATS server", err)
+	}
+	app := testApp(t)
+	nc.Subscribe(subject, NrSubWrapper(app, subFunc))
+	nc.Publish(subject, []byte("data"))
+
+	time.Sleep(100 * time.Millisecond)
+
+	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/NATS/Topic/example.subject:subscriber", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber",
+		Root: internal.WantTraceSegment{
+			SegmentName: "ROOT",
+			Attributes:  map[string]interface{}{},
+			Children: []internal.WantTraceSegment{{
+				SegmentName: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber",
+				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Children: []internal.WantTraceSegment{
 				},
 			}},
 		},
