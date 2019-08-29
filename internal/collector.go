@@ -238,6 +238,7 @@ type ConnectJSONCreator interface {
 
 type preconnectRequest struct {
 	SecurityPoliciesToken string `json:"security_policies_token,omitempty"`
+	HighSecurity          bool   `json:"high_security"`
 }
 
 var (
@@ -245,10 +246,11 @@ var (
 )
 
 // ConnectAttempt tries to connect an application.
-func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, cs RpmControls) (*ConnectReply, RPMResponse) {
-	preconnectData, err := json.Marshal([]preconnectRequest{
-		{SecurityPoliciesToken: securityPoliciesToken},
-	})
+func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, highSecurity bool, cs RpmControls) (*ConnectReply, RPMResponse) {
+	preconnectData, err := json.Marshal([]preconnectRequest{{
+		SecurityPoliciesToken: securityPoliciesToken,
+		HighSecurity:          highSecurity,
+	}})
 	if nil != err {
 		return nil, RPMResponse{Err: fmt.Errorf("unable to marshal preconnect data: %v", err)}
 	}
