@@ -1,5 +1,9 @@
 ## ChangeLog
 
+### New Features
+* Enables ability to migrate to Configurable Security Policies (CSP) on a per agent basis for accounts already using High Security Mode (HSM).
+  * When both HSM and CSP are enabled for an account, an agent (this version or later) can successfully connect with either `high_security: true` or the appropriate `security_policies_token` configured. `high_security` has been added as part of the preconnect payload.
+
 ## 2.11.0
 
 ### New Features
