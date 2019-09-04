@@ -9,15 +9,10 @@ func (st StackTrace) frames() []stacktraceFrame {
 	frames := runtime.CallersFrames(st)
 	for i := range st {
 		frame, more := frames.Next()
-		fun := runtime.FuncForPC(frame.PC)
-		if nil == fun {
-			fs[i] = stacktraceFrame{}
-		} else {
-			fs[i] = stacktraceFrame{
-				Name: fun.Name(),
-				File: frame.File,
-				Line: int64(frame.Line),
-			}
+		fs[i] = stacktraceFrame{
+			Name: frame.Function,
+			File: frame.File,
+			Line: int64(frame.Line),
 		}
 		if !more {
 			break
