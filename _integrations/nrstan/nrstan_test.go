@@ -1,8 +1,9 @@
 package nrstan
 
 import (
+	"os"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/nats-io/nats-streaming-server/server"
 	"github.com/nats-io/stan.go"
@@ -13,10 +14,16 @@ import (
 const (
 	clusterName = "my_test_cluster"
 	clientName  = "me"
-	subject     = "sample.subject"
 )
 
-func subFunc(_ *stan.Msg) {}
+func TestMain(m *testing.M) {
+	s, err := server.RunServer(clusterName)
+	if err != nil {
+		panic(err)
+	}
+	defer s.Shutdown()
+	os.Exit(m.Run())
+}
 
 func createTestApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
@@ -39,41 +46,53 @@ func createTestApp(t *testing.T) newrelic.Application {
 	return app
 }
 
-func TestNrSubWrapper(t *testing.T) {
-	s, err := server.RunServer(clusterName)
-	if err != nil {
-		panic(err)
-	}
-	defer s.Shutdown()
+func TestSubWrapperWithNilApp(t *testing.T) {
+	subject := "sample.subject1"
 	sc, err := stan.Connect(clusterName, clientName)
 	if err != nil {
 		t.Fatal("Couldn't connect to server", err)
 	}
 	defer sc.Close()
 
-	app := createTestApp(t)
-	sc.Subscribe(subject, StreamingSubWrapper(app, subFunc))
+	wg := sync.WaitGroup{}
+	sc.Subscribe(subject, StreamingSubWrapper(nil, func(msg *stan.Msg) {
+		defer wg.Done()
+	}))
+	wg.Add(1)
 	sc.Publish(subject, []byte("data"))
+	wg.Wait()
+}
 
-	time.Sleep(100 * time.Millisecond)
+func TestSubWrapper(t *testing.T) {
+	subject := "sample.subject2"
+	sc, err := stan.Connect(clusterName, clientName)
+	if err != nil {
+		t.Fatal("Couldn't connect to server", err)
+	}
+	defer sc.Close()
+
+	wg := sync.WaitGroup{}
+	app := createTestApp(t)
+	sc.Subscribe(subject, WgWrapper(&wg, StreamingSubWrapper(app, func(msg *stan.Msg) {})))
+
+	wg.Add(1)
+	sc.Publish(subject, []byte("data"))
+	wg.Wait()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/Message/stan.go/Topic/sample.subject:subscriber", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/stan.go/Topic/sample.subject:subscriber", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/Message/stan.go/Topic/sample.subject2:subscriber", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/stan.go/Topic/sample.subject2:subscriber", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/Message/stan.go/Topic/sample.subject:subscriber",
-		Root: internal.WantTraceSegment{
-			SegmentName: "ROOT",
-			Attributes:  map[string]interface{}{},
-			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/Message/stan.go/Topic/sample.subject:subscriber",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
-			}},
-		},
-	}})
+}
+
+// Wrapper function to ensure that the NR wrapper is done recording transaction data before wg.Done() is called
+func WgWrapper(wg *sync.WaitGroup, nrWrap func(msg *stan.Msg)) func(msg *stan.Msg) {
+	return func(msg *stan.Msg) {
+		nrWrap(msg)
+		wg.Done()
+	}
 }

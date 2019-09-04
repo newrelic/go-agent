@@ -2,12 +2,13 @@ package nrstan
 
 import (
 	"fmt"
+
 	"github.com/nats-io/stan.go"
 	newrelic "github.com/newrelic/go-agent"
 )
 
 // StreamingSubWrapper can be used to wrap the function for STREAMING stan.Subscribe  and stan.QueueSubscribe
-//// (https://godoc.org/github.com/nats-io/stan.go#Conn)
+// (https://godoc.org/github.com/nats-io/stan.go#Conn)
 // If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
 // when the passed function is complete.
 func StreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {

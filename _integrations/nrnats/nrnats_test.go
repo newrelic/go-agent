@@ -2,8 +2,8 @@ package nrnats
 
 import (
 	"os"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/nats-io/nats-server/test"
 	"github.com/nats-io/nats.go"
@@ -16,10 +16,6 @@ func TestMain(m *testing.M) {
 	defer s.Shutdown()
 	os.Exit(m.Run())
 }
-
-const subject = "example.subject"
-
-func subFunc(*nats.Msg) {}
 
 func testApp(t *testing.T) newrelic.Application {
 	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
@@ -134,38 +130,40 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	})
 }
 
-func TestNrSubWrapper(t *testing.T) {
+func TestSubWrapperWithNilApp(t *testing.T) {
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
 		t.Fatal("Error connecting to NATS server", err)
 	}
-	app := testApp(t)
-	nc.Subscribe(subject, SubWrapper(app, subFunc))
-	nc.Publish(subject, []byte("data"))
+	wg := sync.WaitGroup{}
+	nc.Subscribe("subject1", SubWrapper(nil, func(msg *nats.Msg) {
+		wg.Done()
+	}))
+	wg.Add(1)
+	nc.Publish("subject1", []byte("data"))
+	wg.Wait()
+}
 
-	time.Sleep(100 * time.Millisecond)
+func TestSubWrapper(t *testing.T) {
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		t.Fatal("Error connecting to NATS server", err)
+	}
+	wg := sync.WaitGroup{}
+	app := testApp(t)
+	nc.Subscribe("subject2", WgWrapper(&wg, SubWrapper(app, func(msg *nats.Msg) {})))
+	wg.Add(1)
+	nc.Publish("subject2", []byte("data"))
+	wg.Wait()
 
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/NATS/Topic/example.subject:subscriber", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/Message/NATS/Topic/subject2:subscriber", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/NATS/Topic/subject2:subscriber", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber",
-		Root: internal.WantTraceSegment{
-			SegmentName: "ROOT",
-			Attributes:  map[string]interface{}{},
-			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/Message/NATS/Topic/example.subject:subscriber",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
-				Children: []internal.WantTraceSegment{
-				},
-			}},
-		},
-	}})
 }
 
 func TestStartPublishSegmentProcedure(t *testing.T) {
@@ -191,5 +189,13 @@ func TestStartPublishSegmentProcedure(t *testing.T) {
 		if seg.Procedure != tc.procedure {
 			t.Errorf("incorrect Procedure:\nactual=%s\nexpected=%s", seg.Procedure, tc.procedure)
 		}
+	}
+}
+
+// Wrapper function to ensure that the NR wrapper is done recording transaction data before wg.Done() is called
+func WgWrapper(wg *sync.WaitGroup, nrWrap func(msg *nats.Msg)) func(msg *nats.Msg) {
+	return func(msg *nats.Msg) {
+		nrWrap(msg)
+		wg.Done()
 	}
 }
