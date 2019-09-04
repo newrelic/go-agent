@@ -15,21 +15,13 @@ func GetStackTrace() StackTrace {
 	skip := 1 // skip runtime.Callers
 	callers := make([]uintptr, maxStackTraceFrames)
 	written := runtime.Callers(skip, callers)
-	return StackTrace(callers[0:written])
+	return callers[0:written]
 }
 
 type stacktraceFrame struct {
 	Name string
 	File string
 	Line int64
-}
-
-func (st StackTrace) frames() []stacktraceFrame {
-	fs := make([]stacktraceFrame, len(st))
-	for idx, pc := range st {
-		fs[idx] = lookupFrame(pc)
-	}
-	return fs
 }
 
 func (f stacktraceFrame) formattedName() string {
@@ -62,27 +54,6 @@ func (f stacktraceFrame) WriteJSON(buf *bytes.Buffer) {
 		w.intField("line", f.Line)
 	}
 	buf.WriteByte('}')
-}
-
-func lookupFrame(pc uintptr) stacktraceFrame {
-	// The Golang runtime package documentation says "To look up the file
-	// and line number of the call itself, use pc[i]-1. As an exception to
-	// this rule, if pc[i-1] corresponds to the function runtime.sigpanic,
-	// then pc[i] is the program counter of a faulting instruction and
-	// should be used without any subtraction."
-	//
-	// TODO: Fully understand when this subtraction is necessary.
-	place := pc - 1
-	f := runtime.FuncForPC(place)
-	if nil == f {
-		return stacktraceFrame{}
-	}
-	file, line := f.FileLine(place)
-	return stacktraceFrame{
-		Name: f.Name(),
-		File: file,
-		Line: int64(line),
-	}
 }
 
 func writeFrames(buf *bytes.Buffer, frames []stacktraceFrame) {
