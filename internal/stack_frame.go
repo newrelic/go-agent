@@ -7,14 +7,14 @@ import "runtime"
 func (st StackTrace) frames() []stacktraceFrame {
 	fs := make([]stacktraceFrame, len(st))
 	frames := runtime.CallersFrames(st)
-	for i := 0; i < len(st); i++ {
+	for i := range st {
 		frame, more := frames.Next()
-		f := runtime.FuncForPC(frame.PC)
-		if nil == f {
+		fun := runtime.FuncForPC(frame.PC)
+		if nil == fun {
 			fs[i] = stacktraceFrame{}
 		} else {
 			fs[i] = stacktraceFrame{
-				Name: f.Name(),
+				Name: fun.Name(),
 				File: frame.File,
 				Line: int64(frame.Line),
 			}
