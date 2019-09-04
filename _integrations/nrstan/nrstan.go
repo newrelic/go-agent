@@ -6,16 +6,16 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-// TODO: more documentation
-// Can be used to wrap the function for STREAMING stan.Subscribe  and stan.QueueSubscribe
-// (https://godoc.org/github.com/nats-io/stan.go#Conn)
+// StreamingSubWrapper can be used to wrap the function for STREAMING stan.Subscribe  and stan.QueueSubscribe
+//// (https://godoc.org/github.com/nats-io/stan.go#Conn)
+// If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
+// when the passed function is complete.
 func StreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {
 	if app == nil {
 		return f
 	}
 	return func(msg *stan.Msg) {
-		txn := app.StartTransaction(subTxnName(msg.Subject), nil, nil)
-		defer txn.End()
+		defer app.StartTransaction(subTxnName(msg.Subject), nil, nil).End()
 		f(msg)
 	}
 }

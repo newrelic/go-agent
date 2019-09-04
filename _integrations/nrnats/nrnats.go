@@ -39,23 +39,22 @@ func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string
 	}
 }
 
-// TODO: more documentation
-// Can be used to wrap the function for nats.Subscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.Subscribe or
-// https://godoc.org/github.com/nats-io/go-nats#EncodedConn.Subscribe)
+// SubWrapper can be used to wrap the function for nats.Subscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.Subscribe
+// or https://godoc.org/github.com/nats-io/go-nats#EncodedConn.Subscribe)
 // and nats.QueueSubscribe (https://godoc.org/github.com/nats-io/go-nats#Conn.QueueSubscribe or
 // https://godoc.org/github.com/nats-io/go-nats#EncodedConn.QueueSubscribe)
+// If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
+// when the passed function is complete.
 func SubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
 	if app == nil {
 		return f
 	}
 	return func(msg *nats.Msg) {
-		txn := app.StartTransaction(subTxnName(msg.Subject), nil, nil)
-		defer txn.End()
+		defer app.StartTransaction(subTxnName(msg.Subject), nil, nil).End()
 		f(msg)
 	}
 }
 
 func subTxnName(subject string) string {
 	return fmt.Sprintf("Message/NATS/Topic/%s:subscriber", subject)
-
 }
