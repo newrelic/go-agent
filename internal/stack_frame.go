@@ -9,7 +9,7 @@ func (st StackTrace) frames() []stacktraceFrame {
 		return nil
 	}
 	frames := runtime.CallersFrames(st) // CallersFrames is only available in Go 1.7+
-	var fs []stacktraceFrame
+	fs := make([]stacktraceFrame, 0, maxStackTraceFrames)
 	var frame runtime.Frame
 	more := true
 	for more {
