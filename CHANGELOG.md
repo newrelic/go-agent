@@ -1,8 +1,9 @@
 ## ChangeLog
 
 ### New Features
-* Enables ability to migrate to Configurable Security Policies (CSP) on a per agent basis for accounts already using High Security Mode (HSM).
-  * When both HSM and CSP are enabled for an account, an agent (this version or later) can successfully connect with either `high_security: true` or the appropriate `security_policies_token` configured. `high_security` has been added as part of the preconnect payload.
+* Enables ability to migrate to Configurable Security Policies (CSP) on a per agent basis for accounts already using High Security Mode (HSM). 
+  * Previously, if CSP was configured for an account, New Relic would not allow an agent to connect without the `security_policies_token`. This led to agents not being able to connect during the period between when CSP was enabled for an account and when each agent is configured with the correct token.
+  * With this change, when both HSM and CSP are enabled for an account, an agent (this version or later) can successfully connect with either `high_security: true` or the appropriate `security_policies_token` configured - allowing the agent to continue to connect after CSP is configured on the account but before the appropriate `security_policies_token` is configured for each agent. 
 
 ## 2.11.0
 
