@@ -124,3 +124,14 @@ func TestStackTraceTopFrame(t *testing.T) {
 		t.Error(string(stackJSON))
 	}
 }
+
+func TestFramesCount(t *testing.T) {
+	st := stacktracetest.CountedCall(3, func() []uintptr {
+		return GetStackTrace()
+	})
+	l := len(StackTrace(st))
+	frames := StackTrace(st).frames()
+	if len(frames) != l {
+		t.Error("Invalid # of frames", l, len(frames))
+	}
+}

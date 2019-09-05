@@ -5,16 +5,20 @@ package internal
 import "runtime"
 
 func (st StackTrace) frames() []stacktraceFrame {
-	fs := make([]stacktraceFrame, maxStackTraceFrames)
+	if len(st) == 0 {
+		return nil
+	}
 	frames := runtime.CallersFrames(st) // CallersFrames is only available in Go 1.7+
-	i := 0
-	for frame, more := frames.Next(); more && (i < maxStackTraceFrames); frame, more = frames.Next() {
-		fs[i] = stacktraceFrame{
+	var fs []stacktraceFrame
+	var frame runtime.Frame
+	more := true
+	for more {
+		frame, more = frames.Next()
+		fs = append(fs, stacktraceFrame{
 			Name: frame.Function,
 			File: frame.File,
 			Line: int64(frame.Line),
-		}
-		i++
+		})
 	}
-	return fs[0:i]
+	return fs
 }

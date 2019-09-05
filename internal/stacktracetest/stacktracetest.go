@@ -5,3 +5,10 @@ package stacktracetest
 func TopStackFrame(generateStacktrace func() []byte) []byte {
 	return generateStacktrace()
 }
+
+func CountedCall(i int, f func() []uintptr) []uintptr {
+	if i > 0 {
+		return CountedCall(i-1, f)
+	}
+	return f()
+}
