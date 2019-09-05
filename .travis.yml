@@ -41,6 +41,10 @@ matrix:
     env: INTEGRATION=_integrations/nrlogrus
   - go: "1.12"
     env: INTEGRATION=_integrations/nrmicro
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrnats
+  - go: "1.12"
+    env: INTEGRATION=_integrations/nrstan
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
