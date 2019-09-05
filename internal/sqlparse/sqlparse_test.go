@@ -16,7 +16,13 @@ type sqlTestcase struct {
 func (tc sqlTestcase) test(t *testing.T) {
 	var segment newrelic.DatastoreSegment
 	ParseQuery(&segment, tc.Input)
-	if segment.Operation != tc.Operation {
+	if tc.Operation == "other" {
+		// Allow for matching of Operation "other" to ""
+		if segment.Operation != "" {
+			t.Errorf("operation mismatch query='%s' wanted='%s' got='%s'",
+				tc.Input, tc.Operation, segment.Operation)
+		}
+	} else if segment.Operation != tc.Operation {
 		t.Errorf("operation mismatch query='%s' wanted='%s' got='%s'",
 			tc.Input, tc.Operation, segment.Operation)
 	}
