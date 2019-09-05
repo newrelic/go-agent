@@ -2,6 +2,8 @@
 
 package internal
 
+import "runtime"
+
 func (st StackTrace) frames() []stacktraceFrame {
 	fs := make([]stacktraceFrame, len(st))
 	for idx, pc := range st {
