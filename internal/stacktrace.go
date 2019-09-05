@@ -15,7 +15,7 @@ func GetStackTrace() StackTrace {
 	skip := 1 // skip runtime.Callers
 	callers := make([]uintptr, maxStackTraceFrames)
 	written := runtime.Callers(skip, callers)
-	return callers[0:written]
+	return callers[:written]
 }
 
 type stacktraceFrame struct {
