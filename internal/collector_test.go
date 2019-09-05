@@ -610,19 +610,19 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 
 func TestPreconnectRequestMarshall(t *testing.T) {
 	tests := map[string]preconnectRequest{
-		`[{"security_policies_token":"securityPoliciesToken","high_security":false}]": {
+		`[{"security_policies_token":"securityPoliciesToken","high_security":false}]`: {
 			SecurityPoliciesToken: "securityPoliciesToken",
 			HighSecurity:          false,
 		},
-		"[{\"security_policies_token\":\"securityPoliciesToken\",\"high_security\":true}]": {
+		`[{"security_policies_token":"securityPoliciesToken","high_security":true}]`: {
 			SecurityPoliciesToken: "securityPoliciesToken",
 			HighSecurity:          true,
 		},
-		"[{\"high_security\":true}]": {
+		`[{"high_security":true}]`: {
 			SecurityPoliciesToken: "",
 			HighSecurity:          true,
 		},
-		"[{\"high_security\":false}]": {
+		`[{"high_security":false}]`: {
 			SecurityPoliciesToken: "",
 			HighSecurity:          false,
 		},
