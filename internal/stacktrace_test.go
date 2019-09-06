@@ -21,25 +21,15 @@ func TestGetStackTrace(t *testing.T) {
 }
 
 func TestLongStackTrace(t *testing.T) {
-	st := StackTrace(make([]uintptr, maxStackTraceFrames+20))
-	js, err := json.Marshal(st)
-	if nil != err {
-		t.Fatal(err)
+	st := stacktracetest.CountedCall(maxStackTraceFrames+20, func() []uintptr {
+		return GetStackTrace()
+	})
+	if len(st) != maxStackTraceFrames {
+		t.Error("Unexpected size of stacktrace", maxStackTraceFrames, len(st))
 	}
-	expect := `[
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{}
-	]`
-	if string(js) != CompactJSONString(expect) {
-		t.Error(string(js))
+	l := len(StackTrace(st).frames())
+	if l != maxStackTraceFrames {
+		t.Error("Unexpected number of frames", maxStackTraceFrames, l)
 	}
 }
 
