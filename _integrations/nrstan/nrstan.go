@@ -7,7 +7,7 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-// StreamingSubWrapper can be used to wrap the function for STREAMING stan.Subscribe  and stan.QueueSubscribe
+// StreamingSubWrapper can be used to wrap the function for STREAMING stan.Subscribe and stan.QueueSubscribe
 // (https://godoc.org/github.com/nats-io/stan.go#Conn)
 // If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
 // when the passed function is complete.

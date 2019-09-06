@@ -1,5 +1,16 @@
 ## ChangeLog
 
+### New Features
+
+* Added support for [NATS](https://github.com/nats-io/nats.go) and [NATS Streaming](https://github.com/nats-io/stan.go) 
+monitoring with the new [_integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats) and 
+[_integrations/nrstan](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan) packages.  These packages
+support instrumentation of publishers and subscribers.
+
+  * [NATS Example](https://github.com/newrelic/go-agent/go-agent/blob/master/_integrations/nrnats/examples/main.go)
+  * [NATS Streaming Example](https://github.com/newrelic/go-agent/go-agent/blob/master/_integrations/nrstan/examples/main.go)
+
+
 ## 2.11.0
 
 ### New Features
