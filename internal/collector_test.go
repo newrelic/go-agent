@@ -634,7 +634,7 @@ func TestPreconnectRequestMarshall(t *testing.T) {
 		}
 		result := string(b)
 		if result != expected {
-			t.Error(fmt.Sprintf("Invalid preconnect request marshall: expected %s, got %s", expected, result))
+			t.Errorf("Invalid preconnect request marshall: expected %s, got %s", expected, result)
 		}
 	}
 }
