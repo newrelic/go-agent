@@ -13,34 +13,39 @@ matrix:
   - go: "1.10"
   - go: "1.11"
   - go: "1.12"
-  - go: "1.12"
+  - go: "1.13"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrawssdk
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrecho
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrgin/v1
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrgorilla/v1
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrlogrus
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrlogxi/v1
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrpkgerrors
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrlambda
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrmysql
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrpq
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrsqlite3
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrgrpc
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrlogrus
-  - go: "1.12"
+  - go: "1.13"
     env: INTEGRATION=_integrations/nrmicro
+  - go: "1.13"
+    env: INTEGRATION=_integrations/nrnats
+  - go: "1.13"
+    env: INTEGRATION=_integrations/nrstan
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
