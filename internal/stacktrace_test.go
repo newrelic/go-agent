@@ -20,7 +20,7 @@ func TestGetStackTrace(t *testing.T) {
 	}
 }
 
-func TestLongStackTrace(t *testing.T) {
+func TestLongStackTraceLimitsFrames(t *testing.T) {
 	st := stacktracetest.CountedCall(maxStackTraceFrames+20, func() []uintptr {
 		return GetStackTrace()
 	})
@@ -30,6 +30,28 @@ func TestLongStackTrace(t *testing.T) {
 	l := len(StackTrace(st).frames())
 	if l != maxStackTraceFrames {
 		t.Error("Unexpected number of frames", maxStackTraceFrames, l)
+	}
+}
+
+func TestManyStackTraceFramesLimitsOutput(t *testing.T) {
+	frames := make([]stacktraceFrame, maxStackTraceFrames+20)
+	expect := `[
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{}	
+	]`
+	estimate := 256 * len(frames)
+	output := bytes.NewBuffer(make([]byte, 0, estimate))
+	writeFrames(output, frames)
+	if CompactJSONString(expect) != output.String() {
+		t.Error("Unexpected JSON output", CompactJSONString(expect), output.String())
 	}
 }
 
