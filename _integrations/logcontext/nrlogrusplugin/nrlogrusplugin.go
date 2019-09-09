@@ -63,6 +63,7 @@ type logFields map[string]interface{}
 type ContextFormatter struct{}
 
 func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
+	// 12 = 6 from GetLinkingMetadata + 6 more below
 	data := make(logFields, len(e.Data)+12)
 	for k, v := range e.Data {
 		data[k] = v
