@@ -45,7 +45,7 @@ matrix:
   - go: "1.13"
     env: INTEGRATION=_integrations/nrstan
   - go: "1.13"
-    env: INTEGRATION=_integrations/log-plugins
+    env: INTEGRATION=_integrations/logcontext
 
 # Skip the install step. Don't `go get` dependencies.
 install: true

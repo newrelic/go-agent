@@ -46,9 +46,9 @@
   ```
 
   For full documentation see the
-  [godocs](https://godoc.org/github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin)
+  [godocs](https://godoc.org/github.com/newrelic/go-agent/_integrations/logcontext/nrlogrusplugin)
   or view the
-  [example](https://github.com/newrelic/go-agent/tree/master/_integrations/log-plugins/nrlogrusplugin/example/main.go).
+  [example](https://github.com/newrelic/go-agent/tree/master/_integrations/logcontext/nrlogrusplugin/example/main.go).
 
 * Added support for [NATS](https://github.com/nats-io/nats.go) and [NATS Streaming](https://github.com/nats-io/stan.go)
 monitoring with the new [_integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats) and

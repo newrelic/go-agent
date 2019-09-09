@@ -7,7 +7,7 @@ import (
 	"time"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/_integrations/log-plugins/nrlogrusplugin"
+	"github.com/newrelic/go-agent/_integrations/logcontext/nrlogrusplugin"
 	"github.com/sirupsen/logrus"
 )
 

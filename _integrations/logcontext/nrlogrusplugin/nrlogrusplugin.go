@@ -33,7 +33,7 @@
 // those returned from `txn.GetLinkingMetadata().Map()`
 // (https://godoc.org/github.com/newrelic/go-agent/#LinkingMetadata.Map) and
 // those found in the `logcontext` package
-// (https://godoc.org/github.com/newrelic/go-agent/_integrations/log-plugins/#pkg-constants).
+// (https://godoc.org/github.com/newrelic/go-agent/_integrations/logcontext/#pkg-constants).
 //
 // Supported types for `logger.WithField` and `logger.WithFields` field values
 // are numbers, booleans, strings, and errors.  Func types are dropped and all
@@ -47,7 +47,7 @@ import (
 	"fmt"
 
 	newrelic "github.com/newrelic/go-agent"
-	logcontext "github.com/newrelic/go-agent/_integrations/log-plugins"
+	"github.com/newrelic/go-agent/_integrations/logcontext"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/jsonx"
 	"github.com/sirupsen/logrus"
