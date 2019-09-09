@@ -14,6 +14,10 @@
 //	logger := logrus.New()
 //	logger.SetFormatter(nrlogrusplugin.ContextFormatter{})
 //
+// or if you are using the logrus standard logger
+//
+//	logrus.SetFormatter(nrlogrusplugin.ContextFormatter{})
+//
 // The logger will now look for a newrelic.Transaction inside its context and
 // decorate logs accordingly.  Therefore, the Transaction must be added to the
 // context and passed to the logger.  For example, this logging call
