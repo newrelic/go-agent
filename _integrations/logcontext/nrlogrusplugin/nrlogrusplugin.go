@@ -156,9 +156,8 @@ func writeValue(buf *bytes.Buffer, val interface{}) {
 	default:
 		if m, ok := v.(json.Marshaler); ok {
 			if js, err := m.MarshalJSON(); nil == err {
-				if _, err := buf.Write(js); nil == err {
-					return
-				}
+				buf.Write(js)
+				return
 			}
 		}
 		jsonx.AppendString(buf, fmt.Sprintf("%#v", v))
