@@ -67,6 +67,7 @@ type logFields map[string]interface{}
 // to New Relic.
 type ContextFormatter struct{}
 
+// Format renders a single log entry.
 func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	// 12 = 6 from GetLinkingMetadata + 6 more below
 	data := make(logFields, len(e.Data)+12)
