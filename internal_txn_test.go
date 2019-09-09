@@ -1,7 +1,6 @@
 package newrelic
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -325,9 +324,6 @@ func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
 	if metadata.TraceID != "" {
 		t.Error(metadata.TraceID)
 	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{}) {
-		t.Error(m)
-	}
 }
 
 func TestGetTraceMetadataSuccess(t *testing.T) {
@@ -356,12 +352,6 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error(metadata.TraceID)
 	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
-		"span_id":  "0e97aeb2f79d5d27",
-		"trace_id": "d9466896a525ccbf",
-	}) {
-		t.Error(m)
-	}
 }
 
 func TestGetTraceMetadataEnded(t *testing.T) {
@@ -384,9 +374,6 @@ func TestGetTraceMetadataEnded(t *testing.T) {
 	if metadata.TraceID != "" {
 		t.Error(metadata.TraceID)
 	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{}) {
-		t.Error(m)
-	}
 }
 
 func TestGetTraceMetadataNotSampled(t *testing.T) {
@@ -405,11 +392,6 @@ func TestGetTraceMetadataNotSampled(t *testing.T) {
 	}
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error(metadata.TraceID)
-	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
-		"trace_id": "d9466896a525ccbf",
-	}) {
-		t.Error(m)
 	}
 }
 
@@ -430,11 +412,6 @@ func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 	}
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error(metadata.TraceID)
-	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
-		"trace_id": "d9466896a525ccbf",
-	}) {
-		t.Error(m)
 	}
 }
 
@@ -465,12 +442,6 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	}
 	if metadata.TraceID != "trace-id" {
 		t.Error(metadata.TraceID)
-	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
-		"span_id":  "9d2c19bd03daf755",
-		"trace_id": "trace-id",
-	}) {
-		t.Error(m)
 	}
 }
 
@@ -506,16 +477,6 @@ func TestGetLinkingMetadata(t *testing.T) {
 	}
 	if metadata.Hostname != host {
 		t.Error("wrong Hostname:", metadata.Hostname)
-	}
-	if m := metadata.Map(); !reflect.DeepEqual(m, map[string]interface{}{
-		"span.id":     "bcfb32e050b264b8",
-		"trace.id":    "d9466896a525ccbf",
-		"entity.name": "app-name",
-		"entity.type": "SERVICE",
-		"entity.guid": "entities-are-guid",
-		"hostname":    host,
-	}) {
-		t.Error("wrong metadata map:", m)
 	}
 }
 
