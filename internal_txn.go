@@ -1121,7 +1121,7 @@ func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
 
 func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 	txn := thd.txn
-	metadata.EntityName = txn.appRun.Config.firstAppName
+	metadata.EntityName = txn.appRun.firstAppName
 	metadata.EntityType = "SERVICE"
 	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
 	metadata.Hostname = internal.ThisHost

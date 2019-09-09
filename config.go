@@ -16,9 +16,6 @@ type Config struct {
 	// https://docs.newrelic.com/docs/apm/new-relic-apm/installation-configuration/naming-your-application
 	AppName string
 
-	// firstAppName is the value of AppName up to the first semicolon.
-	firstAppName string
-
 	// License is your New Relic license key.
 	//
 	// https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key

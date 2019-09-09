@@ -17,6 +17,9 @@ type appRun struct {
 	// the security policies.
 	AttributeConfig *internal.AttributeConfig
 	Config          Config
+
+	// firstAppName is the value of Config.AppName up to the first semicolon.
+	firstAppName string
 }
 
 func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
@@ -94,7 +97,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	}
 
 	// Cache the first application name set on the config
-	run.Config.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
+	run.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
 
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config))
