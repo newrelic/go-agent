@@ -55,7 +55,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func init() { internal.TrackUsage("integration", "log-context", "logrus") }
+func init() { internal.TrackUsage("integration", "logcontext", "logrus") }
 
 type logFields map[string]interface{}
 
