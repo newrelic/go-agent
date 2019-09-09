@@ -23,11 +23,11 @@
   framework](https://github.com/sirupsen/logrus). This plugin leverages the new `GetTraceMetadata` and 
   `GetLinkingMetadata` above to decorate logs.
 
-  To enable, set your log's formatter to the `nrlogrusplugin.NewFormatter()`
+  To enable, set your log's formatter to the `nrlogrusplugin.ContextFormatter{}`
 
   ```go
   logger := logrus.New()
-  logger.SetFormatter(nrlogrusplugin.NewFormatter())
+  logger.SetFormatter(nrlogrusplugin.ContextFormatter{})
   ```
 
   The logger will now look for a `newrelic.Transaction` inside its context and
