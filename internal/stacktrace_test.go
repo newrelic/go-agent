@@ -20,26 +20,38 @@ func TestGetStackTrace(t *testing.T) {
 	}
 }
 
-func TestLongStackTrace(t *testing.T) {
-	st := StackTrace(make([]uintptr, maxStackTraceFrames+20))
-	js, err := json.Marshal(st)
-	if nil != err {
-		t.Fatal(err)
+func TestLongStackTraceLimitsFrames(t *testing.T) {
+	st := stacktracetest.CountedCall(maxStackTraceFrames+20, func() []uintptr {
+		return GetStackTrace()
+	})
+	if len(st) != maxStackTraceFrames {
+		t.Error("Unexpected size of stacktrace", maxStackTraceFrames, len(st))
 	}
+	l := len(StackTrace(st).frames())
+	if l != maxStackTraceFrames {
+		t.Error("Unexpected number of frames", maxStackTraceFrames, l)
+	}
+}
+
+func TestManyStackTraceFramesLimitsOutput(t *testing.T) {
+	frames := make([]stacktraceFrame, maxStackTraceFrames+20)
 	expect := `[
 	{},{},{},{},{},{},{},{},{},{},
 	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{}
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{},	
+	{},{},{},{},{},{},{},{},{},{}	
 	]`
-	if string(js) != CompactJSONString(expect) {
-		t.Error(string(js))
+	estimate := 256 * len(frames)
+	output := bytes.NewBuffer(make([]byte, 0, estimate))
+	writeFrames(output, frames)
+	if CompactJSONString(expect) != output.String() {
+		t.Error("Unexpected JSON output", CompactJSONString(expect), output.String())
 	}
 }
 
@@ -122,5 +134,15 @@ func TestStackTraceTopFrame(t *testing.T) {
 	}
 	if !strings.Contains(stack[0].FilePath, "go-agent/internal/stacktracetest/stacktracetest.go") {
 		t.Error(string(stackJSON))
+	}
+}
+
+func TestFramesCount(t *testing.T) {
+	st := stacktracetest.CountedCall(3, func() []uintptr {
+		return GetStackTrace()
+	})
+	frames := StackTrace(st).frames()
+	if len(st) != len(frames) {
+		t.Error("Invalid # of frames", len(st), len(frames))
 	}
 }
