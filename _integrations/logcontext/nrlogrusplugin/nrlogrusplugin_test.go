@@ -386,3 +386,24 @@ func TestCustomFieldNameCollision(t *testing.T) {
 		"timestamp": float64(1417136460000),
 	})
 }
+
+type gopher struct {
+	name string
+}
+
+func (g *gopher) MarshalJSON() ([]byte, error) {
+	return json.Marshal(g.name)
+}
+
+func TestCustomJSONMarshaller(t *testing.T) {
+	out := bytes.NewBuffer([]byte{})
+	log := newTestLogger(out)
+	log.SetReportCaller(false)
+	log.WithTime(testTime).WithField("gopher", &gopher{name: "sam"}).Info("Hello World!")
+	validateOutput(t, out, map[string]interface{}{
+		"gopher":    "sam",
+		"log.level": "info",
+		"message":   "Hello World!",
+		"timestamp": float64(1417136460000),
+	})
+}

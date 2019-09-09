@@ -45,6 +45,7 @@ package nrlogrusplugin
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	newrelic "github.com/newrelic/go-agent"
@@ -155,6 +156,13 @@ func writeValue(buf *bytes.Buffer, val interface{}) {
 	case error:
 		jsonx.AppendString(buf, v.Error())
 	default:
+		if m, ok := v.(json.Marshaler); ok {
+			if js, err := m.MarshalJSON(); nil == err {
+				if _, err := buf.Write(js); nil == err {
+					return
+				}
+			}
+		}
 		jsonx.AppendString(buf, fmt.Sprintf("%#v", v))
 	}
 }
