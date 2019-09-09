@@ -22,7 +22,7 @@ var (
 
 func newTestLogger(out io.Writer) *logrus.Logger {
 	l := logrus.New()
-	l.Formatter = NewFormatter()
+	l.Formatter = ContextFormatter{}
 	l.SetReportCaller(true)
 	l.SetOutput(out)
 	return l

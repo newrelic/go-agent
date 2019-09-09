@@ -8,10 +8,11 @@
 // follow the steps below to enable the logging product for use with the stdlib
 // Go logger.
 //
-// To enable, set your log's formatter to the `nrlogrusplugin.NewFormatter()`
+// To enable, set your log's formatter to the
+// `nrlogrusplugin.ContextFormatter`
 //
 //	logger := logrus.New()
-//	logger.SetFormatter(nrlogrusplugin.NewFormatter())
+//	logger.SetFormatter(nrlogrusplugin.ContextFormatter{})
 //
 // The logger will now look for a newrelic.Transaction inside its context and
 // decorate logs accordingly.  Therefore, the Transaction must be added to the
@@ -57,9 +58,11 @@ func init() { internal.TrackUsage("integration", "log-context", "logrus") }
 
 type logFields map[string]interface{}
 
-type nrFormatter struct{}
+// ContextFormatter is a `logrus.Formatter` that will format logs for sending
+// to New Relic.
+type ContextFormatter struct{}
 
-func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
+func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	data := make(logFields, len(e.Data)+12)
 	for k, v := range e.Data {
 		data[k] = v
@@ -91,12 +94,6 @@ func (f nrFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	}
 	writeDataJSON(b, data)
 	return b.Bytes(), nil
-}
-
-// NewFormatter creates a new `logrus.Formatter` that will format logs for
-// sending to New Relic.
-func NewFormatter() logrus.Formatter {
-	return nrFormatter{}
 }
 
 func writeDataJSON(buf *bytes.Buffer, data logFields) {
