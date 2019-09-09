@@ -6,18 +6,11 @@
 
   * `Transaction.GetTraceMetadata()` returns a
     [TraceMetadata](https://godoc.org/github.com/newrelic/go-agent#TraceMetadata)
-    which contains distributed tracing identifiers.  This struct has a
-    [Map](https://godoc.org/github.com/newrelic/go-agent#TraceMetadata.Map)
-    method to facilitate logging the fields with specific keys for
-    trace/log context linking.
+    which contains distributed tracing identifiers.
 
   * `Transaction.GetLinkingMetadata()` returns a
     [LinkingMetadata](https://godoc.org/github.com/newrelic/go-agent#LinkingMetadata)
-    which contains the fields needed to link data to a trace or entity.  This
-    struct has a
-    [Map](https://godoc.org/github.com/newrelic/go-agent#LinkingMetadata.Map)
-    method to facilitate logging the fields with specific keys for trace/log
-    context linking.
+    which contains the fields needed to link data to a trace or entity.
 
 * Added a new plugin for the [Logrus logging
   framework](https://github.com/sirupsen/logrus). This plugin leverages the new `GetTraceMetadata` and 
