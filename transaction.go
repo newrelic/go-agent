@@ -250,27 +250,6 @@ type LinkingMetadata struct {
 	Hostname string
 }
 
-func metadataMapField(m map[string]interface{}, key, val string) {
-	if val != "" {
-		m[key] = val
-	}
-}
-
-// Map transforms the metadata into a map.  Only non-empty string fields are
-// included in the map.  The specific key names facilitate agent logs in
-// context.  These keys are: "trace.id", "span.id", "entity.name",
-// "entity.type", "entity.guid", and "hostname".
-func (md LinkingMetadata) Map() map[string]interface{} {
-	m := make(map[string]interface{})
-	metadataMapField(m, "trace.id", md.TraceID)
-	metadataMapField(m, "span.id", md.SpanID)
-	metadataMapField(m, "entity.name", md.EntityName)
-	metadataMapField(m, "entity.type", md.EntityType)
-	metadataMapField(m, "entity.guid", md.EntityGUID)
-	metadataMapField(m, "hostname", md.Hostname)
-	return m
-}
-
 // TraceMetadata is returned by Transaction.GetTraceMetadata.  It contains
 // distributed tracing identifiers.
 type TraceMetadata struct {
@@ -280,14 +259,4 @@ type TraceMetadata struct {
 	// SpanID identifies the currently active segment.  This field is empty
 	// if distributed tracing is disabled or the transaction is not sampled.
 	SpanID string
-}
-
-// Map transforms the metadata into a map.  Only non-empty string fields are
-// included in the map.  The specific key names facilitate agent logs in
-// context.
-func (metadata TraceMetadata) Map() map[string]interface{} {
-	m := make(map[string]interface{})
-	metadataMapField(m, "trace_id", metadata.TraceID)
-	metadataMapField(m, "span_id", metadata.SpanID)
-	return m
 }

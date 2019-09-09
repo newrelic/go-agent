@@ -72,9 +72,7 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 
 	if ctx := e.Context; nil != ctx {
 		if txn := newrelic.FromContext(ctx); nil != txn {
-			for k, v := range txn.GetLinkingMetadata().Map() {
-				data[k] = v
-			}
+			logcontext.AddLinkingMetadata(data, txn.GetLinkingMetadata())
 		}
 	}
 
