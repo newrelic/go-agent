@@ -39,13 +39,13 @@ matrix:
   - go: "1.13"
     env: INTEGRATION=_integrations/nrgrpc
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrlogrus
-  - go: "1.13"
     env: INTEGRATION=_integrations/nrmicro
   - go: "1.13"
     env: INTEGRATION=_integrations/nrnats
   - go: "1.13"
     env: INTEGRATION=_integrations/nrstan
+  - go: "1.13"
+    env: INTEGRATION=_integrations/logcontext
 
 # Skip the install step. Don't `go get` dependencies.
 install: true

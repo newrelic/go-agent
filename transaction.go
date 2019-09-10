@@ -151,6 +151,14 @@ type Transaction interface {
 	//	ch <- txn.NewGoroutine()
 	//
 	NewGoroutine() Transaction
+
+	// GetTraceMetadata returns distributed tracing identifiers.  Empty
+	// string identifiers are returned if the transaction has finished.
+	GetTraceMetadata() TraceMetadata
+
+	// GetLinkingMetadata returns the fields needed to link data to a trace or
+	// entity.
+	GetLinkingMetadata() LinkingMetadata
 }
 
 // DistributedTracePayload traces requests between applications or processes.
@@ -219,4 +227,36 @@ func NewWebRequest(request *http.Request) WebRequest {
 // NewStaticWebRequest takes the minimum necessary information and creates a static WebRequest out of it
 func NewStaticWebRequest(hdrs http.Header, url *url.URL, method string, transport TransportType) WebRequest {
 	return staticWebRequest{hdrs, url, method, transport}
+}
+
+// LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains
+// identifiers needed link data to a trace or entity.
+type LinkingMetadata struct {
+	// TraceID identifies the entire distributed trace.  This field is empty
+	// if distributed tracing is disabled.
+	TraceID string
+	// SpanID identifies the currently active segment.  This field is empty
+	// if distributed tracing is disabled or the transaction is not sampled.
+	SpanID string
+	// EntityName is the Application name as set on the newrelic.Config.  If
+	// multiple application names are specified, only the first is returned.
+	EntityName string
+	// EntityType is the type of this entity and is always the string
+	// "SERVICE".
+	EntityType string
+	// EntityGUID is the unique identifier for this entity.
+	EntityGUID string
+	// Hostname is the hostname this entity is running on.
+	Hostname string
+}
+
+// TraceMetadata is returned by Transaction.GetTraceMetadata.  It contains
+// distributed tracing identifiers.
+type TraceMetadata struct {
+	// TraceID identifies the entire distributed trace.  This field is empty
+	// if distributed tracing is disabled.
+	TraceID string
+	// SpanID identifies the currently active segment.  This field is empty
+	// if distributed tracing is disabled or the transaction is not sampled.
+	SpanID string
 }

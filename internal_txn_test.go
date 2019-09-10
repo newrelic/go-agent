@@ -6,6 +6,7 @@ import (
 
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/newrelic/go-agent/internal/sysinfo"
 )
 
 func TestShouldSaveTrace(t *testing.T) {
@@ -305,4 +306,200 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 		duration:  3 * time.Second,
 		totalTime: 3 * time.Second,
 	})
+}
+
+func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetTraceMetadataSuccess(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "bcfb32e050b264b8" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+	StartSegment(txn, "name")
+	// Span id should be different now that a segment has started.
+	metadata = txn.GetTraceMetadata()
+	if metadata.SpanID != "0e97aeb2f79d5d27" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetTraceMetadataEnded(t *testing.T) {
+	// Test that GetTraceMetadata returns empty strings if the transaction
+	// has been finished.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	txn.End()
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetTraceMetadataNotSampled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Enabled = false
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetTraceMetadataInboundPayload(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		reply.AccountID = "account-id"
+		reply.TrustedAccountKey = "trust-key"
+		reply.PrimaryAppID = "app-id"
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
+	p := payload.(internal.Payload)
+	p.TracedID = "trace-id"
+
+	txn := app.StartTransaction("hello", nil, nil)
+	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
+	if nil != err {
+		t.Error(err)
+	}
+	metadata := txn.GetTraceMetadata()
+	if metadata.SpanID != "9d2c19bd03daf755" {
+		t.Error(metadata.SpanID)
+	}
+	if metadata.TraceID != "trace-id" {
+		t.Error(metadata.TraceID)
+	}
+}
+
+func TestGetLinkingMetadata(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.EntityGUID = "entities-are-guid"
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.AppName = "app-name"
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+
+	metadata := txn.GetLinkingMetadata()
+	host, _ := sysinfo.Hostname()
+	if metadata.TraceID != "d9466896a525ccbf" {
+		t.Error("wrong TraceID:", metadata.TraceID)
+	}
+	if metadata.SpanID != "bcfb32e050b264b8" {
+		t.Error("wrong SpanID:", metadata.SpanID)
+	}
+	if metadata.EntityName != "app-name" {
+		t.Error("wrong EntityName:", metadata.EntityName)
+	}
+	if metadata.EntityType != "SERVICE" {
+		t.Error("wrong EntityType:", metadata.EntityType)
+	}
+	if metadata.EntityGUID != "entities-are-guid" {
+		t.Error("wrong EntityGUID:", metadata.EntityGUID)
+	}
+	if metadata.Hostname != host {
+		t.Error("wrong Hostname:", metadata.Hostname)
+	}
+}
+
+func TestGetLinkingMetadataAppNames(t *testing.T) {
+	testcases := []struct {
+		appName  string
+		expected string
+	}{
+		{appName: "one-name", expected: "one-name"},
+		{appName: "one-name;two-name;three-name", expected: "one-name"},
+		{appName: "", expected: ""},
+	}
+
+	for _, test := range testcases {
+		cfgfn := func(cfg *Config) {
+			cfg.AppName = test.appName
+		}
+		app := testApp(nil, cfgfn, t)
+		txn := app.StartTransaction("hello", nil, nil)
+
+		metadata := txn.GetLinkingMetadata()
+		if metadata.EntityName != test.expected {
+			t.Errorf("wrong EntityName, actual=%s expected=%s", metadata.EntityName, test.expected)
+		}
+	}
 }

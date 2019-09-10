@@ -1099,3 +1099,36 @@ func (txn *txn) AddAgentAttribute(id internal.AgentAttributeID, stringVal string
 	}
 	txn.Attrs.Agent.Add(id, stringVal, otherVal)
 }
+
+func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return
+	}
+
+	if txn.BetterCAT.Enabled {
+		metadata.TraceID = txn.BetterCAT.TraceID()
+		if txn.SpanEventsEnabled && txn.lazilyCalculateSampled() {
+			metadata.SpanID = txn.CurrentSpanIdentifier(thd.thread)
+		}
+	}
+
+	return
+}
+
+func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
+	txn := thd.txn
+	metadata.EntityName = txn.appRun.firstAppName
+	metadata.EntityType = "SERVICE"
+	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
+	metadata.Hostname = internal.ThisHost
+
+	md := thd.GetTraceMetadata()
+	metadata.TraceID = md.TraceID
+	metadata.SpanID = md.SpanID
+
+	return
+}

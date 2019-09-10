@@ -2,8 +2,49 @@
 
 ### New Features
 
-* Added support for [NATS](https://github.com/nats-io/nats.go) and [NATS Streaming](https://github.com/nats-io/stan.go) 
-monitoring with the new [_integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats) and 
+* Added new methods to expose `Transaction` details:
+
+  * `Transaction.GetTraceMetadata()` returns a
+    [TraceMetadata](https://godoc.org/github.com/newrelic/go-agent#TraceMetadata)
+    which contains distributed tracing identifiers.
+
+  * `Transaction.GetLinkingMetadata()` returns a
+    [LinkingMetadata](https://godoc.org/github.com/newrelic/go-agent#LinkingMetadata)
+    which contains the fields needed to link data to a trace or entity.
+
+* Added a new plugin for the [Logrus logging
+  framework](https://github.com/sirupsen/logrus). This plugin leverages the new `GetTraceMetadata` and 
+  `GetLinkingMetadata` above to decorate logs.
+
+  To enable, set your log's formatter to the `nrlogrusplugin.ContextFormatter{}`
+
+  ```go
+  logger := logrus.New()
+  logger.SetFormatter(nrlogrusplugin.ContextFormatter{})
+  ```
+
+  The logger will now look for a `newrelic.Transaction` inside its context and
+  decorate logs accordingly.  Therefore, the Transaction must be added to the
+  context and passed to the logger.  For example, this logging call
+
+  ```go
+  logger.Info("Hello New Relic!")
+  ```
+
+  must be transformed to include the context, such as:
+
+  ```go
+  ctx := newrelic.NewContext(context.Background(), txn)
+  logger.WithContext(ctx).Info("Hello New Relic!")
+  ```
+
+  For full documentation see the
+  [godocs](https://godoc.org/github.com/newrelic/go-agent/_integrations/logcontext/nrlogrusplugin)
+  or view the
+  [example](https://github.com/newrelic/go-agent/tree/master/_integrations/logcontext/nrlogrusplugin/example/main.go).
+
+* Added support for [NATS](https://github.com/nats-io/nats.go) and [NATS Streaming](https://github.com/nats-io/stan.go)
+monitoring with the new [_integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats) and
 [_integrations/nrstan](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan) packages.  These packages
 support instrumentation of publishers and subscribers.
 
