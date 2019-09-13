@@ -35,8 +35,6 @@
 // (https://godoc.org/github.com/sirupsen/logrus#Logger.WithFields) is
 // supported.  However, if the field key collides with one of the keys used by
 // the New Relic Formatter, the value will be overwritten.  Reserved keys are
-// those returned from `txn.GetLinkingMetadata().Map()`
-// (https://godoc.org/github.com/newrelic/go-agent/#LinkingMetadata.Map) and
 // those found in the `logcontext` package
 // (https://godoc.org/github.com/newrelic/go-agent/_integrations/logcontext/#pkg-constants).
 //
