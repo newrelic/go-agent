@@ -8,15 +8,20 @@
 // follow the steps below to enable the logging product for use with the stdlib
 // Go logger.
 //
-// To enable, set your log's formatter to the
+// For the best linking experience be sure to enable Distributed Tracing:
+//
+//	cfg := NewConfig("Example Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
+//	cfg.DistributedTracer.Enabled = true
+//
+// To enable log decoration, set your log's formatter to the
 // `nrlogrusplugin.ContextFormatter`
 //
-//	logger := logrus.New()
+//	logger := log.New()
 //	logger.SetFormatter(nrlogrusplugin.ContextFormatter{})
 //
 // or if you are using the logrus standard logger
 //
-//	logrus.SetFormatter(nrlogrusplugin.ContextFormatter{})
+//	log.SetFormatter(nrlogrusplugin.ContextFormatter{})
 //
 // The logger will now look for a newrelic.Transaction inside its context and
 // decorate logs accordingly.  Therefore, the Transaction must be added to the
