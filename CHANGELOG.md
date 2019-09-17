@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.12.0
+
 ### New Features
 
 * Added new methods to expose `Transaction` details:
