@@ -1,6 +1,8 @@
 // Package nrstan instruments https://github.com/nats-io/stan.go.
 //
-// This package can be used to simplify instrumenting NATS Streaming subscribers.
+// This package can be used to simplify instrumenting NATS Streaming subscribers. Currently due to the nature of
+// the NATS Streaming framework we are limited to two integration points: `StartPublishSegment` for publishers, and
+// `SubWrapper` for subscribers.
 //
 //
 // NATS Streaming subscribers
