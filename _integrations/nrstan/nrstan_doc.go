@@ -37,7 +37,7 @@
 //	seg.End()
 //
 // Full Publisher/Subscriber example:
-// https://github.com/newrelic/go-agent/go-agent/blob/master/_integrations/nrstan/examples/main.go
+// https://github.com/newrelic/go-agent/blob/master/_integrations/nrstan/examples/main.go
 package nrstan
 
 import "github.com/newrelic/go-agent/internal"
