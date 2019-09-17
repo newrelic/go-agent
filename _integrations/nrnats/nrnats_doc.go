@@ -1,6 +1,8 @@
 // Package nrnats instruments https://github.com/nats-io/nats.go.
 //
-// This package can be used to simplify instrumenting NATS publishers and subscribers.
+// This package can be used to simplify instrumenting NATS publishers and subscribers. Currently due to the nature of
+// the NATS framework we are limited to two integration points: `StartPublishSegment` for publishers, and `SubWrapper`
+// for subscribers.
 //
 // NATS publishers
 //
