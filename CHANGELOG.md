@@ -13,7 +13,9 @@
     which contains the fields needed to link data to a trace or entity.
 
 * Added a new plugin for the [Logrus logging
-  framework](https://github.com/sirupsen/logrus). This plugin leverages the new `GetTraceMetadata` and 
+  framework](https://github.com/sirupsen/logrus) with the new 
+  [_integrations/logcontext/nrlogrusplugin](https://github.com/newrelic/go-agent/go-agent/tree/master/_integrations/logcontext/nrlogrusplugin) 
+  package. This plugin leverages the new `GetTraceMetadata` and 
   `GetLinkingMetadata` above to decorate logs.
 
   To enable, set your log's formatter to the `nrlogrusplugin.ContextFormatter{}`
