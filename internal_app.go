@@ -129,7 +129,7 @@ func (app *app) connectRoutine() {
 	connectAttempt := 0
 	for {
 		reply, resp := internal.ConnectAttempt(config{app.config},
-			app.config.SecurityPoliciesToken, app.rpmControls)
+			app.config.SecurityPoliciesToken, app.config.HighSecurity, app.rpmControls)
 
 		if reply != nil {
 			select {

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -234,7 +235,7 @@ func testConnectHelper(cm connectMock) (*ConnectReply, RPMResponse) {
 		AgentVersion: "1",
 	}
 
-	return ConnectAttempt(config, "", cs)
+	return ConnectAttempt(config, "", false, cs)
 }
 
 func TestConnectAttemptSuccess(t *testing.T) {
@@ -596,13 +597,44 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 	}
 
 	for _, test := range testcases {
-		reply, resp := ConnectAttempt(testConfig{}, "", controls(test.replyBody))
+		reply, resp := ConnectAttempt(testConfig{}, "", false, controls(test.replyBody))
 		if nil != resp.Err {
 			t.Error("resp returned unexpected error:", resp.Err)
 		}
 		if test.expectedMaxPayloadSize != reply.MaxPayloadSizeInBytes {
 			t.Errorf("incorrect MaxPayloadSizeInBytes: expected=%d actual=%d",
 				test.expectedMaxPayloadSize, reply.MaxPayloadSizeInBytes)
+		}
+	}
+}
+
+func TestPreconnectRequestMarshall(t *testing.T) {
+	tests := map[string]preconnectRequest{
+		`[{"security_policies_token":"securityPoliciesToken","high_security":false}]`: {
+			SecurityPoliciesToken: "securityPoliciesToken",
+			HighSecurity:          false,
+		},
+		`[{"security_policies_token":"securityPoliciesToken","high_security":true}]`: {
+			SecurityPoliciesToken: "securityPoliciesToken",
+			HighSecurity:          true,
+		},
+		`[{"high_security":true}]`: {
+			SecurityPoliciesToken: "",
+			HighSecurity:          true,
+		},
+		`[{"high_security":false}]`: {
+			SecurityPoliciesToken: "",
+			HighSecurity:          false,
+		},
+	}
+	for expected, request := range tests {
+		b, e := json.Marshal([]preconnectRequest{request})
+		if e != nil {
+			t.Fatal("Unable to marshall preconnect request", e)
+		}
+		result := string(b)
+		if result != expected {
+			t.Errorf("Invalid preconnect request marshall: expected %s, got %s", expected, result)
 		}
 	}
 }
