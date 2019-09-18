@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap).  See
+  [_integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrzap).
+
 ## 2.12.0
 
 ### New Features
@@ -15,9 +18,9 @@
     which contains the fields needed to link data to a trace or entity.
 
 * Added a new plugin for the [Logrus logging
-  framework](https://github.com/sirupsen/logrus) with the new 
-  [_integrations/logcontext/nrlogrusplugin](https://github.com/newrelic/go-agent/go-agent/tree/master/_integrations/logcontext/nrlogrusplugin) 
-  package. This plugin leverages the new `GetTraceMetadata` and 
+  framework](https://github.com/sirupsen/logrus) with the new
+  [_integrations/logcontext/nrlogrusplugin](https://github.com/newrelic/go-agent/go-agent/tree/master/_integrations/logcontext/nrlogrusplugin)
+  package. This plugin leverages the new `GetTraceMetadata` and
   `GetLinkingMetadata` above to decorate logs.
 
   To enable, set your log's formatter to the `nrlogrusplugin.ContextFormatter{}`
@@ -54,10 +57,10 @@ support instrumentation of publishers and subscribers.
 
   * [NATS Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrnats/examples/main.go)
   * [NATS Streaming Example](https://github.com/newrelic/go-agent/blob/master/_integrations/nrstan/examples/main.go)
-  
-* Enables ability to migrate to [Configurable Security Policies (CSP)](https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/enable-configurable-security-policies) on a per agent basis for accounts already using [High Security Mode (HSM)](https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/high-security-mode). 
+
+* Enables ability to migrate to [Configurable Security Policies (CSP)](https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/enable-configurable-security-policies) on a per agent basis for accounts already using [High Security Mode (HSM)](https://docs.newrelic.com/docs/agents/manage-apm-agents/configuration/high-security-mode).
   * Previously, if CSP was configured for an account, New Relic would not allow an agent to connect without the `security_policies_token`. This led to agents not being able to connect during the period between when CSP was enabled for an account and when each agent is configured with the correct token.
-  * With this change, when both HSM and CSP are enabled for an account, an agent (this version or later) can successfully connect with either `high_security: true` or the appropriate `security_policies_token` configured - allowing the agent to continue to connect after CSP is configured on the account but before the appropriate `security_policies_token` is configured for each agent. 
+  * With this change, when both HSM and CSP are enabled for an account, an agent (this version or later) can successfully connect with either `high_security: true` or the appropriate `security_policies_token` configured - allowing the agent to continue to connect after CSP is configured on the account but before the appropriate `security_policies_token` is configured for each agent.
 
 ## 2.11.0
 
