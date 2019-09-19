@@ -43,6 +43,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [_integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda) | Instrument AWS Lambda applications |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [_integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [_integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogxi/v1) | Send agent log messages to Logxi |
+| [uber-go/zap](https://github.com/uber-go/zap) | [_integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrzap) | Send agent log messages to Zap |
 | [pkg/errors](https://github.com/pkg/errors) | [_integrations/nrpkgerrors](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpkgerrors) | Wrap pkg/errors errors to improve stack traces and error class information |
 | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql) | Instrument MySQL driver |
 | [lib/pq](https://github.com/lib/pq) | [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq) | Instrument PostgreSQL driver |
