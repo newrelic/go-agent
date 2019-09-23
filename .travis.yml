@@ -48,6 +48,8 @@ matrix:
     env: INTEGRATION=_integrations/logcontext
   - go: "1.13"
     env: INTEGRATION=_integrations/nrzap
+  - go: "1.13"
+    env: INTEGRATION=_integrations/nrhttprouter
 
 # Skip the install step. Don't `go get` dependencies.
 install: true

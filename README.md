@@ -40,6 +40,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [labstack/echo](https://github.com/labstack/echo) | [_integrations/nrecho](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho) | Instrument inbound requests through the Echo framework |
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [_integrations/nrgin/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [_integrations/nrgorilla/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1) | Instrument inbound requests through the Gorilla framework |
+| [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [_integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
 | [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [_integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlambda) | Instrument AWS Lambda applications |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [_integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [_integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogxi/v1) | Send agent log messages to Logxi |

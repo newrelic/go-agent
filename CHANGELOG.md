@@ -1,5 +1,10 @@
 ## ChangeLog
 
+* Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in the new `nrhttprouter`
+  package.
+  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  * [Example](_integrations/nrhttprouter/example/main.go)
+
 * Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap).  See
   [_integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrzap).
 
