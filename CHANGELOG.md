@@ -1,5 +1,9 @@
 ## ChangeLog
 
+## 2.13.0
+
+### New Features
+
 * Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in
   the new [_integrations/nrhttprouter](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
 
