@@ -1,12 +1,15 @@
 ## ChangeLog
 
-* Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in the new `nrhttprouter`
-  package.
+* Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in
+  the new [_integrations/nrhttprouter](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
+
   * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
   * [Example](_integrations/nrhttprouter/example/main.go)
 
-* Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap).  See
-  [_integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrzap).
+* Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap) in
+  the new
+  [_integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrzap)
+  package.  This package allows you to send agent log messages to `zap`.
 
 ## 2.12.0
 
