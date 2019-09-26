@@ -27,7 +27,7 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 func noticeError(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
-	if txn, ok := w.(newrelic.Transaction); ok {
+	if txn := newrelic.FromContext(r.Context()); txn != nil {
 		txn.NoticeError(errors.New("my error message"))
 	}
 }
@@ -35,7 +35,7 @@ func noticeError(w http.ResponseWriter, r *http.Request) {
 func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
-	if txn, ok := w.(newrelic.Transaction); ok {
+	if txn := newrelic.FromContext(r.Context()); txn != nil {
 		txn.NoticeError(newrelic.Error{
 			Message: "uh oh. something went very wrong",
 			Class:   "errors are aggregated by class",
@@ -65,7 +65,7 @@ func customEvent(w http.ResponseWriter, r *http.Request) {
 func setName(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "changing the transaction's name")
 
-	if txn, ok := w.(newrelic.Transaction); ok {
+	if txn := newrelic.FromContext(r.Context()); txn != nil {
 		txn.SetName("other-name")
 	}
 }
@@ -73,7 +73,7 @@ func setName(w http.ResponseWriter, r *http.Request) {
 func addAttribute(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "adding attributes")
 
-	if txn, ok := w.(newrelic.Transaction); ok {
+	if txn := newrelic.FromContext(r.Context()); txn != nil {
 		txn.AddAttribute("myString", "hello")
 		txn.AddAttribute("myInt", 123)
 	}
@@ -81,7 +81,7 @@ func addAttribute(w http.ResponseWriter, r *http.Request) {
 
 func ignore(w http.ResponseWriter, r *http.Request) {
 	if coinFlip := (0 == rand.Intn(2)); coinFlip {
-		if txn, ok := w.(newrelic.Transaction); ok {
+		if txn := newrelic.FromContext(r.Context()); txn != nil {
 			txn.Ignore()
 		}
 		io.WriteString(w, "ignoring the transaction")
@@ -91,7 +91,7 @@ func ignore(w http.ResponseWriter, r *http.Request) {
 }
 
 func segments(w http.ResponseWriter, r *http.Request) {
-	txn, _ := w.(newrelic.Transaction)
+	txn := newrelic.FromContext(r.Context())
 
 	func() {
 		defer newrelic.StartSegment(txn, "f1").End()
@@ -108,7 +108,7 @@ func segments(w http.ResponseWriter, r *http.Request) {
 }
 
 func mysql(w http.ResponseWriter, r *http.Request) {
-	txn, _ := w.(newrelic.Transaction)
+	txn := newrelic.FromContext(r.Context())
 	s := newrelic.DatastoreSegment{
 		StartTime: newrelic.StartSegmentNow(txn),
 		// Product, Collection, and Operation are the most important
@@ -134,7 +134,7 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 }
 
 func external(w http.ResponseWriter, r *http.Request) {
-	txn, _ := w.(newrelic.Transaction)
+	txn := newrelic.FromContext(r.Context())
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 
 	// Using StartExternalSegment is recommended because it does distributed
@@ -221,7 +221,8 @@ func customMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func browser(w http.ResponseWriter, r *http.Request) {
-	hdr, err := w.(newrelic.Transaction).BrowserTimingHeader()
+	txn := newrelic.FromContext(r.Context())
+	hdr, err := txn.BrowserTimingHeader()
 	if nil != err {
 		log.Printf("unable to create browser timing header: %v", err)
 	}
