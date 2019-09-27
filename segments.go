@@ -93,6 +93,38 @@ type ExternalSegment struct {
 	Library string
 }
 
+// MessageSegment TODO
+//
+// QUESTION: Should this be MessageBrokerSegment, or maybe
+// MessageProducerSegment (If the only action is produce?)
+//
+// https://source.datanerd.us/agents/agent-specs/blob/master/APIs/messaging.md#input-parameters-to-the-message-broker-segment-api
+type MessageSegment struct {
+	StartTime SegmentStartTime
+	// QUESTION: Do we need an Action field, or will it always be "Produce"?
+
+	// Library is the name of the library instrumented.  eg. "RabbitMQ",
+	// "JMS"
+	Library string
+
+	DestinationType MessageDestinationType
+
+	DestinationName string
+}
+
+// MessageDestinationType is used for the MessageSegment.DestinationType field.
+type MessageDestinationType string
+
+// These message destination type constants are used in for the
+// MessageSegment.DestinationType field.
+const (
+	MessageQueue          MessageDestinationType = "Queue"
+	MessageTopic          MessageDestinationType = "Topic"
+	MessageTemporaryQueue MessageDestinationType = "Temporary Queue"
+	MessageTemporaryTopic MessageDestinationType = "Temporary Topic"
+	MessageExchange       MessageDestinationType = "Exchange"
+)
+
 // End finishes the segment.
 func (s *Segment) End() error { return endSegment(s) }
 
@@ -101,6 +133,9 @@ func (s *DatastoreSegment) End() error { return endDatastore(s) }
 
 // End finishes the external segment.
 func (s *ExternalSegment) End() error { return endExternal(s) }
+
+// End finishes the message segment.
+func (s *MessageSegment) End() error { return endMessage(s) }
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.

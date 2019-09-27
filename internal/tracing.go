@@ -485,6 +485,38 @@ func EndExternalSegment(p EndExternalParams) error {
 	return nil
 }
 
+// EndMessageParams contains the parameters for EndMessageSegment.
+type EndMessageParams struct {
+	TxnData         *TxnData
+	Thread          *Thread
+	Start           SegmentStartTime
+	Now             time.Time
+	Logger          logger.Logger
+	Destination     string // eg. "Temp", "Named/MyQueue"
+	Library         string
+	DestinationType string
+}
+
+// EndMessageSegment ends an external segment.
+func EndMessageSegment(p EndMessageParams) error {
+	t := p.TxnData
+	_, err := endSegment(t, p.Thread, p.Start, p.Now)
+	if nil != err {
+		return err
+	}
+
+	key := messageMetricKey{
+		Library:         p.Library,
+		DestinationType: p.DestinationType,
+		Action:          "Produce",
+		Destination:     p.Destination,
+	}
+
+	fmt.Println("ending a message segment", key.scopedMetric())
+
+	return nil
+}
+
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
 	TxnData            *TxnData
