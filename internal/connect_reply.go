@@ -105,33 +105,72 @@ type ConnectReply struct {
 // https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event_harvest_config-hash
 // https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
 type EventHarvestConfig struct {
-	EventReportPeriodMs int `json:"report_period_ms"`
-	HarvestLimits       struct {
-		TxnEvents    uint `json:"analytic_event_data"`
-		CustomEvents uint `json:"custom_event_data"`
-		ErrorEvents  uint `json:"error_event_data"`
+	ReportPeriodMs int `json:"report_period_ms,omitempty"`
+	Limits         struct {
+		TxnEvents    *uint `json:"analytic_event_data,omitempty"`
+		CustomEvents *uint `json:"custom_event_data,omitempty"`
+		ErrorEvents  *uint `json:"error_event_data,omitempty"`
+		SpanEvents   *uint `json:"span_event_data,omitempty"`
 	} `json:"harvest_limits"`
 }
 
-func (r *ConnectReply) getHarvestData() EventHarvestConfig {
-	if nil != r {
-		return r.EventData
+func (r *ConnectReply) limit(dflt int, field func() *uint) int {
+	if nil != r && nil != field() {
+		return int(*field())
 	}
-	return DefaultEventHarvestConfig()
+	return dflt
 }
+
+func (r *ConnectReply) ptrTxnEvents() *uint    { return r.EventData.Limits.TxnEvents }
+func (r *ConnectReply) ptrCustomEvents() *uint { return r.EventData.Limits.CustomEvents }
+func (r *ConnectReply) ptrErrorEvents() *uint  { return r.EventData.Limits.ErrorEvents }
+func (r *ConnectReply) ptrSpanEvents() *uint   { return r.EventData.Limits.SpanEvents }
+
+func (r *ConnectReply) maxTxnEvents() int    { return r.limit(maxTxnEvents, r.ptrTxnEvents) }
+func (r *ConnectReply) maxCustomEvents() int { return r.limit(maxCustomEvents, r.ptrCustomEvents) }
+func (r *ConnectReply) maxErrorEvents() int  { return r.limit(maxErrorEvents, r.ptrErrorEvents) }
+func (r *ConnectReply) maxSpanEvents() int   { return r.limit(maxSpanEvents, r.ptrSpanEvents) }
+
+func (r *ConnectReply) configurablePeriod() time.Duration {
+	ms := defaultConfigurableEventHarvestMs
+	if nil != r && r.EventData.ReportPeriodMs > 0 {
+		ms = r.EventData.ReportPeriodMs
+	}
+	return time.Duration(ms) * time.Millisecond
+}
+
+func (r *ConnectReply) reportPeriods() map[harvestTypes]time.Duration {
+	fixed := harvestMetricsTraces
+	configurable := harvestTypes(0)
+
+	for tp, fn := range map[harvestTypes]func() *uint{
+		harvestTxnEvents:    r.ptrTxnEvents,
+		harvestCustomEvents: r.ptrCustomEvents,
+		harvestErrorEvents:  r.ptrErrorEvents,
+		harvestSpanEvents:   r.ptrSpanEvents,
+	} {
+		if nil != r && fn() != nil {
+			configurable |= tp
+		} else {
+			fixed |= tp
+		}
+	}
+	return map[harvestTypes]time.Duration{
+		configurable: r.configurablePeriod(),
+		fixed:        fixedHarvestPeriod,
+	}
+}
+
+func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
 func DefaultEventHarvestConfig() EventHarvestConfig {
 	cfg := EventHarvestConfig{}
-	cfg.EventReportPeriodMs = defaultConfigurableEventHarvestMs
-	cfg.HarvestLimits.TxnEvents = maxTxnEvents
-	cfg.HarvestLimits.CustomEvents = maxCustomEvents
-	cfg.HarvestLimits.ErrorEvents = maxErrorEvents
+	cfg.ReportPeriodMs = defaultConfigurableEventHarvestMs
+	cfg.Limits.TxnEvents = uintPtr(maxTxnEvents)
+	cfg.Limits.CustomEvents = uintPtr(maxCustomEvents)
+	cfg.Limits.ErrorEvents = uintPtr(maxErrorEvents)
 	return cfg
-}
-
-func (h EventHarvestConfig) eventReportPeriod() time.Duration {
-	return time.Duration(h.EventReportPeriodMs) * time.Millisecond
 }
 
 type trustedAccountSet map[int]struct{}
@@ -174,8 +213,6 @@ func ConnectReplyDefaults() *ConnectReply {
 
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
-
-		EventData: DefaultEventHarvestConfig(),
 
 		TraceIDGenerator: NewTraceIDGenerator(int64(time.Now().UnixNano())),
 	}

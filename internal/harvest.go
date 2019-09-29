@@ -11,48 +11,55 @@ type Harvestable interface {
 	MergeIntoHarvest(h *Harvest)
 }
 
+// harvestTypes is a bit set used to indicate which data types are ready to be
+// reported.
+type harvestTypes uint
+
+const (
+	harvestMetricsTraces harvestTypes = 1 << iota
+	harvestSpanEvents
+	harvestCustomEvents
+	harvestTxnEvents
+	harvestErrorEvents
+)
+
+const (
+	harvestTypesEvents = harvestSpanEvents | harvestCustomEvents | harvestTxnEvents | harvestErrorEvents
+	harvestTypesAll    = harvestMetricsTraces | harvestTypesEvents
+)
+
 type harvestTimer struct {
-	lastHarvest time.Time
-	period      time.Duration
+	periods     map[harvestTypes]time.Duration
+	lastHarvest map[harvestTypes]time.Time
 }
 
-func newHarvestTimer(now time.Time, period time.Duration) harvestTimer {
-	return harvestTimer{
-		lastHarvest: now,
-		period:      period,
+func newHarvestTimer(now time.Time, periods map[harvestTypes]time.Duration) *harvestTimer {
+	lastHarvest := make(map[harvestTypes]time.Time, len(periods))
+	for tp := range periods {
+		lastHarvest[tp] = now
 	}
+	return &harvestTimer{periods: periods, lastHarvest: lastHarvest}
 }
 
-func (timer *harvestTimer) ready(now time.Time) bool {
-	deadline := timer.lastHarvest.Add(timer.period)
-	if now.After(deadline) {
-		timer.lastHarvest = deadline
-		return true
+func (timer *harvestTimer) ready(now time.Time) (ready harvestTypes) {
+	for tp, period := range timer.periods {
+		if deadline := timer.lastHarvest[tp].Add(period); now.After(deadline) {
+			timer.lastHarvest[tp] = deadline
+			ready |= tp
+		}
 	}
-	return false
+	return
 }
 
 // Harvest contains collected data.
 type Harvest struct {
-	configurableHarvestTimer harvestTimer
-	fixedHarvestTimer        harvestTimer
+	timer *harvestTimer
 
-	// fixedHarvest and configurableHarvest are non-nil in the main Harvest
-	// used in app.process(), but may be nil in the Harvest returned by
-	// Harvest.Ready().
-	*fixedHarvest
-	*configurableHarvest
-}
-
-type fixedHarvest struct {
-	Metrics     *metricTable
-	ErrorTraces harvestErrors
-	TxnTraces   *harvestTraces
-	SlowSQLs    *slowQueries
-	SpanEvents  *spanEvents
-}
-
-type configurableHarvest struct {
+	Metrics      *metricTable
+	ErrorTraces  harvestErrors
+	TxnTraces    *harvestTraces
+	SlowSQLs     *slowQueries
+	SpanEvents   *spanEvents
 	CustomEvents *customEvents
 	TxnEvents    *txnEvents
 	ErrorEvents  *errorEvents
@@ -66,107 +73,98 @@ const (
 
 // Ready returns a new Harvest which contains the data types ready for harvest,
 // or nil if no data is ready for harvest.
-func (h *Harvest) Ready(now time.Time, reply *ConnectReply) *Harvest {
+func (h *Harvest) Ready(now time.Time) *Harvest {
 	ready := &Harvest{}
 
-	if h.configurableHarvestTimer.ready(now) {
+	types := h.timer.ready(now)
+
+	if 0 != types&harvestCustomEvents {
 		h.Metrics.addCount(customEventsSeen, h.CustomEvents.NumSeen(), forced)
 		h.Metrics.addCount(customEventsSent, h.CustomEvents.NumSaved(), forced)
-
+		ready.CustomEvents = h.CustomEvents
+		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
+	}
+	if 0 != types&harvestTxnEvents {
 		h.Metrics.addCount(txnEventsSeen, h.TxnEvents.NumSeen(), forced)
 		h.Metrics.addCount(txnEventsSent, h.TxnEvents.NumSaved(), forced)
-
+		ready.TxnEvents = h.TxnEvents
+		h.TxnEvents = newTxnEvents(h.TxnEvents.capacity())
+	}
+	if 0 != types&harvestErrorEvents {
 		h.Metrics.addCount(errorEventsSeen, h.ErrorEvents.NumSeen(), forced)
 		h.Metrics.addCount(errorEventsSent, h.ErrorEvents.NumSaved(), forced)
-
-		ready.configurableHarvest = h.configurableHarvest
-		h.configurableHarvest = newConfigurableHarvest(now, reply)
+		ready.ErrorEvents = h.ErrorEvents
+		h.ErrorEvents = newErrorEvents(h.ErrorEvents.capacity())
 	}
-
-	// NOTE!  This must happen after the configurable harvest conditional to
-	// ensure that the metrics contain the event supportability metrics.
-	if h.fixedHarvestTimer.ready(now) {
+	if 0 != types&harvestSpanEvents {
 		h.Metrics.addCount(spanEventsSeen, h.SpanEvents.NumSeen(), forced)
 		h.Metrics.addCount(spanEventsSent, h.SpanEvents.NumSaved(), forced)
-
-		ready.fixedHarvest = h.fixedHarvest
-		h.fixedHarvest = newFixedHarvest(now)
+		ready.SpanEvents = h.SpanEvents
+		h.SpanEvents = newSpanEvents(h.SpanEvents.capacity())
 	}
-
-	if nil == ready.fixedHarvest && nil == ready.configurableHarvest {
-		return nil
+	// NOTE! Metrics must happen after the event harvest conditionals to
+	// ensure that the metrics contain the event supportability metrics.
+	if 0 != types&harvestMetricsTraces {
+		ready.Metrics = h.Metrics
+		ready.ErrorTraces = h.ErrorTraces
+		ready.SlowSQLs = h.SlowSQLs
+		ready.TxnTraces = h.TxnTraces
+		h.Metrics = newMetricTable(maxMetrics, now)
+		h.ErrorTraces = newHarvestErrors(maxHarvestErrors)
+		h.SlowSQLs = newSlowQueries(maxHarvestSlowSQLs)
+		h.TxnTraces = newHarvestTraces()
 	}
 	return ready
 }
 
-func (h *configurableHarvest) payloads(splitLargeTxnEvents bool) []PayloadCreator {
-	if nil == h {
-		return nil
-	}
-	ps := []PayloadCreator{
-		h.CustomEvents,
-		h.ErrorEvents,
-	}
-	if splitLargeTxnEvents {
-		ps = append(ps, h.TxnEvents.payloads(txnEventPayloadlimit)...)
-	} else {
-		ps = append(ps, h.TxnEvents)
-	}
-	return ps
-}
-
-func (h *fixedHarvest) payloads() []PayloadCreator {
-	if nil == h {
-		return nil
-	}
-	return []PayloadCreator{
-		h.Metrics,
-		h.ErrorTraces,
-		h.TxnTraces,
-		h.SlowSQLs,
-		h.SpanEvents,
-	}
-}
-
 // Payloads returns a map from expected collector method name to data type.
-func (h *Harvest) Payloads(splitLargeTxnEvents bool) []PayloadCreator {
+func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 	if nil == h {
-		return nil
+		return
 	}
-	var ps []PayloadCreator
-	ps = append(ps, h.configurableHarvest.payloads(splitLargeTxnEvents)...)
-	ps = append(ps, h.fixedHarvest.payloads()...)
-	return ps
-}
-
-func newFixedHarvest(now time.Time) *fixedHarvest {
-	return &fixedHarvest{
-		Metrics:     newMetricTable(maxMetrics, now),
-		ErrorTraces: newHarvestErrors(maxHarvestErrors),
-		TxnTraces:   newHarvestTraces(),
-		SlowSQLs:    newSlowQueries(maxHarvestSlowSQLs),
-		SpanEvents:  newSpanEvents(maxSpanEvents),
+	if nil != h.CustomEvents {
+		ps = append(ps, h.CustomEvents)
 	}
-}
-
-func newConfigurableHarvest(now time.Time, reply *ConnectReply) *configurableHarvest {
-	harvestData := reply.getHarvestData()
-	return &configurableHarvest{
-		CustomEvents: newCustomEvents(int(harvestData.HarvestLimits.CustomEvents)),
-		TxnEvents:    newTxnEvents(int(harvestData.HarvestLimits.TxnEvents)),
-		ErrorEvents:  newErrorEvents(int(harvestData.HarvestLimits.ErrorEvents)),
+	if nil != h.ErrorEvents {
+		ps = append(ps, h.ErrorEvents)
 	}
+	if nil != h.SpanEvents {
+		ps = append(ps, h.SpanEvents)
+	}
+	if nil != h.Metrics {
+		ps = append(ps, h.Metrics)
+	}
+	if nil != h.ErrorTraces {
+		ps = append(ps, h.ErrorTraces)
+	}
+	if nil != h.TxnTraces {
+		ps = append(ps, h.TxnTraces)
+	}
+	if nil != h.SlowSQLs {
+		ps = append(ps, h.SlowSQLs)
+	}
+	if nil != h.TxnEvents {
+		if splitLargeTxnEvents {
+			ps = append(ps, h.TxnEvents.payloads(txnEventPayloadlimit)...)
+		} else {
+			ps = append(ps, h.TxnEvents)
+		}
+	}
+	return
 }
 
 // NewHarvest returns a new Harvest.
 func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
-	harvestData := reply.getHarvestData()
 	return &Harvest{
-		configurableHarvestTimer: newHarvestTimer(now, harvestData.eventReportPeriod()),
-		fixedHarvestTimer:        newHarvestTimer(now, fixedHarvestPeriod),
-
-		configurableHarvest: newConfigurableHarvest(now, reply),
-		fixedHarvest:        newFixedHarvest(now),
+		timer:        newHarvestTimer(now, reply.reportPeriods()),
+		Metrics:      newMetricTable(maxMetrics, now),
+		ErrorTraces:  newHarvestErrors(maxHarvestErrors),
+		TxnTraces:    newHarvestTraces(),
+		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
+		SpanEvents:   newSpanEvents(reply.maxSpanEvents()),
+		CustomEvents: newCustomEvents(reply.maxCustomEvents()),
+		TxnEvents:    newTxnEvents(reply.maxTxnEvents()),
+		ErrorEvents:  newErrorEvents(reply.maxErrorEvents()),
 	}
 }
 
@@ -194,8 +192,11 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *fixedHarvest) CreateFinalMetrics(reply *ConnectReply) {
+func (h *Harvest) CreateFinalMetrics(reply *ConnectReply) {
 	if nil == h {
+		return
+	}
+	if nil == h.Metrics {
 		return
 	}
 
@@ -203,12 +204,11 @@ func (h *fixedHarvest) CreateFinalMetrics(reply *ConnectReply) {
 
 	// Configurable event harvest supportability metrics:
 	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
-	hd := reply.getHarvestData()
-	period := hd.eventReportPeriod()
+	period := reply.configurablePeriod()
 	h.Metrics.addDuration(supportReportPeriod, "", period, period, forced)
-	h.Metrics.addValue(supportTxnEventLimit, "", float64(hd.HarvestLimits.TxnEvents), forced)
-	h.Metrics.addValue(supportCustomEventLimit, "", float64(hd.HarvestLimits.CustomEvents), forced)
-	h.Metrics.addValue(supportErrorEventLimit, "", float64(hd.HarvestLimits.ErrorEvents), forced)
+	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents()), forced)
+	h.Metrics.addValue(supportCustomEventLimit, "", float64(reply.maxCustomEvents()), forced)
+	h.Metrics.addValue(supportErrorEventLimit, "", float64(reply.maxErrorEvents()), forced)
 
 	createTrackUsageMetrics(h.Metrics)
 

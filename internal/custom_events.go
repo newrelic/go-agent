@@ -1,8 +1,6 @@
 package internal
 
-import (
-	"time"
-)
+import "time"
 
 type customEvents struct {
 	*analyticsEvents
