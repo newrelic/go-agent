@@ -80,6 +80,7 @@ type TxnData struct {
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
+	messageSegments   map[messageMetricKey]*metricData
 
 	TxnTrace
 
@@ -500,7 +501,7 @@ type EndMessageParams struct {
 // EndMessageSegment ends an external segment.
 func EndMessageSegment(p EndMessageParams) error {
 	t := p.TxnData
-	_, err := endSegment(t, p.Thread, p.Start, p.Now)
+	end, err := endSegment(t, p.Thread, p.Start, p.Now)
 	if nil != err {
 		return err
 	}
@@ -512,7 +513,30 @@ func EndMessageSegment(p EndMessageParams) error {
 		Destination:     p.Destination,
 	}
 
-	fmt.Println("ending a message segment", key.scopedMetric())
+	if nil == t.messageSegments {
+		t.messageSegments = make(map[messageMetricKey]*metricData)
+	}
+	m := metricDataFromDuration(end.duration, end.exclusive)
+	if data, ok := t.messageSegments[key]; ok {
+		data.aggregate(m)
+	} else {
+		// Use `new` in place of &m so that m is not
+		// automatically moved to the heap.
+		cpy := new(metricData)
+		*cpy = m
+		t.messageSegments[key] = cpy
+	}
+
+	if t.TxnTrace.considerNode(end) {
+		attributes := end.attributes.copy()
+		t.saveTraceSegment(end, key.scopedMetric(), attributes, "")
+	}
+
+	if evt := end.spanEvent(); evt != nil {
+		evt.Name = key.scopedMetric()
+		evt.Category = spanCategoryGeneric
+		t.saveSpanEvent(evt)
+	}
 
 	return nil
 }
@@ -733,5 +757,11 @@ func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
 		} else {
 			metrics.add(operation, scope, *data, unforced)
 		}
+	}
+	// Message Segment Metrics
+	for key, data := range t.messageSegments {
+		metric := key.scopedMetric()
+		metrics.add(metric, scope, *data, unforced)
+		metrics.add(metric, "", *data, unforced)
 	}
 }
