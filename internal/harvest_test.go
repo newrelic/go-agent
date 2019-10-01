@@ -83,7 +83,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 22,
 				"custom_event_data": 33,
-				"error_event_data": 44
+				"error_event_data": 44,
+				"span_event_data": 55
 			}
 		}
 	}}`)
@@ -101,6 +102,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{"Supportability/EventHarvest/AnalyticEventData/HarvestLimit", "", true, []float64{1, 22, 22, 22, 22, 22 * 22}},
 		{"Supportability/EventHarvest/CustomEventData/HarvestLimit", "", true, []float64{1, 33, 33, 33, 33, 33 * 33}},
 		{"Supportability/EventHarvest/ErrorEventData/HarvestLimit", "", true, []float64{1, 44, 44, 44, 44, 44 * 44}},
+		{"Supportability/EventHarvest/SpanEventData/HarvestLimit", "", true, []float64{1, 55, 55, 55, 55, 55 * 55}},
 	})
 
 	// Test again without any metric rules or event_harvest_config.
@@ -121,6 +123,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{"Supportability/EventHarvest/AnalyticEventData/HarvestLimit", "", true, []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{"Supportability/EventHarvest/CustomEventData/HarvestLimit", "", true, []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{"Supportability/EventHarvest/ErrorEventData/HarvestLimit", "", true, []float64{1, 100, 100, 100, 100, 100 * 100}},
+		{"Supportability/EventHarvest/SpanEventData/HarvestLimit", "", true, []float64{1, 1000, 1000, 1000, 1000, 1000 * 1000}},
 	})
 }
 

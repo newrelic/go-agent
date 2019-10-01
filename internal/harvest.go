@@ -212,6 +212,7 @@ func (h *Harvest) CreateFinalMetrics(reply *ConnectReply) {
 	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents()), forced)
 	h.Metrics.addValue(supportCustomEventLimit, "", float64(reply.maxCustomEvents()), forced)
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(reply.maxErrorEvents()), forced)
+	h.Metrics.addValue(supportSpanEventLimit, "", float64(reply.maxSpanEvents()), forced)
 
 	createTrackUsageMetrics(h.Metrics)
 
