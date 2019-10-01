@@ -77,6 +77,9 @@ func (h *Harvest) Ready(now time.Time) *Harvest {
 	ready := &Harvest{}
 
 	types := h.timer.ready(now)
+	if 0 == types {
+		return nil
+	}
 
 	if 0 != types&harvestCustomEvents {
 		h.Metrics.addCount(customEventsSeen, h.CustomEvents.NumSeen(), forced)

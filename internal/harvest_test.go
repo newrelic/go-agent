@@ -158,6 +158,9 @@ func TestHarvestNothingReady(t *testing.T) {
 	var reply *ConnectReply
 	h := NewHarvest(now, reply)
 	ready := h.Ready(now.Add(10 * time.Second))
+	if ready != nil {
+		t.Error("harvest should be nil")
+	}
 	payloads := ready.Payloads(true)
 	if len(payloads) != 0 {
 		t.Error(payloads)
