@@ -135,7 +135,7 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 
 func message(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	s := newrelic.MessageSegment{
+	s := newrelic.MessageProducerSegment{
 		StartTime:       newrelic.StartSegmentNow(txn),
 		Library:         "RabbitMQ",
 		DestinationType: newrelic.MessageQueue,

@@ -855,7 +855,7 @@ func endExternal(s *ExternalSegment) error {
 	})
 }
 
-func endMessage(s *MessageSegment) error {
+func endMessage(s *MessageProducerSegment) error {
 	if nil == s {
 		return nil
 	}
@@ -869,6 +869,10 @@ func endMessage(s *MessageSegment) error {
 
 	if txn.finished {
 		return errAlreadyEnded
+	}
+
+	if "" == s.DestinationType {
+		s.DestinationType = MessageQueue
 	}
 
 	var destination string

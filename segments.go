@@ -93,22 +93,18 @@ type ExternalSegment struct {
 	Library string
 }
 
-// MessageSegment TODO
-//
-// QUESTION: Should this be MessageBrokerSegment, or maybe
-// MessageProducerSegment (If the only action is produce?)
-//
-// https://source.datanerd.us/agents/agent-specs/blob/master/APIs/messaging.md#input-parameters-to-the-message-broker-segment-api
-type MessageSegment struct {
+// MessageProducerSegment instruments calls to add messages to a queueing system.
+type MessageProducerSegment struct {
 	StartTime SegmentStartTime
-	// QUESTION: Do we need an Action field, or will it always be "Produce"?
 
 	// Library is the name of the library instrumented.  eg. "RabbitMQ",
 	// "JMS"
 	Library string
 
+	// DestinationType is the destination type.
 	DestinationType MessageDestinationType
 
+	// DestinationName is the name of your queue or topic.  eg. "UsersQueue".
 	DestinationName string
 }
 
@@ -135,7 +131,7 @@ func (s *DatastoreSegment) End() error { return endDatastore(s) }
 func (s *ExternalSegment) End() error { return endExternal(s) }
 
 // End finishes the message segment.
-func (s *MessageSegment) End() error { return endMessage(s) }
+func (s *MessageProducerSegment) End() error { return endMessage(s) }
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.
