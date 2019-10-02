@@ -269,6 +269,10 @@ func TestSplitFull(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		events.addEvent(sampleAnalyticsEvent(Priority(float32(i) / 10.0)))
 	}
+	// Test that the capacity cannot exceed the max.
+	if 10 != events.capacity() {
+		t.Error(events.capacity())
+	}
 	e1, e2 := events.split()
 	j1, err1 := e1.CollectorJSON(agentRunID)
 	j2, err2 := e2.CollectorJSON(agentRunID)

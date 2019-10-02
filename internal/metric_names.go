@@ -70,6 +70,7 @@ const (
 	supportTxnEventLimit    = "Supportability/EventHarvest/AnalyticEventData/HarvestLimit"
 	supportCustomEventLimit = "Supportability/EventHarvest/CustomEventData/HarvestLimit"
 	supportErrorEventLimit  = "Supportability/EventHarvest/ErrorEventData/HarvestLimit"
+	supportSpanEventLimit   = "Supportability/EventHarvest/SpanEventData/HarvestLimit"
 )
 
 // DistributedTracingSupport is used to track distributed tracing activity for

@@ -325,9 +325,5 @@ func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectRep
 		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
-	if reply.Reply.EventData.EventReportPeriodMs <= 0 {
-		reply.Reply.EventData.EventReportPeriodMs = defaultConfigurableEventHarvestMs
-	}
-
 	return reply.Reply, nil
 }

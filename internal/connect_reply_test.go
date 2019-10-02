@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -211,6 +212,211 @@ func TestDefaultEventHarvestConfigJSON(t *testing.T) {
 	}
 	if string(js) != `{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":10000,"error_event_data":100}}` {
 		t.Error(string(js))
+	}
+}
+
+type expectHarvestConfig struct {
+	maxTxnEvents    int
+	maxCustomEvents int
+	maxErrorEvents  int
+	maxSpanEvents   int
+	periods         map[harvestTypes]time.Duration
+}
+
+func assertHarvestConfig(t testing.TB, reply *ConnectReply, expect expectHarvestConfig) {
+	if h, ok := t.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
+	if max := reply.maxTxnEvents(); max != expect.maxTxnEvents {
+		t.Error(max, expect.maxTxnEvents)
+	}
+	if max := reply.maxCustomEvents(); max != expect.maxCustomEvents {
+		t.Error(max, expect.maxCustomEvents)
+	}
+	if max := reply.maxSpanEvents(); max != expect.maxSpanEvents {
+		t.Error(max, expect.maxSpanEvents)
+	}
+	if max := reply.maxErrorEvents(); max != expect.maxErrorEvents {
+		t.Error(max, expect.maxErrorEvents)
+	}
+	if periods := reply.reportPeriods(); !reflect.DeepEqual(periods, expect.periods) {
+		t.Error(periods, expect.periods)
+	}
+}
+
+func TestNilReplyEventHarvestDefaults(t *testing.T) {
+	var reply *ConnectReply
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll: 60 * time.Second,
+			0:               60 * time.Second,
+		},
+	})
+}
+
+func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
+	reply := &ConnectReply{}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll: 60 * time.Second,
+			0:               60 * time.Second,
+		},
+	})
+}
+
+func TestEventHarvestFieldsAllPopulated(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 5000,
+				"harvest_limits": {
+					"analytic_event_data": 1,
+					"custom_event_data": 2,
+					"span_event_data": 3,
+					"error_event_data": 4
+				}
+			}
+		}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    1,
+		maxCustomEvents: 2,
+		maxErrorEvents:  4,
+		maxSpanEvents:   3,
+		periods: map[harvestTypes]time.Duration{
+			harvestMetricsTraces: 60 * time.Second,
+			harvestTypesEvents:   5 * time.Second,
+		},
+	})
+}
+
+func TestZeroReportPeriod(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 0
+			}
+		}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll: 60 * time.Second,
+			0:               60 * time.Second,
+		},
+	})
+}
+
+func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 5000,
+				"harvest_limits": { "span_event_data": 3 }
+			}}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   3,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestSpanEvents: 60 * time.Second,
+			harvestSpanEvents:                   5 * time.Second,
+		},
+	})
+}
+
+func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 5000,
+				"harvest_limits": { "analytic_event_data": 3 }
+			}}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    3,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestTxnEvents: 60 * time.Second,
+			harvestTxnEvents:                   5 * time.Second,
+		},
+	})
+}
+
+func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 5000,
+				"harvest_limits": { "error_event_data": 3 }
+			}}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: maxCustomEvents,
+		maxErrorEvents:  3,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestErrorEvents: 60 * time.Second,
+			harvestErrorEvents:                   5 * time.Second,
+		},
+	})
+}
+
+func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
+	reply, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 5000,
+				"harvest_limits": { "custom_event_data": 3 }
+			}}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	assertHarvestConfig(t, reply, expectHarvestConfig{
+		maxTxnEvents:    maxTxnEvents,
+		maxCustomEvents: 3,
+		maxErrorEvents:  maxErrorEvents,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestCustomEvents: 60 * time.Second,
+			harvestCustomEvents:                   5 * time.Second,
+		},
+	})
+}
+
+func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
+	h, err := constructConnectReply([]byte(`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": -1
+			}}}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	expect := time.Duration(defaultConfigurableEventHarvestMs) * time.Millisecond
+	if period := h.configurablePeriod(); period != expect {
+		t.Fatal(expect, period)
 	}
 }
 
