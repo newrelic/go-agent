@@ -120,7 +120,7 @@ func (h *Harvest) Ready(now time.Time) *Harvest {
 	return ready
 }
 
-// Payloads returns a map from expected collector method name to data type.
+// Payloads returns a slice of payload creators.
 func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 	if nil == h {
 		return
