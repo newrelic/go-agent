@@ -794,3 +794,46 @@ func TestExternalSegmentCAT(t *testing.T) {
 		{"External/f1.com/http", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
 	})
 }
+
+func TestEndMessageSegment(t *testing.T) {
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{
+		TraceIDGenerator: NewTraceIDGenerator(12345),
+	}
+	txndata.CrossProcess.Enabled = true
+	txndata.LazilyCalculateSampled = func() bool { return true }
+	txndata.SpanEventsEnabled = true
+	thread := &Thread{}
+
+	seg1 := StartSegment(txndata, thread, start.Add(1*time.Second))
+	seg2 := StartSegment(txndata, thread, start.Add(2*time.Second))
+	EndMessageSegment(EndMessageParams{
+		TxnData:         txndata,
+		Thread:          thread,
+		Start:           seg1,
+		Now:             start.Add(3 * time.Second),
+		Logger:          nil,
+		Destination:     "MyTopic",
+		Library:         "Kafka",
+		DestinationType: "Topic",
+	})
+	EndMessageSegment(EndMessageParams{
+		TxnData:         txndata,
+		Thread:          thread,
+		Start:           seg2,
+		Now:             start.Add(4 * time.Second),
+		Logger:          nil,
+		Destination:     "MyOtherTopic",
+		Library:         "Kafka",
+		DestinationType: "Topic",
+	})
+
+	metrics := newMetricTable(100, time.Now())
+	txndata.FinalName = "WebTransaction/Go/zip"
+	txndata.IsWeb = true
+	MergeBreakdownMetrics(txndata, metrics)
+	ExpectMetrics(t, metrics, []WantMetric{
+		{"MessageBroker/Kafka/Topic/Produce/MyTopic", "WebTransaction/Go/zip", false, []float64{1, 2, 2, 2, 2, 4}},
+		{"MessageBroker/Kafka/Topic/Produce/MyTopic", "", false, []float64{1, 2, 2, 2, 2, 4}},
+	})
+}

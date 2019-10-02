@@ -133,6 +133,20 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, `performing fake query "INSERT * from users"`)
 }
 
+func message(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	s := newrelic.MessageProducerSegment{
+		StartTime:       newrelic.StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationType: newrelic.MessageQueue,
+		DestinationName: "myQueue",
+	}
+	defer s.End()
+
+	time.Sleep(20 * time.Millisecond)
+	io.WriteString(w, `producing a message queue message`)
+}
+
 func external(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -266,6 +280,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custommetric", customMetric))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/browser", browser))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as

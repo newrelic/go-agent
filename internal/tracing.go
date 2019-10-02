@@ -80,6 +80,7 @@ type TxnData struct {
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
+	messageSegments   map[messageMetricKey]*metricData
 
 	TxnTrace
 
@@ -485,6 +486,61 @@ func EndExternalSegment(p EndExternalParams) error {
 	return nil
 }
 
+// EndMessageParams contains the parameters for EndMessageSegment.
+type EndMessageParams struct {
+	TxnData         *TxnData
+	Thread          *Thread
+	Start           SegmentStartTime
+	Now             time.Time
+	Logger          logger.Logger
+	Destination     string // eg. "Temp", "Named/MyQueue"
+	Library         string
+	DestinationType string
+}
+
+// EndMessageSegment ends an external segment.
+func EndMessageSegment(p EndMessageParams) error {
+	t := p.TxnData
+	end, err := endSegment(t, p.Thread, p.Start, p.Now)
+	if nil != err {
+		return err
+	}
+
+	key := messageMetricKey{
+		Library:         p.Library,
+		DestinationType: p.DestinationType,
+		Action:          "Produce",
+		Destination:     p.Destination,
+	}
+
+	if nil == t.messageSegments {
+		t.messageSegments = make(map[messageMetricKey]*metricData)
+	}
+	m := metricDataFromDuration(end.duration, end.exclusive)
+	if data, ok := t.messageSegments[key]; ok {
+		data.aggregate(m)
+	} else {
+		// Use `new` in place of &m so that m is not
+		// automatically moved to the heap.
+		cpy := new(metricData)
+		*cpy = m
+		t.messageSegments[key] = cpy
+	}
+
+	if t.TxnTrace.considerNode(end) {
+		attributes := end.attributes.copy()
+		t.saveTraceSegment(end, key.scopedMetric(), attributes, "")
+	}
+
+	if evt := end.spanEvent(); evt != nil {
+		evt.Name = key.scopedMetric()
+		evt.Category = spanCategoryGeneric
+		t.saveSpanEvent(evt)
+	}
+
+	return nil
+}
+
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
 	TxnData            *TxnData
@@ -701,5 +757,11 @@ func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
 		} else {
 			metrics.add(operation, scope, *data, unforced)
 		}
+	}
+	// Message Segment Metrics
+	for key, data := range t.messageSegments {
+		metric := key.scopedMetric()
+		metrics.add(metric, scope, *data, unforced)
+		metrics.add(metric, "", *data, unforced)
 	}
 }

@@ -74,6 +74,18 @@ func TestTxnTrace(t *testing.T) {
 	})
 	EndBasicSegment(txndata, thread, t4, start.Add(16*time.Second), "t4")
 
+	t9 := StartSegment(txndata, thread, start.Add(17*time.Second))
+	EndMessageSegment(EndMessageParams{
+		TxnData:         txndata,
+		Thread:          thread,
+		Start:           t9,
+		Now:             start.Add(18 * time.Second),
+		Logger:          nil,
+		Destination:     "MyTopic",
+		Library:         "Kafka",
+		DestinationType: "Topic",
+	})
+
 	acfg := CreateAttributeConfig(sampleAttributeConfigInput, true)
 	attr := NewAttributes(acfg)
 	attr.Agent.Add(attributeRequestURI, "/url", nil)
@@ -186,6 +198,13 @@ func TestTxnTrace(t *testing.T) {
 								Children:            []WantTraceSegment{},
 							},
 						},
+					},
+					{
+						SegmentName:         "MessageBroker/Kafka/Topic/Produce/MyTopic",
+						RelativeStartMillis: 17000,
+						RelativeStopMillis:  18000,
+						Attributes:          map[string]interface{}{},
+						Children:            []WantTraceSegment{},
 					},
 				},
 			}},

@@ -855,6 +855,46 @@ func endExternal(s *ExternalSegment) error {
 	})
 }
 
+func endMessage(s *MessageProducerSegment) error {
+	if nil == s {
+		return nil
+	}
+	thd := s.StartTime.thread
+	if nil == thd {
+		return nil
+	}
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	if "" == s.DestinationType {
+		s.DestinationType = MessageQueue
+	}
+
+	var destination string
+	if s.DestinationType == MessageTemporaryQueue ||
+		s.DestinationType == MessageTemporaryTopic {
+		destination = "Temp"
+	} else {
+		destination = "Named/" + s.DestinationName
+	}
+
+	return internal.EndMessageSegment(internal.EndMessageParams{
+		TxnData:         &txn.TxnData,
+		Thread:          thd.thread,
+		Start:           s.StartTime.start,
+		Now:             time.Now(),
+		Library:         s.Library,
+		Logger:          txn.Config.Logger,
+		Destination:     destination,
+		DestinationType: string(s.DestinationType),
+	})
+}
+
 // oldCATOutboundHeaders generates the Old CAT and Synthetics headers, depending
 // on whether Old CAT is enabled or any Synthetics functionality has been
 // triggered in the agent.

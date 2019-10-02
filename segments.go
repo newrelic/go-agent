@@ -93,6 +93,34 @@ type ExternalSegment struct {
 	Library string
 }
 
+// MessageProducerSegment instruments calls to add messages to a queueing system.
+type MessageProducerSegment struct {
+	StartTime SegmentStartTime
+
+	// Library is the name of the library instrumented.  eg. "RabbitMQ",
+	// "JMS"
+	Library string
+
+	// DestinationType is the destination type.
+	DestinationType MessageDestinationType
+
+	// DestinationName is the name of your queue or topic.  eg. "UsersQueue".
+	DestinationName string
+}
+
+// MessageDestinationType is used for the MessageSegment.DestinationType field.
+type MessageDestinationType string
+
+// These message destination type constants are used in for the
+// MessageSegment.DestinationType field.
+const (
+	MessageQueue          MessageDestinationType = "Queue"
+	MessageTopic          MessageDestinationType = "Topic"
+	MessageTemporaryQueue MessageDestinationType = "Temporary Queue"
+	MessageTemporaryTopic MessageDestinationType = "Temporary Topic"
+	MessageExchange       MessageDestinationType = "Exchange"
+)
+
 // End finishes the segment.
 func (s *Segment) End() error { return endSegment(s) }
 
@@ -101,6 +129,9 @@ func (s *DatastoreSegment) End() error { return endDatastore(s) }
 
 // End finishes the external segment.
 func (s *ExternalSegment) End() error { return endExternal(s) }
+
+// End finishes the message segment.
+func (s *MessageProducerSegment) End() error { return endMessage(s) }
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.

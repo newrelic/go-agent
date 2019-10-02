@@ -172,6 +172,21 @@ type externalMetricKey struct {
 	ExternalTransactionName string
 }
 
+type messageMetricKey struct {
+	Library         string
+	DestinationType string
+	Action          string
+	Destination     string // eg. "Temp", "Named/MyQueue"
+}
+
+func (key messageMetricKey) scopedMetric() string {
+	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
+	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
+	return "MessageBroker/" + key.Library +
+		"/" + key.DestinationType +
+		"/" + key.Action +
+		"/" + key.Destination
+}
 func datastoreScopedMetric(key DatastoreMetricKey) string {
 	if "" != key.Collection {
 		return datastoreStatementMetric(key)

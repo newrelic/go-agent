@@ -2011,3 +2011,140 @@ func TestAsync(t *testing.T) {
 		{Name: "Custom/asyncThread", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
 	})
 }
+
+func TestMessageProducerSegmentBasic(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := MessageProducerSegment{
+		StartTime:       StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationType: MessageQueue,
+		DestinationName: "myQueue",
+	}
+	err := s.End()
+	if err != nil {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := MessageProducerSegment{
+		StartTime:       StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationName: "myQueue",
+	}
+	err := s.End()
+	if err != nil {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+	})
+}
+
+func TestMessageProducerSegmentTemp(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := MessageProducerSegment{
+		StartTime:       StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationType: MessageTemporaryQueue,
+		DestinationName: "myQueue0123456789",
+	}
+	err := s.End()
+	if err != nil {
+		t.Error(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Temporary Queue/Produce/Temp", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Temporary Queue/Produce/Temp", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+	})
+}
+
+func TestMessageProducerSegmentTxnEnded(t *testing.T) {
+	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	s := MessageProducerSegment{
+		StartTime:       StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationType: MessageTemporaryQueue,
+		DestinationName: "myQueue0123456789",
+	}
+	txn.End()
+	err := s.End()
+	if err != errAlreadyEnded {
+		t.Error("expected already ended error", err)
+	}
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+	})
+}
+
+func TestMessageProducerSegmentNilTxn(t *testing.T) {
+	s := MessageProducerSegment{
+		StartTime:       StartSegmentNow(nil),
+		Library:         "RabbitMQ",
+		DestinationType: MessageTemporaryQueue,
+		DestinationName: "myQueue0123456789",
+	}
+	s.End()
+}
+
+func TestMessageProducerSegmentNilSegment(t *testing.T) {
+	var s *MessageProducerSegment
+	s.End()
+}
