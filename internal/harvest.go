@@ -199,6 +199,8 @@ func (h *Harvest) CreateFinalMetrics(reply *ConnectReply) {
 	if nil == h {
 		return
 	}
+	// Metrics will be non-nil when harvesting metrics (regardless of
+	// whether or not there are any metrics to send).
 	if nil == h.Metrics {
 		return
 	}
