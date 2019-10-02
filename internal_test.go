@@ -2013,7 +2013,13 @@ func TestAsync(t *testing.T) {
 }
 
 func TestMessageProducerSegmentBasic(t *testing.T) {
-	app := testApp(nil, nil, t)
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	s := MessageProducerSegment{
 		StartTime:       StartSegmentNow(txn),
@@ -2031,8 +2037,31 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "", Forced: false, Data: nil},
 		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
 	})
 }
 
