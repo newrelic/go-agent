@@ -172,6 +172,7 @@ type externalMetricKey struct {
 	ExternalTransactionName string
 }
 
+// MessageMetricKey is the key to use for message segments.
 type MessageMetricKey struct {
 	Library         string
 	DestinationType string
@@ -180,6 +181,8 @@ type MessageMetricKey struct {
 	DestinationTemp bool
 }
 
+// Name returns the metric name value for this MessageMetricKey to be used for
+// scoped and unscoped metrics.
 func (key MessageMetricKey) Name() string {
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
