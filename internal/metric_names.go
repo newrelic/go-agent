@@ -180,7 +180,7 @@ type MessageMetricKey struct {
 	DestinationTemp bool
 }
 
-func (key MessageMetricKey) scopedMetric() string {
+func (key MessageMetricKey) Name() string {
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
 	var destination string

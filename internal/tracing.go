@@ -531,11 +531,11 @@ func EndMessageSegment(p EndMessageParams) error {
 
 	if t.TxnTrace.considerNode(end) {
 		attributes := end.attributes.copy()
-		t.saveTraceSegment(end, key.scopedMetric(), attributes, "")
+		t.saveTraceSegment(end, key.Name(), attributes, "")
 	}
 
 	if evt := end.spanEvent(); evt != nil {
-		evt.Name = key.scopedMetric()
+		evt.Name = key.Name()
 		evt.Category = spanCategoryGeneric
 		t.saveSpanEvent(evt)
 	}
@@ -762,7 +762,7 @@ func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
 	}
 	// Message Segment Metrics
 	for key, data := range t.messageSegments {
-		metric := key.scopedMetric()
+		metric := key.Name()
 		metrics.add(metric, scope, *data, unforced)
 		metrics.add(metric, "", *data, unforced)
 	}
