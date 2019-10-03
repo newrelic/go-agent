@@ -80,7 +80,7 @@ type TxnData struct {
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
-	messageSegments   map[messageMetricKey]*metricData
+	messageSegments   map[MessageMetricKey]*metricData
 
 	TxnTrace
 
@@ -506,7 +506,7 @@ func EndMessageSegment(p EndMessageParams) error {
 		return err
 	}
 
-	key := messageMetricKey{
+	key := MessageMetricKey{
 		Library:         p.Library,
 		DestinationType: p.DestinationType,
 		Action:          "Produce",
@@ -514,7 +514,7 @@ func EndMessageSegment(p EndMessageParams) error {
 	}
 
 	if nil == t.messageSegments {
-		t.messageSegments = make(map[messageMetricKey]*metricData)
+		t.messageSegments = make(map[MessageMetricKey]*metricData)
 	}
 	m := metricDataFromDuration(end.duration, end.exclusive)
 	if data, ok := t.messageSegments[key]; ok {

@@ -172,14 +172,14 @@ type externalMetricKey struct {
 	ExternalTransactionName string
 }
 
-type messageMetricKey struct {
+type MessageMetricKey struct {
 	Library         string
 	DestinationType string
 	Action          string
 	Destination     string // eg. "Temp", "Named/MyQueue"
 }
 
-func (key messageMetricKey) scopedMetric() string {
+func (key MessageMetricKey) scopedMetric() string {
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
 	return "MessageBroker/" + key.Library +
