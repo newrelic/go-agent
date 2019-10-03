@@ -107,7 +107,8 @@ type MessageProducerSegment struct {
 	// DestinationName is the name of your queue or topic.  eg. "UsersQueue".
 	DestinationName string
 
-	// DestinationTemporary must be set to true if destination is temporary.
+	// DestinationTemporary must be set to true if destination is temporary
+	// to improve metric grouping.
 	DestinationTemporary bool
 }
 
