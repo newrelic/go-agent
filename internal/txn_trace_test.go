@@ -81,7 +81,7 @@ func TestTxnTrace(t *testing.T) {
 		Start:           t9,
 		Now:             start.Add(18 * time.Second),
 		Logger:          nil,
-		Destination:     "MyTopic",
+		DestinationName: "MyTopic",
 		Library:         "Kafka",
 		DestinationType: "Topic",
 	})
@@ -200,7 +200,7 @@ func TestTxnTrace(t *testing.T) {
 						},
 					},
 					{
-						SegmentName:         "MessageBroker/Kafka/Topic/Produce/MyTopic",
+						SegmentName:         "MessageBroker/Kafka/Topic/Produce/Named/MyTopic",
 						RelativeStartMillis: 17000,
 						RelativeStopMillis:  18000,
 						Attributes:          map[string]interface{}{},

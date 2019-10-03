@@ -176,17 +176,25 @@ type MessageMetricKey struct {
 	Library         string
 	DestinationType string
 	Action          string
-	Destination     string // eg. "Temp", "Named/MyQueue"
+	DestinationName string
+	DestinationTemp bool
 }
 
 func (key MessageMetricKey) scopedMetric() string {
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
+	var destination string
+	if key.DestinationTemp {
+		destination = "Temp"
+	} else {
+		destination = "Named/" + key.DestinationName
+	}
 	return "MessageBroker/" + key.Library +
 		"/" + key.DestinationType +
 		"/" + key.Action +
-		"/" + key.Destination
+		"/" + destination
 }
+
 func datastoreScopedMetric(key DatastoreMetricKey) string {
 	if "" != key.Collection {
 		return datastoreStatementMetric(key)

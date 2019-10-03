@@ -493,9 +493,10 @@ type EndMessageParams struct {
 	Start           SegmentStartTime
 	Now             time.Time
 	Logger          logger.Logger
-	Destination     string // eg. "Temp", "Named/MyQueue"
+	DestinationName string
 	Library         string
 	DestinationType string
+	DestinationTemp bool
 }
 
 // EndMessageSegment ends an external segment.
@@ -510,7 +511,8 @@ func EndMessageSegment(p EndMessageParams) error {
 		Library:         p.Library,
 		DestinationType: p.DestinationType,
 		Action:          "Produce",
-		Destination:     p.Destination,
+		DestinationName: p.DestinationName,
+		DestinationTemp: p.DestinationTemp,
 	}
 
 	if nil == t.messageSegments {
