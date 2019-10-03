@@ -876,8 +876,7 @@ func endMessage(s *MessageProducerSegment) error {
 	}
 
 	var destination string
-	if s.DestinationType == MessageTemporaryQueue ||
-		s.DestinationType == MessageTemporaryTopic {
+	if s.DestinationTemporary {
 		destination = "Temp"
 	} else {
 		destination = "Named/" + s.DestinationName
