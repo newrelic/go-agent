@@ -106,6 +106,10 @@ type MessageProducerSegment struct {
 
 	// DestinationName is the name of your queue or topic.  eg. "UsersQueue".
 	DestinationName string
+
+	// DestinationTemporary must be set to true if destination is temporary
+	// to improve metric grouping.
+	DestinationTemporary bool
 }
 
 // MessageDestinationType is used for the MessageSegment.DestinationType field.
@@ -114,11 +118,9 @@ type MessageDestinationType string
 // These message destination type constants are used in for the
 // MessageSegment.DestinationType field.
 const (
-	MessageQueue          MessageDestinationType = "Queue"
-	MessageTopic          MessageDestinationType = "Topic"
-	MessageTemporaryQueue MessageDestinationType = "Temporary Queue"
-	MessageTemporaryTopic MessageDestinationType = "Temporary Topic"
-	MessageExchange       MessageDestinationType = "Exchange"
+	MessageQueue    MessageDestinationType = "Queue"
+	MessageTopic    MessageDestinationType = "Topic"
+	MessageExchange MessageDestinationType = "Exchange"
 )
 
 // End finishes the segment.

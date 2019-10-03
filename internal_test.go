@@ -2092,10 +2092,11 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
-		Library:         "RabbitMQ",
-		DestinationType: MessageTemporaryQueue,
-		DestinationName: "myQueue0123456789",
+		StartTime:            StartSegmentNow(txn),
+		Library:              "RabbitMQ",
+		DestinationType:      MessageQueue,
+		DestinationTemporary: true,
+		DestinationName:      "myQueue0123456789",
 	}
 	err := s.End()
 	if err != nil {
@@ -2107,8 +2108,8 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/RabbitMQ/Temporary Queue/Produce/Temp", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/RabbitMQ/Temporary Queue/Produce/Temp", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Temp", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/RabbitMQ/Queue/Produce/Temp", Scope: "OtherTransaction/Go/hello", Forced: false, Data: nil},
 	})
 }
 
@@ -2116,10 +2117,11 @@ func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello", nil, nil)
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
-		Library:         "RabbitMQ",
-		DestinationType: MessageTemporaryQueue,
-		DestinationName: "myQueue0123456789",
+		StartTime:            StartSegmentNow(txn),
+		Library:              "RabbitMQ",
+		DestinationType:      MessageQueue,
+		DestinationTemporary: true,
+		DestinationName:      "myQueue0123456789",
 	}
 	txn.End()
 	err := s.End()
@@ -2136,10 +2138,11 @@ func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 
 func TestMessageProducerSegmentNilTxn(t *testing.T) {
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(nil),
-		Library:         "RabbitMQ",
-		DestinationType: MessageTemporaryQueue,
-		DestinationName: "myQueue0123456789",
+		StartTime:            StartSegmentNow(nil),
+		Library:              "RabbitMQ",
+		DestinationType:      MessageQueue,
+		DestinationTemporary: true,
+		DestinationName:      "myQueue0123456789",
 	}
 	s.End()
 }
