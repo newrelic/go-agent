@@ -38,8 +38,9 @@ matrix:
     env: INTEGRATION=_integrations/nrsqlite3
   - go: "1.13"
     env: INTEGRATION=_integrations/nrgrpc
-  - go: "1.13"
-    env: INTEGRATION=_integrations/nrmicro
+  # As of October 2019, errors result from go get -u github.com/micro/go-micro
+  # - go: "1.13"
+  #   env: INTEGRATION=_integrations/nrmicro
   - go: "1.13"
     env: INTEGRATION=_integrations/nrnats
   - go: "1.13"
