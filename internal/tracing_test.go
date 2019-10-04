@@ -813,7 +813,7 @@ func TestEndMessageSegment(t *testing.T) {
 		Start:           seg1,
 		Now:             start.Add(3 * time.Second),
 		Logger:          nil,
-		Destination:     "MyTopic",
+		DestinationName: "MyTopic",
 		Library:         "Kafka",
 		DestinationType: "Topic",
 	})
@@ -823,7 +823,7 @@ func TestEndMessageSegment(t *testing.T) {
 		Start:           seg2,
 		Now:             start.Add(4 * time.Second),
 		Logger:          nil,
-		Destination:     "MyOtherTopic",
+		DestinationName: "MyOtherTopic",
 		Library:         "Kafka",
 		DestinationType: "Topic",
 	})
@@ -833,7 +833,7 @@ func TestEndMessageSegment(t *testing.T) {
 	txndata.IsWeb = true
 	MergeBreakdownMetrics(txndata, metrics)
 	ExpectMetrics(t, metrics, []WantMetric{
-		{"MessageBroker/Kafka/Topic/Produce/MyTopic", "WebTransaction/Go/zip", false, []float64{1, 2, 2, 2, 2, 4}},
-		{"MessageBroker/Kafka/Topic/Produce/MyTopic", "", false, []float64{1, 2, 2, 2, 2, 4}},
+		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "WebTransaction/Go/zip", false, []float64{1, 2, 2, 2, 2, 4}},
+		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "", false, []float64{1, 2, 2, 2, 2, 4}},
 	})
 }

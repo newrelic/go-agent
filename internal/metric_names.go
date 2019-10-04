@@ -172,21 +172,32 @@ type externalMetricKey struct {
 	ExternalTransactionName string
 }
 
-type messageMetricKey struct {
+// MessageMetricKey is the key to use for message segments.
+type MessageMetricKey struct {
 	Library         string
 	DestinationType string
 	Action          string
-	Destination     string // eg. "Temp", "Named/MyQueue"
+	DestinationName string
+	DestinationTemp bool
 }
 
-func (key messageMetricKey) scopedMetric() string {
+// Name returns the metric name value for this MessageMetricKey to be used for
+// scoped and unscoped metrics.
+func (key MessageMetricKey) Name() string {
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Named/{Destination Name}
 	// MessageBroker/{Library}/{Destination Type}/{Action}/Temp
+	var destination string
+	if key.DestinationTemp {
+		destination = "Temp"
+	} else {
+		destination = "Named/" + key.DestinationName
+	}
 	return "MessageBroker/" + key.Library +
 		"/" + key.DestinationType +
 		"/" + key.Action +
-		"/" + key.Destination
+		"/" + destination
 }
+
 func datastoreScopedMetric(key DatastoreMetricKey) string {
 	if "" != key.Collection {
 		return datastoreStatementMetric(key)

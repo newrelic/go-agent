@@ -80,7 +80,7 @@ type TxnData struct {
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
-	messageSegments   map[messageMetricKey]*metricData
+	messageSegments   map[MessageMetricKey]*metricData
 
 	TxnTrace
 
@@ -493,9 +493,10 @@ type EndMessageParams struct {
 	Start           SegmentStartTime
 	Now             time.Time
 	Logger          logger.Logger
-	Destination     string // eg. "Temp", "Named/MyQueue"
+	DestinationName string
 	Library         string
 	DestinationType string
+	DestinationTemp bool
 }
 
 // EndMessageSegment ends an external segment.
@@ -506,15 +507,16 @@ func EndMessageSegment(p EndMessageParams) error {
 		return err
 	}
 
-	key := messageMetricKey{
+	key := MessageMetricKey{
 		Library:         p.Library,
 		DestinationType: p.DestinationType,
 		Action:          "Produce",
-		Destination:     p.Destination,
+		DestinationName: p.DestinationName,
+		DestinationTemp: p.DestinationTemp,
 	}
 
 	if nil == t.messageSegments {
-		t.messageSegments = make(map[messageMetricKey]*metricData)
+		t.messageSegments = make(map[MessageMetricKey]*metricData)
 	}
 	m := metricDataFromDuration(end.duration, end.exclusive)
 	if data, ok := t.messageSegments[key]; ok {
@@ -529,11 +531,11 @@ func EndMessageSegment(p EndMessageParams) error {
 
 	if t.TxnTrace.considerNode(end) {
 		attributes := end.attributes.copy()
-		t.saveTraceSegment(end, key.scopedMetric(), attributes, "")
+		t.saveTraceSegment(end, key.Name(), attributes, "")
 	}
 
 	if evt := end.spanEvent(); evt != nil {
-		evt.Name = key.scopedMetric()
+		evt.Name = key.Name()
 		evt.Category = spanCategoryGeneric
 		t.saveSpanEvent(evt)
 	}
@@ -760,7 +762,7 @@ func MergeBreakdownMetrics(t *TxnData, metrics *metricTable) {
 	}
 	// Message Segment Metrics
 	for key, data := range t.messageSegments {
-		metric := key.scopedMetric()
+		metric := key.Name()
 		metrics.add(metric, scope, *data, unforced)
 		metrics.add(metric, "", *data, unforced)
 	}

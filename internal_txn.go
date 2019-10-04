@@ -875,13 +875,6 @@ func endMessage(s *MessageProducerSegment) error {
 		s.DestinationType = MessageQueue
 	}
 
-	var destination string
-	if s.DestinationTemporary {
-		destination = "Temp"
-	} else {
-		destination = "Named/" + s.DestinationName
-	}
-
 	return internal.EndMessageSegment(internal.EndMessageParams{
 		TxnData:         &txn.TxnData,
 		Thread:          thd.thread,
@@ -889,8 +882,9 @@ func endMessage(s *MessageProducerSegment) error {
 		Now:             time.Now(),
 		Library:         s.Library,
 		Logger:          txn.Config.Logger,
-		Destination:     destination,
+		DestinationName: s.DestinationName,
 		DestinationType: string(s.DestinationType),
+		DestinationTemp: s.DestinationTemporary,
 	})
 }
 
