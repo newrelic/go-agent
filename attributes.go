@@ -52,6 +52,49 @@ const (
 	AttributeAWSLambdaEventSourceARN = "aws.lambda.eventSource.arn"
 )
 
+// Attributes for consumed message transactions:
+//
+// When a message is consumed (for example from Kafka or RabbitMQ), supported
+// instrumentation packages -- i.e. those found in the _integrations
+// (https://godoc.org/github.com/newrelic/go-agent/_integrations) directory --
+// will add these attributes automatically.  `AttributeMessageExchangeType`,
+// `AttributeMessageReplyTo`, and `AttributeMessageCorrelationID` are disabled
+// by default.  To see these attributes added to all destinations, you must add
+// include them in your config settings:
+//
+//	cfg.Attributes.Include = append(cfg.Attributes.Include,
+//		AttributeMessageExchangeType, AttributeMessageReplyTo,
+//		AttributeMessageCorrelationID)
+//
+// When not using a supported instrumentation package, you can add these
+// attributes manually using the `Transaction.AddAttribute`
+// (https://godoc.org/github.com/newrelic/go-agent#Transaction) API.  In this
+// case, these attributes will be included on all destintations by default.
+//
+//	txn := app.StartTransaction("Message/RabbitMQ/Exchange/Named/MyExchange", nil, nil)
+//	txn.AddAttribute(AttributeMessageRoutingKey, "myRoutingKey")
+//	txn.AddAttribute(AttributeMessageQueueName, "myQueueName")
+//	txn.AddAttribute(AttributeMessageExchangeType, "myExchangeType")
+//	txn.AddAttribute(AttributeMessageReplyTo, "myReplyTo")
+//	txn.AddAttribute(AttributeMessageCorrelationID, "myCorrelationID")
+//	// ... consume a message ...
+//	txn.End()
+//
+// It is recommended that at most one message is consumed per transaction.
+const (
+	// The routing key of the consumed message.
+	AttributeMessageRoutingKey = "message.routingKey"
+	// The name of the queue the message was consumed from.
+	AttributeMessageQueueName = "message.queueName"
+	// The type of exchange used for the consumed message (direct, fanout,
+	// topic, or headers).
+	AttributeMessageExchangeType = "message.exchangeType"
+	// The callback queue used in RPC configurations.
+	AttributeMessageReplyTo = "message.replyTo"
+	// The application-generated identifier used in RPC configurations.
+	AttributeMessageCorrelationID = "message.correlationId"
+)
+
 // Attributes destined for Span Events:
 //
 // To disable the capture of one of these span event attributes, db.statement

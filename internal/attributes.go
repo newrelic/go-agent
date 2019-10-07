@@ -34,6 +34,11 @@ const (
 	AttributeAWSLambdaARN
 	AttributeAWSLambdaColdStart
 	AttributeAWSLambdaEventSourceARN
+	AttributeMessageRoutingKey
+	AttributeMessageQueueName
+	AttributeMessageExchangeType
+	AttributeMessageReplyTo
+	AttributeMessageCorrelationID
 )
 
 // SpanAttribute is an attribute put in span events.
@@ -96,6 +101,11 @@ var (
 		AttributeAWSLambdaARN:                 {name: "aws.lambda.arn", defaultDests: usualDests},
 		AttributeAWSLambdaColdStart:           {name: "aws.lambda.coldStart", defaultDests: usualDests},
 		AttributeAWSLambdaEventSourceARN:      {name: "aws.lambda.eventSource.arn", defaultDests: usualDests},
+		AttributeMessageRoutingKey:            {name: "message.routingKey", defaultDests: usualDests},
+		AttributeMessageQueueName:             {name: "message.queueName", defaultDests: usualDests},
+		AttributeMessageExchangeType:          {name: "message.exchangeType", defaultDests: destNone},
+		AttributeMessageReplyTo:               {name: "message.replyTo", defaultDests: destNone},
+		AttributeMessageCorrelationID:         {name: "message.correlationId", defaultDests: destNone},
 	}
 	spanAttributes = []SpanAttribute{
 		spanAttributeDBStatement,

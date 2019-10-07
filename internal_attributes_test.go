@@ -597,3 +597,51 @@ func TestRequestURIExcluded(t *testing.T) {
 		UserAttributes:  userAttributes,
 	}})
 }
+
+func TestMessageAttributes(t *testing.T) {
+	// test that adding message attributes as agent attributes filters them,
+	// but as user attributes does not filter them.
+	app := testApp(nil, nil, t)
+
+	txn := app.StartTransaction("hello1", nil, nil)
+	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, "myRoutingKey", nil)
+	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageExchangeType, "myExchangeType", nil)
+	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageCorrelationID, "myCorrelationID", nil)
+	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageQueueName, "myQueueName", nil)
+	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, "myReplyTo", nil)
+	txn.End()
+
+	txn = app.StartTransaction("hello2", nil, nil)
+	txn.AddAttribute(AttributeMessageRoutingKey, "myRoutingKey")
+	txn.AddAttribute(AttributeMessageExchangeType, "myExchangeType")
+	txn.AddAttribute(AttributeMessageCorrelationID, "myCorrelationID")
+	txn.AddAttribute(AttributeMessageQueueName, "myQueueName")
+	txn.AddAttribute(AttributeMessageReplyTo, "myReplyTo")
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"message.queueName":  "myQueueName",
+				"message.routingKey": "myRoutingKey",
+			},
+			Intrinsics: map[string]interface{}{
+				"name": "OtherTransaction/Go/hello1",
+			},
+		},
+		{
+			UserAttributes: map[string]interface{}{
+				"message.queueName":     "myQueueName",
+				"message.routingKey":    "myRoutingKey",
+				"message.exchangeType":  "myExchangeType",
+				"message.replyTo":       "myReplyTo",
+				"message.correlationId": "myCorrelationID",
+			},
+			AgentAttributes: map[string]interface{}{},
+			Intrinsics: map[string]interface{}{
+				"name": "OtherTransaction/Go/hello2",
+			},
+		},
+	})
+}
