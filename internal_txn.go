@@ -534,6 +534,61 @@ var (
 		internal.AttributeErrorLimit)
 )
 
+// errorCause returns the error's deepest wrapped ancestor.
+func errorCause(err error) error {
+	for {
+		if unwrapper, ok := err.(interface{ Unwrap() error }); ok {
+			if next := unwrapper.Unwrap(); nil != next {
+				err = next
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func hasErrorClassMethod(err error) string {
+	if ec, ok := err.(ErrorClasser); ok {
+		return ec.ErrorClass()
+	}
+	return ""
+}
+
+func hasErrorStackTraceMethod(err error) internal.StackTrace {
+	if st, ok := err.(StackTracer); ok {
+		return st.StackTrace()
+	}
+	return nil
+}
+
+func errorClass(err error) string {
+	// If the error implements ErrorClasser, use that.
+	if c := hasErrorClassMethod(err); c != "" {
+		return c
+	}
+	// Otherwise, if the error's cause implements ErrorClasser, use that.
+	cause := errorCause(err)
+	if c := hasErrorClassMethod(cause); c != "" {
+		return c
+	}
+	// As a final fallback, use the type of the error's cause.
+	return reflect.TypeOf(cause).String()
+}
+
+func errorStackTrace(err error) internal.StackTrace {
+	// If the error implements StackTracer, use that.
+	if st := hasErrorStackTraceMethod(err); nil != st {
+		return st
+	}
+	// Otherwise, if the error's cause implements StackTracer, use that.
+	cause := errorCause(err)
+	if st := hasErrorStackTraceMethod(cause); nil != st {
+		return st
+	}
+	// As a final fallback, generate a StackTrace here.
+	return internal.GetStackTrace()
+}
+
 func (txn *txn) NoticeError(err error) error {
 	txn.Lock()
 	defer txn.Unlock()
@@ -547,22 +602,10 @@ func (txn *txn) NoticeError(err error) error {
 	}
 
 	e := internal.ErrorData{
-		When: time.Now(),
-		Msg:  err.Error(),
-	}
-	if ec, ok := err.(ErrorClasser); ok {
-		e.Klass = ec.ErrorClass()
-	}
-	if "" == e.Klass {
-		e.Klass = reflect.TypeOf(err).String()
-	}
-	if st, ok := err.(StackTracer); ok {
-		e.Stack = st.StackTrace()
-		// Note that if the provided stack trace is excessive in length,
-		// it will be truncated during JSON creation.
-	}
-	if nil == e.Stack {
-		e.Stack = internal.GetStackTrace()
+		When:  time.Now(),
+		Msg:   err.Error(),
+		Klass: errorClass(err),
+		Stack: errorStackTrace(err),
 	}
 
 	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity && txn.Reply.SecurityPolicies.CustomParameters.Enabled() {

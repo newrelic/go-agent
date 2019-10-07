@@ -607,3 +607,56 @@ func TestTooManyExtraErrorAttributes(t *testing.T) {
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, backgroundMetrics)
 }
+
+type basicError struct{}
+
+func (e basicError) Error() string { return "something went wrong" }
+
+type withClass struct{ class string }
+
+func (e withClass) Error() string      { return "something went wrong" }
+func (e withClass) ErrorClass() string { return e.class }
+
+type withClassAndCause struct {
+	cause error
+	class string
+}
+
+func (e withClassAndCause) Error() string      { return e.cause.Error() }
+func (e withClassAndCause) Unwrap() error      { return e.cause }
+func (e withClassAndCause) ErrorClass() string { return e.class }
+
+type withCause struct{ cause error }
+
+func (e withCause) Error() string { return e.cause.Error() }
+func (e withCause) Unwrap() error { return e.cause }
+
+func errWithClass(class string) error           { return withClass{class: class} }
+func wrapWithClass(e error, class string) error { return withClassAndCause{cause: e, class: class} }
+func wrapError(e error) error                   { return withCause{cause: e} }
+
+func TestErrorClass(t *testing.T) {
+	// First choice is any ErrorClass() of the immediate error.
+	// Second choice is any ErrorClass() of the error's cause.
+	// Final choice is the reflect type of the error's cause.
+	testcases := []struct {
+		Error  error
+		Expect string
+	}{
+		{Error: basicError{}, Expect: "newrelic.basicError"},
+		{Error: errWithClass("zap"), Expect: "zap"},
+		{Error: errWithClass(""), Expect: "newrelic.withClass"},
+		{Error: wrapWithClass(errWithClass("zap"), "zip"), Expect: "zip"},
+		{Error: wrapWithClass(errWithClass("zap"), ""), Expect: "zap"},
+		{Error: wrapWithClass(errWithClass(""), ""), Expect: "newrelic.withClass"},
+		{Error: wrapError(basicError{}), Expect: "newrelic.basicError"},
+		{Error: wrapError(errWithClass("zap")), Expect: "zap"},
+	}
+
+	for idx, tc := range testcases {
+		cls := errorClass(tc.Error)
+		if cls != tc.Expect {
+			t.Errorf("testcase %d: expected %s got %s", idx, tc.Expect, cls)
+		}
+	}
+}
