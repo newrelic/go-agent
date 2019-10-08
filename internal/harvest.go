@@ -157,7 +157,7 @@ func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 }
 
 // NewHarvest returns a new Harvest.
-func NewHarvest(now time.Time, reply *ConnectReply, configuredTxnEvents uint) *Harvest {
+func NewHarvest(now time.Time, reply *ConnectReply, configuredTxnEvents int) *Harvest {
 	return &Harvest{
 		timer:        newHarvestTimer(now, reply.reportPeriods()),
 		Metrics:      newMetricTable(maxMetrics, now),
@@ -195,7 +195,7 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, configuredTxnEvents uint) {
+func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, configuredTxnEvents int) {
 	if nil == h {
 		return
 	}

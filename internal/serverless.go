@@ -35,7 +35,7 @@ type ServerlessHarvest struct {
 }
 
 // NewServerlessHarvest creates a new ServerlessHarvest.
-func NewServerlessHarvest(logger logger.Logger, version string, maxTxnEvents uint, getEnv func(string) string) *ServerlessHarvest {
+func NewServerlessHarvest(logger logger.Logger, version string, maxTxnEvents int, getEnv func(string) string) *ServerlessHarvest {
 	return &ServerlessHarvest{
 		logger:          logger,
 		version:         version,

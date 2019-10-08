@@ -81,7 +81,7 @@ type Config struct {
 		Attributes AttributeDestinationConfig
 		// MaxSamplesStored allows you to limit the number of Transaction
 		// Events stored/reported in a given 60-second period
-		MaxSamplesStored uint
+		MaxSamplesStored int
 	}
 
 	// ErrorCollector controls the capture of errors.

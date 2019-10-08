@@ -461,9 +461,9 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var expected uint = 10
+	expected := 10
 	result := h.maxTxnEvents(expected)
-	if uint(result) != expected {
+	if result != expected {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
 	}
 }
