@@ -157,7 +157,7 @@ func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 }
 
 // NewHarvest returns a new Harvest.
-func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
+func NewHarvest(now time.Time, reply *ConnectReply, configuredTxnEvents uint) *Harvest {
 	return &Harvest{
 		timer:        newHarvestTimer(now, reply.reportPeriods()),
 		Metrics:      newMetricTable(maxMetrics, now),
@@ -166,7 +166,7 @@ func NewHarvest(now time.Time, reply *ConnectReply) *Harvest {
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
 		SpanEvents:   newSpanEvents(reply.maxSpanEvents()),
 		CustomEvents: newCustomEvents(reply.maxCustomEvents()),
-		TxnEvents:    newTxnEvents(reply.maxTxnEvents()),
+		TxnEvents:    newTxnEvents(reply.maxTxnEvents(configuredTxnEvents)),
 		ErrorEvents:  newErrorEvents(reply.maxErrorEvents()),
 	}
 }
@@ -195,7 +195,7 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *Harvest) CreateFinalMetrics(reply *ConnectReply) {
+func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, maxTxnEvents uint) {
 	if nil == h {
 		return
 	}
@@ -211,7 +211,7 @@ func (h *Harvest) CreateFinalMetrics(reply *ConnectReply) {
 	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
 	period := reply.configurablePeriod()
 	h.Metrics.addDuration(supportReportPeriod, "", period, period, forced)
-	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents()), forced)
+	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents(maxTxnEvents)), forced)
 	h.Metrics.addValue(supportCustomEventLimit, "", float64(reply.maxCustomEvents()), forced)
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(reply.maxErrorEvents()), forced)
 	h.Metrics.addValue(supportSpanEventLimit, "", float64(reply.maxSpanEvents()), forced)

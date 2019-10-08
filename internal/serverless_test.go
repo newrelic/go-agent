@@ -18,7 +18,7 @@ func serverlessGetenvShim(s string) string {
 
 func TestServerlessHarvest(t *testing.T) {
 	// Test the expected ServerlessHarvest use.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", MaxTxnEvents, serverlessGetenvShim)
 	event, err := CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestServerlessHarvestNil(t *testing.T) {
 func TestServerlessHarvestEmpty(t *testing.T) {
 	// Test that ServerlessHarvest.Write doesn't do anything if the harvest
 	// is empty.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", MaxTxnEvents, serverlessGetenvShim)
 	buf := &bytes.Buffer{}
 	sh.Write("arn", buf)
 	if 0 != buf.Len() {
@@ -90,7 +90,7 @@ func TestServerlessHarvestEmpty(t *testing.T) {
 func BenchmarkServerless(b *testing.B) {
 	// The JSON creation in ServerlessHarvest.Write has not been optimized.
 	// This benchmark would be useful for doing so.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", MaxTxnEvents, serverlessGetenvShim)
 	event, err := CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		b.Fatal(err)

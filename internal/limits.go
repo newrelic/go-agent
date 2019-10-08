@@ -37,7 +37,7 @@ const (
 	// harvest data
 	maxMetrics          = 2 * 1000
 	maxCustomEvents     = 10 * 1000
-	maxTxnEvents        = 10 * 1000
+	MaxTxnEvents        = 10 * 1000
 	maxRegularTraces    = 1
 	maxSyntheticsTraces = 20
 	maxErrorEvents      = 100

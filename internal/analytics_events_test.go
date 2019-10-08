@@ -206,9 +206,9 @@ func TestAnalyticsEventMergeFailedLimitReached(t *testing.T) {
 }
 
 func analyticsEventBenchmarkHelper(b *testing.B, w jsonWriter) {
-	events := newAnalyticsEvents(maxTxnEvents)
+	events := newAnalyticsEvents(MaxTxnEvents)
 	event := analyticsEvent{0, w}
-	for n := 0; n < maxTxnEvents; n++ {
+	for n := 0; n < MaxTxnEvents; n++ {
 		events.addEvent(event)
 	}
 

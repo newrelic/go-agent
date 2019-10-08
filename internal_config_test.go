@@ -124,7 +124,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": 10000
 			},
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
@@ -279,7 +280,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": 10000
 			},
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},

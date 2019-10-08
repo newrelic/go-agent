@@ -126,7 +126,10 @@ func (r *ConnectReply) ptrCustomEvents() *uint { return r.EventData.Limits.Custo
 func (r *ConnectReply) ptrErrorEvents() *uint  { return r.EventData.Limits.ErrorEvents }
 func (r *ConnectReply) ptrSpanEvents() *uint   { return r.EventData.Limits.SpanEvents }
 
-func (r *ConnectReply) maxTxnEvents() int    { return r.limit(maxTxnEvents, r.ptrTxnEvents) }
+func (r *ConnectReply) maxTxnEvents(configuredTxnEvents uint) int {
+	configuredMax := dfltTxnEvents(configuredTxnEvents, MaxTxnEvents)
+	return r.limit(int(configuredMax), r.ptrTxnEvents)
+}
 func (r *ConnectReply) maxCustomEvents() int { return r.limit(maxCustomEvents, r.ptrCustomEvents) }
 func (r *ConnectReply) maxErrorEvents() int  { return r.limit(maxErrorEvents, r.ptrErrorEvents) }
 func (r *ConnectReply) maxSpanEvents() int   { return r.limit(maxSpanEvents, r.ptrSpanEvents) }
@@ -164,13 +167,20 @@ func (r *ConnectReply) reportPeriods() map[harvestTypes]time.Duration {
 func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
-func DefaultEventHarvestConfig() EventHarvestConfig {
+func DefaultEventHarvestConfig(configuredTxnEvents uint) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = defaultConfigurableEventHarvestMs
-	cfg.Limits.TxnEvents = uintPtr(maxTxnEvents)
+	cfg.Limits.TxnEvents = uintPtr(dfltTxnEvents(configuredTxnEvents, MaxTxnEvents))
 	cfg.Limits.CustomEvents = uintPtr(maxCustomEvents)
 	cfg.Limits.ErrorEvents = uintPtr(maxErrorEvents)
 	return cfg
+}
+
+func dfltTxnEvents(configured uint, max uint) uint {
+	if configured < 0 || configured > max {
+		return max
+	}
+	return configured
 }
 
 type trustedAccountSet map[int]struct{}

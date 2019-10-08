@@ -206,7 +206,7 @@ func TestNegativeHarvestLimits(t *testing.T) {
 }
 
 func TestDefaultEventHarvestConfigJSON(t *testing.T) {
-	js, err := json.Marshal(DefaultEventHarvestConfig())
+	js, err := json.Marshal(DefaultEventHarvestConfig(MaxTxnEvents))
 	if err != nil {
 		t.Error(err)
 	}
@@ -229,7 +229,7 @@ func assertHarvestConfig(t testing.TB, reply *ConnectReply, expect expectHarvest
 	}); ok {
 		h.Helper()
 	}
-	if max := reply.maxTxnEvents(); max != expect.maxTxnEvents {
+	if max := reply.maxTxnEvents(MaxTxnEvents); max != expect.maxTxnEvents {
 		t.Error(max, expect.maxTxnEvents)
 	}
 	if max := reply.maxCustomEvents(); max != expect.maxCustomEvents {
@@ -249,7 +249,7 @@ func assertHarvestConfig(t testing.TB, reply *ConnectReply, expect expectHarvest
 func TestNilReplyEventHarvestDefaults(t *testing.T) {
 	var reply *ConnectReply
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: maxCustomEvents,
 		maxErrorEvents:  maxErrorEvents,
 		maxSpanEvents:   maxSpanEvents,
@@ -263,7 +263,7 @@ func TestNilReplyEventHarvestDefaults(t *testing.T) {
 func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 	reply := &ConnectReply{}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: maxCustomEvents,
 		maxErrorEvents:  maxErrorEvents,
 		maxSpanEvents:   maxSpanEvents,
@@ -311,7 +311,7 @@ func TestZeroReportPeriod(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: maxCustomEvents,
 		maxErrorEvents:  maxErrorEvents,
 		maxSpanEvents:   maxSpanEvents,
@@ -332,7 +332,7 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: maxCustomEvents,
 		maxErrorEvents:  maxErrorEvents,
 		maxSpanEvents:   3,
@@ -374,7 +374,7 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: maxCustomEvents,
 		maxErrorEvents:  3,
 		maxSpanEvents:   maxSpanEvents,
@@ -395,7 +395,7 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
-		maxTxnEvents:    maxTxnEvents,
+		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: 3,
 		maxErrorEvents:  maxErrorEvents,
 		maxSpanEvents:   maxSpanEvents,
