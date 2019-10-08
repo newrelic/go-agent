@@ -328,14 +328,11 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	waitOrTimeout(t, &wg)
 
 	txn.End()
-	addr := b.Address()
 	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: nil},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "External/" + addr + "/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/" + addr + "/Micro/Publish", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
+		{Name: "MessageBroker/Micro/Topic/Produce/Named/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/Micro/Topic/Produce/Named/topic", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/name", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -354,11 +351,9 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "Micro",
-				"name":      "External/" + addr + "/Micro/Publish",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category": "generic",
+				"name":     "MessageBroker/Micro/Topic/Produce/Named/topic",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -374,7 +369,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/" + addr + "/Micro/Publish",
+						SegmentName: "MessageBroker/Micro/Topic/Produce/Named/topic",
 						Attributes:  map[string]interface{}{},
 					},
 				},

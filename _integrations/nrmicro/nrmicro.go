@@ -41,6 +41,26 @@ func startExternal(ctx context.Context, procedure, host string) (context.Context
 	return ctx, seg
 }
 
+func startMessage(ctx context.Context, topic string) (context.Context, *newrelic.MessageProducerSegment) {
+	var seg *newrelic.MessageProducerSegment
+	if txn := newrelic.FromContext(ctx); nil != txn {
+		seg = &newrelic.MessageProducerSegment{
+			StartTime:       newrelic.StartSegmentNow(txn),
+			Library:         "Micro",
+			DestinationType: newrelic.MessageTopic,
+			DestinationName: topic,
+		}
+		payload := txn.CreateDistributedTracePayload()
+		if txt := payload.Text(); "" != txt {
+			md, _ := metadata.FromContext(ctx)
+			md = metadata.Copy(md)
+			md[newrelic.DistributedTracePayloadHeader] = txt
+			ctx = metadata.NewContext(ctx, md)
+		}
+	}
+	return ctx, seg
+}
+
 func extractHost(addr string) string {
 	if host, ok := addrMap[addr]; ok {
 		return host
@@ -62,8 +82,7 @@ func extractHost(addr string) string {
 }
 
 func (n *nrWrapper) Publish(ctx context.Context, msg client.Message, opts ...client.PublishOption) error {
-	host := extractHost(n.Options().Broker.Address())
-	ctx, seg := startExternal(ctx, "Publish", host)
+	ctx, seg := startMessage(ctx, msg.Topic())
 	defer seg.End()
 	return n.Client.Publish(ctx, msg, opts...)
 }
