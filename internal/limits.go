@@ -35,8 +35,10 @@ const (
 	maxTxnTraceNodes      = 256
 
 	// harvest data
-	maxMetrics          = 2 * 1000
-	maxCustomEvents     = 10 * 1000
+	maxMetrics      = 2 * 1000
+	maxCustomEvents = 10 * 1000
+	// MaxTxnEvents is the maximum number of Transaction Events that can be captured
+	// per 60-second harvest cycle
 	MaxTxnEvents        = 10 * 1000
 	maxRegularTraces    = 1
 	maxSyntheticsTraces = 20
@@ -52,7 +54,6 @@ const (
 	// AttributeErrorLimit limits the number of extra attributes that can be
 	// provided when noticing an error.
 	AttributeErrorLimit       = 32
-	attributeAgentLimit       = 255 - (attributeUserLimit + AttributeErrorLimit)
 	customEventAttributeLimit = 64
 
 	// Limits affecting Config validation are found in the config package.

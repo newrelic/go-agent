@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -428,5 +429,57 @@ func TestReplyTraceIDGenerator(t *testing.T) {
 	id2 := reply.TraceIDGenerator.GenerateTraceID()
 	if len(id1) != 16 || len(id2) != 16 || id1 == id2 {
 		t.Error(id1, id2)
+	}
+}
+
+func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
+	h, err := constructConnectReply([]byte(
+		`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 10000,
+                "harvest_limits": {
+             		"analytic_event_data": 15
+                }
+			}
+        }}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	result := h.maxTxnEvents(10)
+	if result != 15 {
+		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
+	}
+}
+
+func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
+	h, err := constructConnectReply([]byte(
+		`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 10000
+			}
+        }}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	var expected uint = 10
+	result := h.maxTxnEvents(expected)
+	if uint(result) != expected {
+		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
+	}
+}
+
+func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
+	h, err := constructConnectReply([]byte(
+		`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 10000
+			}
+        }}`), PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	result := h.maxTxnEvents(MaxTxnEvents + 100)
+	if result != MaxTxnEvents {
+		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", MaxTxnEvents, result))
 	}
 }

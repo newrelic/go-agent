@@ -127,7 +127,7 @@ func (r *ConnectReply) ptrErrorEvents() *uint  { return r.EventData.Limits.Error
 func (r *ConnectReply) ptrSpanEvents() *uint   { return r.EventData.Limits.SpanEvents }
 
 func (r *ConnectReply) maxTxnEvents(configuredTxnEvents uint) int {
-	configuredMax := dfltTxnEvents(configuredTxnEvents, MaxTxnEvents)
+	configuredMax := localMaxTxnEvents(configuredTxnEvents, MaxTxnEvents)
 	return r.limit(int(configuredMax), r.ptrTxnEvents)
 }
 func (r *ConnectReply) maxCustomEvents() int { return r.limit(maxCustomEvents, r.ptrCustomEvents) }
@@ -170,13 +170,13 @@ func uintPtr(x uint) *uint { return &x }
 func DefaultEventHarvestConfig(configuredTxnEvents uint) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = defaultConfigurableEventHarvestMs
-	cfg.Limits.TxnEvents = uintPtr(dfltTxnEvents(configuredTxnEvents, MaxTxnEvents))
+	cfg.Limits.TxnEvents = uintPtr(localMaxTxnEvents(configuredTxnEvents, MaxTxnEvents))
 	cfg.Limits.CustomEvents = uintPtr(maxCustomEvents)
 	cfg.Limits.ErrorEvents = uintPtr(maxErrorEvents)
 	return cfg
 }
 
-func dfltTxnEvents(configured uint, max uint) uint {
+func localMaxTxnEvents(configured uint, max uint) uint {
 	if configured < 0 || configured > max {
 		return max
 	}

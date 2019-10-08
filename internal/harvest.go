@@ -195,7 +195,7 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, maxTxnEvents uint) {
+func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, configuredTxnEvents uint) {
 	if nil == h {
 		return
 	}
@@ -211,7 +211,7 @@ func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, maxTxnEvents uint) {
 	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
 	period := reply.configurablePeriod()
 	h.Metrics.addDuration(supportReportPeriod, "", period, period, forced)
-	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents(maxTxnEvents)), forced)
+	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents(configuredTxnEvents)), forced)
 	h.Metrics.addValue(supportCustomEventLimit, "", float64(reply.maxCustomEvents()), forced)
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(reply.maxErrorEvents()), forced)
 	h.Metrics.addValue(supportSpanEventLimit, "", float64(reply.maxSpanEvents()), forced)
