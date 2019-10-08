@@ -2,7 +2,6 @@ package nrmicro
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
 
 type nrWrapper struct {
@@ -178,6 +178,11 @@ func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
 // subscriber handlers using `newrelic.FromContext`
 // (https://godoc.org/github.com/newrelic/go-agent#FromContext).
 //
+// The attribute `"message.routingKey"` is added to the transaction and will
+// appear on transaction events, transaction traces, error events, and error
+// traces. It corresponds to the `server.Message`'s Topic
+// (https://godoc.org/github.com/micro/go-micro/server#Message).
+//
 // If a Subscriber returns an error, it will be recorded and reported.
 func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 	return func(fn server.SubscriberFunc) server.SubscriberFunc {
@@ -185,8 +190,15 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return fn
 		}
 		return func(ctx context.Context, m server.Message) (err error) {
-			txn := app.StartTransaction(subTxnName(m.Topic()), nil, nil)
+			namer := internal.MessageMetricKey{
+				Library:         "Micro",
+				DestinationType: string(newrelic.MessageTopic),
+				DestinationName: m.Topic(),
+				Consumer:        true,
+			}
+			txn := app.StartTransaction(namer.Name(), nil, nil)
 			defer txn.End()
+			txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, m.Topic(), nil)
 			md, ok := metadata.FromContext(ctx)
 			if ok {
 				txn.AcceptDistributedTracePayload(newrelic.TransportHTTP, md[newrelic.DistributedTracePayloadHeader])
@@ -199,10 +211,6 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return err
 		}
 	}
-}
-
-func subTxnName(topic string) string {
-	return fmt.Sprintf("Message/Micro/Topic/%s:subscriber", topic)
 }
 
 func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
