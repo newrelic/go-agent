@@ -1,5 +1,20 @@
 ## ChangeLog
 
+### Miscellaneous
+
+* Update the
+  [`nrnats`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats)
+  and
+  [`nrstan`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan)
+  packages to use the new Messaging API.
+  * [`nrnats.StartPublishSegment`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats#StartPublishSegment)
+    now starts and returns a `newrelic.MessageProducerSegment` type.
+  * [`nrnats.SubWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats#SubWrapper)
+    and
+    [`nrstan.StreamingSubWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan#StreamingSubWrapper)
+    update transaction names and add attributes `message.routingKey`,
+    `message.queueName`, and `message.replyTo`.
+
 ## 2.13.0
 
 ### New Features

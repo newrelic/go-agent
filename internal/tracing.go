@@ -510,7 +510,6 @@ func EndMessageSegment(p EndMessageParams) error {
 	key := MessageMetricKey{
 		Library:         p.Library,
 		DestinationType: p.DestinationType,
-		Action:          "Produce",
 		DestinationName: p.DestinationName,
 		DestinationTemp: p.DestinationTemp,
 	}

@@ -1,10 +1,9 @@
 package nrstan
 
 import (
-	"fmt"
-
 	"github.com/nats-io/stan.go"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
 
 // StreamingSubWrapper can be used to wrap the function for STREAMING stan.Subscribe and stan.QueueSubscribe
@@ -16,11 +15,18 @@ func StreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(m
 		return f
 	}
 	return func(msg *stan.Msg) {
-		defer app.StartTransaction(subTxnName(msg.Subject), nil, nil).End()
+		namer := internal.MessageMetricKey{
+			Library:         "STAN",
+			DestinationType: string(newrelic.MessageTopic),
+			DestinationName: msg.MsgProto.Subject,
+			Consumer:        true,
+		}
+		txn := app.StartTransaction(namer.Name(), nil, nil)
+		defer txn.End()
+
+		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, msg.MsgProto.Subject, nil)
+		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, msg.MsgProto.Reply, nil)
+
 		f(msg)
 	}
-}
-
-func subTxnName(subject string) string {
-	return fmt.Sprintf("Message/stan.go/Topic/%s:subscriber", subject)
 }

@@ -30,8 +30,8 @@ func doAsync(nc *nats.Conn, txn newrelic.Transaction) {
 
 	// Simple Publisher
 	wg.Add(1)
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Publish
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Publish
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	err = nc.Publish(subj, []byte("Hello World"))
 	seg.End()
@@ -58,8 +58,8 @@ func doQueue(nc *nats.Conn, txn newrelic.Transaction) {
 	}
 
 	wg.Add(1)
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Publish
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Publish
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	err = nc.Publish(subj, []byte("Hello World"))
 	seg.End()
@@ -78,8 +78,8 @@ func doSync(nc *nats.Conn, txn newrelic.Transaction) {
 	if nil != err {
 		panic(err)
 	}
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Publish
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Publish
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	err = nc.Publish(subj, []byte("Hello World"))
 	seg.End()
@@ -103,8 +103,8 @@ func doChan(nc *nats.Conn, txn newrelic.Transaction) {
 		panic(err)
 	}
 
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Publish
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Publish
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	err = nc.Publish(subj, []byte("Hello World"))
 	seg.End()
@@ -121,16 +121,16 @@ func doReply(nc *nats.Conn, txn newrelic.Transaction) {
 
 	// Replies
 	nc.Subscribe(subj, func(m *nats.Msg) {
-		// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment
-		// for the call to nc.Publish
+		// Use nrnats.StartPublishSegment to create a
+		// newrelic.MessageProducerSegment for the call to nc.Publish
 		seg := nrnats.StartPublishSegment(txn, nc, m.Reply)
 		nc.Publish(m.Reply, []byte("Hello World"))
 		seg.End()
 	})
 
 	// Requests
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Request
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Request
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	m, err := nc.Request(subj, []byte("request"), time.Second)
 	seg.End()
@@ -144,16 +144,16 @@ func doRespond(nc *nats.Conn, txn newrelic.Transaction) {
 	subj := "respond"
 	// Respond
 	nc.Subscribe(subj, func(m *nats.Msg) {
-		// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment
-		// for the call to m.Respond
+		// Use nrnats.StartPublishSegment to create a
+		// newrelic.MessageProducerSegment for the call to m.Respond
 		seg := nrnats.StartPublishSegment(txn, nc, m.Reply)
 		m.Respond([]byte("Hello World"))
 		seg.End()
 	})
 
 	// Requests
-	// Use nrnats.StartPublishSegment to create a newrelic.ExternalSegment for
-	// the call to nc.Request
+	// Use nrnats.StartPublishSegment to create a
+	// newrelic.MessageProducerSegment for the call to nc.Request
 	seg := nrnats.StartPublishSegment(txn, nc, subj)
 	m, err := nc.Request(subj, []byte("request"), time.Second)
 	seg.End()

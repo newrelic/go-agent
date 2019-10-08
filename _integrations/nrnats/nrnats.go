@@ -1,41 +1,35 @@
 package nrnats
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/nats-io/nats.go"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
 
-// StartPublishSegment creates and starts a `newrelic.ExternalSegment`
-// (https://godoc.org/github.com/newrelic/go-agent#ExternalSegment) for NATS
+// StartPublishSegment creates and starts a `newrelic.MessageProducerSegment`
+// (https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment) for NATS
 // publishers.  Call this function before calling any method that publishes or
 // responds to a NATS message.  Call `End()`
-// (https://godoc.org/github.com/newrelic/go-agent#ExternalSegment.End) on the
-// returned newrelic.ExternalSegment when the publish is complete.  The
+// (https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment.End) on the
+// returned newrelic.MessageProducerSegment when the publish is complete.  The
 // `newrelic.Transaction` and `nats.Conn` parameters are required.  The subject
 // parameter is the subject of the publish call and is used in metric and span
 // names.
-func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string) *newrelic.ExternalSegment {
-	if nil == txn || nil == nc {
-		return &newrelic.ExternalSegment{}
+func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string) *newrelic.MessageProducerSegment {
+	if nil == txn {
+		return nil
 	}
-
-	var proc string
-	if strings.HasPrefix(subject, "_INBOX") {
-		proc = "Publish/_INBOX"
-	} else if subject != "" {
-		proc = "Publish/" + subject
-	} else {
-		proc = "Publish"
+	if nil == nc {
+		return nil
 	}
-
-	return &newrelic.ExternalSegment{
-		StartTime: newrelic.StartSegmentNow(txn),
-		URL:       nc.ConnectedUrl(),
-		Procedure: proc,
-		Library:   "NATS",
+	return &newrelic.MessageProducerSegment{
+		StartTime:            newrelic.StartSegmentNow(txn),
+		Library:              "NATS",
+		DestinationType:      newrelic.MessageTopic,
+		DestinationName:      subject,
+		DestinationTemporary: strings.HasPrefix(subject, "_INBOX"),
 	}
 }
 
@@ -50,11 +44,19 @@ func SubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.
 		return f
 	}
 	return func(msg *nats.Msg) {
-		defer app.StartTransaction(subTxnName(msg.Subject), nil, nil).End()
+		namer := internal.MessageMetricKey{
+			Library:         "NATS",
+			DestinationType: string(newrelic.MessageTopic),
+			DestinationName: msg.Subject,
+			Consumer:        true,
+		}
+		txn := app.StartTransaction(namer.Name(), nil, nil)
+		defer txn.End()
+
+		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
+		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageQueueName, msg.Sub.Queue, nil)
+		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, msg.Reply, nil)
+
 		f(msg)
 	}
-}
-
-func subTxnName(subject string) string {
-	return fmt.Sprintf("Message/NATS/Topic/%s:subscriber", subject)
 }

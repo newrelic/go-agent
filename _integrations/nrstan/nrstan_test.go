@@ -32,6 +32,13 @@ func createTestApp(t *testing.T) newrelic.Application {
 	cfg.TransactionTracer.SegmentThreshold = 0
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 0
+	cfg.Attributes.Include = append(cfg.Attributes.Include,
+		newrelic.AttributeMessageRoutingKey,
+		newrelic.AttributeMessageQueueName,
+		newrelic.AttributeMessageExchangeType,
+		newrelic.AttributeMessageReplyTo,
+		newrelic.AttributeMessageCorrelationID,
+	)
 	app, err := newrelic.NewApplication(cfg)
 	if nil != err {
 		t.Fatal(err)
@@ -84,8 +91,23 @@ func TestSubWrapper(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/Message/stan.go/Topic/sample.subject2:subscriber", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/stan.go/Topic/sample.subject2:subscriber", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: false, Data: nil},
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2",
+				"guid":     internal.MatchAnything,
+				"priority": internal.MatchAnything,
+				"sampled":  internal.MatchAnything,
+				"traceId":  internal.MatchAnything,
+			},
+			AgentAttributes: map[string]interface{}{
+				"message.routingKey": "sample.subject2",
+			},
+			UserAttributes: map[string]interface{}{},
+		},
 	})
 }
 
