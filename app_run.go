@@ -164,3 +164,26 @@ func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration
 	}
 	return run.Config.TransactionTracer.Threshold.Duration
 }
+
+func (run *appRun) ptrTxnEvents() *uint    { return run.Reply.EventData.Limits.TxnEvents }
+func (run *appRun) ptrCustomEvents() *uint { return run.Reply.EventData.Limits.CustomEvents }
+func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
+func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
+
+func (run *appRun) maxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
+func (run *appRun) maxCustomEvents() int {
+	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
+}
+func (run *appRun) maxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
+func (run *appRun) maxSpanEvents() int  { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
+
+func (run *appRun) limit(dflt int, field func() *uint) int {
+	if nil != field() {
+		return int(*field())
+	}
+	return dflt
+}
+
+func (run *appRun) reportPeriods() map[internal.HarvestTypes]time.Duration {
+	return run.Reply.ReportPeriods()
+}

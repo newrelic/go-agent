@@ -401,3 +401,11 @@ func (c Config) Validate() error {
 	}
 	return nil
 }
+
+func (c Config) maxTxnEvents() int {
+	configured := c.TransactionEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxTxnEvents {
+		return internal.MaxTxnEvents
+	}
+	return configured
+}

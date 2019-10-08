@@ -35,17 +35,20 @@ const (
 	maxTxnTraceNodes      = 256
 
 	// harvest data
-	maxMetrics      = 2 * 1000
-	maxCustomEvents = 10 * 1000
+	maxMetrics = 2 * 1000
+	//TODO godoc
+	MaxCustomEvents = 10 * 1000
 	// MaxTxnEvents is the maximum number of Transaction Events that can be captured
 	// per 60-second harvest cycle
 	MaxTxnEvents        = 10 * 1000
 	maxRegularTraces    = 1
 	maxSyntheticsTraces = 20
-	maxErrorEvents      = 100
-	maxHarvestErrors    = 20
-	maxHarvestSlowSQLs  = 10
-	maxSpanEvents       = 1000
+	//TODO godoc
+	MaxErrorEvents     = 100
+	maxHarvestErrors   = 20
+	maxHarvestSlowSQLs = 10
+	//TODO godoc
+	MaxSpanEvents = 1000
 
 	// attributes
 	attributeKeyLengthLimit   = 255

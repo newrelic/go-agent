@@ -221,7 +221,7 @@ type expectHarvestConfig struct {
 	maxCustomEvents int
 	maxErrorEvents  int
 	maxSpanEvents   int
-	periods         map[harvestTypes]time.Duration
+	periods         map[HarvestTypes]time.Duration
 }
 
 func assertHarvestConfig(t testing.TB, reply *ConnectReply, expect expectHarvestConfig) {
@@ -242,7 +242,7 @@ func assertHarvestConfig(t testing.TB, reply *ConnectReply, expect expectHarvest
 	if max := reply.maxErrorEvents(); max != expect.maxErrorEvents {
 		t.Error(max, expect.maxErrorEvents)
 	}
-	if periods := reply.reportPeriods(); !reflect.DeepEqual(periods, expect.periods) {
+	if periods := reply.ReportPeriods(); !reflect.DeepEqual(periods, expect.periods) {
 		t.Error(periods, expect.periods)
 	}
 }
@@ -251,11 +251,11 @@ func TestNilReplyEventHarvestDefaults(t *testing.T) {
 	var reply *ConnectReply
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
-		maxCustomEvents: maxCustomEvents,
-		maxErrorEvents:  maxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll: 60 * time.Second,
+		maxCustomEvents: MaxCustomEvents,
+		maxErrorEvents:  MaxErrorEvents,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
 		},
 	})
@@ -265,11 +265,11 @@ func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 	reply := &ConnectReply{}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
-		maxCustomEvents: maxCustomEvents,
-		maxErrorEvents:  maxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll: 60 * time.Second,
+		maxCustomEvents: MaxCustomEvents,
+		maxErrorEvents:  MaxErrorEvents,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
 		},
 	})
@@ -295,9 +295,9 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 		maxCustomEvents: 2,
 		maxErrorEvents:  4,
 		maxSpanEvents:   3,
-		periods: map[harvestTypes]time.Duration{
-			harvestMetricsTraces: 60 * time.Second,
-			harvestTypesEvents:   5 * time.Second,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: 60 * time.Second,
+			HarvestTypesEvents:   5 * time.Second,
 		},
 	})
 }
@@ -313,11 +313,11 @@ func TestZeroReportPeriod(t *testing.T) {
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
-		maxCustomEvents: maxCustomEvents,
-		maxErrorEvents:  maxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll: 60 * time.Second,
+		maxCustomEvents: MaxCustomEvents,
+		maxErrorEvents:  MaxErrorEvents,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
 		},
 	})
@@ -334,12 +334,12 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
-		maxCustomEvents: maxCustomEvents,
-		maxErrorEvents:  maxErrorEvents,
+		maxCustomEvents: MaxCustomEvents,
+		maxErrorEvents:  MaxErrorEvents,
 		maxSpanEvents:   3,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll ^ harvestSpanEvents: 60 * time.Second,
-			harvestSpanEvents:                   5 * time.Second,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll ^ HarvestSpanEvents: 60 * time.Second,
+			HarvestSpanEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -355,12 +355,12 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    3,
-		maxCustomEvents: maxCustomEvents,
-		maxErrorEvents:  maxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll ^ harvestTxnEvents: 60 * time.Second,
-			harvestTxnEvents:                   5 * time.Second,
+		maxCustomEvents: MaxCustomEvents,
+		maxErrorEvents:  MaxErrorEvents,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll ^ HarvestTxnEvents: 60 * time.Second,
+			HarvestTxnEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -376,12 +376,12 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 	}
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
-		maxCustomEvents: maxCustomEvents,
+		maxCustomEvents: MaxCustomEvents,
 		maxErrorEvents:  3,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll ^ harvestErrorEvents: 60 * time.Second,
-			harvestErrorEvents:                   5 * time.Second,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll ^ HarvestErrorEvents: 60 * time.Second,
+			HarvestErrorEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -398,11 +398,11 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 	assertHarvestConfig(t, reply, expectHarvestConfig{
 		maxTxnEvents:    MaxTxnEvents,
 		maxCustomEvents: 3,
-		maxErrorEvents:  maxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
-		periods: map[harvestTypes]time.Duration{
-			harvestTypesAll ^ harvestCustomEvents: 60 * time.Second,
-			harvestCustomEvents:                   5 * time.Second,
+		maxErrorEvents:  MaxErrorEvents,
+		maxSpanEvents:   MaxSpanEvents,
+		periods: map[HarvestTypes]time.Duration{
+			HarvestTypesAll ^ HarvestCustomEvents: 60 * time.Second,
+			HarvestCustomEvents:                   5 * time.Second,
 		},
 	})
 }

@@ -114,26 +114,6 @@ type EventHarvestConfig struct {
 	} `json:"harvest_limits"`
 }
 
-func (r *ConnectReply) limit(dflt int, field func() *uint) int {
-	if nil != r && nil != field() {
-		return int(*field())
-	}
-	return dflt
-}
-
-func (r *ConnectReply) ptrTxnEvents() *uint    { return r.EventData.Limits.TxnEvents }
-func (r *ConnectReply) ptrCustomEvents() *uint { return r.EventData.Limits.CustomEvents }
-func (r *ConnectReply) ptrErrorEvents() *uint  { return r.EventData.Limits.ErrorEvents }
-func (r *ConnectReply) ptrSpanEvents() *uint   { return r.EventData.Limits.SpanEvents }
-
-func (r *ConnectReply) maxTxnEvents(configuredTxnEvents int) int {
-	configuredMax := localMaxTxnEvents(configuredTxnEvents, MaxTxnEvents)
-	return r.limit(configuredMax, r.ptrTxnEvents)
-}
-func (r *ConnectReply) maxCustomEvents() int { return r.limit(maxCustomEvents, r.ptrCustomEvents) }
-func (r *ConnectReply) maxErrorEvents() int  { return r.limit(maxErrorEvents, r.ptrErrorEvents) }
-func (r *ConnectReply) maxSpanEvents() int   { return r.limit(maxSpanEvents, r.ptrSpanEvents) }
-
 func (r *ConnectReply) configurablePeriod() time.Duration {
 	ms := defaultConfigurableEventHarvestMs
 	if nil != r && r.EventData.ReportPeriodMs > 0 {
@@ -142,15 +122,15 @@ func (r *ConnectReply) configurablePeriod() time.Duration {
 	return time.Duration(ms) * time.Millisecond
 }
 
-func (r *ConnectReply) reportPeriods() map[harvestTypes]time.Duration {
-	fixed := harvestMetricsTraces
-	configurable := harvestTypes(0)
+func (r *ConnectReply) ReportPeriods() map[HarvestTypes]time.Duration {
+	fixed := HarvestMetricsTraces
+	configurable := HarvestTypes(0)
 
-	for tp, fn := range map[harvestTypes]func() *uint{
-		harvestTxnEvents:    r.ptrTxnEvents,
-		harvestCustomEvents: r.ptrCustomEvents,
-		harvestErrorEvents:  r.ptrErrorEvents,
-		harvestSpanEvents:   r.ptrSpanEvents,
+	for tp, fn := range map[HarvestTypes]func() *uint{
+		HarvestTxnEvents:    r.ptrTxnEvents,
+		HarvestCustomEvents: r.ptrCustomEvents,
+		HarvestErrorEvents:  r.ptrErrorEvents,
+		HarvestSpanEvents:   r.ptrSpanEvents,
 	} {
 		if nil != r && fn() != nil {
 			configurable |= tp
@@ -158,7 +138,7 @@ func (r *ConnectReply) reportPeriods() map[harvestTypes]time.Duration {
 			fixed |= tp
 		}
 	}
-	return map[harvestTypes]time.Duration{
+	return map[HarvestTypes]time.Duration{
 		configurable: r.configurablePeriod(),
 		fixed:        fixedHarvestPeriod,
 	}
@@ -167,20 +147,13 @@ func (r *ConnectReply) reportPeriods() map[harvestTypes]time.Duration {
 func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
-func DefaultEventHarvestConfig(configuredTxnEvents int) EventHarvestConfig {
+func DefaultEventHarvestConfig(eventer MaxTxnEventer) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = defaultConfigurableEventHarvestMs
-	cfg.Limits.TxnEvents = uintPtr(uint(localMaxTxnEvents(configuredTxnEvents, MaxTxnEvents)))
-	cfg.Limits.CustomEvents = uintPtr(maxCustomEvents)
-	cfg.Limits.ErrorEvents = uintPtr(maxErrorEvents)
+	cfg.Limits.TxnEvents = uintPtr(uint(eventer.maxTxnEvents()))
+	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
+	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg
-}
-
-func localMaxTxnEvents(configured int, max int) int {
-	if configured < 0 || configured > max {
-		return max
-	}
-	return configured
 }
 
 type trustedAccountSet map[int]struct{}

@@ -12,13 +12,13 @@ func TestHarvestTimerAllFixed(t *testing.T) {
 	timer := harvest.timer
 	for _, tc := range []struct {
 		Elapsed time.Duration
-		Expect  harvestTypes
+		Expect  HarvestTypes
 	}{
 		{60 * time.Second, 0},
-		{61 * time.Second, harvestTypesAll},
+		{61 * time.Second, HarvestTypesAll},
 		{62 * time.Second, 0},
 		{120 * time.Second, 0},
-		{121 * time.Second, harvestTypesAll},
+		{121 * time.Second, HarvestTypesAll},
 		{122 * time.Second, 0},
 	} {
 		if ready := timer.ready(now.Add(tc.Elapsed)); ready != tc.Expect {
@@ -47,14 +47,14 @@ func TestHarvestTimerAllConfigurable(t *testing.T) {
 	timer := harvest.timer
 	for _, tc := range []struct {
 		Elapsed time.Duration
-		Expect  harvestTypes
+		Expect  HarvestTypes
 	}{
 		{30 * time.Second, 0},
-		{31 * time.Second, harvestTypesEvents},
+		{31 * time.Second, HarvestTypesEvents},
 		{32 * time.Second, 0},
-		{61 * time.Second, harvestTypesAll},
+		{61 * time.Second, HarvestTypesAll},
 		{62 * time.Second, 0},
-		{91 * time.Second, harvestTypesEvents},
+		{91 * time.Second, HarvestTypesEvents},
 		{92 * time.Second, 0},
 	} {
 		if ready := timer.ready(now.Add(tc.Elapsed)); ready != tc.Expect {
@@ -782,13 +782,13 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if cp := h.TxnEvents.capacity(); cp != MaxTxnEvents {
 		t.Error("wrong txn event capacity", cp)
 	}
-	if cp := h.CustomEvents.capacity(); cp != maxCustomEvents {
+	if cp := h.CustomEvents.capacity(); cp != MaxCustomEvents {
 		t.Error("wrong custom event capacity", cp)
 	}
-	if cp := h.ErrorEvents.capacity(); cp != maxErrorEvents {
+	if cp := h.ErrorEvents.capacity(); cp != MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
 	}
-	if cp := h.SpanEvents.capacity(); cp != maxSpanEvents {
+	if cp := h.SpanEvents.capacity(); cp != MaxSpanEvents {
 		t.Error("wrong span event capacity", cp)
 	}
 }
