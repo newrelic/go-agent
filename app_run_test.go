@@ -335,7 +335,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
-	h, err := constructConnectReply([]byte(
+	reply, err := constructConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000
@@ -345,7 +345,8 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected := 10
-	result := newAppRun(cfg, h).MaxTxnEvents()
+	cfg.TransactionEvents.MaxSamplesStored = expected
+	result := newAppRun(cfg, reply).MaxTxnEvents()
 	if result != expected {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
 	}
@@ -361,7 +362,8 @@ func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	result := newAppRun(cfg, h).MaxTxnEvents() + 100
+	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
+	result := newAppRun(cfg, h).MaxTxnEvents()
 	if result != internal.MaxTxnEvents {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
 	}
