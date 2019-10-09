@@ -5,10 +5,45 @@ import (
 	"time"
 )
 
+type dfltHarvestCfgr struct {
+	reply *ConnectReply
+}
+
+func (d dfltHarvestCfgr) MaxTxnEvents() int {
+	if d.reply.EventData.Limits.TxnEvents != nil {
+		return int(*d.reply.EventData.Limits.TxnEvents)
+	}
+	return MaxTxnEvents
+}
+func (dfltHarvestCfgr) ReportPeriods() map[HarvestTypes]time.Duration {
+	return map[HarvestTypes]time.Duration{
+		HarvestTypes(0):      time.Duration(DefaultConfigurableEventHarvestMs) * time.Millisecond,
+		HarvestMetricsTraces: FixedHarvestPeriod,
+	}
+}
+func (d dfltHarvestCfgr) MaxSpanEvents() int {
+	if nil != d.reply.EventData.Limits.SpanEvents {
+		return int(*d.reply.EventData.Limits.SpanEvents)
+	}
+	return MaxSpanEvents
+}
+func (d dfltHarvestCfgr) MaxCustomEvents() int {
+	if d.reply.EventData.Limits.CustomEvents != nil {
+		return int(*d.reply.EventData.Limits.CustomEvents)
+	}
+	return MaxCustomEvents
+}
+
+func (d dfltHarvestCfgr) MaxErrorEvents() int {
+	if d.reply.EventData.Limits.ErrorEvents != nil {
+		return int(*d.reply.EventData.Limits.ErrorEvents)
+	}
+	return MaxErrorEvents
+}
+
 func TestHarvestTimerAllFixed(t *testing.T) {
 	now := time.Now()
-	var reply *ConnectReply
-	harvest := NewHarvest(now, reply, MaxTxnEvents)
+	harvest := NewHarvest(now, dfltHarvestCfgr{ConnectReplyDefaults()})
 	timer := harvest.timer
 	for _, tc := range []struct {
 		Elapsed time.Duration
@@ -43,7 +78,7 @@ func TestHarvestTimerAllConfigurable(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	harvest := NewHarvest(now, reply, MaxTxnEvents)
+	harvest := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	timer := harvest.timer
 	for _, tc := range []struct {
 		Elapsed time.Duration
@@ -69,9 +104,9 @@ func TestCreateFinalMetrics(t *testing.T) {
 	// If the harvest or metrics is nil then CreateFinalMetrics should
 	// not panic.
 	var nilHarvest *Harvest
-	nilHarvest.CreateFinalMetrics(nil, MaxTxnEvents)
+	nilHarvest.CreateFinalMetrics(nil, dfltHarvestCfgr{})
 	emptyHarvest := &Harvest{}
-	emptyHarvest.CreateFinalMetrics(nil, MaxTxnEvents)
+	emptyHarvest.CreateFinalMetrics(nil, dfltHarvestCfgr{})
 
 	replyJSON := []byte(`{"return_value":{
 		"metric_name_rules":[{
@@ -92,9 +127,9 @@ func TestCreateFinalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, nil, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, MaxTxnEvents)
+	h.CreateFinalMetrics(reply, dfltHarvestCfgr{})
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"been_renamed", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
@@ -113,9 +148,9 @@ func TestCreateFinalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h = NewHarvest(now, nil, MaxTxnEvents)
+	h = NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, MaxTxnEvents)
+	h.CreateFinalMetrics(reply, dfltHarvestCfgr{})
 	ExpectMetrics(t, h.Metrics, []WantMetric{
 		{instanceReporting, "", true, []float64{1, 0, 0, 0, 0, 0}},
 		{"rename_me", "", false, []float64{1.0, 0, 0, 0, 0, 0}},
@@ -128,7 +163,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 }
 
 func TestEmptyPayloads(t *testing.T) {
-	h := NewHarvest(time.Now(), nil, MaxTxnEvents)
+	h := NewHarvest(time.Now(), dfltHarvestCfgr{reply: &ConnectReply{}})
 	payloads := h.Payloads(true)
 	if len(payloads) != 8 {
 		t.Error(len(payloads))
@@ -159,7 +194,7 @@ func TestPayloadsEmptyHarvest(t *testing.T) {
 func TestHarvestNothingReady(t *testing.T) {
 	now := time.Now()
 	var reply *ConnectReply
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	ready := h.Ready(now.Add(10 * time.Second))
 	if ready != nil {
 		t.Error("harvest should be nil")
@@ -181,7 +216,7 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	params := map[string]interface{}{"zip": 1}
 	ce, _ := CreateCustomEvent("myEvent", params, time.Now())
 	h.CustomEvents.Add(ce)
@@ -221,7 +256,7 @@ func TestHarvestTxnEventsReady(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
 		FinalName: "finalName",
 		Start:     time.Now(),
@@ -266,7 +301,7 @@ func TestHarvestErrorEventsReady(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.ErrorEvents.Add(&ErrorEvent{
 		ErrorData: ErrorData{Klass: "klass", Msg: "msg", When: time.Now()},
 		TxnEvent:  TxnEvent{FinalName: "finalName", Duration: 1 * time.Second},
@@ -310,7 +345,7 @@ func TestHarvestSpanEventsReady(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 	ready := h.Ready(now.Add(10 * time.Second))
 	payloads := ready.Payloads(true)
@@ -362,7 +397,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	h.Metrics.addCount("zip", 1, forced)
 
 	ers := NewTxnErrors(10)
@@ -423,7 +458,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	start1 := time.Now()
 	start2 := start1.Add(1 * time.Minute)
 
-	h := NewHarvest(start1, nil, MaxTxnEvents)
+	h := NewHarvest(start1, dfltHarvestCfgr{reply: &ConnectReply{}})
 	h.Metrics.addCount("zip", 1, forced)
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
 		FinalName: "finalName",
@@ -522,7 +557,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Klass:   "klass",
 	}})
 
-	nextHarvest := NewHarvest(start2, nil, MaxTxnEvents)
+	nextHarvest := NewHarvest(start2, dfltHarvestCfgr{reply: &ConnectReply{}})
 	if start2 != nextHarvest.Metrics.metricPeriodStart {
 		t.Error(nextHarvest.Metrics.metricPeriodStart)
 	}
@@ -680,7 +715,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 func TestHarvestSplitTxnEvents(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, nil, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{})
 	for i := 0; i < MaxTxnEvents; i++ {
 		h.TxnEvents.AddTxnEvent(&TxnEvent{}, Priority(float32(i)))
 	}
@@ -777,7 +812,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	now := time.Now()
 	var reply *ConnectReply
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 
 	if cp := h.TxnEvents.capacity(); cp != MaxTxnEvents {
 		t.Error("wrong txn event capacity", cp)
@@ -809,7 +844,7 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 
 	if cp := h.TxnEvents.capacity(); cp != 1 {
 		t.Error("wrong txn event capacity", cp)
@@ -842,7 +877,7 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := NewHarvest(now, reply, MaxTxnEvents)
+	h := NewHarvest(now, dfltHarvestCfgr{reply: reply})
 	if cp := h.TxnEvents.capacity(); cp != 0 {
 		t.Error("wrong txn event capacity", cp)
 	}

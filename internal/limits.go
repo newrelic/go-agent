@@ -7,11 +7,11 @@ const (
 
 	// fixedHarvestPeriod is the period that fixed period data (metrics,
 	// traces, and span events) is sent to New Relic.
-	fixedHarvestPeriod = 60 * time.Second
-	// defaultConfigurableEventHarvestMs is the period for custom, error,
+	FixedHarvestPeriod = 60 * time.Second
+	// DefaultConfigurableEventHarvestMs is the period for custom, error,
 	// and transaction events if the connect response's
 	// "event_harvest_config.report_period_ms" is missing or invalid.
-	defaultConfigurableEventHarvestMs = 60 * 1000
+	DefaultConfigurableEventHarvestMs = 60 * 1000
 	// CollectorTimeout is the timeout used in the client for communication
 	// with New Relic's servers.
 	CollectorTimeout = 20 * time.Second

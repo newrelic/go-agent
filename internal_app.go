@@ -74,7 +74,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, internal.MaxTxnEvents)
+	h.CreateFinalMetrics(run.Reply, run)
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -172,7 +172,7 @@ func getConnectBackoffTime(attempt int) int {
 
 func debug(data internal.Harvestable, lg Logger) {
 	now := time.Now()
-	h := internal.NewHarvest(now, nil, internal.MaxTxnEvents)
+	h := internal.NewHarvest(now, nil)
 	data.MergeIntoHarvest(h)
 	ps := h.Payloads(false)
 	for _, p := range ps {
@@ -275,7 +275,7 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
-			h = internal.NewHarvest(time.Now(), run.Reply, run.Config.TransactionEvents.MaxSamplesStored)
+			h = internal.NewHarvest(time.Now(), run)
 			app.setState(run, nil)
 
 			app.Info("application connected", map[string]interface{}{
@@ -401,7 +401,7 @@ func newApp(c Config) (Application, error) {
 		if app.config.ServerlessMode.Enabled {
 			reply := newServerlessConnectReply(c)
 			app.run = newAppRun(c, reply)
-			app.serverless = internal.NewServerlessHarvest(c.Logger, Version, c.TransactionEvents.MaxSamplesStored, os.Getenv)
+			app.serverless = internal.NewServerlessHarvest(c.Logger, Version, os.Getenv)
 		} else {
 			go app.process()
 			go app.connectRoutine()
@@ -425,7 +425,7 @@ func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
 		replyfn(reply)
 		app.placeholderRun = newAppRun(app.config, reply)
 	}
-	app.testHarvest = internal.NewHarvest(time.Now(), nil, internal.MaxTxnEvents)
+	app.testHarvest = internal.NewHarvest(time.Now(), nil)
 }
 
 func (app *app) getState() (*appRun, error) {

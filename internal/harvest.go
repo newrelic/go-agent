@@ -157,30 +157,30 @@ func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 }
 
 type MaxTxnEventer interface {
-	maxTxnEvents() int
+	MaxTxnEvents() int
 }
 
 // HarvestConfigurer is implemented by AppRun
 type HarvestConfigurer interface {
-	reportPeriods() map[HarvestTypes]time.Duration
-	maxSpanEvents() int
-	maxCustomEvents() int
-	maxErrorEvents() int
+	ReportPeriods() map[HarvestTypes]time.Duration
+	MaxSpanEvents() int
+	MaxCustomEvents() int
+	MaxErrorEvents() int
 	MaxTxnEventer
 }
 
 // NewHarvest returns a new Harvest.
 func NewHarvest(now time.Time, reply HarvestConfigurer) *Harvest {
 	return &Harvest{
-		timer:        newHarvestTimer(now, reply.reportPeriods()),
+		timer:        newHarvestTimer(now, reply.ReportPeriods()),
 		Metrics:      newMetricTable(maxMetrics, now),
 		ErrorTraces:  newHarvestErrors(maxHarvestErrors),
 		TxnTraces:    newHarvestTraces(),
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
-		SpanEvents:   newSpanEvents(reply.maxSpanEvents()),
-		CustomEvents: newCustomEvents(reply.maxCustomEvents()),
-		TxnEvents:    newTxnEvents(reply.maxTxnEvents()),
-		ErrorEvents:  newErrorEvents(reply.maxErrorEvents()),
+		SpanEvents:   newSpanEvents(reply.MaxSpanEvents()),
+		CustomEvents: newCustomEvents(reply.MaxCustomEvents()),
+		TxnEvents:    newTxnEvents(reply.MaxTxnEvents()),
+		ErrorEvents:  newErrorEvents(reply.MaxErrorEvents()),
 	}
 }
 
@@ -208,7 +208,7 @@ func createTrackUsageMetrics(metrics *metricTable) {
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, configuredTxnEvents int) {
+func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, hc HarvestConfigurer) {
 	if nil == h {
 		return
 	}
@@ -222,12 +222,12 @@ func (h *Harvest) CreateFinalMetrics(reply *ConnectReply, configuredTxnEvents in
 
 	// Configurable event harvest supportability metrics:
 	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#event-harvest-config
-	period := reply.configurablePeriod()
+	period := reply.ConfigurablePeriod()
 	h.Metrics.addDuration(supportReportPeriod, "", period, period, forced)
-	h.Metrics.addValue(supportTxnEventLimit, "", float64(reply.maxTxnEvents(configuredTxnEvents)), forced)
-	h.Metrics.addValue(supportCustomEventLimit, "", float64(reply.maxCustomEvents()), forced)
-	h.Metrics.addValue(supportErrorEventLimit, "", float64(reply.maxErrorEvents()), forced)
-	h.Metrics.addValue(supportSpanEventLimit, "", float64(reply.maxSpanEvents()), forced)
+	h.Metrics.addValue(supportTxnEventLimit, "", float64(hc.MaxTxnEvents()), forced)
+	h.Metrics.addValue(supportCustomEventLimit, "", float64(hc.MaxCustomEvents()), forced)
+	h.Metrics.addValue(supportErrorEventLimit, "", float64(hc.MaxErrorEvents()), forced)
+	h.Metrics.addValue(supportSpanEventLimit, "", float64(hc.MaxSpanEvents()), forced)
 
 	createTrackUsageMetrics(h.Metrics)
 

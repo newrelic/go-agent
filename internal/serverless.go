@@ -35,16 +35,16 @@ type ServerlessHarvest struct {
 }
 
 // NewServerlessHarvest creates a new ServerlessHarvest.
-func NewServerlessHarvest(logger logger.Logger, version string, maxTxnEvents int, getEnv func(string) string) *ServerlessHarvest {
+func NewServerlessHarvest(logger logger.Logger, version string, getEnv func(string) string) *ServerlessHarvest {
 	return &ServerlessHarvest{
 		logger:          logger,
 		version:         version,
 		awsExecutionEnv: getEnv("AWS_EXECUTION_ENV"),
 
-		// A ConnectReply parameter to NewHarvest isn't needed because
+		// A HarvestConfigurer parameter to NewHarvest isn't needed because
 		// serverless mode doesn't have a connect, and therefore won't
 		// have custom event limits from the server.
-		harvest: NewHarvest(time.Now(), nil, maxTxnEvents),
+		harvest: NewHarvest(time.Now(), nil),
 	}
 }
 
@@ -64,7 +64,7 @@ func (sh *ServerlessHarvest) swapHarvest() *Harvest {
 	defer sh.Unlock()
 
 	h := sh.harvest
-	sh.harvest = NewHarvest(time.Now(), nil, MaxTxnEvents)
+	sh.harvest = NewHarvest(time.Now(), nil)
 	return h
 }
 

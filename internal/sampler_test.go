@@ -29,7 +29,7 @@ func TestGetSample(t *testing.T) {
 
 func TestMetricsCreated(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, nil, MaxTxnEvents)
+	h := NewHarvest(now, nil)
 
 	stats := Stats{
 		heapObjects:  5 * 1000,
@@ -67,7 +67,7 @@ func TestMetricsCreated(t *testing.T) {
 
 func TestMetricsCreatedEmpty(t *testing.T) {
 	now := time.Now()
-	h := NewHarvest(now, nil, MaxTxnEvents)
+	h := NewHarvest(now, nil)
 	stats := Stats{}
 
 	stats.MergeIntoHarvest(h)

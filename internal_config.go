@@ -147,8 +147,14 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfig(c.TransactionEvents.MaxSamplesStored),
+		EventData:        internal.DefaultEventHarvestConfig(dfltMaxTxnEvents{}),
 	}})
+}
+
+type dfltMaxTxnEvents struct{}
+
+func (dfltMaxTxnEvents) MaxTxnEvents() int {
+	return internal.MaxTxnEvents
 }
 
 const (

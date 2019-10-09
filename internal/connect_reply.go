@@ -114,34 +114,12 @@ type EventHarvestConfig struct {
 	} `json:"harvest_limits"`
 }
 
-func (r *ConnectReply) configurablePeriod() time.Duration {
-	ms := defaultConfigurableEventHarvestMs
+func (r *ConnectReply) ConfigurablePeriod() time.Duration {
+	ms := DefaultConfigurableEventHarvestMs
 	if nil != r && r.EventData.ReportPeriodMs > 0 {
 		ms = r.EventData.ReportPeriodMs
 	}
 	return time.Duration(ms) * time.Millisecond
-}
-
-func (r *ConnectReply) ReportPeriods() map[HarvestTypes]time.Duration {
-	fixed := HarvestMetricsTraces
-	configurable := HarvestTypes(0)
-
-	for tp, fn := range map[HarvestTypes]func() *uint{
-		HarvestTxnEvents:    r.ptrTxnEvents,
-		HarvestCustomEvents: r.ptrCustomEvents,
-		HarvestErrorEvents:  r.ptrErrorEvents,
-		HarvestSpanEvents:   r.ptrSpanEvents,
-	} {
-		if nil != r && fn() != nil {
-			configurable |= tp
-		} else {
-			fixed |= tp
-		}
-	}
-	return map[HarvestTypes]time.Duration{
-		configurable: r.configurablePeriod(),
-		fixed:        fixedHarvestPeriod,
-	}
 }
 
 func uintPtr(x uint) *uint { return &x }
@@ -149,8 +127,8 @@ func uintPtr(x uint) *uint { return &x }
 // DefaultEventHarvestConfig provides faster event harvest defaults.
 func DefaultEventHarvestConfig(eventer MaxTxnEventer) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
-	cfg.ReportPeriodMs = defaultConfigurableEventHarvestMs
-	cfg.Limits.TxnEvents = uintPtr(uint(eventer.maxTxnEvents()))
+	cfg.ReportPeriodMs = DefaultConfigurableEventHarvestMs
+	cfg.Limits.TxnEvents = uintPtr(uint(eventer.MaxTxnEvents()))
 	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
 	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg

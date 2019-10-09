@@ -170,12 +170,12 @@ func (run *appRun) ptrCustomEvents() *uint { return run.Reply.EventData.Limits.C
 func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
 func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
 
-func (run *appRun) maxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
-func (run *appRun) maxCustomEvents() int {
+func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
+func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }
-func (run *appRun) maxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
-func (run *appRun) maxSpanEvents() int  { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
+func (run *appRun) MaxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
+func (run *appRun) MaxSpanEvents() int  { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
 	if nil != field() {
@@ -184,6 +184,24 @@ func (run *appRun) limit(dflt int, field func() *uint) int {
 	return dflt
 }
 
-func (run *appRun) reportPeriods() map[internal.HarvestTypes]time.Duration {
-	return run.Reply.ReportPeriods()
+func (run *appRun) ReportPeriods() map[internal.HarvestTypes]time.Duration {
+	fixed := internal.HarvestMetricsTraces
+	configurable := internal.HarvestTypes(0)
+
+	for tp, fn := range map[internal.HarvestTypes]func() *uint{
+		internal.HarvestTxnEvents:    run.ptrTxnEvents,
+		internal.HarvestCustomEvents: run.ptrCustomEvents,
+		internal.HarvestErrorEvents:  run.ptrErrorEvents,
+		internal.HarvestSpanEvents:   run.ptrSpanEvents,
+	} {
+		if nil != run && fn() != nil {
+			configurable |= tp
+		} else {
+			fixed |= tp
+		}
+	}
+	return map[internal.HarvestTypes]time.Duration{
+		configurable: run.Reply.ConfigurablePeriod(),
+		fixed:        internal.FixedHarvestPeriod,
+	}
 }
