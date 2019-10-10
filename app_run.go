@@ -170,7 +170,7 @@ func (run *appRun) ptrCustomEvents() *uint { return run.Reply.EventData.Limits.C
 func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
 func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
 
-func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
+func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.MaxTxnEvents(), run.ptrTxnEvents) }
 func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }

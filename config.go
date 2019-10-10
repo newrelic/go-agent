@@ -402,7 +402,9 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func (c Config) maxTxnEvents() int {
+// MaxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) MaxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents

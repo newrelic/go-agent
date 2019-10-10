@@ -78,7 +78,7 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	c := Config(s)
 	transport := c.Transport
 	c.Transport = nil
-	logger := c.Logger
+	l := c.Logger
 	c.Logger = nil
 
 	js, err := json.Marshal(c)
@@ -94,7 +94,7 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	// to it since we want to allow consumers to populate Config from JSON.
 	delete(fields, `License`)
 	fields[`Transport`] = transportSetting(transport)
-	fields[`Logger`] = loggerSetting(logger)
+	fields[`Logger`] = loggerSetting(l)
 
 	// Browser monitoring support.
 	if c.BrowserMonitoring.Enabled {
@@ -130,7 +130,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Settings:        (settings)(c),
 		AppName:         strings.Split(c.AppName, ";"),
 		HighSecurity:    c.HighSecurity,
-		Labels:          internal.Labels(c.Labels),
+		Labels:          c.Labels,
 		Environment:     e,
 		// This identifier field is provided to avoid:
 		// https://newrelic.atlassian.net/browse/DSCORE-778
@@ -147,7 +147,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfig(&internal.DfltHarvestCfgr{}),
+		EventData:        internal.DefaultEventHarvestConfig(c),
 	}})
 }
 
