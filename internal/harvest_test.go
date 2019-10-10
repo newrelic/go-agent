@@ -93,7 +93,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	var errorEvents uint = 44
 	var spanEvents uint = 55
 	cfgr := &DfltHarvestCfgr{
-		reportPeriod:    time.Millisecond * 2,
+		reportPeriod:    time.Second * 2,
 		maxTxnEvents:    &txnEvents,
 		maxCustomEvents: &customEvents,
 		maxErrorEvents:  &errorEvents,
@@ -180,7 +180,7 @@ func TestHarvestNothingReady(t *testing.T) {
 func TestHarvestCustomEventsReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Millisecond * 5000,
+		reportPeriod:    time.Second * 5,
 		maxCustomEvents: &three,
 	})
 	params := map[string]interface{}{"zip": 1}
@@ -215,7 +215,7 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 func TestHarvestTxnEventsReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod: time.Millisecond * 5000,
+		reportPeriod: time.Second * 5,
 		maxTxnEvents: &three,
 	})
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
@@ -255,7 +255,7 @@ func TestHarvestTxnEventsReady(t *testing.T) {
 func TestHarvestErrorEventsReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:   time.Millisecond * 5000,
+		reportPeriod:   time.Second * 5,
 		maxErrorEvents: &three,
 	})
 	h.ErrorEvents.Add(&ErrorEvent{
@@ -294,7 +294,7 @@ func TestHarvestErrorEventsReady(t *testing.T) {
 func TestHarvestSpanEventsReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:  time.Millisecond * 5000,
+		reportPeriod:  time.Second * 5,
 		maxSpanEvents: &three,
 	})
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
@@ -336,7 +336,7 @@ func TestHarvestSpanEventsReady(t *testing.T) {
 func TestHarvestMetricsTracesReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Millisecond * 65000,
+		reportPeriod:    time.Second * 65,
 		maxTxnEvents:    &one,
 		maxCustomEvents: &one,
 		maxErrorEvents:  &one,
@@ -774,7 +774,7 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 func TestNewHarvestUsesConnectReply(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Millisecond * 5000,
+		reportPeriod:    time.Second * 5,
 		maxTxnEvents:    &one,
 		maxCustomEvents: &two,
 		maxErrorEvents:  &three,
@@ -800,7 +800,7 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 
 	var zero uint
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Millisecond * 5000,
+		reportPeriod:    time.Second * 5,
 		maxTxnEvents:    &zero,
 		maxCustomEvents: &zero,
 		maxErrorEvents:  &zero,

@@ -120,25 +120,9 @@ func TestTxnTraceThreshold(t *testing.T) {
 	}
 }
 
-// TODO verify that the reply can't be nil in newAppRun
-//func TestNilReplyEventHarvestDefaults(t *testing.T) {
-//	var run internal.HarvestConfigurer = newAppRun(cfg, nil)
-//	assertHarvestConfig(t, &run, expectHarvestConfig{
-//		maxTxnEvents:    internal.MaxTxnEvents,
-//		maxCustomEvents: internal.MaxCustomEvents,
-//		maxErrorEvents:  internal.MaxErrorEvents,
-//		maxSpanEvents:   internal.MaxSpanEvents,
-//		periods: map[internal.HarvestTypes]time.Duration{
-//			internal.HarvestTypesAll: 60 * time.Second,
-//			0:               60 * time.Second,
-//		},
-//	})
-//}
-
 var cfg = NewConfig("name", "license")
 
 func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
-
 	var run internal.HarvestConfigurer = newAppRun(cfg, &internal.ConnectReply{})
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
