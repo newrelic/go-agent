@@ -125,6 +125,18 @@ func ExampleDatastoreSegment() {
 	ds.End()
 }
 
+func ExampleMessageProducerSegment() {
+	txn := currentTransaction()
+	seg := &MessageProducerSegment{
+		StartTime:       StartSegmentNow(txn),
+		Library:         "RabbitMQ",
+		DestinationType: MessageExchange,
+		DestinationName: "myExchange",
+	}
+	// add message to queue here
+	seg.End()
+}
+
 func ExampleError() {
 	txn := currentTransaction()
 	username := "gopher"
