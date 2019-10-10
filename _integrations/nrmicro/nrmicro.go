@@ -30,13 +30,7 @@ func startExternal(ctx context.Context, procedure, host string) (context.Context
 			Library:   "Micro",
 			Host:      host,
 		}
-		payload := txn.CreateDistributedTracePayload()
-		if txt := payload.Text(); "" != txt {
-			md, _ := metadata.FromContext(ctx)
-			md = metadata.Copy(md)
-			md[newrelic.DistributedTracePayloadHeader] = txt
-			ctx = metadata.NewContext(ctx, md)
-		}
+		ctx = addDTPayloadToContext(ctx, txn)
 	}
 	return ctx, seg
 }
@@ -50,15 +44,20 @@ func startMessage(ctx context.Context, topic string) (context.Context, *newrelic
 			DestinationType: newrelic.MessageTopic,
 			DestinationName: topic,
 		}
-		payload := txn.CreateDistributedTracePayload()
-		if txt := payload.Text(); "" != txt {
-			md, _ := metadata.FromContext(ctx)
-			md = metadata.Copy(md)
-			md[newrelic.DistributedTracePayloadHeader] = txt
-			ctx = metadata.NewContext(ctx, md)
-		}
+		ctx = addDTPayloadToContext(ctx, txn)
 	}
 	return ctx, seg
+}
+
+func addDTPayloadToContext(ctx context.Context, txn newrelic.Transaction) context.Context {
+	payload := txn.CreateDistributedTracePayload()
+	if txt := payload.Text(); "" != txt {
+		md, _ := metadata.FromContext(ctx)
+		md = metadata.Copy(md)
+		md[newrelic.DistributedTracePayloadHeader] = txt
+		ctx = metadata.NewContext(ctx, md)
+	}
+	return ctx
 }
 
 func extractHost(addr string) string {
