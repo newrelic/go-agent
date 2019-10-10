@@ -547,14 +547,14 @@ func errorCause(err error) error {
 	}
 }
 
-func hasErrorClassMethod(err error) string {
+func errorClassMethod(err error) string {
 	if ec, ok := err.(ErrorClasser); ok {
 		return ec.ErrorClass()
 	}
 	return ""
 }
 
-func hasErrorStackTraceMethod(err error) internal.StackTrace {
+func errorStackTraceMethod(err error) internal.StackTrace {
 	if st, ok := err.(StackTracer); ok {
 		return st.StackTrace()
 	}
@@ -563,12 +563,12 @@ func hasErrorStackTraceMethod(err error) internal.StackTrace {
 
 func errorClass(err error) string {
 	// If the error implements ErrorClasser, use that.
-	if c := hasErrorClassMethod(err); c != "" {
+	if c := errorClassMethod(err); c != "" {
 		return c
 	}
 	// Otherwise, if the error's cause implements ErrorClasser, use that.
 	cause := errorCause(err)
-	if c := hasErrorClassMethod(cause); c != "" {
+	if c := errorClassMethod(cause); c != "" {
 		return c
 	}
 	// As a final fallback, use the type of the error's cause.
@@ -577,12 +577,12 @@ func errorClass(err error) string {
 
 func errorStackTrace(err error) internal.StackTrace {
 	// If the error implements StackTracer, use that.
-	if st := hasErrorStackTraceMethod(err); nil != st {
+	if st := errorStackTraceMethod(err); nil != st {
 		return st
 	}
 	// Otherwise, if the error's cause implements StackTracer, use that.
 	cause := errorCause(err)
-	if st := hasErrorStackTraceMethod(cause); nil != st {
+	if st := errorStackTraceMethod(cause); nil != st {
 		return st
 	}
 	// As a final fallback, generate a StackTrace here.
