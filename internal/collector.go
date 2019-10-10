@@ -293,7 +293,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, hig
 		return nil, resp
 	}
 
-	reply, err := constructConnectReply(resp.body, preconnect.Preconnect)
+	reply, err := ConstructConnectReply(resp.body, preconnect.Preconnect)
 	if nil != err {
 		return nil, RPMResponse{Err: err}
 	}
@@ -307,7 +307,9 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, hig
 	return reply, resp
 }
 
-func constructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
+// ConstructConnectReply takes the body of a Connect reply, in the form of bytes, and a
+// PreconnectReply, and converts it into a *ConnectReply
+func ConstructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
 	var reply struct {
 		Reply *ConnectReply `json:"return_value"`
 	}

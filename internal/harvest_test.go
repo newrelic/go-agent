@@ -84,7 +84,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 			}
 		}
 	}}`)
-	reply, err := constructConnectReply(replyJSON, PreconnectReply{})
+	reply, err := ConstructConnectReply(replyJSON, PreconnectReply{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 
 	replyJSON = []byte(`{"return_value":{
 	}}`)
-	reply, err = constructConnectReply(replyJSON, PreconnectReply{})
+	reply, err = ConstructConnectReply(replyJSON, PreconnectReply{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -192,7 +192,7 @@ func TestNegativeHarvestLimits(t *testing.T) {
 	// Test that negative harvest event limits will cause a connect error.
 	// Harvest event limits are never expected to be negative:  This is just
 	// extra defensiveness.
-	_, err := constructConnectReply([]byte(`{"return_value":{
+	_, err := ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"harvest_limits": {
 					"error_event_data": -1

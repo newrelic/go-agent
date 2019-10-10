@@ -137,7 +137,7 @@ func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 }
 
 func TestEventHarvestFieldsAllPopulated(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": {
@@ -165,7 +165,7 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 }
 
 func TestZeroReportPeriod(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 0
 			}
@@ -187,7 +187,7 @@ func TestZeroReportPeriod(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "span_event_data": 3 }
@@ -209,7 +209,7 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "analytic_event_data": 3 }
@@ -231,7 +231,7 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "error_event_data": 3 }
@@ -253,7 +253,7 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
-	reply, err := constructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "custom_event_data": 3 }
@@ -275,7 +275,7 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 }
 
 func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
-	h, err := constructConnectReply([]byte(`{"return_value":{
+	h, err := internal.ConstructConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": -1
 			}}}`), internal.PreconnectReply{})
@@ -300,7 +300,7 @@ func TestReplyTraceIDGenerator(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
-	h, err := constructConnectReply([]byte(
+	h, err := internal.ConstructConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000,
@@ -319,7 +319,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
-	reply, err := constructConnectReply([]byte(
+	reply, err := internal.ConstructConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000
@@ -337,7 +337,7 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
-	h, err := constructConnectReply([]byte(
+	h, err := internal.ConstructConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000
@@ -382,25 +382,4 @@ func assertHarvestConfig(t testing.TB, hc *internal.HarvestConfigurer, expect ex
 	if periods := (*hc).ReportPeriods(); !reflect.DeepEqual(periods, expect.periods) {
 		t.Error(periods, expect.periods)
 	}
-}
-
-// TODO not copy all of this code
-func constructConnectReply(body []byte, preconnect internal.PreconnectReply) (*internal.ConnectReply, error) {
-	var reply struct {
-		Reply *internal.ConnectReply `json:"return_value"`
-	}
-	reply.Reply = internal.ConnectReplyDefaults()
-	err := json.Unmarshal(body, &reply)
-	if nil != err {
-		return nil, fmt.Errorf("unable to parse connect reply: %v", err)
-	}
-
-	reply.Reply.PreconnectReply = preconnect
-
-	reply.Reply.AdaptiveSampler = internal.NewAdaptiveSampler(
-		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
-		reply.Reply.SamplingTarget,
-		time.Now())
-
-	return reply.Reply, nil
 }
