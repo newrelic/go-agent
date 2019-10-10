@@ -1,5 +1,45 @@
 ## ChangeLog
 
+### New Features
+
+* Added support for
+  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment)
+  to be used to track time spent adding messages to queuing systems like
+  RabbitMQ or Kafka.
+
+  ```go
+  seg := &newrelic.MessageProducerSegment{
+      StartTime:       newrelic.StartSegmentNow(txn),
+      Library:         "RabbitMQ",
+      DestinationType: newrelic.MessageExchange,
+      DestinationName: "myExchange",
+  }
+  // add message to queue here
+  seg.End()
+  ```
+
+* Added new attribute constants for use with message consumer transactions.
+  These attributes can be used to add more detail to a transaction that tracks
+  time spent consuming a message off a queuing system like RabbitMQ or Kafka.
+  They can be added using
+  [`txn.AddAttribute`](https://godoc.org/github.com/newrelic/go-agent#Transaction).
+
+  ```go
+  // The routing key of the consumed message.
+  txn.AddAttribute(newrelic.AttributeMessageRoutingKey, "myRoutingKey")
+  // The name of the queue the message was consumed from.
+  txn.AddAttribute(newrelic.AttributeMessageQueueName, "myQueueName")
+  // The type of exchange used for the consumed message (direct, fanout,
+  // topic, or headers).
+  txn.AddAttribute(newrelic.AttributeMessageExchangeType, "myExchangeType")
+  // The callback queue used in RPC configurations.
+  txn.AddAttribute(newrelic.AttributeMessageReplyTo, "myReplyTo")
+  // The application-generated identifier used in RPC configurations.
+  txn.AddAttribute(newrelic.AttributeMessageCorrelationID, "myCorrelationID")
+  ```
+
+  It is recommended that at most one message is consumed per transaction.
+
 * Added support for [Go 1.13's Error wrapping](https://golang.org/doc/go1.13#error_wrapping).
   `Transaction.NoticeError` now uses [Unwrap](https://golang.org/pkg/errors/#Unwrap)
   recursively to identify the error's cause (the deepest wrapped error) when generating
