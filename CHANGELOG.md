@@ -1,5 +1,64 @@
 ## ChangeLog
 
+* Added support for [Go 1.13's Error wrapping](https://golang.org/doc/go1.13#error_wrapping).
+  `Transaction.NoticeError` now uses [Unwrap](https://golang.org/pkg/errors/#Unwrap)
+  recursively to identify the error's cause (the deepest wrapped error) when generating
+  the error's class field.  This functionality will help group your errors usefully.
+
+  For example, when using Go 1.13, the following code:
+
+  ```go
+  type socketError struct{}
+
+  func (e socketError) Error() string { return "socket error" }
+
+  func gamma() error { return socketError{} }
+  func beta() error  { return fmt.Errorf("problem in beta: %w", gamma()) }
+  func alpha() error { return fmt.Errorf("problem in alpha: %w", beta()) }
+
+  func execute(txn newrelic.Transaction) {
+  	err := alpha()
+  	txn.NoticeError(err)
+  }
+  ```
+  captures an error with message `"problem in alpha: problem in beta: socket error"`
+  and class `"main.socketError"`.  Previously, the unhelpful class `"*fmt.wrapError"`
+  was recorded.
+
+* A `Stack` field has been added to [Error](https://godoc.org/github.com/newrelic/go-agent#Error),
+  which can be assigned using the new
+  [NewStackTrace](https://godoc.org/github.com/newrelic/go-agent#NewStackTrace) function.
+  This allows your error stack trace to show where the error happened, rather
+  than the location of the `NoticeError` call.
+
+  `Transaction.NoticeError` not only checks for a stack trace (using
+  [StackTracer](https://godoc.org/github.com/newrelic/go-agent#StackTracer)) in
+  the error parameter, but in the error's cause as well.  This means that you
+  can create an [Error](https://godoc.org/github.com/newrelic/go-agent#Error)
+  where your error occurred, wrap it multiple times to add information, notice it
+  with `NoticeError`, and still have a useful stack trace. Take a look!
+
+  ```go
+  func gamma() error {
+  	return newrelic.Error{
+  		Message: "something went very wrong",
+  		Class:   "socketError",
+  		Stack:   newrelic.NewStackTrace(),
+  	}
+  }
+
+  func beta() error  { return fmt.Errorf("problem in beta: %w", gamma()) }
+  func alpha() error { return fmt.Errorf("problem in alpha: %w", beta()) }
+
+  func execute(txn newrelic.Transaction) {
+  	err := alpha()
+  	txn.NoticeError(err)
+  }
+  ```
+
+  In this example, the topmost stack trace frame recorded is `"gamma"`,
+  rather than `"execute"`.
+
 ### Miscellaneous
 
 * Update the
