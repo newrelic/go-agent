@@ -7,6 +7,7 @@
 * [Segments](#segments)
   * [Datastore Segments](#datastore-segments)
   * [External Segments](#external-segments)
+  * [Message Producer Segments](#message-producer-segments)
 * [Attributes](#attributes)
 * [Tracing](#tracing)
   * [Distributed Tracing](#distributed-tracing)
@@ -355,6 +356,47 @@ ways to use this functionality:
       return http.Get(url)
     }
     ```
+
+### Message Producer Segments
+
+Message producer segments appear in the transaction "Breakdown table".
+
+Message producer segments are instrumented using
+[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment).
+Just like basic segments, messsage producer segments begin when the `StartTime`
+field is populated and finish when the `End` method is called.  Here is an
+example:
+
+```go
+s := newrelic.MessageProducerSegment{
+    // Library is the name of the library instrumented.
+    Library: "RabbitMQ",
+    // DestinationType is the destination type.
+    DestinationType: newrelic.MessageExchange,
+    // DestinationName is the name of your queue or topic.
+    DestinationName: "myExchange",
+    // DestinationTemporary must be set to true if destination is temporary
+    // to improve metric grouping.
+    DestinationTemporary: false,
+}
+s.StartTime = newrelic.StartSegmentNow(txn)
+// ... add message to queue here
+s.End()
+```
+
+This may be combined into a single line when instrumenting a message producer
+call that spans an entire function call:
+
+```go
+s := newrelic.MessageProducerSegment{
+	StartTime:            newrelic.StartSegmentNow(txn),
+	Library:              "RabbitMQ",
+	DestinationType:      newrelic.MessageExchange,
+	DestinationName:      "myExchange",
+	DestinationTemporary: false,
+}
+defer s.End()
+```
 
 ## Attributes
 
