@@ -34,7 +34,10 @@ var four uint = 4
 func TestHarvestTimerAllConfigurable(t *testing.T) {
 	now := time.Now()
 	harvest := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 30,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: FixedHarvestPeriod,
+			HarvestTypesEvents:   time.Second * 30,
+		},
 		maxTxnEvents:    &one,
 		maxCustomEvents: &two,
 		maxSpanEvents:   &three,
@@ -93,7 +96,10 @@ func TestCreateFinalMetrics(t *testing.T) {
 	var errorEvents uint = 44
 	var spanEvents uint = 55
 	cfgr := &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 2,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: FixedHarvestPeriod,
+			HarvestTypesEvents:   time.Second * 2,
+		},
 		maxTxnEvents:    &txnEvents,
 		maxCustomEvents: &customEvents,
 		maxErrorEvents:  &errorEvents,
@@ -179,8 +185,12 @@ func TestHarvestNothingReady(t *testing.T) {
 
 func TestHarvestCustomEventsReady(t *testing.T) {
 	now := time.Now()
+	fixedHarvestTypes := HarvestMetricsTraces & HarvestTxnEvents & HarvestSpanEvents & HarvestErrorEvents
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			fixedHarvestTypes:   FixedHarvestPeriod,
+			HarvestCustomEvents: time.Second * 5,
+		},
 		maxCustomEvents: &three,
 	})
 	params := map[string]interface{}{"zip": 1}
@@ -214,8 +224,12 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 
 func TestHarvestTxnEventsReady(t *testing.T) {
 	now := time.Now()
+	fixedHarvestTypes := HarvestMetricsTraces & HarvestCustomEvents & HarvestSpanEvents & HarvestErrorEvents
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod: time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			fixedHarvestTypes: FixedHarvestPeriod,
+			HarvestTxnEvents:  time.Second * 5,
+		},
 		maxTxnEvents: &three,
 	})
 	h.TxnEvents.AddTxnEvent(&TxnEvent{
@@ -254,8 +268,12 @@ func TestHarvestTxnEventsReady(t *testing.T) {
 
 func TestHarvestErrorEventsReady(t *testing.T) {
 	now := time.Now()
+	fixedHarvestTypes := HarvestMetricsTraces & HarvestCustomEvents & HarvestSpanEvents & HarvestTxnEvents
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:   time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			fixedHarvestTypes:  FixedHarvestPeriod,
+			HarvestErrorEvents: time.Second * 5,
+		},
 		maxErrorEvents: &three,
 	})
 	h.ErrorEvents.Add(&ErrorEvent{
@@ -293,8 +311,12 @@ func TestHarvestErrorEventsReady(t *testing.T) {
 
 func TestHarvestSpanEventsReady(t *testing.T) {
 	now := time.Now()
+	fixedHarvestTypes := HarvestMetricsTraces & HarvestCustomEvents & HarvestTxnEvents & HarvestErrorEvents
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:  time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			fixedHarvestTypes: FixedHarvestPeriod,
+			HarvestSpanEvents: time.Second * 5,
+		},
 		maxSpanEvents: &three,
 	})
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
@@ -336,7 +358,10 @@ func TestHarvestSpanEventsReady(t *testing.T) {
 func TestHarvestMetricsTracesReady(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 65,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: FixedHarvestPeriod,
+			HarvestTypesEvents:   time.Second * 65,
+		},
 		maxTxnEvents:    &one,
 		maxCustomEvents: &one,
 		maxErrorEvents:  &one,
@@ -774,7 +799,10 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 func TestNewHarvestUsesConnectReply(t *testing.T) {
 	now := time.Now()
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: FixedHarvestPeriod,
+			HarvestTypesEvents:   time.Second * 5,
+		},
 		maxTxnEvents:    &one,
 		maxCustomEvents: &two,
 		maxErrorEvents:  &three,
@@ -800,7 +828,10 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 
 	var zero uint
 	h := NewHarvest(now, &DfltHarvestCfgr{
-		reportPeriod:    time.Second * 5,
+		reportPeriods: map[HarvestTypes]time.Duration{
+			HarvestMetricsTraces: FixedHarvestPeriod,
+			HarvestTypesEvents:   time.Second * 5,
+		},
 		maxTxnEvents:    &zero,
 		maxCustomEvents: &zero,
 		maxErrorEvents:  &zero,

@@ -352,7 +352,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 // DfltHarvestCfgr implements HarvestConfigurer for internal test cases, and for situations where we don't
 // have a ConnectReply, such as for serverless harvests
 type DfltHarvestCfgr struct {
-	reportPeriod    time.Duration
+	reportPeriods   map[HarvestTypes]time.Duration
 	maxTxnEvents    *uint
 	maxSpanEvents   *uint
 	maxCustomEvents *uint
@@ -361,7 +361,10 @@ type DfltHarvestCfgr struct {
 
 // ReportPeriods returns a map from the bitset of harvest types to the period that those types should be reported
 func (d *DfltHarvestCfgr) ReportPeriods() map[HarvestTypes]time.Duration {
-	return CalculateRprtPrds(d.reportPeriod, d.maxTxnEvents, d.maxCustomEvents, d.maxErrorEvents, d.maxSpanEvents)
+	if d.reportPeriods != nil {
+		return d.reportPeriods
+	}
+	return map[HarvestTypes]time.Duration{HarvestTypesAll: FixedHarvestPeriod}
 }
 
 // MaxTxnEvents returns the maximum number of Transaction Events that should be reported per period
@@ -394,36 +397,4 @@ func (d *DfltHarvestCfgr) MaxErrorEvents() int {
 		return int(*d.maxErrorEvents)
 	}
 	return MaxErrorEvents
-}
-
-// CalculateRprtPrds returns a map from the bitset of harvest types to the period that those types should be reported.
-func CalculateRprtPrds(
-	reportPeriod time.Duration,
-	txnEvents *uint,
-	customEvents *uint,
-	errorEvents *uint,
-	spanEvents *uint,
-) map[HarvestTypes]time.Duration {
-	if reportPeriod == 0 {
-		return map[HarvestTypes]time.Duration{HarvestTypesAll: FixedHarvestPeriod}
-	}
-	fixed := HarvestMetricsTraces
-	configurable := HarvestTypes(0)
-
-	for tp, included := range map[HarvestTypes]*uint{
-		HarvestTxnEvents:    txnEvents,
-		HarvestCustomEvents: customEvents,
-		HarvestErrorEvents:  errorEvents,
-		HarvestSpanEvents:   spanEvents,
-	} {
-		if included != nil {
-			configurable |= tp
-		} else {
-			fixed |= tp
-		}
-	}
-	return map[HarvestTypes]time.Duration{
-		configurable: reportPeriod,
-		fixed:        FixedHarvestPeriod,
-	}
 }

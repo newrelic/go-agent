@@ -185,10 +185,23 @@ func (run *appRun) limit(dflt int, field func() *uint) int {
 }
 
 func (run *appRun) ReportPeriods() map[internal.HarvestTypes]time.Duration {
-	return internal.CalculateRprtPrds(
-		run.Reply.ConfigurablePeriod(),
-		run.ptrTxnEvents(),
-		run.ptrCustomEvents(),
-		run.ptrErrorEvents(),
-		run.ptrSpanEvents())
+	fixed := internal.HarvestMetricsTraces
+	configurable := internal.HarvestTypes(0)
+
+	for tp, fn := range map[internal.HarvestTypes]func() *uint{
+		internal.HarvestTxnEvents:    run.ptrTxnEvents,
+		internal.HarvestCustomEvents: run.ptrCustomEvents,
+		internal.HarvestErrorEvents:  run.ptrErrorEvents,
+		internal.HarvestSpanEvents:   run.ptrSpanEvents,
+	} {
+		if nil != run && fn() != nil {
+			configurable |= tp
+		} else {
+			fixed |= tp
+		}
+	}
+	return map[internal.HarvestTypes]time.Duration{
+		configurable: run.Reply.ConfigurablePeriod(),
+		fixed:        internal.FixedHarvestPeriod,
+	}
 }
