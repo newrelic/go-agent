@@ -3,6 +3,16 @@
 ### Miscellaneous
 
 * Update the
+  [`nrmicro`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
+  package to use the new Messaging API.
+  * [`nrmicro.ClientWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro#ClientWrapper)
+    now uses `newrelic.MessageProducerSegment`s instead of
+    `newrelic.ExternalSegment`s for calls to
+    [`Client.Publish`](https://godoc.org/github.com/micro/go-micro/client#Client).
+  * [`nrmicro.SubscriberWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro#SubscriberWrapper)
+    update transaction names and add attribute `message.routingKey`.
+
+* Update the
   [`nrnats`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats)
   and
   [`nrstan`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan)
