@@ -425,7 +425,7 @@ func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
 		replyfn(reply)
 		app.placeholderRun = newAppRun(app.config, reply)
 	}
-	app.testHarvest = internal.NewHarvest(time.Now(), nil)
+	app.testHarvest = internal.NewHarvest(time.Now(), &internal.DfltHarvestCfgr{})
 }
 
 func (app *app) getState() (*appRun, error) {

@@ -170,17 +170,17 @@ type HarvestConfigurer interface {
 }
 
 // NewHarvest returns a new Harvest.
-func NewHarvest(now time.Time, reply HarvestConfigurer) *Harvest {
+func NewHarvest(now time.Time, configurer HarvestConfigurer) *Harvest {
 	return &Harvest{
-		timer:        newHarvestTimer(now, reply.ReportPeriods()),
+		timer:        newHarvestTimer(now, configurer.ReportPeriods()),
 		Metrics:      newMetricTable(maxMetrics, now),
 		ErrorTraces:  newHarvestErrors(maxHarvestErrors),
 		TxnTraces:    newHarvestTraces(),
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
-		SpanEvents:   newSpanEvents(reply.MaxSpanEvents()),
-		CustomEvents: newCustomEvents(reply.MaxCustomEvents()),
-		TxnEvents:    newTxnEvents(reply.MaxTxnEvents()),
-		ErrorEvents:  newErrorEvents(reply.MaxErrorEvents()),
+		SpanEvents:   newSpanEvents(configurer.MaxSpanEvents()),
+		CustomEvents: newCustomEvents(configurer.MaxCustomEvents()),
+		TxnEvents:    newTxnEvents(configurer.MaxTxnEvents()),
+		ErrorEvents:  newErrorEvents(configurer.MaxErrorEvents()),
 	}
 }
 
@@ -333,4 +333,64 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	if args.Queuing > 0 {
 		metrics.addDuration(queueMetric, "", args.Queuing, args.Queuing, forced)
 	}
+}
+
+type DfltHarvestCfgr struct {
+	reportPeriod    time.Duration
+	maxTxnEvents    *int
+	maxSpanEvents   *int
+	maxCustomEvents *int
+	maxErrorEvents  *int
+}
+
+func (d *DfltHarvestCfgr) ReportPeriods() map[HarvestTypes]time.Duration {
+	if d.reportPeriod == 0 {
+		return map[HarvestTypes]time.Duration{HarvestTypesAll: FixedHarvestPeriod}
+	}
+	fixed := HarvestMetricsTraces
+	configurable := HarvestTypes(0)
+
+	for tp, ptr := range map[HarvestTypes]*int{
+		HarvestTxnEvents:    d.maxTxnEvents,
+		HarvestCustomEvents: d.maxCustomEvents,
+		HarvestErrorEvents:  d.maxErrorEvents,
+		HarvestSpanEvents:   d.maxSpanEvents,
+	} {
+		if ptr != nil {
+			configurable |= tp
+		} else {
+			fixed |= tp
+		}
+	}
+	return map[HarvestTypes]time.Duration{
+		configurable: d.reportPeriod,
+		fixed:        FixedHarvestPeriod,
+	}
+}
+
+func (d *DfltHarvestCfgr) MaxTxnEvents() int {
+	if d.maxTxnEvents != nil {
+		return *d.maxTxnEvents
+	}
+	return MaxTxnEvents
+}
+
+func (d *DfltHarvestCfgr) MaxSpanEvents() int {
+	if d.maxSpanEvents != nil {
+		return *d.maxSpanEvents
+	}
+	return MaxSpanEvents
+}
+func (d *DfltHarvestCfgr) MaxCustomEvents() int {
+	if d.maxCustomEvents != nil {
+		return *d.maxCustomEvents
+	}
+	return MaxCustomEvents
+}
+
+func (d *DfltHarvestCfgr) MaxErrorEvents() int {
+	if d.maxErrorEvents != nil {
+		return *d.maxErrorEvents
+	}
+	return MaxErrorEvents
 }
