@@ -114,6 +114,8 @@ type EventHarvestConfig struct {
 	} `json:"harvest_limits"`
 }
 
+// ConfigurablePeriod returns the Faster Event Harvest configurable reporting period if it is set, or the default
+// report period otherwise.
 func (r *ConnectReply) ConfigurablePeriod() time.Duration {
 	ms := DefaultConfigurableEventHarvestMs
 	if nil != r && r.EventData.ReportPeriodMs > 0 {

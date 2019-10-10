@@ -26,10 +26,10 @@ func TestHarvestTimerAllFixed(t *testing.T) {
 	}
 }
 
-var one = 1
-var two = 2
-var three = 3
-var four = 4
+var one uint = 1
+var two uint = 2
+var three uint = 3
+var four uint = 4
 
 func TestHarvestTimerAllConfigurable(t *testing.T) {
 	now := time.Now()
@@ -88,10 +88,10 @@ func TestCreateFinalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	txnEvents := 22
-	customEvents := 33
-	errorEvents := 44
-	spanEvents := 55
+	var txnEvents uint = 22
+	var customEvents uint = 33
+	var errorEvents uint = 44
+	var spanEvents uint = 55
 	cfgr := &DfltHarvestCfgr{
 		reportPeriod:    time.Millisecond * 2,
 		maxTxnEvents:    &txnEvents,
@@ -798,7 +798,7 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	now := time.Now()
 
-	zero := 0
+	var zero uint
 	h := NewHarvest(now, &DfltHarvestCfgr{
 		reportPeriod:    time.Millisecond * 5000,
 		maxTxnEvents:    &zero,

@@ -5,7 +5,7 @@ import "time"
 const (
 	// app behavior
 
-	// fixedHarvestPeriod is the period that fixed period data (metrics,
+	// FixedHarvestPeriod is the period that fixed period data (metrics,
 	// traces, and span events) is sent to New Relic.
 	FixedHarvestPeriod = 60 * time.Second
 	// DefaultConfigurableEventHarvestMs is the period for custom, error,
@@ -36,18 +36,21 @@ const (
 
 	// harvest data
 	maxMetrics = 2 * 1000
-	//TODO godoc
+	// MaxCustomEvents is the maximum number of Transaction Events that can be captured
+	// per 60-second harvest cycle
 	MaxCustomEvents = 10 * 1000
 	// MaxTxnEvents is the maximum number of Transaction Events that can be captured
 	// per 60-second harvest cycle
 	MaxTxnEvents        = 10 * 1000
 	maxRegularTraces    = 1
 	maxSyntheticsTraces = 20
-	//TODO godoc
+	// MaxErrorEvents is the maximum number of Error Events that can be captured
+	// per 60-second harvest cycle
 	MaxErrorEvents     = 100
 	maxHarvestErrors   = 20
 	maxHarvestSlowSQLs = 10
-	//TODO godoc
+	// MaxSpanEvents is the maximum number of Span Events that can be captured
+	// per 60-second harvest cycle
 	MaxSpanEvents = 1000
 
 	// attributes
