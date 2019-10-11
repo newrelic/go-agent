@@ -55,8 +55,8 @@ func main() {
 
 	s := micro.NewService(
 		micro.Name("go.micro.srv.pubsub"),
-		// Add the New Relic wrapper to the client which will create External
-		// segments for each Publish call.
+		// Add the New Relic wrapper to the client which will create
+		// MessageProducerSegments for each Publish call.
 		micro.WrapClient(nrmicro.ClientWrapper()),
 		// Add the New Relic wrapper to the subscriber which will start a new
 		// transaction for each Subscriber invocation.

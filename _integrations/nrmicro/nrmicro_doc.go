@@ -65,9 +65,10 @@
 // (https://godoc.org/github.com/micro/go-micro#WrapClient) option with
 // `nrmicro.ClientWrapper` and pass it to the `micro.NewService` method.  If
 // more than one wrapper is passed to `micro.WrapClient`, ensure that the
-// `nrmicro.ClientWrapper` is the first in the list.  External segments will be
-// created each time a `Call`, `Publish`, or `Stream` method is called on the
-// client.  Example:
+// `nrmicro.ClientWrapper` is the first in the list.  `ExternalSegment`s will be
+// created each time a `Call` or `Stream` method is called on the
+// client.  `MessageProducerSegment`s will be created each time a `Publish`
+// method is called on the client.  Example:
 //
 //	service := micro.NewService(
 //		micro.WrapClient(nrmicro.ClientWrapper()),
@@ -105,8 +106,10 @@
 //	)
 //
 // 3. The third option is to wrap the Micro Client directly using
-// `nrmicro.ClientWrapper`.  External segments will be created each time a
-// `Call`, `Publish`, or `Stream` method is called on the client.  Example:
+// `nrmicro.ClientWrapper`.  `ExternalSegment`s will be created each time a
+// `Call` or `Stream` method is called on the client.
+// `MessageProducerSegment`s will be created each time a `Publish` method is
+// called on the client.  Example:
 //
 //	cli := client.NewClient()
 //	cli = nrmicro.ClientWrapper()(cli)
@@ -117,10 +120,10 @@
 // Micro Producers
 //
 // To instrument a Micro Producer, wrap the Micro Client using the
-// `nrmico.ClientWrapper` as described in option 1 or 3 above.  External
-// segments will be created each time a `Publish` method is called on the
-// client.  Be sure the context passed to the `Publish` method contains a
-// `newrelic.Transaction`.
+// `nrmico.ClientWrapper` as described in option 1 or 3 above.
+// `MessageProducerSegment`s will be created each time a `Publish` method is
+// called on the client.  Be sure the context passed to the `Publish` method
+// contains a `newrelic.Transaction`.
 //
 //	service := micro.NewService(
 //		micro.WrapClient(nrmicro.ClientWrapper()),

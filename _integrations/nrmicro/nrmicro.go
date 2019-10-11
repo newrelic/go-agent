@@ -2,7 +2,6 @@ package nrmicro
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 )
 
 type nrWrapper struct {
@@ -30,15 +30,34 @@ func startExternal(ctx context.Context, procedure, host string) (context.Context
 			Library:   "Micro",
 			Host:      host,
 		}
-		payload := txn.CreateDistributedTracePayload()
-		if txt := payload.Text(); "" != txt {
-			md, _ := metadata.FromContext(ctx)
-			md = metadata.Copy(md)
-			md[newrelic.DistributedTracePayloadHeader] = txt
-			ctx = metadata.NewContext(ctx, md)
-		}
+		ctx = addDTPayloadToContext(ctx, txn)
 	}
 	return ctx, seg
+}
+
+func startMessage(ctx context.Context, topic string) (context.Context, *newrelic.MessageProducerSegment) {
+	var seg *newrelic.MessageProducerSegment
+	if txn := newrelic.FromContext(ctx); nil != txn {
+		seg = &newrelic.MessageProducerSegment{
+			StartTime:       newrelic.StartSegmentNow(txn),
+			Library:         "Micro",
+			DestinationType: newrelic.MessageTopic,
+			DestinationName: topic,
+		}
+		ctx = addDTPayloadToContext(ctx, txn)
+	}
+	return ctx, seg
+}
+
+func addDTPayloadToContext(ctx context.Context, txn newrelic.Transaction) context.Context {
+	payload := txn.CreateDistributedTracePayload()
+	if txt := payload.Text(); "" != txt {
+		md, _ := metadata.FromContext(ctx)
+		md = metadata.Copy(md)
+		md[newrelic.DistributedTracePayloadHeader] = txt
+		ctx = metadata.NewContext(ctx, md)
+	}
+	return ctx
 }
 
 func extractHost(addr string) string {
@@ -62,8 +81,7 @@ func extractHost(addr string) string {
 }
 
 func (n *nrWrapper) Publish(ctx context.Context, msg client.Message, opts ...client.PublishOption) error {
-	host := extractHost(n.Options().Broker.Address())
-	ctx, seg := startExternal(ctx, "Publish", host)
+	ctx, seg := startMessage(ctx, msg.Topic())
 	defer seg.End()
 	return n.Client.Publish(ctx, msg, opts...)
 }
@@ -159,6 +177,11 @@ func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
 // subscriber handlers using `newrelic.FromContext`
 // (https://godoc.org/github.com/newrelic/go-agent#FromContext).
 //
+// The attribute `"message.routingKey"` is added to the transaction and will
+// appear on transaction events, transaction traces, error events, and error
+// traces. It corresponds to the `server.Message`'s Topic
+// (https://godoc.org/github.com/micro/go-micro/server#Message).
+//
 // If a Subscriber returns an error, it will be recorded and reported.
 func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 	return func(fn server.SubscriberFunc) server.SubscriberFunc {
@@ -166,8 +189,15 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return fn
 		}
 		return func(ctx context.Context, m server.Message) (err error) {
-			txn := app.StartTransaction(subTxnName(m.Topic()), nil, nil)
+			namer := internal.MessageMetricKey{
+				Library:         "Micro",
+				DestinationType: string(newrelic.MessageTopic),
+				DestinationName: m.Topic(),
+				Consumer:        true,
+			}
+			txn := app.StartTransaction(namer.Name(), nil, nil)
 			defer txn.End()
+			txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, m.Topic(), nil)
 			md, ok := metadata.FromContext(ctx)
 			if ok {
 				txn.AcceptDistributedTracePayload(newrelic.TransportHTTP, md[newrelic.DistributedTracePayloadHeader])
@@ -180,10 +210,6 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			return err
 		}
 	}
-}
-
-func subTxnName(topic string) string {
-	return fmt.Sprintf("Message/Micro/Topic/%s:subscriber", topic)
 }
 
 func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
