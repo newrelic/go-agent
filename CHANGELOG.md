@@ -1,5 +1,45 @@
 ## ChangeLog
 
+### New Features
+
+* Added support for a new segment type,
+  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment), 
+  to be used to track time spent adding messages to message queuing systems like
+  RabbitMQ or Kafka.
+
+  ```go
+  seg := &newrelic.MessageProducerSegment{
+      StartTime:       newrelic.StartSegmentNow(txn),
+      Library:         "RabbitMQ",
+      DestinationType: newrelic.MessageExchange,
+      DestinationName: "myExchange",
+  }
+  // add message to queue here
+  seg.End()
+  ```
+
+* Added new attribute constants for use with message consumer transactions.
+  These attributes can be used to add more detail to a transaction that tracks
+  time spent consuming a message off a message queuing system like RabbitMQ or Kafka.
+  They can be added using
+  [`txn.AddAttribute`](https://godoc.org/github.com/newrelic/go-agent#Transaction).
+
+  ```go
+  // The routing key of the consumed message.
+  txn.AddAttribute(newrelic.AttributeMessageRoutingKey, "myRoutingKey")
+  // The name of the queue the message was consumed from.
+  txn.AddAttribute(newrelic.AttributeMessageQueueName, "myQueueName")
+  // The type of exchange used for the consumed message (direct, fanout,
+  // topic, or headers).
+  txn.AddAttribute(newrelic.AttributeMessageExchangeType, "myExchangeType")
+  // The callback queue used in RPC configurations.
+  txn.AddAttribute(newrelic.AttributeMessageReplyTo, "myReplyTo")
+  // The application-generated identifier used in RPC configurations.
+  txn.AddAttribute(newrelic.AttributeMessageCorrelationID, "myCorrelationID")
+  ```
+
+  It is recommended that at most one message is consumed per transaction.
+
 * Added support for [Go 1.13's Error wrapping](https://golang.org/doc/go1.13#error_wrapping).
   `Transaction.NoticeError` now uses [Unwrap](https://golang.org/pkg/errors/#Unwrap)
   recursively to identify the error's cause (the deepest wrapped error) when generating
@@ -22,8 +62,7 @@
   }
   ```
   captures an error with message `"problem in alpha: problem in beta: socket error"`
-  and class `"main.socketError"`.  Previously, the unhelpful class `"*fmt.wrapError"`
-  was recorded.
+  and class `"main.socketError"`.  Previously, the class was recorded as `"*fmt.wrapError"`.
 
 * A `Stack` field has been added to [Error](https://godoc.org/github.com/newrelic/go-agent#Error),
   which can be assigned using the new
@@ -61,27 +100,31 @@
 
 ### Miscellaneous
 
-* Update the
+* Updated the
   [`nrmicro`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro)
-  package to use the new Messaging API.
+  package to use the new segment type
+  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment)
+  and the new attribute constants:
   * [`nrmicro.ClientWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro#ClientWrapper)
     now uses `newrelic.MessageProducerSegment`s instead of
     `newrelic.ExternalSegment`s for calls to
     [`Client.Publish`](https://godoc.org/github.com/micro/go-micro/client#Client).
   * [`nrmicro.SubscriberWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro#SubscriberWrapper)
-    update transaction names and add attribute `message.routingKey`.
+    updates transaction names and add the attribute `message.routingKey`.
 
-* Update the
+* Updated the
   [`nrnats`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats)
   and
   [`nrstan`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan)
-  packages to use the new Messaging API.
+  packages to use the new segment type
+  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment)
+  and the new attribute constants:
   * [`nrnats.StartPublishSegment`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats#StartPublishSegment)
     now starts and returns a `newrelic.MessageProducerSegment` type.
   * [`nrnats.SubWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats#SubWrapper)
     and
     [`nrstan.StreamingSubWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrstan#StreamingSubWrapper)
-    update transaction names and add attributes `message.routingKey`,
+    updates transaction names and adds the attributes `message.routingKey`,
     `message.queueName`, and `message.replyTo`.
 
 ## 2.13.0

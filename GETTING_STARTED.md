@@ -98,11 +98,12 @@ grouped usefully.  Don't use dynamic URLs!
 ## Step 3: Instrument Segments
 
 Segments show you where the time in your transactions is being spent.  There are
-three types of segments:
+four types of segments:
 [Segment](https://godoc.org/github.com/newrelic/go-agent#Segment),
 [ExternalSegment](https://godoc.org/github.com/newrelic/go-agent#ExternalSegment),
+[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment),
 and
-[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment).
+[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment).
 
 Creating a segment requires access to the transaction.  You can pass the
 transaction around your functions as an explicit transaction parameter or inside
