@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/newrelic/go-agent/internal"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -77,6 +79,9 @@ type Config struct {
 		// Attributes controls the attributes included with transaction
 		// events.
 		Attributes AttributeDestinationConfig
+		// MaxSamplesStored allows you to limit the number of Transaction
+		// Events stored/reported in a given 60-second period
+		MaxSamplesStored int
 	}
 
 	// ErrorCollector controls the capture of errors.
@@ -310,6 +315,7 @@ func NewConfig(appname, license string) Config {
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
+	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
@@ -394,4 +400,14 @@ func (c Config) Validate() error {
 		return errAppNameLimit
 	}
 	return nil
+}
+
+// MaxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) MaxTxnEvents() int {
+	configured := c.TransactionEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxTxnEvents {
+		return internal.MaxTxnEvents
+	}
+	return configured
 }

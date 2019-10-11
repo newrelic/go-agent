@@ -5,13 +5,13 @@ import "time"
 const (
 	// app behavior
 
-	// fixedHarvestPeriod is the period that fixed period data (metrics,
+	// FixedHarvestPeriod is the period that fixed period data (metrics,
 	// traces, and span events) is sent to New Relic.
-	fixedHarvestPeriod = 60 * time.Second
-	// defaultConfigurableEventHarvestMs is the period for custom, error,
+	FixedHarvestPeriod = 60 * time.Second
+	// DefaultConfigurableEventHarvestMs is the period for custom, error,
 	// and transaction events if the connect response's
 	// "event_harvest_config.report_period_ms" is missing or invalid.
-	defaultConfigurableEventHarvestMs = 60 * 1000
+	DefaultConfigurableEventHarvestMs = 60 * 1000
 	// CollectorTimeout is the timeout used in the client for communication
 	// with New Relic's servers.
 	CollectorTimeout = 20 * time.Second
@@ -35,15 +35,23 @@ const (
 	maxTxnTraceNodes      = 256
 
 	// harvest data
-	maxMetrics          = 2 * 1000
-	maxCustomEvents     = 10 * 1000
-	maxTxnEvents        = 10 * 1000
+	maxMetrics = 2 * 1000
+	// MaxCustomEvents is the maximum number of Transaction Events that can be captured
+	// per 60-second harvest cycle
+	MaxCustomEvents = 10 * 1000
+	// MaxTxnEvents is the maximum number of Transaction Events that can be captured
+	// per 60-second harvest cycle
+	MaxTxnEvents        = 10 * 1000
 	maxRegularTraces    = 1
 	maxSyntheticsTraces = 20
-	maxErrorEvents      = 100
-	maxHarvestErrors    = 20
-	maxHarvestSlowSQLs  = 10
-	maxSpanEvents       = 1000
+	// MaxErrorEvents is the maximum number of Error Events that can be captured
+	// per 60-second harvest cycle
+	MaxErrorEvents     = 100
+	maxHarvestErrors   = 20
+	maxHarvestSlowSQLs = 10
+	// MaxSpanEvents is the maximum number of Span Events that can be captured
+	// per 60-second harvest cycle
+	MaxSpanEvents = 1000
 
 	// attributes
 	attributeKeyLengthLimit   = 255
@@ -52,7 +60,6 @@ const (
 	// AttributeErrorLimit limits the number of extra attributes that can be
 	// provided when noticing an error.
 	AttributeErrorLimit       = 32
-	attributeAgentLimit       = 255 - (attributeUserLimit + AttributeErrorLimit)
 	customEventAttributeLimit = 64
 
 	// Limits affecting Config validation are found in the config package.
