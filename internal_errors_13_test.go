@@ -9,12 +9,16 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
-type socketError struct{}
-
-func (e socketError) Error() string { return "socket error" }
-
 func TestNoticedWrappedError(t *testing.T) {
-	gamma := func() error { return socketError{} }
+	gamma := func() error {
+		return Error{
+			Message: "socket error",
+			Class:   "socketError",
+			Attributes: map[string]interface{}{
+				"zip": "zap",
+			},
+		}
+	}
 	beta := func() error { return fmt.Errorf("problem in beta: %w", gamma()) }
 	alpha := func() error { return fmt.Errorf("problem in alpha: %w", beta()) }
 
@@ -28,13 +32,19 @@ func TestNoticedWrappedError(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "problem in alpha: problem in beta: socket error",
-		Klass:   "newrelic.socketError",
+		Klass:   "socketError",
+		UserAttributes: map[string]interface{}{
+			"zip": "zap",
+		},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "newrelic.socketError",
+			"error.class":     "socketError",
 			"error.message":   "problem in alpha: problem in beta: socket error",
 			"transactionName": "OtherTransaction/Go/hello",
+		},
+		UserAttributes: map[string]interface{}{
+			"zip": "zap",
 		},
 	}})
 	app.ExpectMetrics(t, backgroundErrorMetrics)

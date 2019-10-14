@@ -654,9 +654,13 @@ func TestErrorClass(t *testing.T) {
 	}
 
 	for idx, tc := range testcases {
-		cls := errorClass(tc.Error)
-		if cls != tc.Expect {
-			t.Errorf("testcase %d: expected %s got %s", idx, tc.Expect, cls)
+		data, err := errDataFromError(tc.Error)
+		if err != nil {
+			t.Errorf("testcase %d: got error: %v", idx, err)
+			continue
+		}
+		if data.Klass != tc.Expect {
+			t.Errorf("testcase %d: expected %s got %s", idx, tc.Expect, data.Klass)
 		}
 	}
 }

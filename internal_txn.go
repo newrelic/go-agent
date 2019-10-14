@@ -561,35 +561,71 @@ func errorStackTraceMethod(err error) internal.StackTrace {
 	return nil
 }
 
-func errorClass(err error) string {
-	// If the error implements ErrorClasser, use that.
-	if c := errorClassMethod(err); c != "" {
-		return c
+func errorAttributesMethod(err error) map[string]interface{} {
+	if st, ok := err.(ErrorAttributer); ok {
+		return st.ErrorAttributes()
 	}
-	// Otherwise, if the error's cause implements ErrorClasser, use that.
-	cause := errorCause(err)
-	if c := errorClassMethod(cause); c != "" {
-		return c
-	}
-	// As a final fallback, use the type of the error's cause.
-	return reflect.TypeOf(cause).String()
+	return nil
 }
 
-func errorStackTrace(err error) internal.StackTrace {
-	// If the error implements StackTracer, use that.
-	if st := errorStackTraceMethod(err); nil != st {
-		return st
+func errDataFromError(input error) (data internal.ErrorData, err error) {
+	cause := errorCause(input)
+
+	data = internal.ErrorData{
+		When: time.Now(),
+		Msg:  input.Error(),
 	}
-	// Otherwise, if the error's cause implements StackTracer, use that.
-	cause := errorCause(err)
-	if st := errorStackTraceMethod(cause); nil != st {
-		return st
+
+	if c := errorClassMethod(input); "" != c {
+		// If the error implements ErrorClasser, use that.
+		data.Klass = c
+	} else if c := errorClassMethod(cause); "" != c {
+		// Otherwise, if the error's cause implements ErrorClasser, use that.
+		data.Klass = c
+	} else {
+		// As a final fallback, use the type of the error's cause.
+		data.Klass = reflect.TypeOf(cause).String()
 	}
-	// As a final fallback, generate a StackTrace here.
-	return internal.GetStackTrace()
+
+	if st := errorStackTraceMethod(input); nil != st {
+		// If the error implements StackTracer, use that.
+		data.Stack = st
+	} else if st := errorStackTraceMethod(cause); nil != st {
+		// Otherwise, if the error's cause implements StackTracer, use that.
+		data.Stack = st
+	} else {
+		// As a final fallback, generate a StackTrace here.
+		data.Stack = internal.GetStackTrace()
+	}
+
+	var unvetted map[string]interface{}
+	if ats := errorAttributesMethod(input); nil != ats {
+		// If the error implements ErrorAttributer, use that.
+		unvetted = ats
+	} else {
+		// Otherwise, if the error's cause implements ErrorAttributer, use that.
+		unvetted = errorAttributesMethod(cause)
+	}
+	if unvetted != nil {
+		if len(unvetted) > internal.AttributeErrorLimit {
+			err = errTooManyErrorAttributes
+			return
+		}
+
+		data.ExtraAttributes = make(map[string]interface{})
+		for key, val := range unvetted {
+			val, err = internal.ValidateUserAttribute(key, val)
+			if nil != err {
+				return
+			}
+			data.ExtraAttributes[key] = val
+		}
+	}
+
+	return data, nil
 }
 
-func (txn *txn) NoticeError(err error) error {
+func (txn *txn) NoticeError(input error) error {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -597,34 +633,20 @@ func (txn *txn) NoticeError(err error) error {
 		return errAlreadyEnded
 	}
 
-	if nil == err {
+	if nil == input {
 		return errNilError
 	}
 
-	e := internal.ErrorData{
-		When:  time.Now(),
-		Msg:   err.Error(),
-		Klass: errorClass(err),
-		Stack: errorStackTrace(err),
+	data, err := errDataFromError(input)
+	if nil != err {
+		return err
 	}
 
-	if ea, ok := err.(ErrorAttributer); ok && !txn.Config.HighSecurity && txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
-		unvetted := ea.ErrorAttributes()
-		if len(unvetted) > internal.AttributeErrorLimit {
-			return errTooManyErrorAttributes
-		}
-
-		e.ExtraAttributes = make(map[string]interface{})
-		for key, val := range unvetted {
-			val, errr := internal.ValidateUserAttribute(key, val)
-			if nil != errr {
-				return errr
-			}
-			e.ExtraAttributes[key] = val
-		}
+	if txn.Config.HighSecurity || !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
+		data.ExtraAttributes = nil
 	}
 
-	return txn.noticeErrorInternal(e)
+	return txn.noticeErrorInternal(data)
 }
 
 func (txn *txn) SetName(name string) error {
