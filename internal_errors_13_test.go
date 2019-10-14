@@ -33,6 +33,9 @@ func TestNoticedWrappedError(t *testing.T) {
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "problem in alpha: problem in beta: socket error",
 		Klass:   "socketError",
+		UserAttributes: map[string]interface{}{
+			"zip": "zap",
+		},
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
