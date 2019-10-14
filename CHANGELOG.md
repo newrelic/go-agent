@@ -122,7 +122,7 @@ It can be configured as follows:
     `newrelic.ExternalSegment`s for calls to
     [`Client.Publish`](https://godoc.org/github.com/micro/go-micro/client#Client).
   * [`nrmicro.SubscriberWrapper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro#SubscriberWrapper)
-    updates transaction names and add the attribute `message.routingKey`.
+    updates transaction names and adds the attribute `message.routingKey`.
 
 * Updated the
   [`nrnats`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats)
