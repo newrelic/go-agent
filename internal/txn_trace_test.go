@@ -1148,6 +1148,120 @@ func TestTraceJSON(t *testing.T) {
 	testExpectedJSON(t, expect, string(js))
 }
 
+func TestTraceCatGUID(t *testing.T) {
+	// Test catGUID is properly set in outbound json when CAT is enabled
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{}
+	txndata.TxnTrace.Enabled = true
+	ht := newHarvestTraces()
+	ht.Witness(HarvestTrace{
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  3 * time.Second,
+			TotalTime: 4 * time.Second,
+			FinalName: "WebTransaction/Go/trace",
+			Attrs:     nil,
+			CrossProcess: TxnCrossProcess{
+				Type: 1,
+				GUID: "this is guid",
+			},
+		},
+		Trace: txndata.TxnTrace,
+	})
+
+	expect := `[
+   "12345",
+   [
+      [
+         1417136460000000,
+         3000,
+         "WebTransaction/Go/trace",
+         null,
+         [0,{},{},
+            [
+               0,
+               3000,
+               "ROOT",
+               {},
+               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+            ],
+            {
+               "agentAttributes":{},
+               "userAttributes":{},
+               "intrinsics":{"totalTime":4}
+            }
+         ],"this is guid",null,false,null,""
+      ]
+   ]
+]`
+
+	js, err := ht.Data("12345", start)
+	if nil != err {
+		t.Fatal(err)
+	}
+	testExpectedJSON(t, expect, string(js))
+}
+
+func TestTraceDistributedTracingGUID(t *testing.T) {
+	// Test catGUID is properly set in outbound json when DT is enabled
+	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
+	txndata := &TxnData{}
+	txndata.TxnTrace.Enabled = true
+	ht := newHarvestTraces()
+	ht.Witness(HarvestTrace{
+		TxnEvent: TxnEvent{
+			Start:     start,
+			Duration:  3 * time.Second,
+			TotalTime: 4 * time.Second,
+			FinalName: "WebTransaction/Go/trace",
+			Attrs:     nil,
+			BetterCAT: BetterCAT{
+				Enabled: true,
+				ID:      "this is guid",
+			},
+		},
+		Trace: txndata.TxnTrace,
+	})
+
+	expect := `[
+   "12345",
+   [
+      [
+         1417136460000000,
+         3000,
+         "WebTransaction/Go/trace",
+         null,
+         [0,{},{},
+            [
+               0,
+               3000,
+               "ROOT",
+               {},
+               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+            ],
+            {
+               "agentAttributes":{},
+               "userAttributes":{},
+               "intrinsics":{
+				   "totalTime":4,
+				   "guid":"this is guid",
+				   "traceId":"this is guid",
+				   "priority":0.000000,
+				   "sampled":false
+			   }
+            }
+         ],"this is guid",null,false,null,""
+      ]
+   ]
+]`
+
+	js, err := ht.Data("12345", start)
+	if nil != err {
+		t.Fatal(err)
+	}
+	testExpectedJSON(t, expect, string(js))
+}
+
 func BenchmarkWitnessNode(b *testing.B) {
 	trace := &TxnTrace{
 		Enabled:             true,
