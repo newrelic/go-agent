@@ -62,8 +62,12 @@ func TestStackTrace(t *testing.T) {
 	}
 
 	for idx, tc := range testcases {
-		st := errorStackTrace(tc.Error)
-		fn := topFrameFunction(st)
+		data, err := errDataFromError(tc.Error)
+		if err != nil {
+			t.Errorf("testcase %d: got error: %v", idx, err)
+			continue
+		}
+		fn := topFrameFunction(data.Stack)
 		if !strings.Contains(fn, tc.ExpectTopFrame) {
 			t.Errorf("testcase %d: expected %s got %s",
 				idx, tc.ExpectTopFrame, fn)
