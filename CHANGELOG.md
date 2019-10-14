@@ -98,7 +98,7 @@
   In this example, the topmost stack trace frame recorded is `"gamma"`,
   rather than `"execute"`.
   
-* Added support for configuring a maximum number of transaction events per minute to be set to New Relic.
+* Added support for configuring a maximum number of transaction events per minute to be sent to New Relic.
 It can be configured as follows:
   
   ```go
