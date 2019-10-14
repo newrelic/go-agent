@@ -97,6 +97,16 @@
 
   In this example, the topmost stack trace frame recorded is `"gamma"`,
   rather than `"execute"`.
+  
+* Added support for configuring a maximum number of transaction events per minute to be set to New Relic.
+It can be configured as follows:
+  
+  ```go
+  config := newrelic.NewConfig("Application Name", os.Getenv("NEW_RELIC_LICENSE_KEY"))  
+  config.TransactionEvents.MaxSamplesStored = 100
+  ```
+    * For additional configuration information, see our [documentation](https://docs.newrelic.com/docs/agents/go-agent/configuration/go-agent-configuration)
+    
 
 ### Miscellaneous
 
