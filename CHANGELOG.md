@@ -1,9 +1,11 @@
 ## ChangeLog
 
+## 2.14.0
+
 ### New Features
 
 * Added support for a new segment type,
-  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment), 
+  [`MessageProducerSegment`](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment),
   to be used to track time spent adding messages to message queuing systems like
   RabbitMQ or Kafka.
 
