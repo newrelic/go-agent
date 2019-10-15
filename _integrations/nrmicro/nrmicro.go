@@ -13,6 +13,7 @@ import (
 	"github.com/micro/go-micro/server"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 type nrWrapper struct {
@@ -197,7 +198,7 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 			}
 			txn := app.StartTransaction(namer.Name(), nil, nil)
 			defer txn.End()
-			txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, m.Topic(), nil)
+			integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, m.Topic(), nil)
 			md, ok := metadata.FromContext(ctx)
 			if ok {
 				txn.AcceptDistributedTracePayload(newrelic.TransportHTTP, md[newrelic.DistributedTracePayloadHeader])

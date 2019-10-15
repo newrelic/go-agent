@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
-	agentinternal "github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 type contextKeyType struct{}
@@ -81,8 +81,8 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 		segment = newrelic.StartExternalSegment(txn, input.HTTPRequest)
 	}
 
-	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, input.Operation)
-	agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRegion, input.Region)
+	integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, input.Operation)
+	integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRegion, input.Region)
 
 	ctx := context.WithValue(httpCtx, segmentContextKey, segment)
 	return input.HTTPRequest.WithContext(ctx)
@@ -93,7 +93,7 @@ func EndSegment(ctx context.Context, hdr http.Header) {
 	if segment, ok := ctx.Value(segmentContextKey).(endable); ok {
 		if id := getRequestID(hdr); "" != id {
 			txn := newrelic.FromContext(ctx)
-			agentinternal.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRequestID, id)
+			integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRequestID, id)
 		}
 		segment.End()
 	}

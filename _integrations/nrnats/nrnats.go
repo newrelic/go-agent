@@ -3,9 +3,10 @@ package nrnats
 import (
 	"strings"
 
-	"github.com/nats-io/nats.go"
+	nats "github.com/nats-io/nats.go"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 // StartPublishSegment creates and starts a `newrelic.MessageProducerSegment`
@@ -53,9 +54,9 @@ func SubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.
 		txn := app.StartTransaction(namer.Name(), nil, nil)
 		defer txn.End()
 
-		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
-		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageQueueName, msg.Sub.Queue, nil)
-		txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, msg.Reply, nil)
+		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
+		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageQueueName, msg.Sub.Queue, nil)
+		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageReplyTo, msg.Reply, nil)
 
 		f(msg)
 	}
