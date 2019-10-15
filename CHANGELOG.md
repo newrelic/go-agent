@@ -1,5 +1,8 @@
 ## ChangeLog
 
+* Removed the hidden `"NEW_RELIC_DEBUG_LOGGING"` environment variable setting
+  which was broken in release 2.14.0.
+
 ## 2.14.0
 
 ### New Features
@@ -99,16 +102,16 @@
 
   In this example, the topmost stack trace frame recorded is `"gamma"`,
   rather than `"execute"`.
-  
+
 * Added support for configuring a maximum number of transaction events per minute to be sent to New Relic.
 It can be configured as follows:
-  
+
   ```go
   config := newrelic.NewConfig("Application Name", os.Getenv("NEW_RELIC_LICENSE_KEY"))  
   config.TransactionEvents.MaxSamplesStored = 100
   ```
     * For additional configuration information, see our [documentation](https://docs.newrelic.com/docs/agents/go-agent/configuration/go-agent-configuration)
-    
+
 
 ### Miscellaneous
 
