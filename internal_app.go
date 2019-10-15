@@ -15,14 +15,6 @@ import (
 	"github.com/newrelic/go-agent/internal/logger"
 )
 
-var (
-	// NEW_RELIC_DEBUG_LOGGING can be set to anything to enable additional
-	// debug logging: the agent will log every transaction's data at info
-	// level.
-	envDebugLogging = "NEW_RELIC_DEBUG_LOGGING"
-	debugLogging    = os.Getenv(envDebugLogging)
-)
-
 type dataConsumer interface {
 	Consume(internal.AgentRunID, internal.Harvestable)
 }
@@ -168,31 +160,6 @@ func getConnectBackoffTime(attempt int) int {
 		return connectBackoffTimes[l-1]
 	}
 	return connectBackoffTimes[attempt]
-}
-
-func debug(data internal.Harvestable, lg Logger) {
-	now := time.Now()
-	h := internal.NewHarvest(now, &internal.DfltHarvestCfgr{})
-	data.MergeIntoHarvest(h)
-	ps := h.Payloads(false)
-	for _, p := range ps {
-		cmd := p.EndpointMethod()
-		d, err := p.Data("agent run id", now)
-		if nil == d && nil == err {
-			continue
-		}
-		if nil != err {
-			lg.Info("integration", map[string]interface{}{
-				"cmd":   cmd,
-				"error": err.Error(),
-			})
-			continue
-		}
-		lg.Info("integration", map[string]interface{}{
-			"cmd":  cmd,
-			"data": internal.JSONString(d),
-		})
-	}
 }
 
 func processConnectMessages(run *appRun, lg Logger) {
@@ -536,9 +503,6 @@ func (app *app) ServerlessWrite(arn string, writer io.Writer) {
 }
 
 func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
-	if "" != debugLogging {
-		debug(data, app)
-	}
 
 	app.serverless.Consume(data)
 
