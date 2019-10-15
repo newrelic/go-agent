@@ -40,7 +40,7 @@ func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string
 // https://godoc.org/github.com/nats-io/go-nats#EncodedConn.QueueSubscribe)
 // If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
 // when the passed function is complete.
-func SubWrapper(app newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
+func SubWrapper(app *newrelic.Application, f func(msg *nats.Msg)) func(msg *nats.Msg) {
 	if app == nil {
 		return f
 	}

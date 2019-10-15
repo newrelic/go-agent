@@ -71,7 +71,7 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 		requestID = lctx.AwsRequestID
 	}
 
-	defer internal.ServerlessWrite(h.app, arn, h.writer)
+	defer internal.ServerlessWrite(h.app.Private, arn, h.writer)
 
 	txn := h.app.StartTransaction(h.functionName, nil, nil)
 	defer txn.End()
@@ -99,7 +99,7 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 
 type wrappedHandler struct {
 	original lambda.Handler
-	app      newrelic.Application
+	app      *newrelic.Application
 	// functionName is copied from lambdacontext.FunctionName for
 	// deterministic tests that don't depend on environment variables.
 	functionName string
@@ -116,7 +116,7 @@ type wrappedHandler struct {
 // instrumentation. StartHandler should generally be used in place of
 // WrapHandler: this function is exposed for consumers who are chaining
 // middlewares.
-func WrapHandler(handler lambda.Handler, app newrelic.Application) lambda.Handler {
+func WrapHandler(handler lambda.Handler, app *newrelic.Application) lambda.Handler {
 	if nil == app {
 		return handler
 	}
@@ -130,7 +130,7 @@ func WrapHandler(handler lambda.Handler, app newrelic.Application) lambda.Handle
 
 // Wrap wraps the provided handler and returns a new handler with
 // instrumentation.  Start should generally be used in place of Wrap.
-func Wrap(handler interface{}, app newrelic.Application) lambda.Handler {
+func Wrap(handler interface{}, app *newrelic.Application) lambda.Handler {
 	return WrapHandler(lambda.NewHandler(handler), app)
 }
 
@@ -142,7 +142,7 @@ func Wrap(handler interface{}, app newrelic.Application) lambda.Handler {
 //
 //	nrlambda.Start(myhandler, app)
 //
-func Start(handler interface{}, app newrelic.Application) {
+func Start(handler interface{}, app *newrelic.Application) {
 	lambda.StartHandler(Wrap(handler, app))
 }
 
@@ -154,6 +154,6 @@ func Start(handler interface{}, app newrelic.Application) {
 //
 //	nrlambda.StartHandler(myhandler, app)
 //
-func StartHandler(handler lambda.Handler, app newrelic.Application) {
+func StartHandler(handler lambda.Handler, app *newrelic.Application) {
 	lambda.StartHandler(WrapHandler(handler, app))
 }

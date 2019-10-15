@@ -103,7 +103,7 @@ type Transaction interface {
 	AcceptDistributedTracePayload(t TransportType, payload interface{}) error
 
 	// Application returns the Application which started the transaction.
-	Application() Application
+	Application() *Application
 
 	// BrowserTimingHeader generates the JavaScript required to enable New
 	// Relic's Browser product.  This code should be placed into your pages

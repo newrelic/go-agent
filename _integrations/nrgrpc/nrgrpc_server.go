@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func startTransaction(ctx context.Context, app newrelic.Application, fullMethod string) newrelic.Transaction {
+func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod string) newrelic.Transaction {
 	method := strings.TrimPrefix(fullMethod, "/")
 
 	var hdrs http.Header
@@ -57,7 +57,7 @@ func startTransaction(ctx context.Context, app newrelic.Application, fullMethod 
 // Full example:
 // https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/server/server.go
 //
-func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
+func UnaryServerInterceptor(app *newrelic.Application) grpc.UnaryServerInterceptor {
 	if nil == app {
 		return nil
 	}
@@ -113,7 +113,7 @@ func newWrappedServerStream(stream grpc.ServerStream, txn newrelic.Transaction) 
 // Full example:
 // https://github.com/newrelic/go-agent/blob/master/_integrations/nrgrpc/example/server/server.go
 //
-func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
+func StreamServerInterceptor(app *newrelic.Application) grpc.StreamServerInterceptor {
 	if nil == app {
 		return nil
 	}

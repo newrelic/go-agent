@@ -11,7 +11,7 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrnats"
 )
 
-var app newrelic.Application
+var app *newrelic.Application
 
 func doAsync(nc *nats.Conn, txn newrelic.Transaction) {
 	wg := sync.WaitGroup{}

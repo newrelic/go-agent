@@ -14,7 +14,7 @@ func TestWrapHandlerContext(t *testing.T) {
 	// context, and that it is accessible through FromContext.
 
 	app := testApp(nil, nil, t)
-	_, h := WrapHandleFunc(app, "myTxn", func(rw http.ResponseWriter, r *http.Request) {
+	_, h := WrapHandleFunc(app.Application, "myTxn", func(rw http.ResponseWriter, r *http.Request) {
 		txn := FromContext(r.Context())
 		segment := StartSegment(txn, "mySegment")
 		segment.End()

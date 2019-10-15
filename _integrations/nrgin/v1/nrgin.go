@@ -97,7 +97,7 @@ func Transaction(c Context) newrelic.Transaction {
 //	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
-func Middleware(app newrelic.Application) gin.HandlerFunc {
+func Middleware(app *newrelic.Application) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
 			name := c.HandlerName()

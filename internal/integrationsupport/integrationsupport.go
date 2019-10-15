@@ -28,9 +28,9 @@ const (
 )
 
 // ExpectApp combines Application and Expect, for use in validating data in test apps
-type ExpectApp interface {
+type ExpectApp struct {
 	internal.Expect
-	newrelic.Application
+	*newrelic.Application
 }
 
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
@@ -54,7 +54,10 @@ func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn func(*newrelic.Confi
 
 	internal.HarvestTesting(app, replyfn)
 
-	return app.(ExpectApp)
+	return ExpectApp{
+		Expect:      app.Private.(internal.Expect),
+		Application: app,
+	}
 }
 
 // NewBasicTestApp creates an ExpectApp with the standard testing connect reply function and config

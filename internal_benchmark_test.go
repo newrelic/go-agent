@@ -32,29 +32,7 @@ func BenchmarkMuxWithoutNewRelic(b *testing.B) {
 func BenchmarkMuxWithNewRelic(b *testing.B) {
 	app := testApp(nil, nil, b)
 	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, handler))
-
-	w := newCompatibleResponseRecorder()
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	for i := 0; i < b.N; i++ {
-		mux.ServeHTTP(w, helloRequest)
-	}
-}
-
-// BenchmarkMuxWithNewRelic shows the overhead of instrumenting a request when
-// the agent is disabled.
-func BenchmarkMuxDisabledMode(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	app, err := newApp(cfg)
-	if nil != err {
-		b.Fatal(err)
-	}
-	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, handler))
+	mux.HandleFunc(WrapHandleFunc(app.Application, helloPath, handler))
 
 	w := newCompatibleResponseRecorder()
 

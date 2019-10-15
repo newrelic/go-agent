@@ -33,7 +33,7 @@ func dataShouldContain(tb testing.TB, data map[string]json.RawMessage, keys ...s
 	}
 }
 
-func testApp(getenv func(string) string, t *testing.T) newrelic.Application {
+func testApp(getenv func(string) string, t *testing.T) *newrelic.Application {
 	if nil == getenv {
 		getenv = func(string) string { return "" }
 	}
@@ -43,7 +43,7 @@ func testApp(getenv func(string) string, t *testing.T) newrelic.Application {
 	if nil != err {
 		t.Fatal(err)
 	}
-	internal.HarvestTesting(app, nil)
+	internal.HarvestTesting(app.Private, nil)
 	return app
 }
 
@@ -80,7 +80,7 @@ func TestColdStart(t *testing.T) {
 	if nil != err || string(resp) != "null" {
 		t.Error("unexpected response", err, string(resp))
 	}
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/functionName",
 			"guid":     internal.MatchAnything,
@@ -107,12 +107,12 @@ func TestColdStart(t *testing.T) {
 	// Invoke the handler again to test the cold-start attribute absence.
 	buf = &bytes.Buffer{}
 	w.writer = buf
-	internal.HarvestTesting(app, nil)
+	internal.HarvestTesting(app.Private, nil)
 	resp, err = wrapped.Invoke(ctx, nil)
 	if nil != err || string(resp) != "null" {
 		t.Error("unexpected response", err, string(resp))
 	}
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/functionName",
 			"guid":     internal.MatchAnything,
@@ -150,7 +150,7 @@ func TestErrorCapture(t *testing.T) {
 	if err != returnError || string(resp) != "" {
 		t.Error(err, string(resp))
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/functionName", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/functionName", Scope: "", Forced: false, Data: nil},
@@ -164,7 +164,7 @@ func TestErrorCapture(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/functionName",
 			"guid":     internal.MatchAnything,
@@ -221,7 +221,7 @@ func TestSetWebRequest(t *testing.T) {
 	if err != nil {
 		t.Error(err, string(resp))
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/functionName", Scope: "", Forced: false, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -232,7 +232,7 @@ func TestSetWebRequest(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/functionName",
 			"nr.apdexPerfZone": "S",
@@ -254,7 +254,7 @@ func TestSetWebRequest(t *testing.T) {
 	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
-func makePayload(app newrelic.Application) string {
+func makePayload(app *newrelic.Application) string {
 	txn := app.StartTransaction("hello", nil, nil)
 	return txn.CreateDistributedTracePayload().Text()
 }
@@ -284,7 +284,7 @@ func TestDistributedTracing(t *testing.T) {
 	if err != nil {
 		t.Error(err, string(resp))
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/functionName", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/App/1/1/HTTPS/all", Scope: "", Forced: false, Data: nil},
@@ -298,7 +298,7 @@ func TestDistributedTracing(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/functionName", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":                     "WebTransaction/Go/functionName",
 			"nr.apdexPerfZone":         "S",
@@ -351,7 +351,7 @@ func TestEventARN(t *testing.T) {
 	if err != nil {
 		t.Error(err, string(resp))
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/Go/functionName", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -359,7 +359,7 @@ func TestEventARN(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/functionName",
 			"guid":     internal.MatchAnything,
@@ -406,7 +406,7 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 		t.Error("unexpected response", string(resp))
 	}
 
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/functionName",
 			"guid":     internal.MatchAnything,
@@ -447,7 +447,7 @@ func TestCustomEvent(t *testing.T) {
 	if nil != err || string(resp) != "null" {
 		t.Error("unexpected response", err, string(resp))
 	}
-	app.(internal.Expect).ExpectCustomEvents(t, []internal.WantEvent{{
+	app.Private.(internal.Expect).ExpectCustomEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"type":      "myEvent",
 			"timestamp": internal.MatchAnything,

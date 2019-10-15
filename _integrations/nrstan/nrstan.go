@@ -11,7 +11,7 @@ import (
 // (https://godoc.org/github.com/nats-io/stan.go#Conn)
 // If the `newrelic.Application` parameter is non-nil, it will create a `newrelic.Transaction` and end the transaction
 // when the passed function is complete.
-func StreamingSubWrapper(app newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {
+func StreamingSubWrapper(app *newrelic.Application, f func(msg *stan.Msg)) func(msg *stan.Msg) {
 	if app == nil {
 		return f
 	}

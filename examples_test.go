@@ -84,7 +84,7 @@ func ExampleNewRoundTripper() {
 	client.Do(request)
 }
 
-func getApp() Application {
+func getApp() *Application {
 	return nil
 }
 

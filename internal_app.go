@@ -255,6 +255,9 @@ func (app *app) process() {
 }
 
 func (app *app) Shutdown(timeout time.Duration) {
+	if nil == app {
+		return
+	}
 	if !app.config.Enabled {
 		return
 	}
@@ -301,6 +304,9 @@ func runSampler(app *app, period time.Duration) {
 }
 
 func (app *app) WaitForConnection(timeout time.Duration) error {
+	if nil == app {
+		return nil
+	}
 	if !app.config.Enabled {
 		return nil
 	}
@@ -325,7 +331,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 	}
 }
 
-func newApp(c Config) (Application, error) {
+func newApp(c Config) (*app, error) {
 	c = copyConfigReferenceFields(c)
 	if err := c.Validate(); nil != err {
 		return nil, err
@@ -416,6 +422,9 @@ func (app *app) setState(run *appRun, err error) {
 
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
+	if nil == app {
+		return nil
+	}
 	run, _ := app.getState()
 	txn := upgradeTxn(newTxn(txnInput{
 		app:      app,
@@ -438,6 +447,9 @@ var (
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
+	if nil == app {
+		return nil
+	}
 	if app.config.HighSecurity {
 		return errHighSecurityEnabled
 	}
@@ -474,6 +486,9 @@ var (
 
 // RecordCustomMetric implements newrelic.Application's RecordCustomMetric.
 func (app *app) RecordCustomMetric(name string, value float64) error {
+	if nil == app {
+		return nil
+	}
 	if app.config.ServerlessMode.Enabled {
 		return errMetricServerless
 	}

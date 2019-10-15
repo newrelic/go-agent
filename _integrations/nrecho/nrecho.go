@@ -48,7 +48,7 @@ func transactionName(c echo.Context) string {
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
 //
-func Middleware(app newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
+func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
 
 	if nil == app {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {

@@ -25,7 +25,7 @@ import (
 //	}
 //
 // This function is safe to call if app is nil.
-func WrapHandle(app Application, pattern string, handler http.Handler) (string, http.Handler) {
+func WrapHandle(app *Application, pattern string, handler http.Handler) (string, http.Handler) {
 	if app == nil {
 		return pattern, handler
 	}
@@ -63,7 +63,7 @@ func WrapHandle(app Application, pattern string, handler http.Handler) (string, 
 //	}))
 //
 // This function is safe to call if app is nil.
-func WrapHandleFunc(app Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
+func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }

@@ -154,7 +154,7 @@ func TestContextTransaction(t *testing.T) {
 }
 
 func TestNilApp(t *testing.T) {
-	var app newrelic.Application
+	var app *newrelic.Application
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/hello", hello)

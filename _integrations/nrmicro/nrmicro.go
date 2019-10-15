@@ -145,7 +145,7 @@ func CallWrapper() client.CallWrapper {
 // are recorded as errors. A 500 response code and corresponding error is
 // recorded when the error is of any other type. A 200 response code is
 // recorded if no error is returned.
-func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
+func HandlerWrapper(app *newrelic.Application) server.HandlerWrapper {
 	return func(fn server.HandlerFunc) server.HandlerFunc {
 		if app == nil {
 			return fn
@@ -184,7 +184,7 @@ func HandlerWrapper(app newrelic.Application) server.HandlerWrapper {
 // (https://godoc.org/github.com/micro/go-micro/server#Message).
 //
 // If a Subscriber returns an error, it will be recorded and reported.
-func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
+func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 	return func(fn server.SubscriberFunc) server.SubscriberFunc {
 		if app == nil {
 			return fn
@@ -213,7 +213,7 @@ func SubscriberWrapper(app newrelic.Application) server.SubscriberWrapper {
 	}
 }
 
-func startWebTransaction(ctx context.Context, app newrelic.Application, req server.Request) newrelic.Transaction {
+func startWebTransaction(ctx context.Context, app *newrelic.Application, req server.Request) newrelic.Transaction {
 	var hdrs http.Header
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))

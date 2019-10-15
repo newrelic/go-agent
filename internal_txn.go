@@ -16,7 +16,7 @@ import (
 type txnInput struct {
 	// This ResponseWriter should only be accessed using txn.getWriter()
 	writer   http.ResponseWriter
-	app      Application
+	app      *app
 	Consumer dataConsumer
 	*appRun
 }
@@ -1174,8 +1174,8 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 	return nil
 }
 
-func (txn *txn) Application() Application {
-	return txn.app
+func (txn *txn) Application() *Application {
+	return newApplication(txn.app)
 }
 
 func (thd *thread) AddAgentSpanAttribute(key internal.SpanAttribute, val string) {

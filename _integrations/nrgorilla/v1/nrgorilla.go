@@ -19,7 +19,7 @@ func init() { internal.TrackUsage("integration", "framework", "gorilla", "v1") }
 
 type instrumentedHandler struct {
 	name string
-	app  newrelic.Application
+	app  *newrelic.Application
 	orig http.Handler
 }
 
@@ -32,7 +32,7 @@ func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.orig.ServeHTTP(txn, r)
 }
 
-func instrumentRoute(h http.Handler, app newrelic.Application, name string) http.Handler {
+func instrumentRoute(h http.Handler, app *newrelic.Application, name string) http.Handler {
 	if _, ok := h.(instrumentedHandler); ok {
 		return h
 	}
@@ -59,7 +59,7 @@ func routeName(route *mux.Route) string {
 
 // InstrumentRoutes instruments requests through the provided mux.Router.  Use
 // this after the routes have been added to the router.
-func InstrumentRoutes(r *mux.Router, app newrelic.Application) *mux.Router {
+func InstrumentRoutes(r *mux.Router, app *newrelic.Application) *mux.Router {
 	if app != nil {
 		r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 			h := instrumentRoute(route.GetHandler(), app, routeName(route))

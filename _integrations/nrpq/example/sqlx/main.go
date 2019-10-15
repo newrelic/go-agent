@@ -94,7 +94,7 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func createApp() newrelic.Application {
+func createApp() *newrelic.Application {
 	cfg := newrelic.NewConfig("SQLx", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	app, err := newrelic.NewApplication(cfg)

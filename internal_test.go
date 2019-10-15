@@ -136,9 +136,40 @@ const (
 	testLicenseKey = "0123456789012345678901234567890123456789"
 )
 
-type expectApp interface {
+type expectApp struct {
+	*Application
 	internal.Expect
-	Application
+}
+
+func (ea expectApp) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
+	ea.Application.Private.(internal.Expect).ExpectCustomEvents(t, want)
+}
+func (ea expectApp) ExpectErrors(t internal.Validator, want []internal.WantError) {
+	ea.Application.Private.(internal.Expect).ExpectErrors(t, want)
+}
+func (ea expectApp) ExpectErrorEvents(t internal.Validator, want []internal.WantEvent) {
+	ea.Application.Private.(internal.Expect).ExpectErrorEvents(t, want)
+}
+func (ea expectApp) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
+	ea.Application.Private.(internal.Expect).ExpectTxnEvents(t, want)
+}
+func (ea expectApp) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
+	ea.Application.Private.(internal.Expect).ExpectMetrics(t, want)
+}
+func (ea expectApp) ExpectMetricsPresent(t internal.Validator, want []internal.WantMetric) {
+	ea.Application.Private.(internal.Expect).ExpectMetricsPresent(t, want)
+}
+func (ea expectApp) ExpectTxnMetrics(t internal.Validator, want internal.WantTxn) {
+	ea.Application.Private.(internal.Expect).ExpectTxnMetrics(t, want)
+}
+func (ea expectApp) ExpectTxnTraces(t internal.Validator, want []internal.WantTxnTrace) {
+	ea.Application.Private.(internal.Expect).ExpectTxnTraces(t, want)
+}
+func (ea expectApp) ExpectSlowQueries(t internal.Validator, want []internal.WantSlowQuery) {
+	ea.Application.Private.(internal.Expect).ExpectSlowQueries(t, want)
+}
+func (ea expectApp) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
+	ea.Application.Private.(internal.Expect).ExpectSpanEvents(t, want)
 }
 
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
@@ -153,14 +184,16 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 		cfg.Enabled = false
 	}
 
-	app, err := newApp(cfg)
+	app, err := NewApplication(cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
 
-	internal.HarvestTesting(app, replyfn)
+	internal.HarvestTesting(app.Private, replyfn)
 
-	return app.(expectApp)
+	return expectApp{
+		Application: app,
+	}
 }
 
 func TestRecordCustomEventSuccess(t *testing.T) {
@@ -364,7 +397,7 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 func TestWrapHandleFunc(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app, helloPath, myErrorHandler))
+	mux.HandleFunc(WrapHandleFunc(app.Application, helloPath, myErrorHandler))
 	w := newCompatibleResponseRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
@@ -394,7 +427,7 @@ func TestWrapHandleFunc(t *testing.T) {
 func TestWrapHandle(t *testing.T) {
 	app := testApp(nil, nil, t)
 	mux := http.NewServeMux()
-	mux.Handle(WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
+	mux.Handle(WrapHandle(app.Application, helloPath, http.HandlerFunc(myErrorHandler)))
 	w := newCompatibleResponseRecorder()
 	mux.ServeHTTP(w, helloRequest)
 
@@ -422,7 +455,7 @@ func TestWrapHandle(t *testing.T) {
 }
 
 func TestWrapHandleNilApp(t *testing.T) {
-	var app Application
+	var app *Application
 	mux := http.NewServeMux()
 	mux.Handle(WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
 	w := newCompatibleResponseRecorder()
@@ -1938,7 +1971,7 @@ func TestTransactionApplication(t *testing.T) {
 		t.Error(err)
 	}
 	expectData := []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}
-	app.(expectApp).ExpectMetrics(t, []internal.WantMetric{
+	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
 	})
 }

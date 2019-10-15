@@ -230,7 +230,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	// distributed tracing transport if a distributed tracing header is
 	// found in the WebRequest.Header().
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	payload := makePayload(app, nil)
+	payload := makePayload(app.Application, nil)
 	// Copy sampleCustomRequest to avoid modifying it since it is used in
 	// other tests.
 	req := sampleCustomRequest

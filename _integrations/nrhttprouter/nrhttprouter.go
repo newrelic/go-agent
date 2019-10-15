@@ -51,11 +51,11 @@ func init() { internal.TrackUsage("integration", "framework", "httprouter") }
 type Router struct {
 	*httprouter.Router
 
-	application newrelic.Application
+	application *newrelic.Application
 }
 
 // New creates a new Router to be used in place of httprouter.Router.
-func New(app newrelic.Application) *Router {
+func New(app *newrelic.Application) *Router {
 	return &Router{
 		Router:      httprouter.New(),
 		application: app,

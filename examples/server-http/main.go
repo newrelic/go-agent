@@ -13,7 +13,7 @@ import (
 )
 
 type handler struct {
-	App newrelic.Application
+	App *newrelic.Application
 }
 
 func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
@@ -46,7 +46,7 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func makeApplication() (newrelic.Application, error) {
+func makeApplication() (*newrelic.Application, error) {
 	cfg := newrelic.NewConfig("HTTP Server App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	cfg.DistributedTracer.Enabled = true

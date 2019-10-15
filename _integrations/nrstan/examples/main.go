@@ -12,7 +12,7 @@ import (
 	"github.com/newrelic/go-agent/_integrations/nrstan"
 )
 
-var app newrelic.Application
+var app *newrelic.Application
 
 func doAsync(sc stan.Conn, txn newrelic.Transaction) {
 	wg := sync.WaitGroup{}

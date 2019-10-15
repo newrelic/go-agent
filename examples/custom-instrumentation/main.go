@@ -28,7 +28,7 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func called(app newrelic.Application, payload string) {
+func called(app *newrelic.Application, payload string) {
 	txn := app.StartTransaction("called-txn", nil, nil)
 	defer txn.End()
 
@@ -37,7 +37,7 @@ func called(app newrelic.Application, payload string) {
 	time.Sleep(1 * time.Second)
 }
 
-func calling(app newrelic.Application) {
+func calling(app *newrelic.Application) {
 	txn := app.StartTransaction("calling-txn", nil, nil)
 	defer txn.End()
 
@@ -51,7 +51,7 @@ func calling(app newrelic.Application) {
 	time.Sleep(1 * time.Second)
 }
 
-func makeApplication(name string) (newrelic.Application, error) {
+func makeApplication(name string) (*newrelic.Application, error) {
 	cfg := newrelic.NewConfig(name, mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 

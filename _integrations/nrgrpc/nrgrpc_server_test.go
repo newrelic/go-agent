@@ -19,7 +19,7 @@ import (
 // in testing. It adds instrumentation to both. If app is nil, then
 // instrumentation is not applied to the server. Be sure to Stop() the server
 // and Close() the connection when done with them.
-func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server, *grpc.ClientConn) {
+func newTestServerAndConn(t *testing.T, app *newrelic.Application) (*grpc.Server, *grpc.ClientConn) {
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(UnaryServerInterceptor(app)),
 		grpc.StreamInterceptor(StreamServerInterceptor(app)),

@@ -111,7 +111,7 @@ func TestRouteNotFound(t *testing.T) {
 }
 
 func TestNilApp(t *testing.T) {
-	var app newrelic.Application
+	var app *newrelic.Application
 	r := mux.NewRouter()
 	r.Handle("/alpha", makeHandler("alpha response"))
 	InstrumentRoutes(r, app)
