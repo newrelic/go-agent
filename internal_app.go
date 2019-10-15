@@ -172,7 +172,7 @@ func getConnectBackoffTime(attempt int) int {
 
 func debug(data internal.Harvestable, lg Logger) {
 	now := time.Now()
-	h := internal.NewHarvest(now, nil)
+	h := internal.NewHarvest(now, &internal.DfltHarvestCfgr{})
 	data.MergeIntoHarvest(h)
 	ps := h.Payloads(false)
 	for _, p := range ps {
