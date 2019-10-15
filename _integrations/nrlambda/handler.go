@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 type response struct {
@@ -43,10 +44,8 @@ func requestEvent(ctx context.Context, event interface{}) {
 		return
 	}
 
-	if aa, ok := txn.(internal.AddAgentAttributer); ok {
-		if sourceARN := getEventSourceARN(event); "" != sourceARN {
-			aa.AddAgentAttribute(internal.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
-		}
+	if sourceARN := getEventSourceARN(event); "" != sourceARN {
+		integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
 	}
 
 	if request := eventWebRequest(event); nil != request {
@@ -77,13 +76,11 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 	txn := h.app.StartTransaction(h.functionName, nil, nil)
 	defer txn.End()
 
-	if aa, ok := txn.(internal.AddAgentAttributer); ok {
-		aa.AddAgentAttribute(internal.AttributeAWSRequestID, requestID, nil)
-		aa.AddAgentAttribute(internal.AttributeAWSLambdaARN, arn, nil)
-		h.firstTransaction.Do(func() {
-			aa.AddAgentAttribute(internal.AttributeAWSLambdaColdStart, "", true)
-		})
-	}
+	integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSRequestID, requestID, nil)
+	integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaARN, arn, nil)
+	h.firstTransaction.Do(func() {
+		integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaColdStart, "", true)
+	})
 
 	ctx = newrelic.NewContext(ctx, txn)
 	ctx = handlertrace.NewContext(ctx, handlertrace.HandlerTrace{
