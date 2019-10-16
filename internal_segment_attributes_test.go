@@ -25,7 +25,7 @@ func TestTraceSegments(t *testing.T) {
 
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
@@ -107,7 +107,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
@@ -180,7 +180,7 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	basicSegment.End()
 	txn.End()
@@ -235,7 +235,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
@@ -315,7 +315,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
@@ -375,7 +375,7 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(crossProcessReplyFn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
@@ -446,7 +446,7 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(crossProcessReplyFn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	basicSegment := StartSegment(txn, "basic")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()

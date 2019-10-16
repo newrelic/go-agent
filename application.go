@@ -1,7 +1,6 @@
 package newrelic
 
 import (
-	"net/http"
 	"time"
 )
 
@@ -21,11 +20,11 @@ type Application struct {
 //   interface.  Provide your ResponseWriter as a parameter and
 //   then use the Transaction in its place to instrument the response
 //   code and response headers.
-func (app *Application) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
+func (app *Application) StartTransaction(name string) Transaction {
 	if nil == app {
 		return nil
 	}
-	return app.app.StartTransaction(name, w, r)
+	return app.app.StartTransaction(name)
 }
 
 // RecordCustomEvent adds a custom event.

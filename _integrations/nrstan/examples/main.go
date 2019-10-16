@@ -92,7 +92,7 @@ func main() {
 	if nil != err {
 		panic(err)
 	}
-	txn := app.StartTransaction("main", nil, nil)
+	txn := app.StartTransaction("main")
 	defer txn.End()
 
 	// Connect to a server

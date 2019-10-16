@@ -316,7 +316,7 @@ func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
 		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
 		t.Error(metadata.SpanID)
@@ -335,7 +335,7 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "bcfb32e050b264b8" {
 		t.Error(metadata.SpanID)
@@ -365,7 +365,7 @@ func TestGetTraceMetadataEnded(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
@@ -385,7 +385,7 @@ func TestGetTraceMetadataNotSampled(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
 		t.Error(metadata.SpanID)
@@ -405,7 +405,7 @@ func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 		cfg.SpanEvents.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
 		t.Error(metadata.SpanID)
@@ -427,11 +427,11 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
+	payload := app.StartTransaction("hello").CreateDistributedTracePayload()
 	p := payload.(internal.Payload)
 	p.TracedID = "trace-id"
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if nil != err {
 		t.Error(err)
@@ -456,7 +456,7 @@ func TestGetLinkingMetadata(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	metadata := txn.GetLinkingMetadata()
 	host, _ := sysinfo.Hostname()
@@ -495,7 +495,7 @@ func TestGetLinkingMetadataAppNames(t *testing.T) {
 			cfg.AppName = test.appName
 		}
 		app := testApp(nil, cfgfn, t)
-		txn := app.StartTransaction("hello", nil, nil)
+		txn := app.StartTransaction("hello")
 
 		metadata := txn.GetLinkingMetadata()
 		if metadata.EntityName != test.expected {
@@ -512,7 +512,7 @@ func TestIsSampledFalse(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	sampled := txn.IsSampled()
 	if sampled == true {
 		t.Error("txn should not be sampled")
@@ -527,7 +527,7 @@ func TestIsSampledTrue(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	sampled := txn.IsSampled()
 	if sampled == false {
 		t.Error("txn should be sampled")
@@ -544,7 +544,7 @@ func TestIsSampledEnded(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	sampled := txn.IsSampled()
 	if sampled == true {

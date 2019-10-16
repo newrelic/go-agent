@@ -32,7 +32,7 @@ func main() {
 		panic(err)
 	}
 	app.WaitForConnection(5 * time.Second)
-	txn := app.StartTransaction("postgresQuery", nil, nil)
+	txn := app.StartTransaction("postgresQuery")
 
 	ctx := newrelic.NewContext(context.Background(), txn)
 	row := db.QueryRowContext(ctx, "SELECT count(*) FROM pg_catalog.pg_tables")

@@ -28,7 +28,7 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 	url := getURL(method, target)
 
 	webReq := newrelic.NewStaticWebRequest(hdrs, url, method, newrelic.TransportHTTP)
-	txn := app.StartTransaction(method, nil, nil)
+	txn := app.StartTransaction(method)
 	txn.SetWebRequest(webReq)
 
 	return txn

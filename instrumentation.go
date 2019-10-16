@@ -30,12 +30,15 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 		return pattern, handler
 	}
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txn := app.StartTransaction(pattern, w, r)
+		txn := app.StartTransaction(pattern)
 		defer txn.End()
+
+		w = txn.SetWebResponse(w)
+		txn.SetWebRequest(NewWebRequest(r))
 
 		r = RequestWithTransactionContext(r, txn)
 
-		handler.ServeHTTP(txn, r)
+		handler.ServeHTTP(w, r)
 	})
 }
 

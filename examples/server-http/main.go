@@ -19,8 +19,11 @@ type handler struct {
 func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	// The call to StartTransaction must include the response writer and the
 	// request.
-	txn := h.App.StartTransaction("server-txn", writer, req)
+	txn := h.App.StartTransaction("server-txn")
 	defer txn.End()
+
+	writer = txn.SetWebResponse(writer)
+	txn.SetWebRequest(newrelic.NewWebRequest(req))
 
 	if req.URL.String() == "/segments" {
 		defer newrelic.StartSegment(txn, "f1").End()
@@ -35,7 +38,7 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	} else {
 		// Transaction.WriteHeader has to be used instead of invoking
 		// WriteHeader on the response writer.
-		txn.WriteHeader(http.StatusNotFound)
+		writer.WriteHeader(http.StatusNotFound)
 	}
 }
 

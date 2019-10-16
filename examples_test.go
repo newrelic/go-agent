@@ -31,7 +31,7 @@ func Example() {
 	// transactions directly using Application.StartTransaction and
 	// Transaction.End.
 	func() {
-		txn := app.StartTransaction("myTask", nil, nil)
+		txn := app.StartTransaction("myTask")
 		defer txn.End()
 
 		time.Sleep(time.Second)
@@ -208,6 +208,6 @@ func ExampleStartExternalSegment_context() {
 func ExampleNewStaticWebRequest() {
 	app := getApp()
 	webReq := NewStaticWebRequest(http.Header{}, &url.URL{Path: "path"}, "GET", TransportHTTP)
-	txn := app.StartTransaction("My-Transaction", nil, nil)
+	txn := app.StartTransaction("My-Transaction")
 	txn.SetWebRequest(webReq)
 }

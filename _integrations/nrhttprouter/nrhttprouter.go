@@ -70,12 +70,14 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 	handle := original
 	if nil != r.application {
 		handle = func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-			txn := r.application.StartTransaction(txnName(method, path), w, req)
+			txn := r.application.StartTransaction(txnName(method, path))
+			txn.SetWebRequest(newrelic.NewWebRequest(req))
+			w = txn.SetWebResponse(w)
 			defer txn.End()
 
 			req = newrelic.RequestWithTransactionContext(req, txn)
 
-			original(txn, req, ps)
+			original(w, req, ps)
 		}
 	}
 	r.Router.Handle(method, path, handle)
@@ -137,10 +139,13 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if nil != r.application {
 		h, _, _ := r.Router.Lookup(req.Method, req.URL.Path)
 		if nil == h {
-			txn := r.application.StartTransaction("NotFound", w, req)
+			txn := r.application.StartTransaction("NotFound")
 			defer txn.End()
-			w = txn
+
 			req = newrelic.RequestWithTransactionContext(req, txn)
+
+			txn.SetWebRequest(newrelic.NewWebRequest(req))
+			w = txn.SetWebResponse(w)
 		}
 	}
 

@@ -18,7 +18,7 @@ func TestSpanEventSuccess(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := StartSegment(txn, "mySegment")
 	segment.End()
 	txn.End()
@@ -65,7 +65,7 @@ func TestSpanEventsLocallyDisabled(t *testing.T) {
 		cfg.SpanEvents.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := StartSegment(txn, "mySegment")
 	segment.End()
 	txn.End()
@@ -83,7 +83,7 @@ func TestSpanEventsRemotelyDisabled(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := StartSegment(txn, "mySegment")
 	segment.End()
 	txn.End()
@@ -100,7 +100,7 @@ func TestSpanEventsDisabledWithoutDistributedTracing(t *testing.T) {
 		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := StartSegment(txn, "mySegment")
 	segment.End()
 	txn.End()
@@ -117,7 +117,7 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -190,7 +190,7 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 		cfg.SpanEvents.Attributes.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -261,7 +261,7 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -332,7 +332,7 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -396,7 +396,7 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -468,7 +468,7 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := StartSegment(txn, "hi")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
@@ -518,7 +518,7 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := StartSegment(txn, "hi")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
@@ -559,7 +559,7 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	// Do not panic if there are no active spans!
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
 	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")

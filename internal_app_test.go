@@ -25,7 +25,7 @@ func TestConnectBackoff(t *testing.T) {
 
 func TestNilApplication(t *testing.T) {
 	var app *Application
-	if txn := app.StartTransaction("name", nil, nil); txn != nil {
+	if txn := app.StartTransaction("name"); txn != nil {
 		t.Error(txn)
 	}
 	if err := app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"}); nil != err {
@@ -42,7 +42,7 @@ func TestNilApplication(t *testing.T) {
 
 func TestEmptyApplication(t *testing.T) {
 	app := &Application{}
-	if txn := app.StartTransaction("name", nil, nil); txn != nil {
+	if txn := app.StartTransaction("name"); txn != nil {
 		t.Error(txn)
 	}
 	if err := app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"}); nil != err {

@@ -35,7 +35,7 @@ func inboundSyntheticsRequestBuilder(oldCatEnabled bool, betterCatEnabled bool) 
 		cfg.DistributedTracer.Enabled = betterCatEnabled
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, nil)
-	txn := app.StartTransaction("requester", nil, nil)
+	txn := app.StartTransaction("requester")
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 	if nil != err {
 		panic(err)
@@ -75,10 +75,8 @@ func inboundSyntheticsRequestBuilder(oldCatEnabled bool, betterCatEnabled bool) 
 func TestSyntheticsOldCAT(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
-	clientTxn := app.StartTransaction(
-		"helloOldCAT",
-		nil,
-		inboundSyntheticsRequestBuilder(true, false))
+	clientTxn := app.StartTransaction("helloOldCAT")
+	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(true, false)))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 
@@ -118,10 +116,8 @@ func TestSyntheticsBetterCAT(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
-	clientTxn := app.StartTransaction(
-		"helloBetterCAT",
-		nil,
-		inboundSyntheticsRequestBuilder(false, true))
+	clientTxn := app.StartTransaction("helloBetterCAT")
+	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(false, true)))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 
@@ -159,10 +155,8 @@ func TestSyntheticsStandalone(t *testing.T) {
 		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
-	clientTxn := app.StartTransaction(
-		"helloSynthetics",
-		nil,
-		inboundSyntheticsRequestBuilder(false, false))
+	clientTxn := app.StartTransaction("helloSynthetics")
+	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(false, false)))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 

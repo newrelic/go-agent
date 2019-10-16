@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/newrelic/go-agent"
+	newrelic "github.com/newrelic/go-agent"
 )
 
 func mustGetEnv(key string) string {
@@ -46,7 +46,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	txn := app.StartTransaction("client-txn", nil, nil)
+	txn := app.StartTransaction("client-txn")
 	err = doRequest(txn)
 	if nil != err {
 		txn.NoticeError(err)

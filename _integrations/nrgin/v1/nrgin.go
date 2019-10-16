@@ -36,16 +36,16 @@ var _ http.ResponseWriter = &headerResponseWriter{}
 // gin.ResponseWriter.WriteHeader is called.
 type replacementResponseWriter struct {
 	gin.ResponseWriter
-	txn     newrelic.Transaction
-	code    int
-	written bool
+	replacement http.ResponseWriter
+	code        int
+	written     bool
 }
 
 var _ gin.ResponseWriter = &replacementResponseWriter{}
 
 func (w *replacementResponseWriter) flushHeader() {
 	if !w.written {
-		w.txn.WriteHeader(w.code)
+		w.replacement.WriteHeader(w.code)
 		w.written = true
 	}
 }
@@ -102,12 +102,13 @@ func Middleware(app *newrelic.Application) gin.HandlerFunc {
 		if app != nil {
 			name := c.HandlerName()
 			w := &headerResponseWriter{w: c.Writer}
-			txn := app.StartTransaction(name, w, c.Request)
+			txn := app.StartTransaction(name)
+			txn.SetWebRequest(newrelic.NewWebRequest(c.Request))
 			defer txn.End()
 
 			repl := &replacementResponseWriter{
 				ResponseWriter: c.Writer,
-				txn:            txn,
+				replacement:    txn.SetWebResponse(w),
 				code:           http.StatusOK,
 			}
 			c.Writer = repl

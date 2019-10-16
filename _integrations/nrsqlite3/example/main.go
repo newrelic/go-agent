@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 	app.WaitForConnection(5 * time.Second)
-	txn := app.StartTransaction("sqliteQuery", nil, nil)
+	txn := app.StartTransaction("sqliteQuery")
 
 	ctx := newrelic.NewContext(context.Background(), txn)
 	row := db.QueryRowContext(ctx, "SELECT count(*) from zaps")

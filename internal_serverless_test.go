@@ -18,8 +18,8 @@ func TestServerlessDistributedTracingConfigPresent(t *testing.T) {
 		cfg.ServerlessMode.PrimaryAppID = "456"
 	}
 	app := testApp(nil, cfgFn, t)
-	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
-	txn := app.StartTransaction("hello", nil, nil)
+	payload := app.StartTransaction("hello").CreateDistributedTracePayload()
+	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -45,8 +45,8 @@ func TestServerlessDistributedTracingConfigPartiallyPresent(t *testing.T) {
 		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
 	}
 	app := testApp(nil, cfgFn, t)
-	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
-	txn := app.StartTransaction("hello", nil, nil)
+	payload := app.StartTransaction("hello").CreateDistributedTracePayload()
+	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -70,8 +70,8 @@ func TestServerlessDistributedTracingConfigTrustKeyAbsent(t *testing.T) {
 		cfg.ServerlessMode.AccountID = "123"
 	}
 	app := testApp(nil, cfgFn, t)
-	payload := app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
-	txn := app.StartTransaction("hello", nil, nil)
+	payload := app.StartTransaction("hello").CreateDistributedTracePayload()
+	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -95,7 +95,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
 	if "" != payload.Text() {
 		t.Error(payload.Text())
@@ -107,7 +107,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 			cfg.ServerlessMode.TrustedAccountKey = "trustkey"
 			cfg.ServerlessMode.PrimaryAppID = "456"
 		}, t)
-		return app.StartTransaction("hello", nil, nil).CreateDistributedTracePayload()
+		return app.StartTransaction("hello").CreateDistributedTracePayload()
 	}()
 	if "" == nonemptyPayload.Text() {
 		t.Error(nonemptyPayload.Text())
@@ -134,7 +134,7 @@ func TestServerlessLowApdex(t *testing.T) {
 		cfg.ServerlessMode.ApdexThreshold = apdex
 	}
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.SetWebRequest(nil) // only web gets apdex
 	txn.End()
 
@@ -157,7 +157,7 @@ func TestServerlessHighApdex(t *testing.T) {
 		cfg.ServerlessMode.ApdexThreshold = apdex
 	}
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.SetWebRequest(nil) // only web gets apdex
 	txn.End()
 
@@ -223,7 +223,7 @@ func TestServerlessJSON(t *testing.T) {
 		cfg.ServerlessMode.Enabled = true
 	}
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeAWSLambdaARN, "thearn", nil)
 	txn.End()
 

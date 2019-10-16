@@ -41,7 +41,7 @@ func TestStartExternalSegmentNilTransaction(t *testing.T) {
 	// request's context if it is not explicitly provided.
 
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("myTxn", nil, nil)
+	txn := app.StartTransaction("myTxn")
 
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 	req = RequestWithTransactionContext(req, txn)
@@ -66,7 +66,7 @@ func TestNewRoundTripperNilTransaction(t *testing.T) {
 	// request's context if it is not explicitly provided.
 
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("myTxn", nil, nil)
+	txn := app.StartTransaction("myTxn")
 
 	client := &http.Client{}
 	client.Transport = roundTripperFunc(func(*http.Request) (*http.Response, error) {

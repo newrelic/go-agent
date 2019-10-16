@@ -63,7 +63,7 @@ func TestSetWebRequestNil(t *testing.T) {
 	// Test that using SetWebRequest with nil marks the transaction as a web
 	// transaction.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(nil)
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -97,7 +97,7 @@ func TestSetWebRequestNilPointer(t *testing.T) {
 	// Test that calling NewWebRequest with a nil pointer is safe and
 	// returns a nil interface that SetWebRequest handles safely.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(NewWebRequest(nil))
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -131,7 +131,7 @@ func TestSetWebRequestHTTPRequest(t *testing.T) {
 	// Test that NewWebRequest correctly turns an *http.Request into a
 	// WebRequest that SetWebRequest uses as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(NewWebRequest(sampleHTTPRequest))
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -165,7 +165,7 @@ func TestSetWebRequestCustomRequest(t *testing.T) {
 	// Test that a custom type which implements WebRequest is used by
 	// SetWebRequest as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(sampleCustomRequest)
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -199,7 +199,7 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 	// Test that SetWebRequest returns an error if called after
 	// Transaction.End.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	err := txn.SetWebRequest(sampleCustomRequest)
 	if err != errAlreadyEnded {
@@ -237,7 +237,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	req.header = map[string][]string{
 		DistributedTracePayloadHeader: {payload.Text()},
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(req)
 	if nil != err {
 		t.Error("unexpected error", err)
@@ -291,7 +291,7 @@ func TestSetWebRequestIncompleteRequest(t *testing.T) {
 	// Test SetWebRequest will safely handle situations where the request's
 	// URL() and Header() methods return nil.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequest(incompleteRequest{})
 	if err != nil {
 		t.Error("unexpected error", err)

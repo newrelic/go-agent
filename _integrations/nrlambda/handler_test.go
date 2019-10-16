@@ -255,7 +255,7 @@ func TestSetWebRequest(t *testing.T) {
 }
 
 func makePayload(app *newrelic.Application) string {
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	return txn.CreateDistributedTracePayload().Text()
 }
 

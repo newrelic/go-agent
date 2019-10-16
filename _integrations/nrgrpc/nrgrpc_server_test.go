@@ -56,7 +56,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
-	txn := app.StartTransaction("client", nil, nil)
+	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	_, err := client.DoUnaryUnary(ctx, &testapp.Message{})
 	if nil != err {
@@ -201,7 +201,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
-	txn := app.StartTransaction("client", nil, nil)
+	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
 	if nil != err {
@@ -293,7 +293,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
-	txn := app.StartTransaction("client", nil, nil)
+	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamUnary(ctx)
 	if nil != err {
@@ -383,7 +383,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	defer conn.Close()
 
 	client := testapp.NewTestApplicationClient(conn)
-	txn := app.StartTransaction("client", nil, nil)
+	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamStream(ctx)
 	if nil != err {

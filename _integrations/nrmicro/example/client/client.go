@@ -32,7 +32,7 @@ func main() {
 	}
 	defer app.Shutdown(10 * time.Second)
 
-	txn := app.StartTransaction("client", nil, nil)
+	txn := app.StartTransaction("client")
 	defer txn.End()
 
 	service := micro.NewService(

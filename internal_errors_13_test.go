@@ -23,7 +23,7 @@ func TestNoticedWrappedError(t *testing.T) {
 	alpha := func() error { return fmt.Errorf("problem in alpha: %w", beta()) }
 
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(alpha())
 	if nil != err {
 		t.Error(err)

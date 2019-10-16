@@ -322,23 +322,25 @@ func TestTxnResponseWriter(t *testing.T) {
 		header: make(http.Header),
 	}
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", w, nil)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
 	w.header.Add("zip", "zap")
-	if out := txn.Header(); out.Get("zip") != "zap" {
+	if out := rw.Header(); out.Get("zip") != "zap" {
 		t.Error(out.Get("zip"))
 	}
 	w.written = 123
-	if out, _ := txn.Write(nil); out != 123 {
+	if out, _ := rw.Write(nil); out != 123 {
 		t.Error(out)
 	}
-	if txn.WriteHeader(503); w.code != 503 {
+	if rw.WriteHeader(503); w.code != 503 {
 		t.Error(w.code)
 	}
 }
 
 func TestTransactionEventWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -353,7 +355,7 @@ func TestTransactionEventWeb(t *testing.T) {
 
 func TestTransactionEventBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -368,7 +370,8 @@ func TestTransactionEventBackground(t *testing.T) {
 func TestTransactionEventLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.TransactionEvents.Enabled = false }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -379,7 +382,8 @@ func TestTransactionEventLocallyDisabled(t *testing.T) {
 func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectAnalyticsEvents = false }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -387,89 +391,9 @@ func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	app.ExpectTxnEvents(t, []internal.WantEvent{})
 }
 
-func myErrorHandler(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte("my response"))
-	if txn, ok := w.(Transaction); ok {
-		txn.NoticeError(myError{})
-	}
-}
-
-func TestWrapHandleFunc(t *testing.T) {
-	app := testApp(nil, nil, t)
-	mux := http.NewServeMux()
-	mux.HandleFunc(WrapHandleFunc(app.Application, helloPath, myErrorHandler))
-	w := newCompatibleResponseRecorder()
-	mux.ServeHTTP(w, helloRequest)
-
-	out := w.Body.String()
-	if "my response" != out {
-		t.Error(out)
-	}
-
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/hello",
-		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-	}})
-	app.ExpectErrorEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"error.class":     "newrelic.myError",
-			"error.message":   "my msg",
-			"transactionName": "WebTransaction/Go/hello",
-		},
-		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "200",
-		}),
-	}})
-	app.ExpectMetrics(t, webErrorMetrics)
-}
-
-func TestWrapHandle(t *testing.T) {
-	app := testApp(nil, nil, t)
-	mux := http.NewServeMux()
-	mux.Handle(WrapHandle(app.Application, helloPath, http.HandlerFunc(myErrorHandler)))
-	w := newCompatibleResponseRecorder()
-	mux.ServeHTTP(w, helloRequest)
-
-	out := w.Body.String()
-	if "my response" != out {
-		t.Error(out)
-	}
-
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/hello",
-		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-	}})
-	app.ExpectErrorEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"error.class":     "newrelic.myError",
-			"error.message":   "my msg",
-			"transactionName": "WebTransaction/Go/hello",
-		},
-		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "200",
-		}),
-	}})
-	app.ExpectMetrics(t, webErrorMetrics)
-}
-
-func TestWrapHandleNilApp(t *testing.T) {
-	var app *Application
-	mux := http.NewServeMux()
-	mux.Handle(WrapHandle(app, helloPath, http.HandlerFunc(myErrorHandler)))
-	w := newCompatibleResponseRecorder()
-	mux.ServeHTTP(w, helloRequest)
-
-	out := w.Body.String()
-	if "my response" != out {
-		t.Error(out)
-	}
-}
-
 func TestSetName(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("one", nil, nil)
+	txn := app.StartTransaction("one")
 	if err := txn.SetName("hello"); nil != err {
 		t.Error(err)
 	}
@@ -493,7 +417,7 @@ func deferEndPanic(txn Transaction, panicMe interface{}) (r interface{}) {
 
 func TestPanicError(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	e := myError{}
 	r := deferEndPanic(txn, e)
@@ -518,7 +442,7 @@ func TestPanicError(t *testing.T) {
 
 func TestPanicString(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	e := "my string"
 	r := deferEndPanic(txn, e)
@@ -543,7 +467,7 @@ func TestPanicString(t *testing.T) {
 
 func TestPanicInt(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	e := 22
 	r := deferEndPanic(txn, e)
@@ -568,7 +492,7 @@ func TestPanicInt(t *testing.T) {
 
 func TestPanicNil(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	r := deferEndPanic(txn, nil)
 	if nil != r {
@@ -583,10 +507,12 @@ func TestPanicNil(t *testing.T) {
 func TestResponseCodeError(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.WriteHeader(http.StatusBadRequest)   // 400
-	txn.WriteHeader(http.StatusUnauthorized) // 401
+	rw.WriteHeader(http.StatusBadRequest)   // 400
+	rw.WriteHeader(http.StatusUnauthorized) // 401
 
 	txn.End()
 
@@ -615,9 +541,11 @@ func TestResponseCodeError(t *testing.T) {
 func TestResponseCode404Filtered(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.WriteHeader(http.StatusNotFound)
+	rw.WriteHeader(http.StatusNotFound)
 
 	txn.End()
 
@@ -637,9 +565,11 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.WriteHeader(405)
+	rw.WriteHeader(405)
 
 	txn.End()
 
@@ -658,9 +588,11 @@ func TestResponseCodeServerSideFilterObserved(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.WriteHeader(405)
+	rw.WriteHeader(405)
 
 	txn.End()
 
@@ -679,9 +611,11 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.WriteHeader(404)
+	rw.WriteHeader(404)
 
 	txn.End()
 
@@ -706,10 +640,12 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 func TestResponseCodeAfterEnd(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
 	txn.End()
-	txn.WriteHeader(http.StatusBadRequest)
+	rw.WriteHeader(http.StatusBadRequest)
 
 	if http.StatusBadRequest != w.Code {
 		t.Error(w.Code)
@@ -723,10 +659,12 @@ func TestResponseCodeAfterEnd(t *testing.T) {
 func TestResponseCodeAfterWrite(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 
-	txn.Write([]byte("zap"))
-	txn.WriteHeader(http.StatusBadRequest)
+	rw.Write([]byte("zap"))
+	rw.WriteHeader(http.StatusBadRequest)
 
 	txn.End()
 
@@ -750,7 +688,8 @@ func TestQueueTime(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	txn := app.StartTransaction("hello", nil, req)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(req))
 	txn.NoticeError(myError{})
 	txn.End()
 
@@ -786,7 +725,7 @@ func TestQueueTime(t *testing.T) {
 
 func TestIgnore(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	err := txn.Ignore()
 	if nil != err {
@@ -801,7 +740,7 @@ func TestIgnore(t *testing.T) {
 
 func TestIgnoreAlreadyEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	txn.End()
 	err := txn.Ignore()
@@ -969,7 +908,8 @@ func TestZeroSegmentsSafe(t *testing.T) {
 
 func TestTraceSegmentDefer(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	func() {
 		defer StartSegment(txn, "segment").End()
 	}()
@@ -983,7 +923,8 @@ func TestTraceSegmentDefer(t *testing.T) {
 
 func TestTraceSegmentNilErr(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	err := StartSegment(txn, "segment").End()
 	if nil != err {
 		t.Error(err)
@@ -998,7 +939,8 @@ func TestTraceSegmentNilErr(t *testing.T) {
 
 func TestTraceSegmentOutOfOrder(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := StartSegment(txn, "s1")
 	s2 := StartSegment(txn, "s1")
 	err1 := s1.End()
@@ -1019,7 +961,8 @@ func TestTraceSegmentOutOfOrder(t *testing.T) {
 
 func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	s := StartSegment(txn, "segment")
 	err := s.End()
@@ -1031,7 +974,8 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 
 func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := StartSegment(txn, "segment")
 	txn.End()
 	err := s.End()
@@ -1044,7 +988,8 @@ func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 
 func TestTraceSegmentPanic(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	func() {
 		defer func() {
 			recover()
@@ -1083,7 +1028,8 @@ func TestTraceSegmentPanic(t *testing.T) {
 
 func TestTraceSegmentNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := Segment{Name: "hello"}
 	err := s.End()
 	if err != nil {
@@ -1095,7 +1041,8 @@ func TestTraceSegmentNilTxn(t *testing.T) {
 
 func TestTraceDatastore(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := DatastoreSegment{}
 	s.StartTime = txn.StartSegmentNow()
 	s.Product = DatastoreMySQL
@@ -1138,7 +1085,7 @@ func TestTraceDatastore(t *testing.T) {
 
 func TestTraceDatastoreBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := DatastoreSegment{
 		StartTime:  txn.StartSegmentNow(),
 		Product:    DatastoreMySQL,
@@ -1181,7 +1128,8 @@ func TestTraceDatastoreBackground(t *testing.T) {
 
 func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := DatastoreSegment{
 		StartTime: txn.StartSegmentNow(),
 	}
@@ -1221,7 +1169,8 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 
 func TestTraceDatastoreNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	var s DatastoreSegment
 	s.Product = DatastoreMySQL
 	s.Collection = "my_table"
@@ -1250,7 +1199,8 @@ func TestTraceDatastoreNilTxn(t *testing.T) {
 
 func TestTraceDatastoreTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.NoticeError(myError{})
 	s := DatastoreSegment{
 		StartTime:  txn.StartSegmentNow(),
@@ -1281,7 +1231,8 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 
 func TestTraceExternal(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com/",
@@ -1327,7 +1278,8 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		URL:       "https://otherhost.com/path/zip/zap?secret=ssshhh",
@@ -1386,7 +1338,8 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	req, _ := http.NewRequest("GET", "https://www.something.com/path/zip/zap?secret=ssshhh", nil)
 	s := StartExternalSegment(txn, req)
 	s.Host = "bufnet"
@@ -1443,7 +1396,8 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	req, _ := http.NewRequest("GET", "https://www.something.com/path/zip/zap?secret=ssshhh", nil)
 	resp := &http.Response{Request: req}
 	s := ExternalSegment{
@@ -1497,7 +1451,8 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 
 func TestTraceExternalBadURL(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		URL:       ":example.com/",
@@ -1526,7 +1481,7 @@ func TestTraceExternalBadURL(t *testing.T) {
 
 func TestTraceExternalBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com/",
@@ -1564,7 +1519,8 @@ func TestTraceExternalBackground(t *testing.T) {
 
 func TestTraceExternalMissingURL(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 	}
@@ -1602,7 +1558,8 @@ func TestTraceExternalMissingURL(t *testing.T) {
 
 func TestTraceExternalNilTxn(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.NoticeError(myError{})
 	var s ExternalSegment
 	err := s.End()
@@ -1628,7 +1585,8 @@ func TestTraceExternalNilTxn(t *testing.T) {
 
 func TestTraceExternalTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.NoticeError(myError{})
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
@@ -1657,7 +1615,7 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 
 func TestRoundTripper(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	url := "http://example.com/"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -1731,7 +1689,7 @@ func TestRoundTripper(t *testing.T) {
 
 func TestRoundTripperOldCAT(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	url := "http://example.com/"
 	client := &http.Client{}
 	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
@@ -1778,14 +1736,15 @@ func TestRoundTripperOldCAT(t *testing.T) {
 
 func TestTraceBelowThreshold(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
 
 func TestTraceBelowThresholdBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
@@ -1797,7 +1756,8 @@ func TestTraceNoSegments(t *testing.T) {
 		cfg.TransactionTracer.SegmentThreshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:  "WebTransaction/Go/hello",
@@ -1813,7 +1773,8 @@ func TestTraceDisabledLocally(t *testing.T) {
 		cfg.TransactionTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
@@ -1830,7 +1791,8 @@ func TestTraceDisabledByServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":false}}`), reply)
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
@@ -1848,7 +1810,8 @@ func TestTraceEnabledByServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true}}`), reply)
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName:  "WebTransaction/Go/hello",
@@ -1869,7 +1832,8 @@ func TestTraceDisabledRemotelyOverridesServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true},"collect_traces":false}`), reply)
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
@@ -1884,7 +1848,8 @@ func TestTraceDisabledRemotely(t *testing.T) {
 		reply.CollectTraces = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
 }
@@ -1896,7 +1861,8 @@ func TestTraceWithSegments(t *testing.T) {
 		cfg.TransactionTracer.SegmentThreshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := StartSegment(txn, "s1")
 	s1.End()
 	s2 := ExternalSegment{
@@ -1925,7 +1891,8 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 		cfg.TransactionTracer.SegmentThreshold = 1 * time.Hour
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := StartSegment(txn, "s1")
 	s1.End()
 	s2 := ExternalSegment{
@@ -1949,7 +1916,7 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 
 func TestNoticeErrorTxnEvents(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -1964,7 +1931,7 @@ func TestNoticeErrorTxnEvents(t *testing.T) {
 }
 
 func TestTransactionApplication(t *testing.T) {
-	txn := testApp(nil, nil, t).StartTransaction("hello", nil, nil)
+	txn := testApp(nil, nil, t).StartTransaction("hello")
 	app := txn.Application()
 	err := app.RecordCustomMetric("myMetric", 123.0)
 	if nil != err {
@@ -1996,17 +1963,9 @@ func (f flushWriter) Flush()                    {}
 
 func TestAsync(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", flushWriter{}, nil)
-	if _, ok := txn.(http.Flusher); !ok {
-		t.Error("transaction should have flush")
-	}
+	txn := app.StartTransaction("hello")
 	s1 := StartSegment(txn, "mainThread")
 	asyncThread := txn.NewGoroutine()
-	// Test that the async transaction reference has the correct optional
-	// interface behavior.
-	if _, ok := asyncThread.(http.Flusher); !ok {
-		t.Error("async transaction reference should have flush")
-	}
 	s2 := StartSegment(asyncThread, "asyncThread")
 	// End segments in interleaved order.
 	s1.End()
@@ -2019,9 +1978,6 @@ func TestAsync(t *testing.T) {
 		t.Error(err)
 	}
 	threadAfterEnd := asyncThread.NewGoroutine()
-	if _, ok := threadAfterEnd.(http.Flusher); !ok {
-		t.Error("after end transaction reference should have flush")
-	}
 	if err := threadAfterEnd.End(); err != errAlreadyEnded {
 		t.Error(err)
 	}
@@ -2053,7 +2009,7 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:       StartSegmentNow(txn),
 		Library:         "RabbitMQ",
@@ -2100,7 +2056,7 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 
 func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:       StartSegmentNow(txn),
 		Library:         "RabbitMQ",
@@ -2123,7 +2079,7 @@ func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
 
 func TestMessageProducerSegmentTemp(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:            StartSegmentNow(txn),
 		Library:              "RabbitMQ",
@@ -2148,7 +2104,7 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 
 func TestMessageProducerSegmentNoName(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:       StartSegmentNow(txn),
 		Library:         "RabbitMQ",
@@ -2171,7 +2127,7 @@ func TestMessageProducerSegmentNoName(t *testing.T) {
 
 func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:            StartSegmentNow(txn),
 		Library:              "RabbitMQ",

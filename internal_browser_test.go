@@ -22,8 +22,9 @@ func TestBrowserTimingHeaderSuccess(t *testing.T) {
 		cfg.BrowserMonitoring.Attributes.Include = []string{AttributeResponseCode}
 	}
 	app := testApp(browserReplyFields, includeAttributes, t)
-	txn := app.StartTransaction("hello", nil, nil)
-	txn.WriteHeader(200)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(nil)
+	rw.WriteHeader(200)
 	txn.AddAttribute("zip", "zap")
 	hdr, err := txn.BrowserTimingHeader()
 	if nil != err {
@@ -66,8 +67,9 @@ func TestBrowserTimingHeaderSuccessWithoutAttributes(t *testing.T) {
 	// configuration.
 
 	app := testApp(browserReplyFields, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
-	txn.WriteHeader(200)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(nil)
+	rw.WriteHeader(200)
 	txn.AddAttribute("zip", "zap")
 	hdr, err := txn.BrowserTimingHeader()
 	if nil != err {
@@ -110,7 +112,7 @@ func TestBrowserTimingHeaderDisabled(t *testing.T) {
 		cfg.BrowserMonitoring.Enabled = false
 	}
 	app := testApp(browserReplyFields, disableBrowser, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	hdr, err := txn.BrowserTimingHeader()
 	if err != errBrowserDisabled {
 		t.Error(err)
@@ -122,7 +124,7 @@ func TestBrowserTimingHeaderDisabled(t *testing.T) {
 
 func TestBrowserTimingHeaderNotConnected(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	hdr, err := txn.BrowserTimingHeader()
 	if err != nil {
 		// No error expected if the app is not yet connected.
@@ -135,7 +137,7 @@ func TestBrowserTimingHeaderNotConnected(t *testing.T) {
 
 func TestBrowserTimingHeaderAlreadyFinished(t *testing.T) {
 	app := testApp(browserReplyFields, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	hdr, err := txn.BrowserTimingHeader()
 	if err != errAlreadyEnded {
@@ -148,7 +150,7 @@ func TestBrowserTimingHeaderAlreadyFinished(t *testing.T) {
 
 func TestBrowserTimingHeaderTxnIgnored(t *testing.T) {
 	app := testApp(browserReplyFields, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.Ignore()
 	hdr, err := txn.BrowserTimingHeader()
 	if err != errTransactionIgnored {
@@ -161,7 +163,7 @@ func TestBrowserTimingHeaderTxnIgnored(t *testing.T) {
 
 func BenchmarkBrowserTimingHeaderSuccess(b *testing.B) {
 	app := testApp(browserReplyFields, nil, b)
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	b.ResetTimer()
 	b.ReportAllocs()

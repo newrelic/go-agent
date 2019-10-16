@@ -22,7 +22,7 @@ func StreamingSubWrapper(app *newrelic.Application, f func(msg *stan.Msg)) func(
 			DestinationName: msg.MsgProto.Subject,
 			Consumer:        true,
 		}
-		txn := app.StartTransaction(namer.Name(), nil, nil)
+		txn := app.StartTransaction(namer.Name())
 		defer txn.End()
 
 		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, msg.MsgProto.Subject, nil)

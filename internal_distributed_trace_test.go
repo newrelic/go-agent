@@ -43,7 +43,7 @@ func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
 }
 
 func makePayload(app *Application, u *url.URL) DistributedTracePayload {
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	return txn.CreateDistributedTracePayload()
 }
 
@@ -95,7 +95,7 @@ func TestPayloadConnection(t *testing.T) {
 	if !ok {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if nil != err {
 		t.Error(err)
@@ -130,7 +130,7 @@ func TestAcceptMultiple(t *testing.T) {
 	if !ok {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if nil != err {
 		t.Error(err)
@@ -171,7 +171,7 @@ func TestPayloadConnectionText(t *testing.T) {
 	if !ok {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload.Text())
 	if nil != err {
 		t.Error(err)
@@ -211,7 +211,7 @@ func TestPayloadConnectionHTTPSafe(t *testing.T) {
 	if !ok {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	p := payload.HTTPSafe()
 	if !validBase64(p) {
 		t.Error(p)
@@ -246,7 +246,7 @@ func TestPayloadConnectionHTTPSafe(t *testing.T) {
 func TestPayloadConnectionNotConnected(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	payload := makePayload(app.Application, nil)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	if nil == payload {
 		t.Fatal(payload)
 	}
@@ -279,7 +279,7 @@ func TestPayloadConnectionNotConnected(t *testing.T) {
 func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 	app := testApp(nil, disableCAT, t)
 	payload := makePayload(app.Application, nil)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	if nil == payload {
 		t.Fatal(payload)
 	}
@@ -309,7 +309,7 @@ func TestPayloadTransactionsDisabled(t *testing.T) {
 		cfg.TransactionEvents.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	payload := txn.CreateDistributedTracePayload()
 	if nil == payload {
@@ -329,7 +329,7 @@ func TestPayloadTransactionsDisabled(t *testing.T) {
 
 func TestPayloadConnectionEmptyString(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, "")
 	if nil != err {
 		t.Error(err)
@@ -352,7 +352,7 @@ func TestPayloadConnectionEmptyString(t *testing.T) {
 
 func TestCreatePayloadFinished(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	payload := txn.CreateDistributedTracePayload()
 	if nil == payload {
@@ -369,7 +369,7 @@ func TestCreatePayloadFinished(t *testing.T) {
 func TestAcceptPayloadFinished(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application, nil)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.End()
 	if nil != err {
 		t.Error(err)
@@ -392,7 +392,7 @@ func TestAcceptPayloadFinished(t *testing.T) {
 
 func TestPayloadTypeUnknown(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	invalidPayload := 22
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, invalidPayload)
 	if nil != err {
@@ -417,7 +417,7 @@ func TestPayloadTypeUnknown(t *testing.T) {
 func TestPayloadAcceptAfterCreate(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application, nil)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.CreateDistributedTracePayload()
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if errOutboundPayloadCreated != err {
@@ -454,7 +454,7 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
 	var emptyTransport TransportType
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(emptyTransport,
 		`{
                               "v":[0,1],
@@ -504,7 +504,7 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
 
 func TestPayloadFutureVersion(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP,
 		`{
 			"v":[100,0],
@@ -538,7 +538,7 @@ func TestPayloadFutureVersion(t *testing.T) {
 
 func TestPayloadParsingError(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP,
 		`{
 			"v":[0,1],
@@ -573,7 +573,7 @@ func TestPayloadFromFuture(t *testing.T) {
 		t.Fatal(payload)
 	}
 	ip.Timestamp.Set(time.Now().Add(1 * time.Hour))
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, ip)
 	if nil != err {
 		t.Error(err)
@@ -609,7 +609,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 		t.Fatal(payload)
 	}
 	ip.Account = "12345"
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, ip)
 
 	if err != errTrustedAccountKey {
@@ -636,7 +636,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 func TestPayloadMissingVersion(t *testing.T) {
 	// ensures that a complete distributed trace payload without a version fails
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP,
 		`{
 			"d":{
@@ -675,7 +675,7 @@ func TestTrustedAccountKeyPayloadHasKeyAndMatches(t *testing.T) {
 			"tk":"123"
 		}
 	}`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if nil != err {
 		t.Error(err)
@@ -703,7 +703,7 @@ func TestTrustedAccountKeyPayloadHasKeyAndDoesNotMatch(t *testing.T) {
 			"tk":"1234"
 		}
 	}`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if err != errTrustedAccountKey {
 		t.Error("Expected ErrTrustedAccountKey from mismatched trustkeys", err)
@@ -731,7 +731,7 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdMatches(t *testing.T) {
 			"ti":1488325987402
 		}
 	}`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if nil != err {
 		t.Error(err)
@@ -759,7 +759,7 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdDoesNotMatch(t *testing.T
 			"ti":1488325987402
 		}
 	}`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if err != errTrustedAccountKey {
 		t.Error("Expected ErrTrustedAccountKey from mismatched trustkeys", err)
@@ -784,7 +784,7 @@ var (
 func TestNilPayload(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, nil)
 
 	if nil != err {
@@ -804,7 +804,7 @@ func TestNilPayload(t *testing.T) {
 func TestNoticeErrorPayload(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.NoticeError(errors.New("oh no"))
 
 	err := txn.End()
@@ -835,7 +835,7 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 
 	if nil == err {
@@ -867,7 +867,7 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 
 	if nil == err {
@@ -899,7 +899,7 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 
 	if nil == err {
@@ -931,7 +931,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 
 	if nil == err {
@@ -952,7 +952,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 func TestErrorsByCaller(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	payload := makePayload(app.Application, nil)
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 
@@ -995,7 +995,7 @@ func TestCreateDistributedTraceCatDisabled(t *testing.T) {
 	// object.
 
 	app := testApp(distributedTracingReplyFields, disableCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1032,7 +1032,7 @@ func TestCreateDistributedTraceBetterCatDisabled(t *testing.T) {
 	// object.
 
 	app := testApp(distributedTracingReplyFields, enableOldCATDisableBetterCat, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1067,7 +1067,7 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 	// CreateDistributedTracePayload should return a valid payload object
 
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1121,7 +1121,7 @@ func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 	// creates a distributed trace payload and then checks
 	// to ensure the required fields are in place
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1143,7 +1143,7 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 	// to ensure the required fields are in place
 	var payloadData PayloadTest
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1174,7 +1174,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 	// to ensure the required fields are in place
 	var payloadData PayloadTest
 	app := testApp(distributedTracingReplyFieldsNeedTrustKey, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
 
@@ -1219,7 +1219,7 @@ func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
 		"sa":true
 	}
 }`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if nil != err {
 		t.Error(err)
@@ -1261,7 +1261,7 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 		"pr":0.54343
 	}
 }`
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
 	if nil != err {
 		t.Error(err)
@@ -1371,7 +1371,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 
 	}, configCallback, tst)
 
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	if tc.WebTransaction {
 		txn.SetWebRequest(nil)
 	}
@@ -1552,7 +1552,7 @@ func TestDistributedTraceCrossAgent(t *testing.T) {
 func TestDistributedTraceDisabledSpanEventsEnabled(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, disableDistributedTracerEnableSpanEvents, t)
 	payload := makePayload(app.Application, nil)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if err != errInboundPayloadDTDisabled {
 		t.Fatal("we expected an error with DT disabled", err)
@@ -1570,7 +1570,7 @@ func TestCreatePayloadAppNotConnected(t *testing.T) {
 	// Test that an app which isn't connected does not create distributed
 	// trace payloads.
 	app := testApp(nil, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
 	if payload.Text() != "" || payload.HTTPSafe() != "" {
 		t.Error(payload.Text(), payload.HTTPSafe())
@@ -1583,7 +1583,7 @@ func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
 		distributedTracingReplyFields(reply)
 		reply.TrustedAccountKey = ""
 	}, enableBetterCAT, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
 	if payload.Text() != "" || payload.HTTPSafe() != "" {
 		t.Error(payload.Text(), payload.HTTPSafe())
@@ -1595,12 +1595,12 @@ func TestAcceptPayloadAppNotConnected(t *testing.T) {
 	// trace payloads.
 	app := testApp(nil, enableBetterCAT, t)
 	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
-		StartTransaction("name", nil, nil).
+		StartTransaction("name").
 		CreateDistributedTracePayload()
 	if payload.Text() == "" {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if nil != err {
 		t.Error(err)
@@ -1617,12 +1617,12 @@ func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
 		reply.TrustedAccountKey = ""
 	}, enableBetterCAT, t)
 	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
-		StartTransaction("name", nil, nil).
+		StartTransaction("name").
 		CreateDistributedTracePayload()
 	if payload.Text() == "" {
 		t.Fatal(payload)
 	}
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	if nil != err {
 		t.Error(err)

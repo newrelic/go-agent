@@ -1,9 +1,9 @@
 {
 	"comment": "used in internal_response_writer.go",
-	"variable_name": "thd",
-	"test_variable_name": "thd.txn.writer",
+	"variable_name": "rw",
+	"test_variable_name": "rw.original",
 	"required_interfaces": [
-		"threadWithExtras"
+		"http.ResponseWriter"
 	],
 	"optional_interfaces": [
 		"http.CloseNotifier",

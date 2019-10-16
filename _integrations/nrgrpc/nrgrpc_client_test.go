@@ -91,7 +91,7 @@ var configFn = func(cfg *newrelic.Config) {
 
 func TestUnaryClientInterceptor(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction("UnaryUnary", nil, nil)
+	txn := app.StartTransaction("UnaryUnary")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	s, conn := newTestServerAndConn(t, nil)
@@ -169,7 +169,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 
 func TestUnaryStreamClientInterceptor(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction("UnaryStream", nil, nil)
+	txn := app.StartTransaction("UnaryStream")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	s, conn := newTestServerAndConn(t, nil)
@@ -261,7 +261,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 
 func TestStreamUnaryClientInterceptor(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction("StreamUnary", nil, nil)
+	txn := app.StartTransaction("StreamUnary")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	s, conn := newTestServerAndConn(t, nil)
@@ -351,7 +351,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 
 func TestStreamStreamClientInterceptor(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction("StreamStream", nil, nil)
+	txn := app.StartTransaction("StreamStream")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	s, conn := newTestServerAndConn(t, nil)
@@ -455,7 +455,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 func TestClientUnaryMetadata(t *testing.T) {
 	// Test that metadata on the outgoing request are presevered
 	app := testApp()
-	txn := app.StartTransaction("metadata", nil, nil)
+	txn := app.StartTransaction("metadata")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	md := metadata.New(map[string]string{
@@ -542,7 +542,7 @@ func TestClientStreamingError(t *testing.T) {
 	// Test that when creating the stream returns an error, no external
 	// segments are created
 	app := testApp()
-	txn := app.StartTransaction("UnaryStream", nil, nil)
+	txn := app.StartTransaction("UnaryStream")
 
 	s, conn := newTestServerAndConn(t, nil)
 	defer s.Stop()

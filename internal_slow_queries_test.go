@@ -14,7 +14,8 @@ func TestSlowQueryBasic(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -43,7 +44,8 @@ func TestSlowQueryLocallyDisabled(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -65,7 +67,8 @@ func TestSlowQueryRemotelyDisabled(t *testing.T) {
 		reply.CollectTraces = false
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -84,7 +87,8 @@ func TestSlowQueryBelowThreshold(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 1 * time.Hour
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -103,7 +107,8 @@ func TestSlowQueryDatabaseProvided(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -132,7 +137,8 @@ func TestSlowQueryHostProvided(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -172,7 +178,8 @@ func TestSlowQueryPortProvided(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -212,7 +219,8 @@ func TestSlowQueryHostPortProvided(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -253,7 +261,8 @@ func TestSlowQueryAggregation(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	ds := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -307,7 +316,8 @@ func TestSlowQueryMissingQuery(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:  StartSegmentNow(txn),
 		Product:    DatastoreMySQL,
@@ -334,7 +344,8 @@ func TestSlowQueryMissingEverything(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime: StartSegmentNow(txn),
 	}
@@ -367,7 +378,8 @@ func TestSlowQueryWithQueryParameters(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str": "zap",
 		"int": 123,
@@ -402,7 +414,8 @@ func TestSlowQueryHighSecurity(t *testing.T) {
 		cfg.HighSecurity = true
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str": "zap",
 		"int": 123,
@@ -441,7 +454,8 @@ func TestSlowQuerySecurityPolicyFalse(t *testing.T) {
 		reply.SecurityPolicies.RecordSQL.SetEnabled(false)
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str": "zap",
 		"int": 123,
@@ -480,7 +494,8 @@ func TestSlowQuerySecurityPolicyTrue(t *testing.T) {
 		reply.SecurityPolicies.RecordSQL.SetEnabled(true)
 	}
 	app := testApp(replyfn, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str": "zap",
 		"int": 123,
@@ -514,7 +529,8 @@ func TestSlowQueryInvalidParameters(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str":                               "zap",
 		"int":                               123,
@@ -556,7 +572,8 @@ func TestSlowQueryParametersDisabled(t *testing.T) {
 		cfg.DatastoreTracer.QueryParameters.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	params := map[string]interface{}{
 		"str": "zap",
 		"int": 123,
@@ -591,7 +608,8 @@ func TestSlowQueryInstanceDisabled(t *testing.T) {
 		cfg.DatastoreTracer.InstanceReporting.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -631,7 +649,8 @@ func TestSlowQueryInstanceDisabledLocalhost(t *testing.T) {
 		cfg.DatastoreTracer.InstanceReporting.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -672,7 +691,8 @@ func TestSlowQueryDatabaseNameDisabled(t *testing.T) {
 		cfg.DatastoreTracer.DatabaseNameReporting.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,
@@ -742,13 +762,11 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 				tc.Input.Configuration.DatabaseEnabled
 		}
 		app := testApp(nil, cfgfn, t)
-		var txn Transaction
+		txn := app.StartTransaction("hello")
 		var txnURL string
 		if tc.Input.IsWeb {
 			txnURL = helloPath
-			txn = app.StartTransaction("hello", nil, helloRequest)
-		} else {
-			txn = app.StartTransaction("hello", nil, nil)
+			txn.SetWebRequest(NewWebRequest(helloRequest))
 		}
 		ds := DatastoreSegment{
 			StartTime:          StartSegmentNow(txn),
@@ -816,7 +834,8 @@ func TestSlowQueryParamsInvalid(t *testing.T) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	s1 := DatastoreSegment{
 		StartTime:          StartSegmentNow(txn),
 		Product:            DatastoreMySQL,

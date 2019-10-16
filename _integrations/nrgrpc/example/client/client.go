@@ -106,7 +106,7 @@ func main() {
 	}
 	defer app.Shutdown(10 * time.Second)
 
-	txn := app.StartTransaction("main", nil, nil)
+	txn := app.StartTransaction("main")
 	defer txn.End()
 
 	conn, err := grpc.Dial(

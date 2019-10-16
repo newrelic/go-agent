@@ -14,8 +14,6 @@ import (
 )
 
 type txnInput struct {
-	// This ResponseWriter should only be accessed using txn.getWriter()
-	writer   http.ResponseWriter
 	app      *app
 	Consumer dataConsumer
 	*appRun
@@ -197,19 +195,32 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	return nil
 }
 
-func (thd *thread) SetWebResponse(w http.ResponseWriter) Transaction {
+type dummyResponseWriter struct{}
+
+func (rw dummyResponseWriter) Header() http.Header { return nil }
+
+func (rw dummyResponseWriter) Write(b []byte) (int, error) { return 0, nil }
+
+func (rw dummyResponseWriter) WriteHeader(code int) {}
+
+func (thd *thread) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
-	// Replace the ResponseWriter even if the transaction has ended so that
-	// consumers calling ResponseWriter methods on the transactions see that
-	// data flowing through as expected.
-	txn.writer = w
+	if w == nil {
+		// Accepting a nil parameter makes it easy for consumers to add
+		// a response code to the transaction without a response
+		// writer:
+		//
+		//    txn.SetWebResponse(nil).WriteHeader(500)
+		//
+		w = dummyResponseWriter{}
+	}
 
-	return upgradeTxn(&thread{
-		thread: thd.thread,
-		txn:    txn,
+	return upgradeResponseWriter(&replacementResponseWriter{
+		txn:      txn,
+		original: w,
 	})
 }
 
@@ -351,60 +362,6 @@ func addCrossProcessHeaders(txn *txn, hdr http.Header) {
 			}
 		}
 	}
-}
-
-// getWriter is used to access the transaction's ResponseWriter. The
-// ResponseWriter is mutex protected since it may be changed with
-// txn.SetWebResponse, and we want changes to be visible across goroutines.  The
-// ResponseWriter is accessed using this getWriter() function rather than directly
-// in mutex protected methods since we do NOT want the transaction to be locked
-// while calling the ResponseWriter's methods.
-func (txn *txn) getWriter() http.ResponseWriter {
-	txn.Lock()
-	rw := txn.writer
-	txn.Unlock()
-	return rw
-}
-
-func nilSafeHeader(rw http.ResponseWriter) http.Header {
-	if nil == rw {
-		return nil
-	}
-	return rw.Header()
-}
-
-func (txn *txn) Header() http.Header {
-	return nilSafeHeader(txn.getWriter())
-}
-
-func (txn *txn) Write(b []byte) (n int, err error) {
-	rw := txn.getWriter()
-	hdr := nilSafeHeader(rw)
-
-	// This is safe to call unconditionally, even if Write() is called multiple
-	// times; see also the commentary in addCrossProcessHeaders().
-	addCrossProcessHeaders(txn, hdr)
-
-	if rw != nil {
-		n, err = rw.Write(b)
-	}
-
-	headersJustWritten(txn, http.StatusOK, hdr)
-
-	return
-}
-
-func (txn *txn) WriteHeader(code int) {
-	rw := txn.getWriter()
-	hdr := nilSafeHeader(rw)
-
-	addCrossProcessHeaders(txn, hdr)
-
-	if nil != rw {
-		rw.WriteHeader(code)
-	}
-
-	headersJustWritten(txn, code, hdr)
 }
 
 func (thd *thread) End() error {
@@ -769,12 +726,12 @@ func (thd *thread) NewGoroutine() Transaction {
 
 	if txn.finished {
 		// If the transaction has finished, return the same thread.
-		return upgradeTxn(thd)
+		return thd
 	}
-	return upgradeTxn(&thread{
+	return &thread{
 		thread: createThread(txn),
 		txn:    txn,
-	})
+	}
 }
 
 type segment struct {

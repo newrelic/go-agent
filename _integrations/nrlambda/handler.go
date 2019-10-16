@@ -73,7 +73,7 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 
 	defer internal.ServerlessWrite(h.app.Private, arn, h.writer)
 
-	txn := h.app.StartTransaction(h.functionName, nil, nil)
+	txn := h.app.StartTransaction(h.functionName)
 	defer txn.End()
 
 	integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSRequestID, requestID, nil)

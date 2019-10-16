@@ -29,7 +29,7 @@ func publish(s micro.Service, app newrelic.Application) {
 	c := s.Client()
 
 	for range time.NewTicker(time.Second).C {
-		txn := app.StartTransaction("publish", nil, nil)
+		txn := app.StartTransaction("publish")
 		msg := c.NewMessage("example.topic.pubsub", &proto.HelloRequest{Name: "Sally"})
 		ctx := newrelic.NewContext(context.Background(), txn)
 		fmt.Println("Sending message")

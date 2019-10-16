@@ -285,7 +285,7 @@ func main() {
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as
 		// background transactions.
-		txn := app.StartTransaction("background", nil, nil)
+		txn := app.StartTransaction("background")
 		defer txn.End()
 
 		io.WriteString(w, "background transaction")

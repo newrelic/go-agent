@@ -48,7 +48,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	txn := app.StartTransaction("has-error", nil, nil)
+	txn := app.StartTransaction("has-error")
 	e := gamma()
 	txn.NoticeError(nrpkgerrors.Wrap(e))
 	txn.End()

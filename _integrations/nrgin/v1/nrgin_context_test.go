@@ -100,7 +100,7 @@ func TestNewContextTransaction(t *testing.T) {
 	// This tests that nrgin.Transaction will find a transaction added to
 	// to a context using newrelic.NewContext.
 	app := integrationsupport.NewBasicTestApp()
-	txn := app.StartTransaction("name", nil, nil)
+	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	if tx := Transaction(ctx); nil != tx {
 		tx.NoticeError(errors.New("problem"))

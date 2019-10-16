@@ -421,22 +421,16 @@ func (app *app) setState(run *appRun, err error) {
 }
 
 // StartTransaction implements newrelic.Application's StartTransaction.
-func (app *app) StartTransaction(name string, w http.ResponseWriter, r *http.Request) Transaction {
+func (app *app) StartTransaction(name string) Transaction {
 	if nil == app {
 		return nil
 	}
 	run, _ := app.getState()
-	txn := upgradeTxn(newTxn(txnInput{
+	return newTxn(txnInput{
 		app:      app,
 		appRun:   run,
-		writer:   w,
 		Consumer: app,
-	}, name))
-
-	if nil != r {
-		txn.SetWebRequest(NewWebRequest(r))
-	}
-	return txn
+	}, name)
 }
 
 var (

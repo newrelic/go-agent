@@ -14,7 +14,7 @@ func TestAddAttributeHighSecurity(t *testing.T) {
 		cfg.HighSecurity = true
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	if err := txn.AddAttribute(`key`, 1); err != errHighSecurityEnabled {
 		t.Error(err)
@@ -35,7 +35,7 @@ func TestAddAttributeSecurityPolicyDisablesParameters(t *testing.T) {
 		reply.SecurityPolicies.CustomParameters.SetEnabled(false)
 	}
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	if err := txn.AddAttribute(`key`, 1); err != errSecurityPolicy {
 		t.Error(err)
@@ -64,7 +64,8 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 	req := &http.Request{}
 	req.Header = make(http.Header)
 	req.Header.Add("User-Agent", val)
-	txn := app.StartTransaction("hello", nil, req)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(req))
 	txn.NoticeError(errors.New("hello"))
 	txn.End()
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -90,7 +91,7 @@ func TestUserAttributeBasics(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	txn.NoticeError(errors.New("zap"))
 
@@ -157,7 +158,7 @@ func TestUserAttributeConfiguration(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 
 	txn.NoticeError(errors.New("zap"))
 
@@ -253,14 +254,16 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		}
 	}, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, helloRequest)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	txn.NoticeError(errors.New("zap"))
 
-	hdr := txn.Header()
+	hdr := rw.Header()
 	hdr.Set("Content-Type", `text/plain; charset=us-ascii`)
 	hdr.Set("Content-Length", `345`)
 
-	txn.WriteHeader(404)
+	rw.WriteHeader(404)
 	txn.AddAttribute("myStr", "hello")
 
 	txn.End()
@@ -338,8 +341,10 @@ func TestAttributesDisabled(t *testing.T) {
 func TestDefaultResponseCode(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, &http.Request{})
-	txn.Write([]byte("hello"))
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(&http.Request{}))
+	rw.Write([]byte("hello"))
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -355,7 +360,9 @@ func TestDefaultResponseCode(t *testing.T) {
 func TestNoResponseCode(t *testing.T) {
 	app := testApp(nil, nil, t)
 	w := newCompatibleResponseRecorder()
-	txn := app.StartTransaction("hello", w, &http.Request{})
+	txn := app.StartTransaction("hello")
+	txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(&http.Request{}))
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -503,7 +510,7 @@ func TestRequestURIPresent(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	u, err := url.Parse("/hello?remove=me")
 	if nil != err {
 		t.Error(err)
@@ -554,7 +561,7 @@ func TestRequestURIExcluded(t *testing.T) {
 		cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, AttributeRequestURI)
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	u, err := url.Parse("/hello?remove=me")
 	if nil != err {
 		t.Error(err)
@@ -603,7 +610,7 @@ func TestMessageAttributes(t *testing.T) {
 	// but as user attributes does not filter them.
 	app := testApp(nil, nil, t)
 
-	txn := app.StartTransaction("hello1", nil, nil)
+	txn := app.StartTransaction("hello1")
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, "myRoutingKey", nil)
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageExchangeType, "myExchangeType", nil)
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageCorrelationID, "myCorrelationID", nil)
@@ -611,7 +618,7 @@ func TestMessageAttributes(t *testing.T) {
 	txn.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, "myReplyTo", nil)
 	txn.End()
 
-	txn = app.StartTransaction("hello2", nil, nil)
+	txn = app.StartTransaction("hello2")
 	txn.AddAttribute(AttributeMessageRoutingKey, "myRoutingKey")
 	txn.AddAttribute(AttributeMessageExchangeType, "myExchangeType")
 	txn.AddAttribute(AttributeMessageCorrelationID, "myCorrelationID")

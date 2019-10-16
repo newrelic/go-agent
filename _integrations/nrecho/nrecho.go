@@ -59,10 +59,12 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
 			rw := c.Response().Writer
-			txn := app.StartTransaction(transactionName(c), rw, c.Request())
+			txn := app.StartTransaction(transactionName(c))
 			defer txn.End()
 
-			c.Response().Writer = txn
+			txn.SetWebRequest(newrelic.NewWebRequest(c.Request()))
+
+			c.Response().Writer = txn.SetWebResponse(rw)
 
 			// Add txn to c.Request().Context()
 			c.SetRequest(c.Request().WithContext(newrelic.NewContext(c.Request().Context(), txn)))
@@ -74,13 +76,12 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 			// Designed to mimic the logic in echo.DefaultHTTPErrorHandler.
 			if nil != err && !c.Response().Committed {
 
-				txn.SetWebResponse(nil)
 				c.Response().Writer = rw
 
 				if httperr, ok := err.(*echo.HTTPError); ok {
-					txn.WriteHeader(httperr.Code)
+					txn.SetWebResponse(nil).WriteHeader(httperr.Code)
 				} else {
-					txn.WriteHeader(http.StatusInternalServerError)
+					txn.SetWebResponse(nil).WriteHeader(http.StatusInternalServerError)
 				}
 			}
 

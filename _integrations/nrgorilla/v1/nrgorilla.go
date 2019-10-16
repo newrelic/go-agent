@@ -24,12 +24,14 @@ type instrumentedHandler struct {
 }
 
 func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	txn := h.app.StartTransaction(h.name, w, r)
+	txn := h.app.StartTransaction(h.name)
+	txn.SetWebRequest(newrelic.NewWebRequest(r))
+	w = txn.SetWebResponse(w)
 	defer txn.End()
 
 	r = newrelic.RequestWithTransactionContext(r, txn)
 
-	h.orig.ServeHTTP(txn, r)
+	h.orig.ServeHTTP(w, r)
 }
 
 func instrumentRoute(h http.Handler, app *newrelic.Application, name string) http.Handler {

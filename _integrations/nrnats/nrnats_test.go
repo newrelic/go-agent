@@ -53,7 +53,7 @@ func TestStartPublishSegmentNilConn(t *testing.T) {
 	// Make sure that a nil nats.Conn does not cause panics and does not record
 	// metrics
 	app := testApp()
-	txn := app.StartTransaction("testing", nil, nil)
+	txn := app.StartTransaction("testing")
 	StartPublishSegment(txn, nil, "mysubject").End()
 	txn.End()
 
@@ -69,7 +69,7 @@ func TestStartPublishSegmentNilConn(t *testing.T) {
 
 func TestStartPublishSegmentBasic(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction("testing", nil, nil)
+	txn := app.StartTransaction("testing")
 	nc, err := nats.Connect(nats.DefaultURL)
 	if nil != err {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestStartPublishSegmentNaming(t *testing.T) {
 
 	for _, tc := range testCases {
 		app := testApp()
-		txn := app.StartTransaction("testing", nil, nil)
+		txn := app.StartTransaction("testing")
 		StartPublishSegment(txn, nc, tc.subject).End()
 		txn.End()
 

@@ -33,7 +33,7 @@ func main() {
 	// custom events.
 	tasks := []string{"white", "black", "red", "blue", "green", "yellow"}
 	for _, task := range tasks {
-		txn := app.StartTransaction("task", nil, nil)
+		txn := app.StartTransaction("task")
 		time.Sleep(10 * time.Millisecond)
 		txn.End()
 		app.RecordCustomEvent("task", map[string]interface{}{

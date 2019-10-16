@@ -15,7 +15,7 @@ func (e myError) Error() string { return "my msg" }
 
 func TestNoticeErrorBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -38,7 +38,8 @@ func TestNoticeErrorBackground(t *testing.T) {
 
 func TestNoticeErrorWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, helloRequest)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(helloRequest))
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -62,7 +63,7 @@ func TestNoticeErrorWeb(t *testing.T) {
 
 func TestNoticeErrorTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	txn.End()
 	err := txn.NoticeError(myError{})
 	if err != errAlreadyEnded {
@@ -77,7 +78,7 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 func TestNoticeErrorHighSecurity(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -101,7 +102,7 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.AllowRawExceptionMessages.SetEnabled(false) }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -125,7 +126,7 @@ func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ErrorCollector.Enabled = false }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if errorsDisabled != err {
 		t.Error(err)
@@ -143,7 +144,7 @@ func TestErrorsDisabledByServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":false}}`), reply)
 	}
 	app := testApp(replyfn, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if errorsDisabled != err {
 		t.Error(err)
@@ -163,7 +164,7 @@ func TestErrorsEnabledByServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":true}}`), reply)
 	}
 	app := testApp(replyfn, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -191,7 +192,7 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 	// collection of traced-errors, not error-events.
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrors = false }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if err != nil {
 		t.Error(err)
@@ -212,7 +213,7 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 
 func TestNoticeErrorNil(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(nil)
 	if errNilError != err {
 		t.Error(err)
@@ -226,7 +227,7 @@ func TestNoticeErrorNil(t *testing.T) {
 func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ErrorCollector.CaptureEvents = false }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -244,7 +245,7 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrorEvents = false }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)
@@ -266,7 +267,7 @@ func (e errorWithClass) ErrorClass() string { return e.class }
 
 func TestErrorWithClasser(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(errorWithClass{class: "zap"})
 	if nil != err {
 		t.Error(err)
@@ -289,7 +290,7 @@ func TestErrorWithClasser(t *testing.T) {
 
 func TestErrorWithClasserReturnsEmpty(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(errorWithClass{class: ""})
 	if nil != err {
 		t.Error(err)
@@ -325,7 +326,7 @@ func (e withStackTrace) StackTrace() []uintptr { return e.trace }
 
 func TestErrorWithStackTrace(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	e := makeErrorWithStackTrace()
 	err := txn.NoticeError(e)
 	if nil != err {
@@ -349,7 +350,7 @@ func TestErrorWithStackTrace(t *testing.T) {
 
 func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	e := withStackTrace{trace: nil}
 	err := txn.NoticeError(e)
 	if nil != err {
@@ -373,7 +374,7 @@ func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 
 func TestNewrelicErrorNoAttributes(t *testing.T) {
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message: "my msg",
 		Class:   "my class",
@@ -402,7 +403,7 @@ func TestNewrelicErrorValidAttributes(t *testing.T) {
 		"zip": "zap",
 	}
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
@@ -435,7 +436,7 @@ func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
 	}
 	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
@@ -468,7 +469,7 @@ func TestNewrelicErrorAttributesSecurityPolicy(t *testing.T) {
 	}
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomParameters.SetEnabled(false) }
 	app := testApp(replyfn, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
@@ -500,7 +501,7 @@ func TestNewrelicErrorAttributeOverridesNormalAttribute(t *testing.T) {
 		"zip": "zap",
 	}
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	if err := txn.AddAttribute("zip", 123); nil != err {
 		t.Error(err)
 	}
@@ -536,7 +537,7 @@ func TestNewrelicErrorInvalidAttributes(t *testing.T) {
 		"INVALID": struct{}{},
 	}
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
@@ -556,7 +557,7 @@ func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 		cfg.ErrorCollector.Attributes.Exclude = []string{"IGNORE_ME"}
 	}
 	app := testApp(nil, cfgfn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message: "my msg",
 		Class:   "my class",
@@ -593,7 +594,7 @@ func TestTooManyExtraErrorAttributes(t *testing.T) {
 		attrs[strconv.Itoa(i)] = i
 	}
 	app := testApp(nil, nil, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	err := txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",

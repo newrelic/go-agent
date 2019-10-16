@@ -42,17 +42,18 @@ func (rw *rwTwoExtraMethods) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 func TestTransactionAllExtraMethods(t *testing.T) {
 	app := testApp(nil, nil, t)
 	rw := &rwAllExtraMethods{}
-	txn := app.StartTransaction("hello", rw, nil)
-	if v, ok := txn.(http.CloseNotifier); ok {
+	txn := app.StartTransaction("hello")
+	w := txn.SetWebResponse(rw)
+	if v, ok := w.(http.CloseNotifier); ok {
 		v.CloseNotify()
 	}
-	if v, ok := txn.(http.Flusher); ok {
+	if v, ok := w.(http.Flusher); ok {
 		v.Flush()
 	}
-	if v, ok := txn.(http.Hijacker); ok {
+	if v, ok := w.(http.Hijacker); ok {
 		v.Hijack()
 	}
-	if v, ok := txn.(io.ReaderFrom); ok {
+	if v, ok := w.(io.ReaderFrom); ok {
 		v.ReadFrom(nil)
 	}
 	if !rw.hijackCalled ||
@@ -66,17 +67,18 @@ func TestTransactionAllExtraMethods(t *testing.T) {
 func TestTransactionNoExtraMethods(t *testing.T) {
 	app := testApp(nil, nil, t)
 	rw := &rwNoExtraMethods{}
-	txn := app.StartTransaction("hello", rw, nil)
-	if _, ok := txn.(http.CloseNotifier); ok {
+	txn := app.StartTransaction("hello")
+	w := txn.SetWebResponse(rw)
+	if _, ok := w.(http.CloseNotifier); ok {
 		t.Error("unexpected CloseNotifier method")
 	}
-	if _, ok := txn.(http.Flusher); ok {
+	if _, ok := w.(http.Flusher); ok {
 		t.Error("unexpected Flusher method")
 	}
-	if _, ok := txn.(http.Hijacker); ok {
+	if _, ok := w.(http.Hijacker); ok {
 		t.Error("unexpected Hijacker method")
 	}
-	if _, ok := txn.(io.ReaderFrom); ok {
+	if _, ok := w.(io.ReaderFrom); ok {
 		t.Error("unexpected ReaderFrom method")
 	}
 }
@@ -84,17 +86,18 @@ func TestTransactionNoExtraMethods(t *testing.T) {
 func TestTransactionTwoExtraMethods(t *testing.T) {
 	app := testApp(nil, nil, t)
 	rw := &rwTwoExtraMethods{}
-	txn := app.StartTransaction("hello", rw, nil)
-	if _, ok := txn.(http.CloseNotifier); ok {
+	txn := app.StartTransaction("hello")
+	w := txn.SetWebResponse(rw)
+	if _, ok := w.(http.CloseNotifier); ok {
 		t.Error("unexpected CloseNotifier method")
 	}
-	if v, ok := txn.(http.Flusher); ok {
+	if v, ok := w.(http.Flusher); ok {
 		v.Flush()
 	}
-	if v, ok := txn.(http.Hijacker); ok {
+	if v, ok := w.(http.Hijacker); ok {
 		v.Hijack()
 	}
-	if _, ok := txn.(io.ReaderFrom); ok {
+	if _, ok := w.(io.ReaderFrom); ok {
 		t.Error("unexpected ReaderFrom method")
 	}
 	if !rw.hijackCalled ||

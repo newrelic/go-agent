@@ -170,7 +170,7 @@ var (
 
 func TestInstrumentRequestExternal(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newConfig(false))
 	input := &lambda.InvokeInput{
@@ -198,7 +198,7 @@ func TestInstrumentRequestExternal(t *testing.T) {
 
 func TestInstrumentRequestDatastore(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := dynamodb.New(newConfig(false))
 	input := &dynamodb.DescribeTableInput{
@@ -259,7 +259,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentConfigExternal(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newConfig(true))
 
@@ -288,7 +288,7 @@ func TestInstrumentConfigExternal(t *testing.T) {
 
 func TestInstrumentConfigDatastore(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := dynamodb.New(newConfig(true))
 
@@ -349,7 +349,7 @@ func TestInstrumentConfigDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newConfig(true))
 
@@ -376,7 +376,7 @@ func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
 
 func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := dynamodb.New(newConfig(true))
 
@@ -435,7 +435,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 
 func TestRetrySend(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	cfg := newConfig(false)
 	cfg.HTTPClient = &http.Client{
@@ -479,7 +479,7 @@ func TestRetrySend(t *testing.T) {
 
 func TestRequestSentTwice(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newConfig(false))
 	input := &lambda.InvokeInput{
@@ -533,7 +533,7 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 
 func TestNoRequestIDFound(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	cfg := newConfig(false)
 	cfg.HTTPClient = &http.Client{

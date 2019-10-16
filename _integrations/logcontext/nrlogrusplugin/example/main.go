@@ -57,7 +57,7 @@ func main() {
 	defer app.Shutdown(10 * time.Second)
 
 	log.Debug("Starting transaction now")
-	txn := app.StartTransaction("main", nil, nil)
+	txn := app.StartTransaction("main")
 
 	// Add the transaction context to the logger. Only once this happens will
 	// the logs be properly decorated with all required fields.

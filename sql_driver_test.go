@@ -94,7 +94,7 @@ func TestDriverStmtExecContext(t *testing.T) {
 	// Test that driver.Stmt.ExecContext calls get instrumented.
 	app := testApp(nil, nil, t)
 	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	stmt, _ := conn.Prepare("myoperation,mycollection")
 	ctx := NewContext(context.Background(), txn)
@@ -107,7 +107,7 @@ func TestDriverStmtQueryContext(t *testing.T) {
 	// Test that driver.Stmt.PrepareContext calls get instrumented.
 	app := testApp(nil, nil, t)
 	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	stmt, _ := conn.(driver.ConnPrepareContext).PrepareContext(nil, "myoperation,mycollection")
 	ctx := NewContext(context.Background(), txn)
@@ -120,7 +120,7 @@ func TestDriverConnExecContext(t *testing.T) {
 	// Test that driver.Conn.ExecContext calls get instrumented.
 	app := testApp(nil, nil, t)
 	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	ctx := NewContext(context.Background(), txn)
 	conn.(driver.ExecerContext).ExecContext(ctx, "myoperation,mycollection", nil)
@@ -132,7 +132,7 @@ func TestDriverConnQueryContext(t *testing.T) {
 	// Test that driver.Conn.QueryContext calls get instrumented.
 	app := testApp(nil, nil, t)
 	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	ctx := NewContext(context.Background(), txn)
 	conn.(driver.QueryerContext).QueryContext(ctx, "myoperation,mycollection", nil)
@@ -144,7 +144,7 @@ func TestDriverContext(t *testing.T) {
 	// Test that driver.OpenConnector returns an instrumented connector.
 	app := testApp(nil, nil, t)
 	dr := InstrumentSQLDriver(testDriver{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	connector, _ := dr.(driver.DriverContext).OpenConnector("myhost,myport,mydatabase")
 	conn, _ := connector.Connect(nil)
 	ctx := NewContext(context.Background(), txn)
@@ -162,7 +162,7 @@ func TestInstrumentSQLConnector(t *testing.T) {
 	bld.BaseSegment.PortPathOrID = "myport"
 	bld.BaseSegment.DatabaseName = "mydatabase"
 	connector := InstrumentSQLConnector(testConnector{}, bld)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	conn, _ := connector.Connect(nil)
 	ctx := NewContext(context.Background(), txn)
 	conn.(driver.ExecerContext).ExecContext(ctx, "myoperation,mycollection", nil)
@@ -174,7 +174,7 @@ func TestConnectorToDriver(t *testing.T) {
 	// Test that driver.Connector.Driver returns an instrumented Driver.
 	app := testApp(nil, nil, t)
 	connector := InstrumentSQLConnector(testConnector{}, testBuilder)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	dr := connector.Driver()
 	conn, _ := dr.Open("myhost,myport,mydatabase")
 	ctx := NewContext(context.Background(), txn)

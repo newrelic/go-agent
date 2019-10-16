@@ -167,7 +167,7 @@ var (
 
 func TestInstrumentRequestExternal(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newSession())
 	input := &lambda.InvokeInput{
@@ -199,7 +199,7 @@ func TestInstrumentRequestExternal(t *testing.T) {
 
 func TestInstrumentRequestDatastore(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := dynamodb.New(newSession())
 	input := &dynamodb.DescribeTableInput{
@@ -261,7 +261,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentSessionExternal(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	InstrumentHandlers(&ses.Handlers)
@@ -295,7 +295,7 @@ func TestInstrumentSessionExternal(t *testing.T) {
 
 func TestInstrumentSessionDatastore(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	InstrumentHandlers(&ses.Handlers)
@@ -365,7 +365,7 @@ func TestInstrumentSessionDatastoreNoTxn(t *testing.T) {
 
 func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	InstrumentHandlers(&ses.Handlers)
@@ -396,7 +396,7 @@ func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
 
 func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	InstrumentHandlers(&ses.Handlers)
@@ -456,7 +456,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 
 func TestRetrySend(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	ses.Config.HTTPClient.Transport = &firstFailingTransport{failing: true}
@@ -491,7 +491,7 @@ func TestRetrySend(t *testing.T) {
 
 func TestRequestSentTwice(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	client := lambda.New(newSession())
 	input := &lambda.InvokeInput{
@@ -552,7 +552,7 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 
 func TestNoRequestIDFound(t *testing.T) {
 	app := testApp()
-	txn := app.StartTransaction(txnName, nil, nil)
+	txn := app.StartTransaction(txnName)
 
 	ses := newSession()
 	ses.Config.HTTPClient.Transport = &noRequestIDTransport{}

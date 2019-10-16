@@ -18,7 +18,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/newrelic/go-agent"
+	newrelic "github.com/newrelic/go-agent"
 )
 
 func mustGetEnv(key string) string {
@@ -29,7 +29,7 @@ func mustGetEnv(key string) string {
 }
 
 func called(app *newrelic.Application, payload string) {
-	txn := app.StartTransaction("called-txn", nil, nil)
+	txn := app.StartTransaction("called-txn")
 	defer txn.End()
 
 	// Accept the payload that was passed on the command line.
@@ -38,7 +38,7 @@ func called(app *newrelic.Application, payload string) {
 }
 
 func calling(app *newrelic.Application) {
-	txn := app.StartTransaction("calling-txn", nil, nil)
+	txn := app.StartTransaction("calling-txn")
 	defer txn.End()
 
 	// Create a payload, start the called process and pass the payload.

@@ -196,7 +196,7 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 				DestinationName: m.Topic(),
 				Consumer:        true,
 			}
-			txn := app.StartTransaction(namer.Name(), nil, nil)
+			txn := app.StartTransaction(namer.Name())
 			defer txn.End()
 			integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, m.Topic(), nil)
 			md, ok := metadata.FromContext(ctx)
@@ -221,7 +221,7 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 			hdrs.Add(k, v)
 		}
 	}
-	txn := app.StartTransaction(req.Endpoint(), nil, nil)
+	txn := app.StartTransaction(req.Endpoint())
 	u := &url.URL{
 		Scheme: "micro",
 		Host:   req.Service(),

@@ -168,7 +168,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp()
-	txn := app.StartTransaction("name", nil, nil)
+	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	if err := c.Call(ctx, req, &rsp); nil != err {
 		t.Fatal("Error calling test client:", err)
@@ -249,7 +249,8 @@ func testClientCallMetadata(c client.Client, t *testing.T) {
 	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp()
-	txn := app.StartTransaction("name", nil, nil)
+	app := createTestApp(t)
+	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	md := metadata.Metadata{
 		"zip": "zap",
@@ -324,7 +325,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	}
 
 	app := createTestApp()
-	txn := app.StartTransaction("name", nil, nil)
+	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	msg := c.NewMessage(topic, "hello world")
 	wg.Add(1)
@@ -456,7 +457,7 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 	defer s.Stop()
 
 	app := createTestApp()
-	txn := app.StartTransaction("name", nil, nil)
+	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	req := c.NewRequest(
 		serverName,
@@ -565,7 +566,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
-	txn := app.StartTransaction("txn", nil, nil)
+	txn := app.StartTransaction("txn")
 	defer txn.End()
 	ctx = newrelic.NewContext(ctx, txn)
 	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
@@ -854,7 +855,7 @@ func TestServerSubscribe(t *testing.T) {
 	ctx := context.Background()
 	msg := c.NewMessage(topic, &proto.HelloRequest{Name: "test"})
 	wg.Add(1)
-	txn := app.StartTransaction("pub", nil, nil)
+	txn := app.StartTransaction("pub")
 	ctx = newrelic.NewContext(ctx, txn)
 	if err := c.Publish(ctx, msg); nil != err {
 		t.Fatal("Error calling publish:", err)

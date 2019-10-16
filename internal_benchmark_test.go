@@ -54,7 +54,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	if nil != err {
 		b.Fatal(err)
 	}
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("my txn")
 	fn := func() {
 		defer StartSegment(txn, "alpha").End()
 	}
@@ -72,7 +72,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	if nil != err {
 		b.Fatal(err)
 	}
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("my txn")
 	fn := func() {
 		s := StartSegment(txn, "alpha")
 		s.End()
@@ -92,7 +92,7 @@ func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
 	if nil != err {
 		b.Fatal(err)
 	}
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("my txn")
 	fn := func() {
 		s := StartSegment(txn, "alpha")
 		s.End()
@@ -111,7 +111,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 	if nil != err {
 		b.Fatal(err)
 	}
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("my txn")
 	fn := func(txn Transaction) {
 		ds := DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
@@ -135,7 +135,7 @@ func BenchmarkExternalSegment(b *testing.B) {
 	if nil != err {
 		b.Fatal(err)
 	}
-	txn := app.StartTransaction("my txn", nil, nil)
+	txn := app.StartTransaction("my txn")
 	fn := func(txn Transaction) {
 		es := &ExternalSegment{
 			StartTime: txn.StartSegmentNow(),
@@ -157,7 +157,7 @@ func BenchmarkTxnWithSegment(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		txn := app.StartTransaction("my txn", nil, nil)
+		txn := app.StartTransaction("my txn")
 		StartSegment(txn, "myFunction").End()
 		txn.End()
 	}
@@ -170,7 +170,7 @@ func BenchmarkTxnWithDatastore(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		txn := app.StartTransaction("my txn", nil, nil)
+		txn := app.StartTransaction("my txn")
 		ds := &DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
 			Product:    DatastoreMySQL,
@@ -189,7 +189,7 @@ func BenchmarkTxnWithExternal(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		txn := app.StartTransaction("my txn", nil, nil)
+		txn := app.StartTransaction("my txn")
 		es := &ExternalSegment{
 			StartTime: txn.StartSegmentNow(),
 			URL:       "http://example.com",

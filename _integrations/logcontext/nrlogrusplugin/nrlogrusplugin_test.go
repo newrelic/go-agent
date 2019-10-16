@@ -90,7 +90,7 @@ func BenchmarkTextFormatter(b *testing.B) {
 
 func BenchmarkWithTransaction(b *testing.B) {
 	app := integrationsupport.NewTestApp(nil, nil)
-	txn := app.StartTransaction("TestLogDistributedTracingDisabled", nil, nil)
+	txn := app.StartTransaction("TestLogDistributedTracingDisabled")
 	log := newTestLogger(bytes.NewBuffer([]byte("")))
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -132,7 +132,7 @@ func TestLogNoTxn(t *testing.T) {
 
 func TestLogDistributedTracingDisabled(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, nil)
-	txn := app.StartTransaction("TestLogDistributedTracingDisabled", nil, nil)
+	txn := app.StartTransaction("TestLogDistributedTracingDisabled")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -161,7 +161,7 @@ func TestLogSampledFalse(t *testing.T) {
 			cfg.DistributedTracer.Enabled = true
 			cfg.CrossApplicationTracer.Enabled = false
 		})
-	txn := app.StartTransaction("TestLogSampledFalse", nil, nil)
+	txn := app.StartTransaction("TestLogSampledFalse")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -191,7 +191,7 @@ func TestLogSampledTrue(t *testing.T) {
 			cfg.DistributedTracer.Enabled = true
 			cfg.CrossApplicationTracer.Enabled = false
 		})
-	txn := app.StartTransaction("TestLogSampledTrue", nil, nil)
+	txn := app.StartTransaction("TestLogSampledTrue")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -227,7 +227,7 @@ func TestEntryUsedTwice(t *testing.T) {
 			cfg.DistributedTracer.Enabled = true
 			cfg.CrossApplicationTracer.Enabled = false
 		})
-	txn := app.StartTransaction("TestEntryUsedTwice1", nil, nil)
+	txn := app.StartTransaction("TestEntryUsedTwice1")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	host, _ := sysinfo.Hostname()
 	entry.WithContext(ctx).Info("Hello World!")
@@ -251,7 +251,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		func(cfg *newrelic.Config) {
 			cfg.DistributedTracer.Enabled = false
 		})
-	txn = app.StartTransaction("TestEntryUsedTwice2", nil, nil)
+	txn = app.StartTransaction("TestEntryUsedTwice2")
 	ctx = newrelic.NewContext(context.Background(), txn)
 	host, _ = sysinfo.Hostname()
 	entry.WithContext(ctx).Info("Hello World! Again!")
@@ -270,7 +270,7 @@ func TestEntryUsedTwice(t *testing.T) {
 
 func TestEntryError(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, nil)
-	txn := app.StartTransaction("TestEntryError", nil, nil)
+	txn := app.StartTransaction("TestEntryError")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -293,7 +293,7 @@ func TestEntryError(t *testing.T) {
 
 func TestWithCustomField(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, nil)
-	txn := app.StartTransaction("TestWithCustomField", nil, nil)
+	txn := app.StartTransaction("TestWithCustomField")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)

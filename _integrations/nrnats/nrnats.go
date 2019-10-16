@@ -51,7 +51,7 @@ func SubWrapper(app *newrelic.Application, f func(msg *nats.Msg)) func(msg *nats
 			DestinationName: msg.Subject,
 			Consumer:        true,
 		}
-		txn := app.StartTransaction(namer.Name(), nil, nil)
+		txn := app.StartTransaction(namer.Name())
 		defer txn.End()
 
 		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, msg.Sub.Subject, nil)

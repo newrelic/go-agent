@@ -112,7 +112,7 @@ func main() {
 	app := createApp()
 	defer app.Shutdown(10 * time.Second)
 	// Start a transaction
-	txn := app.StartTransaction("main", nil, nil)
+	txn := app.StartTransaction("main")
 	defer txn.End()
 	// Add transaction to context
 	ctx := newrelic.NewContext(context.Background(), txn)

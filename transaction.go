@@ -9,14 +9,6 @@ import (
 // request or background task.  Start a new Transaction with the
 // Application.StartTransaction() method.
 type Transaction interface {
-	// The transaction's http.ResponseWriter methods delegate to the
-	// http.ResponseWriter provided as a parameter to
-	// Application.StartTransaction or Transaction.SetWebResponse.  This
-	// allows instrumentation of the response code and response headers.
-	// These methods may be called safely if the transaction does not have a
-	// http.ResponseWriter.
-	http.ResponseWriter
-
 	// End finishes the Transaction.  After that, subsequent calls to End or
 	// other Transaction methods have no effect.  All segments and
 	// instrumentation must be completed before End is called.
@@ -65,7 +57,7 @@ type Transaction interface {
 	// to the transaction which implements the combination of
 	// http.CloseNotifier, http.Flusher, http.Hijacker, and io.ReaderFrom
 	// implemented by the ResponseWriter.
-	SetWebResponse(http.ResponseWriter) Transaction
+	SetWebResponse(http.ResponseWriter) http.ResponseWriter
 
 	// StartSegmentNow starts timing a segment.  The SegmentStartTime
 	// returned can be used as the StartTime field in Segment,

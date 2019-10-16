@@ -35,7 +35,7 @@ var (
 func inboundCrossProcessRequestFactory() *http.Request {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(crossProcessReplyFn, cfgFn, nil)
-	clientTxn := app.StartTransaction("client", nil, nil)
+	clientTxn := app.StartTransaction("client")
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 	StartExternalSegment(clientTxn, req)
 	if "" == req.Header.Get(cat.NewRelicIDName) {
@@ -53,10 +53,12 @@ func inboundCrossProcessRequestFactory() *http.Request {
 func outboundCrossProcessResponse() http.Header {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(crossProcessReplyFn, cfgFn, nil)
-	rw := httptest.NewRecorder()
-	txn := app.StartTransaction("txn", rw, inboundCrossProcessRequestFactory())
-	txn.WriteHeader(200)
-	return rw.HeaderMap
+	w := httptest.NewRecorder()
+	txn := app.StartTransaction("txn")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	rw.WriteHeader(200)
+	return w.HeaderMap
 }
 
 func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
@@ -65,8 +67,10 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
-	txn.WriteHeader(200)
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	rw.WriteHeader(200)
 	txn.End()
 
 	if "" == w.Header().Get(cat.NewRelicAppDataName) {
@@ -91,8 +95,11 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
-	txn.Write([]byte("response text"))
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+
+	rw.Write([]byte("response text"))
 	txn.End()
 
 	if "" == w.Header().Get(cat.NewRelicAppDataName) {
@@ -112,7 +119,7 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 func TestCATRoundTripper(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello", nil, nil)
+	txn := app.StartTransaction("hello")
 	url := "http://example.com/"
 	client := &http.Client{}
 	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
@@ -162,8 +169,10 @@ func TestCrossProcessLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
-	txn.Write([]byte("response text"))
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	rw := txn.SetWebResponse(w)
+	rw.Write([]byte("response text"))
 	txn.End()
 
 	if "" != w.Header().Get(cat.NewRelicAppDataName) {
@@ -192,8 +201,10 @@ func TestCrossProcessDisabledByServerSideConfig(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
-	txn.Write([]byte("response text"))
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	rw.Write([]byte("response text"))
 	txn.End()
 
 	if "" != w.Header().Get(cat.NewRelicAppDataName) {
@@ -222,8 +233,10 @@ func TestCrossProcessEnabledByServerSideConfig(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	w := httptest.NewRecorder()
-	txn := app.StartTransaction("hello", w, inboundCrossProcessRequestFactory())
-	txn.Write([]byte("response text"))
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	rw.Write([]byte("response text"))
 	txn.End()
 
 	if "" == w.Header().Get(cat.NewRelicAppDataName) {
