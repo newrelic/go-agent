@@ -1,5 +1,13 @@
 ## ChangeLog
 
+### New Features
+
+* Added new method `Transaction.IsSampled()` that returns a boolean that
+  indicates if the transaction is sampled.  A sampled transaction records a
+  span event for each segment.  Distributed tracing must be enabled for
+  transactions to be sampled.  `false` is returned if the transaction has
+  finished.
+
 ### Bug Fixes
 
 * Fixed an issue where the

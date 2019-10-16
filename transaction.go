@@ -159,6 +159,12 @@ type Transaction interface {
 	// GetLinkingMetadata returns the fields needed to link data to a trace or
 	// entity.
 	GetLinkingMetadata() LinkingMetadata
+
+	// IsSampled indicates if the Transaction is sampled.  A sampled
+	// Transaction records a span event for each segment.  Distributed tracing
+	// must be enabled for transactions to be sampled.  False is returned if
+	// the transaction has finished.
+	IsSampled() bool
 }
 
 // DistributedTracePayload traces requests between applications or processes.
