@@ -141,3 +141,21 @@ func TestTimeToAndFromUnixMilliseconds(t *testing.T) {
 		t.Fatal(t1, t2)
 	}
 }
+
+func TestMinorVersion(t *testing.T) {
+	testcases := []struct {
+		input  string
+		expect string
+	}{
+		{"go1.13", "go1.13"},
+		{"go1.13.1", "go1.13"},
+		{"go1.13.1.0", "go1.13"},
+		{"purple", "purple"},
+	}
+
+	for _, test := range testcases {
+		if actual := MinorVersion(test.input); actual != test.expect {
+			t.Errorf("incorrect result: expect=%s actual=%s", test.expect, actual)
+		}
+	}
+}
