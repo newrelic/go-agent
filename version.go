@@ -1,6 +1,10 @@
 package newrelic
 
-import "github.com/newrelic/go-agent/internal"
+import (
+	"runtime"
+
+	"github.com/newrelic/go-agent/internal"
+)
 
 const (
 	major = "2"
@@ -11,4 +15,7 @@ const (
 	Version = major + "." + minor + "." + patch
 )
 
-func init() { internal.TrackUsage("Go", "Version", Version) }
+func init() {
+	internal.TrackUsage("Go", "Version", Version)
+	internal.TrackUsage("Go", "Runtime", "Version", internal.MinorVersion(runtime.Version()))
+}

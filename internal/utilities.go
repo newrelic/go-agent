@@ -104,3 +104,14 @@ func timeFromUnixMilliseconds(millis uint64) time.Time {
 func TimeToUnixMilliseconds(tm time.Time) uint64 {
 	return uint64(tm.UnixNano()) / uint64(1000*1000)
 }
+
+// MinorVersion takes a given version string and returns only the major and
+// minor portions of it. If the input is malformed, it returns the input
+// untouched.
+func MinorVersion(v string) string {
+	split := strings.SplitN(v, ".", 3)
+	if len(split) < 2 {
+		return v
+	}
+	return split[0] + "." + split[1]
+}
