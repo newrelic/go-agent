@@ -164,7 +164,7 @@ func HandlerWrapper(app *newrelic.Application) server.HandlerWrapper {
 			} else {
 				code = 200
 			}
-			txn.WriteHeader(code)
+			txn.SetWebResponse(nil).(code)
 			return err
 		}
 	}

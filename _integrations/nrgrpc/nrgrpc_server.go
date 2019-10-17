@@ -68,7 +68,7 @@ func UnaryServerInterceptor(app *newrelic.Application) grpc.UnaryServerIntercept
 
 		ctx = newrelic.NewContext(ctx, txn)
 		resp, err = handler(ctx, req)
-		txn.WriteHeader(int(status.Code(err)))
+		txn.SetWebResponse(nil).WriteHeader(int(status.Code(err)))
 		return
 	}
 }
@@ -123,7 +123,7 @@ func StreamServerInterceptor(app *newrelic.Application) grpc.StreamServerInterce
 		defer txn.End()
 
 		err := handler(srv, newWrappedServerStream(ss, txn))
-		txn.WriteHeader(int(status.Code(err)))
+		txn.SetWebResponse(nil).WriteHeader(int(status.Code(err)))
 		return err
 	}
 }

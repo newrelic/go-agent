@@ -59,8 +59,8 @@ func responseEvent(ctx context.Context, event interface{}) {
 		return
 	}
 	if rw := eventResponse(event); nil != rw && 0 != rw.code {
-		txn.SetWebResponse(rw)
-		txn.WriteHeader(rw.code)
+		w := txn.SetWebResponse(rw)
+		w.WriteHeader(rw.code)
 	}
 }
 
