@@ -420,17 +420,24 @@ func (app *app) setState(run *appRun, err error) {
 	app.err = err
 }
 
+func newTransaction(thd *thread) *Transaction {
+	return &Transaction{
+		Private: thd,
+		thread:  thd,
+	}
+}
+
 // StartTransaction implements newrelic.Application's StartTransaction.
-func (app *app) StartTransaction(name string) Transaction {
+func (app *app) StartTransaction(name string) *Transaction {
 	if nil == app {
 		return nil
 	}
 	run, _ := app.getState()
-	return newTxn(txnInput{
+	return newTransaction(newTxn(txnInput{
 		app:      app,
 		appRun:   run,
 		Consumer: app,
-	}, name)
+	}, name))
 }
 
 var (

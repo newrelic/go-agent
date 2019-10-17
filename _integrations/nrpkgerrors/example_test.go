@@ -15,7 +15,7 @@ func makeRootError() error {
 }
 
 func Example() {
-	var txn newrelic.Transaction
+	var txn *newrelic.Transaction
 	e := errors.Wrap(makeRootError(), "extra information")
 	// Wrap the error to record stack-trace and class type information from
 	// the error's root cause.  Here, "rootError" will be recored as the

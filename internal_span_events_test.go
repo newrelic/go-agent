@@ -470,9 +470,9 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	s := StartSegment(txn, "hi")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
 	s.End()
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
@@ -520,9 +520,9 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	s := StartSegment(txn, "hi")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
 	s.End()
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
@@ -561,9 +561,9 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	// Do not panic if there are no active spans!
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{

@@ -208,7 +208,7 @@ func async(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	go func(txn newrelic.Transaction) {
+	go func(txn *newrelic.Transaction) {
 		defer wg.Done()
 		defer newrelic.StartSegment(txn, "async").End()
 		time.Sleep(100 * time.Millisecond)

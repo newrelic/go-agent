@@ -77,14 +77,14 @@ type Context interface {
 
 // Transaction returns the transaction stored inside the context, or nil if not
 // found.
-func Transaction(c Context) newrelic.Transaction {
+func Transaction(c Context) *newrelic.Transaction {
 	if v := c.Value(internal.GinTransactionContextKey); nil != v {
-		if txn, ok := v.(newrelic.Transaction); ok {
+		if txn, ok := v.(*newrelic.Transaction); ok {
 			return txn
 		}
 	}
 	if v := c.Value(internal.TransactionContextKey); nil != v {
-		if txn, ok := v.(newrelic.Transaction); ok {
+		if txn, ok := v.(*newrelic.Transaction); ok {
 			return txn
 		}
 	}

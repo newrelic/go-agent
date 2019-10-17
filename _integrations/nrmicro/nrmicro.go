@@ -50,7 +50,7 @@ func startMessage(ctx context.Context, topic string) (context.Context, *newrelic
 	return ctx, seg
 }
 
-func addDTPayloadToContext(ctx context.Context, txn newrelic.Transaction) context.Context {
+func addDTPayloadToContext(ctx context.Context, txn *newrelic.Transaction) context.Context {
 	payload := txn.CreateDistributedTracePayload()
 	if txt := payload.Text(); "" != txt {
 		md, _ := metadata.FromContext(ctx)
@@ -164,7 +164,7 @@ func HandlerWrapper(app *newrelic.Application) server.HandlerWrapper {
 			} else {
 				code = 200
 			}
-			txn.SetWebResponse(nil).(code)
+			txn.SetWebResponse(nil).WriteHeader(code)
 			return err
 		}
 	}
@@ -213,7 +213,7 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 	}
 }
 
-func startWebTransaction(ctx context.Context, app *newrelic.Application, req server.Request) newrelic.Transaction {
+func startWebTransaction(ctx context.Context, app *newrelic.Application, req server.Request) *newrelic.Transaction {
 	var hdrs http.Header
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))

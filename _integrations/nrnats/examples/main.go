@@ -13,7 +13,7 @@ import (
 
 var app *newrelic.Application
 
-func doAsync(nc *nats.Conn, txn newrelic.Transaction) {
+func doAsync(nc *nats.Conn, txn *newrelic.Transaction) {
 	wg := sync.WaitGroup{}
 	subj := "async"
 
@@ -42,7 +42,7 @@ func doAsync(nc *nats.Conn, txn newrelic.Transaction) {
 	wg.Wait()
 }
 
-func doQueue(nc *nats.Conn, txn newrelic.Transaction) {
+func doQueue(nc *nats.Conn, txn *newrelic.Transaction) {
 	wg := sync.WaitGroup{}
 	subj := "queue"
 
@@ -70,7 +70,7 @@ func doQueue(nc *nats.Conn, txn newrelic.Transaction) {
 	wg.Wait()
 }
 
-func doSync(nc *nats.Conn, txn newrelic.Transaction) {
+func doSync(nc *nats.Conn, txn *newrelic.Transaction) {
 	subj := "sync"
 
 	// Simple Sync Subscriber
@@ -93,7 +93,7 @@ func doSync(nc *nats.Conn, txn newrelic.Transaction) {
 	fmt.Println("Received sync message:", string(m.Data))
 }
 
-func doChan(nc *nats.Conn, txn newrelic.Transaction) {
+func doChan(nc *nats.Conn, txn *newrelic.Transaction) {
 	subj := "chan"
 
 	// Channel Subscriber
@@ -116,7 +116,7 @@ func doChan(nc *nats.Conn, txn newrelic.Transaction) {
 	fmt.Println("Received chan message:", string(m.Data))
 }
 
-func doReply(nc *nats.Conn, txn newrelic.Transaction) {
+func doReply(nc *nats.Conn, txn *newrelic.Transaction) {
 	subj := "reply"
 
 	// Replies
@@ -140,7 +140,7 @@ func doReply(nc *nats.Conn, txn newrelic.Transaction) {
 	fmt.Println("Received reply message:", string(m.Data))
 }
 
-func doRespond(nc *nats.Conn, txn newrelic.Transaction) {
+func doRespond(nc *nats.Conn, txn *newrelic.Transaction) {
 	subj := "respond"
 	// Respond
 	nc.Subscribe(subj, func(m *nats.Msg) {

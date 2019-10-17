@@ -14,7 +14,7 @@ import (
 
 var app *newrelic.Application
 
-func doAsync(sc stan.Conn, txn newrelic.Transaction) {
+func doAsync(sc stan.Conn, txn *newrelic.Transaction) {
 	wg := sync.WaitGroup{}
 	subj := "async"
 
@@ -43,7 +43,7 @@ func doAsync(sc stan.Conn, txn newrelic.Transaction) {
 	wg.Wait()
 }
 
-func doQueue(sc stan.Conn, txn newrelic.Transaction) {
+func doQueue(sc stan.Conn, txn *newrelic.Transaction) {
 	wg := sync.WaitGroup{}
 	subj := "queue"
 

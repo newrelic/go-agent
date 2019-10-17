@@ -18,7 +18,7 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func doRequest(txn newrelic.Transaction) error {
+func doRequest(txn *newrelic.Transaction) error {
 	for _, addr := range []string{"segments", "mysql"} {
 		url := fmt.Sprintf("http://localhost:8000/%s", addr)
 		req, err := http.NewRequest("GET", url, nil)

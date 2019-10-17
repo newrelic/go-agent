@@ -405,7 +405,7 @@ func TestSetName(t *testing.T) {
 	app.ExpectMetrics(t, backgroundMetrics)
 }
 
-func deferEndPanic(txn Transaction, panicMe interface{}) (r interface{}) {
+func deferEndPanic(txn *Transaction, panicMe interface{}) (r interface{}) {
 	defer func() {
 		r = recover()
 	}()

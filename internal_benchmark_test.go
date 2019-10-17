@@ -112,7 +112,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 		b.Fatal(err)
 	}
 	txn := app.StartTransaction("my txn")
-	fn := func(txn Transaction) {
+	fn := func(txn *Transaction) {
 		ds := DatastoreSegment{
 			StartTime:  txn.StartSegmentNow(),
 			Product:    DatastoreMySQL,
@@ -136,7 +136,7 @@ func BenchmarkExternalSegment(b *testing.B) {
 		b.Fatal(err)
 	}
 	txn := app.StartTransaction("my txn")
-	fn := func(txn Transaction) {
+	fn := func(txn *Transaction) {
 		es := &ExternalSegment{
 			StartTime: txn.StartSegmentNow(),
 			URL:       "http://example.com/",

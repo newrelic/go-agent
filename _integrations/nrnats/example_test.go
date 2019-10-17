@@ -9,7 +9,7 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-func currentTransaction() newrelic.Transaction { return nil }
+func currentTransaction() *newrelic.Transaction { return nil }
 
 func ExampleStartPublishSegment() {
 	nc, _ := nats.Connect(nats.DefaultURL)

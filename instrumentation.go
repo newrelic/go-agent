@@ -79,7 +79,7 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 // context (using FromContext).  Using a nil Transaction is STRONGLY recommended
 // because it allows the same RoundTripper (and client) to be reused for
 // multiple transactions.
-func NewRoundTripper(txn Transaction, original http.RoundTripper) http.RoundTripper {
+func NewRoundTripper(txn *Transaction, original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		// The specification of http.RoundTripper requires that the request is never modified.
 		request = cloneRequest(request)

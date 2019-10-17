@@ -16,7 +16,7 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func doRequest(txn newrelic.Transaction) error {
+func doRequest(txn *newrelic.Transaction) error {
 	req, err := http.NewRequest("GET", "http://localhost:8000/segments", nil)
 	if nil != err {
 		return err

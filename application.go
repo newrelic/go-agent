@@ -20,7 +20,7 @@ type Application struct {
 //   interface.  Provide your ResponseWriter as a parameter and
 //   then use the Transaction in its place to instrument the response
 //   code and response headers.
-func (app *Application) StartTransaction(name string) Transaction {
+func (app *Application) StartTransaction(name string) *Transaction {
 	if nil == app {
 		return nil
 	}

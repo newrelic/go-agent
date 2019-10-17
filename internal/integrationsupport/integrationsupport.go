@@ -8,15 +8,21 @@ import (
 )
 
 // AddAgentAttribute allows instrumentation packages to add agent attributes.
-func AddAgentAttribute(txn newrelic.Transaction, id internal.AgentAttributeID, stringVal string, otherVal interface{}) {
-	if aa, ok := txn.(internal.AddAgentAttributer); ok {
+func AddAgentAttribute(txn *newrelic.Transaction, id internal.AgentAttributeID, stringVal string, otherVal interface{}) {
+	if nil == txn {
+		return
+	}
+	if aa, ok := txn.Private.(internal.AddAgentAttributer); ok {
 		aa.AddAgentAttribute(id, stringVal, otherVal)
 	}
 }
 
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
-func AddAgentSpanAttribute(txn newrelic.Transaction, key internal.SpanAttribute, val string) {
-	internal.AddAgentSpanAttribute(txn, key, val)
+func AddAgentSpanAttribute(txn *newrelic.Transaction, key internal.SpanAttribute, val string) {
+	if nil == txn {
+		return
+	}
+	internal.AddAgentSpanAttribute(txn.Private, key, val)
 }
 
 // This code below is used for testing and is based on the similar code in internal_test.go in

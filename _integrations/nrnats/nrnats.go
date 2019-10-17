@@ -18,7 +18,7 @@ import (
 // `newrelic.Transaction` and `nats.Conn` parameters are required.  The subject
 // parameter is the subject of the publish call and is used in metric and span
 // names.
-func StartPublishSegment(txn newrelic.Transaction, nc *nats.Conn, subject string) *newrelic.MessageProducerSegment {
+func StartPublishSegment(txn *newrelic.Transaction, nc *nats.Conn, subject string) *newrelic.MessageProducerSegment {
 	if nil == txn {
 		return nil
 	}

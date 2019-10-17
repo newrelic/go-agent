@@ -23,7 +23,7 @@ func init() { internal.TrackUsage("integration", "framework", "echo") }
 
 // FromContext returns the Transaction from the context if present, and nil
 // otherwise.
-func FromContext(c echo.Context) newrelic.Transaction {
+func FromContext(c echo.Context) *newrelic.Transaction {
 	return newrelic.FromContext(c.Request().Context())
 }
 

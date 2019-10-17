@@ -64,7 +64,7 @@ func Example() {
 	http.ListenAndServe(":8000", nil)
 }
 
-func currentTransaction() Transaction {
+func currentTransaction() *Transaction {
 	return nil
 }
 

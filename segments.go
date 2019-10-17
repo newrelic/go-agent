@@ -143,11 +143,8 @@ func (s *ExternalSegment) OutboundHeaders() http.Header {
 
 // StartSegmentNow starts timing a segment.  This function is recommended over
 // Transaction.StartSegmentNow() because it is nil safe.
-func StartSegmentNow(txn Transaction) SegmentStartTime {
-	if nil != txn {
-		return txn.StartSegmentNow()
-	}
-	return SegmentStartTime{}
+func StartSegmentNow(txn *Transaction) SegmentStartTime {
+	return txn.StartSegmentNow()
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -164,7 +161,7 @@ func StartSegmentNow(txn Transaction) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 //
-func StartSegment(txn Transaction, name string) *Segment {
+func StartSegment(txn *Transaction, name string) *Segment {
 	return &Segment{
 		StartTime: StartSegmentNow(txn),
 		Name:      name,
@@ -179,7 +176,7 @@ func StartSegment(txn Transaction, name string) *Segment {
 // Using the same http.Client for all of your external requests?  Check out
 // NewRoundTripper: You may not need to use StartExternalSegment at all!
 //
-func StartExternalSegment(txn Transaction, request *http.Request) *ExternalSegment {
+func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegment {
 	if nil == txn {
 		txn = transactionFromRequestContext(request)
 	}

@@ -1,6 +1,8 @@
 package newrelic
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -549,5 +551,113 @@ func TestIsSampledEnded(t *testing.T) {
 	sampled := txn.IsSampled()
 	if sampled == true {
 		t.Error("finished txn should not be sampled")
+	}
+}
+
+func TestNilTransaction(t *testing.T) {
+	var txn *Transaction
+
+	if err := txn.End(); err != nil {
+		t.Error(err)
+	}
+	if err := txn.Ignore(); err != nil {
+		t.Error(err)
+	}
+	if err := txn.SetName("hello"); err != nil {
+		t.Error(err)
+	}
+	if err := txn.NoticeError(errors.New("something")); err != nil {
+		t.Error(err)
+	}
+	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
+		t.Error(err)
+	}
+	if err := txn.SetWebRequest(NewWebRequest(helloRequest)); err != nil {
+		t.Error(err)
+	}
+	var x dummyResponseWriter
+	if w := txn.SetWebResponse(x); w != x {
+		t.Error(w)
+	}
+	if start := txn.StartSegmentNow(); !reflect.DeepEqual(start, SegmentStartTime{}) {
+		t.Error(start)
+	}
+	if p := txn.CreateDistributedTracePayload(); p != nil {
+		t.Error(p)
+	}
+	if err := txn.AcceptDistributedTracePayload(TransportHTTP, nil); err != nil {
+		t.Error(err)
+	}
+	if app := txn.Application(); app != nil {
+		t.Error(app)
+	}
+	if hdr, err := txn.BrowserTimingHeader(); err != nil || hdr.WithTags() != nil {
+		t.Error(err, hdr)
+	}
+	if tx := txn.NewGoroutine(); tx != nil {
+		t.Error(tx)
+	}
+	if m := txn.GetTraceMetadata(); !reflect.DeepEqual(m, TraceMetadata{}) {
+		t.Error(m)
+	}
+	if m := txn.GetLinkingMetadata(); !reflect.DeepEqual(m, LinkingMetadata{}) {
+		t.Error(m)
+	}
+	if s := txn.IsSampled(); s {
+		t.Error(s)
+	}
+}
+
+func TestEmptyTransaction(t *testing.T) {
+	txn := &Transaction{}
+
+	if err := txn.End(); err != nil {
+		t.Error(err)
+	}
+	if err := txn.Ignore(); err != nil {
+		t.Error(err)
+	}
+	if err := txn.SetName("hello"); err != nil {
+		t.Error(err)
+	}
+	if err := txn.NoticeError(errors.New("something")); err != nil {
+		t.Error(err)
+	}
+	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
+		t.Error(err)
+	}
+	if err := txn.SetWebRequest(NewWebRequest(helloRequest)); err != nil {
+		t.Error(err)
+	}
+	var x dummyResponseWriter
+	if w := txn.SetWebResponse(x); w != x {
+		t.Error(w)
+	}
+	if start := txn.StartSegmentNow(); !reflect.DeepEqual(start, SegmentStartTime{}) {
+		t.Error(start)
+	}
+	if p := txn.CreateDistributedTracePayload(); p != nil {
+		t.Error(p)
+	}
+	if err := txn.AcceptDistributedTracePayload(TransportHTTP, nil); err != nil {
+		t.Error(err)
+	}
+	if app := txn.Application(); app != nil {
+		t.Error(app)
+	}
+	if hdr, err := txn.BrowserTimingHeader(); err != nil || hdr.WithTags() != nil {
+		t.Error(err, hdr)
+	}
+	if tx := txn.NewGoroutine(); tx != nil {
+		t.Error(tx)
+	}
+	if m := txn.GetTraceMetadata(); !reflect.DeepEqual(m, TraceMetadata{}) {
+		t.Error(m)
+	}
+	if m := txn.GetLinkingMetadata(); !reflect.DeepEqual(m, LinkingMetadata{}) {
+		t.Error(m)
+	}
+	if s := txn.IsSampled(); s {
+		t.Error(s)
 	}
 }

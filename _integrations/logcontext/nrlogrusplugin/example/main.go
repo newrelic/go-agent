@@ -18,12 +18,12 @@ func mustGetEnv(key string) string {
 	panic(fmt.Sprintf("environment variable %s unset", key))
 }
 
-func doFunction2(txn newrelic.Transaction, e *logrus.Entry) {
+func doFunction2(txn *newrelic.Transaction, e *logrus.Entry) {
 	defer newrelic.StartSegment(txn, "doFunction2").End()
 	e.Error("In doFunction2")
 }
 
-func doFunction1(txn newrelic.Transaction, e *logrus.Entry) {
+func doFunction1(txn *newrelic.Transaction, e *logrus.Entry) {
 	defer newrelic.StartSegment(txn, "doFunction1").End()
 	e.Trace("In doFunction1")
 	doFunction2(txn, e)

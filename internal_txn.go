@@ -364,7 +364,7 @@ func addCrossProcessHeaders(txn *txn, hdr http.Header) {
 	}
 }
 
-func (thd *thread) End() error {
+func (thd *thread) End(recovered interface{}) error {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
@@ -375,9 +375,8 @@ func (thd *thread) End() error {
 
 	txn.finished = true
 
-	r := recover()
-	if nil != r {
-		e := internal.TxnErrorFromPanic(time.Now(), r)
+	if nil != recovered {
+		e := internal.TxnErrorFromPanic(time.Now(), recovered)
 		e.Stack = internal.GetStackTrace()
 		txn.noticeErrorInternal(e)
 	}
@@ -424,8 +423,8 @@ func (thd *thread) End() error {
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not
 	// propagate.
-	if nil != r {
-		panic(r)
+	if nil != recovered {
+		panic(recovered)
 	}
 
 	return nil
@@ -719,19 +718,19 @@ func createThread(txn *txn) *internal.Thread {
 	return newThread
 }
 
-func (thd *thread) NewGoroutine() Transaction {
+func (thd *thread) NewGoroutine() *Transaction {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
 	if txn.finished {
 		// If the transaction has finished, return the same thread.
-		return thd
+		return newTransaction(thd)
 	}
-	return &thread{
+	return newTransaction(&thread{
 		thread: createThread(txn),
 		txn:    txn,
-	}
+	})
 }
 
 type segment struct {
