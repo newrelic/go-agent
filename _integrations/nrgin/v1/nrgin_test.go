@@ -179,3 +179,44 @@ func TestNilApp(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 }
+
+func errorStatus(c *gin.Context) {
+	c.String(500, "an error happened")
+}
+
+func TestStatusCodes(t *testing.T) {
+	// Test that we are correctly able to collect status code.
+	// This behavior changed with this pull request: https://github.com/gin-gonic/gin/pull/1606
+	// In Gin v1.4.0 and below, we always recorded a 200 status, whereas with
+	// newer Gin versions we now correctly capture the status.
+	app := testApp(t)
+	router := gin.Default()
+	router.Use(Middleware(app))
+	router.GET("/err", errorStatus)
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/err", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "an error happened" {
+		t.Error("wrong response body", respBody)
+	}
+	if response.Code != 500 {
+		t.Error("wrong response code", response.Code)
+	}
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/" + pkg + ".errorStatus",
+			"nr.apdexPerfZone": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":             500,
+			"request.method":               "GET",
+			"request.uri":                  "/err",
+			"response.headers.contentType": "text/plain; charset=utf-8",
+		},
+	}})
+}
