@@ -105,11 +105,14 @@ func Middleware(app newrelic.Application) gin.HandlerFunc {
 			txn := app.StartTransaction(name, w, c.Request)
 			defer txn.End()
 
-			c.Writer = &replacementResponseWriter{
+			repl := &replacementResponseWriter{
 				ResponseWriter: c.Writer,
 				txn:            txn,
 				code:           http.StatusOK,
 			}
+			c.Writer = repl
+			defer repl.flushHeader()
+
 			c.Set(internal.GinTransactionContextKey, txn)
 		}
 		c.Next()

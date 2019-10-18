@@ -1,5 +1,13 @@
 ## ChangeLog
 
+### Bug Fixes
+
+* Fixed an issue where the
+  [`nrgin`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
+  integration was not capturing the correct response code in the case where no
+  response body was sent.  This issue has now been fixed but requires Gin
+  greater than v1.4.0.
+
 ## 2.14.1
 
 ### Bug Fixes

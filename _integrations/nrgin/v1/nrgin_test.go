@@ -220,3 +220,41 @@ func TestStatusCodes(t *testing.T) {
 		},
 	}})
 }
+
+func noBody(c *gin.Context) {
+	c.Status(500)
+}
+
+func TestNoResponseBody(t *testing.T) {
+	// Test that when no response body is sent (i.e. c.Writer.Write is never
+	// called) that we still capture status code.
+	app := testApp(t)
+	router := gin.Default()
+	router.Use(Middleware(app))
+	router.GET("/nobody", noBody)
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/nobody", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "" {
+		t.Error("wrong response body", respBody)
+	}
+	if response.Code != 500 {
+		t.Error("wrong response code", response.Code)
+	}
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/" + pkg + ".noBody",
+			"nr.apdexPerfZone": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode": 500,
+			"request.method":   "GET",
+			"request.uri":      "/nobody",
+		},
+	}})
+}
