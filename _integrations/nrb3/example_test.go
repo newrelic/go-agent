@@ -45,8 +45,11 @@ func ExampleNewRoundTripper() {
 // This example demonstrates how to create a Zipkin reporter using the standard
 // Zipkin http reporter
 // (https://godoc.org/github.com/openzipkin/zipkin-go/reporter/http) to send
-// Span data to New Relic.  This example assumes you have the environment
-// variable NEW_RELIC_API_KEY set to your New Relic Insights Insert Key.
+// Span data to New Relic.  Follow this example when your application uses
+// Zipkin for tracing (instead of the New Relic Go Agent) and you wish to send
+// span data to the New Relic backend.  The example assumes you have the
+// environment variable NEW_RELIC_API_KEY set to your New Relic Insights Insert
+// Key.
 func Example_zipkinReporter() {
 	// import (
 	//    reporterhttp "github.com/openzipkin/zipkin-go/reporter/http"
