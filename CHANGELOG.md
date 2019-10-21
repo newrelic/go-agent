@@ -8,6 +8,44 @@
   transactions to be sampled.  `false` is returned if the transaction has
   finished.
 
+* Added support for adding [B3
+  Headers](https://github.com/openzipkin/b3-propagation) to outgoing requests.
+  This is helpful if the service you are calling uses B3 for trace state
+  propagation (for example, it uses Zipkin instrumentation).  You can use the
+  new
+  [`nrb3`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3)
+  package's
+  [`NewRoundTripper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3#NewRoundTripper)
+  like this:
+
+  ```go
+  // When defining the client, set the Transport to the NewRoundTripper. This
+  // will create ExternalSegments and add B3 headers for each request.
+  client := &http.Client{
+      Transport: nrb3.NewRoundTripper(nil),
+  }
+
+  // Distributed Tracing must be enabled for this application.
+  // (see https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing)
+  txn := currentTxn()
+
+  req, err := http.NewRequest("GET", "http://example.com", nil)
+  if nil != err {
+      log.Fatalln(err)
+  }
+
+  // Be sure to add the transaction to the request context.  This step is
+  // required.
+  req = newrelic.RequestWithTransactionContext(req, txn)
+  resp, err := client.Do(req)
+  if nil != err {
+      log.Fatalln(err)
+  }
+
+  defer resp.Body.Close()
+  fmt.Println(resp.StatusCode)
+  ```
+
 ### Bug Fixes
 
 * Fixed an issue where the
