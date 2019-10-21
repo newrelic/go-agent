@@ -72,7 +72,7 @@ func TestNewRoundTripperNilTransaction(t *testing.T) {
 	client.Transport = roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{}, nil
 	})
-	client.Transport = NewRoundTripper(nil, client.Transport)
+	client.Transport = NewRoundTripper(client.Transport)
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 	req = RequestWithTransactionContext(req, txn)
 	client.Do(req)

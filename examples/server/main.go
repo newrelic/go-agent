@@ -181,7 +181,7 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	// FromContext). This is recommended because it allows you to reuse the
 	// same client for multiple transactions.
 	client := &http.Client{}
-	client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
+	client.Transport = newrelic.NewRoundTripper(client.Transport)
 
 	request, _ := http.NewRequest("GET", "http://example.com", nil)
 	// Since the transaction is already added to the inbound request's

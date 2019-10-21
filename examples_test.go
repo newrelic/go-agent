@@ -72,7 +72,7 @@ func ExampleNewRoundTripper() {
 	client := &http.Client{}
 	// The RoundTripper returned by NewRoundTripper instruments all requests
 	// done by this client with external segments.
-	client.Transport = NewRoundTripper(nil, client.Transport)
+	client.Transport = NewRoundTripper(client.Transport)
 
 	request, _ := http.NewRequest("GET", "http://example.com", nil)
 

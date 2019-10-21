@@ -74,16 +74,13 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 // NewRoundTripper creates an http.RoundTripper to instrument external requests
 // and add distributed tracing headers.  The RoundTripper returned creates an
 // external segment before delegating to the original RoundTripper provided (or
-// http.DefaultTransport if none is provided).  If the Transaction parameter is
-// nil then the RoundTripper will look for a Transaction in the request's
-// context (using FromContext).  Using a nil Transaction is STRONGLY recommended
-// because it allows the same RoundTripper (and client) to be reused for
-// multiple transactions.
-func NewRoundTripper(txn *Transaction, original http.RoundTripper) http.RoundTripper {
+// http.DefaultTransport if none is provided).  The RoundTripper will look for a
+// Transaction in the request's context (using FromContext).
+func NewRoundTripper(original http.RoundTripper) http.RoundTripper {
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		// The specification of http.RoundTripper requires that the request is never modified.
 		request = cloneRequest(request)
-		segment := StartExternalSegment(txn, request)
+		segment := StartExternalSegment(nil, request)
 
 		if nil == original {
 			original = http.DefaultTransport

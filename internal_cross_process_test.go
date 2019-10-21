@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"errors"
-
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/cat"
 )
@@ -113,54 +111,6 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 		// response.headers.contentType will be not be present.
 		AgentAttributes: nil,
 		UserAttributes:  map[string]interface{}{},
-	}})
-}
-
-func TestCATRoundTripper(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
-	app := testApp(nil, cfgFn, t)
-	txn := app.StartTransaction("hello")
-	url := "http://example.com/"
-	client := &http.Client{}
-	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
-		// TODO test that request headers have been set here.
-		if r.URL.String() != url {
-			t.Error(r.URL.String())
-		}
-		return nil, errors.New("hello")
-	})
-	client.Transport = NewRoundTripper(txn, inner)
-	resp, err := client.Get(url)
-	if resp != nil || err == nil {
-		t.Error(resp, err.Error())
-	}
-	txn.NoticeError(myError{})
-	txn.End()
-	scope := "OtherTransaction/Go/hello"
-	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "External/all", Scope: "", Forced: true, Data: nil},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
-	}, backgroundErrorMetrics...))
-	app.ExpectErrorEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"error.class":       "newrelic.myError",
-			"error.message":     "my msg",
-			"transactionName":   "OtherTransaction/Go/hello",
-			"externalCallCount": 1,
-			"externalDuration":  internal.MatchAnything,
-		},
-	}})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":              "OtherTransaction/Go/hello",
-			"externalCallCount": 1,
-			"externalDuration":  internal.MatchAnything,
-			"nr.guid":           internal.MatchAnything,
-			"nr.tripId":         internal.MatchAnything,
-			"nr.pathHash":       internal.MatchAnything,
-		},
 	}})
 }
 
