@@ -503,3 +503,51 @@ func TestGetLinkingMetadataAppNames(t *testing.T) {
 		}
 	}
 }
+
+func TestIsSampledFalse(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleNothing{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	sampled := txn.IsSampled()
+	if sampled == true {
+		t.Error("txn should not be sampled")
+	}
+}
+
+func TestIsSampledTrue(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	sampled := txn.IsSampled()
+	if sampled == false {
+		t.Error("txn should be sampled")
+	}
+}
+
+func TestIsSampledEnded(t *testing.T) {
+	// Test that Transaction.IsSampled returns false if the transaction has
+	// already ended.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello", nil, nil)
+	txn.End()
+	sampled := txn.IsSampled()
+	if sampled == true {
+		t.Error("finished txn should not be sampled")
+	}
+}

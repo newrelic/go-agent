@@ -1230,3 +1230,14 @@ func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 
 	return
 }
+
+func (txn *txn) IsSampled() bool {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return false
+	}
+
+	return txn.lazilyCalculateSampled()
+}
