@@ -25,7 +25,7 @@ func subEv(ctx context.Context, msg *proto.HelloRequest) error {
 	return nil
 }
 
-func publish(s micro.Service, app newrelic.Application) {
+func publish(s micro.Service, app *newrelic.Application) {
 	c := s.Client()
 
 	for range time.NewTicker(time.Second).C {

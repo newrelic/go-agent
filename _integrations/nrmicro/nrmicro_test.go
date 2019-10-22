@@ -104,7 +104,7 @@ var cfgFn = func(cfg *newrelic.Config) {
 	)
 }
 
-func newTestWrappedClientAndServer(app newrelic.Application, wrapperOption client.Option, t *testing.T) (client.Client, server.Server) {
+func newTestWrappedClientAndServer(app *newrelic.Application, wrapperOption client.Option, t *testing.T) (client.Client, server.Server) {
 	registry := rmemory.NewRegistry()
 	sel := selector.NewSelector(selector.Registry(registry))
 	c := client.NewClient(
@@ -1017,7 +1017,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 	}})
 }
 
-func newTestClientServerAndBroker(app newrelic.Application, t *testing.T) (client.Client, server.Server, broker.Broker) {
+func newTestClientServerAndBroker(app *newrelic.Application, t *testing.T) (client.Client, server.Server, broker.Broker) {
 	b := bmemory.NewBroker()
 	c := client.NewClient(
 		client.Broker(b),
