@@ -62,7 +62,7 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 			txn := app.StartTransaction(transactionName(c))
 			defer txn.End()
 
-			txn.SetWebRequest(newrelic.NewWebRequest(c.Request()))
+			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)
 

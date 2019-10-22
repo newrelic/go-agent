@@ -93,12 +93,12 @@ func TestSetWebRequestNil(t *testing.T) {
 	}})
 }
 
-func TestSetWebRequestNilPointer(t *testing.T) {
-	// Test that calling NewWebRequest with a nil pointer is safe and
-	// returns a nil interface that SetWebRequest handles safely.
+func TestSetWebRequestHTTPNil(t *testing.T) {
+	// Test that calling NewWebRequestHTTP with a nil pointer and sets
+	// the transaction as a web transaction.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
-	err := txn.SetWebRequest(NewWebRequest(nil))
+	err := txn.SetWebRequestHTTP(nil)
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -128,11 +128,10 @@ func TestSetWebRequestNilPointer(t *testing.T) {
 }
 
 func TestSetWebRequestHTTPRequest(t *testing.T) {
-	// Test that NewWebRequest correctly turns an *http.Request into a
-	// WebRequest that SetWebRequest uses as expected.
+	// Test that NewWebRequestHTTP uses the *http.Request as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
-	err := txn.SetWebRequest(NewWebRequest(sampleHTTPRequest))
+	err := txn.SetWebRequestHTTP(sampleHTTPRequest)
 	if err != nil {
 		t.Error("unexpected error", err)
 	}

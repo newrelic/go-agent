@@ -76,7 +76,7 @@ func TestSyntheticsOldCAT(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
 	clientTxn := app.StartTransaction("helloOldCAT")
-	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(true, false)))
+	clientTxn.SetWebRequestHTTP(inboundSyntheticsRequestBuilder(true, false))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 
@@ -117,7 +117,7 @@ func TestSyntheticsBetterCAT(t *testing.T) {
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
 	clientTxn := app.StartTransaction("helloBetterCAT")
-	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(false, true)))
+	clientTxn.SetWebRequestHTTP(inboundSyntheticsRequestBuilder(false, true))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 
@@ -156,7 +156,7 @@ func TestSyntheticsStandalone(t *testing.T) {
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
 	clientTxn := app.StartTransaction("helloSynthetics")
-	clientTxn.SetWebRequest(NewWebRequest(inboundSyntheticsRequestBuilder(false, false)))
+	clientTxn.SetWebRequestHTTP(inboundSyntheticsRequestBuilder(false, false))
 
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 

@@ -25,7 +25,7 @@ type instrumentedHandler struct {
 
 func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	txn := h.app.StartTransaction(h.name)
-	txn.SetWebRequest(newrelic.NewWebRequest(r))
+	txn.SetWebRequestHTTP(r)
 	w = txn.SetWebResponse(w)
 	defer txn.End()
 

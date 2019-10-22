@@ -71,7 +71,7 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 	if nil != r.application {
 		handle = func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 			txn := r.application.StartTransaction(txnName(method, path))
-			txn.SetWebRequest(newrelic.NewWebRequest(req))
+			txn.SetWebRequestHTTP(req)
 			w = txn.SetWebResponse(w)
 			defer txn.End()
 
@@ -144,7 +144,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			req = newrelic.RequestWithTransactionContext(req, txn)
 
-			txn.SetWebRequest(newrelic.NewWebRequest(req))
+			txn.SetWebRequestHTTP(req)
 			w = txn.SetWebResponse(w)
 		}
 	}

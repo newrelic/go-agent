@@ -54,7 +54,7 @@ func outboundCrossProcessResponse() http.Header {
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("txn")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 	rw.WriteHeader(200)
 	return w.HeaderMap
 }
@@ -67,7 +67,7 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 	rw.WriteHeader(200)
 	txn.End()
 
@@ -95,7 +95,7 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 
 	rw.Write([]byte("response text"))
 	txn.End()
@@ -120,7 +120,7 @@ func TestCrossProcessLocallyDisabled(t *testing.T) {
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 	rw := txn.SetWebResponse(w)
 	rw.Write([]byte("response text"))
 	txn.End()
@@ -153,7 +153,7 @@ func TestCrossProcessDisabledByServerSideConfig(t *testing.T) {
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 	rw.Write([]byte("response text"))
 	txn.End()
 
@@ -185,7 +185,7 @@ func TestCrossProcessEnabledByServerSideConfig(t *testing.T) {
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(inboundCrossProcessRequestFactory()))
+	txn.SetWebRequestHTTP(inboundCrossProcessRequestFactory())
 	rw.Write([]byte("response text"))
 	txn.End()
 

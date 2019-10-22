@@ -89,11 +89,19 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) error {
 	return txn.thread.AddAttribute(key, value)
 }
 
+// SetWebRequestHTTP marks the transaction as a web transaction.  If
+// the request is non-nil, SetWebRequestHTTP will additionally collect
+// details on request attributes, url, and method.  If headers are
+// present, the agent will look for a distributed tracing header.
+func (txn *Transaction) SetWebRequestHTTP(r *http.Request) error {
+	return txn.SetWebRequest(NewWebRequest(r))
+}
+
 // SetWebRequest marks the transaction as a web transaction.  If
 // WebRequest is non-nil, SetWebRequest will additionally collect
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for a distributed tracing header.  Use
-// NewWebRequest to transform a *http.Request into a WebRequest.
+// SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) error {
 	if nil == txn {
 		return nil

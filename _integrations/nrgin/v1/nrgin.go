@@ -103,7 +103,7 @@ func Middleware(app *newrelic.Application) gin.HandlerFunc {
 			name := c.HandlerName()
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name)
-			txn.SetWebRequest(newrelic.NewWebRequest(c.Request))
+			txn.SetWebRequestHTTP(c.Request)
 			defer txn.End()
 
 			repl := &replacementResponseWriter{

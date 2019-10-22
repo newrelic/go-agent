@@ -34,7 +34,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 		defer txn.End()
 
 		w = txn.SetWebResponse(w)
-		txn.SetWebRequest(NewWebRequest(r))
+		txn.SetWebRequestHTTP(r)
 
 		r = RequestWithTransactionContext(r, txn)
 

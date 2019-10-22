@@ -572,7 +572,7 @@ func TestNilTransaction(t *testing.T) {
 	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
 		t.Error(err)
 	}
-	if err := txn.SetWebRequest(NewWebRequest(helloRequest)); err != nil {
+	if err := txn.SetWebRequestHTTP(helloRequest); err != nil {
 		t.Error(err)
 	}
 	var x dummyResponseWriter
@@ -626,7 +626,7 @@ func TestEmptyTransaction(t *testing.T) {
 	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
 		t.Error(err)
 	}
-	if err := txn.SetWebRequest(NewWebRequest(helloRequest)); err != nil {
+	if err := txn.SetWebRequestHTTP(helloRequest); err != nil {
 		t.Error(err)
 	}
 	var x dummyResponseWriter

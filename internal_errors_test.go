@@ -39,7 +39,7 @@ func TestNoticeErrorBackground(t *testing.T) {
 func TestNoticeErrorWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(NewWebRequest(helloRequest))
+	txn.SetWebRequestHTTP(helloRequest)
 	err := txn.NoticeError(myError{})
 	if nil != err {
 		t.Error(err)

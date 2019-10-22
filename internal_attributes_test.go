@@ -65,7 +65,7 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 	req.Header = make(http.Header)
 	req.Header.Add("User-Agent", val)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(NewWebRequest(req))
+	txn.SetWebRequestHTTP(req)
 	txn.NoticeError(errors.New("hello"))
 	txn.End()
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -256,7 +256,7 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(helloRequest))
+	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(errors.New("zap"))
 
 	hdr := rw.Header()
@@ -343,7 +343,7 @@ func TestDefaultResponseCode(t *testing.T) {
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(&http.Request{}))
+	txn.SetWebRequestHTTP(&http.Request{})
 	rw.Write([]byte("hello"))
 	txn.End()
 
@@ -362,7 +362,7 @@ func TestNoResponseCode(t *testing.T) {
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	txn.SetWebResponse(w)
-	txn.SetWebRequest(NewWebRequest(&http.Request{}))
+	txn.SetWebRequestHTTP(&http.Request{})
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
