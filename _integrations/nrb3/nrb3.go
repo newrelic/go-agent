@@ -45,7 +45,7 @@ type b3Transport struct {
 	original http.RoundTripper
 }
 
-func txnSampled(txn newrelic.Transaction) string {
+func txnSampled(txn *newrelic.Transaction) string {
 	if txn.IsSampled() {
 		return "1"
 	}

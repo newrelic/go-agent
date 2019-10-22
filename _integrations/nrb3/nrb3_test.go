@@ -22,7 +22,7 @@ func (fn roundTripperFn) RoundTrip(r *http.Request) (*http.Response, error) { re
 
 func TestRoundTripperNoTxn(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, integrationsupport.DTEnabledCfgFn)
-	txn := app.StartTransaction("test", nil, nil)
+	txn := app.StartTransaction("test")
 
 	var count int
 	rt := NewRoundTripper(roundTripperFn(func(req *http.Request) (*http.Response, error) {
@@ -62,7 +62,7 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(123)
 	}
 	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
-	txn := app.StartTransaction("test", nil, nil)
+	txn := app.StartTransaction("test")
 
 	var count int
 	var sent *http.Request
@@ -126,7 +126,7 @@ func TestRoundTripperWithTxnNotSampled(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleNothing{}
 	}
 	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
-	txn := app.StartTransaction("test", nil, nil)
+	txn := app.StartTransaction("test")
 
 	var sent *http.Request
 	rt := NewRoundTripper(roundTripperFn(func(req *http.Request) (*http.Response, error) {

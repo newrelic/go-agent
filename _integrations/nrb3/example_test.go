@@ -7,11 +7,11 @@ import (
 	"os"
 
 	newrelic "github.com/newrelic/go-agent"
-	"github.com/openzipkin/zipkin-go"
+	zipkin "github.com/openzipkin/zipkin-go"
 	reporterhttp "github.com/openzipkin/zipkin-go/reporter/http"
 )
 
-func currentTxn() newrelic.Transaction {
+func currentTxn() *newrelic.Transaction {
 	return nil
 }
 
