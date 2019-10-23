@@ -50,6 +50,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql) | Instrument MySQL driver |
 | [lib/pq](https://github.com/lib/pq) | [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq) | Instrument PostgreSQL driver |
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3) | Instrument SQLite driver |
+| [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [_integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmongo) | Instrument MongoDB calls |
 | [google.golang.org/grpc](https://github.com/grpc/grpc-go) | [_integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgrpc) | Instrument gRPC servers and clients |
 | [micro/go-micro](https://github.com/micro/go-micro) | [_integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
 | [nats-io/nats.go](https://github.com/nats-io/nats.go) | [_integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrnats) | Instrument publishers and subscribers using the NATS client |

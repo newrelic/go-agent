@@ -1,3 +1,30 @@
+// Package nrmongo instruments https://github.com/mongodb/mongo-go-driver
+//
+// Use this package to instrument your MongoDB calls without having to manually
+// create DatastoreSegments.  To do so, first set the monitor in the connect
+// options using `SetMonitor`
+// (https://godoc.org/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetMonitor):
+//
+//	nrMon := nrmongo.NewCommandMonitor(nil)
+//	client, err := mongo.Connect(ctx, options.Client().SetMonitor(nrMon))
+//
+// Note that it is important that this `nrmongo` monitor is the last monitor
+// set, otherwise it will be overwritten.  If needing to use more than one
+// `event.CommandMonitor`, pass the original monitor to the
+// `nrmongo.NewCommandMonitor` function:
+//
+//	origMon := &event.CommandMonitor{
+//		Started:   origStarted,
+//		Succeeded: origSucceeded,
+//		Failed:    origFailed,
+//	}
+//	nrMon := nrmongo.NewCommandMonitor(origMon)
+//	client, err := mongo.Connect(ctx, options.Client().SetMonitor(nrMon))
+//
+// Then add the current transaction to the context used in any MongoDB call:
+//
+//	ctx = newrelic.NewContext(context.Background(), txn)
+//	resp, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
 package nrmongo
 
 import (
@@ -9,10 +36,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 )
 
-// mongoMonitor TODO: doc
-// This does not currently expire anything from the maps - if we miss CommandMonitor succeeded/failed events
-// the maps could start to get big. May need to change this to store a segment and a time, and periodically
-// remove old segments.
 type mongoMonitor struct {
 	segmentMap  map[int64]*newrelic.DatastoreSegment
 	origCommMon *event.CommandMonitor
@@ -25,7 +48,27 @@ type mongoMonitor struct {
 // and https://github.com/mongodb/mongo-go-driver/blob/b39cd78ce7021252efee2fb44aa6e492d67680ef/x/mongo/driver/address/addr.go
 var connIDPattern = regexp.MustCompile(`([^:\[]+)(?::(\d+))?\[-\d+]`)
 
-// NewCommandMonitor TODO: doc
+// NewCommandMonitor returns a new `*event.CommandMonitor`
+// (https://godoc.org/go.mongodb.org/mongo-driver/event#CommandMonitor).  If
+// provided, the original `*event.CommandMonitor` will be called as well.  The
+// returned `*event.CommandMonitor` creates `newrelic.DatastoreSegment`s
+// (https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment) for each
+// database call.
+//
+//	// Use `SetMonitor` to register the CommandMonitor.
+//	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrmongo.NewCommandMonitor(nil)))
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	// Add transaction to the context.  This step is required.
+//	ctx = newrelic.NewContext(ctx, txn)
+//
+//	collection := client.Database("testing").Collection("numbers")
+//	resp, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 func NewCommandMonitor(original *event.CommandMonitor) *event.CommandMonitor {
 	m := mongoMonitor{
 		segmentMap:  make(map[int64]*newrelic.DatastoreSegment),
