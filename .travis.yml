@@ -53,6 +53,8 @@ matrix:
     env: INTEGRATION=_integrations/nrhttprouter
   - go: "1.13"
     env: INTEGRATION=_integrations/nrb3
+  - go: "1.13"
+    env: INTEGRATION=_integrations/nrmongo
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
