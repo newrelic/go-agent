@@ -1,5 +1,7 @@
 ## ChangeLog
 
+## 2.15.0
+
 ### New Features
 
 * Added support for monitoring [MongoDB](https://github.com/mongodb/mongo-go-driver/) queries with the new
