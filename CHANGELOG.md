@@ -2,6 +2,13 @@
 
 ### New Features
 
+* Added support for monitoring [MongoDB](https://github.com/mongodb/mongo-go-driver/) queries with the new
+[_integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmongo)
+package.
+
+  * [Example application](https://github.com/newrelic/go-agent/blob/master/_integrations/nrmongo/example/main.go)
+  * [Full godocs Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmongo)
+
 * Added new method `Transaction.IsSampled()` that returns a boolean that
   indicates if the transaction is sampled.  A sampled transaction records a
   span event for each segment.  Distributed tracing must be enabled for
