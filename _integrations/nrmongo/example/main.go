@@ -24,7 +24,7 @@ func main() {
 	// If you have another CommandMonitor, you can pass it to NewCommandMonitor and it will get called along
 	// with the NR monitor
 	nrMon := nrmongo.NewCommandMonitor(nil)
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx := context.Background()
 
 	//nrMon must be added after any other monitors are added, as previous options get overwritten.
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrMon))
