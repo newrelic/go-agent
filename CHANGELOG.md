@@ -13,16 +13,17 @@ package.
   indicates if the transaction is sampled.  A sampled transaction records a
   span event for each segment.  Distributed tracing must be enabled for
   transactions to be sampled.  `false` is returned if the transaction has
-  finished.
+  finished.  This sampling flag is needed for B3 trace propagation and 
+  future support of W3C Trace Context.
 
 * Added support for adding [B3
   Headers](https://github.com/openzipkin/b3-propagation) to outgoing requests.
   This is helpful if the service you are calling uses B3 for trace state
   propagation (for example, it uses Zipkin instrumentation).  You can use the
   new
-  [`nrb3`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3)
+  [_integrations/nrb3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3)
   package's
-  [`NewRoundTripper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3#NewRoundTripper)
+  [`nrb3.NewRoundTripper`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrb3#NewRoundTripper)
   like this:
 
   ```go
