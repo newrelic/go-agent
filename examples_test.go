@@ -205,9 +205,14 @@ func ExampleStartExternalSegment_context() {
 	segment.End()
 }
 
-func ExampleNewStaticWebRequest() {
+func ExampleTransaction_SetWebRequest() {
 	app := getApp()
-	webReq := NewStaticWebRequest(http.Header{}, &url.URL{Path: "path"}, "GET", TransportHTTP)
+	webReq := WebRequest{
+		Header:    http.Header{},
+		URL:       &url.URL{Path: "path"},
+		Method:    "GET",
+		Transport: TransportHTTP,
+	}
 	txn := app.StartTransaction("My-Transaction")
-	txn.SetWebRequest(webReq)
+	txn.SetWebRequest(&webReq)
 }

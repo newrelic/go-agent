@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -136,36 +135,7 @@ func (txn *txn) lazilyCalculateSampled() bool {
 	return txn.BetterCAT.Sampled
 }
 
-type requestWrap struct{ request *http.Request }
-
-func (r requestWrap) Header() http.Header { return r.request.Header }
-func (r requestWrap) URL() *url.URL       { return r.request.URL }
-func (r requestWrap) Method() string      { return r.request.Method }
-
-func (r requestWrap) Transport() TransportType {
-	if strings.HasPrefix(r.request.Proto, "HTTP") {
-		if r.request.TLS != nil {
-			return TransportHTTPS
-		}
-		return TransportHTTP
-	}
-	return TransportUnknown
-
-}
-
-type staticWebRequest struct {
-	header    http.Header
-	url       *url.URL
-	method    string
-	transport TransportType
-}
-
-func (r staticWebRequest) Header() http.Header      { return r.header }
-func (r staticWebRequest) URL() *url.URL            { return r.url }
-func (r staticWebRequest) Method() string           { return r.method }
-func (r staticWebRequest) Transport() TransportType { return TransportHTTP }
-
-func (txn *txn) SetWebRequest(r WebRequest) error {
+func (txn *txn) SetWebRequest(r *WebRequest) error {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -179,18 +149,18 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	if nil == r {
 		return nil
 	}
-	h := r.Header()
+	h := r.Header
 	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
 
 		if p := h.Get(DistributedTracePayloadHeader); p != "" {
-			txn.acceptDistributedTracePayloadLocked(r.Transport(), p)
+			txn.acceptDistributedTracePayloadLocked(r.Transport, p)
 		}
 
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
-	internal.RequestAgentAttributes(txn.Attrs, r.Method(), h, r.URL())
+	internal.RequestAgentAttributes(txn.Attrs, r.Method, h, r.URL)
 
 	return nil
 }

@@ -3,6 +3,7 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -94,7 +95,26 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) error {
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for a distributed tracing header.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) error {
-	return txn.SetWebRequest(NewWebRequest(r))
+	if nil == r {
+		return txn.SetWebRequest(nil)
+	}
+	wr := &WebRequest{
+		Header:    r.Header,
+		URL:       r.URL,
+		Method:    r.Method,
+		Transport: transport(r),
+	}
+	return txn.SetWebRequest(wr)
+}
+
+func transport(r *http.Request) TransportType {
+	if strings.HasPrefix(r.Proto, "HTTP") {
+		if r.TLS != nil {
+			return TransportHTTPS
+		}
+		return TransportHTTP
+	}
+	return TransportUnknown
 }
 
 // SetWebRequest marks the transaction as a web transaction.  If
@@ -102,7 +122,7 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) error {
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for a distributed tracing header.  Use
 // SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r WebRequest) error {
+func (txn *Transaction) SetWebRequest(r *WebRequest) error {
 	if nil == txn {
 		return nil
 	}
@@ -340,34 +360,18 @@ var (
 	TransportOther   = TransportType{name: "Other"}
 )
 
-// WebRequest may be implemented to provide request information to
-// Transaction.SetWebRequest.
-type WebRequest interface {
-	// Header may return nil if you don't have any headers or don't want to
+// WebRequest is used to provide request information to Transaction.SetWebRequest.
+type WebRequest struct {
+	// Header may be nil if you don't have any headers or don't want to
 	// transform them to http.Header format.
-	Header() http.Header
-	// URL may return nil if you don't have a URL or don't want to transform
+	Header http.Header
+	// URL may be nil if you don't have a URL or don't want to transform
 	// it to *url.URL.
-	URL() *url.URL
-	Method() string
-	// If a distributed tracing header is found in the headers returned by
-	// Header(), this TransportType will be used in the distributed tracing
-	// metrics.
-	Transport() TransportType
-}
-
-// NewWebRequest turns a *http.Request into a WebRequest for input into
-// Transaction.SetWebRequest.
-func NewWebRequest(request *http.Request) WebRequest {
-	if nil == request {
-		return nil
-	}
-	return requestWrap{request: request}
-}
-
-// NewStaticWebRequest takes the minimum necessary information and creates a static WebRequest out of it
-func NewStaticWebRequest(hdrs http.Header, url *url.URL, method string, transport TransportType) WebRequest {
-	return staticWebRequest{hdrs, url, method, transport}
+	URL    *url.URL
+	Method string
+	// If a distributed tracing header is found in the WebRequest.Header,
+	// this TransportType will be used in the distributed tracing metrics.
+	Transport TransportType
 }
 
 // LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains

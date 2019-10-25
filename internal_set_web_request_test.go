@@ -8,18 +8,6 @@ import (
 	"github.com/newrelic/go-agent/internal"
 )
 
-type customRequest struct {
-	header    http.Header
-	u         *url.URL
-	method    string
-	transport TransportType
-}
-
-func (r customRequest) Header() http.Header      { return r.header }
-func (r customRequest) URL() *url.URL            { return r.u }
-func (r customRequest) Method() string           { return r.method }
-func (r customRequest) Transport() TransportType { return r.transport }
-
 var (
 	sampleHTTPRequest = func() *http.Request {
 		req, err := http.NewRequest("GET", "http://www.newrelic.com", nil)
@@ -32,7 +20,7 @@ var (
 		req.Header.Set("Content-Length", "123")
 		return req
 	}()
-	sampleCustomRequest = func() customRequest {
+	sampleCustomRequest = func() WebRequest {
 		u, err := url.Parse("http://www.newrelic.com")
 		if nil != err {
 			panic(err)
@@ -42,11 +30,11 @@ var (
 		hdr.Set("Content-Type", "mycontent")
 		hdr.Set("Host", "myhost")
 		hdr.Set("Content-Length", "123")
-		return customRequest{
-			header:    hdr,
-			u:         u,
-			method:    "GET",
-			transport: TransportHTTP,
+		return WebRequest{
+			Header:    hdr,
+			URL:       u,
+			Method:    "GET",
+			Transport: TransportHTTP,
 		}
 	}()
 	sampleRequestAgentAttributes = map[string]interface{}{
@@ -128,44 +116,10 @@ func TestSetWebRequestHTTPNil(t *testing.T) {
 }
 
 func TestSetWebRequestHTTPRequest(t *testing.T) {
-	// Test that NewWebRequestHTTP uses the *http.Request as expected.
+	// Test that SetWebRequestHTTP uses the *http.Request as expected.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	err := txn.SetWebRequestHTTP(sampleHTTPRequest)
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-	txn.End()
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
-	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: sampleRequestAgentAttributes,
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
-			"guid":             internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-	}})
-}
-
-func TestSetWebRequestCustomRequest(t *testing.T) {
-	// Test that a custom type which implements WebRequest is used by
-	// SetWebRequest as expected.
-	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello")
-	err := txn.SetWebRequest(sampleCustomRequest)
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -200,7 +154,7 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
-	err := txn.SetWebRequest(sampleCustomRequest)
+	err := txn.SetWebRequest(&sampleCustomRequest)
 	if err != errAlreadyEnded {
 		t.Error("incorrect error", err)
 	}
@@ -225,19 +179,19 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 }
 
 func TestSetWebRequestWithDistributedTracing(t *testing.T) {
-	// Test that the WebRequest.Transport() return value is used as the
+	// Test that the WebRequest.Transport value is used as the
 	// distributed tracing transport if a distributed tracing header is
-	// found in the WebRequest.Header().
+	// found in the WebRequest.Header.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	payload := makePayload(app.Application, nil)
+	payload := makePayload(app.Application)
 	// Copy sampleCustomRequest to avoid modifying it since it is used in
 	// other tests.
 	req := sampleCustomRequest
-	req.header = map[string][]string{
+	req.Header = map[string][]string{
 		DistributedTracePayloadHeader: {payload.Text()},
 	}
 	txn := app.StartTransaction("hello")
-	err := txn.SetWebRequest(req)
+	err := txn.SetWebRequest(&req)
 	if nil != err {
 		t.Error("unexpected error", err)
 	}
@@ -279,19 +233,12 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	}})
 }
 
-type incompleteRequest struct{}
-
-func (r incompleteRequest) Header() http.Header      { return nil }
-func (r incompleteRequest) URL() *url.URL            { return nil }
-func (r incompleteRequest) Method() string           { return "" }
-func (r incompleteRequest) Transport() TransportType { return TransportUnknown }
-
 func TestSetWebRequestIncompleteRequest(t *testing.T) {
 	// Test SetWebRequest will safely handle situations where the request's
-	// URL() and Header() methods return nil.
+	// URL and Header values are nil.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
-	err := txn.SetWebRequest(incompleteRequest{})
+	err := txn.SetWebRequest(&WebRequest{Transport: TransportUnknown})
 	if err != nil {
 		t.Error("unexpected error", err)
 	}

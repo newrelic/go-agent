@@ -228,8 +228,13 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 		Path:   req.Endpoint(),
 	}
 
-	webReq := newrelic.NewStaticWebRequest(hdrs, u, req.Method(), newrelic.TransportHTTP)
-	txn.SetWebRequest(webReq)
+	webReq := newrelic.WebRequest{
+		Header:    hdrs,
+		URL:       u,
+		Method:    req.Method(),
+		Transport: newrelic.TransportHTTP,
+	}
+	txn.SetWebRequest(&webReq)
 
 	return txn
 }

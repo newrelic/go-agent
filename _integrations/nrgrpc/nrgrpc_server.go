@@ -27,9 +27,14 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 	target := hdrs.Get(":authority")
 	url := getURL(method, target)
 
-	webReq := newrelic.NewStaticWebRequest(hdrs, url, method, newrelic.TransportHTTP)
+	webReq := newrelic.WebRequest{
+		Header:    hdrs,
+		URL:       url,
+		Method:    method,
+		Transport: newrelic.TransportHTTP,
+	}
 	txn := app.StartTransaction(method)
-	txn.SetWebRequest(webReq)
+	txn.SetWebRequest(&webReq)
 
 	return txn
 }

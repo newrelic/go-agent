@@ -136,16 +136,16 @@ func TestEventWebRequest(t *testing.T) {
 			t.Error(tc.testname, "no request returned")
 			continue
 		}
-		if h := req.Header(); len(h) != tc.numHeaders {
+		if h := req.Header; len(h) != tc.numHeaders {
 			t.Error(tc.testname, "header len mismatch", h, tc.numHeaders)
 		}
-		if u := req.URL().String(); u != tc.urlString {
+		if u := req.URL.String(); u != tc.urlString {
 			t.Error(tc.testname, "url mismatch", u, tc.urlString)
 		}
-		if m := req.Method(); m != tc.method {
+		if m := req.Method; m != tc.method {
 			t.Error(tc.testname, "method mismatch", m, tc.method)
 		}
-		if tr := req.Transport(); tr != tc.transport {
+		if tr := req.Transport; tr != tc.transport {
 			t.Error(tc.testname, "transport mismatch", tr, tc.transport)
 		}
 	}
