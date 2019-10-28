@@ -102,6 +102,10 @@ func TestHandle(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
+
+	if newrelic.FromContext(req.Context()) == nil {
+		t.Error("transaction was not found in request context")
+	}
 }
 
 func TestHandler(t *testing.T) {
@@ -127,6 +131,10 @@ func TestHandler(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
+
+	if newrelic.FromContext(req.Context()) == nil {
+		t.Error("transaction was not found in request context")
+	}
 }
 
 func TestHandlerMissingApplication(t *testing.T) {

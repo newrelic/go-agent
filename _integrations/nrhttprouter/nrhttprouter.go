@@ -73,6 +73,8 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 			txn := r.application.StartTransaction(txnName(method, path), w, req)
 			defer txn.End()
 
+			req = newrelic.RequestWithTransactionContext(req, txn)
+
 			original(txn, req, ps)
 		}
 	}
