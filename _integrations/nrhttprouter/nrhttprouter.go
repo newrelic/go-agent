@@ -140,6 +140,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			txn := r.application.StartTransaction("NotFound", w, req)
 			defer txn.End()
 			w = txn
+			req = newrelic.RequestWithTransactionContext(req, txn)
 		}
 	}
 
