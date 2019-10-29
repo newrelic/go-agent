@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
@@ -76,6 +77,9 @@ func TestHandle(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("hi %s", ps.ByName("name"))))
+		if txn := newrelic.FromContext(r.Context()); txn != nil {
+			txn.AddAttribute("color", "purple")
+		}
 	})
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/person", nil)
@@ -91,6 +95,22 @@ func TestHandle(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/GET /hello/:name",
+				"nr.apdexPerfZone": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"color": "purple",
+			},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode": 500,
+				"request.method":   "GET",
+				"request.uri":      "/hello/person",
+			},
+		},
+	})
 }
 
 func TestHandler(t *testing.T) {
@@ -101,6 +121,9 @@ func TestHandler(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte("hi there"))
+		if txn := newrelic.FromContext(r.Context()); txn != nil {
+			txn.AddAttribute("color", "purple")
+		}
 	}))
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/", nil)
@@ -115,6 +138,22 @@ func TestHandler(t *testing.T) {
 		Name:      "GET /hello/",
 		IsWeb:     true,
 		NumErrors: 1,
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/GET /hello/",
+				"nr.apdexPerfZone": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"color": "purple",
+			},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode": 500,
+				"request.method":   "GET",
+				"request.uri":      "/hello/",
+			},
+		},
 	})
 }
 
@@ -169,6 +208,9 @@ func TestNotFound(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte("not found!"))
+		if txn := newrelic.FromContext(r.Context()); txn != nil {
+			txn.AddAttribute("color", "purple")
+		}
 	})
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/", nil)
@@ -183,6 +225,22 @@ func TestNotFound(t *testing.T) {
 		Name:      "NotFound",
 		IsWeb:     true,
 		NumErrors: 1,
+	})
+	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/NotFound",
+				"nr.apdexPerfZone": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"color": "purple",
+			},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode": 500,
+				"request.method":   "GET",
+				"request.uri":      "/hello/",
+			},
+		},
 	})
 }
 

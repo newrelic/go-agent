@@ -73,6 +73,8 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 			txn := r.application.StartTransaction(txnName(method, path), w, req)
 			defer txn.End()
 
+			req = newrelic.RequestWithTransactionContext(req, txn)
+
 			original(txn, req, ps)
 		}
 	}
@@ -138,6 +140,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			txn := r.application.StartTransaction("NotFound", w, req)
 			defer txn.End()
 			w = txn
+			req = newrelic.RequestWithTransactionContext(req, txn)
 		}
 	}
 
