@@ -15,24 +15,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
-	}
-
-	internal.HarvestTesting(app, replyfn)
-	return app
+func testApp() integrationsupport.ExpectApp {
+	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.DTEnabledCfgFn)
 }
 
 type fakeTransport struct{}
@@ -179,7 +166,7 @@ var (
 )
 
 func TestInstrumentRequestExternal(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newSession())
@@ -205,13 +192,13 @@ func TestInstrumentRequestExternal(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, externalMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpan})
 }
 
 func TestInstrumentRequestDatastore(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := dynamodb.New(newSession())
@@ -230,8 +217,8 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, datastoreMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, datastoreMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, datastoreSpan})
 }
 
@@ -273,7 +260,7 @@ func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
 }
 
 func TestInstrumentSessionExternal(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -301,13 +288,13 @@ func TestInstrumentSessionExternal(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, externalMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpan})
 }
 
 func TestInstrumentSessionDatastore(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -328,8 +315,8 @@ func TestInstrumentSessionDatastore(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, datastoreMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, datastoreMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, datastoreSpan})
 }
 
@@ -377,7 +364,7 @@ func TestInstrumentSessionDatastoreNoTxn(t *testing.T) {
 }
 
 func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -404,11 +391,11 @@ func TestInstrumentSessionExternalTxnNotInCtx(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, txnMetrics)
+	app.ExpectMetrics(t, txnMetrics)
 }
 
 func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -428,7 +415,7 @@ func TestInstrumentSessionDatastoreTxnNotInCtx(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, txnMetrics)
+	app.ExpectMetrics(t, txnMetrics)
 }
 
 func TestDoublyInstrumented(t *testing.T) {
@@ -468,7 +455,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 }
 
 func TestRetrySend(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -497,13 +484,13 @@ func TestRetrySend(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, externalMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpanNoRequestID, externalSpan})
 }
 
 func TestRequestSentTwice(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	client := lambda.New(newSession())
@@ -537,7 +524,7 @@ func TestRequestSentTwice(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
@@ -549,7 +536,7 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpan, externalSpan})
 }
 
@@ -564,7 +551,7 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 }
 
 func TestNoRequestIDFound(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction(txnName, nil, nil)
 
 	ses := newSession()
@@ -593,7 +580,7 @@ func TestNoRequestIDFound(t *testing.T) {
 
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, externalMetrics)
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectMetrics(t, externalMetrics)
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpanNoRequestID})
 }

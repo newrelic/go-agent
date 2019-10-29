@@ -6,6 +6,7 @@ import (
 
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
@@ -107,7 +108,7 @@ func TestMonitor(t *testing.T) {
 		segmentMap:  make(map[int64]*newrelic.DatastoreSegment),
 		origCommMon: origMonitor,
 	}
-	app := createTestApp(t)
+	app := createTestApp()
 	txn := app.StartTransaction("txnName", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 	nrMonitor.started(ctx, ste)
@@ -126,7 +127,7 @@ func TestMonitor(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/txnName", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/instance/MongoDB/" + internal.ThisHost + "/27017", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/operation/MongoDB/commName", Scope: "", Forced: false, Data: nil},
@@ -142,7 +143,7 @@ func TestMonitor(t *testing.T) {
 		{Name: "Datastore/statement/MongoDB/collName/commName", Scope: "", Forced: false, Data: []float64{1.0}},
 		{Name: "Datastore/statement/MongoDB/collName/commName", Scope: "OtherTransaction/Go/txnName", Forced: false, Data: []float64{1.0}},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":          "OtherTransaction/Go/txnName",
@@ -188,7 +189,7 @@ func TestMonitor(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/txnName", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/instance/MongoDB/" + internal.ThisHost + "/27017", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/operation/MongoDB/commName", Scope: "", Forced: false, Data: nil},
@@ -227,22 +228,18 @@ func TestCollName(t *testing.T) {
 
 }
 
-func createTestApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appName", "0123456789012345678901234567890123456789")
+func createTestApp() integrationsupport.ExpectApp {
+	return integrationsupport.NewTestApp(replyFn, cfgFn)
+}
+
+var cfgFn = func(cfg *newrelic.Config) {
 	cfg.Enabled = false
 	cfg.DistributedTracer.Enabled = true
 	cfg.TransactionTracer.SegmentThreshold = 0
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 0
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	replyFn := func(reply *internal.ConnectReply) {
-		replyFn := func(reply *internal.ConnectReply) {}
-		reply.AdaptiveSampler = internal.SampleEverything{}
-		internal.HarvestTesting(app, replyFn)
-	}
-	internal.HarvestTesting(app, replyFn)
-	return app
+}
+
+var replyFn = func(reply *internal.ConnectReply) {
+	reply.AdaptiveSampler = internal.SampleEverything{}
 }

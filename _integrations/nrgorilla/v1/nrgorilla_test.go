@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 func makeHandler(text string) http.Handler {
@@ -16,19 +17,8 @@ func makeHandler(text string) http.Handler {
 	})
 }
 
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	internal.HarvestTesting(app, nil)
-	return app
-}
-
 func TestBasicRoute(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	r.Handle("/alpha", makeHandler("alpha response"))
 	InstrumentRoutes(r, app)
@@ -41,14 +31,14 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "alpha",
 		IsWeb: true,
 	})
 }
 
 func TestSubrouterRoute(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	users := r.PathPrefix("/users").Subrouter()
 	users.Handle("/add", makeHandler("adding user"))
@@ -62,14 +52,14 @@ func TestSubrouterRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "adding user" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "users/add",
 		IsWeb: true,
 	})
 }
 
 func TestNamedRoute(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	r.Handle("/named", makeHandler("named route")).Name("special-name-route")
 	InstrumentRoutes(r, app)
@@ -82,14 +72,14 @@ func TestNamedRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "named route" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "special-name-route",
 		IsWeb: true,
 	})
 }
 
 func TestRouteNotFound(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
@@ -113,7 +103,7 @@ func TestRouteNotFound(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	// Error metrics test the 500 response code capture.
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "NotFoundHandler",
 		IsWeb:     true,
 		NumErrors: 1,

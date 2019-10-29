@@ -49,7 +49,7 @@ func newTestServerAndConn(t *testing.T, app newrelic.Application) (*grpc.Server,
 }
 
 func TestUnaryServerInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -63,7 +63,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		t.Fatal("unable to call client DoUnaryUnary", err)
 	}
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
@@ -79,7 +79,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":                     internal.MatchAnything,
 			"name":                     "WebTransaction/Go/TestApplication/DoUnaryUnary",
@@ -103,7 +103,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
 		},
 	}})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -127,7 +127,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 }
 
 func TestUnaryServerInterceptorError(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -139,7 +139,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		t.Fatal("DoUnaryUnaryError should have returned an error")
 	}
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
@@ -155,7 +155,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":             internal.MatchAnything,
 			"name":             "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
@@ -172,7 +172,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 	}})
-	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "15",
 			"error.message":   "response code 15",
@@ -194,7 +194,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 }
 
 func TestUnaryStreamServerInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -222,7 +222,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		t.Fatal("received incorrect number of messages from server", recved)
 	}
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoUnaryStream", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/DoUnaryStream", Scope: "", Forced: false, Data: nil},
@@ -238,7 +238,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStream", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":                     internal.MatchAnything,
 			"name":                     "WebTransaction/Go/TestApplication/DoUnaryStream",
@@ -262,7 +262,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
 		},
 	}})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -286,7 +286,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 }
 
 func TestStreamUnaryServerInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -312,7 +312,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoStreamUnary", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/DoStreamUnary", Scope: "", Forced: false, Data: nil},
@@ -328,7 +328,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamUnary", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":                     internal.MatchAnything,
 			"name":                     "WebTransaction/Go/TestApplication/DoStreamUnary",
@@ -352,7 +352,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
 		},
 	}})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -376,7 +376,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 }
 
 func TestStreamStreamServerInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -415,7 +415,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	stream.CloseSend()
 	<-waitc
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoStreamStream", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/DoStreamStream", Scope: "", Forced: false, Data: nil},
@@ -431,7 +431,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamStream", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":                     internal.MatchAnything,
 			"name":                     "WebTransaction/Go/TestApplication/DoStreamStream",
@@ -455,7 +455,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
 		},
 	}})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -479,7 +479,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 }
 
 func TestStreamServerInterceptorError(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 
 	s, conn := newTestServerAndConn(t, app)
 	defer s.Stop()
@@ -495,7 +495,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		t.Fatal("DoUnaryStreamError should have returned an error")
 	}
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
@@ -511,7 +511,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"guid":             internal.MatchAnything,
 			"name":             "WebTransaction/Go/TestApplication/DoUnaryStreamError",
@@ -528,7 +528,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
 		},
 	}})
-	app.(internal.Expect).ExpectErrorEvents(t, []internal.WantEvent{{
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "15",
 			"error.message":   "response code 15",

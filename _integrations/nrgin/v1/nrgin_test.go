@@ -9,29 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 var (
 	pkg = "github.com/newrelic/go-agent/_integrations/nrgin/v1"
 )
 
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	internal.HarvestTesting(app, nil)
-	return app
-}
-
 func hello(c *gin.Context) {
 	c.Writer.WriteString("hello response")
 }
 
 func TestBasicRoute(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/hello", hello)
@@ -45,14 +35,14 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  pkg + ".hello",
 		IsWeb: true,
 	})
 }
 
 func TestRouterGroup(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	group := router.Group("/group")
@@ -67,14 +57,14 @@ func TestRouterGroup(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hello response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  pkg + ".hello",
 		IsWeb: true,
 	})
 }
 
 func TestAnonymousHandler(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/anon", func(c *gin.Context) {
@@ -90,7 +80,7 @@ func TestAnonymousHandler(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "anonymous function handler" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  pkg + ".TestAnonymousHandler.func1",
 		IsWeb: true,
 	})
@@ -106,7 +96,7 @@ func multipleWriteHeader(c *gin.Context) {
 }
 
 func TestMultipleWriteHeader(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/header", multipleWriteHeader)
@@ -124,7 +114,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	// Error metrics test the 500 response code capture.
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      pkg + ".multipleWriteHeader",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -139,7 +129,7 @@ func accessTransactionGinContext(c *gin.Context) {
 }
 
 func TestContextTransaction(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/txn", accessTransactionGinContext)
@@ -156,7 +146,7 @@ func TestContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      pkg + ".accessTransactionGinContext",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -189,7 +179,7 @@ func TestStatusCodes(t *testing.T) {
 	// This behavior changed with this pull request: https://github.com/gin-gonic/gin/pull/1606
 	// In Gin v1.4.0 and below, we always recorded a 200 status, whereas with
 	// newer Gin versions we now correctly capture the status.
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/err", errorStatus)
@@ -206,7 +196,7 @@ func TestStatusCodes(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/" + pkg + ".errorStatus",
 			"nr.apdexPerfZone": internal.MatchAnything,
@@ -228,7 +218,7 @@ func noBody(c *gin.Context) {
 func TestNoResponseBody(t *testing.T) {
 	// Test that when no response body is sent (i.e. c.Writer.Write is never
 	// called) that we still capture status code.
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/nobody", noBody)
@@ -245,7 +235,7 @@ func TestNoResponseBody(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/" + pkg + ".noBody",
 			"nr.apdexPerfZone": internal.MatchAnything,

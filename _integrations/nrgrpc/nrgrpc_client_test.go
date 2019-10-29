@@ -9,6 +9,7 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/_integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -69,29 +70,27 @@ func TestGetURL(t *testing.T) {
 	}
 }
 
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
+func testApp() integrationsupport.ExpectApp {
+	return integrationsupport.NewTestApp(replyFn, configFn)
+}
+
+var replyFn = func(reply *internal.ConnectReply) {
+	reply.AdaptiveSampler = internal.SampleEverything{}
+	reply.AccountID = "123"
+	reply.TrustedAccountKey = "123"
+	reply.PrimaryAppID = "456"
+}
+
+var configFn = func(cfg *newrelic.Config) {
 	cfg.Enabled = false
 	cfg.DistributedTracer.Enabled = true
 	cfg.TransactionTracer.SegmentThreshold = 0
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 0
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
-		reply.AccountID = "123"
-		reply.TrustedAccountKey = "123"
-		reply.PrimaryAppID = "456"
-	}
-	internal.HarvestTesting(app, replyfn)
-	return app
 }
 
 func TestUnaryClientInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("UnaryUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -114,7 +113,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/UnaryUnary", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -127,7 +126,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryUnary", Scope: "OtherTransaction/Go/UnaryUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -149,7 +148,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName: "OtherTransaction/Go/UnaryUnary",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
@@ -169,7 +168,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 }
 
 func TestUnaryStreamClientInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("UnaryStream", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -206,7 +205,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/UnaryStream", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -219,7 +218,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryStream", Scope: "OtherTransaction/Go/UnaryStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -241,7 +240,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName: "OtherTransaction/Go/UnaryStream",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
@@ -261,7 +260,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 }
 
 func TestStreamUnaryClientInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("StreamUnary", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -296,7 +295,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/StreamUnary", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -309,7 +308,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/gRPC/TestApplication/DoStreamUnary", Scope: "OtherTransaction/Go/StreamUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -331,7 +330,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName: "OtherTransaction/Go/StreamUnary",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
@@ -351,7 +350,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 }
 
 func TestStreamStreamClientInterceptor(t *testing.T) {
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("StreamStream", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -399,7 +398,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	<-waitc
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/StreamStream", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -412,7 +411,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/gRPC/TestApplication/DoStreamStream", Scope: "OtherTransaction/Go/StreamStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -434,7 +433,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName: "OtherTransaction/Go/StreamStream",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
@@ -455,7 +454,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 
 func TestClientUnaryMetadata(t *testing.T) {
 	// Test that metadata on the outgoing request are presevered
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("metadata", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 
@@ -542,7 +541,7 @@ func TestNilTxnClientStreaming(t *testing.T) {
 func TestClientStreamingError(t *testing.T) {
 	// Test that when creating the stream returns an error, no external
 	// segments are created
-	app := testApp(t)
+	app := testApp()
 	txn := app.StartTransaction("UnaryStream", nil, nil)
 
 	s, conn := newTestServerAndConn(t, nil)
@@ -560,7 +559,7 @@ func TestClientStreamingError(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/UnaryStream", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -569,7 +568,7 @@ func TestClientStreamingError(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"category":      "generic",
@@ -580,7 +579,7 @@ func TestClientStreamingError(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
-	app.(internal.Expect).ExpectTxnTraces(t, []internal.WantTxnTrace{{
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
 		MetricName: "OtherTransaction/Go/UnaryStream",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",

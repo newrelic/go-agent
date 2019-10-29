@@ -9,6 +9,7 @@ import (
 	"github.com/nats-io/stan.go"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 const (
@@ -25,8 +26,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func createTestApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
+func createTestApp() integrationsupport.ExpectApp {
+	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, cfgFn)
+}
+
+var cfgFn = func(cfg *newrelic.Config) {
 	cfg.Enabled = false
 	cfg.DistributedTracer.Enabled = true
 	cfg.TransactionTracer.SegmentThreshold = 0
@@ -39,18 +43,6 @@ func createTestApp(t *testing.T) newrelic.Application {
 		newrelic.AttributeMessageReplyTo,
 		newrelic.AttributeMessageCorrelationID,
 	)
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
-		reply.AccountID = "123"
-		reply.TrustedAccountKey = "123"
-		reply.PrimaryAppID = "456"
-	}
-	internal.HarvestTesting(app, replyfn)
-	return app
 }
 
 func TestSubWrapperWithNilApp(t *testing.T) {
@@ -79,14 +71,14 @@ func TestSubWrapper(t *testing.T) {
 	defer sc.Close()
 
 	wg := sync.WaitGroup{}
-	app := createTestApp(t)
+	app := createTestApp()
 	sc.Subscribe(subject, WgWrapper(&wg, StreamingSubWrapper(app, func(msg *stan.Msg) {})))
 
 	wg.Add(1)
 	sc.Publish(subject, []byte("data"))
 	wg.Wait()
 
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
@@ -94,7 +86,7 @@ func TestSubWrapper(t *testing.T) {
 		{Name: "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: false, Data: nil},
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":     "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2",

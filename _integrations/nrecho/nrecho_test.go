@@ -7,23 +7,12 @@ import (
 	"testing"
 
 	"github.com/labstack/echo"
-	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	internal.HarvestTesting(app, nil)
-	return app
-}
-
 func TestBasicRoute(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -41,11 +30,11 @@ func TestBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "Hello, World!" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "hello",
 		IsWeb: true,
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"nr.apdexPerfZone": "S",
@@ -80,7 +69,7 @@ func TestNilApp(t *testing.T) {
 }
 
 func TestTransactionContext(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -102,7 +91,7 @@ func TestTransactionContext(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "Hello, World!" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "hello",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -110,7 +99,7 @@ func TestTransactionContext(t *testing.T) {
 }
 
 func TestNotFoundHandler(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -122,14 +111,14 @@ func TestNotFoundHandler(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "NotFoundHandler",
 		IsWeb: true,
 	})
 }
 
 func TestMethodNotAllowedHandler(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -144,7 +133,7 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "MethodNotAllowedHandler",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -152,7 +141,7 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 }
 
 func TestReturnsHTTPError(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -167,12 +156,12 @@ func TestReturnsHTTPError(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"nr.apdexPerfZone": "F",
@@ -187,7 +176,7 @@ func TestReturnsHTTPError(t *testing.T) {
 }
 
 func TestReturnsError(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -202,12 +191,12 @@ func TestReturnsError(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"nr.apdexPerfZone": "F",
@@ -222,7 +211,7 @@ func TestReturnsError(t *testing.T) {
 }
 
 func TestResponseCode(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
 	e.Use(Middleware(app))
@@ -237,12 +226,12 @@ func TestResponseCode(t *testing.T) {
 	}
 
 	e.ServeHTTP(response, req)
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{{
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
 			"nr.apdexPerfZone": "F",

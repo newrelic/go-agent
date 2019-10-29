@@ -7,20 +7,9 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
-
-func testApp(t *testing.T) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	internal.HarvestTesting(app, nil)
-	return app
-}
 
 func TestMethodFunctions(t *testing.T) {
 
@@ -38,7 +27,7 @@ func TestMethodFunctions(t *testing.T) {
 	}
 
 	for _, md := range methodFuncs {
-		app := testApp(t)
+		app := integrationsupport.NewBasicTestApp()
 		router := New(app)
 		md.Fn(router)("/hello/:name", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			// Test that the Transaction is used as the response writer.
@@ -54,7 +43,7 @@ func TestMethodFunctions(t *testing.T) {
 		if respBody := response.Body.String(); respBody != "hi person" {
 			t.Error("wrong response body", respBody)
 		}
-		app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+		app.ExpectTxnMetrics(t, internal.WantTxn{
 			Name:      md.Method + " /hello/:name",
 			IsWeb:     true,
 			NumErrors: 1,
@@ -80,7 +69,7 @@ func TestGetNoApplication(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := New(app)
 
 	router.Handle("GET", "/hello/:name", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -97,7 +86,7 @@ func TestHandle(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hi person" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "GET /hello/:name",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -105,7 +94,7 @@ func TestHandle(t *testing.T) {
 }
 
 func TestHandler(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := New(app)
 
 	router.Handler("GET", "/hello/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +111,7 @@ func TestHandler(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hi there" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "GET /hello/",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -148,7 +137,7 @@ func TestHandlerMissingApplication(t *testing.T) {
 }
 
 func TestHandlerFunc(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := New(app)
 
 	router.HandlerFunc("GET", "/hello/", func(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +154,7 @@ func TestHandlerFunc(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "hi there" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "GET /hello/",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -173,7 +162,7 @@ func TestHandlerFunc(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := New(app)
 
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +179,7 @@ func TestNotFound(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "not found!" {
 		t.Error("wrong response body", respBody)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "NotFound",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -217,7 +206,7 @@ func TestNotFoundMissingApplication(t *testing.T) {
 }
 
 func TestNotFoundNotSet(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := New(app)
 
 	response := httptest.NewRecorder()
@@ -229,7 +218,7 @@ func TestNotFoundNotSet(t *testing.T) {
 	if response.Code != 404 {
 		t.Error(response.Code)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:  "NotFound",
 		IsWeb: true,
 	})

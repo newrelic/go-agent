@@ -11,6 +11,7 @@ import (
 
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 	"github.com/newrelic/go-agent/internal/sysinfo"
 	"github.com/sirupsen/logrus"
 )
@@ -47,22 +48,6 @@ func validateOutput(t *testing.T, out *bytes.Buffer, expected map[string]interfa
 			t.Errorf("unexpected key found:\nkey=%s\nvalue=%s", k, v)
 		}
 	}
-}
-
-func testApp(t *testing.T, cfgFn func(*newrelic.Config), replyFn func(*internal.ConnectReply)) newrelic.Application {
-	cfg := newrelic.NewConfig("AppName", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	if nil != cfgFn {
-		cfgFn(&cfg)
-	}
-
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-
-	internal.HarvestTesting(app, replyFn)
-	return app
 }
 
 func BenchmarkWithOutTransaction(b *testing.B) {
@@ -104,7 +89,7 @@ func BenchmarkTextFormatter(b *testing.B) {
 }
 
 func BenchmarkWithTransaction(b *testing.B) {
-	app := testApp(nil, nil, nil)
+	app := integrationsupport.NewTestApp(nil, nil)
 	txn := app.StartTransaction("TestLogDistributedTracingDisabled", nil, nil)
 	log := newTestLogger(bytes.NewBuffer([]byte("")))
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -146,7 +131,7 @@ func TestLogNoTxn(t *testing.T) {
 }
 
 func TestLogDistributedTracingDisabled(t *testing.T) {
-	app := testApp(t, nil, nil)
+	app := integrationsupport.NewTestApp(nil, nil)
 	txn := app.StartTransaction("TestLogDistributedTracingDisabled", nil, nil)
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
@@ -154,7 +139,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -167,14 +152,14 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 }
 
 func TestLogSampledFalse(t *testing.T) {
-	app := testApp(t,
-		func(cfg *newrelic.Config) {
-			cfg.DistributedTracer.Enabled = true
-			cfg.CrossApplicationTracer.Enabled = false
-		},
+	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
 			reply.AdaptiveSampler = internal.SampleNothing{}
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		},
+		func(cfg *newrelic.Config) {
+			cfg.DistributedTracer.Enabled = true
+			cfg.CrossApplicationTracer.Enabled = false
 		})
 	txn := app.StartTransaction("TestLogSampledFalse", nil, nil)
 	out := bytes.NewBuffer([]byte{})
@@ -183,7 +168,7 @@ func TestLogSampledFalse(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -197,14 +182,14 @@ func TestLogSampledFalse(t *testing.T) {
 }
 
 func TestLogSampledTrue(t *testing.T) {
-	app := testApp(t,
-		func(cfg *newrelic.Config) {
-			cfg.DistributedTracer.Enabled = true
-			cfg.CrossApplicationTracer.Enabled = false
-		},
+	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
 			reply.AdaptiveSampler = internal.SampleEverything{}
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		},
+		func(cfg *newrelic.Config) {
+			cfg.DistributedTracer.Enabled = true
+			cfg.CrossApplicationTracer.Enabled = false
 		})
 	txn := app.StartTransaction("TestLogSampledTrue", nil, nil)
 	out := bytes.NewBuffer([]byte{})
@@ -213,7 +198,7 @@ func TestLogSampledTrue(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -233,21 +218,21 @@ func TestEntryUsedTwice(t *testing.T) {
 	entry := log.WithTime(testTime)
 
 	// First log has dt enabled, ensure trace.id and span.id are included
-	app := testApp(t,
-		func(cfg *newrelic.Config) {
-			cfg.DistributedTracer.Enabled = true
-			cfg.CrossApplicationTracer.Enabled = false
-		},
+	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
 			reply.AdaptiveSampler = internal.SampleEverything{}
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		},
+		func(cfg *newrelic.Config) {
+			cfg.DistributedTracer.Enabled = true
+			cfg.CrossApplicationTracer.Enabled = false
 		})
 	txn := app.StartTransaction("TestEntryUsedTwice1", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 	host, _ := sysinfo.Hostname()
 	entry.WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -262,16 +247,16 @@ func TestEntryUsedTwice(t *testing.T) {
 
 	// First log has dt enabled, ensure trace.id and span.id are included
 	out.Reset()
-	app = testApp(t,
+	app = integrationsupport.NewTestApp(nil,
 		func(cfg *newrelic.Config) {
 			cfg.DistributedTracer.Enabled = false
-		}, nil)
+		})
 	txn = app.StartTransaction("TestEntryUsedTwice2", nil, nil)
 	ctx = newrelic.NewContext(context.Background(), txn)
 	host, _ = sysinfo.Hostname()
 	entry.WithContext(ctx).Info("Hello World! Again!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -284,7 +269,7 @@ func TestEntryUsedTwice(t *testing.T) {
 }
 
 func TestEntryError(t *testing.T) {
-	app := testApp(t, nil, nil)
+	app := integrationsupport.NewTestApp(nil, nil)
 	txn := app.StartTransaction("TestEntryError", nil, nil)
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
@@ -292,7 +277,7 @@ func TestEntryError(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).WithField("func", func() {}).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,
@@ -307,7 +292,7 @@ func TestEntryError(t *testing.T) {
 }
 
 func TestWithCustomField(t *testing.T) {
-	app := testApp(t, nil, nil)
+	app := integrationsupport.NewTestApp(nil, nil)
 	txn := app.StartTransaction("TestWithCustomField", nil, nil)
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
@@ -315,7 +300,7 @@ func TestWithCustomField(t *testing.T) {
 	host, _ := sysinfo.Hostname()
 	log.WithTime(testTime).WithContext(ctx).WithField("zip", "zap").Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
-		"entity.name": "AppName",
+		"entity.name": integrationsupport.SampleAppName,
 		"entity.type": "SERVICE",
 		"file.name":   matchAnything,
 		"hostname":    host,

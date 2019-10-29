@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 func accessTransactionContextContext(c *gin.Context) {
@@ -25,7 +26,7 @@ func accessTransactionContextContext(c *gin.Context) {
 }
 
 func TestContextContextTransaction(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/txn", accessTransactionContextContext)
@@ -42,7 +43,7 @@ func TestContextContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      pkg + ".accessTransactionContextContext",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -59,7 +60,7 @@ func accessTransactionFromContext(c *gin.Context) {
 }
 
 func TestFromContext(t *testing.T) {
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app))
 	router.GET("/txn", accessTransactionFromContext)
@@ -76,7 +77,7 @@ func TestFromContext(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      pkg + ".accessTransactionFromContext",
 		IsWeb:     true,
 		NumErrors: 1,
@@ -98,7 +99,7 @@ func TestContextWithoutTransaction(t *testing.T) {
 func TestNewContextTransaction(t *testing.T) {
 	// This tests that nrgin.Transaction will find a transaction added to
 	// to a context using newrelic.NewContext.
-	app := testApp(t)
+	app := integrationsupport.NewBasicTestApp()
 	txn := app.StartTransaction("name", nil, nil)
 	ctx := newrelic.NewContext(context.Background(), txn)
 	if tx := Transaction(ctx); nil != tx {
@@ -106,7 +107,7 @@ func TestNewContextTransaction(t *testing.T) {
 	}
 	txn.End()
 
-	app.(internal.Expect).ExpectTxnMetrics(t, internal.WantTxn{
+	app.ExpectTxnMetrics(t, internal.WantTxn{
 		Name:      "name",
 		IsWeb:     false,
 		NumErrors: 1,

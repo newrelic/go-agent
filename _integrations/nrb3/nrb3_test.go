@@ -6,6 +6,7 @@ import (
 
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
 
 func TestNewRoundTripperNil(t *testing.T) {
@@ -19,20 +20,8 @@ type roundTripperFn func(*http.Request) (*http.Response, error)
 
 func (fn roundTripperFn) RoundTrip(r *http.Request) (*http.Response, error) { return fn(r) }
 
-func testApp(t *testing.T, replyfn func(*internal.ConnectReply)) newrelic.Application {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	app, err := newrelic.NewApplication(cfg)
-	if nil != err {
-		t.Fatal(err)
-	}
-	internal.HarvestTesting(app, replyfn)
-	return app
-}
-
 func TestRoundTripperNoTxn(t *testing.T) {
-	app := testApp(t, nil)
+	app := integrationsupport.NewTestApp(nil, integrationsupport.DTEnabledCfgFn)
 	txn := app.StartTransaction("test", nil, nil)
 
 	var count int
@@ -57,7 +46,7 @@ func TestRoundTripperNoTxn(t *testing.T) {
 	if count != 1 {
 		t.Error("incorrect call count to RoundTripper:", count)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/test", Scope: "", Forced: true, Data: nil},
@@ -72,7 +61,7 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(123)
 	}
-	app := testApp(t, replyfn)
+	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
 	txn := app.StartTransaction("test", nil, nil)
 
 	var count int
@@ -118,7 +107,7 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 	if hdr := sent.Header.Get("X-B3-Sampled"); hdr != "1" {
 		t.Error("unexpected value for X-B3-Sampled header:", hdr)
 	}
-	app.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
+	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
@@ -136,7 +125,7 @@ func TestRoundTripperWithTxnNotSampled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.AdaptiveSampler = internal.SampleNothing{}
 	}
-	app := testApp(t, replyfn)
+	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
 	txn := app.StartTransaction("test", nil, nil)
 
 	var sent *http.Request
