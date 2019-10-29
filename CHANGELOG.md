@@ -1,5 +1,15 @@
 ## ChangeLog
 
+### Bug Fixes
+
+* Fixed an issue in the
+  [`nrhttprouter`](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  integration where the transaction was not being added to the requests
+  context.  This resulted in an inability to access the transaction from within
+  an
+  [`httprouter.Handle`](https://godoc.org/github.com/julienschmidt/httprouter#Handle)
+  function.  This issue has now been fixed.
+
 ## 2.15.0
 
 ### New Features
