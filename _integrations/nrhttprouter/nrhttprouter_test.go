@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/internal/integrationsupport"
 )
