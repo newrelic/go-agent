@@ -105,12 +105,8 @@ Popular logging libraries `logrus` and `logxi` are supported by integration pack
 * [Naming Transactions](#naming-transactions-and-metrics)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
-Transactions time requests and background tasks.  Each transaction should only
-be used in a single goroutine.  Start a new transaction when you spawn a new
-goroutine.
-
-The simplest way to create transactions is to use
-`Application.StartTransaction` and `Transaction.End`.
+Transactions time requests and background tasks.  The simplest way to create
+transactions is to use `Application.StartTransaction` and `Transaction.End`.
 
 ```go
 txn := app.StartTransaction("transactionName", responseWriter, request)
@@ -155,12 +151,24 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+To monitor a transaction across multiple goroutines, use
+`Transaction.NewGoroutine()`. The `NewGoroutine` method returns a new reference
+to the `Transaction`, which is required by each segment-creating goroutine. It
+does not matter if you call `NewGoroutine` before or after the other goroutine
+starts.
+
+```go
+go func(txn newrelic.Transaction) {
+	defer newrelic.StartSegment(txn, "async").End()
+	time.Sleep(100 * time.Millisecond)
+}(txn.NewGoroutine())
+```
+
 ## Segments
 
 * [segments.go](segments.go)
 
-Find out where the time in your transactions is being spent!  Each transaction
-should only track segments in a single goroutine.
+Find out where the time in your transactions is being spent!
 
 `Segment` is used to instrument functions, methods, and blocks of code. A
 segment begins when its `StartTime` field is populated, and finishes when its
