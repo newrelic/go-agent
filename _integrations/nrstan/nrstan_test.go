@@ -72,7 +72,7 @@ func TestSubWrapper(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	app := createTestApp()
-	sc.Subscribe(subject, WgWrapper(&wg, StreamingSubWrapper(app, func(msg *stan.Msg) {})))
+	sc.Subscribe(subject, WgWrapper(&wg, StreamingSubWrapper(app.Application, func(msg *stan.Msg) {})))
 
 	wg.Add(1)
 	sc.Publish(subject, []byte("data"))

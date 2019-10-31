@@ -150,7 +150,7 @@ func TestSubWrapper(t *testing.T) {
 	}
 	wg := sync.WaitGroup{}
 	app := testApp()
-	nc.QueueSubscribe("subject2", "queue1", WgWrapper(&wg, SubWrapper(app, func(msg *nats.Msg) {})))
+	nc.QueueSubscribe("subject2", "queue1", WgWrapper(&wg, SubWrapper(app.Application, func(msg *nats.Msg) {})))
 	wg.Add(1)
 	nc.Request("subject2", []byte("data"), time.Second)
 	wg.Wait()

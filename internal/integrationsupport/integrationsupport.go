@@ -58,7 +58,7 @@ func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn func(*newrelic.Confi
 		panic(err)
 	}
 
-	internal.HarvestTesting(app, replyfn)
+	internal.HarvestTesting(app.Private, replyfn)
 
 	return ExpectApp{
 		Expect:      app.Private.(internal.Expect),

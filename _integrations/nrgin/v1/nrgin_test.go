@@ -23,7 +23,7 @@ func hello(c *gin.Context) {
 func TestBasicRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/hello", hello)
 
 	response := httptest.NewRecorder()
@@ -44,7 +44,7 @@ func TestBasicRoute(t *testing.T) {
 func TestRouterGroup(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	group := router.Group("/group")
 	group.GET("/hello", hello)
 
@@ -66,7 +66,7 @@ func TestRouterGroup(t *testing.T) {
 func TestAnonymousHandler(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/anon", func(c *gin.Context) {
 		c.Writer.WriteString("anonymous function handler")
 	})
@@ -98,7 +98,7 @@ func multipleWriteHeader(c *gin.Context) {
 func TestMultipleWriteHeader(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/header", multipleWriteHeader)
 
 	response := httptest.NewRecorder()
@@ -131,7 +131,7 @@ func accessTransactionGinContext(c *gin.Context) {
 func TestContextTransaction(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionGinContext)
 
 	response := httptest.NewRecorder()
@@ -181,7 +181,7 @@ func TestStatusCodes(t *testing.T) {
 	// newer Gin versions we now correctly capture the status.
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/err", errorStatus)
 
 	response := httptest.NewRecorder()
@@ -220,7 +220,7 @@ func TestNoResponseBody(t *testing.T) {
 	// called) that we still capture status code.
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/nobody", noBody)
 
 	response := httptest.NewRecorder()

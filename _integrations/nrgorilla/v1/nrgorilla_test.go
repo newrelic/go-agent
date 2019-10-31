@@ -21,7 +21,7 @@ func TestBasicRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	r.Handle("/alpha", makeHandler("alpha response"))
-	InstrumentRoutes(r, app)
+	InstrumentRoutes(r, app.Application)
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/alpha", nil)
 	if err != nil {
@@ -42,7 +42,7 @@ func TestSubrouterRoute(t *testing.T) {
 	r := mux.NewRouter()
 	users := r.PathPrefix("/users").Subrouter()
 	users.Handle("/add", makeHandler("adding user"))
-	InstrumentRoutes(r, app)
+	InstrumentRoutes(r, app.Application)
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/users/add", nil)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestNamedRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	r := mux.NewRouter()
 	r.Handle("/named", makeHandler("named route")).Name("special-name-route")
-	InstrumentRoutes(r, app)
+	InstrumentRoutes(r, app.Application)
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/named", nil)
 	if err != nil {
@@ -88,8 +88,8 @@ func TestRouteNotFound(t *testing.T) {
 	// Tests that routes do not get double instrumented when
 	// InstrumentRoutes is called twice by expecting error metrics with a
 	// count of 1.
-	InstrumentRoutes(r, app)
-	InstrumentRoutes(r, app)
+	InstrumentRoutes(r, app.Application)
+	InstrumentRoutes(r, app.Application)
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/foo", nil)
 	if err != nil {

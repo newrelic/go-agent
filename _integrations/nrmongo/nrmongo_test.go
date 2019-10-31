@@ -109,7 +109,7 @@ func TestMonitor(t *testing.T) {
 		origCommMon: origMonitor,
 	}
 	app := createTestApp()
-	txn := app.StartTransaction("txnName", nil, nil)
+	txn := app.StartTransaction("txnName")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	nrMonitor.started(ctx, ste)
 	if !started {
@@ -174,7 +174,7 @@ func TestMonitor(t *testing.T) {
 		},
 	})
 
-	txn = app.StartTransaction("txnName", nil, nil)
+	txn = app.StartTransaction("txnName")
 	ctx = newrelic.NewContext(context.Background(), txn)
 	nrMonitor.started(ctx, ste)
 	if len(nrMonitor.segmentMap) != 1 {

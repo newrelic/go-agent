@@ -34,7 +34,7 @@ func main() {
 	}
 	defer client.Disconnect(ctx)
 
-	txn := app.StartTransaction("Mongo txn", nil, nil)
+	txn := app.StartTransaction("Mongo txn")
 	// Make sure to add the newrelic.Transaction to the context
 	nrCtx := newrelic.NewContext(context.Background(), txn)
 	collection := client.Database("testing").Collection("numbers")

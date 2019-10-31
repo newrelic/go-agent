@@ -51,7 +51,7 @@ func newTestServerAndConn(t *testing.T, app *newrelic.Application) (*grpc.Server
 func TestUnaryServerInterceptor(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 
@@ -129,7 +129,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 func TestUnaryServerInterceptorError(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 
@@ -196,7 +196,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 func TestUnaryStreamServerInterceptor(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 
@@ -288,7 +288,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 func TestStreamUnaryServerInterceptor(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 
@@ -378,7 +378,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 func TestStreamStreamServerInterceptor(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 
@@ -481,7 +481,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 func TestStreamServerInterceptorError(t *testing.T) {
 	app := testApp()
 
-	s, conn := newTestServerAndConn(t, app)
+	s, conn := newTestServerAndConn(t, app.Application)
 	defer s.Stop()
 	defer conn.Close()
 

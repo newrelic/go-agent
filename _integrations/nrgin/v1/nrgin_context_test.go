@@ -28,7 +28,7 @@ func accessTransactionContextContext(c *gin.Context) {
 func TestContextContextTransaction(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionContextContext)
 
 	response := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func accessTransactionFromContext(c *gin.Context) {
 func TestFromContext(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
-	router.Use(Middleware(app))
+	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionFromContext)
 
 	response := httptest.NewRecorder()

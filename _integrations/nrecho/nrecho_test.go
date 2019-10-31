@@ -15,7 +15,7 @@ func TestBasicRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		return c.Blob(http.StatusOK, "text/html", []byte("Hello, World!"))
 	})
@@ -72,7 +72,7 @@ func TestTransactionContext(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		txn := FromContext(c)
 		if nil != txn {
@@ -102,7 +102,7 @@ func TestNotFoundHandler(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
@@ -121,7 +121,7 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
@@ -144,7 +144,7 @@ func TestReturnsHTTPError(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusTeapot, "I'm a teapot!")
 	})
@@ -179,7 +179,7 @@ func TestReturnsError(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		return errors.New("ooooooooops")
 	})
@@ -214,7 +214,7 @@ func TestResponseCode(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(Middleware(app))
+	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		return c.Blob(http.StatusTeapot, "text/html", []byte("Hello, World!"))
 	})
