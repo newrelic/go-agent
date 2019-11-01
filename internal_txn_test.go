@@ -132,7 +132,7 @@ func TestShouldSaveTrace(t *testing.T) {
 	} {
 		txn := &txn{}
 
-		cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+		cfg := defaultConfig()
 		cfg.TransactionTracer.Enabled = tc.tracerEnabled
 		cfg.TransactionTracer.Threshold.Duration = tc.threshold
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false

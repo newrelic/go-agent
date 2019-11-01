@@ -11,13 +11,6 @@ import (
 	_ "github.com/newrelic/go-agent/_integrations/nrpq"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func main() {
 	// docker run --rm -e POSTGRES_PASSWORD=docker -p 5432:5432 postgres
 	db, err := sql.Open("nrpostgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable")
@@ -25,9 +18,11 @@ func main() {
 		panic(err)
 	}
 
-	cfg := newrelic.NewConfig("PostgreSQL App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("PostgreSQL App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		panic(err)
 	}

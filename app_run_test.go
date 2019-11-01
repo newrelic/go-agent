@@ -11,7 +11,7 @@ import (
 )
 
 func TestResponseCodeIsError(t *testing.T) {
-	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg := defaultConfig()
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 504)
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
 
@@ -44,14 +44,14 @@ func TestResponseCodeIsError(t *testing.T) {
 
 func TestCrossAppTracingEnabled(t *testing.T) {
 	// CAT should be enabled by default.
-	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg := defaultConfig()
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
 	if enabled := run.Config.CrossApplicationTracer.Enabled; !enabled {
 		t.Error(enabled)
 	}
 
 	// DT gets priority over CAT.
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	cfg.DistributedTracer.Enabled = true
 	cfg.CrossApplicationTracer.Enabled = true
 	run = newAppRun(cfg, internal.ConnectReplyDefaults())
@@ -59,7 +59,7 @@ func TestCrossAppTracingEnabled(t *testing.T) {
 		t.Error(enabled)
 	}
 
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	cfg.DistributedTracer.Enabled = false
 	cfg.CrossApplicationTracer.Enabled = false
 	run = newAppRun(cfg, internal.ConnectReplyDefaults())
@@ -67,7 +67,7 @@ func TestCrossAppTracingEnabled(t *testing.T) {
 		t.Error(enabled)
 	}
 
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	cfg.DistributedTracer.Enabled = false
 	cfg.CrossApplicationTracer.Enabled = true
 	run = newAppRun(cfg, internal.ConnectReplyDefaults())
@@ -78,7 +78,7 @@ func TestCrossAppTracingEnabled(t *testing.T) {
 
 func TestTxnTraceThreshold(t *testing.T) {
 	// Test that the default txn trace threshold is the failing apdex.
-	cfg := NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg := defaultConfig()
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
 	threshold := run.txnTraceThreshold(1 * time.Second)
 	if threshold != 4*time.Second {
@@ -86,7 +86,7 @@ func TestTxnTraceThreshold(t *testing.T) {
 	}
 
 	// Test that the trace threshold can be assigned to a fixed value.
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 3 * time.Second
 	run = newAppRun(cfg, internal.ConnectReplyDefaults())
@@ -97,7 +97,7 @@ func TestTxnTraceThreshold(t *testing.T) {
 
 	// Test that the trace threshold can be overwritten by server-side-config.
 	// with "apdex_f".
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 3 * time.Second
 	reply := internal.ConnectReplyDefaults()
@@ -110,7 +110,7 @@ func TestTxnTraceThreshold(t *testing.T) {
 
 	// Test that the trace threshold can be overwritten by server-side-config.
 	// with a numberic value.
-	cfg = NewConfig("my app", "0123456789012345678901234567890123456789")
+	cfg = defaultConfig()
 	reply = internal.ConnectReplyDefaults()
 	json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.transaction_threshold":3}}`), &reply)
 	run = newAppRun(cfg, reply)
@@ -120,10 +120,8 @@ func TestTxnTraceThreshold(t *testing.T) {
 	}
 }
 
-var cfg = NewConfig("name", "license")
-
 func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
-	var run internal.HarvestConfigurer = newAppRun(cfg, &internal.ConnectReply{})
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), &internal.ConnectReply{})
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
@@ -151,7 +149,7 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    1,
 		maxCustomEvents: 2,
@@ -173,7 +171,7 @@ func TestZeroReportPeriod(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
@@ -195,7 +193,7 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
@@ -217,7 +215,7 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    3,
 		maxCustomEvents: internal.MaxCustomEvents,
@@ -239,7 +237,7 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
@@ -261,7 +259,7 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(cfg, reply)
+	var run internal.HarvestConfigurer = newAppRun(defaultConfig(), reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: 3,
@@ -312,7 +310,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	result := newAppRun(cfg, h).MaxTxnEvents()
+	result := newAppRun(defaultConfig(), h).MaxTxnEvents()
 	if result != 15 {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
 	}
@@ -329,6 +327,7 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected := 10
+	cfg := defaultConfig()
 	cfg.TransactionEvents.MaxSamplesStored = expected
 	result := newAppRun(cfg, reply).MaxTxnEvents()
 	if result != expected {
@@ -346,6 +345,7 @@ func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	cfg := defaultConfig()
 	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
 	result := newAppRun(cfg, h).MaxTxnEvents()
 	if result != internal.MaxTxnEvents {

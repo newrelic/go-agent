@@ -22,13 +22,10 @@ func handler(ctx context.Context) {
 }
 
 func main() {
-	// nrlambda.NewConfig should be used in place of newrelic.NewConfig
-	// since it sets Lambda specific configuration settings including
+	// Pass nrlambda.ConfigOption() into newrelic.NewApplication to set
+	// Lambda specific configuration settings including
 	// Config.ServerlessMode.Enabled.
-	cfg := nrlambda.NewConfig()
-	// Here is the opportunity to change configuration settings before the
-	// application is created.
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(nrlambda.ConfigOption())
 	if nil != err {
 		fmt.Println("error creating app (invalid config):", err)
 	}

@@ -28,17 +28,12 @@ func gamma() error {
 	return errors.Wrap(beta(), "gamma was involved")
 }
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func main() {
-	cfg := newrelic.NewConfig("pkg/errors app", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("pkg/errors App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		fmt.Println(err)
 		os.Exit(1)

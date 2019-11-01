@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -55,4 +56,23 @@ func TestEmptyApplication(t *testing.T) {
 		t.Error(err)
 	}
 	app.Shutdown(2 * time.Second)
+}
+
+func TestConfigOptionError(t *testing.T) {
+	err := errors.New("myError")
+	app, got := NewApplication(
+		nil, // nil config options should be ignored
+		func(cfg *Config) {
+			cfg.Error = err
+		},
+		func(cfg *Config) {
+			t.Fatal("this config option should not be run")
+		},
+	)
+	if err != got {
+		t.Error("config option not returned", err, got)
+	}
+	if app != nil {
+		t.Error("app not nil")
+	}
 }

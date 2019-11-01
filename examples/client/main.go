@@ -9,13 +9,6 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func doRequest(txn *newrelic.Transaction) error {
 	req, err := http.NewRequest("GET", "http://localhost:8000/segments", nil)
 	if nil != err {
@@ -33,9 +26,12 @@ func doRequest(txn *newrelic.Transaction) error {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("Client App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Client App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigDistributedTracerEnabled(true),
+	)
 	if nil != err {
 		fmt.Println(err)
 		os.Exit(1)

@@ -3,6 +3,7 @@ package newrelic
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -275,6 +276,11 @@ type Config struct {
 		TrustedAccountKey string
 		PrimaryAppID      string
 	}
+
+	// Error may be populated by the configuration functions provided to
+	// NewApplication to indicate that setup has failed.  NewApplication
+	// will return this error if it is set.
+	Error error
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -303,13 +309,49 @@ type AttributeDestinationConfig struct {
 	Exclude []string
 }
 
-// NewConfig creates a Config populated with default settings and the given
-// appname and license.
-func NewConfig(appname, license string) Config {
+// ConfigOption configures the Config when provided to NewApplication.
+type ConfigOption func(*Config)
+
+// ConfigEnabled sets the whether or not the agent is enabled.
+func ConfigEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) { cfg.Enabled = enabled }
+}
+
+// ConfigAppName sets the application name.
+func ConfigAppName(appName string) ConfigOption {
+	return func(cfg *Config) { cfg.AppName = appName }
+}
+
+// ConfigLicense sets the license.
+func ConfigLicense(license string) ConfigOption {
+	return func(cfg *Config) { cfg.License = license }
+}
+
+// ConfigDistributedTracerEnabled populates the Config's
+// DistributedTracer.Enabled setting.
+func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
+}
+
+// ConfigLogger populates the Config's Logger.
+func ConfigLogger(l Logger) ConfigOption {
+	return func(cfg *Config) { cfg.Logger = l }
+}
+
+// ConfigInfoLogger populates the config with basic Logger at info level.
+func ConfigInfoLogger(w io.Writer) ConfigOption {
+	return ConfigLogger(NewLogger(w))
+}
+
+// ConfigDebugLogger populates the config with a Logger at debug level.
+func ConfigDebugLogger(w io.Writer) ConfigOption {
+	return ConfigLogger(NewDebugLogger(w))
+}
+
+// defaultConfig creates a Config populated with default settings.
+func defaultConfig() Config {
 	c := Config{}
 
-	c.AppName = appname
-	c.License = license
 	c.Enabled = true
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true

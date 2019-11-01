@@ -63,7 +63,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -87,17 +86,12 @@ type Person struct {
 	Email     string
 }
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func createApp() *newrelic.Application {
-	cfg := newrelic.NewConfig("SQLx", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("SQLx"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		log.Fatalln(err)
 	}

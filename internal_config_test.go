@@ -32,7 +32,9 @@ func standardizeNumbers(input string) string {
 }
 
 func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
-	cfg := NewConfig("my appname", "0123456789012345678901234567890123456789")
+	cfg := defaultConfig()
+	cfg.AppName = "my appname"
+	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels["zip"] = "zap"
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
 	cfg.Attributes.Include = append(cfg.Attributes.Include, "1")
@@ -97,6 +99,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"DistributedTracer":{"Enabled":false},
 			"Enabled":true,
+			"Error":null,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
@@ -219,7 +222,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 }
 
 func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
-	cfg := NewConfig("my appname", "0123456789012345678901234567890123456789")
+	cfg := defaultConfig()
+	cfg.AppName = "my appname"
+	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels = nil
 	cfg.ErrorCollector.IgnoreStatusCodes = nil
 
@@ -255,6 +260,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"DistributedTracer":{"Enabled":false},
 			"Enabled":true,
+			"Error":null,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"CaptureEvents":true,
@@ -467,7 +473,7 @@ func TestGatherMetadata(t *testing.T) {
 
 func TestValidateServerless(t *testing.T) {
 	// AppName and License can be empty in serverless mode.
-	c := NewConfig("", "")
+	c := defaultConfig()
 	c.ServerlessMode.Enabled = true
 	if err := c.Validate(); nil != err {
 		t.Error(err)

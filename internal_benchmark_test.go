@@ -48,9 +48,11 @@ func BenchmarkMuxWithNewRelic(b *testing.B) {
 // using defer.  This and BenchmarkTraceSegmentNoDefer are extremely important:
 // Timing functions and blocks of code should have minimal cost.
 func BenchmarkTraceSegmentWithDefer(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	app, err := newApp(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(sampleLicense),
+		ConfigEnabled(false),
+	)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -66,9 +68,11 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 }
 
 func BenchmarkTraceSegmentNoDefer(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	app, err := newApp(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(sampleLicense),
+		ConfigEnabled(false),
+	)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -85,10 +89,14 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 }
 
 func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	cfg.TransactionTracer.SegmentThreshold = 0
-	app, err := newApp(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(sampleLicense),
+		ConfigEnabled(false),
+		func(cfg *Config) {
+			cfg.TransactionTracer.SegmentThreshold = 0
+		},
+	)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -105,9 +113,11 @@ func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
 }
 
 func BenchmarkDatastoreSegment(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	app, err := newApp(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(sampleLicense),
+		ConfigEnabled(false),
+	)
 	if nil != err {
 		b.Fatal(err)
 	}
@@ -129,9 +139,11 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 }
 
 func BenchmarkExternalSegment(b *testing.B) {
-	cfg := NewConfig("my app", sampleLicense)
-	cfg.Enabled = false
-	app, err := newApp(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(sampleLicense),
+		ConfigEnabled(false),
+	)
 	if nil != err {
 		b.Fatal(err)
 	}

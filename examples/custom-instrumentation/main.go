@@ -21,13 +21,6 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func called(app *newrelic.Application, payload string) {
 	txn := app.StartTransaction("called-txn")
 	defer txn.End()
@@ -52,15 +45,12 @@ func calling(app *newrelic.Application) {
 }
 
 func makeApplication(name string) (*newrelic.Application, error) {
-	cfg := newrelic.NewConfig(name, mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-
-	// Distributed Tracing and Cross Application Tracing cannot both be
-	// enabled at the same time.
-	cfg.DistributedTracer.Enabled = true
-
-	app, err := newrelic.NewApplication(cfg)
-
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName(name),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigDistributedTracerEnabled(true),
+	)
 	if nil != err {
 		return nil, err
 	}

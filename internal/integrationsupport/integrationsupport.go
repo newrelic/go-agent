@@ -41,19 +41,17 @@ type ExpectApp struct {
 
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
 func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn func(*newrelic.Config)) ExpectApp {
-
-	cfg := newrelic.NewConfig(SampleAppName, testLicenseKey)
-
-	if nil != cfgFn {
-		cfgFn(&cfg)
-	}
-
-	// Prevent spawning app goroutines in tests.
-	if !cfg.ServerlessMode.Enabled {
-		cfg.Enabled = false
-	}
-
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName(SampleAppName),
+		newrelic.ConfigLicense(testLicenseKey),
+		cfgFn,
+		func(cfg *newrelic.Config) {
+			// Prevent spawning app goroutines in tests.
+			if !cfg.ServerlessMode.Enabled {
+				cfg.Enabled = false
+			}
+		},
+	)
 	if nil != err {
 		panic(err)
 	}

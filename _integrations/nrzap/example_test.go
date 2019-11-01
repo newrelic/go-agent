@@ -6,13 +6,13 @@ import (
 )
 
 func Example() {
-	cfg := newrelic.NewConfig("Example App", "__YOUR_NEWRELIC_LICENSE_KEY__")
-
 	// Create a new zap logger:
 	z, _ := zap.NewProduction()
 
-	// Use nrzap to register the logger with the agent:
-	cfg.Logger = Transform(z.Named("newrelic"))
-
-	newrelic.NewApplication(cfg)
+	newrelic.NewApplication(
+		newrelic.ConfigAppName("Example App"),
+		newrelic.ConfigLicense("__YOUR_NEWRELIC_LICENSE_KEY__"),
+		// Use nrzap to register the logger with the agent:
+		ConfigLogger(z.Named("newrelic")),
+	)
 }

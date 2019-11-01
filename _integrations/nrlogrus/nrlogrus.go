@@ -65,3 +65,15 @@ func Transform(l *logrus.Logger) newrelic.Logger {
 		}),
 	}
 }
+
+// ConfigLogger configures the newrelic.Application to send log messsages to the
+// provided logrus logger.
+func ConfigLogger(l *logrus.Logger) newrelic.ConfigOption {
+	return newrelic.ConfigLogger(Transform(l))
+}
+
+// ConfigStandardLogger configures the newrelic.Application to send log
+// messsages to the standard logrus logger.
+func ConfigStandardLogger() newrelic.ConfigOption {
+	return newrelic.ConfigLogger(StandardLogger())
+}

@@ -13,13 +13,6 @@ import (
 	proto "github.com/newrelic/go-agent/_integrations/nrmicro/example/proto"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func subEv(ctx context.Context, msg *proto.HelloRequest) error {
 	fmt.Println("Message received from", msg.GetName())
 	return nil
@@ -41,9 +34,11 @@ func publish(s micro.Service, app *newrelic.Application) {
 }
 
 func main() {
-	cfg := newrelic.NewConfig("Micro Pub/Sub", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Micro Pub/Sub"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		panic(err)
 	}

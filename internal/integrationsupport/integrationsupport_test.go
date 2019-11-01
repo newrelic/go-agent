@@ -22,11 +22,12 @@ func TestEmptyTransaction(t *testing.T) {
 }
 
 func TestSuccess(t *testing.T) {
-	cfg := newrelic.NewConfig("appname", "0123456789012345678901234567890123456789")
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("appname"),
+		newrelic.ConfigLicense("0123456789012345678901234567890123456789"),
+		newrelic.ConfigEnabled(false),
+		newrelic.ConfigDistributedTracerEnabled(true),
+	)
 	if nil != err {
 		t.Fatal(err)
 	}

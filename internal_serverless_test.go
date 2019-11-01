@@ -258,7 +258,7 @@ func validSampler(s internal.AdaptiveSampler) bool {
 }
 
 func TestServerlessConnectReply(t *testing.T) {
-	cfg := NewConfig("", "")
+	cfg := defaultConfig()
 	cfg.ServerlessMode.ApdexThreshold = 2 * time.Second
 	cfg.ServerlessMode.AccountID = "the-account-id"
 	cfg.ServerlessMode.TrustedAccountKey = "the-trust-key"
@@ -281,7 +281,7 @@ func TestServerlessConnectReply(t *testing.T) {
 	}
 
 	// Now test the defaults:
-	cfg = NewConfig("", "")
+	cfg = defaultConfig()
 	reply = newServerlessConnectReply(cfg)
 	if reply.ApdexThresholdSeconds != 0.5 {
 		t.Error(reply.ApdexThresholdSeconds)

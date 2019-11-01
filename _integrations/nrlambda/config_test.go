@@ -3,10 +3,12 @@ package nrlambda
 import (
 	"testing"
 	"time"
+
+	newrelic "github.com/newrelic/go-agent"
 )
 
 func TestNewConfig(t *testing.T) {
-	cfg := newConfigInternal(func(key string) string {
+	opt := newConfigInternal(func(key string) string {
 		switch key {
 		case "NEW_RELIC_ACCOUNT_ID":
 			return "the-account-id"
@@ -20,6 +22,8 @@ func TestNewConfig(t *testing.T) {
 			return ""
 		}
 	})
+	cfg := &newrelic.Config{}
+	opt(cfg)
 	if !cfg.ServerlessMode.Enabled {
 		t.Error(cfg.ServerlessMode.Enabled)
 	}

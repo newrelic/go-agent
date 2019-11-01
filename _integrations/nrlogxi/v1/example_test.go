@@ -7,14 +7,14 @@ import (
 )
 
 func Example() {
-	cfg := newrelic.NewConfig("Example App", "__YOUR_NEWRELIC_LICENSE_KEY__")
-
 	// Create a new logxi logger:
 	l := log.New("newrelic")
 	l.SetLevel(log.LevelInfo)
 
-	// Use nrlogxi to register the logger with the agent:
-	cfg.Logger = nrlogxi.New(l)
-
-	newrelic.NewApplication(cfg)
+	newrelic.NewApplication(
+		newrelic.ConfigAppName("Example App"),
+		newrelic.ConfigLicense("__YOUR_NEWRELIC_LICENSE_KEY__"),
+		// Use nrlogxi to register the logger with the agent:
+		nrlogxi.ConfigLogger(l),
+	)
 }

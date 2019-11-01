@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -10,13 +9,6 @@ import (
 	"github.com/newrelic/go-agent/_integrations/logcontext/nrlogrusplugin"
 	"github.com/sirupsen/logrus"
 )
-
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
 
 func doFunction2(txn *newrelic.Transaction, e *logrus.Entry) {
 	defer newrelic.StartSegment(txn, "doFunction2").End()
@@ -38,11 +30,11 @@ func main() {
 
 	log.Debug("Logger created")
 
-	cfg := newrelic.NewConfig("Logrus Log Decoration", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.DistributedTracer.Enabled = true
-	cfg.CrossApplicationTracer.Enabled = false
-
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Logrus Log Decoration"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDistributedTracerEnabled(true),
+	)
 	if nil != err {
 		log.Panic("Failed to create application", err)
 	}

@@ -163,19 +163,14 @@ func doRespond(nc *nats.Conn, txn *newrelic.Transaction) {
 	fmt.Println("Received respond message:", string(m.Data))
 }
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func main() {
 	// Initialize agent
-	cfg := newrelic.NewConfig("NATS App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
 	var err error
-	app, err = newrelic.NewApplication(cfg)
+	app, err = newrelic.NewApplication(
+		newrelic.ConfigAppName("NATS App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		panic(err)
 	}

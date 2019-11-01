@@ -116,9 +116,11 @@ var (
 )
 
 func TestNewApplicationNil(t *testing.T) {
-	cfg := NewConfig("appname", "wrong length")
-	cfg.Enabled = false
-	app, err := NewApplication(cfg)
+	app, err := NewApplication(
+		ConfigAppName("appname"),
+		ConfigLicense("wrong length"),
+		ConfigEnabled(false),
+	)
 	if nil == err {
 		t.Error("error expected when license key is short")
 	}
@@ -172,18 +174,17 @@ func (ea expectApp) ExpectSpanEvents(t internal.Validator, want []internal.WantE
 }
 
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
-	cfg := NewConfig("my app", testLicenseKey)
-
-	if nil != cfgfn {
-		cfgfn(&cfg)
-	}
-
-	// Prevent spawning app goroutines in tests.
-	if !cfg.ServerlessMode.Enabled {
-		cfg.Enabled = false
-	}
-
-	app, err := NewApplication(cfg)
+	app, err := NewApplication(
+		ConfigAppName("my app"),
+		ConfigLicense(testLicenseKey),
+		cfgfn,
+		func(cfg *Config) {
+			// Prevent spawning app goroutines in tests.
+			if !cfg.ServerlessMode.Enabled {
+				cfg.Enabled = false
+			}
+		},
+	)
 	if nil != err {
 		t.Fatal(err)
 	}

@@ -11,19 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func main() {
-	cfg := newrelic.NewConfig("Logrus App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
 	logrus.SetLevel(logrus.DebugLevel)
-	cfg.Logger = nrlogrus.StandardLogger()
 
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Logrus App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		nrlogrus.ConfigStandardLogger(),
+	)
+
 	if nil != err {
 		fmt.Println(err)
 		os.Exit(1)

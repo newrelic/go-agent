@@ -96,7 +96,17 @@ func newApplication(app *app) *Application {
 // nil error are returned. On failure, a nil Application and a non-nil error
 // are returned. Applications do not share global state, therefore it is safe
 // to create multiple applications.
-func NewApplication(c Config) (*Application, error) {
+func NewApplication(opts ...ConfigOption) (*Application, error) {
+	c := defaultConfig()
+	for _, fn := range opts {
+		if nil != fn {
+			fn(&c)
+			if nil != c.Error {
+				return nil, c.Error
+			}
+		}
+	}
+
 	app, err := newApp(c)
 	if nil != err {
 		return nil, err

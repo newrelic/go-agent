@@ -11,13 +11,6 @@ import (
 	_ "github.com/newrelic/go-agent/_integrations/nrsqlite3"
 )
 
-func mustGetEnv(key string) string {
-	if val := os.Getenv(key); "" != val {
-		return val
-	}
-	panic(fmt.Sprintf("environment variable %s unset", key))
-}
-
 func main() {
 	db, err := sql.Open("nrsqlite3", ":memory:")
 	if err != nil {
@@ -28,9 +21,11 @@ func main() {
 	db.Exec("CREATE TABLE zaps ( zap_num INTEGER )")
 	db.Exec("INSERT INTO zaps (zap_num) VALUES (22)")
 
-	cfg := newrelic.NewConfig("SQLite App", mustGetEnv("NEW_RELIC_LICENSE_KEY"))
-	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("SQLite App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		panic(err)
 	}

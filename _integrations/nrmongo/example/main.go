@@ -13,9 +13,11 @@ import (
 )
 
 func main() {
-	config := newrelic.NewConfig("Basic Mongo Example", os.Getenv("NEW_RELIC_LICENSE_KEY"))
-	config.Logger = newrelic.NewDebugLogger(os.Stdout)
-	app, err := newrelic.NewApplication(config)
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Basic Mongo App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		panic(err)
 	}

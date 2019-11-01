@@ -5,7 +5,7 @@
 package nrlogxi
 
 import (
-	"github.com/mgutz/logxi/v1"
+	log "github.com/mgutz/logxi/v1"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/newrelic/go-agent/internal"
 )
@@ -46,4 +46,10 @@ func New(l log.Logger) newrelic.Logger {
 	return &shim{
 		e: l,
 	}
+}
+
+// ConfigLogger configures the newrelic.Application to send log messsages to the
+// provided logxi logger.
+func ConfigLogger(l log.Logger) newrelic.ConfigOption {
+	return newrelic.ConfigLogger(New(l))
 }

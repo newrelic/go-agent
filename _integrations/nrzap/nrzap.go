@@ -40,3 +40,9 @@ func (s *shim) DebugEnabled() bool {
 
 // Transform turns a *zap.Logger into a newrelic.Logger.
 func Transform(l *zap.Logger) newrelic.Logger { return &shim{logger: l} }
+
+// ConfigLogger configures the newrelic.Application to send log messsages to the
+// provided zap logger.
+func ConfigLogger(l *zap.Logger) newrelic.ConfigOption {
+	return newrelic.ConfigLogger(Transform(l))
+}

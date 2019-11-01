@@ -13,14 +13,12 @@ import (
 )
 
 func Example() {
-	// First create a Config.
-	cfg := NewConfig("Example Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-
-	// Modify Config fields to control agent behavior.
-	cfg.Logger = NewDebugLogger(os.Stdout)
-
-	// Now use the Config the create an Application.
-	app, err := NewApplication(cfg)
+	// Create your application using your license key and preferred app name.
+	app, err := NewApplication(
+		ConfigAppName("Example Application"),
+		ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+		ConfigDebugLogger(os.Stdout),
+	)
 	if nil != err {
 		fmt.Println(err)
 		os.Exit(1)
