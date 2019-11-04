@@ -33,8 +33,11 @@ import (
 	"sync"
 
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/internal"
 	"go.mongodb.org/mongo-driver/event"
 )
+
+func init() { internal.TrackUsage("integration", "datastore", "mongo") }
 
 type mongoMonitor struct {
 	segmentMap  map[int64]*newrelic.DatastoreSegment
