@@ -1329,23 +1329,10 @@ func (fe *fieldExpectations) unexpected() []string {
 
 // getTransport ensures that our transport names match cross agent test values.
 func getTransport(transport string) TransportType {
-	switch transport {
-	case TransportHTTP.name:
-		return TransportHTTP
-	case TransportHTTPS.name:
-		return TransportHTTPS
-	case TransportKafka.name:
-		return TransportKafka
-	case TransportJMS.name:
-		return TransportJMS
-	case TransportIronMQ.name:
-		return TransportIronMQ
-	case TransportAMQP.name:
-		return TransportAMQP
-	case TransportQueue.name:
-		return TransportQueue
-	case TransportOther.name:
-		return TransportOther
+	switch TransportType(transport) {
+	case TransportHTTP, TransportHTTPS, TransportKafka, TransportJMS, TransportIronMQ, TransportAMQP,
+		TransportQueue, TransportOther:
+		return TransportType(transport)
 	default:
 		return TransportUnknown
 	}

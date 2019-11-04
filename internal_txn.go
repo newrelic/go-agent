@@ -1082,14 +1082,7 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 	}
 
 	txn.BetterCAT.Inbound = payload
-
-	// TransportType's name field is not mutable outside of its package
-	// so the only check needed is if the caller is using an empty TransportType
-	txn.BetterCAT.Inbound.TransportType = t.name
-	if t.name == "" {
-		txn.BetterCAT.Inbound.TransportType = TransportUnknown.name
-		txn.Config.Logger.Debug("Invalid transport type, defaulting to Unknown", map[string]interface{}{})
-	}
+	txn.BetterCAT.Inbound.TransportType = t.toString()
 
 	if tm := payload.Timestamp.Time(); txn.Start.After(tm) {
 		txn.BetterCAT.Inbound.TransportDuration = txn.Start.Sub(tm)

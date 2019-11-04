@@ -345,20 +345,30 @@ const (
 
 // TransportType is used in Transaction.AcceptDistributedTracePayload() to
 // represent the type of connection that the trace payload was transported over.
-type TransportType struct{ name string }
+type TransportType string
 
 // TransportType names used across New Relic agents:
-var (
-	TransportUnknown = TransportType{name: "Unknown"}
-	TransportHTTP    = TransportType{name: "HTTP"}
-	TransportHTTPS   = TransportType{name: "HTTPS"}
-	TransportKafka   = TransportType{name: "Kafka"}
-	TransportJMS     = TransportType{name: "JMS"}
-	TransportIronMQ  = TransportType{name: "IronMQ"}
-	TransportAMQP    = TransportType{name: "AMQP"}
-	TransportQueue   = TransportType{name: "Queue"}
-	TransportOther   = TransportType{name: "Other"}
+const (
+	TransportUnknown TransportType = "Unknown"
+	TransportHTTP    TransportType = "HTTP"
+	TransportHTTPS   TransportType = "HTTPS"
+	TransportKafka   TransportType = "Kafka"
+	TransportJMS     TransportType = "JMS"
+	TransportIronMQ  TransportType = "IronMQ"
+	TransportAMQP    TransportType = "AMQP"
+	TransportQueue   TransportType = "Queue"
+	TransportOther   TransportType = "Other"
 )
+
+func (tt TransportType) toString() string {
+	switch tt {
+	case TransportHTTP, TransportHTTPS, TransportKafka, TransportJMS, TransportIronMQ, TransportAMQP,
+		TransportQueue, TransportOther:
+		return string(tt)
+	default:
+		return string(TransportUnknown)
+	}
+}
 
 // WebRequest is used to provide request information to Transaction.SetWebRequest.
 type WebRequest struct {
