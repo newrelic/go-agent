@@ -25,11 +25,13 @@ const (
 	attributeRequestContentLength
 	attributeRequestHeadersHost
 	attributeRequestHeadersUserAgent
+	attributeRequestHeadersUserAgentDeprecated
 	attributeRequestHeadersReferer
 	attributeRequestURI
 	attributeResponseHeadersContentType
 	attributeResponseHeadersContentLength
 	attributeResponseCode
+	attributeResponseCodeDeprecated
 	AttributeAWSRequestID
 	AttributeAWSLambdaARN
 	AttributeAWSLambdaColdStart
@@ -85,27 +87,29 @@ var (
 		name         string
 		defaultDests destinationSet
 	}{
-		AttributeHostDisplayName:              {name: "host.displayName", defaultDests: usualDests},
-		attributeRequestMethod:                {name: "request.method", defaultDests: usualDests},
-		attributeRequestAcceptHeader:          {name: "request.headers.accept", defaultDests: usualDests},
-		attributeRequestContentType:           {name: "request.headers.contentType", defaultDests: usualDests},
-		attributeRequestContentLength:         {name: "request.headers.contentLength", defaultDests: usualDests},
-		attributeRequestHeadersHost:           {name: "request.headers.host", defaultDests: usualDests},
-		attributeRequestHeadersUserAgent:      {name: "request.headers.User-Agent", defaultDests: tracesDests},
-		attributeRequestHeadersReferer:        {name: "request.headers.referer", defaultDests: tracesDests},
-		attributeRequestURI:                   {name: "request.uri", defaultDests: usualDests},
-		attributeResponseHeadersContentType:   {name: "response.headers.contentType", defaultDests: usualDests},
-		attributeResponseHeadersContentLength: {name: "response.headers.contentLength", defaultDests: usualDests},
-		attributeResponseCode:                 {name: "httpResponseCode", defaultDests: usualDests},
-		AttributeAWSRequestID:                 {name: "aws.requestId", defaultDests: usualDests},
-		AttributeAWSLambdaARN:                 {name: "aws.lambda.arn", defaultDests: usualDests},
-		AttributeAWSLambdaColdStart:           {name: "aws.lambda.coldStart", defaultDests: usualDests},
-		AttributeAWSLambdaEventSourceARN:      {name: "aws.lambda.eventSource.arn", defaultDests: usualDests},
-		AttributeMessageRoutingKey:            {name: "message.routingKey", defaultDests: usualDests},
-		AttributeMessageQueueName:             {name: "message.queueName", defaultDests: usualDests},
-		AttributeMessageExchangeType:          {name: "message.exchangeType", defaultDests: destNone},
-		AttributeMessageReplyTo:               {name: "message.replyTo", defaultDests: destNone},
-		AttributeMessageCorrelationID:         {name: "message.correlationId", defaultDests: destNone},
+		AttributeHostDisplayName:                   {name: "host.displayName", defaultDests: usualDests},
+		attributeRequestMethod:                     {name: "request.method", defaultDests: usualDests},
+		attributeRequestAcceptHeader:               {name: "request.headers.accept", defaultDests: usualDests},
+		attributeRequestContentType:                {name: "request.headers.contentType", defaultDests: usualDests},
+		attributeRequestContentLength:              {name: "request.headers.contentLength", defaultDests: usualDests},
+		attributeRequestHeadersHost:                {name: "request.headers.host", defaultDests: usualDests},
+		attributeRequestHeadersUserAgent:           {name: "request.headers.userAgent", defaultDests: tracesDests},
+		attributeRequestHeadersUserAgentDeprecated: {name: "request.headers.User-Agent", defaultDests: tracesDests},
+		attributeRequestHeadersReferer:             {name: "request.headers.referer", defaultDests: tracesDests},
+		attributeRequestURI:                        {name: "request.uri", defaultDests: usualDests},
+		attributeResponseHeadersContentType:        {name: "response.headers.contentType", defaultDests: usualDests},
+		attributeResponseHeadersContentLength:      {name: "response.headers.contentLength", defaultDests: usualDests},
+		attributeResponseCode:                      {name: "response.statusCode", defaultDests: usualDests},
+		attributeResponseCodeDeprecated:            {name: "httpResponseCode", defaultDests: usualDests},
+		AttributeAWSRequestID:                      {name: "aws.requestId", defaultDests: usualDests},
+		AttributeAWSLambdaARN:                      {name: "aws.lambda.arn", defaultDests: usualDests},
+		AttributeAWSLambdaColdStart:                {name: "aws.lambda.coldStart", defaultDests: usualDests},
+		AttributeAWSLambdaEventSourceARN:           {name: "aws.lambda.eventSource.arn", defaultDests: usualDests},
+		AttributeMessageRoutingKey:                 {name: "message.routingKey", defaultDests: usualDests},
+		AttributeMessageQueueName:                  {name: "message.queueName", defaultDests: usualDests},
+		AttributeMessageExchangeType:               {name: "message.exchangeType", defaultDests: destNone},
+		AttributeMessageReplyTo:                    {name: "message.replyTo", defaultDests: destNone},
+		AttributeMessageCorrelationID:              {name: "message.correlationId", defaultDests: destNone},
 	}
 	spanAttributes = []SpanAttribute{
 		spanAttributeDBStatement,
@@ -568,6 +572,7 @@ func RequestAgentAttributes(a *Attributes, method string, h http.Header, u *url.
 	a.Agent.Add(attributeRequestContentType, h.Get("Content-Type"), nil)
 	a.Agent.Add(attributeRequestHeadersHost, h.Get("Host"), nil)
 	a.Agent.Add(attributeRequestHeadersUserAgent, h.Get("User-Agent"), nil)
+	a.Agent.Add(attributeRequestHeadersUserAgentDeprecated, h.Get("User-Agent"), nil)
 	a.Agent.Add(attributeRequestHeadersReferer, SafeURLFromString(h.Get("Referer")), nil)
 
 	if l := GetContentLengthFromHeader(h); l >= 0 {
@@ -608,4 +613,5 @@ func ResponseCodeAttribute(a *Attributes, code int) {
 		rc = strconv.Itoa(code)
 	}
 	a.Agent.Add(attributeResponseCode, rc, nil)
+	a.Agent.Add(attributeResponseCodeDeprecated, rc, nil)
 }

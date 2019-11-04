@@ -13,7 +13,13 @@ package newrelic
 // Attributes destined for Transaction Events, Errors, and Transaction Traces:
 const (
 	// AttributeResponseCode is the response status code for a web request.
-	AttributeResponseCode = "httpResponseCode"
+	AttributeResponseCode = "response.statusCode"
+	// AttributeResponseCodeDeprecated is the response status code for a web
+	// request, the same value as AttributeResponseCode. To completely exclude
+	// this value from a destination, both AttributeResponseCode and
+	// AttributeResponseCodeDeprecated must be specified. This attribute is
+	// currently deprecated and will be removed in a later release.
+	AttributeResponseCodeDeprecated = "httpResponseCode"
 	// AttributeRequestMethod is the request's method.
 	AttributeRequestMethod = "request.method"
 	// AttributeRequestAccept is the request's "Accept" header.
@@ -38,7 +44,14 @@ const (
 // Attributes destined for Errors and Transaction Traces:
 const (
 	// AttributeRequestUserAgent is the request's "User-Agent" header.
-	AttributeRequestUserAgent = "request.headers.User-Agent"
+	AttributeRequestUserAgent = "request.headers.userAgent"
+	// AttributeRequestUserAgentDeprecated is the request's "User-Agent"
+	// header, the same value as AttributeRequestUserAgent. To completely
+	// exclude this value from a destination, both AttributeRequestUserAgent
+	// and AttributeRequestUserAgentDeprecated must be specified. This
+	// attribute is currently deprecated and will be removed in a later
+	// release.
+	AttributeRequestUserAgentDeprecated = "request.headers.User-Agent"
 	// AttributeRequestReferer is the request's "Referer" header.  Query
 	// string parameters are removed.
 	AttributeRequestReferer = "request.headers.referer"
