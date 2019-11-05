@@ -287,9 +287,8 @@ var (
 	errMalformedSegment = errors.New("segment identifier malformed: perhaps unsafe code has modified it?")
 	// ErrSegmentOrder indicates that segments have been ended in the
 	// incorrect order.
-	ErrSegmentOrder = errors.New(`improper segment use: the Transaction must be used ` +
-		`in a single goroutine and segments must be ended in "last started first ended" order: ` +
-		`see https://github.com/newrelic/go-agent/blob/master/GUIDE.md#segments`)
+	ErrSegmentOrder = errors.New(`improper segment use: segments must be ended in "last started first ended" order: ` +
+		`use https://godoc.org/github.com/newrelic/go-agent/newrelic#Transaction.NewGoroutine to use the transaction in multiple goroutines`)
 )
 
 func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Time) (segmentEnd, error) {
