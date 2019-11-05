@@ -116,6 +116,18 @@ func newTxn(input txnInput, name string) *thread {
 	}
 }
 
+func (thd *thread) logAPIError(err error, operation string) {
+	if nil == thd {
+		return
+	}
+	if nil == err {
+		return
+	}
+	thd.Config.Logger.Error("unable to "+operation, map[string]interface{}{
+		"reason": err.Error(),
+	})
+}
+
 // lazilyCalculateSampled calculates and returns whether or not the transaction
 // should be sampled.  Sampled is not computed at the beginning of the
 // transaction because we want to calculate Sampled only for transactions that
@@ -709,9 +721,6 @@ type segment struct {
 }
 
 func endSegment(s *Segment) error {
-	if nil == s {
-		return nil
-	}
 	thd := s.StartTime.thread
 	if nil == thd {
 		return nil
@@ -729,9 +738,6 @@ func endSegment(s *Segment) error {
 }
 
 func endDatastore(s *DatastoreSegment) error {
-	if nil == s {
-		return nil
-	}
 	thd := s.StartTime.thread
 	if nil == thd {
 		return nil
@@ -814,9 +820,6 @@ func externalSegmentURL(s *ExternalSegment) (*url.URL, error) {
 }
 
 func endExternal(s *ExternalSegment) error {
-	if nil == s {
-		return nil
-	}
 	thd := s.StartTime.thread
 	if nil == thd {
 		return nil
@@ -847,9 +850,6 @@ func endExternal(s *ExternalSegment) error {
 }
 
 func endMessage(s *MessageProducerSegment) error {
-	if nil == s {
-		return nil
-	}
 	thd := s.StartTime.thread
 	if nil == thd {
 		return nil

@@ -24,10 +24,8 @@ func TestNoticedWrappedError(t *testing.T) {
 
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(alpha())
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(alpha())
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",

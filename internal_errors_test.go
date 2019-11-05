@@ -16,10 +16,8 @@ func (e myError) Error() string { return "my msg" }
 func TestNoticeErrorBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -40,10 +38,8 @@ func TestNoticeErrorWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/hello",
@@ -65,10 +61,10 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
-	err := txn.NoticeError(myError{})
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -79,10 +75,8 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -103,10 +97,8 @@ func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.AllowRawExceptionMessages.SetEnabled(false) }
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -127,10 +119,10 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ErrorCollector.Enabled = false }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if errorsDisabled != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": errorsDisabled.Error(),
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -145,10 +137,10 @@ func TestErrorsDisabledByServerSideConfig(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if errorsDisabled != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": errorsDisabled.Error(),
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -165,10 +157,8 @@ func TestErrorsEnabledByServerSideConfig(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -193,10 +183,8 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrors = false }
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if err != nil {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -214,10 +202,10 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 func TestNoticeErrorNil(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(nil)
-	if errNilError != err {
-		t.Error(err)
-	}
+	txn.NoticeError(nil)
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": errNilError.Error(),
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -228,10 +216,8 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ErrorCollector.CaptureEvents = false }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -246,10 +232,8 @@ func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrorEvents = false }
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -268,10 +252,8 @@ func (e errorWithClass) ErrorClass() string { return e.class }
 func TestErrorWithClasser(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(errorWithClass{class: "zap"})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(errorWithClass{class: "zap"})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -291,10 +273,8 @@ func TestErrorWithClasser(t *testing.T) {
 func TestErrorWithClasserReturnsEmpty(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(errorWithClass{class: ""})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(errorWithClass{class: ""})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -328,10 +308,8 @@ func TestErrorWithStackTrace(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	e := makeErrorWithStackTrace()
-	err := txn.NoticeError(e)
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(e)
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -352,10 +330,8 @@ func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	e := withStackTrace{trace: nil}
-	err := txn.NoticeError(e)
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(e)
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -375,13 +351,11 @@ func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 func TestNewrelicErrorNoAttributes(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message: "my msg",
 		Class:   "my class",
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
@@ -404,14 +378,12 @@ func TestNewrelicErrorValidAttributes(t *testing.T) {
 	}
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: extraAttributes,
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:        "OtherTransaction/Go/hello",
@@ -437,14 +409,12 @@ func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: extraAttributes,
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:        "OtherTransaction/Go/hello",
@@ -470,14 +440,12 @@ func TestNewrelicErrorAttributesSecurityPolicy(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomParameters.SetEnabled(false) }
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: extraAttributes,
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:        "OtherTransaction/Go/hello",
@@ -502,17 +470,13 @@ func TestNewrelicErrorAttributeOverridesNormalAttribute(t *testing.T) {
 	}
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	if err := txn.AddAttribute("zip", 123); nil != err {
-		t.Error(err)
-	}
-	err := txn.NoticeError(Error{
+	txn.AddAttribute("zip", 123)
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: extraAttributes,
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:        "OtherTransaction/Go/hello",
@@ -538,14 +502,14 @@ func TestNewrelicErrorInvalidAttributes(t *testing.T) {
 	}
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: extraAttributes,
 	})
-	if _, ok := err.(internal.ErrInvalidAttributeType); !ok {
-		t.Error(err)
-	}
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": `attribute 'INVALID' value of type struct {} is invalid`,
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -558,7 +522,7 @@ func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message: "my msg",
 		Class:   "my class",
 		Attributes: map[string]interface{}{
@@ -566,9 +530,7 @@ func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 			"IGNORE_ME": 123,
 		},
 	})
-	if nil != err {
-		t.Error(err)
-	}
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName:        "OtherTransaction/Go/hello",
@@ -595,14 +557,14 @@ func TestTooManyExtraErrorAttributes(t *testing.T) {
 	}
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(Error{
+	txn.NoticeError(Error{
 		Message:    "my msg",
 		Class:      "my class",
 		Attributes: attrs,
 	})
-	if errTooManyErrorAttributes != err {
-		t.Error(err)
-	}
+	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
+		"reason": errTooManyErrorAttributes.Error(),
+	})
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})

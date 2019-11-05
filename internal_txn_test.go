@@ -434,10 +434,8 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	p.TracedID = "trace-id"
 
 	txn := app.StartTransaction("hello")
-	err := txn.AcceptDistributedTracePayload(TransportHTTP, p)
-	if nil != err {
-		t.Error(err)
-	}
+	txn.AcceptDistributedTracePayload(TransportHTTP, p)
+	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "9d2c19bd03daf755" {
 		t.Error(metadata.SpanID)
@@ -557,24 +555,12 @@ func TestIsSampledEnded(t *testing.T) {
 func TestNilTransaction(t *testing.T) {
 	var txn *Transaction
 
-	if err := txn.End(); err != nil {
-		t.Error(err)
-	}
-	if err := txn.Ignore(); err != nil {
-		t.Error(err)
-	}
-	if err := txn.SetName("hello"); err != nil {
-		t.Error(err)
-	}
-	if err := txn.NoticeError(errors.New("something")); err != nil {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
-		t.Error(err)
-	}
-	if err := txn.SetWebRequestHTTP(helloRequest); err != nil {
-		t.Error(err)
-	}
+	txn.End()
+	txn.Ignore()
+	txn.SetName("hello")
+	txn.NoticeError(errors.New("something"))
+	txn.AddAttribute("myKey", "myValue")
+	txn.SetWebRequestHTTP(helloRequest)
 	var x dummyResponseWriter
 	if w := txn.SetWebResponse(x); w != x {
 		t.Error(w)
@@ -585,14 +571,12 @@ func TestNilTransaction(t *testing.T) {
 	if p := txn.CreateDistributedTracePayload(); p != nil {
 		t.Error(p)
 	}
-	if err := txn.AcceptDistributedTracePayload(TransportHTTP, nil); err != nil {
-		t.Error(err)
-	}
+	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
 		t.Error(app)
 	}
-	if hdr, err := txn.BrowserTimingHeader(); err != nil || hdr.WithTags() != nil {
-		t.Error(err, hdr)
+	if hdr := txn.BrowserTimingHeader(); hdr.WithTags() != nil {
+		t.Error(hdr)
 	}
 	if tx := txn.NewGoroutine(); tx != nil {
 		t.Error(tx)
@@ -611,24 +595,12 @@ func TestNilTransaction(t *testing.T) {
 func TestEmptyTransaction(t *testing.T) {
 	txn := &Transaction{}
 
-	if err := txn.End(); err != nil {
-		t.Error(err)
-	}
-	if err := txn.Ignore(); err != nil {
-		t.Error(err)
-	}
-	if err := txn.SetName("hello"); err != nil {
-		t.Error(err)
-	}
-	if err := txn.NoticeError(errors.New("something")); err != nil {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute("myKey", "myValue"); err != nil {
-		t.Error(err)
-	}
-	if err := txn.SetWebRequestHTTP(helloRequest); err != nil {
-		t.Error(err)
-	}
+	txn.End()
+	txn.Ignore()
+	txn.SetName("hello")
+	txn.NoticeError(errors.New("something"))
+	txn.AddAttribute("myKey", "myValue")
+	txn.SetWebRequestHTTP(helloRequest)
 	var x dummyResponseWriter
 	if w := txn.SetWebResponse(x); w != x {
 		t.Error(w)
@@ -639,14 +611,12 @@ func TestEmptyTransaction(t *testing.T) {
 	if p := txn.CreateDistributedTracePayload(); p != nil {
 		t.Error(p)
 	}
-	if err := txn.AcceptDistributedTracePayload(TransportHTTP, nil); err != nil {
-		t.Error(err)
-	}
+	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
 		t.Error(app)
 	}
-	if hdr, err := txn.BrowserTimingHeader(); err != nil || hdr.WithTags() != nil {
-		t.Error(err, hdr)
+	if hdr := txn.BrowserTimingHeader(); hdr.WithTags() != nil {
+		t.Error(hdr)
 	}
 	if tx := txn.NewGoroutine(); tx != nil {
 		t.Error(tx)

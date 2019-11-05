@@ -5,7 +5,6 @@ package newrelic
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -93,10 +92,7 @@ func ExampleBrowserTimingHeader() {
 		// HTML as possible.  We suggest including it immediately after the
 		// opening <head> tag and any <meta charset> tags.
 		if txn := FromContext(req.Context()); nil != txn {
-			hdr, err := txn.BrowserTimingHeader()
-			if nil != err {
-				log.Printf("unable to create browser timing header: %v", err)
-			}
+			hdr := txn.BrowserTimingHeader()
 			// BrowserTimingHeader() will always return a header whose methods can
 			// be safely called.
 			if js := hdr.WithTags(); js != nil {

@@ -285,7 +285,9 @@ func (t *TxnData) saveSpanEvent(e *SpanEvent) {
 
 var (
 	errMalformedSegment = errors.New("segment identifier malformed: perhaps unsafe code has modified it?")
-	errSegmentOrder     = errors.New(`improper segment use: the Transaction must be used ` +
+	// ErrSegmentOrder indicates that segments have been ended in the
+	// incorrect order.
+	ErrSegmentOrder = errors.New(`improper segment use: the Transaction must be used ` +
 		`in a single goroutine and segments must be ended in "last started first ended" order: ` +
 		`see https://github.com/newrelic/go-agent/blob/master/GUIDE.md#segments`)
 )
@@ -295,14 +297,14 @@ func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Tim
 		return segmentEnd{}, errMalformedSegment
 	}
 	if start.Depth >= len(thread.stack) {
-		return segmentEnd{}, errSegmentOrder
+		return segmentEnd{}, ErrSegmentOrder
 	}
 	if start.Depth < 0 {
 		return segmentEnd{}, errMalformedSegment
 	}
 	frame := thread.stack[start.Depth]
 	if start.Stamp != frame.Stamp {
-		return segmentEnd{}, errSegmentOrder
+		return segmentEnd{}, ErrSegmentOrder
 	}
 
 	var children time.Duration

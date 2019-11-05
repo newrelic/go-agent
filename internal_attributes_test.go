@@ -16,9 +16,10 @@ func TestAddAttributeHighSecurity(t *testing.T) {
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
 
-	if err := txn.AddAttribute(`key`, 1); err != errHighSecurityEnabled {
-		t.Error(err)
-	}
+	txn.AddAttribute(`key`, 1)
+	app.expectSingleLoggedError(t, "unable to add attribute", map[string]interface{}{
+		"reason": errHighSecurityEnabled.Error(),
+	})
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -37,9 +38,10 @@ func TestAddAttributeSecurityPolicyDisablesParameters(t *testing.T) {
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
 
-	if err := txn.AddAttribute(`key`, 1); err != errSecurityPolicy {
-		t.Error(err)
-	}
+	txn.AddAttribute(`key`, 1)
+	app.expectSingleLoggedError(t, "unable to add attribute", map[string]interface{}{
+		"reason": errSecurityPolicy.Error(),
+	})
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -94,25 +96,23 @@ func TestUserAttributeBasics(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	txn.NoticeError(errors.New("zap"))
-
-	if err := txn.AddAttribute(`int\key`, 1); nil != err {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute(`str\key`, `zip\zap`); nil != err {
-		t.Error(err)
-	}
-	err := txn.AddAttribute("invalid_value", struct{}{})
-	if _, ok := err.(internal.ErrInvalidAttributeType); !ok {
-		t.Error(err)
-	}
-	err = txn.AddAttribute("nil_value", nil)
-	if _, ok := err.(internal.ErrInvalidAttributeType); !ok {
-		t.Error(err)
-	}
+	txn.AddAttribute(`int\key`, 1)
+	app.expectNoLoggedErrors(t)
+	txn.AddAttribute(`str\key`, `zip\zap`)
+	app.expectNoLoggedErrors(t)
+	txn.AddAttribute("invalid_value", struct{}{})
+	app.expectSingleLoggedError(t, "unable to add attribute", map[string]interface{}{
+		"reason": `attribute 'invalid_value' value of type struct {} is invalid`,
+	})
+	txn.AddAttribute("nil_value", nil)
+	app.expectSingleLoggedError(t, "unable to add attribute", map[string]interface{}{
+		"reason": `attribute 'nil_value' value of type <nil> is invalid`,
+	})
 	txn.End()
-	if err := txn.AddAttribute("already_ended", "zap"); err != errAlreadyEnded {
-		t.Error(err)
-	}
+	txn.AddAttribute("already_ended", "zap")
+	app.expectSingleLoggedError(t, "unable to add attribute", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 
 	agentAttributes := map[string]interface{}{}
 	userAttributes := map[string]interface{}{`int\key`: 1, `str\key`: `zip\zap`}
@@ -162,18 +162,14 @@ func TestUserAttributeConfiguration(t *testing.T) {
 
 	txn.NoticeError(errors.New("zap"))
 
-	if err := txn.AddAttribute("only_errors", 1); nil != err {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute("only_txn_events", 2); nil != err {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute("only_txn_traces", 3); nil != err {
-		t.Error(err)
-	}
-	if err := txn.AddAttribute("completed_excluded", 4); nil != err {
-		t.Error(err)
-	}
+	txn.AddAttribute("only_errors", 1)
+	app.expectNoLoggedErrors(t)
+	txn.AddAttribute("only_txn_events", 2)
+	app.expectNoLoggedErrors(t)
+	txn.AddAttribute("only_txn_traces", 3)
+	app.expectNoLoggedErrors(t)
+	txn.AddAttribute("completed_excluded", 4)
+	app.expectNoLoggedErrors(t)
 	txn.End()
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{

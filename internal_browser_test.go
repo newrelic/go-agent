@@ -26,10 +26,8 @@ func TestBrowserTimingHeaderSuccess(t *testing.T) {
 	rw := txn.SetWebResponse(nil)
 	rw.WriteHeader(200)
 	txn.AddAttribute("zip", "zap")
-	hdr, err := txn.BrowserTimingHeader()
-	if nil != err {
-		t.Fatal(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	app.expectNoLoggedErrors(t)
 
 	encodingKey := browserEncodingKey(testLicenseKey)
 	obfuscatedTxnName, _ := internal.Obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
@@ -71,10 +69,8 @@ func TestBrowserTimingHeaderSuccessWithoutAttributes(t *testing.T) {
 	rw := txn.SetWebResponse(nil)
 	rw.WriteHeader(200)
 	txn.AddAttribute("zip", "zap")
-	hdr, err := txn.BrowserTimingHeader()
-	if nil != err {
-		t.Fatal(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	app.expectNoLoggedErrors(t)
 
 	encodingKey := browserEncodingKey(testLicenseKey)
 	obfuscatedTxnName, _ := internal.Obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
@@ -113,10 +109,10 @@ func TestBrowserTimingHeaderDisabled(t *testing.T) {
 	}
 	app := testApp(browserReplyFields, disableBrowser, t)
 	txn := app.StartTransaction("hello")
-	hdr, err := txn.BrowserTimingHeader()
-	if err != errBrowserDisabled {
-		t.Error(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	app.expectSingleLoggedError(t, "unable to create browser timing header", map[string]interface{}{
+		"reason": errBrowserDisabled.Error(),
+	})
 	if hdr.WithTags() != nil {
 		t.Error(hdr.WithTags())
 	}
@@ -125,11 +121,9 @@ func TestBrowserTimingHeaderDisabled(t *testing.T) {
 func TestBrowserTimingHeaderNotConnected(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	hdr, err := txn.BrowserTimingHeader()
-	if err != nil {
-		// No error expected if the app is not yet connected.
-		t.Error(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	// No error expected if the app is not yet connected.
+	app.expectNoLoggedErrors(t)
 	if hdr.WithTags() != nil {
 		t.Error(hdr.WithTags())
 	}
@@ -139,10 +133,10 @@ func TestBrowserTimingHeaderAlreadyFinished(t *testing.T) {
 	app := testApp(browserReplyFields, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
-	hdr, err := txn.BrowserTimingHeader()
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	app.expectSingleLoggedError(t, "unable to create browser timing header", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	if hdr.WithTags() != nil {
 		t.Error(hdr.WithTags())
 	}
@@ -152,10 +146,10 @@ func TestBrowserTimingHeaderTxnIgnored(t *testing.T) {
 	app := testApp(browserReplyFields, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.Ignore()
-	hdr, err := txn.BrowserTimingHeader()
-	if err != errTransactionIgnored {
-		t.Error(err)
-	}
+	hdr := txn.BrowserTimingHeader()
+	app.expectSingleLoggedError(t, "unable to create browser timing header", map[string]interface{}{
+		"reason": errTransactionIgnored.Error(),
+	})
 	if hdr.WithTags() != nil {
 		t.Error(hdr.WithTags())
 	}
@@ -169,10 +163,11 @@ func BenchmarkBrowserTimingHeaderSuccess(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		hdr, err := txn.BrowserTimingHeader()
-		if nil == hdr || nil != err {
-			b.Fatal(hdr, err)
+		hdr := txn.BrowserTimingHeader()
+		if nil == hdr {
+			b.Fatal(hdr)
 		}
+		app.expectNoLoggedErrors(b)
 		hdr.WithTags()
 	}
 }

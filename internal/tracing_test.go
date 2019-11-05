@@ -99,7 +99,7 @@ func TestSegmentAlreadyEnded(t *testing.T) {
 		t.Error(end, err)
 	}
 	end, err = endSegment(txndata, thread, t1, start.Add(3*time.Second))
-	if err != errSegmentOrder {
+	if err != ErrSegmentOrder {
 		t.Error(end, err)
 	}
 }
@@ -112,7 +112,7 @@ func TestSegmentBadStamp(t *testing.T) {
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t1.Stamp++
 	end, err := endSegment(txndata, thread, t1, start.Add(2*time.Second))
-	if err != errSegmentOrder {
+	if err != ErrSegmentOrder {
 		t.Error(end, err)
 	}
 }
@@ -125,7 +125,7 @@ func TestSegmentBadDepth(t *testing.T) {
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	t1.Depth++
 	end, err := endSegment(txndata, thread, t1, start.Add(2*time.Second))
-	if err != errSegmentOrder {
+	if err != ErrSegmentOrder {
 		t.Error(end, err)
 	}
 }
@@ -165,7 +165,7 @@ func TestSegmentOutOfOrder(t *testing.T) {
 	if nil != err2 || end2.duration != end2.exclusive || end2.duration != 2*time.Second {
 		t.Error(end2, err2)
 	}
-	if err3 != errSegmentOrder {
+	if err3 != ErrSegmentOrder {
 		t.Error(end3, err3)
 	}
 	if nil != err4 || end4.duration != end4.exclusive || end4.duration != 1*time.Second {

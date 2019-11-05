@@ -847,10 +847,10 @@ func TestSlowQueryParamsInvalid(t *testing.T) {
 			"number":  5,
 		},
 	}
-	err := s1.End()
-	if nil == err {
-		t.Error("error should have been returned")
-	}
+	s1.End()
+	app.expectSingleLoggedError(t, "unable to end datastore segment", map[string]interface{}{
+		"reason": "attribute 'cookies' value of type []string is invalid",
+	})
 	txn.End()
 
 	app.ExpectSlowQueries(t, []internal.WantSlowQuery{{

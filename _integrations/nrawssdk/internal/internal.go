@@ -13,7 +13,7 @@ type contextKeyType struct{}
 
 var segmentContextKey = contextKeyType(struct{}{})
 
-type endable interface{ End() error }
+type endable interface{ End() }
 
 func getTableName(params interface{}) string {
 	var tableName string

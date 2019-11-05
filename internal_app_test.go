@@ -29,12 +29,8 @@ func TestNilApplication(t *testing.T) {
 	if txn := app.StartTransaction("name"); txn != nil {
 		t.Error(txn)
 	}
-	if err := app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"}); nil != err {
-		t.Error(err)
-	}
-	if err := app.RecordCustomMetric("myMetric", 123.45); nil != err {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"})
+	app.RecordCustomMetric("myMetric", 123.45)
 	if err := app.WaitForConnection(2 * time.Second); nil != err {
 		t.Error(err)
 	}
@@ -46,12 +42,8 @@ func TestEmptyApplication(t *testing.T) {
 	if txn := app.StartTransaction("name"); txn != nil {
 		t.Error(txn)
 	}
-	if err := app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"}); nil != err {
-		t.Error(err)
-	}
-	if err := app.RecordCustomMetric("myMetric", 123.45); nil != err {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myEventType", map[string]interface{}{"zip": "zap"})
+	app.RecordCustomMetric("myMetric", 123.45)
 	if err := app.WaitForConnection(2 * time.Second); nil != err {
 		t.Error(err)
 	}

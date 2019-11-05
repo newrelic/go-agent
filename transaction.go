@@ -17,41 +17,41 @@ type Transaction struct {
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
-func (txn *Transaction) End() error {
+func (txn *Transaction) End() {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
 
 	// recover must be called in the function directly being deferred,
 	// not any nested call!
 	r := recover()
-	return txn.thread.End(r)
+	txn.thread.logAPIError(txn.thread.End(r), "end transaction")
 }
 
 // Ignore prevents this transaction's data from being recorded.
-func (txn *Transaction) Ignore() error {
+func (txn *Transaction) Ignore() {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.Ignore()
+	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction")
 }
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
-func (txn *Transaction) SetName(name string) error {
+func (txn *Transaction) SetName(name string) {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.SetName(name)
+	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name")
 }
 
 // NoticeError records an error.  The Transaction saves the first five
@@ -62,14 +62,14 @@ func (txn *Transaction) SetName(name string) error {
 // 400 or below 100 that is not in the IgnoreStatusCodes configuration
 // list.  This method is unaffected by the IgnoreStatusCodes
 // configuration list.
-func (txn *Transaction) NoticeError(err error) error {
+func (txn *Transaction) NoticeError(err error) {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.NoticeError(err)
+	txn.thread.logAPIError(txn.thread.NoticeError(err), "notice error")
 }
 
 // AddAttribute adds a key value pair to the transaction event, errors,
@@ -80,23 +80,24 @@ func (txn *Transaction) NoticeError(err error) error {
 //
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
-func (txn *Transaction) AddAttribute(key string, value interface{}) error {
+func (txn *Transaction) AddAttribute(key string, value interface{}) {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.AddAttribute(key, value)
+	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute")
 }
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
 // the request is non-nil, SetWebRequestHTTP will additionally collect
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for a distributed tracing header.
-func (txn *Transaction) SetWebRequestHTTP(r *http.Request) error {
+func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 	if nil == r {
-		return txn.SetWebRequest(nil)
+		txn.SetWebRequest(nil)
+		return
 	}
 	wr := &WebRequest{
 		Header:    r.Header,
@@ -104,7 +105,7 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) error {
 		Method:    r.Method,
 		Transport: transport(r),
 	}
-	return txn.SetWebRequest(wr)
+	txn.SetWebRequest(wr)
 }
 
 func transport(r *http.Request) TransportType {
@@ -122,14 +123,14 @@ func transport(r *http.Request) TransportType {
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for a distributed tracing header.  Use
 // SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r *WebRequest) error {
+func (txn *Transaction) SetWebRequest(r *WebRequest) {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.SetWebRequest(r)
+	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request")
 }
 
 // SetWebResponse sets transaction's http.ResponseWriter.  After calling
@@ -200,14 +201,15 @@ func (txn *Transaction) CreateDistributedTracePayload() DistributedTracePayload 
 //
 // The payload parameter may be a DistributedTracePayload, a string, or
 // a []byte.
-func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload interface{}) error {
+func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload interface{}) {
 	if nil == txn {
-		return nil
+		return
 	}
 	if nil == txn.thread {
-		return nil
+		return
 	}
-	return txn.thread.AcceptDistributedTracePayload(t, payload)
+	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload),
+		"accept trace payload")
 }
 
 // Application returns the Application which started the transaction.
@@ -233,14 +235,16 @@ func (txn *Transaction) Application() *Application {
 // The *BrowserTimingHeader return value will be nil if browser
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
-func (txn *Transaction) BrowserTimingHeader() (*BrowserTimingHeader, error) {
+func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 	if nil == txn {
-		return nil, nil
+		return nil
 	}
 	if nil == txn.thread {
-		return nil, nil
+		return nil
 	}
-	return txn.thread.BrowserTimingHeader()
+	b, err := txn.thread.BrowserTimingHeader()
+	txn.thread.logAPIError(err, "create browser timing header")
+	return b
 }
 
 // NewGoroutine allows you to use the Transaction in multiple

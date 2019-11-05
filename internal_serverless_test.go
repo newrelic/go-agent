@@ -112,10 +112,8 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 	if "" == nonemptyPayload.Text() {
 		t.Error(nonemptyPayload.Text())
 	}
-	err := txn.AcceptDistributedTracePayload(TransportHTTP, nonemptyPayload)
-	if err != nil {
-		t.Error(err)
-	}
+	txn.AcceptDistributedTracePayload(TransportHTTP, nonemptyPayload)
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
@@ -176,10 +174,11 @@ func TestServerlessHighApdex(t *testing.T) {
 func TestServerlessRecordCustomMetric(t *testing.T) {
 	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
 	app := testApp(nil, cfgFn, t)
-	err := app.RecordCustomMetric("myMetric", 123.0)
-	if err != errMetricServerless {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", 123.0)
+	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
+		"metric-name": "myMetric",
+		"reason":      errMetricServerless.Error(),
+	})
 }
 
 func TestServerlessRecordCustomEvent(t *testing.T) {
@@ -187,10 +186,8 @@ func TestServerlessRecordCustomEvent(t *testing.T) {
 	app := testApp(nil, cfgFn, t)
 
 	attributes := map[string]interface{}{"zip": 1}
-	err := app.RecordCustomEvent("myType", attributes)
-	if err != nil {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", attributes)
+	app.expectNoLoggedErrors(t)
 	app.ExpectCustomEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"type":      "myType",

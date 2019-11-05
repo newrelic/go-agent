@@ -124,16 +124,36 @@ const (
 )
 
 // End finishes the segment.
-func (s *Segment) End() error { return endSegment(s) }
+func (s *Segment) End() {
+	if s == nil {
+		return
+	}
+	s.StartTime.thread.logAPIError(endSegment(s), "end segment")
+}
 
 // End finishes the datastore segment.
-func (s *DatastoreSegment) End() error { return endDatastore(s) }
+func (s *DatastoreSegment) End() {
+	if nil == s {
+		return
+	}
+	s.StartTime.thread.logAPIError(endDatastore(s), "end datastore segment")
+}
 
 // End finishes the external segment.
-func (s *ExternalSegment) End() error { return endExternal(s) }
+func (s *ExternalSegment) End() {
+	if nil == s {
+		return
+	}
+	s.StartTime.thread.logAPIError(endExternal(s), "end external segment")
+}
 
 // End finishes the message segment.
-func (s *MessageProducerSegment) End() error { return endMessage(s) }
+func (s *MessageProducerSegment) End() {
+	if nil == s {
+		return
+	}
+	s.StartTime.thread.logAPIError(endMessage(s), "end message producer segment")
+}
 
 // OutboundHeaders returns the headers that should be attached to the external
 // request.

@@ -40,11 +40,20 @@ func (app *Application) StartTransaction(name string) *Transaction {
 // https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 //
 // An error is returned if event type or params is invalid.
-func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) error {
+func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
 	if nil == app {
-		return nil
+		return
 	}
-	return app.app.RecordCustomEvent(eventType, params)
+	if nil == app.app {
+		return
+	}
+	err := app.app.RecordCustomEvent(eventType, params)
+	if err != nil {
+		app.app.Error("unable to record custom event", map[string]interface{}{
+			"event-type": eventType,
+			"reason":     err.Error(),
+		})
+	}
 }
 
 // RecordCustomMetric records a custom metric.  The metric name you
@@ -52,11 +61,20 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // currently supported in serverless mode.
 //
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
-func (app *Application) RecordCustomMetric(name string, value float64) error {
+func (app *Application) RecordCustomMetric(name string, value float64) {
 	if nil == app {
-		return nil
+		return
 	}
-	return app.app.RecordCustomMetric(name, value)
+	if nil == app.app {
+		return
+	}
+	err := app.app.RecordCustomMetric(name, value)
+	if err != nil {
+		app.app.Error("unable to record custom metric", map[string]interface{}{
+			"metric-name": name,
+			"reason":      err.Error(),
+		})
+	}
 }
 
 // WaitForConnection blocks until the application is connected, is

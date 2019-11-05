@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -236,10 +235,7 @@ func customMetric(w http.ResponseWriter, r *http.Request) {
 
 func browser(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	hdr, err := txn.BrowserTimingHeader()
-	if nil != err {
-		log.Printf("unable to create browser timing header: %v", err)
-	}
+	hdr := txn.BrowserTimingHeader()
 	// BrowserTimingHeader() will always return a header whose methods can
 	// be safely called.
 	if js := hdr.WithTags(); js != nil {

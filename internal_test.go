@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -43,6 +44,54 @@ var (
 		{Name: "Errors/OtherTransaction/Go/hello", Scope: "", Forced: true, Data: singleCount},
 	}, backgroundMetrics...)
 )
+
+type recordedLogMessage struct {
+	msg     string
+	context map[string]interface{}
+}
+
+type errorSaverLogger struct{ errors []recordedLogMessage }
+
+func (lg *errorSaverLogger) expectNoLoggedErrors(tb testing.TB) {
+	if h, ok := tb.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
+	if len(lg.errors) != 0 {
+		tb.Error("unexpected non-zero number of errors logged", len(lg.errors))
+	}
+}
+
+func (lg *errorSaverLogger) expectSingleLoggedError(tb testing.TB, msg string, context map[string]interface{}) {
+	if h, ok := tb.(interface {
+		Helper()
+	}); ok {
+		h.Helper()
+	}
+	if len(lg.errors) != 1 {
+		tb.Error("unexpected number of errors logged", len(lg.errors))
+		return
+	}
+	if lg.errors[0].msg != msg {
+		tb.Error("incorrect logged error message", lg.errors[0].msg, msg)
+		return
+	}
+	if !reflect.DeepEqual(lg.errors[0].context, context) {
+		tb.Error("incorrect logged error context", lg.errors[0].context, context)
+		return
+	}
+	// Reset to prepare for subsequent tests.
+	lg.errors = nil
+}
+
+func (lg *errorSaverLogger) Error(msg string, context map[string]interface{}) {
+	lg.errors = append(lg.errors, recordedLogMessage{msg: msg, context: context})
+}
+func (lg *errorSaverLogger) Warn(msg string, context map[string]interface{})  {}
+func (lg *errorSaverLogger) Info(msg string, context map[string]interface{})  {}
+func (lg *errorSaverLogger) Debug(msg string, context map[string]interface{}) {}
+func (lg *errorSaverLogger) DebugEnabled() bool                               { return false }
 
 // compatibleResponseRecorder wraps ResponseRecorder to ensure consistent behavior
 // between different versions of Go.
@@ -140,6 +189,7 @@ const (
 type expectApp struct {
 	*Application
 	internal.Expect
+	*errorSaverLogger
 }
 
 func (ea expectApp) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
@@ -174,11 +224,13 @@ func (ea expectApp) ExpectSpanEvents(t internal.Validator, want []internal.WantE
 }
 
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
+	lg := &errorSaverLogger{}
 	app, err := NewApplication(
 		ConfigAppName("my app"),
 		ConfigLicense(testLicenseKey),
 		cfgfn,
 		func(cfg *Config) {
+			cfg.Logger = lg
 			// Prevent spawning app goroutines in tests.
 			if !cfg.ServerlessMode.Enabled {
 				cfg.Enabled = false
@@ -192,16 +244,15 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 	internal.HarvestTesting(app.Private, replyfn)
 
 	return expectApp{
-		Application: app,
+		Application:      app,
+		errorSaverLogger: lg,
 	}
 }
 
 func TestRecordCustomEventSuccess(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if nil != err {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", validParams)
+	app.expectNoLoggedErrors(t)
 	app.ExpectCustomEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"type":      "myType",
@@ -214,58 +265,61 @@ func TestRecordCustomEventSuccess(t *testing.T) {
 func TestRecordCustomEventHighSecurityEnabled(t *testing.T) {
 	cfgfn := func(cfg *Config) { cfg.HighSecurity = true }
 	app := testApp(nil, cfgfn, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != errHighSecurityEnabled {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", validParams)
+	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
+		"event-type": "myType",
+		"reason":     errHighSecurityEnabled.Error(),
+	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventSecurityPolicy(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomEvents.SetEnabled(false) }
 	app := testApp(replyfn, nil, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != errSecurityPolicy {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", validParams)
+	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
+		"event-type": "myType",
+		"reason":     errSecurityPolicy.Error(),
+	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventEventsDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = false }
 	app := testApp(nil, cfgfn, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != errCustomEventsDisabled {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", validParams)
+	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
+		"event-type": "myType",
+		"reason":     errCustomEventsDisabled.Error(),
+	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventBadInput(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomEvent("????", validParams)
-	if err != internal.ErrEventTypeRegex {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("????", validParams)
+	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
+		"event-type": "????",
+		"reason":     internal.ErrEventTypeRegex.Error(),
+	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomEventRemoteDisable(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectCustomEvents = false }
 	app := testApp(replyfn, nil, t)
-	err := app.RecordCustomEvent("myType", validParams)
-	if err != errCustomEventsRemoteDisabled {
-		t.Error(err)
-	}
+	app.RecordCustomEvent("myType", validParams)
+	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
+		"event-type": "myType",
+		"reason":     errCustomEventsRemoteDisabled.Error(),
+	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
 
 func TestRecordCustomMetricSuccess(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomMetric("myMetric", 123.0)
-	if nil != err {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", 123.0)
+	app.expectNoLoggedErrors(t)
 	expectData := []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
@@ -274,34 +328,38 @@ func TestRecordCustomMetricSuccess(t *testing.T) {
 
 func TestRecordCustomMetricNameEmpty(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomMetric("", 123.0)
-	if err != errMetricNameEmpty {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("", 123.0)
+	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
+		"metric-name": "",
+		"reason":      errMetricNameEmpty.Error(),
+	})
 }
 
 func TestRecordCustomMetricNaN(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomMetric("myMetric", math.NaN())
-	if err != errMetricNaN {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", math.NaN())
+	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
+		"metric-name": "myMetric",
+		"reason":      errMetricNaN.Error(),
+	})
 }
 
 func TestRecordCustomMetricPositiveInf(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomMetric("myMetric", math.Inf(0))
-	if err != errMetricInf {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", math.Inf(0))
+	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
+		"metric-name": "myMetric",
+		"reason":      errMetricInf.Error(),
+	})
 }
 
 func TestRecordCustomMetricNegativeInf(t *testing.T) {
 	app := testApp(nil, nil, t)
-	err := app.RecordCustomMetric("myMetric", math.Inf(-1))
-	if err != errMetricInf {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", math.Inf(-1))
+	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
+		"metric-name": "myMetric",
+		"reason":      errMetricInf.Error(),
+	})
 }
 
 type sampleResponseWriter struct {
@@ -341,10 +399,8 @@ func TestTransactionEventWeb(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	err := txn.End()
-	if nil != err {
-		t.Error(err)
-	}
+	txn.End()
+	app.expectNoLoggedErrors(t)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/hello",
@@ -356,10 +412,8 @@ func TestTransactionEventWeb(t *testing.T) {
 func TestTransactionEventBackground(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.End()
-	if nil != err {
-		t.Error(err)
-	}
+	txn.End()
+	app.expectNoLoggedErrors(t)
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name": "OtherTransaction/Go/hello",
@@ -372,10 +426,8 @@ func TestTransactionEventLocallyDisabled(t *testing.T) {
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	err := txn.End()
-	if nil != err {
-		t.Error(err)
-	}
+	txn.End()
+	app.expectNoLoggedErrors(t)
 	app.ExpectTxnEvents(t, []internal.WantEvent{})
 }
 
@@ -384,24 +436,21 @@ func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	app := testApp(replyfn, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	err := txn.End()
-	if nil != err {
-		t.Error(err)
-	}
+	txn.End()
+	app.expectNoLoggedErrors(t)
 	app.ExpectTxnEvents(t, []internal.WantEvent{})
 }
 
 func TestSetName(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("one")
-	if err := txn.SetName("hello"); nil != err {
-		t.Error(err)
-	}
+	txn.SetName("hello")
 	txn.End()
-	if err := txn.SetName("three"); err != errAlreadyEnded {
-		t.Error(err)
-	}
-
+	app.expectNoLoggedErrors(t)
+	txn.SetName("three")
+	app.expectSingleLoggedError(t, "unable to set transaction name", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, backgroundMetrics)
 }
 
@@ -727,10 +776,8 @@ func TestIgnore(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
-	err := txn.Ignore()
-	if nil != err {
-		t.Error(err)
-	}
+	txn.Ignore()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectErrors(t, []internal.WantError{})
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
@@ -743,10 +790,10 @@ func TestIgnoreAlreadyEnded(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	txn.End()
-	err := txn.Ignore()
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
+	txn.Ignore()
+	app.expectSingleLoggedError(t, "unable to ignore transaction", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
@@ -925,10 +972,8 @@ func TestTraceSegmentNilErr(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	err := StartSegment(txn, "segment").End()
-	if nil != err {
-		t.Error(err)
-	}
+	StartSegment(txn, "segment").End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	scope := "WebTransaction/Go/hello"
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -943,14 +988,12 @@ func TestTraceSegmentOutOfOrder(t *testing.T) {
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := StartSegment(txn, "s1")
 	s2 := StartSegment(txn, "s1")
-	err1 := s1.End()
-	err2 := s2.End()
-	if nil != err1 {
-		t.Error(err1)
-	}
-	if nil == err2 {
-		t.Error(err2)
-	}
+	s1.End()
+	app.expectNoLoggedErrors(t)
+	s2.End()
+	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
+		"reason": internal.ErrSegmentOrder.Error(),
+	})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -965,10 +1008,10 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
 	s := StartSegment(txn, "segment")
-	err := s.End()
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, webMetrics)
 }
 
@@ -978,11 +1021,10 @@ func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 	txn.SetWebRequestHTTP(helloRequest)
 	s := StartSegment(txn, "segment")
 	txn.End()
-	err := s.End()
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
-
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, webMetrics)
 }
 
@@ -1031,10 +1073,8 @@ func TestTraceSegmentNilTxn(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := Segment{Name: "hello"}
-	err := s.End()
-	if err != nil {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, webMetrics)
 }
@@ -1048,10 +1088,8 @@ func TestTraceDatastore(t *testing.T) {
 	s.Product = DatastoreMySQL
 	s.Collection = "my_table"
 	s.Operation = "SELECT"
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1092,10 +1130,8 @@ func TestTraceDatastoreBackground(t *testing.T) {
 		Collection: "my_table",
 		Operation:  "SELECT",
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "OtherTransaction/Go/hello"
@@ -1133,10 +1169,8 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 	s := DatastoreSegment{
 		StartTime: txn.StartSegmentNow(),
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1175,10 +1209,8 @@ func TestTraceDatastoreNilTxn(t *testing.T) {
 	s.Product = DatastoreMySQL
 	s.Collection = "my_table"
 	s.Operation = "SELECT"
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -1209,10 +1241,10 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 		Operation:  "SELECT",
 	}
 	txn.End()
-	err := s.End()
-	if errAlreadyEnded != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end datastore segment", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1237,10 +1269,8 @@ func TestTraceExternal(t *testing.T) {
 		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com/",
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1287,10 +1317,8 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 		Procedure: "TestApplication/DoUnaryUnary",
 		Library:   "grpc",
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	scope := "WebTransaction/Go/hello"
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -1345,10 +1373,8 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 	s.Host = "bufnet"
 	s.Procedure = "TestApplication/DoUnaryUnary"
 	s.Library = "grpc"
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	scope := "WebTransaction/Go/hello"
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -1407,10 +1433,8 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 		Procedure: "TestApplication/DoUnaryUnary",
 		Library:   "grpc",
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	scope := "WebTransaction/Go/hello"
 	app.ExpectMetrics(t, append([]internal.WantMetric{
@@ -1457,10 +1481,10 @@ func TestTraceExternalBadURL(t *testing.T) {
 		StartTime: txn.StartSegmentNow(),
 		URL:       ":example.com/",
 	}
-	err := s.End()
-	if nil == err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end external segment", map[string]interface{}{
+		"reason": "parse :example.com/: missing protocol scheme",
+	})
 	txn.NoticeError(myError{})
 	txn.End()
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -1486,10 +1510,8 @@ func TestTraceExternalBackground(t *testing.T) {
 		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com/",
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "OtherTransaction/Go/hello"
@@ -1524,10 +1546,8 @@ func TestTraceExternalMissingURL(t *testing.T) {
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 	}
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.NoticeError(myError{})
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1562,10 +1582,8 @@ func TestTraceExternalNilTxn(t *testing.T) {
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(myError{})
 	var s ExternalSegment
-	err := s.End()
-	if nil != err {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
@@ -1593,10 +1611,10 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 		URL:       "http://example.com/",
 	}
 	txn.End()
-	err := s.End()
-	if err != errAlreadyEnded {
-		t.Error(err)
-	}
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end external segment", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, webErrorMetrics)
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1796,10 +1814,8 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 func TestNoticeErrorTxnEvents(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	err := txn.NoticeError(myError{})
-	if nil != err {
-		t.Error(err)
-	}
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -1810,12 +1826,11 @@ func TestNoticeErrorTxnEvents(t *testing.T) {
 }
 
 func TestTransactionApplication(t *testing.T) {
-	txn := testApp(nil, nil, t).StartTransaction("hello")
+	ap := testApp(nil, nil, t)
+	txn := ap.StartTransaction("hello")
 	app := txn.Application()
-	err := app.RecordCustomMetric("myMetric", 123.0)
-	if nil != err {
-		t.Error(err)
-	}
+	app.RecordCustomMetric("myMetric", 123.0)
+	ap.expectNoLoggedErrors(t)
 	expectData := []float64{1, 123.0, 123.0, 123.0, 123.0, 123.0 * 123.0}
 	app.Private.(internal.Expect).ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/myMetric", Scope: "", Forced: false, Data: expectData},
@@ -1853,13 +1868,13 @@ func TestAsync(t *testing.T) {
 	// transaction method behavior.
 	asyncThread.AddAttribute("zip", "zap")
 	// Test that the transaction ends when the async transaction is ended.
-	if err := asyncThread.End(); nil != err {
-		t.Error(err)
-	}
+	asyncThread.End()
+	app.expectNoLoggedErrors(t)
 	threadAfterEnd := asyncThread.NewGoroutine()
-	if err := threadAfterEnd.End(); err != errAlreadyEnded {
-		t.Error(err)
-	}
+	threadAfterEnd.End()
+	app.expectSingleLoggedError(t, "unable to end transaction", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name": "OtherTransaction/Go/hello",
@@ -1895,10 +1910,8 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 		DestinationType: MessageQueue,
 		DestinationName: "myQueue",
 	}
-	err := s.End()
-	if err != nil {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
@@ -1941,10 +1954,8 @@ func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
 		Library:         "RabbitMQ",
 		DestinationName: "myQueue",
 	}
-	err := s.End()
-	if err != nil {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
@@ -1966,10 +1977,8 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 		DestinationTemporary: true,
 		DestinationName:      "myQueue0123456789",
 	}
-	err := s.End()
-	if err != nil {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
@@ -1989,10 +1998,8 @@ func TestMessageProducerSegmentNoName(t *testing.T) {
 		Library:         "RabbitMQ",
 		DestinationType: MessageQueue,
 	}
-	err := s.End()
-	if err != nil {
-		t.Error(err)
-	}
+	s.End()
+	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
@@ -2015,10 +2022,10 @@ func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 		DestinationName:      "myQueue0123456789",
 	}
 	txn.End()
-	err := s.End()
-	if err != errAlreadyEnded {
-		t.Error("expected already ended error", err)
-	}
+	s.End()
+	app.expectSingleLoggedError(t, "unable to end message producer segment", map[string]interface{}{
+		"reason": errAlreadyEnded.Error(),
+	})
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
