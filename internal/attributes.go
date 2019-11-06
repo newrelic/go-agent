@@ -612,6 +612,6 @@ func ResponseCodeAttribute(a *Attributes, code int) {
 	if rc == "" {
 		rc = strconv.Itoa(code)
 	}
-	a.Agent.Add(attributeResponseCode, rc, nil)
+	a.Agent.Add(attributeResponseCode, "", code)
 	a.Agent.Add(attributeResponseCodeDeprecated, rc, nil)
 }

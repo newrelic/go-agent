@@ -31,7 +31,7 @@ func TestBrowserTimingHeaderSuccess(t *testing.T) {
 
 	encodingKey := browserEncodingKey(testLicenseKey)
 	obfuscatedTxnName, _ := internal.Obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
-	obfuscatedAttributes, _ := internal.Obfuscate([]byte(`{"u":{"zip":"zap"},"a":{"response.statusCode":"200"}}`), encodingKey)
+	obfuscatedAttributes, _ := internal.Obfuscate([]byte(`{"u":{"zip":"zap"},"a":{"response.statusCode":200}}`), encodingKey)
 
 	// This is a cheat: we can't deterministically set this, but DeepEqual
 	// doesn't have any ability to say "equal everything except these
