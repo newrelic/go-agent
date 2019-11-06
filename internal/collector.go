@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -207,33 +205,14 @@ func CollectorRequest(cmd RpmCmd, cs RpmControls) RPMResponse {
 	return resp
 }
 
-const (
-	// NEW_RELIC_HOST can be used to override the New Relic endpoint.  This
-	// is useful for testing.
-	envHost = "NEW_RELIC_HOST"
-)
-
-var (
-	preconnectHostOverride       = os.Getenv(envHost)
-	preconnectHostDefault        = "collector.newrelic.com"
-	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
-)
-
-func calculatePreconnectHost(license, overrideHost string) string {
-	if "" != overrideHost {
-		return overrideHost
-	}
-	m := preconnectRegionLicenseRegex.FindStringSubmatch(license)
-	if len(m) > 1 {
-		return "collector." + m[1] + ".nr-data.net"
-	}
-	return preconnectHostDefault
-}
-
-// ConnectJSONCreator allows the creation of the connect payload JSON to be
-// deferred until the SecurityPolicies are acquired and vetted.
-type ConnectJSONCreator interface {
+// ConnectConfig allows the creation of the connect payload JSON to be
+// deferred until the SecurityPolicies are acquired and vetted, and exposes
+// other top level Config fields.
+type ConnectConfig interface {
 	CreateConnectJSON(*SecurityPolicies) ([]byte, error)
+	HighSecurity() bool
+	SecurityPoliciesToken() string
+	PreconnectHost() string
 }
 
 type preconnectRequest struct {
@@ -246,10 +225,10 @@ var (
 )
 
 // ConnectAttempt tries to connect an application.
-func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, highSecurity bool, cs RpmControls) (*ConnectReply, RPMResponse) {
+func ConnectAttempt(config ConnectConfig, cs RpmControls) (*ConnectReply, RPMResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{{
-		SecurityPoliciesToken: securityPoliciesToken,
-		HighSecurity:          highSecurity,
+		SecurityPoliciesToken: config.SecurityPoliciesToken(),
+		HighSecurity:          config.HighSecurity(),
 	}})
 	if nil != err {
 		return nil, RPMResponse{Err: fmt.Errorf("unable to marshal preconnect data: %v", err)}
@@ -257,7 +236,7 @@ func ConnectAttempt(config ConnectJSONCreator, securityPoliciesToken string, hig
 
 	call := RpmCmd{
 		Name:           cmdPreconnect,
-		Collector:      calculatePreconnectHost(cs.License, preconnectHostOverride),
+		Collector:      config.PreconnectHost(),
 		Data:           preconnectData,
 		MaxPayloadSize: maxPayloadSizeInBytes,
 	}

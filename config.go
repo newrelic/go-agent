@@ -277,6 +277,9 @@ type Config struct {
 		PrimaryAppID      string
 	}
 
+	// Host can be used to override the New Relic endpoint.
+	Host string
+
 	// Error may be populated by the configuration functions provided to
 	// NewApplication to indicate that setup has failed.  NewApplication
 	// will return this error if it is set.

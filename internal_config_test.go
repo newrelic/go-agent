@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/internal"
+	"github.com/newrelic/go-agent/internal/crossagent"
 	"github.com/newrelic/go-agent/internal/utilization"
 )
 
@@ -107,6 +108,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"IgnoreStatusCodes":[0,5,404,405]
 			},
 			"HighSecurity":false,
+			"Host":"",
 			"HostDisplayName":"",
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
@@ -268,6 +270,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"IgnoreStatusCodes":null
 			},
 			"HighSecurity":false,
+			"Host":"",
 			"HostDisplayName":"",
 			"Labels":null,
 			"Logger":null,
@@ -477,5 +480,102 @@ func TestValidateServerless(t *testing.T) {
 	c.ServerlessMode.Enabled = true
 	if err := c.Validate(); nil != err {
 		t.Error(err)
+	}
+}
+
+func TestPreconnectHost(t *testing.T) {
+	testcases := []struct {
+		license  string
+		override string
+		expect   string
+	}{
+		{ // non-region license
+			license:  "0123456789012345678901234567890123456789",
+			override: "",
+			expect:   preconnectHostDefault,
+		},
+		{ // override present
+			license:  "0123456789012345678901234567890123456789",
+			override: "other-collector.newrelic.com",
+			expect:   "other-collector.newrelic.com",
+		},
+		{ // four letter region
+			license:  "eu01xx6789012345678901234567890123456789",
+			override: "",
+			expect:   "collector.eu01.nr-data.net",
+		},
+		{ // five letter region
+			license:  "gov01x6789012345678901234567890123456789",
+			override: "",
+			expect:   "collector.gov01.nr-data.net",
+		},
+		{ // six letter region
+			license:  "foo001x6789012345678901234567890123456789",
+			override: "",
+			expect:   "collector.foo001.nr-data.net",
+		},
+	}
+	for idx, tc := range testcases {
+		cfg := config{Config{
+			License: tc.license,
+			Host:    tc.override,
+		}}
+		if got := cfg.PreconnectHost(); got != tc.expect {
+			t.Error("testcase", idx, got, tc.expect)
+		}
+	}
+}
+
+func TestPreconnectHostCrossAgent(t *testing.T) {
+	var testcases []struct {
+		Name               string `json:"name"`
+		ConfigFileKey      string `json:"config_file_key"`
+		EnvKey             string `json:"env_key"`
+		ConfigOverrideHost string `json:"config_override_host"`
+		EnvOverrideHost    string `json:"env_override_host"`
+		ExpectHostname     string `json:"hostname"`
+	}
+	err := crossagent.ReadJSON("collector_hostname.json", &testcases)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range testcases {
+		// mimic file/environment precedence of other agents
+		configKey := tc.ConfigFileKey
+		if "" != tc.EnvKey {
+			configKey = tc.EnvKey
+		}
+		overrideHost := tc.ConfigOverrideHost
+		if "" != tc.EnvOverrideHost {
+			overrideHost = tc.EnvOverrideHost
+		}
+
+		cfg := config{Config{
+			License: configKey,
+			Host:    overrideHost,
+		}}
+		if host := cfg.PreconnectHost(); host != tc.ExpectHostname {
+			t.Errorf(`test="%s" got="%s" expected="%s"`, tc.Name, host, tc.ExpectHostname)
+		}
+	}
+}
+
+func TestConfigSecurityPoliciesTokenMethod(t *testing.T) {
+	token := "mySecurityToken01234"
+	cfg := config{Config{SecurityPoliciesToken: token}}
+	if got := cfg.SecurityPoliciesToken(); got != token {
+		t.Error(got, token)
+	}
+}
+
+func TestConfigHighSecurityMethod(t *testing.T) {
+	cfg := config{Config{HighSecurity: true}}
+	if s := cfg.HighSecurity(); !s {
+		t.Error(s)
+	}
+	cfg = config{Config{HighSecurity: false}}
+	if s := cfg.HighSecurity(); s {
+		t.Error(s)
 	}
 }

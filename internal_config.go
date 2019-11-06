@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/newrelic/go-agent/internal"
@@ -170,7 +171,8 @@ func gatherMetadata(environ func() []string) map[string]string {
 	return metadata
 }
 
-// config allows CreateConnectJSON to be a method on a non-public type.
+// config satisfies internal.ConnectConfig which allows the internal package to
+// have access to connect fields without adding public methods to Config.
 type config struct{ Config }
 
 func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
@@ -188,3 +190,22 @@ func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) (
 	}, c.Logger)
 	return configConnectJSONInternal(c.Config, os.Getpid(), util, env, Version, securityPolicies, gatherMetadata(os.Environ))
 }
+
+var (
+	preconnectHostDefault        = "collector.newrelic.com"
+	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
+)
+
+func (c config) PreconnectHost() string {
+	if "" != c.Host {
+		return c.Host
+	}
+	m := preconnectRegionLicenseRegex.FindStringSubmatch(c.License)
+	if len(m) > 1 {
+		return "collector." + m[1] + ".nr-data.net"
+	}
+	return preconnectHostDefault
+}
+
+func (c config) SecurityPoliciesToken() string { return c.Config.SecurityPoliciesToken }
+func (c config) HighSecurity() bool            { return c.Config.HighSecurity }

@@ -120,8 +120,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 func (app *app) connectRoutine() {
 	connectAttempt := 0
 	for {
-		reply, resp := internal.ConnectAttempt(config{app.config},
-			app.config.SecurityPoliciesToken, app.config.HighSecurity, app.rpmControls)
+		reply, resp := internal.ConnectAttempt(config{app.config}, app.rpmControls)
 
 		if reply != nil {
 			select {
