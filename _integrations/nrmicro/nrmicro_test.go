@@ -127,13 +127,13 @@ func newTestWrappedClientAndServer(app *newrelic.Application, wrapperOption clie
 }
 
 func TestClientCallWithNoTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithNoTransaction(c, t)
 }
 
 func TestClientCallWrapperWithNoTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallWithNoTransaction(c, t)
 }
@@ -152,13 +152,13 @@ func testClientCallWithNoTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallWithTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallWithTransaction(c, t)
 }
 
 func TestClientCallWrapperWithTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallWithTransaction(c, t)
 }
@@ -233,13 +233,13 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 }
 
 func TestClientCallMetadata(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	testClientCallMetadata(c, t)
 }
 
 func TestCallMetadata(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.WrapCall(CallWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.WrapCall(CallWrapper()), t)
 	defer s.Stop()
 	testClientCallMetadata(c, t)
 }
@@ -249,7 +249,6 @@ func testClientCallMetadata(c client.Client, t *testing.T) {
 	req := c.NewRequest(serverName, "TestHandler.Method", &TestRequest{}, client.WithContentType("application/json"))
 	rsp := TestResponse{}
 	app := createTestApp()
-	app := createTestApp(t)
 	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	md := metadata.Metadata{
@@ -278,7 +277,7 @@ func waitOrTimeout(t *testing.T, wg *sync.WaitGroup) {
 }
 
 func TestClientPublishWithNoTransaction(t *testing.T) {
-	c, _, b := newTestClientServerAndBroker(createTestApp(), t)
+	c, _, b := newTestClientServerAndBroker(createTestApp().Application, t)
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
@@ -306,7 +305,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 }
 
 func TestClientPublishWithTransaction(t *testing.T) {
-	c, _, b := newTestClientServerAndBroker(createTestApp(), t)
+	c, _, b := newTestClientServerAndBroker(createTestApp().Application, t)
 
 	var wg sync.WaitGroup
 	if err := b.Connect(); nil != err {
@@ -420,7 +419,7 @@ func TestExtractHost(t *testing.T) {
 }
 
 func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 
 	ctx := context.Background()
@@ -453,7 +452,7 @@ func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
 }
 
 func TestClientStreamWrapperWithTransaction(t *testing.T) {
-	c, s := newTestWrappedClientAndServer(createTestApp(), client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(createTestApp().Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 
 	app := createTestApp()
@@ -563,7 +562,7 @@ func TestServerWrapperWithNoApp(t *testing.T) {
 
 func TestServerWrapperWithApp(t *testing.T) {
 	app := createTestApp()
-	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(app.Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
 	txn := app.StartTransaction("txn")
@@ -658,7 +657,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 
 func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	app := createTestApp()
-	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(app.Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
 	req := c.NewRequest(serverName, "TestHandlerWithError.Method", &TestRequest{}, client.WithContentType("application/json"))
@@ -744,7 +743,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 
 func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 	app := createTestApp()
-	c, s := newTestWrappedClientAndServer(app, client.Wrap(ClientWrapper()), t)
+	c, s := newTestWrappedClientAndServer(app.Application, client.Wrap(ClientWrapper()), t)
 	defer s.Stop()
 	ctx := context.Background()
 	req := c.NewRequest("testing", "TestHandlerWithNonMicroError.Method", &TestRequest{}, client.WithContentType("application/json"))
@@ -836,7 +835,7 @@ func TestServerSubscribeNoApp(t *testing.T) {
 
 func TestServerSubscribe(t *testing.T) {
 	app := createTestApp()
-	c, s, _ := newTestClientServerAndBroker(app, t)
+	c, s, _ := newTestClientServerAndBroker(app.Application, t)
 
 	var wg sync.WaitGroup
 	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
@@ -940,7 +939,7 @@ func TestServerSubscribe(t *testing.T) {
 
 func TestServerSubscribeWithError(t *testing.T) {
 	app := createTestApp()
-	c, s, _ := newTestClientServerAndBroker(app, t)
+	c, s, _ := newTestClientServerAndBroker(app.Application, t)
 
 	var wg sync.WaitGroup
 	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
