@@ -393,6 +393,7 @@ func TestRequestAgentAttributesPresent(t *testing.T) {
 		"request.headers.contentType":   "the-content-type",
 		"request.headers.host":          "the-host",
 		"request.headers.User-Agent":    "the-agent",
+		"request.headers.userAgent":     "the-agent",
 		"request.headers.referer":       "http://www.example.com",
 		"request.headers.contentLength": 123,
 		"request.method":                "GET",

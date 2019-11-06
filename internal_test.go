@@ -160,6 +160,7 @@ var (
 		"request.method":                "GET",
 		"request.headers.accept":        "text/plain",
 		"request.headers.User-Agent":    "Mozilla/5.0",
+		"request.headers.userAgent":     "Mozilla/5.0",
 		"request.headers.contentType":   "text/html; charset=utf-8",
 	}
 )
@@ -581,7 +582,8 @@ func TestResponseCodeError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "400",
+			"httpResponseCode":    "400",
+			"response.statusCode": "400",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -680,7 +682,8 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "404",
+			"httpResponseCode":    "404",
+			"response.statusCode": "404",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)

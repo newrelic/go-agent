@@ -105,9 +105,10 @@ func TestHandle(t *testing.T) {
 				"color": "purple",
 			},
 			AgentAttributes: map[string]interface{}{
-				"httpResponseCode": 500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/person",
+				"httpResponseCode":    500,
+				"response.statusCode": 500,
+				"request.method":      "GET",
+				"request.uri":         "/hello/person",
 			},
 		},
 	})
@@ -149,9 +150,10 @@ func TestHandler(t *testing.T) {
 				"color": "purple",
 			},
 			AgentAttributes: map[string]interface{}{
-				"httpResponseCode": 500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/",
+				"httpResponseCode":    500,
+				"response.statusCode": 500,
+				"request.method":      "GET",
+				"request.uri":         "/hello/",
 			},
 		},
 	})
@@ -236,9 +238,10 @@ func TestNotFound(t *testing.T) {
 				"color": "purple",
 			},
 			AgentAttributes: map[string]interface{}{
-				"httpResponseCode": 500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/",
+				"httpResponseCode":    500,
+				"response.statusCode": 500,
+				"request.method":      "GET",
+				"request.uri":         "/hello/",
 			},
 		},
 	})

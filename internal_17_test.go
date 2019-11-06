@@ -42,7 +42,8 @@ func TestWrapHandleFunc(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "200",
+			"httpResponseCode":    "200",
+			"response.statusCode": "200",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -72,7 +73,8 @@ func TestWrapHandle(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode": "200",
+			"httpResponseCode":    "200",
+			"response.statusCode": "200",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)

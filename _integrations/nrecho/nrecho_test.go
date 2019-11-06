@@ -41,6 +41,7 @@ func TestBasicRoute(t *testing.T) {
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "200",
+			"response.statusCode":          "200",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
 			"request.uri":                  "/hello",
@@ -167,9 +168,10 @@ func TestReturnsHTTPError(t *testing.T) {
 			"nr.apdexPerfZone": "F",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode": "418",
-			"request.method":   "GET",
-			"request.uri":      "/hello",
+			"httpResponseCode":    "418",
+			"response.statusCode": "418",
+			"request.method":      "GET",
+			"request.uri":         "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})
@@ -202,9 +204,10 @@ func TestReturnsError(t *testing.T) {
 			"nr.apdexPerfZone": "F",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode": "500",
-			"request.method":   "GET",
-			"request.uri":      "/hello",
+			"httpResponseCode":    "500",
+			"response.statusCode": "500",
+			"request.method":      "GET",
+			"request.uri":         "/hello",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})
@@ -238,6 +241,7 @@ func TestResponseCode(t *testing.T) {
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "418",
+			"response.statusCode":          "418",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
 			"request.uri":                  "/hello",

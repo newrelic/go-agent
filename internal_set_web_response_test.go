@@ -24,8 +24,11 @@ func TestSetWebResponseNil(t *testing.T) {
 	}
 	txn.End()
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: map[string]interface{}{"httpResponseCode": 123},
-		Intrinsics:      map[string]interface{}{"name": "OtherTransaction/Go/hello"},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":    123,
+			"response.statusCode": 123,
+		},
+		Intrinsics: map[string]interface{}{"name": "OtherTransaction/Go/hello"},
 	}})
 }
 
@@ -55,8 +58,11 @@ func TestSetWebResponseSuccess(t *testing.T) {
 		t.Error(w.Body.String())
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		AgentAttributes: map[string]interface{}{"httpResponseCode": 123},
-		Intrinsics:      map[string]interface{}{"name": "OtherTransaction/Go/hello"},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":    123,
+			"response.statusCode": 123,
+		},
+		Intrinsics: map[string]interface{}{"name": "OtherTransaction/Go/hello"},
 	}})
 }
 

@@ -79,9 +79,10 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: catIntrinsics,
 		AgentAttributes: map[string]interface{}{
-			"request.method":   "GET",
-			"httpResponseCode": 200,
-			"request.uri":      "newrelic.com",
+			"request.method":      "GET",
+			"httpResponseCode":    200,
+			"response.statusCode": 200,
+			"request.uri":         "newrelic.com",
 		},
 		UserAttributes: map[string]interface{}{},
 	}})

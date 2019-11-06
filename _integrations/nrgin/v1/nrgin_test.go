@@ -204,6 +204,7 @@ func TestStatusCodes(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             500,
+			"response.statusCode":          500,
 			"request.method":               "GET",
 			"request.uri":                  "/err",
 			"response.headers.contentType": "text/plain; charset=utf-8",
@@ -242,9 +243,10 @@ func TestNoResponseBody(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode": 500,
-			"request.method":   "GET",
-			"request.uri":      "/nobody",
+			"httpResponseCode":    500,
+			"response.statusCode": 500,
+			"request.method":      "GET",
+			"request.uri":         "/nobody",
 		},
 	}})
 }

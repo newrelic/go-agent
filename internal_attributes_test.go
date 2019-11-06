@@ -79,11 +79,14 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 		UserAttributes:  map[string]interface{}{},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName:         "WebTransaction/Go/hello",
-		Msg:             "hello",
-		Klass:           "*errors.errorString",
-		AgentAttributes: map[string]interface{}{AttributeRequestUserAgent: val},
-		UserAttributes:  map[string]interface{}{},
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "hello",
+		Klass:   "*errors.errorString",
+		AgentAttributes: map[string]interface{}{
+			AttributeRequestUserAgent:           val,
+			AttributeRequestUserAgentDeprecated: val,
+		},
+		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -218,21 +221,23 @@ func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
 var (
 	// Agent attributes expected in txn events from usualAttributeTestTransaction.
 	agent1 = map[string]interface{}{
-		AttributeHostDisplayName:       `my\host\display\name`,
-		AttributeResponseCode:          `404`,
-		AttributeResponseContentType:   `text/plain; charset=us-ascii`,
-		AttributeResponseContentLength: 345,
-		AttributeRequestMethod:         "GET",
-		AttributeRequestAccept:         "text/plain",
-		AttributeRequestContentType:    "text/html; charset=utf-8",
-		AttributeRequestContentLength:  753,
-		AttributeRequestHost:           "my_domain.com",
-		AttributeRequestURI:            "/hello",
+		AttributeHostDisplayName:        `my\host\display\name`,
+		AttributeResponseCode:           `404`,
+		AttributeResponseCodeDeprecated: `404`,
+		AttributeResponseContentType:    `text/plain; charset=us-ascii`,
+		AttributeResponseContentLength:  345,
+		AttributeRequestMethod:          "GET",
+		AttributeRequestAccept:          "text/plain",
+		AttributeRequestContentType:     "text/html; charset=utf-8",
+		AttributeRequestContentLength:   753,
+		AttributeRequestHost:            "my_domain.com",
+		AttributeRequestURI:             "/hello",
 	}
 	// Agent attributes expected in errors and traces from usualAttributeTestTransaction.
 	agent2 = mergeAttributes(agent1, map[string]interface{}{
-		AttributeRequestUserAgent: "Mozilla/5.0",
-		AttributeRequestReferer:   "http://en.wikipedia.org/zip",
+		AttributeRequestUserAgent:           "Mozilla/5.0",
+		AttributeRequestUserAgentDeprecated: "Mozilla/5.0",
+		AttributeRequestReferer:             "http://en.wikipedia.org/zip",
 	})
 	// User attributes expected from usualAttributeTestTransaction.
 	user1 = map[string]interface{}{
@@ -348,8 +353,11 @@ func TestDefaultResponseCode(t *testing.T) {
 			"name":             "WebTransaction/Go/hello",
 			"nr.apdexPerfZone": "S",
 		},
-		AgentAttributes: map[string]interface{}{AttributeResponseCode: 200},
-		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			AttributeResponseCode:           200,
+			AttributeResponseCodeDeprecated: 200,
+		},
+		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -422,6 +430,7 @@ func TestTxnTraceAttributesDisabled(t *testing.T) {
 var (
 	allAgentAttributeNames = []string{
 		AttributeResponseCode,
+		AttributeResponseCodeDeprecated,
 		AttributeRequestMethod,
 		AttributeRequestAccept,
 		AttributeRequestContentType,
@@ -432,6 +441,7 @@ var (
 		AttributeResponseContentLength,
 		AttributeHostDisplayName,
 		AttributeRequestUserAgent,
+		AttributeRequestUserAgentDeprecated,
 		AttributeRequestReferer,
 	}
 )

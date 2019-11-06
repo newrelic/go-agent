@@ -418,6 +418,7 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 		AgentAttributes: map[string]interface{}{
 			"aws.lambda.coldStart":         true,
 			"httpResponseCode":             "200",
+			"response.statusCode":          "200",
 			"response.headers.contentType": "text/html",
 		},
 	}})
