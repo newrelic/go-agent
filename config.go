@@ -427,9 +427,9 @@ var (
 	errHighSecurityWithSecurityPolicies = errors.New("SecurityPoliciesToken and HighSecurity are incompatible; please ensure HighSecurity is set to false if SecurityPoliciesToken is a non-empty string and a security policy has been set for your account")
 )
 
-// Validate checks the config for improper fields.  If the config is invalid,
+// validate checks the config for improper fields.  If the config is invalid,
 // newrelic.NewApplication returns an error.
-func (c Config) Validate() error {
+func (c Config) validate() error {
 	if c.Enabled && !c.ServerlessMode.Enabled {
 		if len(c.License) != licenseLength {
 			return errLicenseLen

@@ -332,7 +332,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 
 func newApp(c Config) (*app, error) {
 	c = copyConfigReferenceFields(c)
-	if err := c.Validate(); nil != err {
+	if err := c.validate(); nil != err {
 		return nil, err
 	}
 	if nil == c.Logger {

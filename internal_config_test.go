@@ -363,7 +363,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: true,
 	}
-	if err := c.Validate(); nil != err {
+	if err := c.validate(); nil != err {
 		t.Error(err)
 	}
 	c = Config{
@@ -371,7 +371,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: true,
 	}
-	if err := c.Validate(); err != errLicenseLen {
+	if err := c.validate(); err != errLicenseLen {
 		t.Error(err)
 	}
 	c = Config{
@@ -379,7 +379,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: false,
 	}
-	if err := c.Validate(); nil != err {
+	if err := c.validate(); nil != err {
 		t.Error(err)
 	}
 	c = Config{
@@ -387,7 +387,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: true,
 	}
-	if err := c.Validate(); err != errLicenseLen {
+	if err := c.validate(); err != errLicenseLen {
 		t.Error(err)
 	}
 	c = Config{
@@ -395,7 +395,7 @@ func TestValidate(t *testing.T) {
 		AppName: "too;many;app;names",
 		Enabled: true,
 	}
-	if err := c.Validate(); err != errAppNameLimit {
+	if err := c.validate(); err != errAppNameLimit {
 		t.Error(err)
 	}
 	c = Config{
@@ -403,7 +403,7 @@ func TestValidate(t *testing.T) {
 		AppName: "",
 		Enabled: true,
 	}
-	if err := c.Validate(); err != errAppNameMissing {
+	if err := c.validate(); err != errAppNameMissing {
 		t.Error(err)
 	}
 	c = Config{
@@ -411,7 +411,7 @@ func TestValidate(t *testing.T) {
 		AppName: "",
 		Enabled: false,
 	}
-	if err := c.Validate(); err != nil {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 	c = Config{
@@ -420,7 +420,7 @@ func TestValidate(t *testing.T) {
 		Enabled:      true,
 		HighSecurity: true,
 	}
-	if err := c.Validate(); err != nil {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 }
@@ -433,7 +433,7 @@ func TestValidateWithPoliciesToken(t *testing.T) {
 		HighSecurity:          true,
 		SecurityPoliciesToken: "0123456789",
 	}
-	if err := c.Validate(); err != errHighSecurityWithSecurityPolicies {
+	if err := c.validate(); err != errHighSecurityWithSecurityPolicies {
 		t.Error(err)
 	}
 	c = Config{
@@ -442,7 +442,7 @@ func TestValidateWithPoliciesToken(t *testing.T) {
 		Enabled:               true,
 		SecurityPoliciesToken: "0123456789",
 	}
-	if err := c.Validate(); err != nil {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 }
@@ -480,7 +480,7 @@ func TestValidateServerless(t *testing.T) {
 	// AppName and License can be empty in serverless mode.
 	c := defaultConfig()
 	c.ServerlessMode.Enabled = true
-	if err := c.Validate(); nil != err {
+	if err := c.validate(); nil != err {
 		t.Error(err)
 	}
 }
