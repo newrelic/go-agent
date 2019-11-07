@@ -465,8 +465,27 @@ func deferEndPanic(txn *Transaction, panicMe interface{}) (r interface{}) {
 	panic(panicMe)
 }
 
-func TestPanicError(t *testing.T) {
+func enableRecordPanics(cfg *Config) { cfg.ErrorCollector.RecordPanics = true }
+
+func TestPanicNotEnabled(t *testing.T) {
+	// Test that panics are not recorded as errors if the config setting has
+	// not been enabled.
 	app := testApp(nil, nil, t)
+	txn := app.StartTransaction("hello")
+
+	e := myError{}
+	r := deferEndPanic(txn, e)
+	if r != e {
+		t.Error("panic not propagated", r)
+	}
+
+	app.ExpectErrors(t, []internal.WantError{})
+	app.ExpectErrorEvents(t, []internal.WantEvent{})
+	app.ExpectMetrics(t, backgroundMetrics)
+}
+
+func TestPanicError(t *testing.T) {
+	app := testApp(nil, enableRecordPanics, t)
 	txn := app.StartTransaction("hello")
 
 	e := myError{}
@@ -491,7 +510,7 @@ func TestPanicError(t *testing.T) {
 }
 
 func TestPanicString(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, enableRecordPanics, t)
 	txn := app.StartTransaction("hello")
 
 	e := "my string"
@@ -516,7 +535,7 @@ func TestPanicString(t *testing.T) {
 }
 
 func TestPanicInt(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, enableRecordPanics, t)
 	txn := app.StartTransaction("hello")
 
 	e := 22
@@ -541,7 +560,7 @@ func TestPanicInt(t *testing.T) {
 }
 
 func TestPanicNil(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, enableRecordPanics, t)
 	txn := app.StartTransaction("hello")
 
 	r := deferEndPanic(txn, nil)

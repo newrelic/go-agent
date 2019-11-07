@@ -100,6 +100,11 @@ type Config struct {
 		IgnoreStatusCodes []int
 		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
+		// RecordPanics controls whether or not a deferred
+		// Transaction.End will attempt to recover panics, record them
+		// as errors, and then re-panic them.  By default, this is
+		// set to false.
+		RecordPanics bool
 	}
 
 	// TransactionTracer controls the capture of transaction traces.

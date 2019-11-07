@@ -25,9 +25,12 @@ func (txn *Transaction) End() {
 		return
 	}
 
-	// recover must be called in the function directly being deferred,
-	// not any nested call!
-	r := recover()
+	var r interface{}
+	if txn.thread.Config.ErrorCollector.RecordPanics {
+		// recover must be called in the function directly being deferred,
+		// not any nested call!
+		r = recover()
+	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction")
 }
 

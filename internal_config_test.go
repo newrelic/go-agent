@@ -105,7 +105,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
 				"Enabled":true,
-				"IgnoreStatusCodes":[0,5,404,405]
+				"IgnoreStatusCodes":[0,5,404,405],
+				"RecordPanics":false
 			},
 			"HighSecurity":false,
 			"Host":"",
@@ -267,7 +268,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"CaptureEvents":true,
 				"Enabled":true,
-				"IgnoreStatusCodes":null
+				"IgnoreStatusCodes":null,
+				"RecordPanics":false
 			},
 			"HighSecurity":false,
 			"Host":"",
