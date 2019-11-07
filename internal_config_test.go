@@ -581,3 +581,34 @@ func TestConfigHighSecurityMethod(t *testing.T) {
 		t.Error(s)
 	}
 }
+
+func TestConfigMaxTxnEvents(t *testing.T) {
+	cfg := defaultConfig()
+	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
+		t.Error(n)
+	}
+
+	cfg = defaultConfig()
+	cfg.TransactionEvents.MaxSamplesStored = 434
+	if n := cfg.maxTxnEvents(); n != 434 {
+		t.Error(n)
+	}
+
+	cfg = defaultConfig()
+	cfg.TransactionEvents.MaxSamplesStored = 0
+	if n := cfg.maxTxnEvents(); n != 0 {
+		t.Error(n)
+	}
+
+	cfg = defaultConfig()
+	cfg.TransactionEvents.MaxSamplesStored = -1
+	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
+		t.Error(n)
+	}
+
+	cfg = defaultConfig()
+	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 1
+	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
+		t.Error(n)
+	}
+}

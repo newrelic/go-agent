@@ -163,11 +163,6 @@ func (h *Harvest) Payloads(splitLargeTxnEvents bool) (ps []PayloadCreator) {
 	return
 }
 
-// MaxTxnEventer returns the maximum number of Transaction Events that should be reported per period
-type MaxTxnEventer interface {
-	MaxTxnEvents() int
-}
-
 // HarvestConfigurer contains information about the configured number of various
 // types of events as well as the Faster Event Harvest report period.
 // It is implemented by AppRun and DfltHarvestCfgr.
@@ -180,7 +175,8 @@ type HarvestConfigurer interface {
 	MaxCustomEvents() int
 	// MaxErrorEvents returns the maximum number of Error Events that should be reported per period
 	MaxErrorEvents() int
-	MaxTxnEventer
+	// MaxTxnEvents returns the maximum number of Transaction Events that should be reported per period
+	MaxTxnEvents() int
 }
 
 // NewHarvest returns a new Harvest.

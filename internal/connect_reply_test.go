@@ -204,14 +204,8 @@ func TestNegativeHarvestLimits(t *testing.T) {
 	}
 }
 
-type dfltMaxTxnEvents struct{}
-
-func (dfltMaxTxnEvents) MaxTxnEvents() int {
-	return MaxTxnEvents
-}
-
 func TestDefaultEventHarvestConfigJSON(t *testing.T) {
-	js, err := json.Marshal(DefaultEventHarvestConfig(dfltMaxTxnEvents{}))
+	js, err := json.Marshal(DefaultEventHarvestConfig(MaxTxnEvents))
 	if err != nil {
 		t.Error(err)
 	}

@@ -127,10 +127,10 @@ func (r *ConnectReply) ConfigurablePeriod() time.Duration {
 func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
-func DefaultEventHarvestConfig(eventer MaxTxnEventer) EventHarvestConfig {
+func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = DefaultConfigurableEventHarvestMs
-	cfg.Limits.TxnEvents = uintPtr(uint(eventer.MaxTxnEvents()))
+	cfg.Limits.TxnEvents = uintPtr(uint(maxTxnEvents))
 	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
 	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg
