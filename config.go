@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/newrelic/go-agent/internal"
 )
@@ -357,6 +360,133 @@ func ConfigInfoLogger(w io.Writer) ConfigOption {
 // ConfigDebugLogger populates the config with a Logger at debug level.
 func ConfigDebugLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewDebugLogger(w))
+}
+
+// ConfigFromEnvironment populates the config based on environment variables.
+//
+//	* NEW_RELIC_APP_NAME: Sets `Config.AppName`
+//	* NEW_RELIC_LICENSE_KEY: Sets `Config.License`
+//	* NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: Sets `Config.DistributedTracer.Enabled`, using strconv.ParseBool
+//	* NEW_RELIC_ENABLED: Sets `Config.Enabled`, using strconv.ParseBool
+//	* NEW_RELIC_HIGH_SECURITY: Sets `Config.HighSecurity`, using strconv.ParseBool
+//	* NEW_RELIC_SECURITY_POLICIES_TOKEN: Sets `Config.SecurityPoliciesToken`
+//	* NEW_RELIC_HOST: Sets `Config.Host`
+//	* NEW_RELIC_PROCESS_HOST_DISPLAY_NAME: Sets `Config.HostDisplayName`
+//	* NEW_RELIC_UTILIZATION_BILLING_HOSTNAME: Sets `Config.Utilization.BillingHostname`
+//	* NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS: Sets `Config.Utilization.LogicalProcessors`, using strconv.Atoi
+//	* NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB: Sets `Config.Utilization.TotalRAMMIB`, using strconv.Atoi
+//	* NEW_RELIC_LABELS: Sets `Config.Labels`, expressed as a semi-colon delimited string of colon-separated pairs (for example, `Server:One;DataCenter:Primary`)
+//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets `Config.Logger` to the `newrelic.NewLogger`. Destination is determined by NEW_RELIC_LOG and logging level is
+//	determined by NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are `stdout` representing os.Stdout and `stderr` representing os.Stderr.  If
+//	NEW_RELIC_LOG_LEVEL is also set and is set to `debug` then debug level logging is used.
+func ConfigFromEnvironment() ConfigOption {
+	return configFromEnvironment(os.Getenv)
+}
+
+func configFromEnvironment(getenv func(string) string) ConfigOption {
+	return func(cfg *Config) {
+		if env := getenv("NEW_RELIC_APP_NAME"); env != "" {
+			cfg.AppName = env
+		}
+		if env := getenv("NEW_RELIC_LICENSE_KEY"); env != "" {
+			cfg.License = env
+		}
+		if env, err := strconv.ParseBool(getenv("NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")); err == nil {
+			cfg.DistributedTracer.Enabled = env
+		}
+		if env, err := strconv.ParseBool(getenv("NEW_RELIC_ENABLED")); err == nil {
+			cfg.Enabled = env
+		}
+		if env, err := strconv.ParseBool(getenv("NEW_RELIC_HIGH_SECURITY")); err == nil {
+			cfg.HighSecurity = env
+		}
+		if env := getenv("NEW_RELIC_SECURITY_POLICIES_TOKEN"); env != "" {
+			cfg.SecurityPoliciesToken = env
+		}
+		if env := getenv("NEW_RELIC_HOST"); env != "" {
+			cfg.Host = env
+		}
+		if env := getenv("NEW_RELIC_PROCESS_HOST_DISPLAY_NAME"); env != "" {
+			cfg.HostDisplayName = env
+		}
+		if env := getenv("NEW_RELIC_UTILIZATION_BILLING_HOSTNAME"); env != "" {
+			cfg.Utilization.BillingHostname = env
+		}
+		if env, err := strconv.Atoi(getenv("NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")); err == nil {
+			cfg.Utilization.LogicalProcessors = env
+		}
+		if env, err := strconv.Atoi(getenv("NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")); err == nil {
+			cfg.Utilization.TotalRAMMIB = env
+		}
+
+		if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
+			cfg.Labels = labels
+		}
+
+		if dest := getLogDest(getenv("NEW_RELIC_LOG")); dest != nil {
+			if isDebugEnv(getenv("NEW_RELIC_LOG_LEVEL")) {
+				cfg.Logger = NewDebugLogger(dest)
+			} else {
+				cfg.Logger = NewLogger(dest)
+			}
+		}
+	}
+}
+
+func getLogDest(env string) io.Writer {
+	switch env {
+	case "stdout", "Stdout", "STDOUT":
+		return os.Stdout
+	case "stderr", "Stderr", "STDERR":
+		return os.Stderr
+	default:
+		return nil
+	}
+}
+
+func isDebugEnv(env string) bool {
+	switch env {
+	case "debug", "Debug", "DEBUG", "d", "D":
+		return true
+	default:
+		return false
+	}
+}
+
+// getLabels reads Labels from the env string, expressed as a semi-colon
+// delimited string of colon-separated pairs (for example, `Server:One;Data
+// Center:Primary`).  Label keys and values must be 255 characters or less in
+// length.  No more than 64 Labels can be set.
+func getLabels(env string) map[string]string {
+	out := make(map[string]string)
+	env = strings.Trim(env, ";\t\n\v\f\r ")
+	for _, entry := range strings.Split(env, ";") {
+		if entry == "" {
+			return nil
+		}
+		split := strings.Split(entry, ":")
+		if len(split) != 2 {
+			return nil
+		}
+		left := strings.TrimSpace(split[0])
+		right := strings.TrimSpace(split[1])
+		if left == "" || right == "" {
+			return nil
+		}
+		if utf8.RuneCountInString(left) > 255 {
+			runes := []rune(left)
+			left = string(runes[:255])
+		}
+		if utf8.RuneCountInString(right) > 255 {
+			runes := []rune(right)
+			right = string(runes[:255])
+		}
+		out[left] = right
+		if len(out) >= 64 {
+			return out
+		}
+	}
+	return out
 }
 
 // defaultConfig creates a Config populated with default settings.
