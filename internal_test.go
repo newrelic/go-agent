@@ -1672,7 +1672,7 @@ func TestTraceNoSegments(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1688,7 +1688,7 @@ func TestTraceDisabledLocally(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
@@ -1704,7 +1704,7 @@ func TestTraceDisabledByServerSideConfig(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":false}}`), reply)
@@ -1722,7 +1722,7 @@ func TestTraceEnabledByServerSideConfig(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
@@ -1744,7 +1744,7 @@ func TestTraceDisabledRemotelyOverridesServerSideConfig(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = true
 	}
 	replyfn := func(reply *internal.ConnectReply) {
@@ -1761,7 +1761,7 @@ func TestTraceDisabledRemotely(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.CollectTraces = false
@@ -1777,7 +1777,7 @@ func TestTraceWithSegments(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1807,7 +1807,7 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
-		cfg.TransactionTracer.SegmentThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Segments.Threshold = 1 * time.Hour
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")

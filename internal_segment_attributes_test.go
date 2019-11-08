@@ -14,8 +14,8 @@ func TestTraceSegments(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 	}
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 0
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 
@@ -91,13 +91,13 @@ func TestTraceSegments(t *testing.T) {
 
 func TestTraceSegmentsNoBacktrace(t *testing.T) {
 	// Test that backtrace will only appear if the segment's duration
-	// exceeds TransactionTracer.StackTraceThreshold.
+	// exceeds TransactionTracer.Segments.StackTraceThreshold.
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 	}
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 
@@ -174,8 +174,8 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.stack_trace_threshold":0}}`), reply)
 	}
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
@@ -211,8 +211,8 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 	}
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.Attributes.Exclude = []string{
@@ -291,8 +291,8 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 	}
 	cfgfn := func(cfg *Config) {
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 1 * time.Hour
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Attributes.Exclude = []string{
@@ -369,8 +369,8 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 	// but backtrace and transaction_guid still appear.
 	cfgfn := func(cfg *Config) {
 		cfg.Attributes.Enabled = false
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 0
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}
@@ -440,8 +440,8 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 	// transaction_guid still appear.
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Segments.Attributes.Enabled = false
-		cfg.TransactionTracer.SegmentThreshold = 0
-		cfg.TransactionTracer.StackTraceThreshold = 0
+		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.TransactionTracer.Segments.StackTraceThreshold = 0
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 	}

@@ -94,7 +94,7 @@ func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
 		func(cfg *Config) {
-			cfg.TransactionTracer.SegmentThreshold = 0
+			cfg.TransactionTracer.Segments.Threshold = 0
 		},
 	)
 	if nil != err {

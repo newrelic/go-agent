@@ -122,21 +122,24 @@ type Config struct {
 			// threshold, otherwise it is ignored.
 			Duration time.Duration
 		}
-		// SegmentThreshold is the threshold at which segments will be
-		// added to the trace.  Lowering this setting may increase
-		// overhead.  Decrease this duration if your Transaction Traces are
-		// missing segments.
-		SegmentThreshold time.Duration
-		// StackTraceThreshold is the threshold at which segments will
-		// be given a stack trace in the transaction trace.  Lowering
-		// this setting will increase overhead.
-		StackTraceThreshold time.Duration
 		// Attributes controls the attributes included with transaction
 		// traces.
 		Attributes AttributeDestinationConfig
-		// Segments.Attributes controls the attributes included with
-		// each trace segment.
+		// Segments contains fields which control the behavior of
+		// transaction trace segments.
 		Segments struct {
+			// StackTraceThreshold is the threshold at which
+			// segments will be given a stack trace in the
+			// transaction trace.  Lowering this setting will
+			// increase overhead.
+			StackTraceThreshold time.Duration
+			// Threshold is the threshold at which segments will be
+			// added to the trace.  Lowering this setting may
+			// increase overhead.  Decrease this duration if your
+			// Transaction Traces are missing segments.
+			Threshold time.Duration
+			// Attributes controls the attributes included with each
+			// trace segment.
 			Attributes AttributeDestinationConfig
 		}
 	}
@@ -388,8 +391,8 @@ func defaultConfig() Config {
 	c.TransactionTracer.Enabled = true
 	c.TransactionTracer.Threshold.IsApdexFailing = true
 	c.TransactionTracer.Threshold.Duration = 500 * time.Millisecond
-	c.TransactionTracer.SegmentThreshold = 2 * time.Millisecond
-	c.TransactionTracer.StackTraceThreshold = 500 * time.Millisecond
+	c.TransactionTracer.Segments.Threshold = 2 * time.Millisecond
+	c.TransactionTracer.Segments.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
 	c.TransactionTracer.Segments.Attributes.Enabled = true
 

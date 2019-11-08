@@ -97,8 +97,8 @@ func newTxn(input txnInput, name string) *thread {
 
 	txn.Attrs.Agent.Add(internal.AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
 	txn.TxnTrace.Enabled = txn.Config.TransactionTracer.Enabled
-	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.SegmentThreshold
-	txn.StackTraceThreshold = txn.Config.TransactionTracer.StackTraceThreshold
+	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.Segments.Threshold
+	txn.StackTraceThreshold = txn.Config.TransactionTracer.Segments.StackTraceThreshold
 	txn.SlowQueriesEnabled = txn.Config.DatastoreTracer.SlowQuery.Enabled
 	txn.SlowQueryThreshold = txn.Config.DatastoreTracer.SlowQuery.Threshold
 

@@ -43,7 +43,7 @@ type ExpectApp struct {
 // trace and transaction trace segment thresholds to zero for full traces.
 func ConfigFullTraces(cfg *newrelic.Config) {
 	cfg.DistributedTracer.Enabled = true
-	cfg.TransactionTracer.SegmentThreshold = 0
+	cfg.TransactionTracer.Segments.Threshold = 0
 	cfg.TransactionTracer.Threshold.IsApdexFailing = false
 	cfg.TransactionTracer.Threshold.Duration = 0
 }

@@ -136,9 +136,11 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
 				"Enabled":true,
-				"SegmentThreshold":2000000,
-				"Segments":{"Attributes":{"Enabled":true,"Exclude":["14"],"Include":["13"]}},
-				"StackTraceThreshold":500000000,
+				"Segments":{
+					"Attributes":{"Enabled":true,"Exclude":["14"],"Include":["13"]},
+					"StackTraceThreshold":500000000,
+					"Threshold":2000000
+				},
 				"Threshold":{
 					"Duration":500000000,
 					"IsApdexFailing":true
@@ -297,9 +299,11 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true,
-				"SegmentThreshold":2000000,
-				"Segments":{"Attributes":{"Enabled":true,"Exclude":null,"Include":null}},
-				"StackTraceThreshold":500000000,
+				"Segments":{
+					"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
+					"StackTraceThreshold":500000000,
+					"Threshold":2000000
+				},
 				"Threshold":{
 					"Duration":500000000,
 					"IsApdexFailing":true

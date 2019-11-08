@@ -70,7 +70,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 		}
 	}
 	if v := run.Reply.ServerSideConfig.TransactionTracerStackTraceThreshold; nil != v {
-		run.Config.TransactionTracer.StackTraceThreshold = internal.FloatSecondsToDuration(*v)
+		run.Config.TransactionTracer.Segments.StackTraceThreshold = internal.FloatSecondsToDuration(*v)
 	}
 	if v := run.Reply.ServerSideConfig.ErrorCollectorIgnoreStatusCodes; nil != v {
 		run.Config.ErrorCollector.IgnoreStatusCodes = v
