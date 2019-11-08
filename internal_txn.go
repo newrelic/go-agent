@@ -927,14 +927,7 @@ const (
 	maxSampledDistributedPayloads = 35
 )
 
-type shimPayload struct{}
-
-func (s shimPayload) Text() string     { return "" }
-func (s shimPayload) HTTPSafe() string { return "" }
-
-func (thd *thread) CreateDistributedTracePayload() (payload DistributedTracePayload) {
-	payload = shimPayload{}
-
+func (thd *thread) CreateDistributedTracePayload() (payload *DistributedTracePayload) {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
@@ -985,7 +978,7 @@ func (thd *thread) CreateDistributedTracePayload() (payload DistributedTracePayl
 
 	txn.CreatePayloadSuccess = true
 
-	payload = p
+	payload = &DistributedTracePayload{internalPayload: p}
 	return
 }
 

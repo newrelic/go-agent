@@ -97,10 +97,10 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
-	if "" != payload.Text() {
-		t.Error(payload.Text())
+	if nil != payload {
+		t.Error(payload)
 	}
-	nonemptyPayload := func() DistributedTracePayload {
+	nonemptyPayload := func() *DistributedTracePayload {
 		app := testApp(nil, func(cfg *Config) {
 			cfgFn(cfg)
 			cfg.ServerlessMode.AccountID = "123"

@@ -41,7 +41,7 @@ func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
 	reply.TrustedAccountKey = "789"
 }
 
-func makePayload(app *Application) DistributedTracePayload {
+func makePayload(app *Application) *DistributedTracePayload {
 	txn := app.StartTransaction("hello")
 	return txn.CreateDistributedTracePayload()
 }
@@ -90,10 +90,7 @@ var (
 func TestPayloadConnection(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	app.expectNoLoggedErrors(t)
@@ -121,10 +118,7 @@ func TestPayloadConnection(t *testing.T) {
 func TestAcceptMultiple(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	app.expectNoLoggedErrors(t)
@@ -158,10 +152,7 @@ func TestAcceptMultiple(t *testing.T) {
 func TestPayloadConnectionText(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload.Text())
 	app.expectNoLoggedErrors(t)
@@ -194,10 +185,7 @@ func validBase64(s string) bool {
 func TestPayloadConnectionHTTPSafe(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	txn := app.StartTransaction("hello")
 	p := payload.HTTPSafe()
 	if !validBase64(p) {
@@ -230,20 +218,16 @@ func TestPayloadConnectionNotConnected(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	payload := makePayload(app.Application)
 	txn := app.StartTransaction("hello")
-	if nil == payload {
+	if nil != payload {
 		t.Fatal(payload)
-	}
-	if "" != payload.Text() {
-		t.Error(payload.Text())
-	}
-	if "" != payload.HTTPSafe() {
-		t.Error(payload.HTTPSafe())
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
-	app.ExpectMetrics(t, backgroundMetricsUnknownCaller)
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: nil},
+	}, backgroundMetricsUnknownCaller...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -259,14 +243,8 @@ func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 	app := testApp(nil, disableCAT, t)
 	payload := makePayload(app.Application)
 	txn := app.StartTransaction("hello")
-	if nil == payload {
+	if nil != payload {
 		t.Fatal(payload)
-	}
-	if "" != payload.Text() {
-		t.Error(payload.Text())
-	}
-	if "" != payload.HTTPSafe() {
-		t.Error(payload.HTTPSafe())
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
@@ -286,14 +264,8 @@ func TestPayloadTransactionsDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	payload := txn.CreateDistributedTracePayload()
-	if nil == payload {
+	if nil != payload {
 		t.Fatal(payload)
-	}
-	if "" != payload.Text() {
-		t.Error(payload.Text())
-	}
-	if "" != payload.HTTPSafe() {
-		t.Error(payload.HTTPSafe())
 	}
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -323,14 +295,8 @@ func TestCreatePayloadFinished(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.End()
 	payload := txn.CreateDistributedTracePayload()
-	if nil == payload {
+	if nil != payload {
 		t.Fatal(payload)
-	}
-	if "" != payload.Text() {
-		t.Error(payload.Text())
-	}
-	if "" != payload.HTTPSafe() {
-		t.Error(payload.HTTPSafe())
 	}
 }
 
@@ -520,10 +486,7 @@ func TestPayloadParsingError(t *testing.T) {
 func TestPayloadFromFuture(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	ip.Timestamp.Set(time.Now().Add(1 * time.Hour))
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, ip)
@@ -552,10 +515,7 @@ func TestPayloadFromFuture(t *testing.T) {
 func TestPayloadUntrustedAccount(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
-	ip, ok := payload.(internal.Payload)
-	if !ok {
-		t.Fatal(payload)
-	}
+	ip := payload.internalPayload
 	ip.Account = "12345"
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, ip)
@@ -715,6 +675,20 @@ func TestNilPayload(t *testing.T) {
 
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
+	app.expectNoLoggedErrors(t)
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
+	}, backgroundUnknownCaller...))
+}
+
+func TestNilPointerPayload(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	var payload *DistributedTracePayload
+	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -899,16 +873,10 @@ func TestCreateDistributedTraceCatDisabled(t *testing.T) {
 	p := txn.CreateDistributedTracePayload()
 
 	// empty/shim payload objects return empty strings
-	if "" != p.Text() {
-		t.Log("Non empty string response for .Text() method")
+	if nil != p {
+		t.Log("Non nil response for .CreateDistributedTracePayload() method:", p)
 		t.Fail()
 	}
-
-	if "" != p.HTTPSafe() {
-		t.Log("Non empty string response for .HTTPSafe() method")
-		t.Fail()
-	}
-
 	txn.End()
 	app.expectNoLoggedErrors(t)
 
@@ -932,15 +900,8 @@ func TestCreateDistributedTraceBetterCatDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
-
-	// empty/shim payload objects return empty strings
-	if "" != p.Text() {
-		t.Log("Non empty string response for .Text() method")
-		t.Fail()
-	}
-
-	if "" != p.HTTPSafe() {
-		t.Log("Non empty string response for .HTTPSafe() method")
+	if nil != p {
+		t.Log("Non nil response for .CreateDistributedTracePayload() method")
 		t.Fail()
 	}
 
@@ -990,7 +951,7 @@ func isZeroValue(x interface{}) bool {
 	return nil == x || x == reflect.Zero(reflect.TypeOf(x)).Interface()
 }
 
-func testPayloadFieldsPresent(t *testing.T, p DistributedTracePayload, keys ...string) {
+func testPayloadFieldsPresent(t *testing.T, p *DistributedTracePayload, keys ...string) {
 	out := struct {
 		Version []int                  `json:"v"`
 		Data    map[string]interface{} `json:"d"`
@@ -1433,8 +1394,8 @@ func TestCreatePayloadAppNotConnected(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
-	if payload.Text() != "" || payload.HTTPSafe() != "" {
-		t.Error(payload.Text(), payload.HTTPSafe())
+	if nil != payload {
+		t.Error(payload)
 	}
 }
 func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
@@ -1446,8 +1407,8 @@ func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
 	}, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	payload := txn.CreateDistributedTracePayload()
-	if payload.Text() != "" || payload.HTTPSafe() != "" {
-		t.Error(payload.Text(), payload.HTTPSafe())
+	if nil != payload {
+		t.Error(payload)
 	}
 }
 

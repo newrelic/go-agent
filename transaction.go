@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/newrelic/go-agent/internal"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -177,11 +179,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 // StartExternalSegment calls CreateDistributedTracePayload, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
-//
-// This method never returns nil.  If the application is disabled or not
-// yet connected then this method returns a shim implementation whose
-// methods return empty strings.
-func (txn *Transaction) CreateDistributedTracePayload() DistributedTracePayload {
+func (txn *Transaction) CreateDistributedTracePayload() *DistributedTracePayload {
 	if nil == txn {
 		return nil
 	}
@@ -211,8 +209,15 @@ func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload i
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload),
-		"accept trace payload")
+
+	if ptr, ok := payload.(*DistributedTracePayload); ok {
+		if ptr == nil {
+			payload = nil
+		} else {
+			payload = ptr.internalPayload
+		}
+	}
+	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload), "accept trace payload")
 }
 
 // Application returns the Application which started the transaction.
@@ -335,13 +340,26 @@ func (txn *Transaction) IsSampled() bool {
 // a message queue or another non-HTTP communication library.  The
 // DistributedTracePayload may be marshalled in one of two formats: HTTPSafe or
 // Text.  All New Relic agents can accept payloads in either format.
-type DistributedTracePayload interface {
-	// HTTPSafe serializes the payload into a string containing http safe
-	// characters.
-	HTTPSafe() string
-	// Text serializes the payload into a string.  The format is slightly
-	// more compact than HTTPSafe.
-	Text() string
+type DistributedTracePayload struct {
+	internalPayload internal.Payload
+}
+
+// HTTPSafe serializes the payload into a string containing http safe
+// characters.
+func (p *DistributedTracePayload) HTTPSafe() string {
+	if nil == p {
+		return ""
+	}
+	return p.internalPayload.HTTPSafe()
+}
+
+// Text serializes the payload into a string.  The format is slightly
+// more compact than HTTPSafe.
+func (p *DistributedTracePayload) Text() string {
+	if nil == p {
+		return ""
+	}
+	return p.internalPayload.Text()
 }
 
 const (

@@ -430,7 +430,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	payload := app.StartTransaction("hello").CreateDistributedTracePayload()
-	p := payload.(internal.Payload)
+	p := payload.internalPayload
 	p.TracedID = "trace-id"
 
 	txn := app.StartTransaction("hello")
@@ -438,10 +438,10 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "9d2c19bd03daf755" {
-		t.Error(metadata.SpanID)
+		t.Errorf("Invalid Span ID, expected 9d2c19bd03daf755 but got %s", metadata.SpanID)
 	}
 	if metadata.TraceID != "trace-id" {
-		t.Error(metadata.TraceID)
+		t.Errorf("Invalid Trace ID, expected trace-id but got %s", metadata.TraceID)
 	}
 }
 
