@@ -229,15 +229,7 @@ func TestCollName(t *testing.T) {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, cfgFn)
-}
-
-var cfgFn = func(cfg *newrelic.Config) {
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.TransactionTracer.SegmentThreshold = 0
-	cfg.TransactionTracer.Threshold.IsApdexFailing = false
-	cfg.TransactionTracer.Threshold.Duration = 0
+	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces)
 }
 
 var replyFn = func(reply *internal.ConnectReply) {

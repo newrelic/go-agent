@@ -79,7 +79,7 @@ func getDTRequestHeaderVal(ctx context.Context) string {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, cfgFn)
+	return integrationsupport.NewTestApp(replyFn, cfgFn, integrationsupport.ConfigFullTraces)
 }
 
 var replyFn = func(reply *internal.ConnectReply) {
@@ -90,11 +90,6 @@ var replyFn = func(reply *internal.ConnectReply) {
 }
 
 var cfgFn = func(cfg *newrelic.Config) {
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.TransactionTracer.SegmentThreshold = 0
-	cfg.TransactionTracer.Threshold.IsApdexFailing = false
-	cfg.TransactionTracer.Threshold.Duration = 0
 	cfg.Attributes.Include = append(cfg.Attributes.Include,
 		newrelic.AttributeMessageRoutingKey,
 		newrelic.AttributeMessageQueueName,

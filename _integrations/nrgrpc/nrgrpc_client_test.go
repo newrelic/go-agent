@@ -71,7 +71,7 @@ func TestGetURL(t *testing.T) {
 }
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, configFn)
+	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces)
 }
 
 var replyFn = func(reply *internal.ConnectReply) {
@@ -79,14 +79,6 @@ var replyFn = func(reply *internal.ConnectReply) {
 	reply.AccountID = "123"
 	reply.TrustedAccountKey = "123"
 	reply.PrimaryAppID = "456"
-}
-
-var configFn = func(cfg *newrelic.Config) {
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.TransactionTracer.SegmentThreshold = 0
-	cfg.TransactionTracer.Threshold.IsApdexFailing = false
-	cfg.TransactionTracer.Threshold.Duration = 0
 }
 
 func TestUnaryClientInterceptor(t *testing.T) {

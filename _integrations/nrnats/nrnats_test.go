@@ -20,15 +20,10 @@ func TestMain(m *testing.M) {
 }
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, cfgFn)
+	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.ConfigFullTraces, cfgFn)
 }
 
 var cfgFn = func(cfg *newrelic.Config) {
-	cfg.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.TransactionTracer.SegmentThreshold = 0
-	cfg.TransactionTracer.Threshold.IsApdexFailing = false
-	cfg.TransactionTracer.Threshold.Duration = 0
 	cfg.Attributes.Include = append(cfg.Attributes.Include,
 		newrelic.AttributeMessageRoutingKey,
 		newrelic.AttributeMessageQueueName,

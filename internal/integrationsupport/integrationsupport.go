@@ -39,19 +39,29 @@ type ExpectApp struct {
 	*newrelic.Application
 }
 
+// ConfigFullTraces enables distributed tracing and sets transaction
+// trace and transaction trace segment thresholds to zero for full traces.
+func ConfigFullTraces(cfg *newrelic.Config) {
+	cfg.DistributedTracer.Enabled = true
+	cfg.TransactionTracer.SegmentThreshold = 0
+	cfg.TransactionTracer.Threshold.IsApdexFailing = false
+	cfg.TransactionTracer.Threshold.Duration = 0
+}
+
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
-func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn func(*newrelic.Config)) ExpectApp {
-	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName(SampleAppName),
-		newrelic.ConfigLicense(testLicenseKey),
-		cfgFn,
+func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...newrelic.ConfigOption) ExpectApp {
+	cfgFn = append(cfgFn,
 		func(cfg *newrelic.Config) {
 			// Prevent spawning app goroutines in tests.
 			if !cfg.ServerlessMode.Enabled {
 				cfg.Enabled = false
 			}
 		},
+		newrelic.ConfigAppName(SampleAppName),
+		newrelic.ConfigLicense(testLicenseKey),
 	)
+
+	app, err := newrelic.NewApplication(cfgFn...)
 	if nil != err {
 		panic(err)
 	}
