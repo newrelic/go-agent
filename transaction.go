@@ -138,15 +138,20 @@ func (txn *Transaction) SetWebRequest(r *WebRequest) {
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request")
 }
 
-// SetWebResponse sets transaction's http.ResponseWriter.  After calling
-// this method, the transaction may be used in place of the
-// ResponseWriter to intercept the response code.  This method is useful
-// when the ResponseWriter is not available at the beginning of the
-// transaction (if so, it can be given as a parameter to
-// Application.StartTransaction).  This method will return a reference
-// to the transaction which implements the combination of
+// SetWebResponse allows the Transaction to instrument response code and
+// response headers.  Use the return value of this method in place of the input
+// parameter http.ResponseWriter in your instrumentation.
+//
+// The returned http.ResponseWriter is safe to use even if the Transaction
+// receiver is nil or has already been ended.
+//
+// The returned http.ResponseWriter implements implements the combination of
 // http.CloseNotifier, http.Flusher, http.Hijacker, and io.ReaderFrom
-// implemented by the ResponseWriter.
+// implemented by the input http.ResponseWriter.
+//
+// This method is used by WrapHandle, WrapHandleFunc, and most integration
+// package middlewares.  Therefore, you probably want to use this only if you
+// are writing your own instrumentation middleware.
 func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
 	if nil == txn {
 		return w
@@ -157,11 +162,10 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 	return txn.thread.SetWebResponse(w)
 }
 
-// StartSegmentNow starts timing a segment.  The SegmentStartTime
-// returned can be used as the StartTime field in Segment,
-// DatastoreSegment, or ExternalSegment.  We recommend using the
-// StartSegmentNow function instead of this method since it checks if
-// the Transaction is nil.
+// StartSegmentNow starts timing a segment.  The SegmentStartTime returned can
+// be used as the StartTime field in Segment, DatastoreSegment, or
+// ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
+// Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	if nil == txn {
 		return SegmentStartTime{}

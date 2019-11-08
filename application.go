@@ -4,7 +4,8 @@ import (
 	"time"
 )
 
-// Application represents your application.
+// Application represents your application.  All methods on Application are nil
+// safe.  Therefore, a nil Application pointer can be safely used as a mock.
 type Application struct {
 	Private interface{}
 	app     *app
@@ -39,7 +40,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 //
 // https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 //
-// An error is returned if event type or params is invalid.
+// An error is logged if event type or params is invalid.
 func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
 	if nil == app {
 		return
