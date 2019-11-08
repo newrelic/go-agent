@@ -100,7 +100,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 	if nil != payload {
 		t.Error(payload)
 	}
-	nonemptyPayload := func() *DistributedTracePayload {
+	nonemptyPayload := func() DTPayload {
 		app := testApp(nil, func(cfg *Config) {
 			cfgFn(cfg)
 			cfg.ServerlessMode.AccountID = "123"
@@ -109,8 +109,8 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 		}, t)
 		return app.StartTransaction("hello").CreateDistributedTracePayload()
 	}()
-	if "" == nonemptyPayload.Text() {
-		t.Error(nonemptyPayload.Text())
+	if len(nonemptyPayload) == 0 {
+		t.Error(nonemptyPayload)
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, nonemptyPayload)
 	app.expectNoLoggedErrors(t)

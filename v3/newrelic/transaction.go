@@ -196,6 +196,14 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	return txn.thread.StartSegmentNow()
 }
 
+type DTPayload map[string]string
+
+func (dt DTPayload) AddToHeaders(headers *http.Header) {
+	for key, value := range dt {
+		headers.Add(key, value)
+	}
+}
+
 // StartSegment makes it easy to instrument segments.  To time a function, do
 // the following:
 //
@@ -223,14 +231,21 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls CreateDistributedTracePayload, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
-func (txn *Transaction) CreateDistributedTracePayload() *DistributedTracePayload {
+func (txn *Transaction) CreateDistributedTracePayload() DTPayload {
 	if nil == txn {
 		return nil
 	}
 	if nil == txn.thread {
 		return nil
 	}
-	return txn.thread.CreateDistributedTracePayload()
+	payload := txn.thread.CreateDistributedTracePayload()
+	if payload == nil {
+		return nil
+	}
+	hdrs := map[string]string{
+		DistributedTracePayloadHeader: payload.Text(),
+	}
+	return hdrs
 }
 
 // AcceptDistributedTracePayload links transactions by accepting a
@@ -243,25 +258,18 @@ func (txn *Transaction) CreateDistributedTracePayload() *DistributedTracePayload
 // AcceptDistributedTracePayload should be used as early in the
 // transaction as possible.  It may not be called after a call to
 // CreateDistributedTracePayload.
-//
-// The payload parameter may be a DistributedTracePayload, a string, or
-// a []byte.
-func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload interface{}) {
+func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload DTPayload) {
 	if nil == txn {
 		return
 	}
 	if nil == txn.thread {
 		return
 	}
-
-	if ptr, ok := payload.(*DistributedTracePayload); ok {
-		if ptr == nil {
-			payload = nil
-		} else {
-			payload = ptr.internalPayload
-		}
-	}
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload), "accept trace payload")
+}
+
+func NewDefaultDistributedTracePayload(s string) DTPayload {
+	return map[string]string{DistributedTracePayloadHeader: s}
 }
 
 // Application returns the Application which started the transaction.

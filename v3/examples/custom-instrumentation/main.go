@@ -26,7 +26,7 @@ func called(app *newrelic.Application, payload string) {
 	defer txn.End()
 
 	// Accept the payload that was passed on the command line.
-	txn.AcceptDistributedTracePayload(newrelic.TransportOther, payload)
+	txn.AcceptDistributedTracePayload(newrelic.TransportOther, newrelic.NewDefaultDistributedTracePayload(payload))
 	time.Sleep(1 * time.Second)
 }
 
@@ -36,7 +36,7 @@ func calling(app *newrelic.Application) {
 
 	// Create a payload, start the called process and pass the payload.
 	payload := txn.CreateDistributedTracePayload()
-	cmd := exec.Command(os.Args[0], payload.Text())
+	cmd := exec.Command(os.Args[0], payload[newrelic.DistributedTracePayloadHeader])
 	cmd.Start()
 
 	// Wait until the called process is done, then exit.

@@ -162,8 +162,9 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
 
+		//TODO: header should work directly. >:( Maybe change it to Getter interface instead
 		if p := h.Get(DistributedTracePayloadHeader); p != "" {
-			txn.acceptDistributedTracePayloadLocked(r.Transport, p)
+			txn.acceptDistributedTracePayloadLocked(r.Transport, NewDefaultDistributedTracePayload(p))
 		}
 
 		txn.CrossProcess.InboundHTTPRequest(h)
@@ -986,14 +987,14 @@ var (
 	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )
 
-func (txn *txn) AcceptDistributedTracePayload(t TransportType, p interface{}) error {
+func (txn *txn) AcceptDistributedTracePayload(t TransportType, p DTPayload) error {
 	txn.Lock()
 	defer txn.Unlock()
 
 	return txn.acceptDistributedTracePayloadLocked(t, p)
 }
 
-func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface{}) error {
+func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p DTPayload) error {
 
 	if !txn.BetterCAT.Enabled {
 		return errInboundPayloadDTDisabled
@@ -1026,7 +1027,7 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p interface
 		return nil
 	}
 
-	payload, err := internal.AcceptPayload(p)
+	payload, err := internal.AcceptPayload(p[DistributedTracePayloadHeader])
 	if nil != err {
 		if _, ok := err.(internal.ErrPayloadParse); ok {
 			txn.AcceptPayloadParseException = true
