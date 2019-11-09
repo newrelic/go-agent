@@ -161,12 +161,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	h := r.Header
 	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
-
-		//TODO: header should work directly. >:( Maybe change it to Getter interface instead
-		if p := h.Get(DistributedTracePayloadHeader); p != "" {
-			txn.acceptDistributedTracePayloadLocked(r.Transport, NewDefaultDistributedTracePayload(p))
-		}
-
+		txn.acceptDistributedTracePayloadLocked(r.Transport, h)
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
@@ -1027,7 +1022,7 @@ func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p DTPayload
 		return nil
 	}
 
-	payload, err := internal.AcceptPayload(p[DistributedTracePayloadHeader])
+	payload, err := internal.AcceptPayload(p.Get(DistributedTracePayloadHeader))
 	if nil != err {
 		if _, ok := err.(internal.ErrPayloadParse); ok {
 			txn.AcceptPayloadParseException = true

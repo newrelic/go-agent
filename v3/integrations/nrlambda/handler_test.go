@@ -254,9 +254,9 @@ func TestSetWebRequest(t *testing.T) {
 	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
-func makePayload(app *newrelic.Application) string {
+func makePayload(app *newrelic.Application) newrelic.DTPayload {
 	txn := app.StartTransaction("hello")
-	return txn.CreateDistributedTracePayload().Text()
+	return txn.CreateDistributedTracePayload()
 }
 
 func TestDistributedTracing(t *testing.T) {
@@ -272,7 +272,7 @@ func TestDistributedTracing(t *testing.T) {
 		Headers: map[string]string{
 			"X-Forwarded-Port":                     "4000",
 			"X-Forwarded-Proto":                    "HTTPS",
-			newrelic.DistributedTracePayloadHeader: makePayload(app),
+			newrelic.DistributedTracePayloadHeader: makePayload(app).Get(newrelic.DistributedTracePayloadHeader),
 		},
 	}
 	reqbytes, err := json.Marshal(req)

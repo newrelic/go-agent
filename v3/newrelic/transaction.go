@@ -196,12 +196,8 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	return txn.thread.StartSegmentNow()
 }
 
-type DTPayload map[string]string
-
-func (dt DTPayload) AddToHeaders(headers *http.Header) {
-	for key, value := range dt {
-		headers.Add(key, value)
-	}
+type DTPayload interface {
+	Get(key string) string
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -242,10 +238,7 @@ func (txn *Transaction) CreateDistributedTracePayload() DTPayload {
 	if payload == nil {
 		return nil
 	}
-	hdrs := map[string]string{
-		DistributedTracePayloadHeader: payload.Text(),
-	}
-	return hdrs
+	return NewDefaultDistributedTracePayload(payload.Text())
 }
 
 // AcceptDistributedTracePayload links transactions by accepting a
@@ -269,7 +262,9 @@ func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload D
 }
 
 func NewDefaultDistributedTracePayload(s string) DTPayload {
-	return map[string]string{DistributedTracePayloadHeader: s}
+	hdrs := http.Header{}
+	hdrs.Add(DistributedTracePayloadHeader, s)
+	return hdrs
 }
 
 // Application returns the Application which started the transaction.

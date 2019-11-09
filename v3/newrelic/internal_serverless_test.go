@@ -109,7 +109,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 		}, t)
 		return app.StartTransaction("hello").CreateDistributedTracePayload()
 	}()
-	if len(nonemptyPayload) == 0 {
+	if nil == nonemptyPayload {
 		t.Error(nonemptyPayload)
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, nonemptyPayload)

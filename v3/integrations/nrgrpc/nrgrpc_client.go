@@ -41,12 +41,12 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 		seg.Procedure = method
 
 		payload := txn.CreateDistributedTracePayload()
-		if txt := payload.Text(); "" != txt {
+		if nil != payload {
 			md, ok := metadata.FromOutgoingContext(ctx)
 			if !ok {
 				md = metadata.New(nil)
 			}
-			md.Set(newrelic.DistributedTracePayloadHeader, txt)
+			md.Set(newrelic.DistributedTracePayloadHeader, payload.Get(newrelic.DistributedTracePayloadHeader))
 			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
 	}

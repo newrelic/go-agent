@@ -931,7 +931,7 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	p := txn.CreateDistributedTracePayload()
-	if len(p) == 0 {
+	if nil == p {
 		t.Log("Empty payload response for")
 		t.Fail()
 	}
@@ -954,7 +954,7 @@ func testPayloadFieldsPresent(t *testing.T, p DTPayload, keys ...string) {
 		Version []int                  `json:"v"`
 		Data    map[string]interface{} `json:"d"`
 	}{}
-	if err := json.Unmarshal([]byte(p[DistributedTracePayloadHeader]), &out); nil != err {
+	if err := json.Unmarshal([]byte(p.Get(DistributedTracePayloadHeader)), &out); nil != err {
 		t.Fatal("unable to unmarshal payload Text", err)
 	}
 	for _, key := range keys {
@@ -997,14 +997,14 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 
 	p := txn.CreateDistributedTracePayload()
 
-	if err := json.Unmarshal([]byte(p[DistributedTracePayloadHeader]), &payloadData); nil != err {
+	if err := json.Unmarshal([]byte(p.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
 		t.Error(err)
 	}
 
 	if nil != payloadData.D["tk"] {
 		t.Log("Did not expect trust key (tk) to be there")
-		t.Log(p[DistributedTracePayloadHeader])
+		t.Log(p.Get(DistributedTracePayloadHeader))
 		t.Fail()
 	}
 
@@ -1026,7 +1026,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 
 	p := txn.CreateDistributedTracePayload()
 
-	if err := json.Unmarshal([]byte(p[DistributedTracePayloadHeader]), &payloadData); nil != err {
+	if err := json.Unmarshal([]byte(p.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
 		t.Error(err)
 	}
@@ -1219,7 +1219,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 
 	//call create each time an outbound payload appears in the testcase
 	for _, expect := range tc.OutboundPayloads {
-		actual := txn.CreateDistributedTracePayload()[DistributedTracePayloadHeader]
+		actual := txn.CreateDistributedTracePayload().Get(DistributedTracePayloadHeader)
 		assertTestCaseOutboundPayload(expect, t, actual)
 	}
 
@@ -1417,7 +1417,7 @@ func TestAcceptPayloadAppNotConnected(t *testing.T) {
 	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name").
 		CreateDistributedTracePayload()
-	if len(payload) == 0 {
+	if nil == payload {
 		t.Fatal(payload)
 	}
 	txn := app.StartTransaction("hello")
@@ -1437,7 +1437,7 @@ func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
 	payload := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name").
 		CreateDistributedTracePayload()
-	if len(payload) == 0 {
+	if nil == payload {
 		t.Fatal(payload)
 	}
 	txn := app.StartTransaction("hello")
