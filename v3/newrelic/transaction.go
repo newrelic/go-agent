@@ -216,11 +216,11 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 	}
 }
 
-// CreateDistributedTracePayload creates a payload used to link
-// transactions.  CreateDistributedTracePayload should be called every
+// AddDistributedTracePayload adds a Distributed Trace header used to link
+// transactions.  AddDistributedTracePayload should be called every
 // time an outbound call is made since the payload contains a timestamp.
 //
-// StartExternalSegment calls CreateDistributedTracePayload, so you
+// StartExternalSegment calls AddDistributedTracePayload, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
 func (txn *Transaction) AddDistributedTracePayload(hdrs *http.Header) {
@@ -252,12 +252,6 @@ func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload h
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload), "accept trace payload")
-}
-
-func NewDefaultDistributedTracePayload(s string) http.Header {
-	hdrs := http.Header{}
-	hdrs.Add(DistributedTracePayloadHeader, s)
-	return hdrs
 }
 
 // Application returns the Application which started the transaction.

@@ -435,7 +435,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	p.TracedID = "trace-id"
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, NewDefaultDistributedTracePayload(p.Text()))
+	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p.Text()))
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "9d2c19bd03daf755" {

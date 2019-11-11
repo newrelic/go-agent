@@ -27,7 +27,9 @@ func called(app *newrelic.Application, payload string) {
 	defer txn.End()
 
 	// Accept the payload that was passed on the command line.
-	txn.AcceptDistributedTracePayload(newrelic.TransportOther, newrelic.NewDefaultDistributedTracePayload(payload))
+	hdrs := http.Header{}
+	hdrs.Set(newrelic.DistributedTracePayloadHeader, payload)
+	txn.AcceptDistributedTracePayload(newrelic.TransportOther, hdrs)
 	time.Sleep(1 * time.Second)
 }
 
