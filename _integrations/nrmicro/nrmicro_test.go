@@ -43,7 +43,7 @@ type TestHandler struct{}
 
 func (t *TestHandler) Method(ctx context.Context, req *TestRequest, rsp *TestResponse) error {
 	rsp.RequestHeaders = getDTRequestHeaderVal(ctx)
-	defer newrelic.StartSegment(newrelic.FromContext(ctx), "Method").End()
+	defer newrelic.FromContext(ctx).StartSegment("Method").End()
 	return nil
 }
 
@@ -835,7 +835,7 @@ func TestServerSubscribe(t *testing.T) {
 	var wg sync.WaitGroup
 	err := micro.RegisterSubscriber(topic, s, func(ctx context.Context, msg *proto.HelloRequest) error {
 		txn := newrelic.FromContext(ctx)
-		defer newrelic.StartSegment(txn, "segment").End()
+		defer txn.StartSegment("segment").End()
 		defer wg.Done()
 		return nil
 	})

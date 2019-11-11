@@ -52,7 +52,7 @@ func Example() {
 			// Segments help you understand where the time in your
 			// transaction is being spent.  You can use them to time
 			// functions or arbitrary blocks of code.
-			defer StartSegment(txn, "helperFunction").End()
+			defer txn.StartSegment("helperFunction").End()
 		}()
 
 		io.WriteString(w, "hello world")

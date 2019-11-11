@@ -345,7 +345,7 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error(metadata.TraceID)
 	}
-	StartSegment(txn, "name")
+	txn.StartSegment("name")
 	// Span id should be different now that a segment has started.
 	metadata = txn.GetTraceMetadata()
 	if metadata.SpanID != "0e97aeb2f79d5d27" {
@@ -567,6 +567,9 @@ func TestNilTransaction(t *testing.T) {
 	}
 	if start := txn.StartSegmentNow(); !reflect.DeepEqual(start, SegmentStartTime{}) {
 		t.Error(start)
+	}
+	if seg := txn.StartSegment("hello"); !reflect.DeepEqual(seg, &Segment{Name: "hello"}) {
+		t.Error(seg)
 	}
 	if p := txn.CreateDistributedTracePayload(); p != nil {
 		t.Error(p)

@@ -177,10 +177,12 @@ func StartSegmentNow(txn *Transaction) SegmentStartTime {
 //
 // To time a block of code, do the following:
 //
-//	segment := StartSegment(txn, "myBlock")
+//	segment := newrelic.StartSegment(txn, "myBlock")
 //	// ... code you want to time here ...
 //	segment.End()
 //
+// Deprecated: StartSegment is deprecated and will be removed in a future
+// release.  Use `Transaction.StartSegment` instead.
 func StartSegment(txn *Transaction, name string) *Segment {
 	return &Segment{
 		StartTime: StartSegmentNow(txn),

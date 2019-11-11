@@ -38,7 +38,7 @@ func TestSuccess(t *testing.T) {
 
 	txn := app.StartTransaction("hello")
 	AddAgentAttribute(txn, internal.AttributeHostDisplayName, "hostname", nil)
-	segment := newrelic.StartSegment(txn, "mySegment")
+	segment := txn.StartSegment("mySegment")
 	AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "operation")
 	segment.End()
 	txn.End()

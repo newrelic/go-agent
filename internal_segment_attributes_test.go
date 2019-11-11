@@ -26,7 +26,7 @@ func TestTraceSegments(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
@@ -108,7 +108,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
@@ -181,7 +181,7 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	basicSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -236,7 +236,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
@@ -316,7 +316,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
@@ -376,7 +376,7 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 	}
 	app := testApp(crossProcessReplyFn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
@@ -447,7 +447,7 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 	}
 	app := testApp(crossProcessReplyFn, cfgfn, t)
 	txn := app.StartTransaction("hello")
-	basicSegment := StartSegment(txn, "basic")
+	basicSegment := txn.StartSegment("basic")
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{

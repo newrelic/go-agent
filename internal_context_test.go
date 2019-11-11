@@ -16,7 +16,7 @@ func TestWrapHandlerContext(t *testing.T) {
 	app := testApp(nil, nil, t)
 	_, h := WrapHandleFunc(app.Application, "myTxn", func(rw http.ResponseWriter, r *http.Request) {
 		txn := FromContext(r.Context())
-		segment := StartSegment(txn, "mySegment")
+		segment := txn.StartSegment("mySegment")
 		segment.End()
 	})
 	req, _ := http.NewRequest("GET", "", nil)

@@ -980,7 +980,7 @@ func TestTraceSegmentDefer(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	func() {
-		defer StartSegment(txn, "segment").End()
+		defer txn.StartSegment("segment").End()
 	}()
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -994,7 +994,7 @@ func TestTraceSegmentNilErr(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	StartSegment(txn, "segment").End()
+	txn.StartSegment("segment").End()
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	scope := "WebTransaction/Go/hello"
@@ -1008,8 +1008,8 @@ func TestTraceSegmentOutOfOrder(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	s1 := StartSegment(txn, "s1")
-	s2 := StartSegment(txn, "s1")
+	s1 := txn.StartSegment("s1")
+	s2 := txn.StartSegment("s1")
 	s1.End()
 	app.expectNoLoggedErrors(t)
 	s2.End()
@@ -1029,7 +1029,7 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
-	s := StartSegment(txn, "segment")
+	s := txn.StartSegment("segment")
 	s.End()
 	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
 		"reason": errAlreadyEnded.Error(),
@@ -1041,7 +1041,7 @@ func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	s := StartSegment(txn, "segment")
+	s := txn.StartSegment("segment")
 	txn.End()
 	s.End()
 	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
@@ -1060,16 +1060,16 @@ func TestTraceSegmentPanic(t *testing.T) {
 		}()
 
 		func() {
-			defer StartSegment(txn, "f1").End()
+			defer txn.StartSegment("f1").End()
 
 			func() {
-				t := StartSegment(txn, "f2")
+				t := txn.StartSegment("f2")
 
 				func() {
-					defer StartSegment(txn, "f3").End()
+					defer txn.StartSegment("f3").End()
 
 					func() {
-						StartSegment(txn, "f4")
+						txn.StartSegment("f4")
 
 						panic(nil)
 					}()
@@ -1782,7 +1782,7 @@ func TestTraceWithSegments(t *testing.T) {
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	s1 := StartSegment(txn, "s1")
+	s1 := txn.StartSegment("s1")
 	s1.End()
 	s2 := ExternalSegment{
 		StartTime: StartSegmentNow(txn),
@@ -1812,7 +1812,7 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
-	s1 := StartSegment(txn, "s1")
+	s1 := txn.StartSegment("s1")
 	s1.End()
 	s2 := ExternalSegment{
 		StartTime: StartSegmentNow(txn),
@@ -1880,9 +1880,9 @@ func (f flushWriter) Flush()                    {}
 func TestAsync(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
-	s1 := StartSegment(txn, "mainThread")
+	s1 := txn.StartSegment("mainThread")
 	asyncThread := txn.NewGoroutine()
-	s2 := StartSegment(asyncThread, "asyncThread")
+	s2 := asyncThread.StartSegment("asyncThread")
 	// End segments in interleaved order.
 	s1.End()
 	s2.End()

@@ -26,10 +26,10 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	txn.SetWebRequestHTTP(req)
 
 	if req.URL.String() == "/segments" {
-		defer newrelic.StartSegment(txn, "f1").End()
+		defer txn.StartSegment("f1").End()
 
 		func() {
-			defer newrelic.StartSegment(txn, "f2").End()
+			defer txn.StartSegment("f2").End()
 
 			io.WriteString(writer, "segments!")
 			time.Sleep(10 * time.Millisecond)

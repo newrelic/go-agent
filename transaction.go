@@ -176,6 +176,26 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	return txn.thread.StartSegmentNow()
 }
 
+// StartSegment makes it easy to instrument segments.  To time a function, do
+// the following:
+//
+//	func timeMe(txn newrelic.Transaction) {
+//		defer txn.StartSegment("timeMe").End()
+//		// ... function code here ...
+//	}
+//
+// To time a block of code, do the following:
+//
+//	segment := txn.StartSegment("myBlock")
+//	// ... code you want to time here ...
+//	segment.End()
+func (txn *Transaction) StartSegment(name string) *Segment {
+	return &Segment{
+		StartTime: txn.StartSegmentNow(),
+		Name:      name,
+	}
+}
+
 // CreateDistributedTracePayload creates a payload used to link
 // transactions.  CreateDistributedTracePayload should be called every
 // time an outbound call is made since the payload contains a timestamp.
@@ -275,7 +295,7 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // goroutine:
 //
 //	go func(txn newrelic.Transaction) {
-//		defer newrelic.StartSegment(txn, "async").End()
+//		defer txn.StartSegment("async").End()
 //		time.Sleep(100 * time.Millisecond)
 //	}(txn.NewGoroutine())
 //
@@ -285,7 +305,7 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 //	ch := make(chan newrelic.Transaction)
 //	go func() {
 //		txn := <-ch
-//		defer newrelic.StartSegment(txn, "async").End()
+//		defer txn.StartSegment("async").End()
 //		time.Sleep(100 * time.Millisecond)
 //	}()
 //	ch <- txn.NewGoroutine()

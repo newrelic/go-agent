@@ -18,7 +18,7 @@ type Server struct{}
 
 // processMessage processes each incoming Message.
 func processMessage(ctx context.Context, msg *sampleapp.Message) {
-	defer newrelic.StartSegment(newrelic.FromContext(ctx), "processMessage").End()
+	defer newrelic.FromContext(ctx).StartSegment("processMessage").End()
 	fmt.Printf("Message received: %s\n", msg.Text)
 }
 

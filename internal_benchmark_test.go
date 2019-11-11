@@ -58,7 +58,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn")
 	fn := func() {
-		defer StartSegment(txn, "alpha").End()
+		defer txn.StartSegment("alpha").End()
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -78,7 +78,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn")
 	fn := func() {
-		s := StartSegment(txn, "alpha")
+		s := txn.StartSegment("alpha")
 		s.End()
 	}
 	b.ResetTimer()
@@ -102,7 +102,7 @@ func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
 	}
 	txn := app.StartTransaction("my txn")
 	fn := func() {
-		s := StartSegment(txn, "alpha")
+		s := txn.StartSegment("alpha")
 		s.End()
 	}
 	b.ResetTimer()
@@ -170,7 +170,7 @@ func BenchmarkTxnWithSegment(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		txn := app.StartTransaction("my txn")
-		StartSegment(txn, "myFunction").End()
+		txn.StartSegment("myFunction").End()
 		txn.End()
 	}
 }

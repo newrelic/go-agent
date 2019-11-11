@@ -93,10 +93,10 @@ func segments(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 
 	func() {
-		defer newrelic.StartSegment(txn, "f1").End()
+		defer txn.StartSegment("f1").End()
 
 		func() {
-			defer newrelic.StartSegment(txn, "f2").End()
+			defer txn.StartSegment("f2").End()
 
 			io.WriteString(w, "segments!")
 			time.Sleep(10 * time.Millisecond)
@@ -209,11 +209,11 @@ func async(w http.ResponseWriter, r *http.Request) {
 	wg.Add(1)
 	go func(txn *newrelic.Transaction) {
 		defer wg.Done()
-		defer newrelic.StartSegment(txn, "async").End()
+		defer txn.StartSegment("async").End()
 		time.Sleep(100 * time.Millisecond)
 	}(txn.NewGoroutine())
 
-	segment := newrelic.StartSegment(txn, "wg.Wait")
+	segment := txn.StartSegment("wg.Wait")
 	wg.Wait()
 	segment.End()
 	w.Write([]byte("done!"))
