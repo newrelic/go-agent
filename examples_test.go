@@ -209,3 +209,23 @@ func ExampleTransaction_SetWebRequest() {
 		Transport: TransportHTTP,
 	})
 }
+
+// The order in which the ConfigOptions are added plays an important role when
+// using ConfigFromEnvironment.
+func ExampleConfigFromEnvironment() {
+	os.Setenv("NEW_RELIC_ENABLED", "true")
+
+	// Applicaiton is disabled.  Enabled is first set to true from
+	// ConfigFromEnvironment then set to false from ConfigEnabled.
+	_, _ = NewApplication(
+		ConfigFromEnvironment(),
+		ConfigEnabled(false),
+	)
+
+	// Application is enabled.  Enabled is first set to false from
+	// ConfigEnabled then set to true from ConfigFromEnvironment.
+	_, _ = NewApplication(
+		ConfigEnabled(false),
+		ConfigFromEnvironment(),
+	)
+}
