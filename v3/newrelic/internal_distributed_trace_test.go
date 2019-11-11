@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
@@ -949,12 +950,12 @@ func isZeroValue(x interface{}) bool {
 	return nil == x || x == reflect.Zero(reflect.TypeOf(x)).Interface()
 }
 
-func testPayloadFieldsPresent(t *testing.T, p DTPayload, keys ...string) {
+func testPayloadFieldsPresent(t *testing.T, payload http.Header, keys ...string) {
 	out := struct {
 		Version []int                  `json:"v"`
 		Data    map[string]interface{} `json:"d"`
 	}{}
-	if err := json.Unmarshal([]byte(p.Get(DistributedTracePayloadHeader)), &out); nil != err {
+	if err := json.Unmarshal([]byte(payload.Get(DistributedTracePayloadHeader)), &out); nil != err {
 		t.Fatal("unable to unmarshal payload Text", err)
 	}
 	for _, key := range keys {

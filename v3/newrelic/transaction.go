@@ -196,10 +196,6 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	return txn.thread.StartSegmentNow()
 }
 
-type DTPayload interface {
-	Get(key string) string
-}
-
 // StartSegment makes it easy to instrument segments.  To time a function, do
 // the following:
 //
@@ -227,7 +223,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls CreateDistributedTracePayload, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
-func (txn *Transaction) CreateDistributedTracePayload() DTPayload {
+func (txn *Transaction) CreateDistributedTracePayload() http.Header {
 	if nil == txn {
 		return nil
 	}
@@ -251,7 +247,7 @@ func (txn *Transaction) CreateDistributedTracePayload() DTPayload {
 // AcceptDistributedTracePayload should be used as early in the
 // transaction as possible.  It may not be called after a call to
 // CreateDistributedTracePayload.
-func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload DTPayload) {
+func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload http.Header) {
 	if nil == txn {
 		return
 	}
@@ -261,7 +257,7 @@ func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload D
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload), "accept trace payload")
 }
 
-func NewDefaultDistributedTracePayload(s string) DTPayload {
+func NewDefaultDistributedTracePayload(s string) http.Header {
 	hdrs := http.Header{}
 	hdrs.Add(DistributedTracePayloadHeader, s)
 	return hdrs

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -254,7 +255,7 @@ func TestSetWebRequest(t *testing.T) {
 	dataShouldContain(t, data, "metric_data", "analytic_event_data", "span_event_data")
 }
 
-func makePayload(app *newrelic.Application) newrelic.DTPayload {
+func makePayload(app *newrelic.Application) http.Header {
 	txn := app.StartTransaction("hello")
 	return txn.CreateDistributedTracePayload()
 }

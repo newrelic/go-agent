@@ -982,14 +982,14 @@ var (
 	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )
 
-func (txn *txn) AcceptDistributedTracePayload(t TransportType, p DTPayload) error {
+func (txn *txn) AcceptDistributedTracePayload(t TransportType, payload http.Header) error {
 	txn.Lock()
 	defer txn.Unlock()
 
-	return txn.acceptDistributedTracePayloadLocked(t, p)
+	return txn.acceptDistributedTracePayloadLocked(t, payload)
 }
 
-func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p DTPayload) error {
+func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p http.Header) error {
 
 	if !txn.BetterCAT.Enabled {
 		return errInboundPayloadDTDisabled

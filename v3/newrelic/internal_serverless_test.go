@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"bytes"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -100,7 +101,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 	if nil != payload {
 		t.Error(payload)
 	}
-	nonemptyPayload := func() DTPayload {
+	nonemptyPayload := func() http.Header {
 		app := testApp(nil, func(cfg *Config) {
 			cfgFn(cfg)
 			cfg.ServerlessMode.AccountID = "123"
