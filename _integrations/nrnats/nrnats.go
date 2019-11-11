@@ -26,7 +26,7 @@ func StartPublishSegment(txn *newrelic.Transaction, nc *nats.Conn, subject strin
 		return nil
 	}
 	return &newrelic.MessageProducerSegment{
-		StartTime:            newrelic.StartSegmentNow(txn),
+		StartTime:            txn.StartSegmentNow(),
 		Library:              "NATS",
 		DestinationType:      newrelic.MessageTopic,
 		DestinationName:      subject,

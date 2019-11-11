@@ -94,7 +94,7 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 	}
 	host, port := calcHostAndPort(e.ConnectionID)
 	sgmt := newrelic.DatastoreSegment{
-		StartTime:    newrelic.StartSegmentNow(txn),
+		StartTime:    txn.StartSegmentNow(),
 		Product:      newrelic.DatastoreMongoDB,
 		Collection:   collName(e),
 		Operation:    e.CommandName,

@@ -1785,12 +1785,12 @@ func TestTraceWithSegments(t *testing.T) {
 	s1 := txn.StartSegment("s1")
 	s1.End()
 	s2 := ExternalSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com",
 	}
 	s2.End()
 	s3 := DatastoreSegment{
-		StartTime:  StartSegmentNow(txn),
+		StartTime:  txn.StartSegmentNow(),
 		Product:    DatastoreMySQL,
 		Collection: "my_table",
 		Operation:  "SELECT",
@@ -1815,12 +1815,12 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 	s1 := txn.StartSegment("s1")
 	s1.End()
 	s2 := ExternalSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		URL:       "http://example.com",
 	}
 	s2.End()
 	s3 := DatastoreSegment{
-		StartTime:  StartSegmentNow(txn),
+		StartTime:  txn.StartSegmentNow(),
 		Product:    DatastoreMySQL,
 		Collection: "my_table",
 		Operation:  "SELECT",
@@ -1927,7 +1927,7 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
+		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
 		DestinationType: MessageQueue,
 		DestinationName: "myQueue",
@@ -1972,7 +1972,7 @@ func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
+		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
 		DestinationName: "myQueue",
 	}
@@ -1993,7 +1993,7 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
-		StartTime:            StartSegmentNow(txn),
+		StartTime:            txn.StartSegmentNow(),
 		Library:              "RabbitMQ",
 		DestinationType:      MessageQueue,
 		DestinationTemporary: true,
@@ -2016,7 +2016,7 @@ func TestMessageProducerSegmentNoName(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
+		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
 		DestinationType: MessageQueue,
 	}
@@ -2037,7 +2037,7 @@ func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 	app := testApp(nil, nil, t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
-		StartTime:            StartSegmentNow(txn),
+		StartTime:            txn.StartSegmentNow(),
 		Library:              "RabbitMQ",
 		DestinationType:      MessageQueue,
 		DestinationTemporary: true,
@@ -2057,8 +2057,9 @@ func TestMessageProducerSegmentTxnEnded(t *testing.T) {
 }
 
 func TestMessageProducerSegmentNilTxn(t *testing.T) {
+	var txn *Transaction
 	s := MessageProducerSegment{
-		StartTime:            StartSegmentNow(nil),
+		StartTime:            txn.StartSegmentNow(),
 		Library:              "RabbitMQ",
 		DestinationType:      MessageQueue,
 		DestinationTemporary: true,

@@ -63,7 +63,7 @@ func (t *b3Transport) RoundTrip(request *http.Request) (*http.Response, error) {
 		// The specification of http.RoundTripper requires that the request is never modified.
 		request = cloneRequest(request)
 		segment := &newrelic.ExternalSegment{
-			StartTime: newrelic.StartSegmentNow(txn),
+			StartTime: txn.StartSegmentNow(),
 			Request:   request,
 		}
 		defer segment.End()

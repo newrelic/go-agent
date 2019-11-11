@@ -109,7 +109,7 @@ func segments(w http.ResponseWriter, r *http.Request) {
 func mysql(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	s := newrelic.DatastoreSegment{
-		StartTime: newrelic.StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		// Product, Collection, and Operation are the most important
 		// fields to populate because they are used in the breakdown
 		// metrics.
@@ -135,7 +135,7 @@ func mysql(w http.ResponseWriter, r *http.Request) {
 func message(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	s := newrelic.MessageProducerSegment{
-		StartTime:       newrelic.StartSegmentNow(txn),
+		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
 		DestinationType: newrelic.MessageQueue,
 		DestinationName: "myQueue",
@@ -156,7 +156,7 @@ func external(w http.ResponseWriter, r *http.Request) {
 	// segment like this:
 	//
 	// es := newrelic.ExternalSegment{
-	// 	StartTime: newrelic.StartSegmentNow(txn),
+	// 	StartTime: txn.StartSegmentNow(),
 	// 	URL:       urlString,
 	// }
 	//

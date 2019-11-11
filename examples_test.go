@@ -108,7 +108,7 @@ func ExampleBrowserTimingHeader() {
 func ExampleDatastoreSegment() {
 	txn := currentTransaction()
 	ds := &DatastoreSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		// Product, Collection, and Operation are the primary metric
 		// aggregation fields which we encourage you to populate.
 		Product:    DatastoreMySQL,
@@ -122,7 +122,7 @@ func ExampleDatastoreSegment() {
 func ExampleMessageProducerSegment() {
 	txn := currentTransaction()
 	seg := &MessageProducerSegment{
-		StartTime:       StartSegmentNow(txn),
+		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
 		DestinationType: MessageExchange,
 		DestinationName: "myExchange",
@@ -164,7 +164,7 @@ func ExampleExternalSegment() {
 func ExampleExternalSegment_url() {
 	txn := currentTransaction()
 	segment := ExternalSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		// URL is parsed using url.Parse so it must include the protocol
 		// scheme (eg. "http://").  The host of the URL is used to
 		// create metrics.  Change the host to alter aggregation.

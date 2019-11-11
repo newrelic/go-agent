@@ -54,7 +54,7 @@ func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilde
 
 func (bld SQLDriverSegmentBuilder) startSegment(ctx context.Context) DatastoreSegment {
 	segment := bld.BaseSegment
-	segment.StartTime = StartSegmentNow(FromContext(ctx))
+	segment.StartTime = FromContext(ctx).StartSegmentNow()
 	return segment
 }
 

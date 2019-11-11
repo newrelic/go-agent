@@ -18,8 +18,8 @@ type Segment struct {
 
 // DatastoreSegment is used to instrument calls to databases and object stores.
 type DatastoreSegment struct {
-	// StartTime should be assigned using StartSegmentNow before each datastore
-	// call is made.
+	// StartTime should be assigned using Transaction.StartSegmentNow before
+	// each datastore call is made.
 	StartTime SegmentStartTime
 
 	// Product, Collection, and Operation are highly recommended as they are
@@ -163,6 +163,9 @@ func (s *ExternalSegment) outboundHeaders() http.Header {
 
 // StartSegmentNow starts timing a segment.  This function is recommended over
 // Transaction.StartSegmentNow() because it is nil safe.
+//
+// Deprecated: StartSegmentNow is deprecated and will be removed in a future
+// release. Use `Transaction.StartSegmentNow` instead.
 func StartSegmentNow(txn *Transaction) SegmentStartTime {
 	return txn.StartSegmentNow()
 }
@@ -185,7 +188,7 @@ func StartSegmentNow(txn *Transaction) SegmentStartTime {
 // release.  Use `Transaction.StartSegment` instead.
 func StartSegment(txn *Transaction, name string) *Segment {
 	return &Segment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		Name:      name,
 	}
 }
@@ -203,7 +206,7 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 		txn = transactionFromRequestContext(request)
 	}
 	s := &ExternalSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 		Request:   request,
 	}
 

@@ -74,7 +74,7 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 			Host:               input.HTTPRequest.URL.Host,
 			PortPathOrID:       input.HTTPRequest.URL.Port(),
 			DatabaseName:       "",
-			StartTime:          newrelic.StartSegmentNow(txn),
+			StartTime:          txn.StartSegmentNow(),
 		}
 	} else {
 		segment = newrelic.StartExternalSegment(txn, input.HTTPRequest)

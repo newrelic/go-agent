@@ -119,7 +119,7 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -192,7 +192,7 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -263,7 +263,7 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -334,7 +334,7 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -398,7 +398,7 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	segment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",

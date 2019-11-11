@@ -30,7 +30,7 @@ func TestTraceSegments(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -112,7 +112,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -240,7 +240,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -320,7 +320,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -380,7 +380,7 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",
@@ -451,7 +451,7 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "mycollection",
 		Operation:          "myoperation",

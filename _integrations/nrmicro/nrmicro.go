@@ -26,7 +26,7 @@ func startExternal(ctx context.Context, procedure, host string) (context.Context
 	var seg newrelic.ExternalSegment
 	if txn := newrelic.FromContext(ctx); nil != txn {
 		seg = newrelic.ExternalSegment{
-			StartTime: newrelic.StartSegmentNow(txn),
+			StartTime: txn.StartSegmentNow(),
 			Procedure: procedure,
 			Library:   "Micro",
 			Host:      host,
@@ -40,7 +40,7 @@ func startMessage(ctx context.Context, topic string) (context.Context, *newrelic
 	var seg *newrelic.MessageProducerSegment
 	if txn := newrelic.FromContext(ctx); nil != txn {
 		seg = &newrelic.MessageProducerSegment{
-			StartTime:       newrelic.StartSegmentNow(txn),
+			StartTime:       txn.StartSegmentNow(),
 			Library:         "Micro",
 			DestinationType: newrelic.MessageTopic,
 			DestinationName: topic,

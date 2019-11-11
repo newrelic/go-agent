@@ -17,7 +17,7 @@ func TestSlowQueryBasic(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -47,7 +47,7 @@ func TestSlowQueryLocallyDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -70,7 +70,7 @@ func TestSlowQueryRemotelyDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -90,7 +90,7 @@ func TestSlowQueryBelowThreshold(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -110,7 +110,7 @@ func TestSlowQueryDatabaseProvided(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -140,7 +140,7 @@ func TestSlowQueryHostProvided(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -181,7 +181,7 @@ func TestSlowQueryPortProvided(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -222,7 +222,7 @@ func TestSlowQueryHostPortProvided(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -264,7 +264,7 @@ func TestSlowQueryAggregation(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	ds := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -272,7 +272,7 @@ func TestSlowQueryAggregation(t *testing.T) {
 	}
 	ds.End()
 	ds = DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -280,7 +280,7 @@ func TestSlowQueryAggregation(t *testing.T) {
 	}
 	ds.End()
 	ds = DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastorePostgres,
 		Collection:         "products",
 		Operation:          "INSERT",
@@ -319,7 +319,7 @@ func TestSlowQueryMissingQuery(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:  StartSegmentNow(txn),
+		StartTime:  txn.StartSegmentNow(),
 		Product:    DatastoreMySQL,
 		Collection: "users",
 		Operation:  "INSERT",
@@ -347,7 +347,7 @@ func TestSlowQueryMissingEverything(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime: StartSegmentNow(txn),
+		StartTime: txn.StartSegmentNow(),
 	}
 	s1.End()
 	txn.End()
@@ -385,7 +385,7 @@ func TestSlowQueryWithQueryParameters(t *testing.T) {
 		"int": 123,
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -421,7 +421,7 @@ func TestSlowQueryHighSecurity(t *testing.T) {
 		"int": 123,
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -461,7 +461,7 @@ func TestSlowQuerySecurityPolicyFalse(t *testing.T) {
 		"int": 123,
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -501,7 +501,7 @@ func TestSlowQuerySecurityPolicyTrue(t *testing.T) {
 		"int": 123,
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -539,7 +539,7 @@ func TestSlowQueryInvalidParameters(t *testing.T) {
 		"long-key":                          strings.Repeat("A", 300),
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -579,7 +579,7 @@ func TestSlowQueryParametersDisabled(t *testing.T) {
 		"int": 123,
 	}
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -611,7 +611,7 @@ func TestSlowQueryInstanceDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -652,7 +652,7 @@ func TestSlowQueryInstanceDisabledLocalhost(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -694,7 +694,7 @@ func TestSlowQueryDatabaseNameDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
@@ -769,7 +769,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 			txn.SetWebRequestHTTP(helloRequest)
 		}
 		ds := DatastoreSegment{
-			StartTime:          StartSegmentNow(txn),
+			StartTime:          txn.StartSegmentNow(),
 			Product:            DatastoreProduct(tc.Input.Parameters.Product),
 			Operation:          tc.Input.Parameters.Operation,
 			Collection:         tc.Input.Parameters.Collection,
@@ -837,7 +837,7 @@ func TestSlowQueryParamsInvalid(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := DatastoreSegment{
-		StartTime:          StartSegmentNow(txn),
+		StartTime:          txn.StartSegmentNow(),
 		Product:            DatastoreMySQL,
 		Collection:         "users",
 		Operation:          "INSERT",
