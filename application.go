@@ -12,15 +12,6 @@ type Application struct {
 }
 
 // StartTransaction begins a Transaction.
-// * Transaction.NewGoroutine() must be used to pass the Transaction
-//   between goroutines.
-// * This method never returns nil.
-// * The Transaction is considered a web transaction if an http.Request
-//   is provided.
-// * The transaction returned implements the http.ResponseWriter
-//   interface.  Provide your ResponseWriter as a parameter and
-//   then use the Transaction in its place to instrument the response
-//   code and response headers.
 func (app *Application) StartTransaction(name string) *Transaction {
 	if nil == app {
 		return nil
