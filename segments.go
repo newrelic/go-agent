@@ -155,9 +155,9 @@ func (s *MessageProducerSegment) End() {
 	s.StartTime.thread.logAPIError(endMessage(s), "end message producer segment")
 }
 
-// OutboundHeaders returns the headers that should be attached to the external
+// outboundHeaders returns the headers that should be attached to the external
 // request.
-func (s *ExternalSegment) OutboundHeaders() http.Header {
+func (s *ExternalSegment) outboundHeaders() http.Header {
 	return outboundHeaders(s)
 }
 
@@ -206,7 +206,7 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 	}
 
 	if request != nil && request.Header != nil {
-		for key, values := range s.OutboundHeaders() {
+		for key, values := range s.outboundHeaders() {
 			for _, value := range values {
 				request.Header.Add(key, value)
 			}
