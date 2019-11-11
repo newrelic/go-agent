@@ -116,35 +116,6 @@ func TestPayloadConnection(t *testing.T) {
 	}})
 }
 
-// TODO: shouldn't need this anymore if we don't accept text
-//func TestPayloadConnectionText(t *testing.T) {
-//	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-//	payload := makePayload(app.Application)
-//	ip := payload.internalPayload
-//	txn := app.StartTransaction("hello")
-//	txn.AcceptDistributedTracePayload(TransportHTTP, payload.Text())
-//	app.expectNoLoggedErrors(t)
-//	txn.End()
-//	app.expectNoLoggedErrors(t)
-//	app.ExpectMetrics(t, distributedTracingSuccessMetrics)
-//	app.ExpectTxnEvents(t, []internal.WantEvent{{
-//		Intrinsics: map[string]interface{}{
-//			"name":                     "OtherTransaction/Go/hello",
-//			"parent.type":              "App",
-//			"parent.account":           "123",
-//			"parent.app":               "456",
-//			"parent.transportType":     "HTTP",
-//			"parent.transportDuration": internal.MatchAnything,
-//			"parentId":                 ip.TransactionID,
-//			"traceId":                  ip.TransactionID,
-//			"parentSpanId":             ip.ID,
-//			"guid":                     internal.MatchAnything,
-//			"sampled":                  internal.MatchAnything,
-//			"priority":                 internal.MatchAnything,
-//		},
-//	}})
-//}
-
 func TestAcceptMultiple(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	payload := makePayload(app.Application)
@@ -257,26 +228,6 @@ func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 }
 
-// TODO verify not needed
-//func TestPayloadConnectionEmptyString(t *testing.T) {
-//	app := testApp(nil, enableBetterCAT, t)
-//	txn := app.StartTransaction("hello")
-//	txn.AcceptDistributedTracePayload(TransportHTTP, "")
-//	app.expectNoLoggedErrors(t)
-//	txn.End()
-//	app.expectNoLoggedErrors(t)
-//	app.ExpectMetrics(t, backgroundMetricsUnknownCaller)
-//	app.ExpectTxnEvents(t, []internal.WantEvent{{
-//		Intrinsics: map[string]interface{}{
-//			"name":     "OtherTransaction/Go/hello",
-//			"guid":     internal.MatchAnything,
-//			"traceId":  internal.MatchAnything,
-//			"priority": internal.MatchAnything,
-//			"sampled":  internal.MatchAnything,
-//		},
-//	}})
-//}
-
 func TestPayloadTransactionsDisabled(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -305,27 +256,6 @@ func TestCreatePayloadFinished(t *testing.T) {
 		t.Fatal(hdrs)
 	}
 }
-
-// TODO verify not needed
-//func TestPayloadTypeUnknown(t *testing.T) {
-//	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-//	txn := app.StartTransaction("hello")
-//	invalidPayload := 22
-//	txn.AcceptDistributedTracePayload(TransportHTTP, invalidPayload)
-//	app.expectNoLoggedErrors(t)
-//	txn.End()
-//	app.expectNoLoggedErrors(t)
-//	app.ExpectMetrics(t, backgroundMetricsUnknownCaller)
-//	app.ExpectTxnEvents(t, []internal.WantEvent{{
-//		Intrinsics: map[string]interface{}{
-//			"name":     "OtherTransaction/Go/hello",
-//			"guid":     internal.MatchAnything,
-//			"traceId":  internal.MatchAnything,
-//			"priority": internal.MatchAnything,
-//			"sampled":  internal.MatchAnything,
-//		},
-//	}})
-//}
 
 func TestAcceptPayloadFinished(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
@@ -691,21 +621,6 @@ func TestNilPayload(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
 	}, backgroundUnknownCaller...))
 }
-
-// TODO probably not necessary
-//func TestNilPointerPayload(t *testing.T) {
-//	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-//	txn := app.StartTransaction("hello")
-//	var payload DTPayload
-//	txn.AcceptDistributedTracePayload(TransportHTTP, payload)
-//	app.expectNoLoggedErrors(t)
-//	txn.End()
-//	app.expectNoLoggedErrors(t)
-//
-//	app.ExpectMetrics(t, append([]internal.WantMetric{
-//		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/Null", Scope: "", Forced: true, Data: singleCount},
-//	}, backgroundUnknownCaller...))
-//}
 
 func TestNoticeErrorPayload(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
