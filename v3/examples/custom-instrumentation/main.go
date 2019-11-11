@@ -14,6 +14,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -35,8 +36,9 @@ func calling(app *newrelic.Application) {
 	defer txn.End()
 
 	// Create a payload, start the called process and pass the payload.
-	payload := txn.CreateDistributedTracePayload()
-	cmd := exec.Command(os.Args[0], payload.Get(newrelic.DistributedTracePayloadHeader))
+	hdrs := http.Header{}
+	txn.AddDistributedTracePayload(&hdrs)
+	cmd := exec.Command(os.Args[0], hdrs.Get(newrelic.DistributedTracePayloadHeader))
 	cmd.Start()
 
 	// Wait until the called process is done, then exit.

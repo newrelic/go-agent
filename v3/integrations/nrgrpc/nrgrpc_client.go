@@ -3,6 +3,7 @@ package nrgrpc
 import (
 	"context"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -40,13 +41,14 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 		seg.Library = "gRPC"
 		seg.Procedure = method
 
-		payload := txn.CreateDistributedTracePayload()
-		if nil != payload {
+		hdrs := http.Header{}
+		txn.AddDistributedTracePayload(&hdrs)
+		if len(hdrs) > 0 {
 			md, ok := metadata.FromOutgoingContext(ctx)
 			if !ok {
 				md = metadata.New(nil)
 			}
-			md.Set(newrelic.DistributedTracePayloadHeader, payload.Get(newrelic.DistributedTracePayloadHeader))
+			md.Set(newrelic.DistributedTracePayloadHeader, hdrs.Get(newrelic.DistributedTracePayloadHeader))
 			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
 	}

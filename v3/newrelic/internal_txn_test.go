@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -571,8 +572,10 @@ func TestNilTransaction(t *testing.T) {
 	if seg := txn.StartSegment("hello"); !reflect.DeepEqual(seg, &Segment{Name: "hello"}) {
 		t.Error(seg)
 	}
-	if p := txn.CreateDistributedTracePayload(); p != nil {
-		t.Error(p)
+	hdrs := http.Header{}
+	txn.AddDistributedTracePayload(&hdrs)
+	if len(hdrs) > 0 {
+		t.Error(hdrs)
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
@@ -611,8 +614,10 @@ func TestEmptyTransaction(t *testing.T) {
 	if start := txn.StartSegmentNow(); !reflect.DeepEqual(start, SegmentStartTime{}) {
 		t.Error(start)
 	}
-	if p := txn.CreateDistributedTracePayload(); p != nil {
-		t.Error(p)
+	hdrs := http.Header{}
+	txn.AddDistributedTracePayload(&hdrs)
+	if len(hdrs) > 0 {
+		t.Error(hdrs)
 	}
 	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
