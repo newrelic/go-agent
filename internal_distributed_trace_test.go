@@ -1200,7 +1200,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 
 	txn := app.StartTransaction("hello")
 	if tc.WebTransaction {
-		txn.SetWebRequest(nil)
+		txn.SetWebRequestHTTP(nil)
 	}
 
 	// If the tests wants us to have an error, give 'em an error

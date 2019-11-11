@@ -101,10 +101,10 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 // present, the agent will look for a distributed tracing header.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 	if nil == r {
-		txn.SetWebRequest(nil)
+		txn.SetWebRequest(WebRequest{})
 		return
 	}
-	wr := &WebRequest{
+	wr := WebRequest{
 		Header:    r.Header,
 		URL:       r.URL,
 		Method:    r.Method,
@@ -123,12 +123,12 @@ func transport(r *http.Request) TransportType {
 	return TransportUnknown
 }
 
-// SetWebRequest marks the transaction as a web transaction.  If
-// WebRequest is non-nil, SetWebRequest will additionally collect
-// details on request attributes, url, and method.  If headers are
-// present, the agent will look for a distributed tracing header.  Use
-// SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r *WebRequest) {
+// SetWebRequest marks the transaction as a web transaction.  SetWebRequest
+// additionally collects details on request attributes, url, and method if these
+// fields are set.  If headers are present, the agent will look for a
+// distributed tracing header.  Use SetWebRequestHTTP if you have a
+// *http.Request.
+func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if nil == txn {
 		return
 	}

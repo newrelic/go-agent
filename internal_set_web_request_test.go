@@ -52,7 +52,7 @@ func TestSetWebRequestNil(t *testing.T) {
 	// transaction.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(nil)
+	txn.SetWebRequestHTTP(nil)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -148,7 +148,7 @@ func TestSetWebRequestAlreadyEnded(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
-	txn.SetWebRequest(&sampleCustomRequest)
+	txn.SetWebRequest(sampleCustomRequest)
 	app.expectSingleLoggedError(t, "unable to set web request", map[string]interface{}{
 		"reason": errAlreadyEnded.Error(),
 	})
@@ -185,7 +185,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 		DistributedTracePayloadHeader: {payload.Text()},
 	}
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(&req)
+	txn.SetWebRequest(req)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -230,7 +230,7 @@ func TestSetWebRequestIncompleteRequest(t *testing.T) {
 	// URL and Header values are nil.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(&WebRequest{Transport: TransportUnknown})
+	txn.SetWebRequest(WebRequest{Transport: TransportUnknown})
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{

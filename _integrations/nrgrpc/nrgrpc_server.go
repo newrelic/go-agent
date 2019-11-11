@@ -34,7 +34,7 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 		Transport: newrelic.TransportHTTP,
 	}
 	txn := app.StartTransaction(method)
-	txn.SetWebRequest(&webReq)
+	txn.SetWebRequest(webReq)
 
 	return txn
 }

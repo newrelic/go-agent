@@ -133,7 +133,7 @@ func TestServerlessLowApdex(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(nil) // only web gets apdex
+	txn.SetWebRequestHTTP(nil) // only web gets apdex
 	txn.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -156,7 +156,7 @@ func TestServerlessHighApdex(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	txn.SetWebRequest(nil) // only web gets apdex
+	txn.SetWebRequestHTTP(nil) // only web gets apdex
 	txn.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{

@@ -49,7 +49,7 @@ func requestEvent(ctx context.Context, event interface{}) {
 	}
 
 	if request := eventWebRequest(event); nil != request {
-		txn.SetWebRequest(request)
+		txn.SetWebRequest(*request)
 	}
 }
 

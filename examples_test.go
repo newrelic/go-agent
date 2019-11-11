@@ -201,12 +201,11 @@ func ExampleStartExternalSegment_context() {
 
 func ExampleTransaction_SetWebRequest() {
 	app := getApp()
-	webReq := WebRequest{
+	txn := app.StartTransaction("My-Transaction")
+	txn.SetWebRequest(WebRequest{
 		Header:    http.Header{},
 		URL:       &url.URL{Path: "path"},
 		Method:    "GET",
 		Transport: TransportHTTP,
-	}
-	txn := app.StartTransaction("My-Transaction")
-	txn.SetWebRequest(&webReq)
+	})
 }

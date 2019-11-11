@@ -234,7 +234,7 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 		Method:    req.Method(),
 		Transport: newrelic.TransportHTTP,
 	}
-	txn.SetWebRequest(&webReq)
+	txn.SetWebRequest(webReq)
 
 	return txn
 }

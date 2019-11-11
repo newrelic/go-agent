@@ -147,7 +147,7 @@ func (txn *txn) lazilyCalculateSampled() bool {
 	return txn.BetterCAT.Sampled
 }
 
-func (txn *txn) SetWebRequest(r *WebRequest) error {
+func (txn *txn) SetWebRequest(r WebRequest) error {
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -158,9 +158,6 @@ func (txn *txn) SetWebRequest(r *WebRequest) error {
 	// Any call to SetWebRequest should indicate a web transaction.
 	txn.IsWeb = true
 
-	if nil == r {
-		return nil
-	}
 	h := r.Header
 	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)

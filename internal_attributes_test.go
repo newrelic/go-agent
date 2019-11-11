@@ -521,7 +521,7 @@ func TestRequestURIPresent(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	txn.SetWebRequest(&WebRequest{URL: u})
+	txn.SetWebRequest(WebRequest{URL: u})
 	txn.NoticeError(errors.New("zap"))
 	txn.End()
 
@@ -572,7 +572,7 @@ func TestRequestURIExcluded(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
-	txn.SetWebRequest(&WebRequest{URL: u})
+	txn.SetWebRequest(WebRequest{URL: u})
 	txn.NoticeError(errors.New("zap"))
 	txn.End()
 
