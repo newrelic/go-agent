@@ -17,8 +17,10 @@ const (
 	// AttributeResponseCodeDeprecated is the response status code for a web
 	// request, the same value as AttributeResponseCode. To completely exclude
 	// this value from a destination, both AttributeResponseCode and
-	// AttributeResponseCodeDeprecated must be specified. This attribute is
-	// currently deprecated and will be removed in a later release.
+	// AttributeResponseCodeDeprecated must be specified.
+	//
+	// Deprecated: This attribute is currently deprecated and will be removed
+	// in a later release.
 	AttributeResponseCodeDeprecated = "httpResponseCode"
 	// AttributeRequestMethod is the request's method.
 	AttributeRequestMethod = "request.method"
@@ -48,9 +50,10 @@ const (
 	// AttributeRequestUserAgentDeprecated is the request's "User-Agent"
 	// header, the same value as AttributeRequestUserAgent. To completely
 	// exclude this value from a destination, both AttributeRequestUserAgent
-	// and AttributeRequestUserAgentDeprecated must be specified. This
-	// attribute is currently deprecated and will be removed in a later
-	// release.
+	// and AttributeRequestUserAgentDeprecated must be specified.
+	//
+	// Deprecated: This attribute is currently deprecated and will be removed
+	// in a later release.
 	AttributeRequestUserAgentDeprecated = "request.headers.User-Agent"
 	// AttributeRequestReferer is the request's "Referer" header.  Query
 	// string parameters are removed.
