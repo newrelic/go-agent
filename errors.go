@@ -2,27 +2,27 @@ package newrelic
 
 import "github.com/newrelic/go-agent/internal"
 
-// StackTracer can be implemented by errors to provide a stack trace when using
+// stackTracer can be implemented by errors to provide a stack trace when using
 // Transaction.NoticeError.
-type StackTracer interface {
+type stackTracer interface {
 	StackTrace() []uintptr
 }
 
-// ErrorClasser can be implemented by errors to provide a custom class when
+// errorClasser can be implemented by errors to provide a custom class when
 // using Transaction.NoticeError.
-type ErrorClasser interface {
+type errorClasser interface {
 	ErrorClass() string
 }
 
-// ErrorAttributer can be implemented by errors to provide extra context when
+// errorAttributer can be implemented by errors to provide extra context when
 // using Transaction.NoticeError.
-type ErrorAttributer interface {
+type errorAttributer interface {
 	ErrorAttributes() map[string]interface{}
 }
 
-// Error is an error that implements ErrorClasser, ErrorAttributer, and
-// StackTracer.  Use it with Transaction.NoticeError to directly control error
-// message, class, stacktrace, and attributes.
+// Error is an error designed for use with Transaction.NoticeError.  It allows
+// direct control over the recorded error's message, class, stacktrace, and
+// attributes.
 type Error struct {
 	// Message is the error message which will be returned by the Error()
 	// method.
@@ -39,9 +39,7 @@ type Error struct {
 	Stack []uintptr
 }
 
-// NewStackTrace generates a stack trace which can be assigned to the Error
-// struct's Stack field or returned by an error that implements the ErrorClasser
-// interface.
+// NewStackTrace generates a stack trace for the Error struct's Stack field.
 func NewStackTrace() []uintptr {
 	st := internal.GetStackTrace()
 	return []uintptr(st)
@@ -49,11 +47,11 @@ func NewStackTrace() []uintptr {
 
 func (e Error) Error() string { return e.Message }
 
-// ErrorClass implements the ErrorClasser interface.
+// ErrorClass returns the error's class.
 func (e Error) ErrorClass() string { return e.Class }
 
-// ErrorAttributes implements the ErrorAttributes interface.
+// ErrorAttributes returns the error's extra attributes.
 func (e Error) ErrorAttributes() map[string]interface{} { return e.Attributes }
 
-// StackTrace implements the StackTracer interface.
+// StackTrace returns the error's stack.
 func (e Error) StackTrace() []uintptr { return e.Stack }

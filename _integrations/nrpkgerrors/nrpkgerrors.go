@@ -15,10 +15,6 @@ import (
 
 func init() { internal.TrackUsage("integration", "pkg-errors") }
 
-type nrpkgerror struct {
-	error
-}
-
 // stackTracer is an error that also knows about its StackTrace.
 // All wrapped errors from github.com/pkg/errors implement this interface.
 type stackTracer interface {
@@ -54,20 +50,24 @@ func transformStackTrace(orig errors.StackTrace) []uintptr {
 	return st
 }
 
-func (e nrpkgerror) StackTrace() []uintptr {
-	st := deepestStackTrace(e.error)
+func stackTrace(e error) []uintptr {
+	st := deepestStackTrace(e)
 	if nil == st {
 		return nil
 	}
 	return transformStackTrace(st)
 }
 
-func (e nrpkgerror) ErrorClass() string {
-	if ec, ok := e.error.(newrelic.ErrorClasser); ok {
+type errorClasser interface {
+	ErrorClass() string
+}
+
+func errorClass(e error) string {
+	if ec, ok := e.(errorClasser); ok {
 		return ec.ErrorClass()
 	}
-	cause := errors.Cause(e.error)
-	if ec, ok := cause.(newrelic.ErrorClasser); ok {
+	cause := errors.Cause(e)
+	if ec, ok := cause.(errorClasser); ok {
 		return ec.ErrorClass()
 	}
 	return fmt.Sprintf("%T", cause)
@@ -77,5 +77,9 @@ func (e nrpkgerror) ErrorClass() string {
 // newrelic.Transaction.NoticeError it gives an improved stacktrace and class
 // type.
 func Wrap(e error) error {
-	return nrpkgerror{e}
+	return newrelic.Error{
+		Message: e.Error(),
+		Class:   errorClass(e),
+		Stack:   stackTrace(e),
+	}
 }

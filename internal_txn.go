@@ -483,21 +483,21 @@ func errorCause(err error) error {
 }
 
 func errorClassMethod(err error) string {
-	if ec, ok := err.(ErrorClasser); ok {
+	if ec, ok := err.(errorClasser); ok {
 		return ec.ErrorClass()
 	}
 	return ""
 }
 
 func errorStackTraceMethod(err error) internal.StackTrace {
-	if st, ok := err.(StackTracer); ok {
+	if st, ok := err.(stackTracer); ok {
 		return st.StackTrace()
 	}
 	return nil
 }
 
 func errorAttributesMethod(err error) map[string]interface{} {
-	if st, ok := err.(ErrorAttributer); ok {
+	if st, ok := err.(errorAttributer); ok {
 		return st.ErrorAttributes()
 	}
 	return nil

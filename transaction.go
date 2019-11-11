@@ -67,6 +67,19 @@ func (txn *Transaction) SetName(name string) {
 // 400 or below 100 that is not in the IgnoreStatusCodes configuration
 // list.  This method is unaffected by the IgnoreStatusCodes
 // configuration list.
+//
+// NoticeError examines whether the error implements the following optional
+// methods:
+//
+//   StackTrace() []uintptr
+//
+//   ErrorClass() string
+//
+//   ErrorAttributes() map[string]interface{}
+//
+// The newrelic.Error type, which implements these methods, is the recommended
+// way to directly control the recorded error's message, class, stacktrace,
+// and attributes.
 func (txn *Transaction) NoticeError(err error) {
 	if nil == txn {
 		return
