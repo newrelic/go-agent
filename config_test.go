@@ -2,7 +2,6 @@ package newrelic
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -38,7 +37,6 @@ func runLabelsTestCase(t *testing.T, js json.RawMessage) {
 		return
 	}
 
-	fmt.Println(tc.Name)
 	actual := getLabels(tc.LabelString)
 	if len(actual) != len(tc.Expected) {
 		t.Errorf("%s: incorrect number of elements: actual=%d expect=%d", tc.Name, len(actual), len(tc.Expected))
