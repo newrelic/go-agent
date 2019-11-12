@@ -265,7 +265,7 @@ func TestDistributedTracing(t *testing.T) {
 	w.writer = buf
 
 	dtHdr := http.Header{}
-	app.StartTransaction("hello").AddDistributedTracePayload(&dtHdr)
+	app.StartTransaction("hello").AddDistributedTracePayload(dtHdr)
 	req := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
 			"X-Forwarded-Port":                     "4000",

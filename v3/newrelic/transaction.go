@@ -223,7 +223,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls AddDistributedTracePayload, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
-func (txn *Transaction) AddDistributedTracePayload(hdrs *http.Header) {
+func (txn *Transaction) AddDistributedTracePayload(hdrs http.Header) {
 	if nil == txn || nil == txn.thread {
 		return
 	}

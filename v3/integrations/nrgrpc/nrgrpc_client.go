@@ -42,7 +42,7 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 		seg.Procedure = method
 
 		hdrs := http.Header{}
-		txn.AddDistributedTracePayload(&hdrs)
+		txn.AddDistributedTracePayload(hdrs)
 		if len(hdrs) > 0 {
 			md, ok := metadata.FromOutgoingContext(ctx)
 			if !ok {

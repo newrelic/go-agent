@@ -573,7 +573,7 @@ func TestNilTransaction(t *testing.T) {
 		t.Error(seg)
 	}
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) > 0 {
 		t.Error(hdrs)
 	}
@@ -615,7 +615,7 @@ func TestEmptyTransaction(t *testing.T) {
 		t.Error(start)
 	}
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) > 0 {
 		t.Error(hdrs)
 	}

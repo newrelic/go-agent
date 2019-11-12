@@ -238,7 +238,7 @@ func TestPayloadTransactionsDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) != 0 {
 		t.Fatal(hdrs)
 	}
@@ -251,7 +251,7 @@ func TestCreatePayloadFinished(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.End()
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) != 0 {
 		t.Fatal(hdrs)
 	}
@@ -284,7 +284,7 @@ func TestPayloadAcceptAfterCreate(t *testing.T) {
 	payload := makePayload(app.Application)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errOutboundPayloadCreated.Error(),
@@ -795,7 +795,7 @@ func TestCreateDistributedTraceCatDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	// empty/shim payload objects return empty strings
 	if len(hdrs) != 0 {
@@ -825,7 +825,7 @@ func TestCreateDistributedTraceBetterCatDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	if len(hdrs) != 0 {
 		t.Log("Non empty result of AddDistributedTracePayload() method:", hdrs)
@@ -853,7 +853,7 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	if len(hdrs) == 0 {
 		t.Log("Empty result of AddDistributedTracePayload() method:", hdrs)
@@ -900,7 +900,7 @@ func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs, "ty", "ac", "ap", "tr", "ti")
 
@@ -921,7 +921,7 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	if err := json.Unmarshal([]byte(hdrs.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
@@ -951,7 +951,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	if err := json.Unmarshal([]byte(hdrs.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
@@ -997,7 +997,7 @@ func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs,
 		"ty", "ac", "ap", "tr", "ti", "pr", "sa")
@@ -1036,7 +1036,7 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs,
 		"ty", "ac", "ap", "id", "tr", "ti", "pr", "sa")
@@ -1150,7 +1150,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	//call create each time an outbound payload appears in the testcase
 	for _, expect := range tc.OutboundPayloads {
 		hdrs := http.Header{}
-		txn.AddDistributedTracePayload(&hdrs)
+		txn.AddDistributedTracePayload(hdrs)
 		actual := hdrs.Get(DistributedTracePayloadHeader)
 		assertTestCaseOutboundPayload(expect, t, actual)
 	}
@@ -1324,7 +1324,7 @@ func TestCreatePayloadAppNotConnected(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) != 0 {
 		t.Error(hdrs)
 	}
@@ -1338,7 +1338,7 @@ func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
 	}, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) != 0 {
 		t.Error(hdrs)
 	}
@@ -1351,7 +1351,7 @@ func TestAcceptPayloadAppNotConnected(t *testing.T) {
 	txn := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) == 0 {
 		t.Fatal(hdrs)
 	}
@@ -1372,7 +1372,7 @@ func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
 	txn := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if len(hdrs) == 0 {
 		t.Fatal(hdrs)
 	}

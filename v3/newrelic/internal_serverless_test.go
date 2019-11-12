@@ -20,7 +20,7 @@ func TestServerlessDistributedTracingConfigPresent(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	hdrs := http.Header{}
-	app.StartTransaction("hello").AddDistributedTracePayload(&hdrs)
+	app.StartTransaction("hello").AddDistributedTracePayload(hdrs)
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, hdrs)
 	txn.End()
@@ -48,7 +48,7 @@ func TestServerlessDistributedTracingConfigPartiallyPresent(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	hdrs := http.Header{}
-	app.StartTransaction("hello").AddDistributedTracePayload(&hdrs)
+	app.StartTransaction("hello").AddDistributedTracePayload(hdrs)
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, hdrs)
 	txn.End()
@@ -74,7 +74,7 @@ func TestServerlessDistributedTracingConfigTrustKeyAbsent(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	hdrs := http.Header{}
-	app.StartTransaction("hello").AddDistributedTracePayload(&hdrs)
+	app.StartTransaction("hello").AddDistributedTracePayload(hdrs)
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTracePayload(TransportHTTP, hdrs)
 	txn.End()
@@ -101,7 +101,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	emptyHdrs := http.Header{}
-	txn.AddDistributedTracePayload(&emptyHdrs)
+	txn.AddDistributedTracePayload(emptyHdrs)
 	if len(emptyHdrs) != 0 {
 		t.Error(emptyHdrs)
 	}
@@ -112,7 +112,7 @@ func TestServerlessDistributedTracingConfigAbsent(t *testing.T) {
 		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
 		cfg.ServerlessMode.PrimaryAppID = "456"
 	}, t)
-	app2.StartTransaction("hello").AddDistributedTracePayload(&nonEmptyHdrs)
+	app2.StartTransaction("hello").AddDistributedTracePayload(nonEmptyHdrs)
 	if len(nonEmptyHdrs) == 0 {
 		t.Error(nonEmptyHdrs)
 	}

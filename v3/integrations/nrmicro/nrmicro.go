@@ -52,7 +52,7 @@ func startMessage(ctx context.Context, topic string) (context.Context, *newrelic
 
 func addDTPayloadToContext(ctx context.Context, txn *newrelic.Transaction) context.Context {
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	if txt := hdrs.Get(newrelic.DistributedTracePayloadHeader); "" != txt {
 		md, _ := metadata.FromContext(ctx)
 		md = metadata.Copy(md)

@@ -39,7 +39,7 @@ func calling(app *newrelic.Application) {
 
 	// Create a payload, start the called process and pass the payload.
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(&hdrs)
+	txn.AddDistributedTracePayload(hdrs)
 	cmd := exec.Command(os.Args[0], hdrs.Get(newrelic.DistributedTracePayloadHeader))
 	cmd.Start()
 
