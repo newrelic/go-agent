@@ -435,7 +435,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	p.TracedID = "trace-id"
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p.Text()))
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "9d2c19bd03daf755" {
@@ -573,11 +573,11 @@ func TestNilTransaction(t *testing.T) {
 		t.Error(seg)
 	}
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) > 0 {
 		t.Error(hdrs)
 	}
-	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
 		t.Error(app)
 	}
@@ -615,11 +615,11 @@ func TestEmptyTransaction(t *testing.T) {
 		t.Error(start)
 	}
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) > 0 {
 		t.Error(hdrs)
 	}
-	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, nil)
 	if app := txn.Application(); app != nil {
 		t.Error(app)
 	}

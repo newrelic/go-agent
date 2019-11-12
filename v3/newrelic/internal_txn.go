@@ -977,7 +977,7 @@ func (thd *thread) CreateDistributedTracePayload() (payload *DistributedTracePay
 
 var (
 	errOutboundPayloadCreated   = errors.New("outbound payload already created")
-	errAlreadyAccepted          = errors.New("AcceptDistributedTracePayload has already been called")
+	errAlreadyAccepted          = errors.New("AcceptDistributedTraceHeaders has already been called")
 	errInboundPayloadDTDisabled = errors.New("DistributedTracer must be enabled to accept an inbound payload")
 	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )

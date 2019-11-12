@@ -93,7 +93,7 @@ func TestPayloadConnection(t *testing.T) {
 	payload := makePayload(app.Application)
 	ip := payload.internalPayload
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -122,9 +122,9 @@ func TestAcceptMultiple(t *testing.T) {
 	ip := payload.internalPayload
 	p := newDefaultDistributedTracePayload(ip.Text())
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, p)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, p)
 	app.expectNoLoggedErrors(t)
-	txn.AcceptDistributedTracePayload(TransportHTTP, p)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, p)
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errAlreadyAccepted.Error(),
 	})
@@ -165,7 +165,7 @@ func TestPayloadConnectionHTTPSafe(t *testing.T) {
 	if !validBase64(p) {
 		t.Error(p)
 	}
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -195,7 +195,7 @@ func TestPayloadConnectionNotConnected(t *testing.T) {
 	if nil != payload {
 		t.Fatal(payload)
 	}
-	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, nil)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -220,7 +220,7 @@ func TestPayloadConnectionBetterCatDisabled(t *testing.T) {
 	if nil != payload {
 		t.Fatal(payload)
 	}
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errInboundPayloadDTDisabled.Error(),
 	})
@@ -238,7 +238,7 @@ func TestPayloadTransactionsDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) != 0 {
 		t.Fatal(hdrs)
 	}
@@ -251,7 +251,7 @@ func TestCreatePayloadFinished(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.End()
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) != 0 {
 		t.Fatal(hdrs)
 	}
@@ -263,7 +263,7 @@ func TestAcceptPayloadFinished(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.End()
 	app.expectNoLoggedErrors(t)
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errAlreadyEnded.Error(),
 	})
@@ -284,8 +284,8 @@ func TestPayloadAcceptAfterCreate(t *testing.T) {
 	payload := makePayload(app.Application)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
+	txn.InsertDistributedTraceHeaders(hdrs)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errOutboundPayloadCreated.Error(),
 	})
@@ -330,7 +330,7 @@ func TestPayloadFromApplicationEmptyTransportType(t *testing.T) {
                               "ti":1488325987402
                               }
 		}`
-	txn.AcceptDistributedTracePayload(emptyTransport, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(emptyTransport, newDefaultDistributedTracePayload(p))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -374,7 +374,7 @@ func TestPayloadFutureVersion(t *testing.T) {
 				"ti":1488325987402
 			}
 		}`
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "unsupported major version number 100",
 	})
@@ -401,7 +401,7 @@ func TestPayloadParsingError(t *testing.T) {
 			"v":[0,1],
 			"d":[]
 		}`
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "unable to parse inbound payload: json: cannot unmarshal array into Go value of type internal.Payload",
 	})
@@ -427,7 +427,7 @@ func TestPayloadFromFuture(t *testing.T) {
 	ip := payload.internalPayload
 	ip.Timestamp.Set(time.Now().Add(1 * time.Hour))
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -456,7 +456,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 	ip := payload.internalPayload
 	ip.Account = "12345"
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(ip.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errTrustedAccountKey.Error(),
 	})
@@ -490,7 +490,7 @@ func TestPayloadMissingVersion(t *testing.T) {
 				"ti":1488325987402
 			}
 		}`
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "payload is missing required fields: missing v",
 	})
@@ -516,7 +516,7 @@ func TestTrustedAccountKeyPayloadHasKeyAndMatches(t *testing.T) {
 		}
 	}`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -540,7 +540,7 @@ func TestTrustedAccountKeyPayloadHasKeyAndDoesNotMatch(t *testing.T) {
 		}
 	}`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errTrustedAccountKey.Error(),
 	})
@@ -566,7 +566,7 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdMatches(t *testing.T) {
 		}
 	}`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -589,7 +589,7 @@ func TestTrustedAccountKeyPayloadMissingKeyAndAccountIdDoesNotMatch(t *testing.T
 		}
 	}`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errTrustedAccountKey.Error(),
 	})
@@ -612,7 +612,7 @@ func TestNilPayload(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, nil)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, nil)
 	app.expectNoLoggedErrors(t)
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -655,7 +655,7 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "payload is missing required fields: missing both guid/id and TransactionId/tx",
@@ -683,7 +683,7 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "payload is missing required fields: missing v",
 	})
@@ -710,7 +710,7 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "payload is missing required fields: missing Account/ac",
@@ -738,7 +738,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "unable to parse inbound payload: unexpected end of JSON input",
@@ -756,7 +756,7 @@ func TestErrorsByCaller(t *testing.T) {
 
 	txn := app.StartTransaction("hello")
 	payload := makePayload(app.Application)
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectNoLoggedErrors(t)
 
 	txn.NoticeError(errors.New("oh no"))
@@ -795,11 +795,11 @@ func TestCreateDistributedTraceCatDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	// empty/shim payload objects return empty strings
 	if len(hdrs) != 0 {
-		t.Log("Non empty result of AddDistributedTracePayload() method:", hdrs)
+		t.Log("Non empty result of InsertDistributedTraceHeaders() method:", hdrs)
 		t.Fail()
 	}
 	txn.End()
@@ -825,10 +825,10 @@ func TestCreateDistributedTraceBetterCatDisabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	if len(hdrs) != 0 {
-		t.Log("Non empty result of AddDistributedTracePayload() method:", hdrs)
+		t.Log("Non empty result of InsertDistributedTraceHeaders() method:", hdrs)
 		t.Fail()
 	}
 
@@ -853,10 +853,10 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	if len(hdrs) == 0 {
-		t.Log("Empty result of AddDistributedTracePayload() method:", hdrs)
+		t.Log("Empty result of InsertDistributedTraceHeaders() method:", hdrs)
 		t.Fail()
 	}
 
@@ -900,7 +900,7 @@ func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs, "ty", "ac", "ap", "tr", "ti")
 
@@ -921,7 +921,7 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	if err := json.Unmarshal([]byte(hdrs.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
@@ -951,7 +951,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	if err := json.Unmarshal([]byte(hdrs.Get(DistributedTracePayloadHeader)), &payloadData); nil != err {
 		t.Log("Could not marshall payload into test struct")
@@ -993,11 +993,11 @@ func TestCreateDistributedTraceAfterAcceptSampledTrue(t *testing.T) {
 	}
 }`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectNoLoggedErrors(t)
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs,
 		"ty", "ac", "ap", "tr", "ti", "pr", "sa")
@@ -1032,11 +1032,11 @@ func TestCreateDistributedTraceAfterAcceptSampledNotSet(t *testing.T) {
 	}
 }`
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(p))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p))
 	app.expectNoLoggedErrors(t)
 
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 
 	testPayloadFieldsPresent(t, hdrs,
 		"ty", "ac", "ap", "id", "tr", "ti", "pr", "sa")
@@ -1138,19 +1138,19 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 
 	// If there are no inbound payloads, invoke Accept on an empty inbound payload.
 	if nil == tc.InboundPayloads {
-		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), nil)
+		txn.AcceptDistributedTraceHeaders(getTransport(tc.TransportType), nil)
 	}
 
 	for _, value := range tc.InboundPayloads {
 		// Note that the error return value is not tested here because
 		// some of the tests are intentionally errors.
-		txn.AcceptDistributedTracePayload(getTransport(tc.TransportType), newDefaultDistributedTracePayload(string(value)))
+		txn.AcceptDistributedTraceHeaders(getTransport(tc.TransportType), newDefaultDistributedTracePayload(string(value)))
 	}
 
 	//call create each time an outbound payload appears in the testcase
 	for _, expect := range tc.OutboundPayloads {
 		hdrs := http.Header{}
-		txn.AddDistributedTracePayload(hdrs)
+		txn.InsertDistributedTraceHeaders(hdrs)
 		actual := hdrs.Get(DistributedTracePayloadHeader)
 		assertTestCaseOutboundPayload(expect, t, actual)
 	}
@@ -1307,7 +1307,7 @@ func TestDistributedTraceDisabledSpanEventsEnabled(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, disableDistributedTracerEnableSpanEvents, t)
 	payload := makePayload(app.Application)
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTracePayload(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(payload.Text()))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": errInboundPayloadDTDisabled.Error(),
 	})
@@ -1324,7 +1324,7 @@ func TestCreatePayloadAppNotConnected(t *testing.T) {
 	app := testApp(nil, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) != 0 {
 		t.Error(hdrs)
 	}
@@ -1338,7 +1338,7 @@ func TestCreatePayloadReplyMissingTrustKey(t *testing.T) {
 	}, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) != 0 {
 		t.Error(hdrs)
 	}
@@ -1351,12 +1351,12 @@ func TestAcceptPayloadAppNotConnected(t *testing.T) {
 	txn := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) == 0 {
 		t.Fatal(hdrs)
 	}
 	txn2 := app.StartTransaction("hello")
-	txn2.AcceptDistributedTracePayload(TransportHTTP, hdrs)
+	txn2.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	app.expectNoLoggedErrors(t)
 	txn2.End()
 	app.ExpectMetrics(t, backgroundUnknownCaller)
@@ -1372,12 +1372,12 @@ func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
 	txn := testApp(distributedTracingReplyFields, enableBetterCAT, t).
 		StartTransaction("name")
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	if len(hdrs) == 0 {
 		t.Fatal(hdrs)
 	}
 	txn2 := app.StartTransaction("hello")
-	txn2.AcceptDistributedTracePayload(TransportHTTP, hdrs)
+	txn2.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	app.expectNoLoggedErrors(t)
 	txn2.End()
 	app.ExpectMetrics(t, backgroundUnknownCaller)

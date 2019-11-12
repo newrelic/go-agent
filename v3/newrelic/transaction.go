@@ -216,14 +216,14 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 	}
 }
 
-// AddDistributedTracePayload adds a Distributed Trace header used to link
-// transactions.  AddDistributedTracePayload should be called every
+// InsertDistributedTraceHeaders adds a Distributed Trace header used to link
+// transactions.  InsertDistributedTraceHeaders should be called every
 // time an outbound call is made since the payload contains a timestamp.
 //
-// StartExternalSegment calls AddDistributedTracePayload, so you
+// StartExternalSegment calls InsertDistributedTraceHeaders, so you
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
-func (txn *Transaction) AddDistributedTracePayload(hdrs http.Header) {
+func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if nil == txn || nil == txn.thread {
 		return
 	}
@@ -234,17 +234,17 @@ func (txn *Transaction) AddDistributedTracePayload(hdrs http.Header) {
 	hdrs.Set(DistributedTracePayloadHeader, payload.Text())
 }
 
-// AcceptDistributedTracePayload links transactions by accepting a
+// AcceptDistributedTraceHeaders links transactions by accepting a
 // distributed trace payload from another transaction.
 //
 // Application.StartTransaction calls this method automatically if a
 // payload is present in the request headers.  Therefore, this method
 // does not need to be used for typical HTTP transactions.
 //
-// AcceptDistributedTracePayload should be used as early in the
+// AcceptDistributedTraceHeaders should be used as early in the
 // transaction as possible.  It may not be called after a call to
 // CreateDistributedTracePayload.
-func (txn *Transaction) AcceptDistributedTracePayload(t TransportType, payload http.Header) {
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, payload http.Header) {
 	if nil == txn {
 		return
 	}
@@ -402,9 +402,8 @@ const (
 	DistributedTracePayloadHeader = "Newrelic"
 )
 
-// TransportType is used in Transaction.AcceptDistributedTracePayload to
-// represent the type of connection that the trace payload was transported
-// over.
+// TransportType is used in Transaction.AcceptDistributedTraceHeaders() to
+// represent the type of connection that the trace payload was transported over.
 type TransportType string
 
 // TransportType names used across New Relic agents:

@@ -29,7 +29,7 @@ func called(app *newrelic.Application, payload string) {
 	// Accept the payload that was passed on the command line.
 	hdrs := http.Header{}
 	hdrs.Set(newrelic.DistributedTracePayloadHeader, payload)
-	txn.AcceptDistributedTracePayload(newrelic.TransportOther, hdrs)
+	txn.AcceptDistributedTraceHeaders(newrelic.TransportOther, hdrs)
 	time.Sleep(1 * time.Second)
 }
 
@@ -39,7 +39,7 @@ func calling(app *newrelic.Application) {
 
 	// Create a payload, start the called process and pass the payload.
 	hdrs := http.Header{}
-	txn.AddDistributedTracePayload(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
 	cmd := exec.Command(os.Args[0], hdrs.Get(newrelic.DistributedTracePayloadHeader))
 	cmd.Start()
 
