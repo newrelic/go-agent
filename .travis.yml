@@ -3,58 +3,63 @@ go_import_path: github.com/newrelic/go-agent
 
 matrix:
   include:
-  - go: "1.3"
-  - go: "1.4"
-  - go: "1.5"
-  - go: "1.6"
   - go: "1.7"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.8"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.9"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.10"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.11"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.12"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.13"
+    env: DIRS=v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext,v3/integrations/nrawssdk/internal
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrawssdk
+    env: DIRS=v3/integrations/nrawssdk/v1
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrecho
+    env: DIRS=v3/integrations/nrawssdk/v2
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrgin/v1
+    env: DIRS=v3/integrations/nrecho
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrgorilla/v1
+    env: DIRS=v3/integrations/nrgin/v1
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrlogrus
+    env: DIRS=v3/integrations/nrgorilla/v1
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrlogxi/v1
+    env: DIRS=v3/integrations/nrlogrus
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrpkgerrors
+    env: DIRS=v3/integrations/nrlogxi/v1
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrlambda
+    env: DIRS=v3/integrations/nrpkgerrors
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrmysql
+    env: DIRS=v3/integrations/nrlambda
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrpq
+    env: DIRS=v3/integrations/nrmysql
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrsqlite3
+    env: DIRS=v3/integrations/nrpq
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrgrpc
+    env: DIRS=v3/integrations/nrsqlite3
+  - go: "1.13"
+    env: DIRS=v3/integrations/nrgrpc
   # As of October 2019, errors result from go get -u github.com/micro/go-micro
   # - go: "1.13"
-  #   env: INTEGRATION=_integrations/nrmicro
+  #   env: DIRS=v3/integrations/nrmicro
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrnats
+    env: DIRS=v3/integrations/nrnats
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrstan
+    env: DIRS=v3/integrations/nrstan
   - go: "1.13"
-    env: INTEGRATION=_integrations/logcontext
+    env: DIRS=v3/integrations/logcontext
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrzap
+    env: DIRS=v3/integrations/nrzap
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrhttprouter
+    env: DIRS=v3/integrations/nrhttprouter
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrb3
+    env: DIRS=v3/integrations/nrb3
   - go: "1.13"
-    env: INTEGRATION=_integrations/nrmongo
+    env: DIRS=v3/integrations/nrmongo
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
