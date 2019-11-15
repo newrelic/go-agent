@@ -3,26 +3,26 @@ package nrawssdk
 
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
-	internal "github.com/newrelic/go-agent/v3/integrations/nrawssdk/internal"
-	agentinternal "github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/awssupport"
 )
 
-func init() { agentinternal.TrackUsage("integration", "library", "aws-sdk-go-v2") }
+func init() { internal.TrackUsage("integration", "library", "aws-sdk-go-v2") }
 
 func startSegment(req *aws.Request) {
-	input := internal.StartSegmentInputs{
+	input := awssupport.StartSegmentInputs{
 		HTTPRequest: req.HTTPRequest,
 		ServiceName: req.Metadata.ServiceName,
 		Operation:   req.Operation.Name,
 		Region:      req.Metadata.SigningRegion,
 		Params:      req.Params,
 	}
-	req.HTTPRequest = internal.StartSegment(input)
+	req.HTTPRequest = awssupport.StartSegment(input)
 }
 
 func endSegment(req *aws.Request) {
 	ctx := req.HTTPRequest.Context()
-	internal.EndSegment(ctx, req.HTTPResponse.Header)
+	awssupport.EndSegment(ctx, req.HTTPResponse.Header)
 }
 
 // InstrumentHandlers will add instrumentation to the given *aws.Handlers.

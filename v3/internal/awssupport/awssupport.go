@@ -1,4 +1,6 @@
-package internal
+// +build go1.8
+
+package awssupport
 
 import (
 	"context"
@@ -36,7 +38,8 @@ func getTableName(params interface{}) string {
 	return tableName
 }
 
-func getRequestID(hdr http.Header) string {
+// GetRequestID looks for the AWS request ID header.
+func GetRequestID(hdr http.Header) string {
 	id := hdr.Get("X-Amzn-Requestid")
 	if id == "" {
 		// Alternative version of request id in the header
@@ -90,7 +93,7 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 // EndSegment will end any segment found in the given context.
 func EndSegment(ctx context.Context, hdr http.Header) {
 	if segment, ok := ctx.Value(segmentContextKey).(endable); ok {
-		if id := getRequestID(hdr); "" != id {
+		if id := GetRequestID(hdr); "" != id {
 			txn := newrelic.FromContext(ctx)
 			integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRequestID, id)
 		}

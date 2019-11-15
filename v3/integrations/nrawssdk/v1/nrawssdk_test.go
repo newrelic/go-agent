@@ -5,15 +5,18 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/private/protocol/rest"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/awssupport"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -583,4 +586,49 @@ func TestNoRequestIDFound(t *testing.T) {
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		genericSpan, externalSpanNoRequestID})
+}
+
+func TestGetRequestID(t *testing.T) {
+	primary := "X-Amzn-Requestid"
+	secondary := "X-Amz-Request-Id"
+
+	testcases := []struct {
+		hdr      http.Header
+		expected string
+	}{
+		{hdr: http.Header{
+			"hello": []string{"world"},
+		}, expected: ""},
+
+		{hdr: http.Header{
+			strings.ToUpper(primary): []string{"hello"},
+		}, expected: ""},
+
+		{hdr: http.Header{
+			primary: []string{"hello"},
+		}, expected: "hello"},
+
+		{hdr: http.Header{
+			secondary: []string{"hello"},
+		}, expected: "hello"},
+
+		{hdr: http.Header{
+			primary:   []string{"hello"},
+			secondary: []string{"world"},
+		}, expected: "hello"},
+	}
+
+	// Make sure our assumptions still hold against aws-sdk-go
+	for _, test := range testcases {
+		req := &request.Request{
+			HTTPResponse: &http.Response{
+				Header: test.hdr,
+			},
+		}
+		rest.UnmarshalMeta(req)
+		if out := awssupport.GetRequestID(test.hdr); req.RequestID != out {
+			t.Error("requestId assumptions incorrect", out, req.RequestID,
+				test.hdr, test.expected)
+		}
+	}
 }
