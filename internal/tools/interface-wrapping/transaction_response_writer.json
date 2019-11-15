@@ -1,0 +1,14 @@
+{
+	"comment": "used in internal_response_writer.go",
+	"variable_name": "thd",
+	"test_variable_name": "thd.txn.writer",
+	"required_interfaces": [
+		"threadWithExtras"
+	],
+	"optional_interfaces": [
+		"http.CloseNotifier",
+		"http.Flusher",
+		"http.Hijacker",
+		"io.ReaderFrom"
+	]
+}

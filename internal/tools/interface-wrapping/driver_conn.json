@@ -1,0 +1,18 @@
+{
+	"comment": "used in wrapping driver.Conn",
+	"variable_name": "conn",
+	"test_variable_name": "conn.original",
+	"required_interfaces": [
+		"driver.Conn"
+	],
+	"optional_interfaces": [
+		"driver.ConnBeginTx",
+		"driver.ConnPrepareContext",
+		"driver.Execer",
+		"driver.ExecerContext",
+		"driver.NamedValueChecker",
+		"driver.Pinger",
+		"driver.Queryer",
+		"driver.QueryerContext"
+	]
+}
