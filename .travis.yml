@@ -24,7 +24,9 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/nrecho
   - go: "1.13"
-    env: DIRS=v3/integrations/nrgin/v1
+    env:
+      - DIRS=v3/integrations/nrgin/v1
+      - TESTMASTER=github.com/gin-gonic/gin
   - go: "1.13"
     env: DIRS=v3/integrations/nrgorilla/v1
   - go: "1.13"
@@ -34,13 +36,17 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/nrpkgerrors
   - go: "1.13"
-    env: DIRS=v3/integrations/nrlambda
+    env:
+      - DIRS=v3/integrations/nrlambda
+      - TESTMASTER=github.com/aws/aws-lambda-go
   - go: "1.13"
     env: DIRS=v3/integrations/nrmysql
   - go: "1.13"
     env: DIRS=v3/integrations/nrpq
   - go: "1.13"
-    env: DIRS=v3/integrations/nrsqlite3
+    env:
+      - DIRS=v3/integrations/nrsqlite3
+      - TESTMASTER=github.com/mattn/go-sqlite3
   - go: "1.13"
     env: DIRS=v3/integrations/nrgrpc
   # As of October 2019, errors result from go get -u github.com/micro/go-micro

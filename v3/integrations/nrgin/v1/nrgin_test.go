@@ -174,11 +174,21 @@ func errorStatus(c *gin.Context) {
 	c.String(500, "an error happened")
 }
 
+const (
+	// The Gin.Context.Status method behavior changed with this pull
+	// request: https://github.com/gin-gonic/gin/pull/1606.  This change
+	// affects our ability to instrument the response code. In Gin v1.4.0
+	// and below, we always recorded a 200 status, whereas with newer Gin
+	// versions we now correctly capture the status.
+	statusFixVersion = "v1.4.0-dev"
+)
+
 func TestStatusCodes(t *testing.T) {
 	// Test that we are correctly able to collect status code.
-	// This behavior changed with this pull request: https://github.com/gin-gonic/gin/pull/1606
-	// In Gin v1.4.0 and below, we always recorded a 200 status, whereas with
-	// newer Gin versions we now correctly capture the status.
+	expectCode := 200
+	if gin.Version == statusFixVersion {
+		expectCode = 500
+	}
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app.Application))
@@ -203,8 +213,8 @@ func TestStatusCodes(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":             500,
-			"response.statusCode":          500,
+			"httpResponseCode":             expectCode,
+			"response.statusCode":          expectCode,
 			"request.method":               "GET",
 			"request.uri":                  "/err",
 			"response.headers.contentType": "text/plain; charset=utf-8",
@@ -219,6 +229,10 @@ func noBody(c *gin.Context) {
 func TestNoResponseBody(t *testing.T) {
 	// Test that when no response body is sent (i.e. c.Writer.Write is never
 	// called) that we still capture status code.
+	expectCode := 200
+	if gin.Version == statusFixVersion {
+		expectCode = 500
+	}
 	app := integrationsupport.NewBasicTestApp()
 	router := gin.Default()
 	router.Use(Middleware(app.Application))
@@ -243,8 +257,8 @@ func TestNoResponseBody(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":    500,
-			"response.statusCode": 500,
+			"httpResponseCode":    expectCode,
+			"response.statusCode": expectCode,
 			"request.method":      "GET",
 			"request.uri":         "/nobody",
 		},
