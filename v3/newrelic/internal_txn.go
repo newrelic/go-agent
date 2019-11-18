@@ -161,7 +161,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 	h := r.Header
 	if nil != h {
 		txn.Queuing = internal.QueueDuration(h, txn.Start)
-		txn.acceptDistributedTracePayloadLocked(r.Transport, h)
+		txn.acceptDistributedTraceHeadersLocked(r.Transport, h)
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
@@ -982,14 +982,14 @@ var (
 	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )
 
-func (txn *txn) AcceptDistributedTracePayload(t TransportType, payload http.Header) error {
+func (txn *txn) AcceptDistributedTraceHeaders(t TransportType, payload http.Header) error {
 	txn.Lock()
 	defer txn.Unlock()
 
-	return txn.acceptDistributedTracePayloadLocked(t, payload)
+	return txn.acceptDistributedTraceHeadersLocked(t, payload)
 }
 
-func (txn *txn) acceptDistributedTracePayloadLocked(t TransportType, p http.Header) error {
+func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Header) error {
 
 	if !txn.BetterCAT.Enabled {
 		return errInboundPayloadDTDisabled

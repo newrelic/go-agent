@@ -251,7 +251,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, payload h
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.AcceptDistributedTracePayload(t, payload), "accept trace payload")
+	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, payload), "accept trace payload")
 }
 
 // Application returns the Application which started the transaction.
