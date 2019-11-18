@@ -48,7 +48,11 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 			if !ok {
 				md = metadata.New(nil)
 			}
-			md.Set(newrelic.DistributedTracePayloadHeader, hdrs.Get(newrelic.DistributedTracePayloadHeader))
+			for k := range hdrs {
+				if v := hdrs.Get(k); v != "" {
+					md.Set(k, v)
+				}
+			}
 			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
 	}

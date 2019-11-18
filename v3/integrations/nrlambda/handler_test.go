@@ -266,13 +266,16 @@ func TestDistributedTracing(t *testing.T) {
 
 	dtHdr := http.Header{}
 	app.StartTransaction("hello").InsertDistributedTraceHeaders(dtHdr)
-	req := events.APIGatewayProxyRequest{
-		Headers: map[string]string{
-			"X-Forwarded-Port":                     "4000",
-			"X-Forwarded-Proto":                    "HTTPS",
-			newrelic.DistributedTracePayloadHeader: dtHdr.Get(newrelic.DistributedTracePayloadHeader),
-		},
+	hdr := map[string]string{
+		"X-Forwarded-Port":  "4000",
+		"X-Forwarded-Proto": "HTTPS",
 	}
+	for k := range dtHdr {
+		if v := dtHdr.Get(k); v != "" {
+			hdr[k] = v
+		}
+	}
+	req := events.APIGatewayProxyRequest{Headers: hdr}
 	reqbytes, err := json.Marshal(req)
 	if err != nil {
 		t.Error("unable to marshal json", err)

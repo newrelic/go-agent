@@ -53,10 +53,14 @@ func startMessage(ctx context.Context, topic string) (context.Context, *newrelic
 func addDTPayloadToContext(ctx context.Context, txn *newrelic.Transaction) context.Context {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
-	if txt := hdrs.Get(newrelic.DistributedTracePayloadHeader); "" != txt {
+	if len(hdrs) > 0 {
 		md, _ := metadata.FromContext(ctx)
 		md = metadata.Copy(md)
-		md[newrelic.DistributedTracePayloadHeader] = txt
+		for k := range hdrs {
+			if v := hdrs.Get(k); v != "" {
+				md[k] = v
+			}
+		}
 		ctx = metadata.NewContext(ctx, md)
 	}
 	return ctx
@@ -200,10 +204,11 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 			txn := app.StartTransaction(namer.Name())
 			defer txn.End()
 			integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, m.Topic(), nil)
-			md, ok := metadata.FromContext(ctx)
-			hdrs := http.Header{}
-			hdrs.Set(newrelic.DistributedTracePayloadHeader, md[newrelic.DistributedTracePayloadHeader])
-			if ok {
+			if md, ok := metadata.FromContext(ctx); ok {
+				hdrs := http.Header{}
+				for k, v := range md {
+					hdrs.Set(k, v)
+				}
 				txn.AcceptDistributedTraceHeaders(newrelic.TransportHTTP, hdrs)
 			}
 			ctx = newrelic.NewContext(ctx, txn)
