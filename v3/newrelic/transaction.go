@@ -368,19 +368,19 @@ func (txn *Transaction) IsSampled() bool {
 	return txn.thread.IsSampled()
 }
 
-// DistributedTracePayload traces requests between applications or processes.
+// distributedTracePayload traces requests between applications or processes.
 // DistributedTracePayloads are automatically added to HTTP requests by
 // StartExternalSegment, so you only need to use this if you are tracing through
 // a message queue or another non-HTTP communication library.  The
-// DistributedTracePayload may be marshalled in one of two formats: HTTPSafe or
+// distributedTracePayload may be marshalled in one of two formats: HTTPSafe or
 // Text.  All New Relic agents can accept payloads in either format.
-type DistributedTracePayload struct {
+type distributedTracePayload struct {
 	internalPayload internal.Payload
 }
 
 // HTTPSafe serializes the payload into a string containing http safe
 // characters.
-func (p *DistributedTracePayload) HTTPSafe() string {
+func (p *distributedTracePayload) HTTPSafe() string {
 	if nil == p {
 		return ""
 	}
@@ -389,7 +389,7 @@ func (p *DistributedTracePayload) HTTPSafe() string {
 
 // Text serializes the payload into a string.  The format is slightly
 // more compact than HTTPSafe.
-func (p *DistributedTracePayload) Text() string {
+func (p *distributedTracePayload) Text() string {
 	if nil == p {
 		return ""
 	}

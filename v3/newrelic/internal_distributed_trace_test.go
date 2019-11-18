@@ -42,7 +42,7 @@ func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
 	reply.TrustedAccountKey = "789"
 }
 
-func makePayload(app *Application) *DistributedTracePayload {
+func makePayload(app *Application) *distributedTracePayload {
 	txn := app.StartTransaction("hello")
 	return txn.thread.CreateDistributedTracePayload()
 }

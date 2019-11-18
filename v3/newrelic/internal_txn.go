@@ -920,7 +920,7 @@ const (
 	maxSampledDistributedPayloads = 35
 )
 
-func (thd *thread) CreateDistributedTracePayload() (payload *DistributedTracePayload) {
+func (thd *thread) CreateDistributedTracePayload() (payload *distributedTracePayload) {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
@@ -971,7 +971,7 @@ func (thd *thread) CreateDistributedTracePayload() (payload *DistributedTracePay
 
 	txn.CreatePayloadSuccess = true
 
-	payload = &DistributedTracePayload{internalPayload: p}
+	payload = &distributedTracePayload{internalPayload: p}
 	return
 }
 
