@@ -8,8 +8,6 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -267,29 +265,6 @@ type TestApplicationServer interface {
 	DoStreamStream(TestApplication_DoStreamStreamServer) error
 	DoUnaryUnaryError(context.Context, *Message) (*Message, error)
 	DoUnaryStreamError(*Message, TestApplication_DoUnaryStreamErrorServer) error
-}
-
-// UnimplementedTestApplicationServer can be embedded to have forward compatible implementations.
-type UnimplementedTestApplicationServer struct {
-}
-
-func (*UnimplementedTestApplicationServer) DoUnaryUnary(ctx context.Context, req *Message) (*Message, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DoUnaryUnary not implemented")
-}
-func (*UnimplementedTestApplicationServer) DoUnaryStream(req *Message, srv TestApplication_DoUnaryStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method DoUnaryStream not implemented")
-}
-func (*UnimplementedTestApplicationServer) DoStreamUnary(srv TestApplication_DoStreamUnaryServer) error {
-	return status.Errorf(codes.Unimplemented, "method DoStreamUnary not implemented")
-}
-func (*UnimplementedTestApplicationServer) DoStreamStream(srv TestApplication_DoStreamStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method DoStreamStream not implemented")
-}
-func (*UnimplementedTestApplicationServer) DoUnaryUnaryError(ctx context.Context, req *Message) (*Message, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DoUnaryUnaryError not implemented")
-}
-func (*UnimplementedTestApplicationServer) DoUnaryStreamError(req *Message, srv TestApplication_DoUnaryStreamErrorServer) error {
-	return status.Errorf(codes.Unimplemented, "method DoUnaryStreamError not implemented")
 }
 
 func RegisterTestApplicationServer(s *grpc.Server, srv TestApplicationServer) {
