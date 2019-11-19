@@ -32,7 +32,9 @@ matrix:
       - DIRS=v3/integrations/nrgorilla/v1
       - TESTMASTER=github.com/gorilla/mux
   - go: "1.13"
-    env: DIRS=v3/integrations/nrlogrus
+    env:
+      - DIRS=v3/integrations/nrlogrus
+      - TESTMASTER=github.com/sirupsen/logrus
   - go: "1.13"
     env: DIRS=v3/integrations/nrlogxi/v1
   - go: "1.13"
@@ -50,7 +52,9 @@ matrix:
       - DIRS=v3/integrations/nrsqlite3
       - TESTMASTER=github.com/mattn/go-sqlite3
   - go: "1.13"
-    env: DIRS=v3/integrations/nrgrpc
+    env:
+      - DIRS=v3/integrations/nrgrpc
+      - TESTMASTER=google.golang.org/grpc
   # As of October 2019, errors result from go get -u github.com/micro/go-micro
   # - go: "1.13"
   #   env: DIRS=v3/integrations/nrmicro
@@ -61,9 +65,13 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/logcontext
   - go: "1.13"
-    env: DIRS=v3/integrations/nrzap
+    env:
+      - DIRS=v3/integrations/nrzap
+      - TESTMASTER=go.uber.org/zap
   - go: "1.13"
-    env: DIRS=v3/integrations/nrhttprouter
+    env:
+      - DIRS=v3/integrations/nrhttprouter
+      - TESTMASTER=github.com/julienschmidt/httprouter
   - go: "1.13"
     env: DIRS=v3/integrations/nrb3
   - go: "1.13"
