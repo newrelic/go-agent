@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nzap
+module github.com/newrelic/go-agent/v3/integrations/nrzap
 
 go 1.13
 
