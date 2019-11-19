@@ -1,4 +1,4 @@
-package nrb3
+package nrb3_test
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrb3"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	zipkin "github.com/openzipkin/zipkin-go"
 	reporterhttp "github.com/openzipkin/zipkin-go/reporter/http"
 )
@@ -19,7 +20,7 @@ func ExampleNewRoundTripper() {
 	// When defining the client, set the Transport to the NewRoundTripper. This
 	// will create ExternalSegments and add B3 headers for each request.
 	client := &http.Client{
-		Transport: NewRoundTripper(nil),
+		Transport: nrb3.NewRoundTripper(nil),
 	}
 
 	// Distributed Tracing must be enabled for this application.

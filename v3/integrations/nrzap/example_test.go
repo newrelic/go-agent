@@ -1,7 +1,8 @@
-package nrzap
+package nrzap_test
 
 import (
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrzap"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.uber.org/zap"
 )
 
@@ -13,6 +14,6 @@ func Example() {
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigLicense("__YOUR_NEWRELIC_LICENSE_KEY__"),
 		// Use nrzap to register the logger with the agent:
-		ConfigLogger(z.Named("newrelic")),
+		nrzap.ConfigLogger(z.Named("newrelic")),
 	)
 }

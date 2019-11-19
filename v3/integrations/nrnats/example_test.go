@@ -1,4 +1,4 @@
-package nrnats
+package nrnats_test
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/stan.go"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrnats"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func currentTransaction() *newrelic.Transaction { return nil }
@@ -17,7 +18,7 @@ func ExampleStartPublishSegment() {
 	subject := "testing.subject"
 
 	// Start the Publish segment
-	seg := StartPublishSegment(txn, nc, subject)
+	seg := nrnats.StartPublishSegment(txn, nc, subject)
 	err := nc.Publish(subject, []byte("Hello World"))
 	if nil != err {
 		panic(err)
@@ -32,7 +33,7 @@ func ExampleStartPublishSegment_defer() {
 	subject := "testing.subject"
 
 	// Start the Publish segment and defer End till the func returns
-	defer StartPublishSegment(txn, nc, subject).End()
+	defer nrnats.StartPublishSegment(txn, nc, subject).End()
 	m, err := nc.Request(subject, []byte("request"), time.Second)
 	if nil != err {
 		panic(err)
@@ -51,6 +52,6 @@ func ExampleStartPublishSegment_stan() {
 	txn := currentTransaction()
 	subject := "testing.subject"
 
-	defer StartPublishSegment(txn, sc.NatsConn(), subject).End()
+	defer nrnats.StartPublishSegment(txn, sc.NatsConn(), subject).End()
 	sc.Publish(subject, []byte("Hello World"))
 }

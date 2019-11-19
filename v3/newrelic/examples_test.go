@@ -1,6 +1,6 @@
 // +build go1.7
 
-package newrelic
+package newrelic_test
 
 import (
 	"fmt"
@@ -9,14 +9,16 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func Example() {
 	// Create your application using your license key and preferred app name.
-	app, err := NewApplication(
-		ConfigAppName("Example Application"),
-		ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
-		ConfigDebugLogger(os.Stdout),
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Example Application"),
+		newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+		newrelic.ConfigDebugLogger(os.Stdout),
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -38,7 +40,7 @@ func Example() {
 	// requests handled by the http standard library without calling
 	// StartTransaction.  Popular framework instrumentation packages exist
 	// in the v3/integrations directory.
-	http.HandleFunc(WrapHandleFunc(app, "", func(w http.ResponseWriter, req *http.Request) {
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "", func(w http.ResponseWriter, req *http.Request) {
 		io.WriteString(w, "this is the index page")
 	}))
 	helloHandler := func(w http.ResponseWriter, req *http.Request) {
@@ -46,7 +48,7 @@ func Example() {
 		// inbound request's context.  Access the transaction using
 		// FromContext to add attributes, create segments, and notice.
 		// errors.
-		txn := FromContext(req.Context())
+		txn := newrelic.FromContext(req.Context())
 
 		func() {
 			// Segments help you understand where the time in your
@@ -57,11 +59,11 @@ func Example() {
 
 		io.WriteString(w, "hello world")
 	}
-	http.HandleFunc(WrapHandleFunc(app, "/hello", helloHandler))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/hello", helloHandler))
 	http.ListenAndServe(":8000", nil)
 }
 
-func currentTransaction() *Transaction {
+func currentTransaction() *newrelic.Transaction {
 	return nil
 }
 
@@ -69,19 +71,19 @@ func ExampleNewRoundTripper() {
 	client := &http.Client{}
 	// The RoundTripper returned by NewRoundTripper instruments all requests
 	// done by this client with external segments.
-	client.Transport = NewRoundTripper(client.Transport)
+	client.Transport = newrelic.NewRoundTripper(client.Transport)
 
 	request, _ := http.NewRequest("GET", "http://example.com", nil)
 
 	// Be sure to add the current Transaction to each request's context so
 	// the Transport has access to it.
 	txn := currentTransaction()
-	request = RequestWithTransactionContext(request, txn)
+	request = newrelic.RequestWithTransactionContext(request, txn)
 
 	client.Do(request)
 }
 
-func getApp() *Application {
+func getApp() *newrelic.Application {
 	return nil
 }
 
@@ -91,27 +93,26 @@ func ExampleBrowserTimingHeader() {
 		// The New Relic browser javascript should be placed as high in the
 		// HTML as possible.  We suggest including it immediately after the
 		// opening <head> tag and any <meta charset> tags.
-		if txn := FromContext(req.Context()); nil != txn {
-			hdr := txn.BrowserTimingHeader()
-			// BrowserTimingHeader() will always return a header whose methods can
-			// be safely called.
-			if js := hdr.WithTags(); js != nil {
-				w.Write(js)
-			}
+		txn := newrelic.FromContext(req.Context())
+		hdr := txn.BrowserTimingHeader()
+		// BrowserTimingHeader() will always return a header whose methods can
+		// be safely called.
+		if js := hdr.WithTags(); js != nil {
+			w.Write(js)
 		}
 		io.WriteString(w, "</head><body>browser header page</body></html>")
 	}
-	http.HandleFunc(WrapHandleFunc(getApp(), "/browser", handler))
+	http.HandleFunc(newrelic.WrapHandleFunc(getApp(), "/browser", handler))
 	http.ListenAndServe(":8000", nil)
 }
 
 func ExampleDatastoreSegment() {
 	txn := currentTransaction()
-	ds := &DatastoreSegment{
+	ds := &newrelic.DatastoreSegment{
 		StartTime: txn.StartSegmentNow(),
 		// Product, Collection, and Operation are the primary metric
 		// aggregation fields which we encourage you to populate.
-		Product:    DatastoreMySQL,
+		Product:    newrelic.DatastoreMySQL,
 		Collection: "users_table",
 		Operation:  "SELECT",
 	}
@@ -121,10 +122,10 @@ func ExampleDatastoreSegment() {
 
 func ExampleMessageProducerSegment() {
 	txn := currentTransaction()
-	seg := &MessageProducerSegment{
+	seg := &newrelic.MessageProducerSegment{
 		StartTime:       txn.StartSegmentNow(),
 		Library:         "RabbitMQ",
-		DestinationType: MessageExchange,
+		DestinationType: newrelic.MessageExchange,
 		DestinationName: "myExchange",
 	}
 	// add message to queue here
@@ -139,7 +140,7 @@ func ExampleError() {
 	// allows more control over error fields.  Class is how errors are
 	// aggregated and Attributes are added to the error event and error
 	// trace.
-	txn.NoticeError(Error{
+	txn.NoticeError(newrelic.Error{
 		Message: e.Error(),
 		Class:   "LoginError",
 		Attributes: map[string]interface{}{
@@ -152,7 +153,7 @@ func ExampleExternalSegment() {
 	txn := currentTransaction()
 	client := &http.Client{}
 	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
-	segment := StartExternalSegment(txn, request)
+	segment := newrelic.StartExternalSegment(txn, request)
 	response, _ := client.Do(request)
 	segment.Response = response
 	segment.End()
@@ -163,7 +164,7 @@ func ExampleExternalSegment() {
 // ExternalSegment and control the URL manually.
 func ExampleExternalSegment_url() {
 	txn := currentTransaction()
-	segment := ExternalSegment{
+	segment := newrelic.ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		// URL is parsed using url.Parse so it must include the protocol
 		// scheme (eg. "http://").  The host of the URL is used to
@@ -178,7 +179,7 @@ func ExampleStartExternalSegment() {
 	txn := currentTransaction()
 	client := &http.Client{}
 	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
-	segment := StartExternalSegment(txn, request)
+	segment := newrelic.StartExternalSegment(txn, request)
 	response, _ := client.Do(request)
 	segment.Response = response
 	segment.End()
@@ -190,8 +191,8 @@ func ExampleStartExternalSegment_context() {
 
 	// If the transaction is added to the request's context then it does not
 	// need to be provided as a parameter to StartExternalSegment.
-	request = RequestWithTransactionContext(request, txn)
-	segment := StartExternalSegment(nil, request)
+	request = newrelic.RequestWithTransactionContext(request, txn)
+	segment := newrelic.StartExternalSegment(nil, request)
 
 	client := &http.Client{}
 	response, _ := client.Do(request)
@@ -202,11 +203,11 @@ func ExampleStartExternalSegment_context() {
 func ExampleTransaction_SetWebRequest() {
 	app := getApp()
 	txn := app.StartTransaction("My-Transaction")
-	txn.SetWebRequest(WebRequest{
+	txn.SetWebRequest(newrelic.WebRequest{
 		Header:    http.Header{},
 		URL:       &url.URL{Path: "path"},
 		Method:    "GET",
-		Transport: TransportHTTP,
+		Transport: newrelic.TransportHTTP,
 	})
 }
 
@@ -217,15 +218,15 @@ func ExampleConfigFromEnvironment() {
 
 	// Applicaiton is disabled.  Enabled is first set to true from
 	// ConfigFromEnvironment then set to false from ConfigEnabled.
-	_, _ = NewApplication(
-		ConfigFromEnvironment(),
-		ConfigEnabled(false),
+	_, _ = newrelic.NewApplication(
+		newrelic.ConfigFromEnvironment(),
+		newrelic.ConfigEnabled(false),
 	)
 
 	// Application is enabled.  Enabled is first set to false from
 	// ConfigEnabled then set to true from ConfigFromEnvironment.
-	_, _ = NewApplication(
-		ConfigEnabled(false),
-		ConfigFromEnvironment(),
+	_, _ = newrelic.NewApplication(
+		newrelic.ConfigEnabled(false),
+		newrelic.ConfigFromEnvironment(),
 	)
 }
