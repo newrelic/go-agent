@@ -46,7 +46,12 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/nrmysql
   - go: "1.13"
-    env: DIRS=v3/integrations/nrpq
+    env:
+      - DIRS=v3/integrations/nrpq
+      - EXTRATESTING="go get -u github.com/lib/pq@master"
+  - go: "1.13"
+    env:
+      - DIRS=v3/integrations/nrpq/example/sqlx
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrsqlite3
