@@ -1,9 +1,7 @@
 package newrelic
 
 // DatastoreProduct is used to identify your datastore type in New Relic.  It
-// is used in the DatastoreSegment Product field.  See
-// https://github.com/newrelic/go-agent/blob/master/datastore.go for the full
-// list of available DatastoreProducts.
+// is used in the DatastoreSegment Product field.
 type DatastoreProduct string
 
 // Datastore names used across New Relic agents:

@@ -10,7 +10,10 @@ import (
 
 // Transaction instruments one logical unit of work: either an inbound web
 // request or background task.  Start a new Transaction with the
-// Application.StartTransaction() method.
+// Application.StartTransaction method.
+//
+// All methods on Transaction are nil safe. Therefore, a nil Transaction
+// pointer can be safely used as a mock.
 type Transaction struct {
 	Private interface{}
 	thread  *thread
@@ -61,20 +64,24 @@ func (txn *Transaction) SetName(name string) {
 
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
-// newrelic.Error type.  In certain situations, using this method may
-// result in an error being recorded twice:  Errors are automatically
-// recorded when Transaction.WriteHeader receives a status code above
-// 400 or below 100 that is not in the IgnoreStatusCodes configuration
-// list.  This method is unaffected by the IgnoreStatusCodes
-// configuration list.
+// newrelic.Error type.
+//
+// In certain situations, using this method may result in an error being
+// recorded twice.  Errors are automatically recorded when
+// Transaction.WriteHeader receives a status code at or above 400 or strictly
+// below 100 that is not in the IgnoreStatusCodes configuration list.  This
+// method is unaffected by the IgnoreStatusCodes configuration list.
 //
 // NoticeError examines whether the error implements the following optional
 // methods:
 //
+//   // StackTrace records a stack trace
 //   StackTrace() []uintptr
 //
+//   // ErrorClass sets the error's class
 //   ErrorClass() string
 //
+//   // ErrorAttributes sets the errors attributes
 //   ErrorAttributes() map[string]interface{}
 //
 // The newrelic.Error type, which implements these methods, is the recommended
@@ -158,7 +165,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 // The returned http.ResponseWriter is safe to use even if the Transaction
 // receiver is nil or has already been ended.
 //
-// The returned http.ResponseWriter implements implements the combination of
+// The returned http.ResponseWriter implements the combination of
 // http.CloseNotifier, http.Flusher, http.Hijacker, and io.ReaderFrom
 // implemented by the input http.ResponseWriter.
 //
@@ -360,7 +367,7 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // IsSampled indicates if the Transaction is sampled.  A sampled
 // Transaction records a span event for each segment.  Distributed tracing
 // must be enabled for transactions to be sampled.  False is returned if
-// the transaction has finished.
+// the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
 	if nil == txn {
 		return false
@@ -405,8 +412,9 @@ const (
 	DistributedTracePayloadHeader = "Newrelic"
 )
 
-// TransportType is used in Transaction.AcceptDistributedTracePayload() to
-// represent the type of connection that the trace payload was transported over.
+// TransportType is used in Transaction.AcceptDistributedTracePayload to
+// represent the type of connection that the trace payload was transported
+// over.
 type TransportType string
 
 // TransportType names used across New Relic agents:
@@ -439,7 +447,8 @@ type WebRequest struct {
 	Header http.Header
 	// URL may be nil if you don't have a URL or don't want to transform
 	// it to *url.URL.
-	URL    *url.URL
+	URL *url.URL
+	// Method is the request's method.
 	Method string
 	// If a distributed tracing header is found in the WebRequest.Header,
 	// this TransportType will be used in the distributed tracing metrics.
@@ -447,7 +456,7 @@ type WebRequest struct {
 }
 
 // LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains
-// identifiers needed link data to a trace or entity.
+// identifiers needed to link data to a trace or entity.
 type LinkingMetadata struct {
 	// TraceID identifies the entire distributed trace.  This field is empty
 	// if distributed tracing is disabled.
@@ -455,8 +464,9 @@ type LinkingMetadata struct {
 	// SpanID identifies the currently active segment.  This field is empty
 	// if distributed tracing is disabled or the transaction is not sampled.
 	SpanID string
-	// EntityName is the Application name as set on the newrelic.Config.  If
-	// multiple application names are specified, only the first is returned.
+	// EntityName is the Application name as set on the Config.  If multiple
+	// application names are specified in the Config, only the first is
+	// returned.
 	EntityName string
 	// EntityType is the type of this entity and is always the string
 	// "SERVICE".

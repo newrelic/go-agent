@@ -3,6 +3,7 @@
 package newrelic_test
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,8 @@ import (
 )
 
 func Example() {
-	// Create your application using your license key and preferred app name.
+	// Create your application using your preferred app name, license key, and
+	// any other configuration options.
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example Application"),
 		newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
@@ -36,10 +38,10 @@ func Example() {
 		time.Sleep(time.Second)
 	}()
 
-	// WrapHandler and WrapHandleFunc make it easy to instrument inbound web
-	// requests handled by the http standard library without calling
-	// StartTransaction.  Popular framework instrumentation packages exist
-	// in the v3/integrations directory.
+	// WrapHandler and WrapHandleFunc make it easy to instrument inbound
+	// web requests handled by the http standard library without calling
+	// Application.StartTransaction.  Popular framework instrumentation
+	// packages exist in the v3/integrations directory.
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "", func(w http.ResponseWriter, req *http.Request) {
 		io.WriteString(w, "this is the index page")
 	}))
@@ -69,8 +71,8 @@ func currentTransaction() *newrelic.Transaction {
 
 func ExampleNewRoundTripper() {
 	client := &http.Client{}
-	// The RoundTripper returned by NewRoundTripper instruments all requests
-	// done by this client with external segments.
+	// The http.RoundTripper returned by NewRoundTripper instruments all
+	// requests done by this client with external segments.
 	client.Transport = newrelic.NewRoundTripper(client.Transport)
 
 	request, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -211,6 +213,58 @@ func ExampleTransaction_SetWebRequest() {
 	})
 }
 
+func ExampleTransaction_SetWebRequestHTTP() {
+	app := getApp()
+	inboundRequest, _ := http.NewRequest("GET", "http://example.com", nil)
+	txn := app.StartTransaction("My-Transaction")
+	// Mark transaction as a web transaction, record attributes based on the
+	// inbound request, and read any available distributed tracing headers.
+	txn.SetWebRequestHTTP(inboundRequest)
+}
+
+// Sometimes there is no inbound request, but you may still wish to set a
+// Transaction as a web request.  Passing nil to Transaction.SetWebRequestHTTP
+// allows you to do just this.
+func ExampleTransaction_SetWebRequestHTTP_nil() {
+	app := getApp()
+	txn := app.StartTransaction("My-Transaction")
+	// Mark transaction as a web transaction, but do not record attributes
+	// based on an inbound request or read distributed tracing headers.
+	txn.SetWebRequestHTTP(nil)
+}
+
+// This example (modified from the WrapHandle instrumentation) demonstrates how
+// you can replace an http.ResponseWriter in order to capture response headers
+// and notice errors based on status code.
+//
+// Note that this is just an example and that WrapHandle and WrapHandleFunc
+// perform this instrumentation for you.
+func ExampleTransaction_SetWebResponse() {
+	app := getApp()
+	handler := http.FileServer(http.Dir("/tmp"))
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Begin a Transaction.
+		txn := app.StartTransaction("index")
+		defer txn.End()
+
+		// Set the transaction as a web request, gather attributes based on the
+		// request, and read incoming distributed trace headers.
+		txn.SetWebRequestHTTP(r)
+
+		// Prepare to capture attributes, errors, and headers from the
+		// response.
+		w = txn.SetWebResponse(w)
+
+		// Add the Transaction to the http.Request's Context.
+		r = newrelic.RequestWithTransactionContext(r, txn)
+
+		// The http.ResponseWriter passed to ServeHTTP has been replaced with
+		// the new instrumented http.ResponseWriter.
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // The order in which the ConfigOptions are added plays an important role when
 // using ConfigFromEnvironment.
 func ExampleConfigFromEnvironment() {
@@ -229,4 +283,58 @@ func ExampleConfigFromEnvironment() {
 		newrelic.ConfigEnabled(false),
 		newrelic.ConfigFromEnvironment(),
 	)
+}
+
+func ExampleNewApplication_configOptionOrder() {
+	// In this case, the Application will be disabled because the disabling
+	// ConfigOption is last.
+	_, _ = newrelic.NewApplication(
+		newrelic.ConfigEnabled(true),
+		newrelic.ConfigEnabled(false),
+	)
+}
+
+// While many ConfigOptions are provided for you, it is also possible to create
+// your own.  This is necessary if you have complex configuration needs.
+func ExampleConfigOption_custom() {
+	_, _ = newrelic.NewApplication(
+		newrelic.ConfigAppName("Example App"),
+		newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+		func(cfg *newrelic.Config) {
+			// Set specific Config fields inside a custom ConfigOption.
+			cfg.Attributes.Enabled = false
+			cfg.HighSecurity = true
+		},
+	)
+}
+
+// Setting the Config.Error field will cause the NewApplication function to
+// return an error.
+func ExampleConfigOption_errors() {
+	myError := errors.New("oops")
+
+	_, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Example App"),
+		newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+		func(cfg *newrelic.Config) {
+			cfg.Error = myError
+		},
+	)
+
+	fmt.Printf("%t", err == myError)
+	// Output: true
+}
+
+func ExampleTransaction_StartSegmentNow() {
+	txn := currentTransaction()
+	seg := &newrelic.MessageProducerSegment{
+		// The value returned from Transaction.StartSegmentNow is used for the
+		// StartTime field on any segment.
+		StartTime:       txn.StartSegmentNow(),
+		Library:         "RabbitMQ",
+		DestinationType: newrelic.MessageExchange,
+		DestinationName: "myExchange",
+	}
+	// add message to queue here
+	seg.End()
 }

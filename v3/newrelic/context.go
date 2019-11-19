@@ -9,7 +9,8 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-// NewContext returns a new Context that carries the provided transaction.
+// NewContext returns a new context.Context that carries the provided
+// transaction.
 func NewContext(ctx context.Context, txn *Transaction) context.Context {
 	return context.WithValue(ctx, internal.TransactionContextKey, txn)
 }
@@ -33,7 +34,7 @@ func FromContext(ctx context.Context) *Transaction {
 	return h
 }
 
-// RequestWithTransactionContext adds the transaction to the request's context.
+// RequestWithTransactionContext adds the Transaction to the request's context.
 func RequestWithTransactionContext(req *http.Request, txn *Transaction) *http.Request {
 	ctx := req.Context()
 	ctx = NewContext(ctx, txn)

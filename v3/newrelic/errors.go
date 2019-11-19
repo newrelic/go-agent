@@ -31,7 +31,7 @@ type Error struct {
 	Class string
 	// Attributes are attached to traced errors and error events for
 	// additional context.  These attributes are validated just like those
-	// added to `Transaction.AddAttribute`.
+	// added to Transaction.AddAttribute.
 	Attributes map[string]interface{}
 	// Stack is the stack trace.  Assign this field using NewStackTrace,
 	// or leave it nil to indicate that Transaction.NoticeError should
@@ -39,7 +39,8 @@ type Error struct {
 	Stack []uintptr
 }
 
-// NewStackTrace generates a stack trace for the Error struct's Stack field.
+// NewStackTrace generates a stack trace for the newrelic.Error struct's Stack
+// field.
 func NewStackTrace() []uintptr {
 	st := internal.GetStackTrace()
 	return []uintptr(st)

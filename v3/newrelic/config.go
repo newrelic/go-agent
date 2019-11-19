@@ -15,7 +15,6 @@ import (
 )
 
 // Config contains Application and Transaction behavior settings.
-// Use NewConfig to create a Config with proper defaults.
 type Config struct {
 	// AppName is used by New Relic to link data across servers.
 	//
@@ -27,13 +26,7 @@ type Config struct {
 	// https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key
 	License string
 
-	// Logger controls go-agent logging.  For info level logging to stdout:
-	//
-	//	cfg.Logger = newrelic.NewLogger(os.Stdout)
-	//
-	// For debug level logging to stdout:
-	//
-	//	cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+	// Logger controls Go Agent logging.
 	//
 	// See https://github.com/newrelic/go-agent/blob/master/GUIDE.md#logging
 	// for more examples and logging integrations.
@@ -98,8 +91,8 @@ type Config struct {
 		CaptureEvents bool
 		// IgnoreStatusCodes controls which http response codes are
 		// automatically turned into errors.  By default, response codes
-		// greater than or equal to 400, with the exception of 404, are
-		// turned into errors.
+		// greater than or equal to 400 or less than 100 -- with the exception
+		// of 0, 5, and 404 -- are turned into errors.
 		IgnoreStatusCodes []int
 		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
@@ -139,7 +132,7 @@ type Config struct {
 			// Threshold is the threshold at which segments will be
 			// added to the trace.  Lowering this setting may
 			// increase overhead.  Decrease this duration if your
-			// Transaction Traces are missing segments.
+			// transaction traces are missing segments.
 			Threshold time.Duration
 			// Attributes controls the attributes included with each
 			// trace segment.
@@ -198,19 +191,19 @@ type Config struct {
 		BillingHostname   string
 	}
 
-	// CrossApplicationTracer controls behaviour relating to cross application
-	// tracing (CAT), available since Go Agent v0.11.  The
-	// CrossApplicationTracer and the DistributedTracer cannot be
-	// simultaneously enabled.
+	// CrossApplicationTracer controls behavior relating to cross application
+	// tracing (CAT).  In the case where CrossApplicationTracer and
+	// DistributedTracer are both enabled, DistributedTracer takes precedence.
 	//
 	// https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces
 	CrossApplicationTracer struct {
 		Enabled bool
 	}
 
-	// DistributedTracer controls behaviour relating to Distributed Tracing,
-	// available since Go Agent v2.1. The DistributedTracer and the
-	// CrossApplicationTracer cannot be simultaneously enabled.
+	// DistributedTracer controls behavior relating to Distributed Tracing,
+	// available since Go Agent v2.1.  In the case where CrossApplicationTracer
+	// and DistributedTracer are both enabled, DistributedTracer takes
+	// precedence.
 	//
 	// https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing
 	DistributedTracer struct {
@@ -220,7 +213,8 @@ type Config struct {
 	// SpanEvents controls behavior relating to Span Events.  Span Events
 	// require that DistributedTracer is enabled.
 	SpanEvents struct {
-		Enabled    bool
+		Enabled bool
+		// Attributes controls the attributes included on Spans.
 		Attributes AttributeDestinationConfig
 	}
 
@@ -291,9 +285,9 @@ type Config struct {
 	// Host can be used to override the New Relic endpoint.
 	Host string
 
-	// Error may be populated by the configuration functions provided to
-	// NewApplication to indicate that setup has failed.  NewApplication
-	// will return this error if it is set.
+	// Error may be populated by the ConfigOptions provided to NewApplication
+	// to indicate that setup has failed.  NewApplication will return this
+	// error if it is set.
 	Error error
 }
 
@@ -364,21 +358,21 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 
 // ConfigFromEnvironment populates the config based on environment variables.
 //
-//	* NEW_RELIC_APP_NAME: Sets `Config.AppName`
-//	* NEW_RELIC_LICENSE_KEY: Sets `Config.License`
-//	* NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: Sets `Config.DistributedTracer.Enabled`, using strconv.ParseBool
-//	* NEW_RELIC_ENABLED: Sets `Config.Enabled`, using strconv.ParseBool
-//	* NEW_RELIC_HIGH_SECURITY: Sets `Config.HighSecurity`, using strconv.ParseBool
-//	* NEW_RELIC_SECURITY_POLICIES_TOKEN: Sets `Config.SecurityPoliciesToken`
-//	* NEW_RELIC_HOST: Sets `Config.Host`
-//	* NEW_RELIC_PROCESS_HOST_DISPLAY_NAME: Sets `Config.HostDisplayName`
-//	* NEW_RELIC_UTILIZATION_BILLING_HOSTNAME: Sets `Config.Utilization.BillingHostname`
-//	* NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS: Sets `Config.Utilization.LogicalProcessors`, using strconv.Atoi
-//	* NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB: Sets `Config.Utilization.TotalRAMMIB`, using strconv.Atoi
-//	* NEW_RELIC_LABELS: Sets `Config.Labels`, expressed as a semi-colon delimited string of colon-separated pairs (for example, `Server:One;DataCenter:Primary`)
-//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets `Config.Logger`.  Destination is determined by NEW_RELIC_LOG and logging level is determined by
-//	NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are `stdout` representing os.Stdout and `stderr` representing os.Stderr.  If
-//	NEW_RELIC_LOG_LEVEL is also set and is set to `debug` then debug level logging is used.
+//	* NEW_RELIC_APP_NAME: Sets Config.AppName
+//	* NEW_RELIC_LICENSE_KEY: Sets Config.License
+//	* NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: Sets Config.DistributedTracer.Enabled, using strconv.ParseBool
+//	* NEW_RELIC_ENABLED: Sets Config.Enabled, using strconv.ParseBool
+//	* NEW_RELIC_HIGH_SECURITY: Sets Config.HighSecurity, using strconv.ParseBool
+//	* NEW_RELIC_SECURITY_POLICIES_TOKEN: Sets Config.SecurityPoliciesToken
+//	* NEW_RELIC_HOST: Sets Config.Host
+//	* NEW_RELIC_PROCESS_HOST_DISPLAY_NAME: Sets Config.HostDisplayName
+//	* NEW_RELIC_UTILIZATION_BILLING_HOSTNAME: Sets Config.Utilization.BillingHostname
+//	* NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS: Sets Config.Utilization.LogicalProcessors, using strconv.Atoi
+//	* NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB: Sets Config.Utilization.TotalRAMMIB, using strconv.Atoi
+//	* NEW_RELIC_LABELS: Sets Config.Labels, expressed as a semi-colon delimited string of colon-separated pairs (for example, "Server:One;DataCenter:Primary")
+//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets Config.Logger to the newrelic.NewLogger. Destination is determined by NEW_RELIC_LOG and logging level is
+//	determined by NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are "stdout" representing os.Stdout and "stderr" representing os.Stderr.  If
+//	NEW_RELIC_LOG_LEVEL is also set and is set to "debug" then debug level logging is used.
 func ConfigFromEnvironment() ConfigOption {
 	return configFromEnvironment(os.Getenv)
 }
@@ -454,8 +448,8 @@ func isDebugEnv(env string) bool {
 }
 
 // getLabels reads Labels from the env string, expressed as a semi-colon
-// delimited string of colon-separated pairs (for example, `Server:One;Data
-// Center:Primary`).  Label keys and values must be 255 characters or less in
+// delimited string of colon-separated pairs (for example, "Server:One;Data
+// Center:Primary").  Label keys and values must be 255 characters or less in
 // length.  No more than 64 Labels can be set.
 func getLabels(env string) map[string]string {
 	out := make(map[string]string)

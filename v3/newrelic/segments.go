@@ -10,7 +10,7 @@ import (
 type SegmentStartTime struct{ segment }
 
 // Segment is used to instrument functions, methods, and blocks of code.  The
-// easiest way use Segment is the StartSegment function.
+// easiest way use Segment is the Transaction.StartSegment method.
 type Segment struct {
 	StartTime SegmentStartTime
 	Name      string
@@ -161,31 +161,18 @@ func (s *ExternalSegment) outboundHeaders() http.Header {
 	return outboundHeaders(s)
 }
 
-// StartSegmentNow starts timing a segment.  This function is recommended over
-// Transaction.StartSegmentNow() because it is nil safe.
+// StartSegmentNow starts timing a segment.
 //
 // Deprecated: StartSegmentNow is deprecated and will be removed in a future
-// release. Use `Transaction.StartSegmentNow` instead.
+// release. Use Transaction.StartSegmentNow instead.
 func StartSegmentNow(txn *Transaction) SegmentStartTime {
 	return txn.StartSegmentNow()
 }
 
-// StartSegment makes it easy to instrument segments.  To time a function, do
-// the following:
-//
-//	func timeMe(txn newrelic.Transaction) {
-//		defer newrelic.StartSegment(txn, "timeMe").End()
-//		// ... function code here ...
-//	}
-//
-// To time a block of code, do the following:
-//
-//	segment := newrelic.StartSegment(txn, "myBlock")
-//	// ... code you want to time here ...
-//	segment.End()
+// StartSegment instruments segments.
 //
 // Deprecated: StartSegment is deprecated and will be removed in a future
-// release.  Use `Transaction.StartSegment` instead.
+// release.  Use Transaction.StartSegment instead.
 func StartSegment(txn *Transaction, name string) *Segment {
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),

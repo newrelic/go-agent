@@ -6,13 +6,15 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-// Logger is the interface that is used for logging in the go-agent.  Assign the
-// Config.Logger field to the Logger you wish to use.  Loggers must be safe for
-// use in multiple goroutines.  Two Logger implementations are included:
+// Logger is the interface that is used for logging in the Go Agent.  Assign
+// the Config.Logger field to the Logger you wish to use.  Loggers must be safe
+// for use in multiple goroutines.  Two Logger implementations are included:
 // NewLogger, which logs at info level, and NewDebugLogger which logs at debug
-// level.  logrus and logxi are supported by the integration packages
-// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus and
-// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1.
+// level.  logrus, logxi, and zap are supported by the integration packages
+// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus,
+// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1,
+// and https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap
+// respectively.
 type Logger interface {
 	Error(msg string, context map[string]interface{})
 	Warn(msg string, context map[string]interface{})

@@ -11,7 +11,7 @@ type Application struct {
 	app     *app
 }
 
-// StartTransaction begins a Transaction.
+// StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
 	if nil == app {
 		return nil
@@ -28,10 +28,9 @@ func (app *Application) StartTransaction(name string) *Transaction {
 // Keys must be less than 255 bytes.  The params map may not contain
 // more than 64 attributes.  For more information, and a set of
 // restricted keywords, see:
-//
 // https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 //
-// An error is logged if event type or params is invalid.
+// An error is logged if eventType or params is invalid.
 func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
 	if nil == app {
 		return
@@ -52,7 +51,9 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // provide will be prefixed by "Custom/".  Custom metrics are not
 // currently supported in serverless mode.
 //
+// See
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
+// for more information on custom events.
 func (app *Application) RecordCustomMetric(name string, value float64) {
 	if nil == app {
 		return
@@ -83,7 +84,7 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 
 // Shutdown flushes data to New Relic's servers and stops all
 // agent-related goroutines managing this application.  After Shutdown
-// is called, The application is disabled and will never collect data
+// is called, the Application is disabled and will never collect data
 // again.  This method blocks until all final data is sent to New Relic
 // or the timeout has elapsed.  Increase the timeout and check debug
 // logs if you aren't seeing data.
@@ -104,8 +105,13 @@ func newApplication(app *app) *Application {
 // NewApplication creates an Application and spawns goroutines to manage the
 // aggregation and harvesting of data.  On success, a non-nil Application and a
 // nil error are returned. On failure, a nil Application and a non-nil error
-// are returned. Applications do not share global state, therefore it is safe
-// to create multiple applications.
+// are returned. All methods on an Application are nil safe. Therefore, a nil
+// Application pointer can be safely used.  Applications do not share global
+// state, therefore it is safe to create multiple applications.
+//
+// The ConfigOption arguments allow for configuration of the Application.  They
+// are applied in order from first to last, i.e. latter ConfigOptions may
+// overwrite the Config fields already set.
 func NewApplication(opts ...ConfigOption) (*Application, error) {
 	c := defaultConfig()
 	for _, fn := range opts {
