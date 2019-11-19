@@ -22,8 +22,8 @@ do
 	# Test again against the latest version of the dependencies to ensure that
 	# our instrumentation is up to date.  TODO: Perhaps it is possible to
 	# upgrade all go.mod dependencies to latest master with a go command.
-	if [ -n "$TESTMASTER" ]; then
-		go get -u "$TESTMASTER@master"
+	if [ -n "$EXTRATESTING" ]; then
+		eval "$EXTRATESTING"
 		go test -race -benchtime=1ms -bench=. ./...
 	fi
 

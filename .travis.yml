@@ -26,15 +26,15 @@ matrix:
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrgin/v1
-      - TESTMASTER=github.com/gin-gonic/gin
+      - EXTRATESTING="go get -u github.com/gin-gonic/gin@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrgorilla/v1
-      - TESTMASTER=github.com/gorilla/mux
+      - EXTRATESTING="go get -u github.com/gorilla/mux@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrlogrus
-      - TESTMASTER=github.com/sirupsen/logrus
+      - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
   - go: "1.13"
     env: DIRS=v3/integrations/nrlogxi/v1
   - go: "1.13"
@@ -42,7 +42,7 @@ matrix:
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrlambda
-      - TESTMASTER=github.com/aws/aws-lambda-go
+      - EXTRATESTING="go get -u github.com/aws/aws-lambda-go@master"
   - go: "1.13"
     env: DIRS=v3/integrations/nrmysql
   - go: "1.13"
@@ -50,11 +50,14 @@ matrix:
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrsqlite3
-      - TESTMASTER=github.com/mattn/go-sqlite3
+      - EXTRATESTING="go get -u github.com/mattn/go-sqlite3@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrgrpc
-      - TESTMASTER=google.golang.org/grpc
+      # As of Nov 2019, go get -u google.golang.org/grpc@master
+      # doesn't work.  So instead let's test against the latest
+      # released version.
+      - EXTRATESTING="go get -u"
   # As of October 2019, errors result from go get -u github.com/micro/go-micro
   # - go: "1.13"
   #   env: DIRS=v3/integrations/nrmicro
@@ -67,11 +70,11 @@ matrix:
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrzap
-      - TESTMASTER=go.uber.org/zap
+      - EXTRATESTING="go get -u go.uber.org/zap@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrhttprouter
-      - TESTMASTER=github.com/julienschmidt/httprouter
+      - EXTRATESTING="go get -u github.com/julienschmidt/httprouter@master"
   - go: "1.13"
     env: DIRS=v3/integrations/nrb3
   - go: "1.13"
