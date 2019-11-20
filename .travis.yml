@@ -73,9 +73,10 @@ matrix:
       # doesn't work.  So instead let's test against the latest
       # released version.
       - EXTRATESTING="go get -u"
-  # As of October 2019, errors result from go get -u github.com/micro/go-micro
-  # - go: "1.13"
-  #   env: DIRS=v3/integrations/nrmicro
+  - go: "1.13"
+    env:
+      - DIRS=v3/integrations/nrmicro
+      - EXTRATESTING="go get -u github.com/micro/go-micro@master"
   - go: "1.13"
     env: DIRS=v3/integrations/nrnats
   - go: "1.13"
