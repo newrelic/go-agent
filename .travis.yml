@@ -40,7 +40,10 @@ matrix:
       - DIRS=v3/integrations/nrlogrus
       - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
   - go: "1.13"
-    env: DIRS=v3/integrations/nrlogxi/v1
+    env:
+      - DIRS=v3/integrations/nrlogxi/v1
+      # nrlogxi is abandonware, no reason to do extra testing:
+      # The latest master is the first and last release.
   - go: "1.13"
     env: DIRS=v3/integrations/nrpkgerrors
   - go: "1.13"
