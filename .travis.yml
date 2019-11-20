@@ -77,7 +77,9 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/nrstan
   - go: "1.13"
-    env: DIRS=v3/integrations/logcontext
+    env:
+      - DIRS=v3/integrations/logcontext
+      - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrzap
