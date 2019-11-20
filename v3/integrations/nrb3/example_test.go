@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/newrelic/go-agent/v3/integrations/nrb3"
 	"github.com/newrelic/go-agent/v3/newrelic"
