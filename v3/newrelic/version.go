@@ -7,12 +7,8 @@ import (
 )
 
 const (
-	major = "2"
-	minor = "16"
-	patch = "0"
-
 	// Version is the full string version of this Go Agent.
-	Version = major + "." + minor + "." + patch
+	Version = "3.0.0-dev"
 )
 
 func init() {
