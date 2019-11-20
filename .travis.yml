@@ -45,7 +45,9 @@ matrix:
       # nrlogxi is abandonware, no reason to do extra testing:
       # The latest master is the first and last release.
   - go: "1.13"
-    env: DIRS=v3/integrations/nrpkgerrors
+    env:
+      - DIRS=v3/integrations/nrpkgerrors
+      - EXTRATESTING="go get -u github.com/pkg/errors@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrlambda
