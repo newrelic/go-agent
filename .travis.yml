@@ -18,9 +18,13 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext
   - go: "1.13"
-    env: DIRS=v3/integrations/nrawssdk/v1
+    env:
+      - DIRS=v3/integrations/nrawssdk/v1
+      - EXTRATESTING="go get -u github.com/aws/aws-sdk-go@master"
   - go: "1.13"
-    env: DIRS=v3/integrations/nrawssdk/v2
+    env:
+      - DIRS=v3/integrations/nrawssdk/v2
+      - EXTRATESTING="go get -u github.com/aws/aws-sdk-go-v2@master"
   - go: "1.13"
     env: DIRS=v3/integrations/nrecho
   - go: "1.13"
