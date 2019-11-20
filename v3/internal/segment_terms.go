@@ -81,8 +81,8 @@ func (rule *segmentRule) apply(name string) string {
 		segments := strings.Split(s, separator)
 
 		for i, segment := range segments {
-			_, whitelisted := rule.TermsMap[segment]
-			if whitelisted {
+			_, allowed := rule.TermsMap[segment]
+			if allowed {
 				segments[i] = segment
 			} else {
 				segments[i] = placeholder
