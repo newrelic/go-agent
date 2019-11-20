@@ -48,7 +48,9 @@ matrix:
       - DIRS=v3/integrations/nrlambda
       - EXTRATESTING="go get -u github.com/aws/aws-lambda-go@master"
   - go: "1.13"
-    env: DIRS=v3/integrations/nrmysql
+    env:
+      - DIRS=v3/integrations/nrmysql
+      - EXTRATESTING="go get -u github.com/go-sql-driver/mysql@master"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrpq
