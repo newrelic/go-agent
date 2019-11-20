@@ -89,7 +89,9 @@ matrix:
   - go: "1.13"
     env: DIRS=v3/integrations/nrb3
   - go: "1.13"
-    env: DIRS=v3/integrations/nrmongo
+    env:
+      - DIRS=v3/integrations/nrmongo
+      - EXTRATESTING="go get -u go.mongodb.org/mongo-driver@master"
 
 # Skip the install step. Don't `go get` dependencies.
 install: true
