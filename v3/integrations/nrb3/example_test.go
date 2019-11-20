@@ -39,4 +39,3 @@ func ExampleNewRoundTripper() {
 	defer resp.Body.Close()
 	fmt.Println(resp.StatusCode)
 }
-
