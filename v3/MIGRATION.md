@@ -44,12 +44,6 @@ A complete list of `ConfigOption`s can be found in the [Go Docs](https://godoc.o
 
 The location of two [`Config`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config) fields have been moved. The `Config.TransactionTracer.SegmentThreshold` field has moved to `Config.TransactionTracer.Segments.Threshold` and the  `Config.TransactionTracer.StackTraceThreshold` field has moved to to `Config.TransactionTracer.Segments.StackTraceThreshold`.
 
-### Rename certain web transactions
-
-We have renamed the transactions created by [`WrapHandle`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandle), [`WrapHandleFunc`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandleFunc), and when using our integrations for [`echo`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho), [`gin`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin/v1), and [`gorilla`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla/v1). We have added the request method to the transaction name. Therefore, a transaction that used to be `/hello/world` has become `GET /hello/world` or `POST /hello/world`. Metrics that used to be `WebTransaction/Go/hello/world` have become `WebTransaction/Go/GET /hello/world` or `WebTransaction/Go/POST /hello/world`.
-
-This change means that you cannot compare timing information on the transactions between the v2 and v3 agents. You may have to change your alerting or custom dashboards to match the new names.
-
 ###  Remove API error return values
 
 The following method signatures have changed to no longer return an error; instead the error is logged to the agent logs.
@@ -518,8 +512,6 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
       newrelic.AttributeRequestUserAgentDeprecated,
   }
   ```
-
-- [ ] Update alerts or custom dashboards that rely on Web transaction metric names.  Transactions created by [`WrapHandle`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandle), [`WrapHandleFunc`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandleFunc), and when using our integrations for echo, gin, and gorilla will now include the HTTP method as part of the metric name. E.g. `/hello/world` will become `GET /hello/world` or `POST /hello/world`. Alternatively, you can use the [`Transaction.SetName`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.SetName) API to rename your transactions back to their v2 values.
 
 - [ ] Not required for upgrade, but recommended: update your usages of the now deprecated [`StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegment) and [`StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegmentNow) to use the methods on the transaction: [`Transaction.StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegment) and [`Transaction.StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Trnasaction.StartSEgmentNow) respectively. This step is optional but highly recommended.
 
