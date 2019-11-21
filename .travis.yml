@@ -15,90 +15,106 @@ matrix:
     env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.12"
     env: DIRS=v3/newrelic,v3/internal,v3/examples
-  - go: "1.13"
+  - go: "1.13.4"
     env: DIRS=v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrawssdk/v1
       - EXTRATESTING="go get -u github.com/aws/aws-sdk-go@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrawssdk/v2
       - EXTRATESTING="go get -u github.com/aws/aws-sdk-go-v2@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrecho
       # Test against the latest v3 Echo:
       - EXTRATESTING="go get -u github.com/labstack/echo@v3"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrgin/v1
       - EXTRATESTING="go get -u github.com/gin-gonic/gin@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrgorilla/v1
       - EXTRATESTING="go get -u github.com/gorilla/mux@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrlogrus
       - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrlogxi/v1
       - EXTRATESTING="go get -u github.com/mgutz/logxi@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrpkgerrors
       - EXTRATESTING="go get -u github.com/pkg/errors@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrlambda
       - EXTRATESTING="go get -u github.com/aws/aws-lambda-go@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrmysql
       - EXTRATESTING="go get -u github.com/go-sql-driver/mysql@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrpq
       - EXTRATESTING="go get -u github.com/lib/pq@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrpq/example/sqlx
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrsqlite3
       - EXTRATESTING="go get -u github.com/mattn/go-sqlite3@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrgrpc
       # As of Nov 2019, go get -u google.golang.org/grpc@master
       # doesn't work.  So instead let's test against the latest
       # released version.
-      - EXTRATESTING="go get -u"
-  - go: "1.13"
+      - EXTRATESTING="go get -u google.golang.org/grpc@latest"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrmicro
       - EXTRATESTING="go get -u github.com/micro/go-micro@master"
-  - go: "1.13"
-    env: DIRS=v3/integrations/nrnats
-  - go: "1.13"
-    env: DIRS=v3/integrations/nrstan
-  - go: "1.13"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nrnats
+      - EXTRATESTING="go get -u github.com/nats-io/nats.go/@master"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nrnats/test
+      - EXTRATESTING="go get -u github.com/nats-io/nats.go/@master"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nrstan
+      - EXTRATESTING="go get -u github.com/nats-io/stan.go/@master"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nrstan/test
+      - EXTRATESTING="go get -u github.com/nats-io/stan.go/@master"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nrstan/examples
+      - EXTRATESTING="go get -u github.com/nats-io/stan.go/@master"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/logcontext
       - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrzap
       - EXTRATESTING="go get -u go.uber.org/zap@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrhttprouter
       - EXTRATESTING="go get -u github.com/julienschmidt/httprouter@master"
-  - go: "1.13"
+  - go: "1.13.4"
     env: DIRS=v3/integrations/nrb3
-  - go: "1.13"
+  - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrmongo
       - EXTRATESTING="go get -u go.mongodb.org/mongo-driver@master"

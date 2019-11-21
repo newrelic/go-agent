@@ -28,6 +28,17 @@
 //	nc.Publish(subject, []byte("Hello World"))
 //
 //
+// StartPublishSegment can be used with a NATS Streamming Connection as well
+// (https://github.com/nats-io/stan.go).  Use the `NatsConn()` method on the
+// `stan.Conn` interface (https://godoc.org/github.com/nats-io/stan#Conn) to
+// access the `nats.Conn` object.
+//
+//	sc, _ := stan.Connect(clusterID, clientID)
+//	txn := currentTransaction()
+//	subject := "testing.subject"
+//	defer nrnats.StartPublishSegment(txn, sc.NatsConn(), subject).End()
+//	sc.Publish(subject, []byte("Hello World"))
+//
 // NATS subscribers
 //
 // The `nrnats.SubWrapper` function can be used to wrap the function for `nats.Subscribe`

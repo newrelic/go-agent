@@ -1,4 +1,4 @@
-package nrstan
+package test
 
 import (
 	"os"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/nats-io/nats-streaming-server/server"
 	stan "github.com/nats-io/stan.go"
+	"github.com/newrelic/go-agent/v3/integrations/nrstan"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -49,7 +50,7 @@ func TestSubWrapperWithNilApp(t *testing.T) {
 	defer sc.Close()
 
 	wg := sync.WaitGroup{}
-	sc.Subscribe(subject, StreamingSubWrapper(nil, func(msg *stan.Msg) {
+	sc.Subscribe(subject, nrstan.StreamingSubWrapper(nil, func(msg *stan.Msg) {
 		defer wg.Done()
 	}))
 	wg.Add(1)
@@ -67,7 +68,7 @@ func TestSubWrapper(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	app := createTestApp()
-	sc.Subscribe(subject, WgWrapper(&wg, StreamingSubWrapper(app.Application, func(msg *stan.Msg) {})))
+	sc.Subscribe(subject, WgWrapper(&wg, nrstan.StreamingSubWrapper(app.Application, func(msg *stan.Msg) {})))
 
 	wg.Add(1)
 	sc.Publish(subject, []byte("data"))
