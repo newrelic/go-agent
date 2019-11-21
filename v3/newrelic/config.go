@@ -376,8 +376,8 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //	* NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS: Sets `Config.Utilization.LogicalProcessors`, using strconv.Atoi
 //	* NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB: Sets `Config.Utilization.TotalRAMMIB`, using strconv.Atoi
 //	* NEW_RELIC_LABELS: Sets `Config.Labels`, expressed as a semi-colon delimited string of colon-separated pairs (for example, `Server:One;DataCenter:Primary`)
-//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets `Config.Logger` to the `newrelic.NewLogger`. Destination is determined by NEW_RELIC_LOG and logging level is
-//	determined by NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are `stdout` representing os.Stdout and `stderr` representing os.Stderr.  If
+//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets `Config.Logger`.  Destination is determined by NEW_RELIC_LOG and logging level is determined by
+//	NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are `stdout` representing os.Stdout and `stderr` representing os.Stderr.  If
 //	NEW_RELIC_LOG_LEVEL is also set and is set to `debug` then debug level logging is used.
 func ConfigFromEnvironment() ConfigOption {
 	return configFromEnvironment(os.Getenv)

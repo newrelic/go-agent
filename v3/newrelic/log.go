@@ -22,11 +22,17 @@ type Logger interface {
 }
 
 // NewLogger creates a basic Logger at info level.
+//
+// Deprecated: NewLogger is deprecated and will be removed in a future release.
+// Use the ConfigInfoLogger ConfigOption instead.
 func NewLogger(w io.Writer) Logger {
 	return logger.New(w, false)
 }
 
 // NewDebugLogger creates a basic Logger at debug level.
+//
+// Deprecated: NewDebugLogger is deprecated and will be removed in a future
+// release.  Use the ConfigDebugLogger ConfigOption instead.
 func NewDebugLogger(w io.Writer) Logger {
 	return logger.New(w, true)
 }

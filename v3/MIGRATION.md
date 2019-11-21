@@ -193,9 +193,9 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, payload h
 
 Additionally, the `DistributedTracePayload` struct is no longer needed and has been removed from the agent's API. Instead, distributed tracing information is passed around as key/value pairs in the `http.Header` object.
 
-### `StartSegment` and `StartSegmentNow` functions moved
+### Several functions marked as deprecated
 
-The functions [`StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegmentNow) and [`StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegment) have been deprecated.  The preferred new method of starting a segment have moved to [`Transaction.StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegmentNow) and [`Transaction.StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegment) respectively.
+The functions [`StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegmentNow) and [`StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegment) have been marked as deprecated.  The preferred new method of starting a segment have moved to [`Transaction.StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegmentNow) and [`Transaction.StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegment) respectively.
 
 ```go
 // DEPRECATED:
@@ -210,6 +210,42 @@ startTime := txn.StartSegmentNow()
 // and
 sgmt := txn.StartSegment("segment1")
 ```
+
+Additionally the functions [`NewLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewLogger) and [`NewDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewDebugLogger) have been marked as deprecated.  The peferred new method of configuring agent logging is using the [`ConfigInfoLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigInfoLogger) and [`ConfigDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigDebugLogger) `ConfigOptions` respectively.
+
+  ```go
+  // DEPRECATED:
+  app, err := newrelic.NewApplication(
+      ...
+      func(cfg *newrelic.Config) {
+          cfg.Logger = newrelic.NewLogger(os.Stdout)
+      }
+  )
+
+  // or
+
+  app, err := newrelic.NewApplication(
+      ...
+      func(cfg *newrelic.Config) {
+          cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+      }
+  )
+  ```
+
+  ```go
+  // NEW, PREFERRED WAY:
+  app, err := newrelic.NewApplication(
+      ...
+      newrelic.ConfigInfoLogger(os.Stdout),
+  )
+
+  // or
+
+  app, err := newrelic.NewApplication(
+      ...
+      newrelic.ConfigDebugLogger(os.Stdout),
+  )
+  ```
 
 ### Removed optional interfaces from error
 
@@ -372,10 +408,10 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
 
   ```go
   wr := newrelic.WebRequest{
-    Header:    r.Header,
-    URL:       r.URL,
-    Method:    r.Method,
-    Transport: newrelic.TransportHTTP,
+      Header:    r.Header,
+      URL:       r.URL,
+      Method:    r.Method,
+      Transport: newrelic.TransportHTTP,
   }
   txn.SetWebRequest(wr)
   ```
@@ -455,13 +491,13 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
 
   ```go
   config.ErrorCollector.Attributes.Exclude = []string{
-    "httpResponseCode",
-    "request.headers.User-Agent",
+      "httpResponseCode",
+      "request.headers.User-Agent",
   }
   // or
   config.ErrorCollector.Attributes.Exclude = []string{
-    newrelic.AttributeResponseCode,
-    newrelic.AttributeRequestUserAgent,
+      newrelic.AttributeResponseCode,
+      newrelic.AttributeRequestUserAgent,
   }
   ```
 
@@ -469,17 +505,17 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
 
   ```go
   config.ErrorCollector.Attributes.Exclude = []string{
-    "response.statusCode",
-    "httpResponseCode",
-    "request.headers.userAgent",
-    "request.headers.User-Agent",
+      "response.statusCode",
+      "httpResponseCode",
+      "request.headers.userAgent",
+      "request.headers.User-Agent",
   }
   // or
   config.ErrorCollector.Attributes.Exclude = []string{
-    newrelic.AttributeResponseCode,
-    newrelic.AttributeResponseCodeDeprecated,
-    newrelic.AttributeRequestUserAgent,
-    newrelic.AttributeRequestUserAgentDeprecated,
+      newrelic.AttributeResponseCode,
+      newrelic.AttributeResponseCodeDeprecated,
+      newrelic.AttributeRequestUserAgent,
+      newrelic.AttributeRequestUserAgentDeprecated,
   }
   ```
 
@@ -501,4 +537,42 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   startTime := txn.StartSegmentNow()
   // and
   sgmt := txn.StartSegment("segment1")
+  ```
+
+- [ ] Not required for upgrade, but recommended: update your usages of the now deprecated [`NewLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewLogger) and [`NewDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewDebugLogger).  Instead use the new `ConfigOption`s [`ConfigInfoLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigInfoLogger) and [`ConfigDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigDebugLogger) respectively.
+
+  From:
+
+  ```go
+  app, err := newrelic.NewApplication(
+      ...
+      func(cfg *newrelic.Config) {
+          cfg.Logger = newrelic.NewLogger(os.Stdout)
+      }
+  )
+
+  // or
+
+  app, err := newrelic.NewApplication(
+      ...
+      func(cfg *newrelic.Config) {
+          cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+      }
+  )
+  ```
+
+  To:
+
+  ```go
+  app, err := newrelic.NewApplication(
+      ...
+      newrelic.ConfigInfoLogger(os.Stdout),
+  )
+
+  // or
+
+  app, err := newrelic.NewApplication(
+      ...
+      newrelic.ConfigDebugLogger(os.Stdout),
+  )
   ```
