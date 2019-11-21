@@ -26,7 +26,10 @@ matrix:
       - DIRS=v3/integrations/nrawssdk/v2
       - EXTRATESTING="go get -u github.com/aws/aws-sdk-go-v2@master"
   - go: "1.13"
-    env: DIRS=v3/integrations/nrecho
+    env:
+      - DIRS=v3/integrations/nrecho
+      # Test against the latest v3 Echo:
+      - EXTRATESTING="go get -u github.com/labstack/echo@v3"
   - go: "1.13"
     env:
       - DIRS=v3/integrations/nrgin/v1
