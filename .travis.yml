@@ -27,7 +27,7 @@ matrix:
       - EXTRATESTING="go get -u github.com/aws/aws-sdk-go-v2@master"
   - go: "1.13.4"
     env:
-      - DIRS=v3/integrations/nrecho
+      - DIRS=v3/integrations/nrecho-v3
       # Test against the latest v3 Echo:
       - EXTRATESTING="go get -u github.com/labstack/echo@v3"
   - go: "1.13.4"

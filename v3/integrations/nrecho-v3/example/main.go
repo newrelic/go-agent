@@ -7,7 +7,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/newrelic/go-agent/v3/integrations/nrecho"
+	"github.com/newrelic/go-agent/v3/integrations/nrecho-v3"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 

@@ -7,7 +7,7 @@
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrecho/example/main.go
+// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrecho-v3/example/main.go
 package nrecho
 
 import (

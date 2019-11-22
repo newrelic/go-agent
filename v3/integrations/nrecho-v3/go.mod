@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrecho
+module github.com/newrelic/go-agent/v3/integrations/nrecho-v3
 
 go 1.13
 

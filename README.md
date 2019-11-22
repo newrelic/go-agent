@@ -37,7 +37,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | ------------- | ------------- | - |
 | [aws/aws-sdk-go](https://github.com/aws/aws-sdk-go) | [v3/integrations/nrawssdk/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk/v1) | Instrument outbound calls made using Go AWS SDK |
 | [aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2) | [v3/integrations/nrawssdk/v2](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk/v2) | Instrument outbound calls made using Go AWS SDK v2 |
-| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho) | Instrument inbound requests through the Echo framework |
+| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3) | Instrument inbound requests through the Echo framework |
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin/v1) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla/v1) | Instrument inbound requests through the Gorilla framework |
 | [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [v3/integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
