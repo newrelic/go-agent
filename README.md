@@ -1,4 +1,4 @@
-# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
+# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
 ## Description
 
@@ -11,22 +11,26 @@ All pull requests will be reviewed by the New Relic product team. Any questions 
 site](http://support.newrelic.com/) or our [community
 forum](https://discuss.newrelic.com).
 
+## Upgrading
+If you have already been using version 2.X of the agent and are upgrading to
+version 3.0, see our [Migration Guide](v3/MIGRATION.md) for details. 
+
 ## Requirements
 
-Go 1.3+ is required, due to the use of http.Client's Timeout field.
+For the latest version of the agent, Go 1.7+ is required, due to the use of `context.Context`.
+(For versions 2.X and earlier of the Go agent, Go 1.3+ is required.)
 
 Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
 ## Integrations
 
-The following [_integration packages](https://godoc.org/github.com/newrelic/go-agent/v3/integrations)
-extend the base [newrelic](https://godoc.org/github.com/newrelic/go-agent) package
+The following [integration packages](https://godoc.org/github.com/newrelic/go-agent/v3/integrations)
+extend the base [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) package
 to support the following frameworks and libraries.
 Frameworks and databases which don't have an integration package may still be
-instrumented using the [newrelic](https://godoc.org/github.com/newrelic/go-agent)
+instrumented using the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
 package primitives.  Specifically, more information about instrumenting your database using
-these primitives can be found
-[here](https://github.com/newrelic/go-agent/blob/master/GUIDE.md#datastore-segments).
+these primitives can be found [here](GUIDE.md#datastore-segments).
 
 <!---
 NOTE!  When updating the table below, be sure to update the docs site version too:
@@ -61,7 +65,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 
 
 These integration packages must be imported along
-with the [newrelic](https://godoc.org/github.com/newrelic/go-agent) package, as shown in this
+with the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) package, as shown in this
 [nrgin example](https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgin/v1/example/main.go).
 
 ## Getting Started
@@ -71,7 +75,7 @@ application.
 
 ## Runnable Example
 
-[examples/server/main.go](./examples/server/main.go) is an example that will
+[examples/server/main.go](./v3/examples/server/main.go) is an example that will
 appear as "Example App" in your New Relic applications list.  To run it:
 
 ```

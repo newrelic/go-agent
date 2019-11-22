@@ -68,7 +68,9 @@ func (app *Application) RecordCustomMetric(name string, value float64) {...}
 
 ### `Application.StartTransaction` signature change
 
-The signature of [`Application.StartTransaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction) has changed to no longer take a `http.ResponseWriter` or `*http.Request`. The new signature just takes a string for the transaction name:
+The signature of [`Application.StartTransaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction) 
+has changed to no longer take a `http.ResponseWriter` or `*http.Request`. The new signature just takes a string for 
+the transaction name:
 
 ```go
 func (app *Application) StartTransaction(name string) *Transaction
