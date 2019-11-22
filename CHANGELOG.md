@@ -1,5 +1,14 @@
 ## ChangeLog
 
+## 2.16.0
+
+### Upcoming
+
+* The next release of the Go Agent is expected to be a major version release
+  to improve the API and incorporate Go modules.
+  Details available here: https://github.com/newrelic/go-agent/issues/106
+  We would love your feedback!
+
 ### Bug Fixes
 
 * Fixed an issue in the
@@ -25,7 +34,7 @@ package.
   indicates if the transaction is sampled.  A sampled transaction records a
   span event for each segment.  Distributed tracing must be enabled for
   transactions to be sampled.  `false` is returned if the transaction has
-  finished.  This sampling flag is needed for B3 trace propagation and 
+  finished.  This sampling flag is needed for B3 trace propagation and
   future support of W3C Trace Context.
 
 * Added support for adding [B3
