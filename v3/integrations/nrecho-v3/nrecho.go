@@ -1,4 +1,5 @@
-// Package nrecho instruments https://github.com/labstack/echo applications.
+// Package nrecho instruments applications using
+// https://github.com/labstack/echo v3.
 //
 // Use this package to instrument inbound requests handled by an echo.Echo
 // instance.
