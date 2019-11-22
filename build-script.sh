@@ -12,8 +12,6 @@ do
 
 	if [ -f "go.mod" ]; then
 		go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
-	else
-		go get -t ./...
 	fi
 
 	go test -race -benchtime=1ms -bench=. ./...
