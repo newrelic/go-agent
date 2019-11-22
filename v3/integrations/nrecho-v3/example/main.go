@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
 	"github.com/newrelic/go-agent/v3/integrations/nrecho-v3"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -45,7 +44,6 @@ func main() {
 
 	// Groups
 	g := e.Group("/user")
-	g.Use(middleware.Gzip())
 	g.GET("/:id", getUser)
 
 	// Start server
