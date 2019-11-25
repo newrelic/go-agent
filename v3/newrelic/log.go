@@ -12,7 +12,7 @@ import (
 // NewLogger, which logs at info level, and NewDebugLogger which logs at debug
 // level.  logrus, logxi, and zap are supported by the integration packages
 // https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus,
-// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1,
+// https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi,
 // and https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap
 // respectively.
 type Logger interface {

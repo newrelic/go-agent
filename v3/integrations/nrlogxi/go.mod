@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1
+module github.com/newrelic/go-agent/v3/integrations/nrlogxi
 
 go 1.13
 

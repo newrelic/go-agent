@@ -48,7 +48,7 @@ matrix:
       - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
   - go: "1.13.4"
     env:
-      - DIRS=v3/integrations/nrlogxi/v1
+      - DIRS=v3/integrations/nrlogxi
       - EXTRATESTING="go get -u github.com/mgutz/logxi@master"
   - go: "1.13.4"
     env:

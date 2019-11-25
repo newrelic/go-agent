@@ -114,7 +114,7 @@ Popular logging libraries `logrus`, `logxi` and `zap` are supported by
 integration packages:
 
 * [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus/)
-* [v3/integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1/)
+* [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/)
 * [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap/)
 
 ## Transactions

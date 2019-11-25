@@ -2,7 +2,7 @@ package nrlogxi_test
 
 import (
 	log "github.com/mgutz/logxi/v1"
-	nrlogxi "github.com/newrelic/go-agent/v3/integrations/nrlogxi/v1"
+	nrlogxi "github.com/newrelic/go-agent/v3/integrations/nrlogxi"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
