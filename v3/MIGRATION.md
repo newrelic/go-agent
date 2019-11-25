@@ -15,7 +15,13 @@ The minimum required Go version to run the New Relic Go Agent is now 1.7.
 
 The agent has been placed in a new `/v3` directory, leaving the top level directory with the now deprecated v2 agent. More specifically:
 * The `newrelic` package has moved from `"github.com/newrelic/go-agent"` to `"github.com/newrelic/go-agent/v3/newrelic"`. This makes named imports unnecessary.
-* The underscore in the `_integrations` directory is removed.  Thus the `"github.com/newrelic/go-agent/_integrations/nrgin/v1"` import path becomes `"github.com/newrelic/go-agent/v3/integrations/nrgin"`.
+* The underscore in the `_integrations` directory is removed.  Thus the `"github.com/newrelic/go-agent/_integrations/nrlogrus"` import path becomes `"github.com/newrelic/go-agent/v3/integrations/nrlogrus"`.  Some of the integration packages have had other changes as well:
+  * `_integrations/nrawssdk/v1` moves to `v3/integrations/nrawssdk-v1`
+  * `_integrations/nrawssdk/v2` moves to `v3/integrations/nrawssdk-v2`
+  * `_integrations/nrgin/v1` moves to `v3/integrations/nrgin`
+  * `_integrations/nrgorilla/v1` moves to `v3/integrations/nrgorilla`
+  * `_integrations/nrlogxi/v1` moves to `v3/integrations/nrlogxi`
+  * `_integrations/nrecho` moves to `v3/integrations/nrecho-v3` and a new  `v3/integrations/nrecho-v4` has been added to support Echo version 4.
 
 ### Go modules
 
@@ -68,8 +74,8 @@ func (app *Application) RecordCustomMetric(name string, value float64) {...}
 
 ### `Application.StartTransaction` signature change
 
-The signature of [`Application.StartTransaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction) 
-has changed to no longer take a `http.ResponseWriter` or `*http.Request`. The new signature just takes a string for 
+The signature of [`Application.StartTransaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction)
+has changed to no longer take a `http.ResponseWriter` or `*http.Request`. The new signature just takes a string for
 the transaction name:
 
 ```go
