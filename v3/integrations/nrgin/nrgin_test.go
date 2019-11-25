@@ -180,7 +180,7 @@ const (
 	// affects our ability to instrument the response code. In Gin v1.4.0
 	// and below, we always recorded a 200 status, whereas with newer Gin
 	// versions we now correctly capture the status.
-	statusFixVersion = "v1.4.0-dev"
+	statusFixVersion = "v1.5.0"
 )
 
 func TestStatusCodes(t *testing.T) {
