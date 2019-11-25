@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrgorilla/v1
+module github.com/newrelic/go-agent/v3/integrations/nrgorilla
 
 go 1.13
 

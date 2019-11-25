@@ -40,7 +40,7 @@ matrix:
       - EXTRATESTING="go get -u github.com/gin-gonic/gin@master"
   - go: "1.13.4"
     env:
-      - DIRS=v3/integrations/nrgorilla/v1
+      - DIRS=v3/integrations/nrgorilla
       - EXTRATESTING="go get -u github.com/gorilla/mux@master"
   - go: "1.13.4"
     env:

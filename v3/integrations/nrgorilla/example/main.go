@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	nrgorilla "github.com/newrelic/go-agent/v3/integrations/nrgorilla/v1"
+	nrgorilla "github.com/newrelic/go-agent/v3/integrations/nrgorilla"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 

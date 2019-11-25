@@ -4,7 +4,7 @@
 // mux.Router.  Call nrgorilla.InstrumentRoutes on your gorilla mux.Router
 // after your routes have been added to it.
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrgorilla/v1/example/main.go
+// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrgorilla/example/main.go
 package nrgorilla
 
 import (
