@@ -36,7 +36,7 @@ matrix:
       - EXTRATESTING="go get -u github.com/labstack/echo/v4@master"
   - go: "1.13.4"
     env:
-      - DIRS=v3/integrations/nrgin/v1
+      - DIRS=v3/integrations/nrgin
       - EXTRATESTING="go get -u github.com/gin-gonic/gin@master"
   - go: "1.13.4"
     env:

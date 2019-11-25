@@ -15,7 +15,7 @@ The minimum required Go version to run the New Relic Go Agent is now 1.7.
 
 The agent has been placed in a new `/v3` directory, leaving the top level directory with the now deprecated v2 agent. More specifically:
 * The `newrelic` package has moved from `"github.com/newrelic/go-agent"` to `"github.com/newrelic/go-agent/v3/newrelic"`. This makes named imports unnecessary.
-* The underscore in the `_integrations` directory is removed.  Thus the `"github.com/newrelic/go-agent/_integrations/nrgin/v1"` import path becomes `"github.com/newrelic/go-agent/v3/integrations/nrgin/v1"`.
+* The underscore in the `_integrations` directory is removed.  Thus the `"github.com/newrelic/go-agent/_integrations/nrgin/v1"` import path becomes `"github.com/newrelic/go-agent/v3/integrations/nrgin"`.
 
 ### Go modules
 

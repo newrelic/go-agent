@@ -43,7 +43,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2) | [v3/integrations/nrawssdk/v2](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk/v2) | Instrument outbound calls made using Go AWS SDK v2 |
 | [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3) | Instrument inbound requests through version 3 of the Echo framework |
 | [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4) | Instrument inbound requests through version 4 of the Echo framework |
-| [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin/v1) | Instrument inbound requests through the Gin framework |
+| [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla/v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla/v1) | Instrument inbound requests through the Gorilla framework |
 | [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [v3/integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
 | [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [v3/integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda) | Instrument AWS Lambda applications |
@@ -66,7 +66,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 
 These integration packages must be imported along
 with the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) package, as shown in this
-[nrgin example](https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgin/v1/example/main.go).
+[nrgin example](https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgin/example/main.go).
 
 ## Getting Started
 

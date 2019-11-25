@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	pkg = "github.com/newrelic/go-agent/v3/integrations/nrgin/v1"
+	pkg = "github.com/newrelic/go-agent/v3/integrations/nrgin"
 )
 
 func hello(c *gin.Context) {
