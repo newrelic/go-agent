@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrawssdk/v1
+module github.com/newrelic/go-agent/v3/integrations/nrawssdk-v1
 
 go 1.13
 
