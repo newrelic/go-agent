@@ -47,7 +47,7 @@ func makePayload(app *Application) *internal.Payload {
 }
 
 func headersFromString(s string) http.Header {
-	return map[string][]string{DistributedTracePayloadHeader: []string{s}}
+	return map[string][]string{DistributedTracePayloadHeader: {s}}
 }
 
 func headersFromPayload(p *internal.Payload) http.Header {
