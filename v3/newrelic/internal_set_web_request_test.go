@@ -177,13 +177,12 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	// distributed tracing transport if a distributed tracing header is
 	// found in the WebRequest.Header.
 	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	payload := makePayload(app.Application)
+	hdrs := http.Header{}
+	app.StartTransaction("hello").InsertDistributedTraceHeaders(hdrs)
 	// Copy sampleCustomRequest to avoid modifying it since it is used in
 	// other tests.
 	req := sampleCustomRequest
-	req.Header = map[string][]string{
-		DistributedTracePayloadHeader: {payload.Text()},
-	}
+	req.Header = hdrs
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequest(req)
 	app.expectNoLoggedErrors(t)

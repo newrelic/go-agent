@@ -431,11 +431,12 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	payload := app.StartTransaction("hello").thread.CreateDistributedTracePayload()
-	p := payload.internalPayload
-	p.TracedID = "trace-id"
+	payload.TracedID = "trace-id"
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTraceHeaders(TransportHTTP, newDefaultDistributedTracePayload(p.Text()))
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, http.Header{
+		DistributedTracePayloadHeader: []string{payload.HTTPSafe()},
+	})
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "9d2c19bd03daf755" {

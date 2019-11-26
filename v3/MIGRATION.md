@@ -190,7 +190,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header)
 This [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders) method takes a [`TransportType`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#TransportType) and an `http.Header` object that contains Distributed Tracing header(s) and links this transaction to other transactions specified in the headers:
 
 ```go
-func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, payload http.Header)
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header)
 ```
 
 Additionally, the `DistributedTracePayload` struct is no longer needed and has been removed from the agent's API. Instead, distributed tracing information is passed around as key/value pairs in the `http.Header` object.

@@ -908,10 +908,7 @@ func outboundHeaders(s *ExternalSegment) http.Header {
 
 	// hdr may be empty, or it may contain headers.  If DistributedTracer
 	// is enabled, add more to the existing hdr
-	if p := thd.CreateDistributedTracePayload().HTTPSafe(); "" != p {
-		hdr.Add(DistributedTracePayloadHeader, p)
-		return hdr
-	}
+	insertDistributedTraceHeaders(thd, hdr)
 
 	return hdr
 }
@@ -920,30 +917,41 @@ const (
 	maxSampledDistributedPayloads = 35
 )
 
-func (thd *thread) CreateDistributedTracePayload() (payload *distributedTracePayload) {
+func insertDistributedTraceHeaders(thd *thread, hdrs http.Header) {
+	if nil == hdrs {
+		return
+	}
+	payload := thd.CreateDistributedTracePayload()
+	if nil == payload {
+		return
+	}
+	hdrs.Set(DistributedTracePayloadHeader, payload.HTTPSafe())
+}
+
+func (thd *thread) CreateDistributedTracePayload() *internal.Payload {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
 	if !txn.BetterCAT.Enabled {
-		return
+		return nil
 	}
 
 	if txn.finished {
 		txn.CreatePayloadException = true
-		return
+		return nil
 	}
 
 	if "" == txn.Reply.AccountID || "" == txn.Reply.TrustedAccountKey {
 		// We can't create a payload:  The application is not yet
 		// connected or serverless distributed tracing configuration was
 		// not provided.
-		return
+		return nil
 	}
 
 	txn.numPayloadsCreated++
 
-	var p internal.Payload
+	p := &internal.Payload{}
 	p.Type = internal.CallerType
 	p.Account = txn.Reply.AccountID
 
@@ -971,8 +979,7 @@ func (thd *thread) CreateDistributedTracePayload() (payload *distributedTracePay
 
 	txn.CreatePayloadSuccess = true
 
-	payload = &distributedTracePayload{internalPayload: p}
-	return
+	return p
 }
 
 var (
@@ -982,11 +989,11 @@ var (
 	errTrustedAccountKey        = errors.New("trusted account key missing or does not match")
 )
 
-func (txn *txn) AcceptDistributedTraceHeaders(t TransportType, payload http.Header) error {
+func (txn *txn) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) error {
 	txn.Lock()
 	defer txn.Unlock()
 
-	return txn.acceptDistributedTraceHeadersLocked(t, payload)
+	return txn.acceptDistributedTraceHeadersLocked(t, hdrs)
 }
 
 func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Header) error {

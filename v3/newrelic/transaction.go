@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -224,14 +222,13 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // don't need to use it for outbound HTTP calls: Just use
 // StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	if nil == txn || nil == txn.thread {
+	if nil == txn {
 		return
 	}
-	payload := txn.thread.CreateDistributedTracePayload()
-	if payload == nil {
+	if nil == txn.thread {
 		return
 	}
-	hdrs.Set(DistributedTracePayloadHeader, payload.Text())
+	insertDistributedTraceHeaders(txn.thread, hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting a
@@ -244,14 +241,14 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // AcceptDistributedTraceHeaders should be used as early in the
 // transaction as possible.  It may not be called after a call to
 // CreateDistributedTracePayload.
-func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, payload http.Header) {
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
 	if nil == txn {
 		return
 	}
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, payload), "accept trace payload")
+	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload")
 }
 
 // Application returns the Application which started the transaction.
@@ -368,34 +365,6 @@ func (txn *Transaction) IsSampled() bool {
 	return txn.thread.IsSampled()
 }
 
-// distributedTracePayload traces requests between applications or processes.
-// DistributedTracePayloads are automatically added to HTTP requests by
-// StartExternalSegment, so you only need to use this if you are tracing through
-// a message queue or another non-HTTP communication library.  The
-// distributedTracePayload may be marshalled in one of two formats: HTTPSafe or
-// Text.  All New Relic agents can accept payloads in either format.
-type distributedTracePayload struct {
-	internalPayload internal.Payload
-}
-
-// HTTPSafe serializes the payload into a string containing http safe
-// characters.
-func (p *distributedTracePayload) HTTPSafe() string {
-	if nil == p {
-		return ""
-	}
-	return p.internalPayload.HTTPSafe()
-}
-
-// Text serializes the payload into a string.  The format is slightly
-// more compact than HTTPSafe.
-func (p *distributedTracePayload) Text() string {
-	if nil == p {
-		return ""
-	}
-	return p.internalPayload.Text()
-}
-
 const (
 	// DistributedTracePayloadHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
@@ -403,7 +372,8 @@ const (
 )
 
 // TransportType is used in Transaction.AcceptDistributedTraceHeaders() to
-// represent the type of connection that the trace payload was transported over.
+// represent the type of connection that the trace payload was transported
+// over.
 type TransportType string
 
 // TransportType names used across New Relic agents:
