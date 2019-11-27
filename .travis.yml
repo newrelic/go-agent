@@ -3,6 +3,76 @@ go_import_path: github.com/newrelic/go-agent
 
 matrix:
   include:
+  #
+  # Go Agent Version 2
+  #
+  - go: "1.3"
+    env: DIRS=.
+  - go: "1.4"
+    env: DIRS=.
+  - go: "1.5"
+    env: DIRS=.
+  - go: "1.6"
+    env: DIRS=.
+  - go: "1.7"
+    env: DIRS=.
+  - go: "1.8"
+    env: DIRS=.
+  - go: "1.9"
+    env: DIRS=.
+  - go: "1.10"
+    env: DIRS=.
+  - go: "1.11"
+    env: DIRS=.
+  - go: "1.12"
+    env: DIRS=.
+  - go: "1.13"
+    env: DIRS=.
+  - go: "1.13"
+    env: DIRS=_integrations/nrawssdk
+  - go: "1.13"
+    env: DIRS=_integrations/nrecho
+  - go: "1.13"
+    env: DIRS=_integrations/nrgin/v1
+  - go: "1.13"
+    env: DIRS=_integrations/nrgorilla/v1
+  - go: "1.13"
+    env: DIRS=_integrations/nrlogrus
+  - go: "1.13"
+    env: DIRS=_integrations/nrlogxi/v1
+  - go: "1.13"
+    env: DIRS=_integrations/nrpkgerrors
+  - go: "1.13"
+    env: DIRS=_integrations/nrlambda
+  - go: "1.13"
+    env: DIRS=_integrations/nrmysql
+  - go: "1.13"
+    env: DIRS=_integrations/nrpq
+  - go: "1.13"
+    env: DIRS=_integrations/nrsqlite3
+  - go: "1.13"
+    env: DIRS=_integrations/nrgrpc
+  # As of October 2019, errors result from go get -u github.com/micro/go-micro
+  # - go: "1.13"
+  #   env: DIRS=_integrations/nrmicro
+  - go: "1.13"
+    env: DIRS=_integrations/nrnats
+  - go: "1.13"
+    env: DIRS=_integrations/nrstan
+  - go: "1.13"
+    env: DIRS=_integrations/logcontext
+  - go: "1.13"
+    env: DIRS=_integrations/nrzap
+  - go: "1.13"
+    env: DIRS=_integrations/nrhttprouter
+  - go: "1.13"
+    env: DIRS=_integrations/nrb3
+  - go: "1.13"
+    env: DIRS=_integrations/nrmongo
+
+  #
+  # Go Agent Version 3
+  #
   - go: "1.7"
     env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.8"

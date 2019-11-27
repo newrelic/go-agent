@@ -14,6 +14,16 @@ do
 		go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
 	fi
 
+	# go get is necessary for testing v2 integrations since they do not have
+	# a go.mod file.
+	if [[ $dir =~ "_integrations" ]]; then
+		go get -t ./...
+	fi
+	# avoid testing v3 code when testing v2 newrelic package
+	if [ $dir == "." ]; then
+		rm -rf v3/
+	fi
+
 	go test -race -benchtime=1ms -bench=. ./...
 	go vet ./...
 
