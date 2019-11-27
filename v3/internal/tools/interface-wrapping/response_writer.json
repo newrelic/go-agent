@@ -1,0 +1,14 @@
+{
+	"comment": "used in internal_response_writer.go",
+	"variable_name": "rw",
+	"test_variable_name": "rw.original",
+	"required_interfaces": [
+		"http.ResponseWriter"
+	],
+	"optional_interfaces": [
+		"http.CloseNotifier",
+		"http.Flusher",
+		"http.Hijacker",
+		"io.ReaderFrom"
+	]
+}

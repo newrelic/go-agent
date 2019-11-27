@@ -39,9 +39,9 @@ func main() {
 ```
 
 Now start your application, and within minutes it will appear in the New Relic
-UI.  Your application in New Relic won't contain much data (until we complete 
-the steps below!), but you will already be able to see a 
-[Go runtime](https://docs.newrelic.com/docs/agents/go-agent/features/go-runtime-page-troubleshoot-performance-problems) 
+UI.  Your application in New Relic won't contain much data (until we complete
+the steps below!), but you will already be able to see a
+[Go runtime](https://docs.newrelic.com/docs/agents/go-agent/features/go-runtime-page-troubleshoot-performance-problems)
 page that shows goroutine counts, garbage collection, memory, and CPU usage.
 
 ## Step 2: Instrument Requests Using Transactions
