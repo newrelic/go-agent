@@ -1,6 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/nrecho-v3
 
-go 1.13
+// 1.7 is the earliest version of Go tested by v3.1.0:
+// https://github.com/labstack/echo/blob/v3.1.0/.travis.yml
+go 1.7
 
 require (
 	// v3.1.0 is the earliest v3 version of Echo that works with modules due

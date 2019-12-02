@@ -1,6 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/nrmongo
 
-go 1.13
+// As of Dec 2019, 1.10 is the mongo-driver requirement:
+// https://github.com/mongodb/mongo-go-driver#requirements
+go 1.10
 
 require (
 	github.com/go-stack/stack v1.8.0 // indirect
