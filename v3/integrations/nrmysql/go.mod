@@ -1,6 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/nrmysql
 
-go 1.13
+// As of Dec 2019, 1.9 is the Go version in mysql's go.mod:
+// https://github.com/go-sql-driver/mysql/blob/master/go.mod
+go 1.9
 
 require (
 	// As of Nov 2019, the latest go-sql-driver/mysql release (v1.4.1) does
