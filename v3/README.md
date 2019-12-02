@@ -13,7 +13,7 @@ forum](https://discuss.newrelic.com).
 
 ## Upgrading
 If you have already been using version 2.X of the agent and are upgrading to
-version 3.0, see our [Migration Guide](v3/MIGRATION.md) for details. 
+version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
 ## Requirements
 
@@ -75,7 +75,7 @@ application.
 
 ## Runnable Example
 
-[examples/server/main.go](./v3/examples/server/main.go) is an example that will
+[examples/server/main.go](examples/server/main.go) is an example that will
 appear as "Example App" in your New Relic applications list.  To run it:
 
 ```

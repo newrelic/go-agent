@@ -30,7 +30,7 @@
 
 ## Upgrading
 If you have already been using version 2.X of the agent and are upgrading to
-version 3.0, see our [Migration Guide](v3/MIGRATION.md) for details. 
+version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
 ## Installation
 
@@ -48,8 +48,8 @@ import "github.com/newrelic/go-agent/v3/newrelic"
 
 ## Config and Application
 
-* [config.go](v3/newrelic/config.go)
-* [application.go](v3/newrelic/application.go)
+* [Config godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config)
+* [Application godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application)
 
 In your `main` function or in an `init` block:
 
@@ -119,7 +119,7 @@ integration packages:
 
 ## Transactions
 
-* [transaction.go](v3/newrelic/transaction.go)
+* [Transaction godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction)
 * [Naming Transactions](#naming-transactions-and-metrics)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
@@ -131,13 +131,13 @@ txn := app.StartTransaction("transactionName")
 defer txn.End()
 ```
 
-If you are instrumenting a background transaction, this is all that is needed. If, however, 
+If you are instrumenting a background transaction, this is all that is needed. If, however,
 you are instrumenting a web transaction, you will want to use the
  `SetWebRequestHTTP` and `SetWebResponse` methods as well.
- 
+
 [SetWebRequestHTTP](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction.SetWebRequestHTTP)
-marks the transaction as a web transaction. If the [http.Request](https://godoc.org/net/http#Request) 
-is non-nil, `SetWebRequestHTTP` will additionally collect details on request 
+marks the transaction as a web transaction. If the [http.Request](https://godoc.org/net/http#Request)
+is non-nil, `SetWebRequestHTTP` will additionally collect details on request
 attributes, url, and method. If headers are present, the agent will look for a
 distributed tracing header.
 
@@ -147,12 +147,12 @@ method, using a manually constructed [WebRequest](https://godoc.org/github.com/n
 object.
 
 [SetWebResponse](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction.SetWebResponse)
-allows the Transaction to instrument response code and response headers. Pass in 
+allows the Transaction to instrument response code and response headers. Pass in
 your [http.ResponseWriter](https://godoc.org/net/http#ResponseWriter) as a
 parameter, and then use the return value of this method in place of the input
-parameter in your instrumentation. 
+parameter in your instrumentation.
 
-Here is an example using both methods: 
+Here is an example using both methods:
 
 ```go
 func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
@@ -169,19 +169,18 @@ func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 ```
 
 The transaction has helpful methods like `NoticeError` and `SetName`.
-See more in [transaction.go](v3/newrelic/transaction.go).
+See more in [godocs](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction).
 
 If you are using [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux),
 use `WrapHandle` and `WrapHandleFunc`.  These wrappers automatically start and
-end transactions with the request and response writer.  See
-[instrumentation.go](v3/newrelic/instrumentation.go).
+end transactions with the request and response writer.
 
 ```go
 http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 ```
 
 To access the transaction in your handler, we recommend getting it from the
- Request context: 
+ Request context:
 
 ```go
 func myHandler(w http.ResponseWriter, r *http.Request) {
@@ -204,8 +203,6 @@ go func(txn newrelic.Transaction) {
 ```
 
 ## Segments
-
-* [segments.go](v3/newrelic/segments.go)
 
 Find out where the time in your transactions is being spent!
 
@@ -315,10 +312,10 @@ If you are using the standard library's
 [SQLite](https://github.com/mattn/go-sqlite3) then you can avoid creating
 DatastoreSegments by hand by using an integration package:
 
-* [v3/integrations/nrpq](/v3/integrations/nrpq)
-* [v3/integrations/nrmysql](v3/integrations/nrmysql)
-* [v3/integrations/nrsqlite3](v3/integrations/nrsqlite3)
-* [v3/integrations/nrmongo](v3/integrations/nrmongo)
+* [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq)
+* [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql)
+* [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3)
+* [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo)
 
 ### External Segments
 
@@ -462,7 +459,7 @@ txn.AddAttribute("importantCustomer", true)
 Some attributes are recorded automatically.  These are called agent attributes.
 They are listed here:
 
-* [attributes.go](v3/newrelic/attributes.go)
+* [newrelic package constants](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#pkg-constants)
 
 To disable one of these agents attributes, for example `AttributeHostDisplayName`,
 modify the config like this:
@@ -482,10 +479,10 @@ app, err := newrelic.NewApplication(
 ## Tracing
 
 New Relic's [distributed tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing)
-is the next generation of the previous cross-application tracing feature. 
+is the next generation of the previous cross-application tracing feature.
 Compared to cross-application tracing, distributed tracing gives more detail
 about cross-service activity and provides more complete end-to-end
-visibility.  This section discusses distributed tracing and cross-application 
+visibility.  This section discusses distributed tracing and cross-application
 tracing in turn.
 
 ### Distributed Tracing
@@ -504,8 +501,8 @@ override cross-application tracing.
 
 ```go
 app, err := newrelic.NewApplication(
-    newrelic.ConfigAppName("Your Application Name"), 
-    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"), 
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
     newrelic.ConfigDistributedTracerEnabled(true),  
 )
 ```
@@ -516,7 +513,7 @@ New Relic's
 [cross-application tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
 feature, or CAT for short, links transactions between applications in APM to
 help identify performance problems within your service-oriented architecture.
-Support for CAT was added in version 1.11.0 of the Go Agent. We recommend using 
+Support for CAT was added in version 1.11.0 of the Go Agent. We recommend using
 [Distributed Tracing](#distributed-tracing) as the most recent, complete feature.
 
 As CAT uses HTTP headers to track requests across applications, the Go Agent
@@ -540,29 +537,29 @@ For server applications:
 
 1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
    uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux)
-   ([Example](v3/examples/server/main.go)).
+   ([Example](examples/server/main.go)).
 
 2. Using any of the Go Agent's HTTP integrations, which are listed [here
 ](README.md#integrations).
 
 3. Using another framework or [`http.Server`](https://golang.org/pkg/net/http/#Server) while ensuring that:
 
-      1. After calling `StartTransaction`, make sure to call `Transaction.SetWebRequest` 
-      and `Transaction.SetWebResponse` on the transaction, and 
-      2. the `http.ResponseWriter` that is returned from `Transaction.SetWebResponse` 
-      is used instead of calling `WriteHeader` directly on the original response 
+      1. After calling `StartTransaction`, make sure to call `Transaction.SetWebRequest`
+      and `Transaction.SetWebResponse` on the transaction, and
+      2. the `http.ResponseWriter` that is returned from `Transaction.SetWebResponse`
+      is used instead of calling `WriteHeader` directly on the original response
       writer, as described in the [transactions section of this guide](#transactions)
-       ([Example](v3/examples/server-http/main.go)).
+       ([Example](examples/server-http/main.go)).
 
 For client applications:
 
 1. Using `NewRoundTripper`, as described in the
    [external segments section of this guide](#external-segments)
-   ([Example](v3/examples/client-round-tripper/main.go)).
+   ([Example](examples/client-round-tripper/main.go)).
 
 2. Using the call `StartExternalSegment` and providing an `http.Request`, as
    described in the [external segments section of this guide](#external-segments)
-   ([Example](v3/examples/client/main.go)).
+   ([Example](examples/client/main.go)).
 
 #### Manually Implementing Distributed Tracing
 
@@ -575,7 +572,7 @@ var h http.Headers
 callingTxn.InsertDistributedTraceHeaders(h)
 ```
 
-These headers have to be added to the call to the destination service, which in 
+These headers have to be added to the call to the destination service, which in
 turn invokes the call for accepting the headers:
 
 ```go
@@ -584,7 +581,7 @@ calledTxn.AcceptDistributedTraceHeaders(newrelic.TransportOther, h)
 ```
 
 A complete example can be found
-[here](v3/examples/custom-instrumentation/main.go).
+[here](examples/custom-instrumentation/main.go).
 
 
 ## Custom Metrics
@@ -605,7 +602,7 @@ app.RecordCustomMetric(
 `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.
 This means the above code would produce a metric named
 `Custom/CustomMetricName`.  You'll also want to read over the
-[Naming Transactions and Metrics](#naming-transactions-and-metrics) section 
+[Naming Transactions and Metrics](#naming-transactions-and-metrics) section
 below for advice on coming up with appropriate metric names.
 
 ## Custom Events
@@ -685,7 +682,7 @@ app, err := newrelic.NewApplication(
     newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
     func(cfg *newrelic.Config) {
         cfg.ErrorCollector.RecordPanics = true
-    } 
+    }
 )
 ```
 
@@ -704,9 +701,9 @@ func unstableTask(app newrelic.Application) {
 ### Error Response Codes
 
 Setting the WebResponse on the transaction using `Transaction.SetWebResponse`
-returns an 
-[http.ResponseWriter](https://golang.org/pkg/net/http/#ResponseWriter), and you 
-can use that returned ResponseWriter to call `WriteHeader` to record the response 
+returns an
+[http.ResponseWriter](https://golang.org/pkg/net/http/#ResponseWriter), and you
+can use that returned ResponseWriter to call `WriteHeader` to record the response
 status code.  The transaction will record an error if the status code is
 at or above 400 or strictly below 100 and not in the ignored status codes
 configuration list.  The ignored status codes list is configured by the
