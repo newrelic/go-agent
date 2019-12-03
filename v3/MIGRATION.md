@@ -1,8 +1,8 @@
 # Migration Guide - 3.0
 
 This guide is intended to help with upgrading from version 2.x to version 3.x
-of the Go Agent. This information will also be found on 
-[our documentation website](https://docs.newrelic.com/docs/agents/go-agent/installation/update-go-agent) 
+of the Go Agent. This information will also be found on
+[our documentation website](https://docs.newrelic.com/docs/agents/go-agent/installation/update-go-agent)
 once the 3.0 release is official.
 
 * [List of all changes](#all-changes)
@@ -295,7 +295,7 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   To:
 
   ```go
-  import "github.com/newrelic/go-agent/v3/integrations/nrlogrus/v1"
+  import "github.com/newrelic/go-agent/v3/integrations/nrlogrus"
   ```
 
 - [ ] Update how you configure your application. The [`NewApplication`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewApplication) function now accepts [`ConfigOption`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigOption)s a list of which can be [found here](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigOption). If a [`ConfigOption`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigOption) is not available for your setting, create one yourself!
