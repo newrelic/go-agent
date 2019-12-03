@@ -3,19 +3,22 @@
 //
 // Use this package if you are using logrus in your application and would like
 // the go-agent log messages to end up in the same place.  If you are using
-// the logrus standard logger, assign the newrelic.Config.Logger field to
-// nrlogrus.StandardLogger():
+// the logrus standard logger, use ConfigStandardLogger when creating your
+// application:
 //
-//	cfg := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-//	cfg.Logger = nrlogrus.StandardLogger()
+//	app, err := newrelic.NewApplication(
+//		newrelic.ConfigFromEnvironment(),
+//		nrlogrus.ConfigStandardLogger(),
+//	)
 //
-// If you are using a particular logrus Logger instance, assign the
-// newrelic.Config.Logger field to the the output of nrlogrus.Transform:
+// If you are using a particular logrus Logger instance, then use ConfigLogger:
 //
 //	l := logrus.New()
 //	l.SetLevel(logrus.DebugLevel)
-//	cfg := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-//	cfg.Logger = nrlogrus.Transform(l)
+//	app, err := newrelic.NewApplication(
+//		newrelic.ConfigFromEnvironment(),
+//		nrlogrus.ConfigLogger(l),
+//	)
 //
 // This package requires logrus version v1.1.0 and above.
 package nrlogrus
