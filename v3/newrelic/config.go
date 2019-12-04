@@ -356,23 +356,22 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewDebugLogger(w))
 }
 
-// ConfigFromEnvironment populates the config based on environment variables.
+// ConfigFromEnvironment populates the config based on environment variables:
 //
-//	* NEW_RELIC_APP_NAME: Sets Config.AppName
-//	* NEW_RELIC_LICENSE_KEY: Sets Config.License
-//	* NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: Sets Config.DistributedTracer.Enabled, using strconv.ParseBool
-//	* NEW_RELIC_ENABLED: Sets Config.Enabled, using strconv.ParseBool
-//	* NEW_RELIC_HIGH_SECURITY: Sets Config.HighSecurity, using strconv.ParseBool
-//	* NEW_RELIC_SECURITY_POLICIES_TOKEN: Sets Config.SecurityPoliciesToken
-//	* NEW_RELIC_HOST: Sets Config.Host
-//	* NEW_RELIC_PROCESS_HOST_DISPLAY_NAME: Sets Config.HostDisplayName
-//	* NEW_RELIC_UTILIZATION_BILLING_HOSTNAME: Sets Config.Utilization.BillingHostname
-//	* NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS: Sets Config.Utilization.LogicalProcessors, using strconv.Atoi
-//	* NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB: Sets Config.Utilization.TotalRAMMIB, using strconv.Atoi
-//	* NEW_RELIC_LABELS: Sets Config.Labels, expressed as a semi-colon delimited string of colon-separated pairs (for example, "Server:One;DataCenter:Primary")
-//	* NEW_RELIC_LOG and NEW_RELIC_LOG_LEVEL: Sets Config.Logger to the newrelic.NewLogger. Destination is determined by NEW_RELIC_LOG and logging level is
-//	determined by NEW_RELIC_LOG_LEVEL.  The only two options for NEW_RELIC_LOG are "stdout" representing os.Stdout and "stderr" representing os.Stderr.  If
-//	NEW_RELIC_LOG_LEVEL is also set and is set to "debug" then debug level logging is used.
+//  NEW_RELIC_APP_NAME                       sets AppName
+//  NEW_RELIC_LICENSE_KEY                    sets License
+//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED    sets DistributedTracer.Enabled using strconv.ParseBool
+//  NEW_RELIC_ENABLED                        sets Enabled using strconv.ParseBool
+//  NEW_RELIC_HIGH_SECURITY                  sets HighSecurity using strconv.ParseBool
+//  NEW_RELIC_SECURITY_POLICIES_TOKEN        sets SecurityPoliciesToken
+//  NEW_RELIC_HOST                           sets Host
+//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME      sets HostDisplayName
+//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME   sets Utilization.BillingHostname
+//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS sets Utilization.LogicalProcessors using strconv.Atoi
+//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB      sets Utilization.TotalRAMMIB using strconv.Atoi
+//  NEW_RELIC_LABELS                         sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//  NEW_RELIC_LOG                            sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//  NEW_RELIC_LOG_LEVEL                      controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
 func ConfigFromEnvironment() ConfigOption {
 	return configFromEnvironment(os.Getenv)
 }
