@@ -216,7 +216,7 @@ startTime := txn.StartSegmentNow()
 sgmt := txn.StartSegment("segment1")
 ```
 
-Additionally the functions [`NewLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewLogger) and [`NewDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewDebugLogger) have been marked as deprecated.  The peferred new method of configuring agent logging is using the [`ConfigInfoLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigInfoLogger) and [`ConfigDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigDebugLogger) `ConfigOptions` respectively.
+Additionally the functions [`NewLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewLogger) and [`NewDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewDebugLogger) have been marked as deprecated.  The preferred new method of configuring agent logging is using the [`ConfigInfoLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigInfoLogger) and [`ConfigDebugLogger`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigDebugLogger) `ConfigOptions` respectively.
 
   ```go
   // DEPRECATED:
@@ -341,7 +341,7 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
 
 - [ ] If you choose, set the `Config.ErrorCollector.RecordPanics` configuration option. This is a new configuration option that controls whether or not a deferred [`Transaction.End`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.End) will attempt to recover panics, record them as errors, and then re-panic them. Previously, the agent acted as though this option was set to `true`; with the new configuration it defaults to `false`.  If you wish to maintain the old agent behavior with regards to panics, be sure to set this to `true`.
 
-- [ ] Update code to use the new [`Application.StartTranasaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction) signature.
+- [ ] Update code to use the new [`Application.StartTransaction`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application.StartTransaction) signature.
 
   From:
 
@@ -459,7 +459,7 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   txn.InsertDistributedTraceHeaders(hdrs)
   ```
 
-  Similarly, the method for accepting distributed trace payloads has changed to [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders). Instead of taking an interface representing the payload value, it now acceps an `http.Header` representing both the keys and values.
+  Similarly, the method for accepting distributed trace payloads has changed to [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders). Instead of taking an interface representing the payload value, it now accepts an `http.Header` representing both the keys and values.
 
   From:
 
