@@ -270,7 +270,7 @@ func ExampleTransaction_SetWebResponse() {
 func ExampleConfigFromEnvironment() {
 	os.Setenv("NEW_RELIC_ENABLED", "true")
 
-	// Applicaiton is disabled.  Enabled is first set to true from
+	// Application is disabled.  Enabled is first set to true from
 	// ConfigFromEnvironment then set to false from ConfigEnabled.
 	_, _ = newrelic.NewApplication(
 		newrelic.ConfigFromEnvironment(),
