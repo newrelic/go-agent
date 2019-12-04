@@ -157,7 +157,7 @@ Here is an example using both methods:
 ```go
 func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
     txn := h.App.StartTransaction("transactionName")
-    defer txn.Close()
+    defer txn.End()
     // This marks the transaction as a web transactions and collects details on
     // the request attributes
     txn.SetWebRequestHTTP(req)
