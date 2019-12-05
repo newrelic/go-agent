@@ -22,15 +22,15 @@ func TestWrapHandlerContext(t *testing.T) {
 	req, _ := http.NewRequest("GET", "", nil)
 	h(nil, req)
 
-	scope := "WebTransaction/Go/myTxn"
+	scope := "WebTransaction/Go/GET myTxn"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/myTxn", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/GET myTxn", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/GET myTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/myTxn", Scope: "", Forced: false, Data: nil},
+		{Name: "Apdex/Go/GET myTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/mySegment", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/mySegment", Scope: scope, Forced: false, Data: nil},
 	})

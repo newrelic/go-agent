@@ -125,7 +125,7 @@ func (r *Router) Handle(method, path string, h httprouter.Handle) {
 
 // Handler replaces httprouter.Router.Handler.
 func (r *Router) Handler(method, path string, handler http.Handler) {
-	_, h := newrelic.WrapHandle(r.application, txnName(method, path), handler)
+	_, h := newrelic.WrapHandle(r.application, path, handler)
 	r.Router.Handler(method, path, h)
 }
 
