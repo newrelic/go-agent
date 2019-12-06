@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
@@ -57,6 +58,8 @@ func TestConfigFromEnvironment(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.AppName = "something"
 	cfg.Labels = map[string]string{"hello": "world"}
+	cfg.Attributes.Include = []string{"zip", "zap"}
+	cfg.Attributes.Exclude = []string{"zop", "zup", "zep"}
 	cfg.License = "something"
 	cfg.DistributedTracer.Enabled = true
 	cfg.HighSecurity = true
@@ -101,5 +104,32 @@ func TestConfigFromEnvironment(t *testing.T) {
 	}
 	if cfg.Utilization.TotalRAMMIB != 42 {
 		t.Error("config value changed:", cfg.Utilization.TotalRAMMIB)
+	}
+	if len(cfg.Attributes.Include) != 2 {
+		t.Error("config value changed:", cfg.Attributes.Include)
+	}
+	if len(cfg.Attributes.Exclude) != 3 {
+		t.Error("config value changed:", cfg.Attributes.Exclude)
+	}
+}
+
+func TestConfigFromEnvironmentAttributes(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_ATTRIBUTES_INCLUDE":
+			return "zip,zap"
+		case "NEW_RELIC_ATTRIBUTES_EXCLUDE":
+			return "zop,zup,zep"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if !reflect.DeepEqual(cfg.Attributes.Include, []string{"zip", "zap"}) {
+		t.Error("incorrect config value:", cfg.Attributes.Include)
+	}
+	if !reflect.DeepEqual(cfg.Attributes.Exclude, []string{"zop", "zup", "zep"}) {
+		t.Error("incorrect config value:", cfg.Attributes.Exclude)
 	}
 }

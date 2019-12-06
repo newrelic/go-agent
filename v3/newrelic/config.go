@@ -370,6 +370,8 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS sets Utilization.LogicalProcessors using strconv.Atoi
 //  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB      sets Utilization.TotalRAMMIB using strconv.Atoi
 //  NEW_RELIC_LABELS                         sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//  NEW_RELIC_ATTRIBUTES_EXCLUDE             sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//  NEW_RELIC_ATTRIBUTES_INCLUDE             sets Attributes.Include using a comma-separated list
 //  NEW_RELIC_LOG                            sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
 //  NEW_RELIC_LOG_LEVEL                      controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
 func ConfigFromEnvironment() ConfigOption {
@@ -414,6 +416,13 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
 			cfg.Labels = labels
+		}
+
+		if env := getenv("NEW_RELIC_ATTRIBUTES_INCLUDE"); env != "" {
+			cfg.Attributes.Include = strings.Split(env, ",")
+		}
+		if env := getenv("NEW_RELIC_ATTRIBUTES_EXCLUDE"); env != "" {
+			cfg.Attributes.Exclude = strings.Split(env, ",")
 		}
 
 		if dest := getLogDest(getenv("NEW_RELIC_LOG")); dest != nil {
