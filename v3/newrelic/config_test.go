@@ -133,3 +133,83 @@ func TestConfigFromEnvironmentAttributes(t *testing.T) {
 		t.Error("incorrect config value:", cfg.Attributes.Exclude)
 	}
 }
+
+func TestConfigFromEnvironmentInvalidBool(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_ENABLED":
+			return "BOGUS"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.Error == nil {
+		t.Error("error expected")
+	}
+}
+
+func TestConfigFromEnvironmentInvalidInt(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS":
+			return "BOGUS"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.Error == nil {
+		t.Error("error expected")
+	}
+}
+
+func TestConfigFromEnvironmentInvalidLogger(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_LOG":
+			return "BOGUS"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.Error == nil {
+		t.Error("error expected")
+	}
+}
+
+func TestConfigFromEnvironmentInvalidLabels(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_LABELS":
+			return ";;;"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.Error == nil {
+		t.Error("error expected")
+	}
+}
+
+func TestConfigFromEnvironmentLabelsSuccess(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_LABELS":
+			return "zip:zap; zop:zup"
+		default:
+			return ""
+		}
+	})
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if !reflect.DeepEqual(cfg.Labels, map[string]string{"zip": "zap", "zop": "zup"}) {
+		t.Error(cfg.Labels)
+	}
+}
