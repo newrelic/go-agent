@@ -332,6 +332,12 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   )
   ```
 
+  You can use [`ConfigFromEnvironment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigFromEnvironment) to provide configuration from environment variables:
+
+  ```go
+  app, err := newrelic.NewApplication(newrelic.ConfigFromEnvironment())
+  ```
+
 - [ ] Update the Transaction Tracer configuration. Change the fields for the two changed configuration options.
 
   | Old Config Field                               | New Config Field                                        |
