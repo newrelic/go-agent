@@ -383,6 +383,10 @@ func ConfigFromEnvironment() ConfigOption {
 
 func configFromEnvironment(getenv func(string) string) ConfigOption {
 	return func(cfg *Config) {
+		// Because fields could have been assigned in a previous
+		// ConfigOption, we only want to assign fields using environment
+		// variables that have been populated.  This is especially
+		// relevant for the string case where no processing occurs.
 		assignBool := func(field *bool, name string) {
 			if env := getenv(name); env != "" {
 				if b, err := strconv.ParseBool(env); nil != err {
@@ -402,10 +406,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			}
 		}
 		assignString := func(field *string, name string) {
-			// Note that the field assignment here is not
-			// unconditional since we do not want to overwrite
-			// fields which have already been assigned if the
-			// environment variable is not present.
 			if env := getenv(name); env != "" {
 				*field = name
 			}
