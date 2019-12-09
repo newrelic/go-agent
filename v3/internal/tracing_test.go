@@ -610,7 +610,7 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 			Host:         tc.DBHostname,
 		})
 
-		host, _ := sysinfo.Hostname()
+		host, _ := sysinfo.Hostname(false, nil)
 		expect := strings.Replace(tc.ExpectedMetric,
 			tc.SystemHostname, host, -1)
 

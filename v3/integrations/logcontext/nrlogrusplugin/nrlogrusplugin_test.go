@@ -136,7 +136,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -165,7 +165,7 @@ func TestLogSampledFalse(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -195,7 +195,7 @@ func TestLogSampledTrue(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	log.WithTime(testTime).WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -229,7 +229,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		})
 	txn := app.StartTransaction("TestEntryUsedTwice1")
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	entry.WithContext(ctx).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -253,7 +253,7 @@ func TestEntryUsedTwice(t *testing.T) {
 		})
 	txn = app.StartTransaction("TestEntryUsedTwice2")
 	ctx = newrelic.NewContext(context.Background(), txn)
-	host, _ = sysinfo.Hostname()
+	host, _ = sysinfo.Hostname(false, nil)
 	entry.WithContext(ctx).Info("Hello World! Again!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -274,7 +274,7 @@ func TestEntryError(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	log.WithTime(testTime).WithContext(ctx).WithField("func", func() {}).Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,
@@ -297,7 +297,7 @@ func TestWithCustomField(t *testing.T) {
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
 	ctx := newrelic.NewContext(context.Background(), txn)
-	host, _ := sysinfo.Hostname()
+	host, _ := sysinfo.Hostname(false, nil)
 	log.WithTime(testTime).WithContext(ctx).WithField("zip", "zap").Info("Hello World!")
 	validateOutput(t, out, map[string]interface{}{
 		"entity.name": integrationsupport.SampleAppName,

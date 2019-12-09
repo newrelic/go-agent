@@ -2,14 +2,20 @@
 
 package sysinfo
 
-import "os"
+import (
+	"os"
+)
 
-// Hostname returns the host name.
-func Hostname() (string, error) {
+func getHostname(getenv func(string) string, useDynoNames bool, dynoNamePrefixesToShorten []string) (string, error) {
 	hostname.Lock()
 	defer hostname.Unlock()
 	if hostname.name != "" {
 		return hostname.name, nil
+	}
+
+	if host := getDynoName(getenv, useDynoNames, dynoNamePrefixesToShorten); host != "" {
+		hostname.name = host
+		return host, nil
 	}
 
 	host, err := os.Hostname()

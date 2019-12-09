@@ -545,18 +545,20 @@ func EndMessageSegment(p EndMessageParams) error {
 
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
-	TxnData            *TxnData
-	Thread             *Thread
-	Start              SegmentStartTime
-	Now                time.Time
-	Product            string
-	Collection         string
-	Operation          string
-	ParameterizedQuery string
-	QueryParameters    map[string]interface{}
-	Host               string
-	PortPathOrID       string
-	Database           string
+	TxnData                   *TxnData
+	Thread                    *Thread
+	Start                     SegmentStartTime
+	Now                       time.Time
+	Product                   string
+	Collection                string
+	Operation                 string
+	ParameterizedQuery        string
+	QueryParameters           map[string]interface{}
+	Host                      string
+	PortPathOrID              string
+	Database                  string
+	UseDynoNames              bool
+	DynoNamePrefixesToShorten []string
 }
 
 const (
@@ -609,7 +611,9 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		p.PortPathOrID = unknownDatastorePortPathOrID
 	}
 	if _, ok := hostsToReplace[p.Host]; ok {
-		host, err := sysinfo.Hostname()
+		// The call to sysinfo.Hostname must include the Heroku config options
+		// because this could be the first time the hostname is gathered.
+		host, err := sysinfo.Hostname(p.UseDynoNames, p.DynoNamePrefixesToShorten)
 		if err != nil {
 			host = unknownDatastoreHost
 		}
