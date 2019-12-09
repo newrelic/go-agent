@@ -374,48 +374,61 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_ATTRIBUTES_INCLUDE             sets Attributes.Include using a comma-separated list
 //  NEW_RELIC_LOG                            sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
 //  NEW_RELIC_LOG_LEVEL                      controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//
+// This function is strict and will assign Config.Error if any of the
+// environment variables cannot be parsed.
 func ConfigFromEnvironment() ConfigOption {
 	return configFromEnvironment(os.Getenv)
 }
 
 func configFromEnvironment(getenv func(string) string) ConfigOption {
 	return func(cfg *Config) {
-		if env := getenv("NEW_RELIC_APP_NAME"); env != "" {
-			cfg.AppName = env
+		// Because fields could have been assigned in a previous
+		// ConfigOption, we only want to assign fields using environment
+		// variables that have been populated.  This is especially
+		// relevant for the string case where no processing occurs.
+		assignBool := func(field *bool, name string) {
+			if env := getenv(name); env != "" {
+				if b, err := strconv.ParseBool(env); nil != err {
+					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
+				} else {
+					*field = b
+				}
+			}
 		}
-		if env := getenv("NEW_RELIC_LICENSE_KEY"); env != "" {
-			cfg.License = env
+		assignInt := func(field *int, name string) {
+			if env := getenv(name); env != "" {
+				if i, err := strconv.Atoi(env); nil != err {
+					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
+				} else {
+					*field = i
+				}
+			}
 		}
-		if env, err := strconv.ParseBool(getenv("NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")); err == nil {
-			cfg.DistributedTracer.Enabled = env
-		}
-		if env, err := strconv.ParseBool(getenv("NEW_RELIC_ENABLED")); err == nil {
-			cfg.Enabled = env
-		}
-		if env, err := strconv.ParseBool(getenv("NEW_RELIC_HIGH_SECURITY")); err == nil {
-			cfg.HighSecurity = env
-		}
-		if env := getenv("NEW_RELIC_SECURITY_POLICIES_TOKEN"); env != "" {
-			cfg.SecurityPoliciesToken = env
-		}
-		if env := getenv("NEW_RELIC_HOST"); env != "" {
-			cfg.Host = env
-		}
-		if env := getenv("NEW_RELIC_PROCESS_HOST_DISPLAY_NAME"); env != "" {
-			cfg.HostDisplayName = env
-		}
-		if env := getenv("NEW_RELIC_UTILIZATION_BILLING_HOSTNAME"); env != "" {
-			cfg.Utilization.BillingHostname = env
-		}
-		if env, err := strconv.Atoi(getenv("NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")); err == nil {
-			cfg.Utilization.LogicalProcessors = env
-		}
-		if env, err := strconv.Atoi(getenv("NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")); err == nil {
-			cfg.Utilization.TotalRAMMIB = env
+		assignString := func(field *string, name string) {
+			if env := getenv(name); env != "" {
+				*field = name
+			}
 		}
 
-		if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
-			cfg.Labels = labels
+		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
+		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
+		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
+		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
+		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
+		assignString(&cfg.SecurityPoliciesToken, "NEW_RELIC_SECURITY_POLICIES_TOKEN")
+		assignString(&cfg.Host, "NEW_RELIC_HOST")
+		assignString(&cfg.HostDisplayName, "NEW_RELIC_PROCESS_HOST_DISPLAY_NAME")
+		assignString(&cfg.Utilization.BillingHostname, "NEW_RELIC_UTILIZATION_BILLING_HOSTNAME")
+		assignInt(&cfg.Utilization.LogicalProcessors, "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")
+		assignInt(&cfg.Utilization.TotalRAMMIB, "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")
+
+		if env := getenv("NEW_RELIC_LABELS"); env != "" {
+			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
+				cfg.Labels = labels
+			} else {
+				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LABELS value: %s", env)
+			}
 		}
 
 		if env := getenv("NEW_RELIC_ATTRIBUTES_INCLUDE"); env != "" {
@@ -425,11 +438,15 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			cfg.Attributes.Exclude = strings.Split(env, ",")
 		}
 
-		if dest := getLogDest(getenv("NEW_RELIC_LOG")); dest != nil {
-			if isDebugEnv(getenv("NEW_RELIC_LOG_LEVEL")) {
-				cfg.Logger = NewDebugLogger(dest)
+		if env := getenv("NEW_RELIC_LOG"); env != "" {
+			if dest := getLogDest(env); dest != nil {
+				if isDebugEnv(getenv("NEW_RELIC_LOG_LEVEL")) {
+					cfg.Logger = NewDebugLogger(dest)
+				} else {
+					cfg.Logger = NewLogger(dest)
+				}
 			} else {
-				cfg.Logger = NewLogger(dest)
+				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LOG value %s", env)
 			}
 		}
 	}
