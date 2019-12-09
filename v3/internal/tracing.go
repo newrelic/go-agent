@@ -565,13 +565,6 @@ const (
 )
 
 var (
-	// ThisHost is the system hostname.
-	ThisHost = func() string {
-		if h, err := sysinfo.Hostname(); nil == err {
-			return h
-		}
-		return unknownDatastoreHost
-	}()
 	hostsToReplace = map[string]struct{}{
 		"localhost":       {},
 		"127.0.0.1":       {},
@@ -616,7 +609,11 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		p.PortPathOrID = unknownDatastorePortPathOrID
 	}
 	if _, ok := hostsToReplace[p.Host]; ok {
-		p.Host = ThisHost
+		host, err := sysinfo.Hostname()
+		if err != nil {
+			host = unknownDatastoreHost
+		}
+		p.Host = host
 	}
 
 	// We still want to create a slowQuery if the consumer has not provided

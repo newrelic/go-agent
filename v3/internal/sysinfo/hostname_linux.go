@@ -7,6 +7,12 @@ import (
 
 // Hostname returns the host name.
 func Hostname() (string, error) {
+	hostname.Lock()
+	defer hostname.Unlock()
+	if hostname.name != "" {
+		return hostname.name, nil
+	}
+
 	// Try the builtin API first, which is designed to match the output of
 	// /bin/hostname, and fallback to uname(2) if that fails to match the
 	// behavior of gethostname(2) as implemented by glibc. On Linux, all
@@ -24,6 +30,7 @@ func Hostname() (string, error) {
 	// environment.
 	name, err := os.Hostname()
 	if err == nil {
+		hostname.name = name
 		return name, nil
 	}
 
@@ -46,5 +53,7 @@ func Hostname() (string, error) {
 		buf = append(buf, byte(c))
 	}
 
-	return string(buf), nil
+	host := string(buf)
+	hostname.name = host
+	return host, nil
 }

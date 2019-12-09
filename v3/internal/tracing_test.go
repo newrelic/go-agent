@@ -11,6 +11,7 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/cat"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
 	"github.com/newrelic/go-agent/v3/internal/logger"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 func TestStartEndSegment(t *testing.T) {
@@ -609,8 +610,9 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 			Host:         tc.DBHostname,
 		})
 
+		host, _ := sysinfo.Hostname()
 		expect := strings.Replace(tc.ExpectedMetric,
-			tc.SystemHostname, ThisHost, -1)
+			tc.SystemHostname, host, -1)
 
 		metrics := newMetricTable(100, time.Now())
 		txndata.FinalName = "OtherTransaction/Go/zip"
