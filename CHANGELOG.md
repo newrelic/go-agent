@@ -6,7 +6,7 @@
 
 ### If you do not manually take steps to use the new v3 folder, as described below, you will not see any changes in your agent.
 
-This is the second release of the pre-release of Go agent v3.0.  The existing
+This is the second release of the pre-release of Go agent v3.0.  It includes changes due to user feedback during the pre-release. The existing
 agent in `"github.com/newrelic/go-agent"` is unchanged.  The Go agent v3.0 code
 in the v3 folder has the following changes:
 
