@@ -26,6 +26,25 @@ The agent has been placed in a new `/v3` directory, leaving the top level direct
   * `_integrations/nrlogxi/v1` moves to `v3/integrations/nrlogxi`
   * `_integrations/nrecho` moves to `v3/integrations/nrecho-v3` and a new  `v3/integrations/nrecho-v4` has been added to support Echo version 4.
 
+### Transaction Name Changes
+
+Transaction names created by [`WrapHandle`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandle),
+[`WrapHandleFunc`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandleFunc),
+[nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3),
+[nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4),
+[nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla), and
+[nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) now
+include the HTTP method.  For example, the following code:
+
+```go
+http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
+```
+
+now creates a metric called `WebTransaction/Go/GET /users` instead of
+`WebTransaction/Go/users`.
+
+**As a result of this change, you may need to update your alerts and dashboards.**
+
 ### Go modules
 
 We have added go module support. The top level `"github.com/newrelic/go-agent/v3/newrelic"` package now has a `go.mod` file. Separate `go.mod` files are also included with each integration in the integrations directory.
@@ -523,6 +542,17 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
       newrelic.AttributeRequestUserAgentDeprecated,
   }
   ```
+
+- [ ] Update alerts and dashboards with new transaction names:
+
+  Transaction names created by
+  [`WrapHandle`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandle),
+  [`WrapHandleFunc`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WrapHandleFunc),
+  [nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3),
+  [nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4),
+  [nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla), and
+  [nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) now
+  include the HTTP method.  Thus the transaction name `WebTransaction/Go/users` becomes `WebTransaction/Go/GET /users`.
 
 - [ ] Not required for upgrade, but recommended: update your usages of the now deprecated [`StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegment) and [`StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartSegmentNow) to use the methods on the transaction: [`Transaction.StartSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.StartSegment) and [`Transaction.StartSegmentNow`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Trnasaction.StartSEgmentNow) respectively. This step is optional but highly recommended.
 
