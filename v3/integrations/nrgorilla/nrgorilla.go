@@ -18,13 +18,13 @@ import (
 func init() { internal.TrackUsage("integration", "framework", "gorilla", "v1") }
 
 type instrumentedHandler struct {
-	name string
 	app  *newrelic.Application
 	orig http.Handler
 }
 
 func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	txn := h.app.StartTransaction(h.name)
+	name := routeName(r)
+	txn := h.app.StartTransaction(name)
 	txn.SetWebRequestHTTP(r)
 	w = txn.SetWebResponse(w)
 	defer txn.End()
@@ -34,29 +34,29 @@ func (h instrumentedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.orig.ServeHTTP(w, r)
 }
 
-func instrumentRoute(h http.Handler, app *newrelic.Application, name string) http.Handler {
+func instrumentRoute(h http.Handler, app *newrelic.Application) http.Handler {
 	if _, ok := h.(instrumentedHandler); ok {
 		return h
 	}
 	return instrumentedHandler{
-		name: name,
 		orig: h,
 		app:  app,
 	}
 }
 
-func routeName(route *mux.Route) string {
+func routeName(r *http.Request) string {
+	route := mux.CurrentRoute(r)
 	if nil == route {
-		return ""
+		return "NotFoundHandler"
 	}
 	if n := route.GetName(); n != "" {
 		return n
 	}
 	if n, _ := route.GetPathTemplate(); n != "" {
-		return n
+		return r.Method + " " + n
 	}
 	n, _ := route.GetHostTemplate()
-	return n
+	return r.Method + " " + n
 }
 
 // InstrumentRoutes instruments requests through the provided mux.Router.  Use
@@ -64,12 +64,12 @@ func routeName(route *mux.Route) string {
 func InstrumentRoutes(r *mux.Router, app *newrelic.Application) *mux.Router {
 	if app != nil {
 		r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-			h := instrumentRoute(route.GetHandler(), app, routeName(route))
+			h := instrumentRoute(route.GetHandler(), app)
 			route.Handler(h)
 			return nil
 		})
 		if nil != r.NotFoundHandler {
-			r.NotFoundHandler = instrumentRoute(r.NotFoundHandler, app, "NotFoundHandler")
+			r.NotFoundHandler = instrumentRoute(r.NotFoundHandler, app)
 		}
 	}
 	return r

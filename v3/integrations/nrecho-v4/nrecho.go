@@ -40,7 +40,7 @@ func transactionName(c echo.Context) string {
 	if ptr == handlerPointer(echo.MethodNotAllowedHandler) {
 		return "MethodNotAllowedHandler"
 	}
-	return c.Path()
+	return c.Request().Method + " " + c.Path()
 }
 
 // Middleware creates Echo middleware that instruments requests.

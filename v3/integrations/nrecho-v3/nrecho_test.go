@@ -31,12 +31,12 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "hello",
+		Name:  "GET /hello",
 		IsWeb: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
+			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "S",
 		},
 		AgentAttributes: map[string]interface{}{
@@ -93,7 +93,7 @@ func TestTransactionContext(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "hello",
+		Name:      "GET /hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -158,13 +158,13 @@ func TestReturnsHTTPError(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "hello",
+		Name:      "GET /hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
+			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
 		},
 		AgentAttributes: map[string]interface{}{
@@ -194,13 +194,13 @@ func TestReturnsError(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "hello",
+		Name:      "GET /hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
+			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
 		},
 		AgentAttributes: map[string]interface{}{
@@ -230,13 +230,13 @@ func TestResponseCode(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "hello",
+		Name:      "GET /hello",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/hello",
+			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
 		},
 		AgentAttributes: map[string]interface{}{

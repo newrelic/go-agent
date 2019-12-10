@@ -32,7 +32,7 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "alpha",
+		Name:  "GET /alpha",
 		IsWeb: true,
 	})
 }
@@ -53,7 +53,7 @@ func TestSubrouterRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "users/add",
+		Name:  "GET /users/add",
 		IsWeb: true,
 	})
 }

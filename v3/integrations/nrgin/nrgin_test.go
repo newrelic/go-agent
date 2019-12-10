@@ -36,7 +36,7 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  pkg + ".hello",
+		Name:  "GET " + pkg + ".hello",
 		IsWeb: true,
 	})
 }
@@ -58,7 +58,7 @@ func TestRouterGroup(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  pkg + ".hello",
+		Name:  "GET " + pkg + ".hello",
 		IsWeb: true,
 	})
 }
@@ -81,7 +81,7 @@ func TestAnonymousHandler(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  pkg + ".TestAnonymousHandler.func1",
+		Name:  "GET " + pkg + ".TestAnonymousHandler.func1",
 		IsWeb: true,
 	})
 }
@@ -115,7 +115,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 	}
 	// Error metrics test the 500 response code capture.
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      pkg + ".multipleWriteHeader",
+		Name:      "GET " + pkg + ".multipleWriteHeader",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -147,7 +147,7 @@ func TestContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      pkg + ".accessTransactionGinContext",
+		Name:      "GET " + pkg + ".accessTransactionGinContext",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -208,7 +208,7 @@ func TestStatusCodes(t *testing.T) {
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/" + pkg + ".errorStatus",
+			"name":             "WebTransaction/Go/GET " + pkg + ".errorStatus",
 			"nr.apdexPerfZone": internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{},
@@ -252,7 +252,7 @@ func TestNoResponseBody(t *testing.T) {
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/" + pkg + ".noBody",
+			"name":             "WebTransaction/Go/GET " + pkg + ".noBody",
 			"nr.apdexPerfZone": internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{},

@@ -44,7 +44,7 @@ func TestContextContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      pkg + ".accessTransactionContextContext",
+		Name:      "GET " + pkg + ".accessTransactionContextContext",
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -78,7 +78,7 @@ func TestFromContext(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      pkg + ".accessTransactionFromContext",
+		Name:      "GET " + pkg + ".accessTransactionFromContext",
 		IsWeb:     true,
 		NumErrors: 1,
 	})

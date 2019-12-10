@@ -31,7 +31,7 @@ func TestWrapHandleFunc(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/hello",
+		TxnName: "WebTransaction/Go/GET /hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 	}})
@@ -39,14 +39,25 @@ func TestWrapHandleFunc(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.class":     "newrelic.myError",
 			"error.message":   "my msg",
-			"transactionName": "WebTransaction/Go/hello",
+			"transactionName": "WebTransaction/Go/GET /hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
 			"httpResponseCode":    "200",
 			"response.statusCode": "200",
 		}),
 	}})
-	app.ExpectMetrics(t, webErrorMetrics)
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: singleCount},
+	})
 }
 
 func TestWrapHandle(t *testing.T) {
@@ -62,7 +73,7 @@ func TestWrapHandle(t *testing.T) {
 	}
 
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/hello",
+		TxnName: "WebTransaction/Go/GET /hello",
 		Msg:     "my msg",
 		Klass:   "newrelic.myError",
 	}})
@@ -70,14 +81,25 @@ func TestWrapHandle(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.class":     "newrelic.myError",
 			"error.message":   "my msg",
-			"transactionName": "WebTransaction/Go/hello",
+			"transactionName": "WebTransaction/Go/GET /hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
 			"httpResponseCode":    "200",
 			"response.statusCode": "200",
 		}),
 	}})
-	app.ExpectMetrics(t, webErrorMetrics)
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: singleCount},
+	})
 }
 
 func TestWrapHandleNilApp(t *testing.T) {

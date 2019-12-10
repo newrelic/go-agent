@@ -30,7 +30,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 		return pattern, handler
 	}
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txn := app.StartTransaction(pattern)
+		txn := app.StartTransaction(r.Method + " " + pattern)
 		defer txn.End()
 
 		w = txn.SetWebResponse(w)

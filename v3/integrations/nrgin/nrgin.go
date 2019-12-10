@@ -100,7 +100,7 @@ func Transaction(c Context) *newrelic.Transaction {
 func Middleware(app *newrelic.Application) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
-			name := c.HandlerName()
+			name := c.Request.Method + " " + c.HandlerName()
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name)
 			txn.SetWebRequestHTTP(c.Request)
