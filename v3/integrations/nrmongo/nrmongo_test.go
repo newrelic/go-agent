@@ -6,6 +6,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -37,6 +38,7 @@ var (
 		CommandFinishedEvent: finishedEvent,
 		Failure:              "failureCause",
 	}
+	thisHost, _ = sysinfo.Hostname(false, nil)
 )
 
 func TestOrigMonitorsAreCalled(t *testing.T) {
@@ -129,7 +131,7 @@ func TestMonitor(t *testing.T) {
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/txnName", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/instance/MongoDB/" + internal.ThisHost + "/27017", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/instance/MongoDB/" + thisHost + "/27017", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/operation/MongoDB/commName", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/txnName", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
@@ -165,8 +167,8 @@ func TestMonitor(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"peer.address":  internal.ThisHost + ":27017",
-				"peer.hostname": internal.ThisHost,
+				"peer.address":  thisHost + ":27017",
+				"peer.hostname": thisHost,
 				"db.statement":  "'commName' on 'collName' using 'MongoDB'",
 				"db.instance":   "testdb",
 				"db.collection": "collName",
@@ -191,7 +193,7 @@ func TestMonitor(t *testing.T) {
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/txnName", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/instance/MongoDB/" + internal.ThisHost + "/27017", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/instance/MongoDB/" + thisHost + "/27017", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/operation/MongoDB/commName", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/txnName", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},

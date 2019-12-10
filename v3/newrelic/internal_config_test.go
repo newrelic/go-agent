@@ -108,6 +108,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"IgnoreStatusCodes":[0,5,404,405],
 				"RecordPanics":false
 			},
+			"Heroku":{
+				"DynoNamePrefixesToShorten":["scheduler","run"],
+				"UseDynoNames":true
+			},
 			"HighSecurity":false,
 			"Host":"",
 			"HostDisplayName":"",
@@ -272,6 +276,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true,
 				"IgnoreStatusCodes":null,
 				"RecordPanics":false
+			},
+			"Heroku":{
+				"DynoNamePrefixesToShorten":["scheduler","run"],
+				"UseDynoNames":true
 			},
 			"HighSecurity":false,
 			"Host":"",
