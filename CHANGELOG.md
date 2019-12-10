@@ -26,6 +26,14 @@ include the HTTP method.  For example, the following code:
   `WebTransaction/Go/users`.  As a result of this change, you may need to update
   your alerts and dashboards.
 
+* The [ConfigFromEnvironment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigFromEnvironment)
+  config option is now strict.  If one of the environment variables, such as
+  `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED`, cannot be parsed, then `Config.Error`
+  will be populated and [NewApplication](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewApplication)
+  will return an error.
+
+* [ConfigFromEnvironment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigFromEnvironment)
+  now processes `NEW_RELIC_ATTRIBUTES_EXCLUDE` and `NEW_RELIC_ATTRIBUTES_INCLUDE`.
 
 ## 2.16.1
 
