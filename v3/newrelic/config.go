@@ -407,7 +407,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 		assignString := func(field *string, name string) {
 			if env := getenv(name); env != "" {
-				*field = name
+				*field = env
 			}
 		}
 
