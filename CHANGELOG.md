@@ -1,5 +1,22 @@
 ## ChangeLog
 
+## 2.16.3
+
+### New Relic's Go agent v3.0 is currently available for review and beta
+#testing. Your use of this pre-release is at your own risk. New Relic disclaims
+#all warranties, express or implied, regarding the beta release.
+
+### If you do not manually take steps to use the new v3 folder you will not see
+#any changes in your agent.
+
+This is the third release of the pre-release of Go agent v3.0.  It includes
+changes due to user feedback during the pre-release. The existing agent in
+`"github.com/newrelic/go-agent"` is unchanged.  The Go agent v3.0 code in the v3
+folder has the following changes:
+
+* A [ConfigFromEnvironment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ConfigFromEnvironment)
+  bug has been fixed.
+
 ## 2.16.2
 
 ### New Relic's Go agent v3.0 is currently available for review and beta testing. Your use of this pre-release is at your own risk. New Relic disclaims all warranties, express or implied, regarding the beta release.
