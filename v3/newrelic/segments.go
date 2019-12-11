@@ -2,6 +2,8 @@ package newrelic
 
 import (
 	"net/http"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -128,7 +130,11 @@ func (s *Segment) End() {
 	if s == nil {
 		return
 	}
-	s.StartTime.thread.logAPIError(endSegment(s), "end segment")
+	if err := endSegment(s); err != nil {
+		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
+			"name": s.Name,
+		})
+	}
 }
 
 // End finishes the datastore segment.
@@ -136,7 +142,13 @@ func (s *DatastoreSegment) End() {
 	if nil == s {
 		return
 	}
-	s.StartTime.thread.logAPIError(endDatastore(s), "end datastore segment")
+	if err := endDatastore(s); err != nil {
+		s.StartTime.thread.logAPIError(err, "end datastore segment", map[string]interface{}{
+			"product":    s.Product,
+			"collection": s.Collection,
+			"operation":  s.Operation,
+		})
+	}
 }
 
 // End finishes the external segment.
@@ -144,7 +156,17 @@ func (s *ExternalSegment) End() {
 	if nil == s {
 		return
 	}
-	s.StartTime.thread.logAPIError(endExternal(s), "end external segment")
+	if err := endExternal(s); err != nil {
+		extraDetails := map[string]interface{}{
+			"host":      s.Host,
+			"procedure": s.Procedure,
+			"library":   s.Library,
+		}
+		if s.Request != nil {
+			extraDetails["request.url"] = internal.SafeURL(s.Request.URL)
+		}
+		s.StartTime.thread.logAPIError(err, "end external segment", extraDetails)
+	}
 }
 
 // End finishes the message segment.
@@ -152,7 +174,12 @@ func (s *MessageProducerSegment) End() {
 	if nil == s {
 		return
 	}
-	s.StartTime.thread.logAPIError(endMessage(s), "end message producer segment")
+	if err := endMessage(s); err != nil {
+		s.StartTime.thread.logAPIError(err, "end message producer segment", map[string]interface{}{
+			"library":          s.Library,
+			"destination-name": s.DestinationName,
+		})
+	}
 }
 
 // outboundHeaders returns the headers that should be attached to the external

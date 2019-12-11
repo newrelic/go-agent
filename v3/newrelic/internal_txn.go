@@ -116,16 +116,18 @@ func newTxn(input txnInput, name string) *thread {
 	}
 }
 
-func (thd *thread) logAPIError(err error, operation string) {
+func (thd *thread) logAPIError(err error, operation string, extraDetails map[string]interface{}) {
 	if nil == thd {
 		return
 	}
 	if nil == err {
 		return
 	}
-	thd.Config.Logger.Error("unable to "+operation, map[string]interface{}{
-		"reason": err.Error(),
-	})
+	if extraDetails == nil {
+		extraDetails = make(map[string]interface{}, 1)
+	}
+	extraDetails["reason"] = err.Error()
+	thd.Config.Logger.Error("unable to "+operation, extraDetails)
 }
 
 // lazilyCalculateSampled calculates and returns whether or not the transaction

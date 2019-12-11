@@ -34,7 +34,7 @@ func (txn *Transaction) End() {
 		// not any nested call!
 		r = recover()
 	}
-	txn.thread.logAPIError(txn.thread.End(r), "end transaction")
+	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -45,7 +45,7 @@ func (txn *Transaction) Ignore() {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction")
+	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction", nil)
 }
 
 // SetName names the transaction.  Use a limited set of unique names to
@@ -57,7 +57,7 @@ func (txn *Transaction) SetName(name string) {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name")
+	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
 }
 
 // NoticeError records an error.  The Transaction saves the first five
@@ -92,7 +92,7 @@ func (txn *Transaction) NoticeError(err error) {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.NoticeError(err), "notice error")
+	txn.thread.logAPIError(txn.thread.NoticeError(err), "notice error", nil)
 }
 
 // AddAttribute adds a key value pair to the transaction event, errors,
@@ -110,7 +110,7 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute")
+	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
 }
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
@@ -153,7 +153,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request")
+	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
 
 // SetWebResponse allows the Transaction to instrument response code and
@@ -248,7 +248,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload")
+	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
 }
 
 // Application returns the Application which started the transaction.
@@ -282,7 +282,7 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 		return nil
 	}
 	b, err := txn.thread.BrowserTimingHeader()
-	txn.thread.logAPIError(err, "create browser timing header")
+	txn.thread.logAPIError(err, "create browser timing header", nil)
 	return b
 }
 
