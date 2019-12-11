@@ -53,6 +53,64 @@ func runLabelsTestCase(t *testing.T, js json.RawMessage) {
 }
 
 func TestConfigFromEnvironment(t *testing.T) {
+	cfgOpt := configFromEnvironment(func(s string) string {
+		switch s {
+		case "NEW_RELIC_APP_NAME":
+			return "my app"
+		case "NEW_RELIC_LICENSE_KEY":
+			return "my license"
+		case "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED":
+			return "true"
+		case "NEW_RELIC_ENABLED":
+			return "false"
+		case "NEW_RELIC_HIGH_SECURITY":
+			return "1"
+		case "NEW_RELIC_SECURITY_POLICIES_TOKEN":
+			return "my token"
+		case "NEW_RELIC_HOST":
+			return "my host"
+		case "NEW_RELIC_PROCESS_HOST_DISPLAY_NAME":
+			return "my display host"
+		case "NEW_RELIC_UTILIZATION_BILLING_HOSTNAME":
+			return "my billing hostname"
+		case "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS":
+			return "123"
+		case "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB":
+			return "456"
+		case "NEW_RELIC_LABELS":
+			return "star:car;far:bar"
+		case "NEW_RELIC_ATTRIBUTES_INCLUDE":
+			return "zip,zap"
+		case "NEW_RELIC_ATTRIBUTES_EXCLUDE":
+			return "zop,zup,zep"
+		}
+		return ""
+	})
+	expect := defaultConfig()
+	expect.AppName = "my app"
+	expect.License = "my license"
+	expect.DistributedTracer.Enabled = true
+	expect.Enabled = false
+	expect.HighSecurity = true
+	expect.SecurityPoliciesToken = "my token"
+	expect.Host = "my host"
+	expect.HostDisplayName = "my display host"
+	expect.Utilization.BillingHostname = "my billing hostname"
+	expect.Utilization.LogicalProcessors = 123
+	expect.Utilization.TotalRAMMIB = 456
+	expect.Labels = map[string]string{"star": "car", "far": "bar"}
+	expect.Attributes.Include = []string{"zip", "zap"}
+	expect.Attributes.Exclude = []string{"zop", "zup", "zep"}
+
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+
+	if !reflect.DeepEqual(expect, cfg) {
+		t.Error(cfg)
+	}
+}
+
+func TestConfigFromEnvironmentIgnoresUnset(t *testing.T) {
 	// test that configFromEnvironment ignores unset env vars
 	cfgOpt := configFromEnvironment(func(string) string { return "" })
 	cfg := defaultConfig()
