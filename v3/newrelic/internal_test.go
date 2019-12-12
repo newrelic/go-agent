@@ -5,7 +5,6 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 	"time"
 
@@ -77,9 +76,10 @@ func (lg *errorSaverLogger) expectSingleLoggedError(tb testing.TB, msg string, c
 		tb.Error("incorrect logged error message", lg.errors[0].msg, msg)
 		return
 	}
-	if !reflect.DeepEqual(lg.errors[0].context, context) {
-		tb.Error("incorrect logged error context", lg.errors[0].context, context)
-		return
+	for k, v := range context {
+		if lg.errors[0].context[k] != v {
+			tb.Error("incorrect logged error context", lg.errors[0].context, context)
+		}
 	}
 	// Reset to prepare for subsequent tests.
 	lg.errors = nil
