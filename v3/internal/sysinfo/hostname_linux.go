@@ -5,18 +5,8 @@ import (
 	"syscall"
 )
 
-func getHostname(getenv func(string) string, useDynoNames bool, dynoNamePrefixesToShorten []string) (string, error) {
-	hostname.Lock()
-	defer hostname.Unlock()
-	if hostname.name != "" {
-		return hostname.name, nil
-	}
-
-	if host := getDynoName(getenv, useDynoNames, dynoNamePrefixesToShorten); host != "" {
-		hostname.name = host
-		return host, nil
-	}
-
+// Hostname returns the host name.
+func Hostname() (string, error) {
 	// Try the builtin API first, which is designed to match the output of
 	// /bin/hostname, and fallback to uname(2) if that fails to match the
 	// behavior of gethostname(2) as implemented by glibc. On Linux, all
@@ -34,7 +24,6 @@ func getHostname(getenv func(string) string, useDynoNames bool, dynoNamePrefixes
 	// environment.
 	name, err := os.Hostname()
 	if err == nil {
-		hostname.name = name
 		return name, nil
 	}
 
@@ -57,7 +46,5 @@ func getHostname(getenv func(string) string, useDynoNames bool, dynoNamePrefixes
 		buf = append(buf, byte(c))
 	}
 
-	host := string(buf)
-	hostname.name = host
-	return host, nil
+	return string(buf), nil
 }

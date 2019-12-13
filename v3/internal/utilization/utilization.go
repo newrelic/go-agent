@@ -207,8 +207,10 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 		}
 	}
 
-	if hostname, err := sysinfo.Hostname(config.UseDynoNames, config.DynoNamePrefixesToShorten); nil == err {
-		uDat.Hostname = hostname
+	if dyno := sysinfo.GetDynoName(config.UseDynoNames, config.DynoNamePrefixesToShorten); dyno != "" {
+		uDat.Hostname = dyno
+	} else if host, err := sysinfo.Hostname(); err == nil {
+		uDat.Hostname = host
 	} else {
 		warnGatherError("hostname", err)
 	}

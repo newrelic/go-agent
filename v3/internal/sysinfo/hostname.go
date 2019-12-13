@@ -3,12 +3,10 @@ package sysinfo
 import (
 	"os"
 	"strings"
-	"sync"
 )
 
-var hostname struct {
-	sync.Mutex
-	name string
+func GetDynoName(useDynoNames bool, dynoNamePrefixesToShorten []string) string {
+	return getDynoName(os.Getenv, useDynoNames, dynoNamePrefixesToShorten)
 }
 
 func getDynoName(getenv func(string) string, useDynoNames bool, dynoNamePrefixesToShorten []string) string {
@@ -32,17 +30,4 @@ func getDynoName(getenv func(string) string, useDynoNames bool, dynoNamePrefixes
 	}
 
 	return dyno
-}
-
-// Hostname returns the host name.
-func Hostname(useDynoNames bool, dynoNamePrefixesToShorten []string) (string, error) {
-	return getHostname(os.Getenv, useDynoNames, dynoNamePrefixesToShorten)
-}
-
-// ResetHostname resets the cached hostname value. Should only be used for
-// testing.
-func ResetHostname() {
-	hostname.Lock()
-	defer hostname.Unlock()
-	hostname.name = ""
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/cat"
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
 	"github.com/newrelic/go-agent/v3/internal/logger"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 // MarshalJSON limits the number of decimals.
@@ -545,20 +544,19 @@ func EndMessageSegment(p EndMessageParams) error {
 
 // EndDatastoreParams contains the parameters for EndDatastoreSegment.
 type EndDatastoreParams struct {
-	TxnData                   *TxnData
-	Thread                    *Thread
-	Start                     SegmentStartTime
-	Now                       time.Time
-	Product                   string
-	Collection                string
-	Operation                 string
-	ParameterizedQuery        string
-	QueryParameters           map[string]interface{}
-	Host                      string
-	PortPathOrID              string
-	Database                  string
-	UseDynoNames              bool
-	DynoNamePrefixesToShorten []string
+	TxnData            *TxnData
+	Thread             *Thread
+	Start              SegmentStartTime
+	Now                time.Time
+	Product            string
+	Collection         string
+	Operation          string
+	ParameterizedQuery string
+	QueryParameters    map[string]interface{}
+	Host               string
+	PortPathOrID       string
+	Database           string
+	ThisHost           string
 }
 
 const (
@@ -611,13 +609,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		p.PortPathOrID = unknownDatastorePortPathOrID
 	}
 	if _, ok := hostsToReplace[p.Host]; ok {
-		// The call to sysinfo.Hostname must include the Heroku config options
-		// because this could be the first time the hostname is gathered.
-		host, err := sysinfo.Hostname(p.UseDynoNames, p.DynoNamePrefixesToShorten)
-		if err != nil {
-			host = unknownDatastoreHost
-		}
-		p.Host = host
+		p.Host = p.ThisHost
 	}
 
 	// We still want to create a slowQuery if the consumer has not provided

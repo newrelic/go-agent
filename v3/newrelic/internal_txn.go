@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 type txnInput struct {
@@ -765,20 +764,19 @@ func endDatastore(s *DatastoreSegment) error {
 		s.PortPathOrID = ""
 	}
 	return internal.EndDatastoreSegment(internal.EndDatastoreParams{
-		TxnData:                   &txn.TxnData,
-		Thread:                    thd.thread,
-		Start:                     s.StartTime.start,
-		Now:                       time.Now(),
-		Product:                   string(s.Product),
-		Collection:                s.Collection,
-		Operation:                 s.Operation,
-		ParameterizedQuery:        s.ParameterizedQuery,
-		QueryParameters:           s.QueryParameters,
-		Host:                      s.Host,
-		PortPathOrID:              s.PortPathOrID,
-		Database:                  s.DatabaseName,
-		UseDynoNames:              txn.Config.Heroku.UseDynoNames,
-		DynoNamePrefixesToShorten: txn.Config.Heroku.DynoNamePrefixesToShorten,
+		TxnData:            &txn.TxnData,
+		Thread:             thd.thread,
+		Start:              s.StartTime.start,
+		Now:                time.Now(),
+		Product:            string(s.Product),
+		Collection:         s.Collection,
+		Operation:          s.Operation,
+		ParameterizedQuery: s.ParameterizedQuery,
+		QueryParameters:    s.QueryParameters,
+		Host:               s.Host,
+		PortPathOrID:       s.PortPathOrID,
+		Database:           s.DatabaseName,
+		ThisHost:           txn.appRun.hostname,
 	})
 }
 
@@ -1139,9 +1137,7 @@ func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 	metadata.EntityName = txn.appRun.firstAppName
 	metadata.EntityType = "SERVICE"
 	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
-	// The call to sysinfo.Hostname must include the Heroku config options
-	// because this could be the first time the hostname is gathered.
-	metadata.Hostname, _ = sysinfo.Hostname(thd.Config.Heroku.UseDynoNames, thd.Config.Heroku.DynoNamePrefixesToShorten)
+	metadata.Hostname = txn.appRun.hostname
 
 	md := thd.GetTraceMetadata()
 	metadata.TraceID = md.TraceID

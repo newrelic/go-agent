@@ -461,7 +461,7 @@ func TestGetLinkingMetadata(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	metadata := txn.GetLinkingMetadata()
-	host, _ := sysinfo.Hostname(false, nil)
+	host, _ := sysinfo.Hostname()
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error("wrong TraceID:", metadata.TraceID)
 	}

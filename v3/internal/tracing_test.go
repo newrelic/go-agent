@@ -597,6 +597,7 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 		txndata := &TxnData{}
 		thread := &Thread{}
 
+		host, _ := sysinfo.Hostname()
 		s := StartSegment(txndata, thread, start)
 		EndDatastoreSegment(EndDatastoreParams{
 			Thread:       thread,
@@ -608,9 +609,9 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 			Collection:   "my_table",
 			PortPathOrID: portPathOrID,
 			Host:         tc.DBHostname,
+			ThisHost:     host,
 		})
 
-		host, _ := sysinfo.Hostname(false, nil)
 		expect := strings.Replace(tc.ExpectedMetric,
 			tc.SystemHostname, host, -1)
 
