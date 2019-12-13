@@ -1,5 +1,14 @@
 ## ChangeLog
 
+### New Features
+
+* Detect and set hostnames based on Heroku dyno names.  When deploying an
+  application in Heroku, the hostnames collected will now match the dyno name.
+  This serves to greatly improve the usability of the servers list in APM since
+  dyno names are often sporadic or fleeting in nature.  The feature is
+  controlled by two new configuration options `Config.Heroku.UseDynoNames` and
+  `Config.Heroku.DynoNamePrefixesToShorten`.
+
 ## 2.16.3
 
 ### New Relic's Go agent v3.0 is currently available for review and beta testing.  Your use of this pre-release is at your own risk. New Relic disclaims all warranties, express or implied, regarding the beta release.
