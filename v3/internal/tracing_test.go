@@ -11,7 +11,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/cat"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
 	"github.com/newrelic/go-agent/v3/internal/logger"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 func TestStartEndSegment(t *testing.T) {
@@ -597,7 +596,7 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 		txndata := &TxnData{}
 		thread := &Thread{}
 
-		host, _ := sysinfo.Hostname(false, nil)
+		host := "this-hostname"
 		s := StartSegment(txndata, thread, start)
 		EndDatastoreSegment(EndDatastoreParams{
 			Thread:       thread,

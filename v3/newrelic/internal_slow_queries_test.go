@@ -7,7 +7,6 @@ import (
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 func TestSlowQueryBasic(t *testing.T) {
@@ -804,7 +803,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		}
 
 		expectTraceHost := tc.Expectation.Trace.Host
-		host, _ := sysinfo.Hostname(false, nil)
+		host := txn.thread.appRun.hostname
 		if tc.Input.SystemHostname != "" {
 			for i := range metrics {
 				metrics[i].Name = strings.Replace(metrics[i].Name,

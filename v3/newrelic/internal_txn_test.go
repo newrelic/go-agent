@@ -9,7 +9,6 @@ import (
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/cat"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 func TestShouldSaveTrace(t *testing.T) {
@@ -461,7 +460,7 @@ func TestGetLinkingMetadata(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	metadata := txn.GetLinkingMetadata()
-	host, _ := sysinfo.Hostname(false, nil)
+	host := txn.thread.appRun.hostname
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error("wrong TraceID:", metadata.TraceID)
 	}
