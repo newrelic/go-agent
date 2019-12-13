@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 // appRun contains information regarding a single connection session with the
@@ -20,6 +21,10 @@ type appRun struct {
 
 	// firstAppName is the value of Config.AppName up to the first semicolon.
 	firstAppName string
+
+	// hostname is the hostname of this host taking into account Heroku dyno
+	// names.
+	hostname string
 }
 
 func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
@@ -98,6 +103,13 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 
 	// Cache the first application name set on the config
 	run.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
+
+	// Cache the value of hostname for this host
+	if host, err := sysinfo.Hostname(config.Heroku.UseDynoNames, config.Heroku.DynoNamePrefixesToShorten); err == nil {
+		run.hostname = host
+	} else {
+		run.hostname = "unknown"
+	}
 
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config))

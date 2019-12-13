@@ -178,15 +178,17 @@ type config struct{ Config }
 func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
-		DetectAWS:         c.Utilization.DetectAWS,
-		DetectAzure:       c.Utilization.DetectAzure,
-		DetectPCF:         c.Utilization.DetectPCF,
-		DetectGCP:         c.Utilization.DetectGCP,
-		DetectDocker:      c.Utilization.DetectDocker,
-		DetectKubernetes:  c.Utilization.DetectKubernetes,
-		LogicalProcessors: c.Utilization.LogicalProcessors,
-		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
-		BillingHostname:   c.Utilization.BillingHostname,
+		DetectAWS:                 c.Utilization.DetectAWS,
+		DetectAzure:               c.Utilization.DetectAzure,
+		DetectPCF:                 c.Utilization.DetectPCF,
+		DetectGCP:                 c.Utilization.DetectGCP,
+		DetectDocker:              c.Utilization.DetectDocker,
+		DetectKubernetes:          c.Utilization.DetectKubernetes,
+		LogicalProcessors:         c.Utilization.LogicalProcessors,
+		TotalRAMMIB:               c.Utilization.TotalRAMMIB,
+		BillingHostname:           c.Utilization.BillingHostname,
+		UseDynoNames:              c.Heroku.UseDynoNames,
+		DynoNamePrefixesToShorten: c.Heroku.DynoNamePrefixesToShorten,
 	}, c.Logger)
 	return configConnectJSONInternal(c.Config, os.Getpid(), util, env, Version, securityPolicies, gatherMetadata(os.Environ))
 }

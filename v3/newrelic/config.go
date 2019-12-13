@@ -191,6 +191,20 @@ type Config struct {
 		BillingHostname   string
 	}
 
+	// Heroku controls the behavior of Heroku specific features.
+	Heroku struct {
+		// UseDynoNames controls if Heroku dyno names are reported as the
+		// hostname.  Default is true.
+		UseDynoNames bool
+		// DynoNamePrefixesToShorten allows you to shorten and combine some
+		// Heroku dyno names into a single value.  Ordinarily the agent reports
+		// dyno names with a trailing dot and process ID (for example,
+		// worker.3). You can remove this trailing data by specifying the
+		// prefixes you want to report without trailing data (for example,
+		// worker.*).  Defaults to shortening "scheduler" and "run" dyno names.
+		DynoNamePrefixesToShorten []string
+	}
+
 	// CrossApplicationTracer controls behavior relating to cross application
 	// tracing (CAT).  In the case where CrossApplicationTracer and
 	// DistributedTracer are both enabled, DistributedTracer takes precedence.
@@ -562,6 +576,9 @@ func defaultConfig() Config {
 
 	c.ServerlessMode.ApdexThreshold = 500 * time.Millisecond
 	c.ServerlessMode.Enabled = false
+
+	c.Heroku.UseDynoNames = true
+	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
 	return c
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/cat"
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
 	"github.com/newrelic/go-agent/v3/internal/logger"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 // MarshalJSON limits the number of decimals.
@@ -557,6 +556,7 @@ type EndDatastoreParams struct {
 	Host               string
 	PortPathOrID       string
 	Database           string
+	ThisHost           string
 }
 
 const (
@@ -565,13 +565,6 @@ const (
 )
 
 var (
-	// ThisHost is the system hostname.
-	ThisHost = func() string {
-		if h, err := sysinfo.Hostname(); nil == err {
-			return h
-		}
-		return unknownDatastoreHost
-	}()
 	hostsToReplace = map[string]struct{}{
 		"localhost":       {},
 		"127.0.0.1":       {},
@@ -616,7 +609,7 @@ func EndDatastoreSegment(p EndDatastoreParams) error {
 		p.PortPathOrID = unknownDatastorePortPathOrID
 	}
 	if _, ok := hostsToReplace[p.Host]; ok {
-		p.Host = ThisHost
+		p.Host = p.ThisHost
 	}
 
 	// We still want to create a slowQuery if the consumer has not provided

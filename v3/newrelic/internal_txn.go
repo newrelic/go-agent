@@ -776,6 +776,7 @@ func endDatastore(s *DatastoreSegment) error {
 		Host:               s.Host,
 		PortPathOrID:       s.PortPathOrID,
 		Database:           s.DatabaseName,
+		ThisHost:           txn.appRun.hostname,
 	})
 }
 
@@ -1136,7 +1137,7 @@ func (thd *thread) GetLinkingMetadata() (metadata LinkingMetadata) {
 	metadata.EntityName = txn.appRun.firstAppName
 	metadata.EntityType = "SERVICE"
 	metadata.EntityGUID = txn.appRun.Reply.EntityGUID
-	metadata.Hostname = internal.ThisHost
+	metadata.Hostname = txn.appRun.hostname
 
 	md := thd.GetTraceMetadata()
 	metadata.TraceID = md.TraceID

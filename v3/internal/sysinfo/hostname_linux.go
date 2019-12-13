@@ -5,8 +5,7 @@ import (
 	"syscall"
 )
 
-// Hostname returns the host name.
-func Hostname() (string, error) {
+func getHostname() (string, error) {
 	// Try the builtin API first, which is designed to match the output of
 	// /bin/hostname, and fallback to uname(2) if that fails to match the
 	// behavior of gethostname(2) as implemented by glibc. On Linux, all
