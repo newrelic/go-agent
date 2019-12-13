@@ -4,7 +4,6 @@ package sysinfo
 
 import "os"
 
-// Hostname returns the host name.
-func Hostname() (string, error) {
+func getHostname() (string, error) {
 	return os.Hostname()
 }

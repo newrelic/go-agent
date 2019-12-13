@@ -38,7 +38,7 @@ var (
 		CommandFinishedEvent: finishedEvent,
 		Failure:              "failureCause",
 	}
-	thisHost, _ = sysinfo.Hostname()
+	thisHost, _ = sysinfo.Hostname(false, nil)
 )
 
 func TestOrigMonitorsAreCalled(t *testing.T) {

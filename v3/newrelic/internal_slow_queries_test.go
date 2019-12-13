@@ -804,7 +804,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 		}
 
 		expectTraceHost := tc.Expectation.Trace.Host
-		host, _ := sysinfo.Hostname()
+		host, _ := sysinfo.Hostname(false, nil)
 		if tc.Input.SystemHostname != "" {
 			for i := range metrics {
 				metrics[i].Name = strings.Replace(metrics[i].Name,

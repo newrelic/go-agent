@@ -5,8 +5,12 @@ import (
 	"strings"
 )
 
-func GetDynoName(useDynoNames bool, dynoNamePrefixesToShorten []string) string {
-	return getDynoName(os.Getenv, useDynoNames, dynoNamePrefixesToShorten)
+// Hostname returns the host name.
+func Hostname(useDynoNames bool, dynoNamePrefixesToShorten []string) (string, error) {
+	if dyno := getDynoName(os.Getenv, useDynoNames, dynoNamePrefixesToShorten); dyno != "" {
+		return dyno, nil
+	}
+	return getHostname()
 }
 
 func getDynoName(getenv func(string) string, useDynoNames bool, dynoNamePrefixesToShorten []string) string {

@@ -105,9 +105,7 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	run.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
 
 	// Cache the value of hostname for this host
-	if dyno := sysinfo.GetDynoName(config.Heroku.UseDynoNames, config.Heroku.DynoNamePrefixesToShorten); dyno != "" {
-		run.hostname = dyno
-	} else if host, _ := sysinfo.Hostname(); host != "" {
+	if host, err := sysinfo.Hostname(config.Heroku.UseDynoNames, config.Heroku.DynoNamePrefixesToShorten); err == nil {
 		run.hostname = host
 	} else {
 		run.hostname = "unknown"

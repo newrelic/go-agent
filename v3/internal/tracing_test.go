@@ -597,7 +597,7 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 		txndata := &TxnData{}
 		thread := &Thread{}
 
-		host, _ := sysinfo.Hostname()
+		host, _ := sysinfo.Hostname(false, nil)
 		s := StartSegment(txndata, thread, start)
 		EndDatastoreSegment(EndDatastoreParams{
 			Thread:       thread,
