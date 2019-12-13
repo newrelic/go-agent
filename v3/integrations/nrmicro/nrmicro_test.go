@@ -48,6 +48,9 @@ func (t *TestHandler) Method(ctx context.Context, req *TestRequest, rsp *TestRes
 }
 
 func (t *TestHandler) StreamingMethod(ctx context.Context, stream server.Stream) error {
+	if err := stream.Recv(new(string)); nil != err {
+		return err
+	}
 	if err := stream.Send(getDTRequestHeaderVal(ctx)); nil != err {
 		return err
 	}
@@ -432,6 +435,10 @@ func TestClientStreamWrapperWithNoTransaction(t *testing.T) {
 	}
 
 	var resp string
+	if err := stream.Send(&resp); nil != err {
+		t.Fatal(err)
+	}
+
 	err = stream.Recv(&resp)
 	if nil != err {
 		t.Fatal(err)
