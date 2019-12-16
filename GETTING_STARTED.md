@@ -50,9 +50,9 @@ func main() {
 ```
 
 Now start your application, and within minutes it will appear in the New Relic
-UI.  Your application in New Relic won't contain much data (until we complete 
-the steps below!), but you will already be able to see a 
-[Go runtime](https://docs.newrelic.com/docs/agents/go-agent/features/go-runtime-page-troubleshoot-performance-problems) 
+UI.  Your application in New Relic won't contain much data (until we complete
+the steps below!), but you will already be able to see a
+[Go runtime](https://docs.newrelic.com/docs/agents/go-agent/features/go-runtime-page-troubleshoot-performance-problems)
 page that shows goroutine counts, garbage collection, memory, and CPU usage.
 
 ## Step 2: Instrument Requests Using Transactions
@@ -77,7 +77,7 @@ Can be instrumented like this:
 http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 ```
 
-[Full Example Application](./examples/server/main.go)
+[Full Example Application](./v3/examples/server/main.go)
 
 #### Popular Web Framework
 
@@ -94,7 +94,7 @@ directly using the application's `StartTransaction` method:
 func myHandler(rw http.ResponseWriter, req *http.Request) {
     txn := h.App.StartTransaction("myHandler")
     defer txn.End()
-    // Setting the response writer and request is optional. If you don't 
+    // Setting the response writer and request is optional. If you don't
     // set the request, the transaction is considered a background task.
     txn.SetWebRequestHTTP(req)
     // Use the ResponseWriter returned in place of the previous ResponseWriter
@@ -120,9 +120,9 @@ and
 
 Creating a segment requires access to the transaction.  You can pass the
 transaction around your functions inside
-a [context.Context](https://golang.org/pkg/context/#Context) (preferred), or as an explicit transaction 
-parameter of the function.  Functions 
-[FromContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#FromContext) 
+a [context.Context](https://golang.org/pkg/context/#Context) (preferred), or as an explicit transaction
+parameter of the function.  Functions
+[FromContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#FromContext)
 and [NewContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#NewContext) make it
 easy to store and retrieve the transaction from a context.
 

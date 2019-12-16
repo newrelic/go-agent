@@ -29,6 +29,9 @@
 * [For More Help](#for-more-help)
 
 ## Upgrading
+
+This guide documents version 3.x of the agent which resides in package
+`"github.com/newrelic/go-agent/v3/newrelic"`.
 If you have already been using version 2.X of the agent and are upgrading to
 version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
@@ -537,7 +540,7 @@ For server applications:
 
 1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
    uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux)
-   ([Example](examples/server/main.go)).
+   ([Example](v3/examples/server/main.go)).
 
 2. Using any of the Go Agent's HTTP integrations, which are listed [here
 ](README.md#integrations).
@@ -549,17 +552,17 @@ For server applications:
       2. the `http.ResponseWriter` that is returned from `Transaction.SetWebResponse`
       is used instead of calling `WriteHeader` directly on the original response
       writer, as described in the [transactions section of this guide](#transactions)
-       ([Example](examples/server-http/main.go)).
+       ([Example](v3/examples/server-http/main.go)).
 
 For client applications:
 
 1. Using `NewRoundTripper`, as described in the
    [external segments section of this guide](#external-segments)
-   ([Example](examples/client-round-tripper/main.go)).
+   ([Example](v3/examples/client-round-tripper/main.go)).
 
 2. Using the call `StartExternalSegment` and providing an `http.Request`, as
    described in the [external segments section of this guide](#external-segments)
-   ([Example](examples/client/main.go)).
+   ([Example](v3/examples/client/main.go)).
 
 #### Manually Implementing Distributed Tracing
 
@@ -581,7 +584,7 @@ calledTxn.AcceptDistributedTraceHeaders(newrelic.TransportOther, h)
 ```
 
 A complete example can be found
-[here](examples/custom-instrumentation/main.go).
+[here](v3/examples/custom-instrumentation/main.go).
 
 
 ## Custom Metrics
