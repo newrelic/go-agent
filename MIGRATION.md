@@ -130,7 +130,7 @@ Two attributes have been renamed.  The old names will still be reported, but are
 
 | Old (deprecated) attribute   | New attribute                |
 |------------------------------|------------------------------|
-| `httpResponseCode`           | `response.statusCode`        |
+| `httpResponseCode`           | `http.statusCode`            |
 | `request.headers.User-Agent` | `request.headers.userAgent`  |
 
 Since in v3.0 both the deprecated and the new attribute are being reported, if you have configured your application to ignore one or both of these attributes, such as with `Config.Attributes.Exclude`, you will now need to specify both the deprecated and the new attribute name in your configuration.
@@ -539,7 +539,7 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
 
   ```go
   config.ErrorCollector.Attributes.Exclude = []string{
-      "response.statusCode",
+      "http.statusCode",
       "httpResponseCode",
       "request.headers.userAgent",
       "request.headers.User-Agent",

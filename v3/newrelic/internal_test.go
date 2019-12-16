@@ -601,8 +601,8 @@ func TestResponseCodeError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode":    "400",
-			"response.statusCode": "400",
+			"httpResponseCode": "400",
+			"http.statusCode":  "400",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
@@ -701,8 +701,8 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 			"transactionName": "WebTransaction/Go/hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode":    "404",
-			"response.statusCode": "404",
+			"httpResponseCode": "404",
+			"http.statusCode":  "404",
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)

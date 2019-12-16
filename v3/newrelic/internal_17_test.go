@@ -41,8 +41,8 @@ func TestWrapHandleFunc(t *testing.T) {
 			"transactionName": "WebTransaction/Go/GET /hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode":    "200",
-			"response.statusCode": "200",
+			"httpResponseCode": "200",
+			"http.statusCode":  "200",
 		}),
 	}})
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -83,8 +83,8 @@ func TestWrapHandle(t *testing.T) {
 			"transactionName": "WebTransaction/Go/GET /hello",
 		},
 		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
-			"httpResponseCode":    "200",
-			"response.statusCode": "200",
+			"httpResponseCode": "200",
+			"http.statusCode":  "200",
 		}),
 	}})
 	app.ExpectMetrics(t, []internal.WantMetric{

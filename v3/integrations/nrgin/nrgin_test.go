@@ -213,7 +213,7 @@ func TestStatusCodes(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             expectCode,
-			"response.statusCode":          expectCode,
+			"http.statusCode":              expectCode,
 			"request.method":               "GET",
 			"request.uri":                  "/err",
 			"response.headers.contentType": "text/plain; charset=utf-8",
@@ -256,10 +256,10 @@ func TestNoResponseBody(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":    expectCode,
-			"response.statusCode": expectCode,
-			"request.method":      "GET",
-			"request.uri":         "/nobody",
+			"httpResponseCode": expectCode,
+			"http.statusCode":  expectCode,
+			"request.method":   "GET",
+			"request.uri":      "/nobody",
 		},
 	}})
 }
