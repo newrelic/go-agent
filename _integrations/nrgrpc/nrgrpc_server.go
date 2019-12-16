@@ -59,7 +59,9 @@ func startTransaction(ctx context.Context, app newrelic.Application, fullMethod 
 //
 func UnaryServerInterceptor(app newrelic.Application) grpc.UnaryServerInterceptor {
 	if nil == app {
-		return nil
+		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			return handler(ctx, req)
+		}
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
@@ -115,7 +117,9 @@ func newWrappedServerStream(stream grpc.ServerStream, txn newrelic.Transaction) 
 //
 func StreamServerInterceptor(app newrelic.Application) grpc.StreamServerInterceptor {
 	if nil == app {
-		return nil
+		return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+			return handler(srv, ss)
+		}
 	}
 
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
