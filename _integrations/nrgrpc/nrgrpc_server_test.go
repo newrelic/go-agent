@@ -590,3 +590,15 @@ func TestStreamServerInterceptorNilApp(t *testing.T) {
 		t.Error("incorrect message received")
 	}
 }
+
+func TestInterceptorsNilAppReturnNonNil(t *testing.T) {
+	uInt := UnaryServerInterceptor(nil)
+	if uInt == nil {
+		t.Error("UnaryServerInterceptor returned nil")
+	}
+
+	sInt := StreamServerInterceptor(nil)
+	if sInt == nil {
+		t.Error("StreamServerInterceptor returned nil")
+	}
+}
