@@ -122,9 +122,8 @@ func TestMultipleWriteHeader(t *testing.T) {
 }
 
 func accessTransactionGinContext(c *gin.Context) {
-	if txn := Transaction(c); nil != txn {
-		txn.NoticeError(errors.New("problem"))
-	}
+	txn := Transaction(c)
+	txn.NoticeError(errors.New("problem"))
 	c.Writer.WriteString("accessTransactionGinContext")
 }
 

@@ -432,11 +432,10 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 
 func TestCustomEvent(t *testing.T) {
 	originalHandler := func(c context.Context) {
-		if txn := newrelic.FromContext(c); nil != txn {
-			txn.Application().RecordCustomEvent("myEvent", map[string]interface{}{
-				"zip": "zap",
-			})
-		}
+		txn := newrelic.FromContext(c)
+		txn.Application().RecordCustomEvent("myEvent", map[string]interface{}{
+			"zip": "zap",
+		})
 	}
 	app := testApp(nil, t)
 	wrapped := Wrap(originalHandler, app)

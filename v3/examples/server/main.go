@@ -26,24 +26,22 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 func noticeError(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
-	if txn := newrelic.FromContext(r.Context()); txn != nil {
-		txn.NoticeError(errors.New("my error message"))
-	}
+	txn := newrelic.FromContext(r.Context())
+	txn.NoticeError(errors.New("my error message"))
 }
 
 func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
-	if txn := newrelic.FromContext(r.Context()); txn != nil {
-		txn.NoticeError(newrelic.Error{
-			Message: "uh oh. something went very wrong",
-			Class:   "errors are aggregated by class",
-			Attributes: map[string]interface{}{
-				"important_number": 97232,
-				"relevant_string":  "zap",
-			},
-		})
-	}
+	txn := newrelic.FromContext(r.Context())
+	txn.NoticeError(newrelic.Error{
+		Message: "uh oh. something went very wrong",
+		Class:   "errors are aggregated by class",
+		Attributes: map[string]interface{}{
+			"important_number": 97232,
+			"relevant_string":  "zap",
+		},
+	})
 }
 
 func customEvent(w http.ResponseWriter, r *http.Request) {
@@ -51,38 +49,33 @@ func customEvent(w http.ResponseWriter, r *http.Request) {
 
 	io.WriteString(w, "recording a custom event")
 
-	if nil != txn {
-		txn.Application().RecordCustomEvent("my_event_type", map[string]interface{}{
-			"myString": "hello",
-			"myFloat":  0.603,
-			"myInt":    123,
-			"myBool":   true,
-		})
-	}
+	txn.Application().RecordCustomEvent("my_event_type", map[string]interface{}{
+		"myString": "hello",
+		"myFloat":  0.603,
+		"myInt":    123,
+		"myBool":   true,
+	})
 }
 
 func setName(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "changing the transaction's name")
 
-	if txn := newrelic.FromContext(r.Context()); txn != nil {
-		txn.SetName("other-name")
-	}
+	txn := newrelic.FromContext(r.Context())
+	txn.SetName("other-name")
 }
 
 func addAttribute(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "adding attributes")
 
-	if txn := newrelic.FromContext(r.Context()); txn != nil {
-		txn.AddAttribute("myString", "hello")
-		txn.AddAttribute("myInt", 123)
-	}
+	txn := newrelic.FromContext(r.Context())
+	txn.AddAttribute("myString", "hello")
+	txn.AddAttribute("myInt", 123)
 }
 
 func ignore(w http.ResponseWriter, r *http.Request) {
 	if coinFlip := (0 == rand.Intn(2)); coinFlip {
-		if txn := newrelic.FromContext(r.Context()); txn != nil {
-			txn.Ignore()
-		}
+		txn := newrelic.FromContext(r.Context())
+		txn.Ignore()
 		io.WriteString(w, "ignoring the transaction")
 	} else {
 		io.WriteString(w, "not ignoring the transaction")
@@ -225,9 +218,7 @@ func customMetric(w http.ResponseWriter, r *http.Request) {
 		for _, v := range vals {
 			// This custom metric will have the name
 			// "Custom/HeaderLength" in the New Relic UI.
-			if nil != txn {
-				txn.Application().RecordCustomMetric("HeaderLength", float64(len(v)))
-			}
+			txn.Application().RecordCustomMetric("HeaderLength", float64(len(v)))
 		}
 	}
 	io.WriteString(w, "custom metric recorded")

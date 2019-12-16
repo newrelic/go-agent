@@ -19,9 +19,8 @@ func accessTransactionContextContext(c *gin.Context) {
 	var ctx context.Context = c
 	// Transaction is designed to take both a context.Context and a
 	// *gin.Context.
-	if txn := Transaction(ctx); nil != txn {
-		txn.NoticeError(errors.New("problem"))
-	}
+	txn := Transaction(ctx)
+	txn.NoticeError(errors.New("problem"))
 	c.Writer.WriteString("accessTransactionContextContext")
 }
 
@@ -53,9 +52,8 @@ func TestContextContextTransaction(t *testing.T) {
 func accessTransactionFromContext(c *gin.Context) {
 	// This tests that FromContext will find the transaction added to a
 	// *gin.Context and by nrgin.Middleware.
-	if txn := newrelic.FromContext(c); nil != txn {
-		txn.NoticeError(errors.New("problem"))
-	}
+	txn := newrelic.FromContext(c)
+	txn.NoticeError(errors.New("problem"))
 	c.Writer.WriteString("accessTransactionFromContext")
 }
 

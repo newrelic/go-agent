@@ -76,9 +76,7 @@ func TestTransactionContext(t *testing.T) {
 	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 		txn := FromContext(c)
-		if nil != txn {
-			txn.NoticeError(errors.New("ooops"))
-		}
+		txn.NoticeError(errors.New("ooops"))
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 

@@ -19,9 +19,8 @@ type Greeter struct{}
 // Hello is the method on the server being called
 func (g *Greeter) Hello(ctx context.Context, req *proto.HelloRequest, rsp *proto.HelloResponse) error {
 	name := req.GetName()
-	if txn := newrelic.FromContext(ctx); nil != txn {
-		txn.AddAttribute("Name", name)
-	}
+	txn := newrelic.FromContext(ctx)
+	txn.AddAttribute("Name", name)
 	fmt.Println("Request received from", name)
 	rsp.Greeting = "Hello " + name
 	return nil
