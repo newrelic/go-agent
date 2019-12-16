@@ -1,5 +1,6 @@
 # New Relic Go Agent Guide
 
+* [Upgrading](#upgrading)
 * [Installation](#installation)
 * [Config and Application](#config-and-application)
 * [Logging](#logging)
@@ -21,12 +22,18 @@
 * [Request Queuing](#request-queuing)
 * [Error Reporting](#error-reporting)
   * [NoticeError](#noticeerror)
-    * [Advanced NoticeError Use](#advanced-noticeerror-use)
   * [Panics](#panics)
   * [Error Response Codes](#error-response-codes)
 * [Naming Transactions and Metrics](#naming-transactions-and-metrics)
 * [Browser](#browser)
 * [For More Help](#for-more-help)
+
+## Upgrading
+
+This guide documents version 3.x of the agent which resides in package
+`"github.com/newrelic/go-agent/v3/newrelic"`.
+If you have already been using version 2.X of the agent and are upgrading to
+version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
 ## Installation
 
@@ -37,52 +44,60 @@ simplest way is to run:
 go get github.com/newrelic/go-agent
 ```
 
-Then import the `github.com/newrelic/go-agent` package in your application.
+Then import the package in your application:
+```go
+import "github.com/newrelic/go-agent/v3/newrelic"
+```
 
 ## Config and Application
 
-* [config.go](config.go)
-* [application.go](application.go)
+* [Config godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config)
+* [Application godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application)
 
 In your `main` function or in an `init` block:
 
 ```go
-config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-app, err := newrelic.NewApplication(config)
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+)
 ```
 
 Find your application in the New Relic UI.  Click on it to see the Go runtime
 page that shows information about goroutine counts, garbage collection, memory,
-and CPU usage.
+and CPU usage. Data should show up within 5 minutes.
 
 If you are working in a development environment or running unit tests, you may
 not want the Go Agent to spawn goroutines or report to New Relic.  You're in
-luck!  Set the config's `Enabled` field to false.  This makes the license key
+luck!  Use the `ConfigEnabled` function to disable the agent.  This makes the license key
 optional.
 
 ```go
-config := newrelic.NewConfig("Your Application Name", "")
-config.Enabled = false
-app, err := newrelic.NewApplication(config)
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigEnabled(false),
+)
 ```
 
 ## Logging
 
 The agent's logging system is designed to be easily extensible.  By default, no
-logging will occur.  To enable logging, assign the `Config.Logger` field to
-something implementing the
-[Logger](https://godoc.org/github.com/newrelic/go-agent#Logger) interface.  Two
-[Logger](https://godoc.org/github.com/newrelic/go-agent#Logger) implementations
-are included:
-[NewLogger](https://godoc.org/github.com/newrelic/go-agent#NewLogger), which
-logs at info level, and
-[NewDebugLogger](https://godoc.org/github.com/newrelic/go-agent#NewDebugLogger)
+logging will occur.  To enable logging, use the following config functions
+with an [io.Writer](https://godoc.org/github.com/pkg/io/#Writer):
+[ConfigInfoLogger](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#ConfigInfoLogger),
+which logs at info level, and
+[ConfigDebugLogger](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#ConfigDebugLogger)
 which logs at debug level.
 
 To log at debug level to standard out, set:
 
 ```go
-cfg.Logger = newrelic.NewDebugLogger(os.Stdout)
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+    // Add debug logging:
+    newrelic.ConfigDebugLogger(os.Stdout),
+)
 ```
 
 To log at info level to a file, set:
@@ -90,18 +105,24 @@ To log at info level to a file, set:
 ```go
 w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 if nil == err {
-  cfg.Logger = newrelic.NewLogger(w)
+    app, _ := newrelic.NewApplication(
+        newrelic.ConfigAppName("Your Application Name"),
+        newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+        newrelic.ConfigInfoLogger(w),
+    )
 }
 ```
 
-Popular logging libraries `logrus` and `logxi` are supported by integration packages:
+Popular logging libraries `logrus`, `logxi` and `zap` are supported by
+integration packages:
 
-* [_integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogrus)
-* [_integrations/nrlogxi/v1](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrlogxi/v1)
+* [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus/)
+* [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/)
+* [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap/)
 
 ## Transactions
 
-* [transaction.go](transaction.go)
+* [Transaction godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction)
 * [Naming Transactions](#naming-transactions-and-metrics)
 * [More info on Transactions](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/transactions-page)
 
@@ -109,45 +130,65 @@ Transactions time requests and background tasks.  The simplest way to create
 transactions is to use `Application.StartTransaction` and `Transaction.End`.
 
 ```go
-txn := app.StartTransaction("transactionName", responseWriter, request)
+txn := app.StartTransaction("transactionName")
 defer txn.End()
 ```
 
-If the response writer is provided when calling `StartTransaction`, you can
-then use `txn.WriteHeader` as a drop in replacement for the standard library's
-[`http.ResponseWriter.WriteHeader`](https://golang.org/pkg/net/http/#ResponseWriter)
-function. We strongly recommend doing so, as this both enables cross-application
-tracing support and ensures that attributes are added to the
-Transaction event capturing the response size and status code.
+If you are instrumenting a background transaction, this is all that is needed. If, however,
+you are instrumenting a web transaction, you will want to use the
+ `SetWebRequestHTTP` and `SetWebResponse` methods as well.
 
-The response writer and request parameters are optional.  Leave them `nil` to
-instrument a background task.
+[SetWebRequestHTTP](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction.SetWebRequestHTTP)
+marks the transaction as a web transaction. If the [http.Request](https://godoc.org/net/http#Request)
+is non-nil, `SetWebRequestHTTP` will additionally collect details on request
+attributes, url, and method. If headers are present, the agent will look for a
+distributed tracing header.
+
+If you want to mark a transaction as a web transaction, but don't have access
+ to an `http.Request`, you can use the [SetWebRequest](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction.SetWebRequest)
+method, using a manually constructed [WebRequest](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#WebRequest)
+object.
+
+[SetWebResponse](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction.SetWebResponse)
+allows the Transaction to instrument response code and response headers. Pass in
+your [http.ResponseWriter](https://godoc.org/net/http#ResponseWriter) as a
+parameter, and then use the return value of this method in place of the input
+parameter in your instrumentation.
+
+Here is an example using both methods:
 
 ```go
-txn := app.StartTransaction("backgroundTask", nil, nil)
-defer txn.End()
+func (h *handler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+    txn := h.App.StartTransaction("transactionName")
+    defer txn.End()
+    // This marks the transaction as a web transactions and collects details on
+    // the request attributes
+    txn.SetWebRequestHTTP(req)
+    // This collects details on response code and headers. Use the returned
+    // Writer from here on.
+    writer = txn.SetWebResponse(writer)
+    // ... handler code continues here using the new writer
+}
 ```
 
 The transaction has helpful methods like `NoticeError` and `SetName`.
-See more in [transaction.go](transaction.go).
+See more in [godocs](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction).
 
 If you are using [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux),
 use `WrapHandle` and `WrapHandleFunc`.  These wrappers automatically start and
-end transactions with the request and response writer.  See
-[instrumentation.go](instrumentation.go).
+end transactions with the request and response writer.
 
 ```go
 http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 ```
 
-To access the transaction in your handler, use type assertion on the response
-writer passed to the handler.
+To access the transaction in your handler, we recommend getting it from the
+ Request context:
 
 ```go
 func myHandler(w http.ResponseWriter, r *http.Request) {
-	if txn, ok := w.(newrelic.Transaction); ok {
-		txn.NoticeError(errors.New("my error message"))
-	}
+    txn := newrelic.FromContext(r.Context())
+    // ... handler code here
 }
 ```
 
@@ -159,14 +200,12 @@ starts.
 
 ```go
 go func(txn newrelic.Transaction) {
-	defer newrelic.StartSegment(txn, "async").End()
+	defer txn.StartSegment("async").End()
 	time.Sleep(100 * time.Millisecond)
 }(txn.NewGoroutine())
 ```
 
 ## Segments
-
-* [segments.go](segments.go)
 
 Find out where the time in your transactions is being spent!
 
@@ -177,15 +216,16 @@ segment begins when its `StartTime` field is populated, and finishes when its
 ```go
 segment := newrelic.Segment{}
 segment.Name = "mySegmentName"
-segment.StartTime = newrelic.StartSegmentNow(txn)
+segment.StartTime = txn.StartSegmentNow()
 // ... code you want to time here ...
 segment.End()
 ```
 
-`StartSegment` is a convenient helper.  It creates a segment and starts it:
+`Transaction.StartSegment` is a convenient helper.  It creates a segment and
+ starts it:
 
 ```go
-segment := newrelic.StartSegment(txn, "mySegmentName")
+segment := txn.StartSegment("mySegmentName")
 // ... code you want to time here ...
 segment.End()
 ```
@@ -194,15 +234,15 @@ Timing a function is easy using `StartSegment` and `defer`.  Just add the
 following line to the beginning of that function:
 
 ```go
-defer newrelic.StartSegment(txn, "mySegmentName").End()
+defer txn.StartSegment("mySegmentName").End()
 ```
 
 Segments may be nested.  The segment being ended must be the most recently
 started segment.
 
 ```go
-s1 := newrelic.StartSegment(txn, "outerSegment")
-s2 := newrelic.StartSegment(txn, "innerSegment")
+s1 := txn.StartSegment("outerSegment")
+s2 := txn.StartSegment("innerSegment")
 // s2 must be ended before s1
 s2.End()
 s1.End()
@@ -213,8 +253,9 @@ is safe even if the conditional fails:
 
 ```go
 var s newrelic.Segment
-if txn, ok := w.(newrelic.Transaction); ok {
-	s.StartTime = newrelic.StartSegmentNow(txn),
+txn := newrelic.FromContext(ctx)
+if shouldDoSomething() {
+    s.StartTime = txn.StartSegmentNow(),
 }
 // ... code you wish to time here ...
 s.End()
@@ -228,41 +269,41 @@ Datastore segments appear in the transaction "Breakdown table" and in the
 * [More info on Databases page](https://docs.newrelic.com/docs/apm/applications-menu/monitoring/databases-slow-queries-page)
 
 Datastore segments are instrumented using
-[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment).
+[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#DatastoreSegment).
 Just like basic segments, datastore segments begin when the `StartTime` field
 is populated and finish when the `End` method is called.  Here is an example:
 
 ```go
 s := newrelic.DatastoreSegment{
-	// Product is the datastore type.  See the constants in
-	// https://github.com/newrelic/go-agent/blob/master/datastore.go.  Product
-	// is one of the fields primarily responsible for the grouping of Datastore
-	// metrics.
-	Product: newrelic.DatastoreMySQL,
-	// Collection is the table or group being operated upon in the datastore,
-	// e.g. "users_table".  This becomes the db.collection attribute on Span
-	// events and Transaction Trace segments.  Collection is one of the fields
-	// primarily responsible for the grouping of Datastore metrics.
-	Collection: "users_table",
-	// Operation is the relevant action, e.g. "SELECT" or "GET".  Operation is
-	// one of the fields primarily responsible for the grouping of Datastore
-	// metrics.
-	Operation: "SELECT",
+    // Product is the datastore type.  See the constants in
+    // https://github.com/newrelic/go-agent/blob/master/v3/newrelic/datastore.go.  Product
+    // is one of the fields primarily responsible for the grouping of Datastore
+    // metrics.
+    Product: newrelic.DatastoreMySQL,
+    // Collection is the table or group being operated upon in the datastore,
+    // e.g. "users_table".  This becomes the db.collection attribute on Span
+    // events and Transaction Trace segments.  Collection is one of the fields
+    // primarily responsible for the grouping of Datastore metrics.
+    Collection: "users_table",
+    // Operation is the relevant action, e.g. "SELECT" or "GET".  Operation is
+    // one of the fields primarily responsible for the grouping of Datastore
+    // metrics.
+    Operation: "SELECT",
 }
-s.StartTime = newrelic.StartSegmentNow(txn)
+s.StartTime = txn.StartSegmentNow()
 // ... make the datastore call
 s.End()
 ```
 
-This may be combined into a single line when instrumenting a datastore call
+This may be combined into two lines when instrumenting a datastore call
 that spans an entire function call:
 
 ```go
 s := newrelic.DatastoreSegment{
-	StartTime:  newrelic.StartSegmentNow(txn),
-	Product:    newrelic.DatastoreMySQL,
-	Collection: "my_table",
-	Operation:  "SELECT",
+    StartTime:  txn.StartSegmentNow(),
+    Product:    newrelic.DatastoreMySQL,
+    Collection: "my_table",
+    Operation:  "SELECT",
 }
 defer s.End()
 ```
@@ -274,9 +315,10 @@ If you are using the standard library's
 [SQLite](https://github.com/mattn/go-sqlite3) then you can avoid creating
 DatastoreSegments by hand by using an integration package:
 
-* [_integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrpq)
-* [_integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrmysql)
-* [_integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrsqlite3)
+* [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq)
+* [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql)
+* [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3)
+* [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo)
 
 ### External Segments
 
@@ -307,7 +349,7 @@ ways to use this functionality:
 
     ```go
     func external(txn newrelic.Transaction, req *http.Request) (*http.Response, error) {
-      s := newrelic.StartExternalSegment(txn, req)
+      s := txn.StartExternalSegment(req)
       response, err := http.DefaultClient.Do(req)
       s.Response = response
       s.End()
@@ -317,7 +359,7 @@ ways to use this functionality:
 
     If the transaction is `nil` then `StartExternalSegment` will look for a
     transaction in the request's context using
-    [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext).
+    [FromContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#FromContext).
 
 2. Using `NewRoundTripper` to get a
    [`http.RoundTripper`](https://golang.org/pkg/net/http/#RoundTripper) that
@@ -325,25 +367,20 @@ ways to use this functionality:
    [`http.Client`](https://golang.org/pkg/net/http/#Client) instances that use
    that round tripper as their `Transport`. This option results in CAT support,
    provided the Go Agent is version 1.11.0, and in distributed tracing support,
-   provided the Go Agent is version 2.1.0.  `NewRoundTripper` can be called
-   with a `nil` or non-`nil` transaction:  If the transaction is `nil`, the
-   round tripper will look for a transaction in the request's context
-   using [FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext).
-   This pattern is **strongly** recommended, since it allows the round tripper
-   to be used in a client shared between multiple transactions.
+   provided the Go Agent is version 2.1.0.  `NewRoundTripper` will look for a
+   transaction in the request's context using
+   [FromContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#FromContext).
 
    For example:
 
     ```go
     client := &http.Client{}
-    client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
+    client.Transport = newrelic.NewRoundTripper(client.Transport)
     request, _ := http.NewRequest("GET", "http://example.com", nil)
+    // Put transaction in the request's context:
     request = newrelic.RequestWithTransactionContext(request, txn)
     resp, err := client.Do(request)
     ```
-
-   If transaction is non-`nil`, the round tripper returned **must** only be
-   used in the same goroutine as the transaction.
 
 3. Directly creating an `ExternalSegment` via a struct literal with an explicit
    `URL` or `Request`, and then calling `ExternalSegment.End`. This option does
@@ -356,7 +393,7 @@ ways to use this functionality:
     ```go
     func external(txn newrelic.Transaction, url string) (*http.Response, error) {
       es := newrelic.ExternalSegment{
-        StartTime: newrelic.StartSegmentNow(txn),
+        StartTime: txn.StartSegmentNow(),
         URL:   url,
       }
       defer es.End()
@@ -370,8 +407,8 @@ ways to use this functionality:
 Message producer segments appear in the transaction "Breakdown table".
 
 Message producer segments are instrumented using
-[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment).
-Just like basic segments, messsage producer segments begin when the `StartTime`
+[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#MessageProducerSegment).
+Just like basic segments, message producer segments begin when the `StartTime`
 field is populated and finish when the `End` method is called.  Here is an
 example:
 
@@ -387,21 +424,21 @@ s := newrelic.MessageProducerSegment{
     // to improve metric grouping.
     DestinationTemporary: false,
 }
-s.StartTime = newrelic.StartSegmentNow(txn)
+s.StartTime = txn.StartSegmentNow()
 // ... add message to queue here
 s.End()
 ```
 
-This may be combined into a single line when instrumenting a message producer
+This may be combined into two lines when instrumenting a message producer
 call that spans an entire function call:
 
 ```go
 s := newrelic.MessageProducerSegment{
-	StartTime:            newrelic.StartSegmentNow(txn),
-	Library:              "RabbitMQ",
-	DestinationType:      newrelic.MessageExchange,
-	DestinationName:      "myExchange",
-	DestinationTemporary: false,
+    StartTime:            txn.StartSegmentNow(),
+    Library:              "RabbitMQ",
+    DestinationType:      newrelic.MessageExchange,
+    DestinationName:      "myExchange",
+    DestinationTemporary: false,
 }
 defer s.End()
 ```
@@ -425,24 +462,31 @@ txn.AddAttribute("importantCustomer", true)
 Some attributes are recorded automatically.  These are called agent attributes.
 They are listed here:
 
-* [attributes.go](attributes.go)
+* [newrelic package constants](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#pkg-constants)
 
-To disable one of these agents attributes, `AttributeResponseCode` for
-example, modify the config like this:
+To disable one of these agents attributes, for example `AttributeHostDisplayName`,
+modify the config like this:
 
 ```go
-config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.AttributeResponseCode)
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),    
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+    func(cfg *newrelic.Config) {
+        config.Attributes.Exclude = append(config.Attributes.Exclude, newrelic.AttributeHostDisplayName)
+    }
+)
 ```
 
 * [More info on Agent Attributes](https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/agent-attributes)
 
 ## Tracing
 
-New Relic's [distributed
-tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing)  
-is the next generation of the previous cross-application tracing feature. Compared to
-cross-application tracing, distributed tracing gives more detail about cross-service activity and provides more
-complete end-to-end visibility.  This section discusses distributed tracing and cross-application tracing in turn.
+New Relic's [distributed tracing](https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing)
+is the next generation of the previous cross-application tracing feature.
+Compared to cross-application tracing, distributed tracing gives more detail
+about cross-service activity and provides more complete end-to-end
+visibility.  This section discusses distributed tracing and cross-application
+tracing in turn.
 
 ### Distributed Tracing
 
@@ -459,7 +503,11 @@ incoming requests for distributed tracing headers. Distributed tracing will
 override cross-application tracing.
 
 ```go
-config.DistributedTracer.Enabled = true
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+    newrelic.ConfigDistributedTracerEnabled(true),  
+)
 ```
 
 ### Cross-Application Tracing
@@ -468,7 +516,8 @@ New Relic's
 [cross-application tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
 feature, or CAT for short, links transactions between applications in APM to
 help identify performance problems within your service-oriented architecture.
-Support for CAT was added in version 1.11.0 of the Go Agent.
+Support for CAT was added in version 1.11.0 of the Go Agent. We recommend using
+[Distributed Tracing](#distributed-tracing) as the most recent, complete feature.
 
 As CAT uses HTTP headers to track requests across applications, the Go Agent
 needs to be able to access and modify request and response headers both for
@@ -487,51 +536,55 @@ distributed tracing based on the examples provided in this guide.
 The Go Agent automatically creates and propagates tracing header information
 for each of the following scenarios:
 
+For server applications:
+
 1. Using `WrapHandle` or `WrapHandleFunc` to instrument a server that
    uses [`http.ServeMux`](https://golang.org/pkg/net/http/#ServeMux)
-   ([Example](examples/server/main.go)).
+   ([Example](v3/examples/server/main.go)).
 
-2. Using either of the Go Agent's [Gin](_integrations/nrgin/v1) or
-   [Gorilla](_integrations/nrgorilla/v1) integration
-   ([Gin Example](_integrations/nrgin/v1/example/main.go), [Gorilla Example](_integrations/nrgorilla/v1/example/main.go)).
-.
+2. Using any of the Go Agent's HTTP integrations, which are listed [here
+](README.md#integrations).
 
 3. Using another framework or [`http.Server`](https://golang.org/pkg/net/http/#Server) while ensuring that:
 
-      1. All calls to `StartTransaction` include the response writer and
-         request, and
-      2. `Transaction.WriteHeader` is used instead of calling `WriteHeader`
-         directly on the response writer, as described in the
-         [transactions section of this guide](#transactions)
-         ([Example](examples/server-http/main.go)).
+      1. After calling `StartTransaction`, make sure to call `Transaction.SetWebRequest`
+      and `Transaction.SetWebResponse` on the transaction, and
+      2. the `http.ResponseWriter` that is returned from `Transaction.SetWebResponse`
+      is used instead of calling `WriteHeader` directly on the original response
+      writer, as described in the [transactions section of this guide](#transactions)
+       ([Example](v3/examples/server-http/main.go)).
 
-4. Using `NewRoundTripper`, as described in the
+For client applications:
+
+1. Using `NewRoundTripper`, as described in the
    [external segments section of this guide](#external-segments)
-   ([Example](examples/client-round-tripper/main.go)).
+   ([Example](v3/examples/client-round-tripper/main.go)).
 
-5. Using the call `StartExternalSegment` and providing an `http.Request`, as
+2. Using the call `StartExternalSegment` and providing an `http.Request`, as
    described in the [external segments section of this guide](#external-segments)
-   ([Example](examples/client/main.go)).
+   ([Example](v3/examples/client/main.go)).
 
 #### Manually Implementing Distributed Tracing
 
 Consider [manual instrumentation](https://docs.newrelic.com/docs/apm/distributed-tracing/enable-configure/enable-distributed-tracing#agent-apis)
 for services not instrumented automatically by the Go Agent. In such scenarios, the
-calling service has to generate a distributed trace payload:
+calling service has to insert the appropriate header(s) into the request headers:
 
 ```go
-p := callingTxn.CreateDistributedTracePayload()
+var h http.Headers
+callingTxn.InsertDistributedTraceHeaders(h)
 ```
 
-This payload has to be added to the call to the destination service, which in turn
-invokes the call for accepting the payload:
+These headers have to be added to the call to the destination service, which in
+turn invokes the call for accepting the headers:
 
 ```go
-calledTxn.AcceptDistributedTracePayload(newrelic.TransportOther, p)
+var h http.Headers
+calledTxn.AcceptDistributedTraceHeaders(newrelic.TransportOther, h)
 ```
 
 A complete example can be found
-[here](examples/custom-instrumentation/main.go).
+[here](v3/examples/custom-instrumentation/main.go).
 
 
 ## Custom Metrics
@@ -543,8 +596,8 @@ via the `RecordCustomMetric` method.
 
 ```go
 app.RecordCustomMetric(
-	"CustomMetricName", // Name of your metric
-	132,                // Value
+    "CustomMetricName", // Name of your metric
+    132,                // Value
 )
 ```
 
@@ -552,8 +605,8 @@ app.RecordCustomMetric(
 `RecordCustomMetric` (`"CustomMetricName"` above) with the string `Custom/`.
 This means the above code would produce a metric named
 `Custom/CustomMetricName`.  You'll also want to read over the
-[Naming Transactions and Metrics](#naming-transactions-and-metrics) section below for
-advice on coming up with appropriate metric names.
+[Naming Transactions and Metrics](#naming-transactions-and-metrics) section
+below for advice on coming up with appropriate metric names.
 
 ## Custom Events
 
@@ -561,10 +614,10 @@ You may track arbitrary events using custom Insights events.
 
 ```go
 app.RecordCustomEvent("MyEventType", map[string]interface{}{
-	"myString": "hello",
-	"myFloat":  0.603,
-	"myInt":    123,
-	"myBool":   true,
+    "myString": "hello",
+    "myFloat":  0.603,
+    "myInt":    123,
+    "myBool":   true,
 })
 ```
 
@@ -602,12 +655,12 @@ Go Agent also offers a `newrelic.Error` struct.
 
 ```go
 txn.NoticeError(newrelic.Error{
-	Message: "my error message",
-	Class:   "IdentifierForError",
-	Attributes: map[string]interface{}{
-		"important_number": 97232,
-		"relevant_string":  "zap",
-	},
+    Message: "my error message",
+    Class:   "IdentifierForError",
+    Attributes: map[string]interface{}{
+        "important_number": 97232,
+        "relevant_string":  "zap",
+    },
 })
 ```
 
@@ -620,86 +673,45 @@ in the *Error Analytics* section of APM.  Second, the `Attributes` field allows
 you to send through key/value pairs with additional error debugging information
 (also exposed in the *Error Analytics* section of APM).
 
-### Advanced NoticeError Use
-
-You're not limited to using Go's built-in error type or the provided
-`newrelic.Error` struct.  The Go Agent provides three error interfaces
-
-```go
-type StackTracer interface {
-	StackTrace() []uintptr
-}
-
-type ErrorClasser interface {
-	ErrorClass() string
-}
-
-type ErrorAttributer interface {
-	ErrorAttributes() map[string]interface{}
-}
-```
-
-If you implement any of these on your own error structs, the `txn.NoticeError`
-method will recognize these methods and use their return values to provide error
-information.
-
-For example, you could implement a custom error struct named `MyErrorWithClass`
-
-```go
-type MyErrorWithClass struct {
-
-}
-```
-
-Then, you could implement both an `Error` method (per Go's standard `error`
-interface) and an `ErrorClass` method (per the Go Agent `ErrorClasser`
-interface) for this struct.
-
-```go
-func (e MyErrorWithClass) Error() string { return "A hard coded error message" }
-
-// ErrorClass implements the ErrorClasser interface.
-func (e MyErrorWithClass) ErrorClass() string { return "MyErrorClassForAggregation" }
-```
-
-Finally, you'd use your new error by creating a new instance of your struct and
-passing it to the `NoticeError` method
-
-```go
-txn.NoticeError(MyErrorWithClass{})
-```
-
-While this is an oversimplified example, these interfaces give you a great deal
-of control over what error information is available for your application.
-
 ### Panics
 
-When the Transaction is ended using `defer`, the Transaction will recover any
-panic that occurs, record it as an error, and re-throw it.  As a result, panics
-may appear to be originating from `Transaction.End`.
+When the Transaction is ended using `defer`, the Transaction will optionally recover any
+panic that occurs, record it as an error, and re-throw it. You can enable this feature by
+setting the configuration:
+
+```go
+app, err := newrelic.NewApplication(
+    newrelic.ConfigAppName("Your Application Name"),
+    newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+    func(cfg *newrelic.Config) {
+        cfg.ErrorCollector.RecordPanics = true
+    }
+)
+```
+
+As a result of this configuration, panics may appear to be originating from `Transaction.End`.
 
 ```go
 func unstableTask(app newrelic.Application) {
-	txn := app.StartTransaction("unstableTask", nil, nil)
-	defer txn.End()
+    txn := app.StartTransaction("unstableTask", nil, nil)
+    defer txn.End()
 
-	// This panic will be recorded as an error.
-	panic("something went wrong")
+    // This panic will be recorded as an error.
+    panic("something went wrong")
 }
 ```
 
 ### Error Response Codes
 
-Since the
-[Transaction](https://godoc.org/github.com/newrelic/go-agent#Transaction)
-implements
-[http.ResponseWriter](https://golang.org/pkg/net/http/#ResponseWriter), you can
-use `Transaction.WriteHeader` to record the response status code.  The
-transaction will record an error if the status code is above 400 or below 100
-and not in the ignored status codes configuration list.  The ignored status
-codes list is configured by the `Config.ErrorCollector.IgnoreStatusCodes` field
-or within the New Relic UI if your application has server side configuration
-enabled.
+Setting the WebResponse on the transaction using `Transaction.SetWebResponse`
+returns an
+[http.ResponseWriter](https://golang.org/pkg/net/http/#ResponseWriter), and you
+can use that returned ResponseWriter to call `WriteHeader` to record the response
+status code.  The transaction will record an error if the status code is
+at or above 400 or strictly below 100 and not in the ignored status codes
+configuration list.  The ignored status codes list is configured by the
+`Config.ErrorCollector.IgnoreStatusCodes` field or within the New Relic UI
+if your application has server side configuration enabled.
 
 As a result, using `Transaction.NoticeError` in situations where your code is
 returning an erroneous status code may result in redundant errors.
@@ -735,16 +747,15 @@ func indexHandler(w http.ResponseWriter, req *http.Request) {
     // The New Relic browser javascript should be placed as high in the
     // HTML as possible.  We suggest including it immediately after the
     // opening <head> tag and any <meta charset> tags.
-    if txn := FromContext(req.Context()); nil != txn {
-        hdr, err := txn.BrowserTimingHeader()
-        if nil != err {
-            log.Printf("unable to create browser timing header: %v", err)
-        }
-        // BrowserTimingHeader() will always return a header whose methods can
-        // be safely called.
-        if js := hdr.WithTags(); js != nil {
-            w.Write(js)
-        }
+    txn := newrelic.FromContext(req.Context())
+    hdr, err := txn.BrowserTimingHeader()
+    if nil != err {
+        log.Printf("unable to create browser timing header: %v", err)
+    }
+    // BrowserTimingHeader() will always return a header whose methods can
+    // be safely called.
+    if js := hdr.WithTags(); js != nil {
+        w.Write(js)
     }
     io.WriteString(w, "</head><body>browser header page</body></html>")
 }

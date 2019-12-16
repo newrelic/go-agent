@@ -12,29 +12,40 @@ you would install any other Go library.  The simplest way is to run:
 go get github.com/newrelic/go-agent
 ```
 
-Then import the `github.com/newrelic/go-agent` package in your application.
+Then import the package in your application:
+```go
+import "github.com/newrelic/go-agent/v3/newrelic"
+```
 
 ## Step 1: Create an Application
 
 In your `main` function, or an `init` block, create an
-[Application](https://godoc.org/github.com/newrelic/go-agent#Application) using
-a [Config](https://godoc.org/github.com/newrelic/go-agent#Config).
-[Application](https://godoc.org/github.com/newrelic/go-agent#Application) is the
+[Application](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Application) using
+ [ConfigOptions](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#ConfigOption).
+ Available configurations are listed [here](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Config).
+[Application](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Application) is the
 starting point for all instrumentation.
 
 ```go
 func main() {
-	// Create a Config:
-	config := newrelic.NewConfig("Your Application Name", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-	// Modify the Config to add logging or alter agent behavior:
-	config.Logger = NewLogger(os.Stdout)
-	// Then create an Application:
-	app, err := newrelic.NewApplication(config)
-	// If an application could not be created then err will reveal why.
-	if err != nil {
-		fmt.Println("unable to create New Relic Application", err)
-	}
-	// Now use the app to instrument everything!
+    // Create an Application:
+    app, err := newrelic.NewApplication(
+        // Name your application
+        newrelic.ConfigAppName("Your Application Name"),
+        // Fill in your New Relic license key
+        newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+        // Add logging:
+        newrelic.ConfigDebugLogger(os.Stdout),
+        // Optional: add additional changes to your configuration via a config function:
+        func(cfg *newrelic.Config) {
+            cfg.CustomInsightsEvents.Enabled = false
+        },
+    )
+    // If an application could not be created then err will reveal why.
+    if err != nil {
+        fmt.Println("unable to create New Relic Application", err)
+    }
+    // Now use the app to instrument everything!
 }
 ```
 
@@ -46,7 +57,7 @@ page that shows goroutine counts, garbage collection, memory, and CPU usage.
 
 ## Step 2: Instrument Requests Using Transactions
 
-[Transactions](https://godoc.org/github.com/newrelic/go-agent#Transaction) are
+[Transactions](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Transaction) are
 used to time inbound requests and background tasks.  Use them to see your
 application's throughput and response time.  The instrumentation strategy
 depends on the framework you're using:
@@ -54,8 +65,8 @@ depends on the framework you're using:
 #### Standard HTTP Library
 
 If you are using the standard library `http` package, use
-[WrapHandle](https://godoc.org/github.com/newrelic/go-agent#WrapHandle) and
-[WrapHandleFunc](https://godoc.org/github.com/newrelic/go-agent#WrapHandleFunc).
+[WrapHandle](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#WrapHandle) and
+[WrapHandleFunc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#WrapHandleFunc).
 As an example, the following code:
 
 ```go
@@ -66,7 +77,7 @@ Can be instrumented like this:
 http.HandleFunc(newrelic.WrapHandleFunc(app, "/users", usersHandler))
 ```
 
-[Full Example Application](./examples/server/main.go)
+[Full Example Application](./v3/examples/server/main.go)
 
 #### Popular Web Framework
 
@@ -81,12 +92,14 @@ directly using the application's `StartTransaction` method:
 
 ```go
 func myHandler(rw http.ResponseWriter, req *http.Request) {
-	// The response writer and request parameters are optional.  If your
-	// request is not an *http.Request, try using Transaction.SetWebRequest
-	// with a custom newrelic.WebRequest.  If the request parameter is nil
-	// then the transaction is considered a background task.
-	txn := app.StartTransaction("myHandler", rw, req)
-	defer txn.End()
+    txn := h.App.StartTransaction("myHandler")
+    defer txn.End()
+    // Setting the response writer and request is optional. If you don't
+    // set the request, the transaction is considered a background task.
+    txn.SetWebRequestHTTP(req)
+    // Use the ResponseWriter returned in place of the previous ResponseWriter
+    rw = txn.SetWebResponse(rw)
+    rw.Write(data)
 }
 ```
 
@@ -99,40 +112,43 @@ grouped usefully.  Don't use dynamic URLs!
 
 Segments show you where the time in your transactions is being spent.  There are
 four types of segments:
-[Segment](https://godoc.org/github.com/newrelic/go-agent#Segment),
-[ExternalSegment](https://godoc.org/github.com/newrelic/go-agent#ExternalSegment),
-[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment),
+[Segment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#Segment),
+[ExternalSegment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#ExternalSegment),
+[DatastoreSegment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#DatastoreSegment),
 and
-[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent#MessageProducerSegment).
+[MessageProducerSegment](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#MessageProducerSegment).
 
 Creating a segment requires access to the transaction.  You can pass the
-transaction around your functions as an explicit transaction parameter or inside
-a [context.Context](https://golang.org/pkg/context/#Context).  Functions
-[FromContext](https://godoc.org/github.com/newrelic/go-agent#FromContext) and
-[NewContext](https://godoc.org/github.com/newrelic/go-agent#NewContext) make it
+transaction around your functions inside
+a [context.Context](https://golang.org/pkg/context/#Context) (preferred), or as an explicit transaction
+parameter of the function.  Functions
+[FromContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#FromContext)
+and [NewContext](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#NewContext) make it
 easy to store and retrieve the transaction from a context.
 
 You may not even need to add the transaction to the context:
-[WrapHandle](https://godoc.org/github.com/newrelic/go-agent#WrapHandle) and
-[WrapHandleFunc](https://godoc.org/github.com/newrelic/go-agent#WrapHandleFunc)
+[WrapHandle](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#WrapHandle) and
+[WrapHandleFunc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/#WrapHandleFunc)
 add the transaction to the request's context automatically.
 
 ```go
 func instrumentMe(ctx context.Context) {
-	txn := newrelic.FromContext(ctx)
-	segment := newrelic.StartSegment(txn, "instrumentMe")
-	time.Sleep(1 * time.Second)
-	segment.End()
+    txn := newrelic.FromContext(ctx)
+    segment := txn.StartSegment("instrumentMe")
+    time.Sleep(1 * time.Second)
+    segment.End()
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
-	instrumentMe(r.Context())
+    instrumentMe(r.Context())
 }
 
 func main() {
-	cfg := newrelic.NewConfig("My App", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-	app, _ := newrelic.NewApplication(cfg)
-	http.HandleFunc(newrelic.WrapHandleFunc(app, "/handler", myHandler))
+    app, _ := newrelic.NewApplication(
+        newrelic.ConfigAppName("appName"),
+        newrelic.ConfigLicense("__license__"),
+    )
+    http.HandleFunc(newrelic.WrapHandleFunc(app, "/handler", myHandler))
 }
 ```
 
@@ -141,5 +157,5 @@ func main() {
 ## Extra Credit
 
 Read our [GUIDE.md](GUIDE.md) and the
-[godocs](https://godoc.org/github.com/newrelic/go-agent) to learn more about
+[godocs](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic) to learn more about
 what else you can do with the Go Agent.

@@ -1,9 +1,7 @@
 # Migration Guide - 3.0
 
-This guide is intended to help with upgrading from version 2.x to version 3.x
-of the Go Agent. This information will also be found on
-[our documentation website](https://docs.newrelic.com/docs/agents/go-agent/installation/update-go-agent)
-once the 3.0 release is official.
+This guide is intended to help with upgrading from version 2.x (`"github.com/newrelic/go-agent"`) to version 3.x (`"github.com/newrelic/go-agent/v3/newrelic"`). This information can also be found on
+[our documentation website](https://docs.newrelic.com/docs/agents/go-agent/installation/update-go-agent).
 
 * [List of all changes](#all-changes)
 * [Checklist for upgrading](#checklist-for-upgrading)
