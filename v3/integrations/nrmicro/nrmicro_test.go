@@ -73,7 +73,7 @@ func (t *TestHandlerWithNonMicroError) Method(ctx context.Context, req *TestRequ
 
 func getDTRequestHeaderVal(ctx context.Context) string {
 	if md, ok := metadata.FromContext(ctx); ok {
-		if dtHeader, ok := md[newrelic.DistributedTracePayloadHeader]; ok {
+		if dtHeader, ok := md[newrelic.DistributedTraceNewRelicHeader]; ok {
 			return dtHeader
 		}
 		return missingHeaders
@@ -285,7 +285,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 	if _, err := b.Subscribe(topic, func(e broker.Event) error {
 		defer wg.Done()
 		h := e.Message().Header
-		if _, ok := h[newrelic.DistributedTracePayloadHeader]; ok {
+		if _, ok := h[newrelic.DistributedTraceNewRelicHeader]; ok {
 			t.Error("Distributed tracing headers found", h)
 		}
 		return nil
@@ -313,7 +313,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	if _, err := b.Subscribe(topic, func(e broker.Event) error {
 		defer wg.Done()
 		h := e.Message().Header
-		if _, ok := h[newrelic.DistributedTracePayloadHeader]; !ok {
+		if _, ok := h[newrelic.DistributedTraceNewRelicHeader]; !ok {
 			t.Error("Distributed tracing headers not found", h)
 		}
 		return nil

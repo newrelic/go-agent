@@ -281,6 +281,10 @@ type MyErrorType struct{}
 var _ newrelic.ErrorAttributer = MyErrorType{}
 ```
 
+### Changed Distributed Tracing Constant
+
+`DistributedTracePayloadHeader` has been changed to `DistributedTraceNewRelicHeader`.
+
 ### `TransportType`
 
 [`TransportType`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#TransportType) type is changed from a struct to a string.
@@ -502,6 +506,8 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   ```
 
   Additionally, the `DistributedTracePayload` struct is no longer needed and has been removed from the agent's API. Instead, distributed tracing information is passed around as key/value pairs in the `http.Header` object. You should remove all references to `DistributedTracePayload` in your code.
+
+- [ ] Change `newrelic.DistributedTracePayloadHeader` to `newrelic.DistributedTraceNewRelicHeader`.
 
 - [ ] If you have configured your application to **ignore** either attribute described [here](#renamed-attributes), you will now need to specify both the deprecated and the new attribute name in your configuration.
 
