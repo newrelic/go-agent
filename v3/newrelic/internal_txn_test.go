@@ -434,7 +434,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, http.Header{
-		DistributedTracePayloadHeader: []string{payload.HTTPSafe()},
+		DistributedTraceNewRelicHeader: []string{payload.HTTPSafe()},
 	})
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()

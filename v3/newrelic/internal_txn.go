@@ -928,7 +928,7 @@ func insertDistributedTraceHeaders(thd *thread, hdrs http.Header) {
 	if nil == payload {
 		return
 	}
-	hdrs.Set(DistributedTracePayloadHeader, payload.HTTPSafe())
+	hdrs.Set(DistributedTraceNewRelicHeader, payload.HTTPSafe())
 }
 
 func (thd *thread) CreateDistributedTracePayload() *internal.Payload {
@@ -1032,7 +1032,7 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Head
 		return nil
 	}
 
-	payload, err := internal.AcceptPayload(p.Get(DistributedTracePayloadHeader))
+	payload, err := internal.AcceptPayload(p.Get(DistributedTraceNewRelicHeader))
 	if nil != err {
 		if _, ok := err.(internal.ErrPayloadParse); ok {
 			txn.AcceptPayloadParseException = true

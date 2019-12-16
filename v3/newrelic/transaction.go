@@ -366,9 +366,9 @@ func (txn *Transaction) IsSampled() bool {
 }
 
 const (
-	// DistributedTracePayloadHeader is the header used by New Relic agents
+	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
-	DistributedTracePayloadHeader = "Newrelic"
+	DistributedTraceNewRelicHeader = "Newrelic"
 )
 
 // TransportType is used in Transaction.AcceptDistributedTraceHeaders() to

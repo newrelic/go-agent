@@ -47,7 +47,7 @@ func makePayload(app *Application) *internal.Payload {
 }
 
 func headersFromString(s string) http.Header {
-	return map[string][]string{DistributedTracePayloadHeader: {s}}
+	return map[string][]string{DistributedTraceNewRelicHeader: {s}}
 }
 
 func headersFromPayload(p *internal.Payload) http.Header {
@@ -891,7 +891,7 @@ func payloadFieldsFromHeaders(t *testing.T, hdrs http.Header) (out struct {
 	Version []int                  `json:"v"`
 	Data    map[string]interface{} `json:"d"`
 }) {
-	encoded := hdrs.Get(DistributedTracePayloadHeader)
+	encoded := hdrs.Get(DistributedTraceNewRelicHeader)
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		t.Fatal("unable to bas64 decode tracing header", err)
@@ -1162,7 +1162,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	for _, expect := range tc.OutboundPayloads {
 		hdrs := http.Header{}
 		txn.InsertDistributedTraceHeaders(hdrs)
-		actual := hdrs.Get(DistributedTracePayloadHeader)
+		actual := hdrs.Get(DistributedTraceNewRelicHeader)
 		assertTestCaseOutboundPayload(expect, t, actual)
 	}
 
