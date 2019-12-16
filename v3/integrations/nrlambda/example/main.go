@@ -12,12 +12,12 @@ func handler(ctx context.Context) {
 	// The nrlambda handler instrumentation will add the transaction to the
 	// context.  Access it using newrelic.FromContext to add additional
 	// instrumentation.
-	if txn := newrelic.FromContext(ctx); nil != txn {
-		txn.AddAttribute("userLevel", "gold")
-		txn.Application().RecordCustomEvent("MyEvent", map[string]interface{}{
-			"zip": "zap",
-		})
-	}
+	txn := newrelic.FromContext(ctx)
+	txn.AddAttribute("userLevel", "gold")
+	txn.Application().RecordCustomEvent("MyEvent", map[string]interface{}{
+		"zip": "zap",
+	})
+
 	fmt.Println("hello world")
 }
 

@@ -77,9 +77,8 @@ func TestHandle(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("hi %s", ps.ByName("name"))))
-		if txn := newrelic.FromContext(r.Context()); txn != nil {
-			txn.AddAttribute("color", "purple")
-		}
+		txn := newrelic.FromContext(r.Context())
+		txn.AddAttribute("color", "purple")
 	})
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/person", nil)
@@ -122,9 +121,8 @@ func TestHandler(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte("hi there"))
-		if txn := newrelic.FromContext(r.Context()); txn != nil {
-			txn.AddAttribute("color", "purple")
-		}
+		txn := newrelic.FromContext(r.Context())
+		txn.AddAttribute("color", "purple")
 	}))
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/", nil)
@@ -210,9 +208,8 @@ func TestNotFound(t *testing.T) {
 		// Test that the Transaction is used as the response writer.
 		w.WriteHeader(500)
 		w.Write([]byte("not found!"))
-		if txn := newrelic.FromContext(r.Context()); txn != nil {
-			txn.AddAttribute("color", "purple")
-		}
+		txn := newrelic.FromContext(r.Context())
+		txn.AddAttribute("color", "purple")
 	})
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello/", nil)

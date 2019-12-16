@@ -45,9 +45,8 @@ func endpointNotFound(c *gin.Context) {
 }
 
 func endpointAccessTransaction(c *gin.Context) {
-	if txn := nrgin.Transaction(c); nil != txn {
-		txn.SetName("custom-name")
-	}
+	txn := nrgin.Transaction(c)
+	txn.SetName("custom-name")
 	c.Writer.WriteString("changed the name of the transaction!")
 }
 

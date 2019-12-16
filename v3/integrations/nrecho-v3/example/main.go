@@ -13,9 +13,8 @@ import (
 func getUser(c echo.Context) error {
 	id := c.Param("id")
 
-	if txn := nrecho.FromContext(c); nil != txn {
-		txn.AddAttribute("userId", id)
-	}
+	txn := nrecho.FromContext(c)
+	txn.AddAttribute("userId", id)
 
 	return c.String(http.StatusOK, id)
 }

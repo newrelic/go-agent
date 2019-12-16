@@ -13,9 +13,8 @@ import (
 func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("my response"))
 	// Ensure that the transaction is added to the request's context.
-	if txn := FromContext(req.Context()); txn != nil {
-		txn.NoticeError(myError{})
-	}
+	txn := FromContext(req.Context())
+	txn.NoticeError(myError{})
 }
 
 func TestWrapHandleFunc(t *testing.T) {
