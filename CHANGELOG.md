@@ -1,4 +1,10 @@
-## ChangeLog
+# ChangeLog
+
+### Changes
+
+* We are pleased to announce the release of Go Agent v3.0.0!  A full list of
+  changes and a step by step checklist on how to upgrade can be found in the
+  [v3 Migration Guide](MIGRATION.md).
 
 ### New Features
 
