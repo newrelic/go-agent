@@ -75,8 +75,8 @@ application.
 
 ## Runnable Example
 
-[examples/server/main.go](examples/server/main.go) is an example that will
-appear as "Example App" in your New Relic applications list.  To run it:
+[v3/examples/server/main.go](v3/examples/server/main.go) is an example that
+will appear as "Example App" in your New Relic applications list.  To run it:
 
 ```
 env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
