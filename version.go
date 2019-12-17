@@ -9,7 +9,7 @@ import (
 const (
 	major = "2"
 	minor = "16"
-	patch = "3"
+	patch = "4"
 
 	// Version is the full string version of this Go Agent.
 	Version = major + "." + minor + "." + patch
