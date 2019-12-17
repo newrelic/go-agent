@@ -8,7 +8,7 @@ import (
 
 const (
 	// Version is the full string version of this Go Agent.
-	Version = "3.0.0-dev3"
+	Version = "3.0.0"
 )
 
 func init() {
