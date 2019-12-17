@@ -27,7 +27,7 @@ func getDynoName(getenv func(string) string, useDynoNames bool, dynoNamePrefixes
 		if prefix == "" {
 			continue
 		}
-		if strings.HasPrefix(dyno, prefix) {
+		if strings.HasPrefix(dyno, prefix+".") {
 			dyno = prefix + ".*"
 			break
 		}
