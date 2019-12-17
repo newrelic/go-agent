@@ -99,7 +99,7 @@ var (
 		attributeRequestURI:                        {name: "request.uri", defaultDests: usualDests},
 		attributeResponseHeadersContentType:        {name: "response.headers.contentType", defaultDests: usualDests},
 		attributeResponseHeadersContentLength:      {name: "response.headers.contentLength", defaultDests: usualDests},
-		attributeResponseCode:                      {name: "response.statusCode", defaultDests: usualDests},
+		attributeResponseCode:                      {name: "http.statusCode", defaultDests: usualDests},
 		attributeResponseCodeDeprecated:            {name: "httpResponseCode", defaultDests: usualDests},
 		AttributeAWSRequestID:                      {name: "aws.requestId", defaultDests: usualDests},
 		AttributeAWSLambdaARN:                      {name: "aws.lambda.arn", defaultDests: usualDests},

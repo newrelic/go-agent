@@ -98,7 +98,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
-			"response.statusCode":         0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
@@ -168,7 +168,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            15,
-			"response.statusCode":         15,
+			"http.statusCode":             15,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
@@ -186,7 +186,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            15,
-			"response.statusCode":         15,
+			"http.statusCode":             15,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
@@ -261,7 +261,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
-			"response.statusCode":         0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStream",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
@@ -352,7 +352,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
-			"response.statusCode":         0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoStreamUnary",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
@@ -456,7 +456,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
-			"response.statusCode":         0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoStreamStream",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
@@ -530,7 +530,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            15,
-			"response.statusCode":         15,
+			"http.statusCode":             15,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
@@ -548,7 +548,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            15,
-			"response.statusCode":         15,
+			"http.statusCode":             15,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",

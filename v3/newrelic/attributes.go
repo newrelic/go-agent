@@ -13,7 +13,7 @@ package newrelic
 // Attributes destined for Transaction Events, Errors, and Transaction Traces:
 const (
 	// AttributeResponseCode is the response status code for a web request.
-	AttributeResponseCode = "response.statusCode"
+	AttributeResponseCode = "http.statusCode"
 	// AttributeResponseCodeDeprecated is the response status code for a web
 	// request, the same value as AttributeResponseCode. To completely exclude
 	// this value from a destination, both AttributeResponseCode and

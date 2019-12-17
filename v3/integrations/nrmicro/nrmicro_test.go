@@ -653,7 +653,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 			"request.headers.contentType":   "application/json",
 			"request.headers.contentLength": 3,
 			"httpResponseCode":              200,
-			"response.statusCode":           200,
+			"http.statusCode":               200,
 		},
 	}})
 }
@@ -724,7 +724,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 			"request.headers.contentType":   "application/json",
 			"request.headers.contentLength": 3,
 			"httpResponseCode":              401,
-			"response.statusCode":           401,
+			"http.statusCode":               401,
 		},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
@@ -788,7 +788,7 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 			"request.headers.contentType":   "application/json",
 			"request.headers.contentLength": 3,
 			"httpResponseCode":              500,
-			"response.statusCode":           500,
+			"http.statusCode":               500,
 		},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
