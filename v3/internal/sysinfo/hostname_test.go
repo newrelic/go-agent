@@ -41,8 +41,14 @@ func TestGetDynoName(t *testing.T) {
 		{
 			useDynoNames:     true,
 			dynoNamePrefixes: []string{"example", "ex"},
-			envVarValue:      "exampleasdfasdfasdf",
+			envVarValue:      "example.asdfasdfasdf",
 			expected:         "example.*",
+		},
+		{
+			useDynoNames:     true,
+			dynoNamePrefixes: []string{"example", "ex"},
+			envVarValue:      "exampleasdfasdfasdf",
+			expected:         "exampleasdfasdfasdf",
 		},
 	}
 
