@@ -31,7 +31,8 @@ var (
 		FinalName: "myName",
 		BetterCAT: BetterCAT{
 			Enabled:  true,
-			ID:       "txn-id",
+			TxnID:    "txn-id",
+			TraceID:  "trace-id",
 			Priority: 0.5,
 		},
 		Start:     timeFromUnixMilliseconds(1488393111000),
@@ -57,7 +58,8 @@ var (
 		FinalName: "myName",
 		BetterCAT: BetterCAT{
 			Enabled:  true,
-			ID:       "txn-id",
+			TxnID:    "txn-id",
+			TraceID:  "trace-id",
 			Priority: 0.5,
 		},
 		Start:     timeFromUnixMilliseconds(1488393111000),
@@ -80,7 +82,7 @@ func TestTxnEventMarshal(t *testing.T) {
 		"duration":2,
 		"totalTime":3,
 		"guid":"txn-id",
-		"traceId":"txn-id",
+		"traceId":"trace-id",
 		"priority":0.500000,
 		"sampled":false
 	},
@@ -101,7 +103,7 @@ func TestTxnEventMarshalWithApdex(t *testing.T) {
 		"duration":2,
 		"totalTime":3,
 		"guid":"txn-id",
-		"traceId":"txn-id",
+		"traceId":"trace-id",
 		"priority":0.500000,
 		"sampled":false
 	},
@@ -130,7 +132,7 @@ func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 		"databaseDuration":5566.778,
 		"totalTime":3,
 		"guid":"txn-id",
-		"traceId":"txn-id",
+		"traceId":"trace-id",
 		"priority":0.500000,
 		"sampled":false
 	},
@@ -152,6 +154,7 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 		TracedID:          "trip-id",
 		TransportDuration: 2 * time.Second,
 	}
+	e.BetterCAT.TraceID = "trip-id"
 	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
@@ -224,7 +227,7 @@ func TestTxnEventMarshalWithAttributes(t *testing.T) {
 		"duration":2,
 		"totalTime":3,
 		"guid":"txn-id",
-		"traceId":"txn-id",
+		"traceId":"trace-id",
 		"priority":0.500000,
 		"sampled":false
 	},
@@ -341,7 +344,7 @@ func TestTxnEventMarshalWithError(t *testing.T) {
 		"duration":2,
 		"totalTime":3,
 		"guid":"txn-id",
-		"traceId":"txn-id",
+		"traceId":"trace-id",
 		"priority":0.500000,
 		"sampled":false
 	},

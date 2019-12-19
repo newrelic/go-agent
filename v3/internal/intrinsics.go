@@ -18,8 +18,8 @@ func intrinsicsJSON(e *TxnEvent, buf *bytes.Buffer) {
 	w.floatField("totalTime", e.TotalTime.Seconds())
 
 	if e.BetterCAT.Enabled {
-		w.stringField("guid", e.BetterCAT.ID)
-		w.stringField("traceId", e.BetterCAT.TraceID())
+		w.stringField("guid", e.BetterCAT.TxnID)
+		w.stringField("traceId", e.BetterCAT.TraceID)
 		w.writerField("priority", e.BetterCAT.Priority)
 		w.boolField("sampled", e.BetterCAT.Sampled)
 	}

@@ -210,7 +210,8 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 		Attrs:     attr,
 		BetterCAT: BetterCAT{
 			Enabled:  true,
-			ID:       "txn-id",
+			TxnID:    "txn-id",
+			TraceID:  "trace-id",
 			Priority: 0.5,
 		},
 	}

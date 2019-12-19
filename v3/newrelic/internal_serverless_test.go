@@ -15,7 +15,7 @@ func TestServerlessDistributedTracingConfigPresent(t *testing.T) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.DistributedTracer.Enabled = true
 		cfg.ServerlessMode.AccountID = "123"
-		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
+		cfg.ServerlessMode.TrustedAccountKey = "987"
 		cfg.ServerlessMode.PrimaryAppID = "456"
 	}
 	app := testApp(nil, cfgFn, t)
@@ -44,7 +44,7 @@ func TestServerlessDistributedTracingConfigPartiallyPresent(t *testing.T) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.DistributedTracer.Enabled = true
 		cfg.ServerlessMode.AccountID = "123"
-		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
+		cfg.ServerlessMode.TrustedAccountKey = "987"
 	}
 	app := testApp(nil, cfgFn, t)
 	hdrs := http.Header{}

@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
+
 	proto "github.com/newrelic/go-agent/v3/integrations/nrmicro/example/proto"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -595,10 +596,11 @@ func TestServerWrapperWithApp(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -885,10 +887,11 @@ func TestServerSubscribe(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":   true,
+				"trustedParentId": internal.MatchAnything,
+				"parentId":        internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

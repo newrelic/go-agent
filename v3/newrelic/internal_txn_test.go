@@ -339,19 +339,19 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
-	if metadata.SpanID != "bcfb32e050b264b8" {
+	if metadata.SpanID != "e71870997d38ef60" {
 		t.Error(metadata.SpanID)
 	}
-	if metadata.TraceID != "d9466896a525ccbf" {
+	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error(metadata.TraceID)
 	}
 	txn.StartSegment("name")
 	// Span id should be different now that a segment has started.
 	metadata = txn.GetTraceMetadata()
-	if metadata.SpanID != "0e97aeb2f79d5d27" {
+	if metadata.SpanID != "155c325957214c42" {
 		t.Error(metadata.SpanID)
 	}
-	if metadata.TraceID != "d9466896a525ccbf" {
+	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error(metadata.TraceID)
 	}
 }
@@ -392,7 +392,7 @@ func TestGetTraceMetadataNotSampled(t *testing.T) {
 	if metadata.SpanID != "" {
 		t.Error(metadata.SpanID)
 	}
-	if metadata.TraceID != "d9466896a525ccbf" {
+	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error(metadata.TraceID)
 	}
 }
@@ -412,7 +412,7 @@ func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 	if metadata.SpanID != "" {
 		t.Error(metadata.SpanID)
 	}
-	if metadata.TraceID != "d9466896a525ccbf" {
+	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error(metadata.TraceID)
 	}
 }
@@ -422,27 +422,26 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		reply.AccountID = "account-id"
-		reply.TrustedAccountKey = "trust-key"
+		reply.TrustedAccountKey = "123"
 		reply.PrimaryAppID = "app-id"
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
 	}
 	app := testApp(replyfn, cfgfn, t)
-	payload := app.StartTransaction("hello").thread.CreateDistributedTracePayload()
-	payload.TracedID = "trace-id"
+	hdrs := http.Header{}
+	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, "00-12345678901234567890123456789012-9566c74d10037c4d-01")
+	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, "123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0.390345-1563574856827")
 
 	txn := app.StartTransaction("hello")
-	txn.AcceptDistributedTraceHeaders(TransportHTTP, http.Header{
-		DistributedTraceNewRelicHeader: []string{payload.HTTPSafe()},
-	})
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
-	if metadata.SpanID != "9d2c19bd03daf755" {
-		t.Errorf("Invalid Span ID, expected 9d2c19bd03daf755 but got %s", metadata.SpanID)
+	if metadata.SpanID != "e71870997d38ef60" {
+		t.Errorf("Invalid Span ID, expected aeceb05d2fdcde0c but got %s", metadata.SpanID)
 	}
-	if metadata.TraceID != "trace-id" {
-		t.Errorf("Invalid Trace ID, expected trace-id but got %s", metadata.TraceID)
+	if metadata.TraceID != "12345678901234567890123456789012" {
+		t.Errorf("Invalid Trace ID, expected 12345678901234567890123456789012 but got %s", metadata.TraceID)
 	}
 }
 
@@ -461,10 +460,10 @@ func TestGetLinkingMetadata(t *testing.T) {
 
 	metadata := txn.GetLinkingMetadata()
 	host := txn.thread.appRun.hostname
-	if metadata.TraceID != "d9466896a525ccbf" {
+	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error("wrong TraceID:", metadata.TraceID)
 	}
-	if metadata.SpanID != "bcfb32e050b264b8" {
+	if metadata.SpanID != "e71870997d38ef60" {
 		t.Error("wrong SpanID:", metadata.SpanID)
 	}
 	if metadata.EntityName != "app-name" {

@@ -101,7 +101,8 @@ func TestTxnTrace(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -114,7 +115,7 @@ func TestTxnTrace(t *testing.T) {
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
 		Intrinsics: map[string]interface{}{
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 			"totalTime": 30,
@@ -229,7 +230,8 @@ func TestTxnTraceNoNodes(t *testing.T) {
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -242,7 +244,7 @@ func TestTxnTraceNoNodes(t *testing.T) {
 		AgentAttributes: map[string]interface{}{},
 		Intrinsics: map[string]interface{}{
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 			"totalTime": 30,
@@ -342,7 +344,8 @@ func TestTxnTraceAsync(t *testing.T) {
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -356,7 +359,7 @@ func TestTxnTraceAsync(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 30,
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -513,7 +516,8 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -527,7 +531,7 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 0,
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -567,7 +571,8 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -581,7 +586,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 30,
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -632,7 +637,8 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -646,7 +652,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 200,
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -733,7 +739,8 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 		},
@@ -747,7 +754,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 200,
 			"guid":      "txn-id",
-			"traceId":   "txn-id",
+			"traceId":   "trace-id",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -817,7 +824,7 @@ func TestLongestTraceSaved(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id-3",
+				TxnID:    "txn-id-3",
 				Priority: 0.5,
 			},
 		},
@@ -832,7 +839,8 @@ func TestLongestTraceSaved(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id-5",
+				TxnID:    "txn-id-5",
+				TraceID:  "trace-id-5",
 				Priority: 0.5,
 			},
 		},
@@ -847,7 +855,8 @@ func TestLongestTraceSaved(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id-4",
+				TxnID:    "txn-id-4",
+				TraceID:  "trace-id-4",
 				Priority: 0.5,
 			},
 		},
@@ -861,7 +870,7 @@ func TestLongestTraceSaved(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"totalTime": 6,
 			"guid":      "txn-id-5",
-			"traceId":   "txn-id-5",
+			"traceId":   "trace-id-5",
 			"priority":  0.500000,
 			"sampled":   false,
 		},
@@ -1217,7 +1226,8 @@ func TestTraceDistributedTracingGUID(t *testing.T) {
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled: true,
-				ID:      "this is guid",
+				TxnID:   "this is guid",
+				TraceID: "trace-id",
 			},
 		},
 		Trace: txndata.TxnTrace,
@@ -1245,12 +1255,12 @@ func TestTraceDistributedTracingGUID(t *testing.T) {
                "intrinsics":{
 				   "totalTime":4,
 				   "guid":"this is guid",
-				   "traceId":"this is guid",
+				   "traceId":"trace-id",
 				   "priority":0.000000,
 				   "sampled":false
 			   }
             }
-         ],"this is guid",null,false,null,""
+         ],"trace-id",null,false,null,""
       ]
    ]
 ]`

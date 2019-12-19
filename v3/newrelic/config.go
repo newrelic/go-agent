@@ -222,6 +222,9 @@ type Config struct {
 	// https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing
 	DistributedTracer struct {
 		Enabled bool
+		// OmitNewRelicHeader allows you to choose whether to omit the New Relic Distributed Tracing header,
+		// which by default is emitted along with the W3C trace context headers.
+		OmitNewRelicHeader bool
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events

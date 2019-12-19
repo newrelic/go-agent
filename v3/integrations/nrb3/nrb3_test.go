@@ -95,13 +95,13 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 		t.Error("original request was modified, X-B3-TraceId header set:", hdr)
 	}
 	// b3 headers added
-	if hdr := sent.Header.Get("X-B3-TraceId"); hdr != "94d1331706b6a2b3" {
+	if hdr := sent.Header.Get("X-B3-TraceId"); hdr != "f1405ced8b9968baf9109259515bf702" {
 		t.Error("unexpected value for X-B3-TraceId header:", hdr)
 	}
-	if hdr := sent.Header.Get("X-B3-SpanId"); hdr != "5a4f2d1b7f0cf06d" {
+	if hdr := sent.Header.Get("X-B3-SpanId"); hdr != "2e6fb48a8d962779" {
 		t.Error("unexpected value for X-B3-SpanId header:", hdr)
 	}
-	if hdr := sent.Header.Get("X-B3-ParentSpanId"); hdr != "3ffe00369da8a3b6" {
+	if hdr := sent.Header.Get("X-B3-ParentSpanId"); hdr != "5a291b00ff7bfd6a" {
 		t.Error("unexpected value for X-B3-ParentSpanId header:", hdr)
 	}
 	if hdr := sent.Header.Get("X-B3-Sampled"); hdr != "1" {

@@ -19,13 +19,20 @@ func NewTraceIDGenerator(seed int64) *TraceIDGenerator {
 	}
 }
 
-// GenerateTraceID creates a new trace identifier.
+// GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
 func (tg *TraceIDGenerator) GenerateTraceID() string {
+	return tg.generateID(16)
+}
+
+// GenerateSpanID creates a new span identifier, which is a 16 character hex string.
+func (tg *TraceIDGenerator) GenerateSpanID() string {
+	return tg.generateID(8)
+}
+
+func (tg *TraceIDGenerator) generateID(len int) string {
+	bits := make([]byte, len)
 	tg.Lock()
 	defer tg.Unlock()
-
-	u1 := tg.rnd.Uint32()
-	u2 := tg.rnd.Uint32()
-	bits := (uint64(u1) << 32) | uint64(u2)
+	tg.rnd.Read(bits)
 	return fmt.Sprintf("%016x", bits)
 }

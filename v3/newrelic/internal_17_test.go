@@ -125,7 +125,7 @@ func TestRoundTripper(t *testing.T) {
 	req.Header.Add("zip", "zap")
 	client := &http.Client{}
 	inner := roundTripperFunc(func(r *http.Request) (*http.Response, error) {
-		catHdr := r.Header.Get(DistributedTraceNewRelicHeader)
+		catHdr := r.Header.Get(internal.DistributedTraceNewRelicHeader)
 		if "" == catHdr {
 			t.Error("cat header missing")
 		}
@@ -145,7 +145,7 @@ func TestRoundTripper(t *testing.T) {
 		t.Error(resp, err.Error())
 	}
 	// Ensure that the request was cloned:
-	catHdr := req.Header.Get(DistributedTraceNewRelicHeader)
+	catHdr := req.Header.Get(internal.DistributedTraceNewRelicHeader)
 	if "" != catHdr {
 		t.Error("cat header unexpectedly present")
 	}

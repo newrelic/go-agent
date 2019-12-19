@@ -37,7 +37,8 @@ func TestErrorTraceMarshal(t *testing.T) {
 			Attrs:     nil,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
+				TraceID:  "trace-id",
 				Priority: 0.5,
 			},
 			TotalTime: 2 * time.Second,
@@ -60,7 +61,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 			"intrinsics":{
 				"totalTime":2,
 				"guid":"txn-id",
-				"traceId":"txn-id",
+				"traceId":"trace-id",
 				"priority":0.500000,
 				"sampled":false
 			},
@@ -133,8 +134,9 @@ func TestErrorTraceAttributes(t *testing.T) {
 			Attrs:     attr,
 			BetterCAT: BetterCAT{
 				Enabled:  true,
-				ID:       "txn-id",
+				TxnID:    "txn-id",
 				Priority: 0.5,
+				TraceID:  "trace-id",
 			},
 			TotalTime: 2 * time.Second,
 		},
@@ -155,7 +157,7 @@ func TestErrorTraceAttributes(t *testing.T) {
 			"intrinsics":{
 				"totalTime":2,
 				"guid":"txn-id",
-				"traceId":"txn-id",
+				"traceId":"trace-id",
 				"priority":0.500000,
 				"sampled":false
 			}
@@ -228,7 +230,8 @@ func TestErrorsLifecycle(t *testing.T) {
 		Attrs:     nil,
 		BetterCAT: BetterCAT{
 			Enabled:  true,
-			ID:       "txn-id",
+			TxnID:    "txn-id",
+			TraceID:  "trace-id",
 			Priority: 0.5,
 		},
 		TotalTime: 2 * time.Second,
@@ -252,7 +255,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "intrinsics":{
                "totalTime":2,
                "guid":"txn-id",
-               "traceId":"txn-id",
+               "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
@@ -269,7 +272,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "intrinsics":{
                "totalTime":2,
                "guid":"txn-id",
-               "traceId":"txn-id",
+               "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
@@ -286,7 +289,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "intrinsics":{
                "totalTime":2,
                "guid":"txn-id",
-               "traceId":"txn-id",
+               "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
@@ -303,7 +306,7 @@ func TestErrorsLifecycle(t *testing.T) {
             "intrinsics":{
                "totalTime":2,
                "guid":"txn-id",
-               "traceId":"txn-id",
+               "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }

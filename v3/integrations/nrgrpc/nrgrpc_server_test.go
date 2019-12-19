@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
+
+	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
+	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 // newTestServerAndConn creates a new *grpc.Server and *grpc.ClientConn for use
@@ -107,10 +108,11 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestApplication/DoUnaryUnary",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -270,10 +272,11 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestApplication/DoUnaryStream",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -361,10 +364,11 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestApplication/DoStreamUnary",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -465,10 +469,11 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestApplication/DoStreamStream",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoStreamStream",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

@@ -70,7 +70,7 @@ func (t *b3Transport) RoundTrip(request *http.Request) (*http.Response, error) {
 
 		md := txn.GetTraceMetadata()
 		addHeader(request, "X-B3-TraceId", md.TraceID)
-		addHeader(request, "X-B3-SpanId", t.idGen.GenerateTraceID())
+		addHeader(request, "X-B3-SpanId", t.idGen.GenerateSpanID())
 		addHeader(request, "X-B3-ParentSpanId", md.SpanID)
 		addHeader(request, "X-B3-Sampled", txnSampled(txn))
 	}

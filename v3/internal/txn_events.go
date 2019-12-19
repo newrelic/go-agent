@@ -134,8 +134,8 @@ func sharedBetterCATIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 			w.floatField("parent.transportDuration", p.TransportDuration.Seconds())
 		}
 
-		w.stringField("guid", e.BetterCAT.ID)
-		w.stringField("traceId", e.BetterCAT.TraceID())
+		w.stringField("guid", e.BetterCAT.TxnID)
+		w.stringField("traceId", e.BetterCAT.TraceID)
 		w.writerField("priority", e.BetterCAT.Priority)
 		w.boolField("sampled", e.BetterCAT.Sampled)
 	}

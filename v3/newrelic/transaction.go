@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -228,7 +230,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if nil == txn.thread {
 		return
 	}
-	insertDistributedTraceHeaders(txn.thread, hdrs)
+	txn.thread.CreateDistributedTracePayload(hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting a
@@ -368,7 +370,13 @@ func (txn *Transaction) IsSampled() bool {
 const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
-	DistributedTraceNewRelicHeader = "Newrelic"
+	DistributedTraceNewRelicHeader = internal.DistributedTraceNewRelicHeader
+	// DistributedTraceW3CTraceStateHeader is one of two headers used by W3C
+	// trace context
+	DistributedTraceW3CTraceStateHeader = internal.DistributedTraceW3CTraceStateHeader
+	// DistributedTraceW3CTraceParentHeader is one of two headers used by W3C
+	// trace context
+	DistributedTraceW3CTraceParentHeader = internal.DistributedTraceW3CTraceParentHeader
 )
 
 // TransportType is used in Transaction.AcceptDistributedTraceHeaders() to
