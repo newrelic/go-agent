@@ -1,13 +1,16 @@
-package main
+package nrgorilla_test
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/newrelic/go-agent/v3/integrations/nrgorilla"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+)
+
+var (
+	app                *newrelic.Application
+	MyCustomMiddleware mux.MiddlewareFunc
 )
 
 func makeHandler(text string) http.Handler {
@@ -16,34 +19,26 @@ func makeHandler(text string) http.Handler {
 	})
 }
 
-func main() {
-	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Gorilla App"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigDebugLogger(os.Stdout),
-	)
-	if nil != err {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
+func ExampleMiddleware() {
 	r := mux.NewRouter()
 	r.Use(nrgorilla.Middleware(app))
 
+	// All handlers and custom middlewares will be instrumented.  The
+	// transaction will be available in the Request's context.
+	r.Use(MyCustomMiddleware)
 	r.Handle("/", makeHandler("index"))
-	r.Handle("/alpha", makeHandler("alpha"))
-
-	users := r.PathPrefix("/users").Subrouter()
-	users.Handle("/add", makeHandler("adding user"))
-	users.Handle("/delete", makeHandler("deleting user"))
-
-	// The route name will be used as the transaction name if one is set.
-	r.Handle("/named", makeHandler("named route")).Name("special-name-route")
-
-	// The NotFoundHandler and MethodNotAllowedHandler must be instrumented
-	// separately.
-	_, r.NotFoundHandler = newrelic.WrapHandle(app, "NotFoundHandler", makeHandler("not found"))
-	_, r.MethodNotAllowedHandler = newrelic.WrapHandle(app, "MethodNotAllowedHandler", makeHandler("method not allowed"))
 
 	http.ListenAndServe(":8000", r)
+}
+
+func ExampleMiddleware_specialHandlers() {
+	r := mux.NewRouter()
+	r.Use(nrgorilla.Middleware(app))
+
+	// The NotFoundHandler and MethodNotAllowedHandler must be instrumented
+	// separately using newrelic.WrapHandle.  The second argument to
+	// newrelic.WrapHandle is used as the transaction name; the string returned
+	// from newrelic.WrapHandle should be ignored.
+	_, r.NotFoundHandler = newrelic.WrapHandle(app, "NotFoundHandler", makeHandler("not found"))
+	_, r.MethodNotAllowedHandler = newrelic.WrapHandle(app, "MethodNotAllowedHandler", makeHandler("method not allowed"))
 }

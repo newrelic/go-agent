@@ -6,6 +6,37 @@
   in the new [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7)
   package.
 
+### Changes
+
+* Updated Gorilla instrumentation to include request time spent in middlewares.
+  Added new `nrgorilla.Middleware` and deprecated `nrgorilla.InstrumentRoutes`.
+  Register the new middleware as your first middleware using
+  [`Router.Use`](https://godoc.org/github.com/gorilla/mux#Router.Use). See the
+  [godocs
+  examples](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla)
+  for more details.
+
+  ```go
+  r := mux.NewRouter()
+  // Always register the nrgorilla.Middleware first.
+  r.Use(nrgorilla.Middleware(app))
+
+  // All handlers and custom middlewares will be instrumented.  The
+  // transaction will be available in the Request's context.
+  r.Use(MyCustomMiddleware)
+  r.Handle("/", makeHandler("index"))
+
+  // The NotFoundHandler and MethodNotAllowedHandler must be instrumented
+  // separately using newrelic.WrapHandle.  The second argument to
+  // newrelic.WrapHandle is used as the transaction name; the string returned
+  // from newrelic.WrapHandle should be ignored.
+  _, r.NotFoundHandler = newrelic.WrapHandle(app, "NotFoundHandler", makeHandler("not found"))
+  _, r.MethodNotAllowedHandler = newrelic.WrapHandle(app, "MethodNotAllowedHandler", makeHandler("method not allowed"))
+
+  http.ListenAndServe(":8000", r)
+  ```
+
+
 ## 3.1.0
 
 ### New Features
@@ -20,7 +51,7 @@
   agents.  W3C trace header format will always be accepted and emitted.  New
   Relic trace header format will be accepted, and you can optionally disable
   emission of the New Relic trace header format.
-  
+
   When distributed tracing is enabled with
   `Config.DistributedTracer.Enabled = true`, the Go agent will now accept
   W3C's `traceparent` and `tracestate` headers when calling

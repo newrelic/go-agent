@@ -1,6 +1,7 @@
 package nrgorilla
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -124,4 +125,123 @@ func TestNilApp(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
+}
+
+func TestMiddlewareBasicRoute(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	r := mux.NewRouter()
+	r.Handle("/alpha", makeHandler("alpha response"))
+	r.Use(Middleware(app.Application))
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// ensure that the txn is added to the context and accessible by
+			// middlewares
+			newrelic.FromContext(r.Context()).NoticeError(errors.New("oops"))
+			next.ServeHTTP(w, r)
+		})
+	})
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/alpha", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "alpha response" {
+		t.Error("wrong response body", respBody)
+	}
+	app.ExpectTxnMetrics(t, internal.WantTxn{
+		Name:      "GET /alpha",
+		IsWeb:     true,
+		NumErrors: 1,
+	})
+}
+
+func TestMiddlewareNilApp(t *testing.T) {
+	r := mux.NewRouter()
+	r.Handle("/alpha", makeHandler("alpha response"))
+	r.Use(Middleware(nil))
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/alpha", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "alpha response" {
+		t.Error("wrong response body", respBody)
+	}
+}
+
+func TestMiddlewareAndInstrumentRoutes(t *testing.T) {
+	// Test that only one transaction is created when Middleware and
+	// InstrumentRoutes are used.
+	app := integrationsupport.NewBasicTestApp()
+	r := mux.NewRouter()
+	r.Handle("/alpha", makeHandler("alpha response"))
+	r.Use(Middleware(app.Application))
+	InstrumentRoutes(r, app.Application)
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/alpha", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "alpha response" {
+		t.Error("wrong response body", respBody)
+	}
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{},
+	})
+}
+
+func TestMiddlewareNotFoundHandler(t *testing.T) {
+	// This test will fail if gorilla ever decides to run the NotFoundHandler
+	// through the middleware.
+	app := integrationsupport.NewBasicTestApp()
+	r := mux.NewRouter()
+	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte("not found"))
+	})
+	r.Use(Middleware(app.Application))
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "not found" {
+		t.Error("wrong response body", respBody)
+	}
+	if response.Code != 404 {
+		t.Error("wrong response code", response.Code)
+	}
+	// make sure no txn events were created
+	app.ExpectTxnEvents(t, []internal.WantEvent{})
+}
+
+func TestMiddlewareMethodNotAllowedHandler(t *testing.T) {
+	// This test will fail if gorilla ever decides to run the
+	// MethodNotAllowedHandler through the middleware.
+	app := integrationsupport.NewBasicTestApp()
+	r := mux.NewRouter()
+	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(405)
+		w.Write([]byte("method not allowed"))
+	})
+	r.Use(Middleware(app.Application))
+	r.Handle("/foo", makeHandler("index")).Methods("POST")
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "method not allowed" {
+		t.Error("wrong response body", respBody)
+	}
+	if response.Code != 405 {
+		t.Error("wrong response code", response.Code)
+	}
+	// make sure no txn events were created
+	app.ExpectTxnEvents(t, []internal.WantEvent{})
 }
