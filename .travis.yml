@@ -153,7 +153,10 @@ matrix:
   - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrmicro
-      - EXTRATESTING="go get -u github.com/micro/go-micro@master"
+      # As of Dec 2019, there is a race condition in when using go-micro@master
+      # in their logging system.  Instead, we'll test against the latest
+      # released version.
+      - EXTRATESTING="go get -u github.com/micro/go-micro@latest"
   - go: "1.13.4"
     env:
       - DIRS=v3/integrations/nrnats
