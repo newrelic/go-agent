@@ -1482,6 +1482,66 @@ var acceptAndSendDT = []internal.WantMetric{
 	{Name: "TransportDuration/App/1349956/41346604/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 }
 
+func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader,
+		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader,
+		"99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277")
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+	outgoingHdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(outgoingHdrs)
+
+	if len(outgoingHdrs) != 2 {
+		t.Log("Not all headers present:", hdrs)
+		t.Fail()
+	}
+	traceParent := hdrs.Get(internal.DistributedTraceW3CTraceParentHeader)
+	if traceParent != "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" {
+		t.Errorf("Invalid TraceParent header: %s", traceParent)
+	}
+
+	traceState := outgoingHdrs.Get(internal.DistributedTraceW3CTraceStateHeader)
+	matched, err :=
+		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, traceState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !matched {
+		t.Errorf("Invalid TraceState header: %s", hdrs.Get(internal.DistributedTraceW3CTraceStateHeader))
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundUnknownCaller...))
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":           "OtherTransaction/Go/hello",
+				"sampled":        true,
+				"priority":       internal.MatchAnything,
+				"category":       "generic",
+				"parentId":       "00f067aa0ba902b7",
+				"nr.entryPoint":  true,
+				"guid":           "9566c74d10037c4d",
+				"transactionId":  "52fdfc072182654f",
+				"traceId":        "4bf92f3577b34da6a3ce929d0e0e4736",
+				"tracingVendors": "99999@nr",
+			},
+		},
+	})
+
+}
+
 func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
 	txn := app.StartTransaction("hello")

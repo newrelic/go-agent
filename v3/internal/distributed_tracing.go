@@ -393,6 +393,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	fullTraceState := strings.Join(traceStates, ",")
 
 	p.OriginalTraceState = fullTraceState
+	p.TracingVendors = tracingVendors(p, trustedAccountKey)
 
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
 	if nrTraceState == "" {
@@ -427,7 +428,6 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	if nil == err {
 		p.Timestamp = timestampMillis(timeFromUnixMilliseconds(ts))
 	}
-	p.TracingVendors = tracingVendors(p, p.Account)
 	p.HasNewRelicTraceInfo = true
 	return nil
 }
