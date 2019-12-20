@@ -30,16 +30,17 @@ const (
 	DistributedTraceNewRelicHeader = "Newrelic"
 	// DistributedTraceW3CTraceStateHeader is one of two headers used by W3C
 	// trace context
-	DistributedTraceW3CTraceStateHeader = "tracestate"
+	DistributedTraceW3CTraceStateHeader = "Tracestate"
 	// DistributedTraceW3CTraceParentHeader is one of two headers used by W3C
 	// trace context
-	DistributedTraceW3CTraceParentHeader = "traceparent"
+	DistributedTraceW3CTraceParentHeader = "Traceparent"
 )
 
 var (
 	currentDistTraceVersion = distTraceVersion([2]int{0 /* Major */, 1 /* Minor */})
 	callerUnknown           = payloadCaller{Type: "Unknown", App: "Unknown", Account: "Unknown", TransportType: "Unknown"}
-	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$`)
+	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
+	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
 	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+,?`)
 	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})-([a-f0-9]{16})-(\d)?-(\d\.\d+)?-(\d+),?`)
 	traceStateVendorsRegex  = regexp.MustCompile(`((?:\w*@)?[\w_\-*\s/]+)=[^,]*`)
@@ -319,40 +320,78 @@ func processNRDTString(str string, payload *Payload) error {
 }
 
 func processW3CHeaders(hdrs http.Header, trustedAccountKey string, p *Payload) error {
-	traceParentStr := hdrs.Get(DistributedTraceW3CTraceParentHeader)
-	if err := processTraceParent(traceParentStr, p); nil != err {
+	if err := processTraceParent(hdrs, p); nil != err {
 		return err
 	}
 
-	traceStateStr := hdrs.Get(DistributedTraceW3CTraceStateHeader)
-	if err := processTraceState(traceStateStr, trustedAccountKey, p); nil != err {
+	if err := processTraceState(hdrs, trustedAccountKey, p); nil != err {
 		return err
 	}
 
 	return nil
 }
 
-func processTraceParent(traceParentStr string, p *Payload) error {
-	subMatches := traceParentRegex.FindStringSubmatch(traceParentStr)
+var (
+	errTooManyHdrs     = ErrPayloadParse{errors.New("too many TraceParent headers")}
+	errNoHdrs          = ErrPayloadParse{errors.New("missing TraceParent header")}
+	errNumEntries      = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
+	errInvalidTraceID  = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
+	errInvalidParentID = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
+	errInvalidFlags    = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
+)
 
-	if subMatches == nil || len(subMatches) != 5 {
-		return ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
+func processTraceParent(hdrs http.Header, p *Payload) error {
+	traceParents := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceParentHeader)
+	if len(traceParents) > 1 {
+		return errTooManyHdrs
+	}
+	if len(traceParents) < 1 {
+		return errNoHdrs
+	}
+	subMatches := traceParentRegex.FindStringSubmatch(traceParents[0])
+
+	if subMatches == nil || len(subMatches) != 6 {
+		return errNumEntries
+	}
+	if !validateVersionAndFlags(subMatches) {
+		return errInvalidFlags
 	}
 	p.TracedID = subMatches[2]
 	if p.TracedID == "00000000000000000000000000000000" {
-		return ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
+		return errInvalidTraceID
 	}
 	p.ID = subMatches[3]
 	if p.ID == "0000000000000000" {
-		return ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
+		return errInvalidParentID
 	}
 
 	return nil
+}
+
+func validateVersionAndFlags(subMatches []string) bool {
+	if subMatches[1] == w3cVersion {
+		if subMatches[5] != "" {
+			return false
+		}
+		return isValidFlag(subMatches[4])
+	}
+	// Invalid version: https://w3c.github.io/trace-context/#version
+	if subMatches[1] == "ff" {
+		return false
+	}
+	return true
+}
+
+func isValidFlag(f string) bool {
+	return traceParentFlagRegex.MatchString(f)
 }
 
 var errFieldNum = ErrPayloadParse{errors.New("incorrect number of fields in TraceState")}
 
-func processTraceState(fullTraceState string, trustedAccountKey string, p *Payload) error {
+func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
+	traceStates := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceStateHeader)
+	fullTraceState := strings.Join(traceStates, ",")
+
 	p.OriginalTraceState = fullTraceState
 
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
@@ -391,6 +430,18 @@ func processTraceState(fullTraceState string, trustedAccountKey string, p *Paylo
 	p.TracingVendors = tracingVendors(p, p.Account)
 	p.HasNewRelicTraceInfo = true
 	return nil
+}
+
+// getAllValuesCaseInsensitive gets all values of a header regardless of all capitalizations.
+// This assumes that the key passed in is already cannoncialized.
+func getAllValuesCaseInsensitive(hdrs http.Header, key string) []string {
+	result := make([]string, 0, 1)
+	for k, v := range hdrs {
+		if key == http.CanonicalHeaderKey(k) {
+			result = append(result, v...)
+		}
+	}
+	return result
 }
 
 func findTrustedNREntry(fullTraceState string, trustedAccount string) string {

@@ -267,10 +267,12 @@ func TestPayload_W3CTraceState(t *testing.T) {
 
 func TestProcessTraceParent(t *testing.T) {
 	var payload Payload
-	traceParent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-	err := processTraceParent(traceParent, &payload)
+	traceParentHdr := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"},
+	}
+	err := processTraceParent(traceParentHdr, &payload)
 	if nil != err {
-		t.Errorf("Unexpected error for trace parent %s: %v", traceParent, err)
+		t.Errorf("Unexpected error for trace parent %s: %v", traceParentHdr, err)
 	}
 	traceID := "4bf92f3577b34da6a3ce929d0e0e4736"
 	if payload.TracedID != traceID {
@@ -281,7 +283,7 @@ func TestProcessTraceParent(t *testing.T) {
 		t.Errorf("Unexpected Span ID in trace parent - expected %s, got %v", spanID, payload.ID)
 	}
 	if payload.Sampled != nil {
-		t.Errorf("Expected traceparent %s sampled to be unset, but it is not", traceParent)
+		t.Errorf("Expected traceparent %s sampled to be unset, but it is not", traceParentHdr)
 	}
 }
 
@@ -296,13 +298,15 @@ func TestProcessTraceParentInvalidFormat(t *testing.T) {
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-f067aa0ba902b7-01",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b711111-01",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba9TTT7-01",
+		"00-12345678901234567890123456789012-1234567890123456-.0",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0T",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-031",
 	}
 	var payload Payload
 	for _, traceParent := range cases {
-		err := processTraceParent(traceParent, &payload)
+		traceParentHdr := http.Header{DistributedTraceW3CTraceParentHeader: []string{traceParent}}
+		err := processTraceParent(traceParentHdr, &payload)
 		if nil == err {
 			t.Errorf("No error reported for trace parent %s", traceParent)
 		}
@@ -311,7 +315,10 @@ func TestProcessTraceParentInvalidFormat(t *testing.T) {
 
 func TestProcessTraceState(t *testing.T) {
 	var payload Payload
-	processTraceState("190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,rojo=00f067aa0ba902b7", "190", &payload)
+	traceStateHdr := http.Header{
+		DistributedTraceW3CTraceStateHeader: []string{"190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,rojo=00f067aa0ba902b7"},
+	}
+	processTraceState(traceStateHdr, "190", &payload)
 	if payload.TrustedAccountKey != "190" {
 		t.Errorf("Wrong trusted account key: expected 190 but got %s", payload.TrustedAccountKey)
 	}
@@ -339,6 +346,36 @@ func TestProcessTraceState(t *testing.T) {
 	if payload.Timestamp != timestampMillis(timeFromUnixMilliseconds(1518469636035)) {
 		t.Errorf("Wrong timestamp: expected 1518469636035 but got %v", payload.Timestamp)
 	}
+}
+
+func TestProcessTraceStateCaseInsensitive(t *testing.T) {
+	cases := []string{"tracestate", "Tracestate", "tRaCEState"}
+	for _, testCase := range cases {
+		var payload Payload
+		traceStateHdr := http.Header{
+			testCase: []string{"190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,rojo=00f067aa0ba902b7"},
+		}
+		processTraceState(traceStateHdr, "190", &payload)
+		if payload.OriginalTraceState == "" {
+			t.Errorf("Got an error processing trace state for header %s", testCase)
+		}
+	}
+
+}
+
+func TestProcessTraceParentCaseInsensitive(t *testing.T) {
+	cases := []string{"traceparent", "Traceparent", "tracePARENT"}
+	for _, testCase := range cases {
+		var payload Payload
+		traceParentHdr := http.Header{
+			testCase: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"},
+		}
+		processTraceParent(traceParentHdr, &payload)
+		if payload.TracedID == "" {
+			t.Errorf("Got an error processing trace state for header %s", testCase)
+		}
+	}
+
 }
 
 func TestExtractNRTraceStateEntry(t *testing.T) {
@@ -379,5 +416,16 @@ func TestTracingVendors(t *testing.T) {
 		if result != expected {
 			t.Errorf("Expected %s but got %s for case %s", expected, result, test)
 		}
+	}
+}
+
+// Our code assumes that the keys we are using are canoncial header keys, so we should make sure
+// we don't accidentally change that.
+func TestW3CKeysAreCannoncial(t *testing.T) {
+	if DistributedTraceW3CTraceParentHeader != http.CanonicalHeaderKey(DistributedTraceW3CTraceParentHeader) {
+		t.Error(DistributedTraceW3CTraceParentHeader + " is not canonical")
+	}
+	if DistributedTraceW3CTraceStateHeader != http.CanonicalHeaderKey(DistributedTraceW3CTraceStateHeader) {
+		t.Error(DistributedTraceW3CTraceParentHeader + " is not canonical")
 	}
 }

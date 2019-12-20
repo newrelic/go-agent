@@ -65,7 +65,7 @@ func getDTHeaders(app *Application) http.Header {
 }
 
 func headersFromString(s string) http.Header {
-	return map[string][]string{internal.DistributedTraceNewRelicHeader: {s}}
+	return map[string][]string{DistributedTraceNewRelicHeader: {s}}
 }
 
 func makeHeaders(t *testing.T) http.Header {
@@ -463,8 +463,8 @@ func TestPayloadFromFuture(t *testing.T) {
 	futureTime := time.Now().Add(1 * time.Hour)
 	timeStr := fmt.Sprintf("%d", internal.TimeToUnixMilliseconds(futureTime))
 	traceState = strings.Replace(traceState, "TIME", timeStr, 1)
-	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, traceParent)
-	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, traceState)
+	hdrs.Set(DistributedTraceW3CTraceParentHeader, traceParent)
+	hdrs.Set(DistributedTraceW3CTraceStateHeader, traceState)
 
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
@@ -926,7 +926,7 @@ func payloadFieldsFromHeaders(t *testing.T, hdrs http.Header) (out struct {
 	Version []int                  `json:"v"`
 	Data    map[string]interface{} `json:"d"`
 }) {
-	encoded := hdrs.Get(internal.DistributedTraceNewRelicHeader)
+	encoded := hdrs.Get(DistributedTraceNewRelicHeader)
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		t.Fatal("unable to bas64 decode tracing header", err)
@@ -1197,7 +1197,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	for _, expect := range tc.OutboundPayloads {
 		hdrs := http.Header{}
 		txn.InsertDistributedTraceHeaders(hdrs)
-		actual := hdrs.Get(internal.DistributedTraceNewRelicHeader)
+		actual := hdrs.Get(DistributedTraceNewRelicHeader)
 		assertTestCaseOutboundPayload(expect, t, actual)
 	}
 
@@ -1446,18 +1446,18 @@ func TestW3CTraceHeaders(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceState header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceState header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
-	parentHdr := hdrs.Get(internal.DistributedTraceW3CTraceStateHeader)
+	parentHdr := hdrs.Get(DistributedTraceW3CTraceStateHeader)
 	matched, err :=
 		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, parentHdr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !matched {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceStateHeader))
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceStateHeader))
 	}
 
 	txn.End()
@@ -1487,9 +1487,9 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader,
+	hdrs.Set(DistributedTraceW3CTraceParentHeader,
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
-	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader,
+	hdrs.Set(DistributedTraceW3CTraceStateHeader,
 		"123@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	outgoingHdrs := http.Header{}
@@ -1499,19 +1499,19 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	traceParent := hdrs.Get(internal.DistributedTraceW3CTraceParentHeader)
+	traceParent := hdrs.Get(DistributedTraceW3CTraceParentHeader)
 	if traceParent != "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" {
 		t.Errorf("Invalid TraceParent header: %s", traceParent)
 	}
 
-	traceState := outgoingHdrs.Get(internal.DistributedTraceW3CTraceStateHeader)
+	traceState := outgoingHdrs.Get(DistributedTraceW3CTraceStateHeader)
 	matched, err :=
 		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, traceState)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !matched {
-		t.Errorf("Invalid TraceState header: %s", hdrs.Get(internal.DistributedTraceW3CTraceStateHeader))
+		t.Errorf("Invalid TraceState header: %s", hdrs.Get(DistributedTraceW3CTraceStateHeader))
 	}
 
 	txn.End()
@@ -1532,8 +1532,8 @@ func TestW3CTraceHeadersSpansDisabledNoTraceState(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
 	txn.End()
@@ -1552,8 +1552,8 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 	originalTraceParent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 	originalTraceState := "rojo=00f067aa0ba902b7"
 	incomingHdrs := http.Header{}
-	incomingHdrs.Set(internal.DistributedTraceW3CTraceParentHeader, originalTraceParent)
-	incomingHdrs.Set(internal.DistributedTraceW3CTraceStateHeader, originalTraceState)
+	incomingHdrs.Set(DistributedTraceW3CTraceParentHeader, originalTraceParent)
+	incomingHdrs.Set(DistributedTraceW3CTraceStateHeader, originalTraceState)
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, incomingHdrs)
 
 	hdrs := http.Header{}
@@ -1563,8 +1563,8 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
 	txn.End()
@@ -1585,7 +1585,7 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 
 	originalTraceParent := "00-12345678901234567890123456789012-1234567890123456-01"
 	incomingHdrs := http.Header{}
-	incomingHdrs.Set(internal.DistributedTraceW3CTraceParentHeader, originalTraceParent)
+	incomingHdrs.Set(DistributedTraceW3CTraceParentHeader, originalTraceParent)
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, incomingHdrs)
 
 	hdrs := http.Header{}
@@ -1595,8 +1595,8 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-12345678901234567890123456789012-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-12345678901234567890123456789012-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
 	txn.End()
@@ -1605,14 +1605,14 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 }
 
 // Based on test_traceparent_trace_id_all_zero in
-// https://github.com/w3c/trace-context/blob/master/test/test.py
+// https://github.com/w3c/trace-context/blob/3d02cfc15778ef850df9bc4e9d2740a4a2627fd5/test/test.py
 func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
 
 	originalTraceParent := "00-00000000000000000000000000000000-1234567890123456-01"
 	incomingHdrs := http.Header{}
-	incomingHdrs.Set(internal.DistributedTraceW3CTraceParentHeader, originalTraceParent)
+	incomingHdrs.Set(DistributedTraceW3CTraceParentHeader, originalTraceParent)
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, incomingHdrs)
 
 	hdrs := http.Header{}
@@ -1622,8 +1622,8 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
 	txn.End()
@@ -1633,14 +1633,14 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 }
 
 // Based on test_traceparent_parent_id_all_zero in
-// https://github.com/w3c/trace-context/blob/master/test/test.py
+// https://github.com/w3c/trace-context/blob/3d02cfc15778ef850df9bc4e9d2740a4a2627fd5/test/test.py
 func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
 
 	originalTraceParent := "00-12345678901234567890123456789012-0000000000000000-01"
 	incomingHdrs := http.Header{}
-	incomingHdrs.Set(internal.DistributedTraceW3CTraceParentHeader, originalTraceParent)
+	incomingHdrs.Set(DistributedTraceW3CTraceParentHeader, originalTraceParent)
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, incomingHdrs)
 
 	hdrs := http.Header{}
@@ -1650,12 +1650,61 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 		t.Log("Not all headers present:", hdrs)
 		t.Fail()
 	}
-	if hdrs.Get(internal.DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(internal.DistributedTraceW3CTraceParentHeader))
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
+		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
 	}
 
 	txn.End()
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
 		"reason": "unable to parse inbound payload: invalid TraceParent parent ID",
 	})
+}
+
+// Based on test_traceparent_version_0x00, test_traceparent_version_0xcc, test_traceparent_version_0xff in
+// https://github.com/w3c/trace-context/blob/3d02cfc15778ef850df9bc4e9d2740a4a2627fd5/test/test.py
+func TestW3CTraceHeadersFutureVersion(t *testing.T) {
+	cases := map[string]string{
+		"00-12345678901234567890123456789012-1234567890123456-01-what-the-future-will-be-like": "unable to parse inbound payload: invalid TraceParent flags for this version",
+		"cc-12345678901234567890123456789012-1234567890123456-01":                              "",
+		"cc-12345678901234567890123456789012-1234567890123456-01-what-the-future-will-be-like": "",
+		"cc-12345678901234567890123456789012-1234567890123456-01.what-the-future-will-be-like": "unable to parse inbound payload: invalid number of TraceParent entries",
+		"ff-12345678901234567890123456789012-1234567890123456-01":                              "unable to parse inbound payload: invalid TraceParent flags for this version",
+	}
+	for testCase, failureMessage := range cases {
+		app := testApp(distributedTracingReplyFields, enableW3COnly, t)
+		txn := app.StartTransaction("hello")
+
+		originalTraceParent := testCase
+		incomingHdrs := http.Header{}
+		incomingHdrs.Set(DistributedTraceW3CTraceParentHeader, originalTraceParent)
+		txn.AcceptDistributedTraceHeaders(TransportHTTP, incomingHdrs)
+
+		outgoingHdrs := http.Header{}
+		txn.InsertDistributedTraceHeaders(outgoingHdrs)
+
+		if len(outgoingHdrs) != 2 {
+			t.Log("Not all headers present:", outgoingHdrs)
+			t.Fail()
+		}
+		expected := "00-12345678901234567890123456789012-9566c74d10037c4d-01"
+		if failureMessage != "" {
+			if outgoingHdrs.Get(DistributedTraceW3CTraceParentHeader) == expected {
+				t.Errorf("Invalid TraceParent header resulting from %s", testCase)
+			}
+
+		} else {
+			if outgoingHdrs.Get(DistributedTraceW3CTraceParentHeader) != expected {
+				t.Errorf("Invalid TraceParent header resulting from %s", testCase)
+			}
+		}
+
+		txn.End()
+		if failureMessage != "" {
+			app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
+				"reason": failureMessage,
+			})
+		} else {
+			app.expectNoLoggedErrors(t)
+		}
+	}
 }
