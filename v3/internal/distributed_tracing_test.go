@@ -443,6 +443,12 @@ func TestParseNonTrustedTraceStates(t *testing.T) {
 			expVendors:       "",
 			expNonTrustState: "",
 		},
+		{
+			full:             "abcdefghijklmnopqrstuvwxyz0123456789_-*/@a-z0-9_-*/= !\"#$%&'()*+-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz",
+			trusted:          "",
+			expVendors:       "abcdefghijklmnopqrstuvwxyz0123456789_-*/@a-z0-9_-*/",
+			expNonTrustState: "abcdefghijklmnopqrstuvwxyz0123456789_-*/@a-z0-9_-*/= !\"#$%&'()*+-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz",
+		},
 	}
 
 	for _, tc := range cases {
