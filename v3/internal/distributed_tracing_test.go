@@ -452,14 +452,13 @@ func TestParseNonTrustedTraceStates(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		p := Payload{}
-		parseNonTrustedTraceStates(&p, tc.full, tc.trusted)
-		if p.TracingVendors != tc.expVendors {
-			t.Errorf("wrong value for TracingVendors, expected=%s actual=%s", tc.expVendors, p.TracingVendors)
+		vendors, state := parseNonTrustedTraceStates(tc.full, tc.trusted)
+		if vendors != tc.expVendors {
+			t.Errorf("wrong value for vendors returned, expected=%s actual=%s", tc.expVendors, vendors)
 		}
-		if p.NonTrustedTraceState != tc.expNonTrustState {
-			t.Errorf("wrong value for NonTrustedTraceState, expected=%s actual=%s",
-				tc.expNonTrustState, p.NonTrustedTraceState)
+		if state != tc.expNonTrustState {
+			t.Errorf("wrong value for state returned, expected=%s actual=%s",
+				tc.expNonTrustState, state)
 		}
 	}
 }

@@ -389,7 +389,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	fullTraceState := strings.Join(traceStates, ",")
 
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
-	parseNonTrustedTraceStates(p, fullTraceState, nrTraceState)
+	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)
 	if nrTraceState == "" {
 		return nil
 	}
@@ -438,7 +438,7 @@ func getAllValuesCaseInsensitive(hdrs http.Header, key string) []string {
 	return result
 }
 
-func parseNonTrustedTraceStates(p *Payload, fullTraceState string, trustedTraceState string) {
+func parseNonTrustedTraceStates(fullTraceState string, trustedTraceState string) (tVendors, tState string) {
 	vendorMatches := traceStateVendorsRegex.FindAllStringSubmatch(fullTraceState, -1)
 	if len(vendorMatches) == 0 {
 		return
@@ -458,8 +458,9 @@ func parseNonTrustedTraceStates(p *Payload, fullTraceState string, trustedTraceS
 		}
 	}
 
-	p.TracingVendors = strings.Join(vendors, ",")
-	p.NonTrustedTraceState = strings.Join(states, ",")
+	tVendors = strings.Join(vendors, ",")
+	tState = strings.Join(states, ",")
+	return
 }
 
 func findTrustedNREntry(fullTraceState string, trustedAccount string) string {
