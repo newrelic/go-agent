@@ -43,7 +43,7 @@ var (
 	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
 	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+,?`)
 	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})-([a-f0-9]{16})-(\d)?-(\d\.\d+)?-(\d+),?`)
-	traceStateVendorsRegex  = regexp.MustCompile(`((?:\w*@)?[\w_\-*\s/]+)=[^,]*`)
+	traceStateVendorsRegex  = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
 
 // timestampMillis allows raw payloads to use exact times, and marshalled
@@ -85,7 +85,7 @@ type Payload struct {
 	TracingVendors       string          `json:"-"`
 	HasNewRelicTraceInfo bool            `json:"-"`
 	TrustedAccountKey    string          `json:"tk,omitempty"`
-	OriginalTraceState   string          `json:"-"`
+	NonTrustedTraceState string          `json:"-"`
 }
 
 type payloadCaller struct {
@@ -196,10 +196,6 @@ func (p Payload) W3CTraceState() string {
 	} else {
 		flags = "0"
 	}
-	nonNewRelicTraceState := fullTraceStateRegex.ReplaceAllString(p.OriginalTraceState, "")
-	if strings.HasSuffix(nonNewRelicTraceState, ",") {
-		nonNewRelicTraceState = nonNewRelicTraceState[0 : len(nonNewRelicTraceState)-1]
-	}
 	newRelicTraceState := getTraceStatePrefix(p.TrustedAccountKey) + "=" +
 		traceStateVersion + "-" +
 		typeMap[p.Type] + "-" +
@@ -210,8 +206,8 @@ func (p Payload) W3CTraceState() string {
 		flags + "-" +
 		strconv.FormatFloat(float64(p.Priority), 'f', 5, 32) + "-" +
 		strconv.FormatUint(p.Timestamp.UnixMilliseconds(), 10)
-	if nonNewRelicTraceState != "" {
-		return newRelicTraceState + "," + nonNewRelicTraceState
+	if p.NonTrustedTraceState != "" {
+		newRelicTraceState = newRelicTraceState + "," + p.NonTrustedTraceState
 	}
 	return newRelicTraceState
 }
@@ -392,10 +388,8 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	traceStates := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceStateHeader)
 	fullTraceState := strings.Join(traceStates, ",")
 
-	p.OriginalTraceState = fullTraceState
-	p.TracingVendors = tracingVendors(p, trustedAccountKey)
-
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
+	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)
 	if nrTraceState == "" {
 		return nil
 	}
@@ -444,6 +438,31 @@ func getAllValuesCaseInsensitive(hdrs http.Header, key string) []string {
 	return result
 }
 
+func parseNonTrustedTraceStates(fullTraceState string, trustedTraceState string) (tVendors, tState string) {
+	vendorMatches := traceStateVendorsRegex.FindAllStringSubmatch(fullTraceState, -1)
+	if len(vendorMatches) == 0 {
+		return
+	}
+	vendors := make([]string, 0, len(vendorMatches))
+	states := make([]string, 0, len(vendorMatches))
+	for _, vendorMatch := range vendorMatches {
+		if vendorMatch[0] == trustedTraceState {
+			continue
+		}
+		if len(vendorMatch) != 2 {
+			break
+		}
+		if vendorMatch[1] != "" {
+			vendors = append(vendors, vendorMatch[1])
+			states = append(states, vendorMatch[0])
+		}
+	}
+
+	tVendors = strings.Join(vendors, ",")
+	tState = strings.Join(states, ",")
+	return
+}
+
 func findTrustedNREntry(fullTraceState string, trustedAccount string) string {
 	submatches := fullTraceStateRegex.FindAllStringSubmatch(fullTraceState, -1)
 	accountStr := getTraceStatePrefix(trustedAccount)
@@ -454,25 +473,6 @@ func findTrustedNREntry(fullTraceState string, trustedAccount string) string {
 		}
 	}
 	return ""
-}
-
-func tracingVendors(p *Payload, thisAccount string) string {
-	prefix := getTraceStatePrefix(thisAccount)
-	vendorMatches := traceStateVendorsRegex.FindAllStringSubmatch(p.OriginalTraceState, -1)
-	if len(vendorMatches) == 0 {
-		return ""
-	}
-	vendors := make([]string, 0, len(vendorMatches))
-	for _, vendorMatch := range vendorMatches {
-		if len(vendorMatch) != 2 {
-			break
-		}
-		s := vendorMatch[1]
-		if s != "" && !strings.HasPrefix(s, prefix) {
-			vendors = append(vendors, s)
-		}
-	}
-	return strings.Join(vendors, ",")
 }
 
 func getTraceStatePrefix(trustedAccount string) string {
