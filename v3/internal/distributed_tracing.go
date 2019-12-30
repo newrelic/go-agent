@@ -42,7 +42,7 @@ var (
 	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
 	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
 	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+,?`)
-	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})-([a-f0-9]{16})-(\d)?-(\d\.\d+)?-(\d+),?`)
+	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})?-([a-f0-9]{16})?-(\d)?-(\d\.\d+)?-(\d+),?`)
 	traceStateVendorsRegex  = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
 

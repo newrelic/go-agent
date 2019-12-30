@@ -473,3 +473,55 @@ func TestW3CKeysAreCannoncial(t *testing.T) {
 		t.Error(DistributedTraceW3CTraceParentHeader + " is not canonical")
 	}
 }
+
+func TestTransactionIDTraceStateField(t *testing.T) {
+	// Test that tracestate headers transactionId accepts varying vales
+	trustKey := "33"
+	testcases := []struct {
+		tracestate string
+		expect     string
+	}{
+		{tracestate: "33@nr=0-0-33-5-1234567890123456--0-0.0-0", expect: ""},
+		// TODO: support this use case which is called out specifically in the spec
+		// {tracestate: "33@nr=0-0-33-5-1234567890123456-meatballs!-0-0.0-0", expect: "meatballs!"},
+	}
+
+	for _, tc := range testcases {
+		p := &Payload{}
+		h := http.Header{
+			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
+		}
+		if err := processTraceState(h, trustKey, p); err != nil {
+			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
+		}
+		if p.TransactionID != tc.expect {
+			t.Errorf("wrong transactionId gathered: expect=%s actual=%s", tc.expect, p.TransactionID)
+		}
+	}
+}
+
+func TestSpanIDTraceStateField(t *testing.T) {
+	// Test that tracestate headers spanId accepts varying vales
+	trustKey := "33"
+	testcases := []struct {
+		tracestate string
+		expect     string
+	}{
+		{tracestate: "33@nr=0-0-33-5--0123456789012345-0-0.0-0", expect: ""},
+		// TODO: support this use case which is called out specifically in the spec
+		// {tracestate: "33@nr=0-0-33-5-meatballs!-0123456789012345-0-0.0-0", expect: "meatballs!"},
+	}
+
+	for _, tc := range testcases {
+		p := &Payload{}
+		h := http.Header{
+			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
+		}
+		if err := processTraceState(h, trustKey, p); err != nil {
+			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
+		}
+		if p.TrustedParentID != tc.expect {
+			t.Errorf("wrong transactionId gathered: expect=%s actual=%s", tc.expect, p.TrustedParentID)
+		}
+	}
+}
