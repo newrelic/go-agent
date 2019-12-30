@@ -1768,3 +1768,26 @@ func TestW3CTraceHeadersFutureVersion(t *testing.T) {
 		}
 	}
 }
+
+func TestW3CTraceParentWithoutTraceContext(t *testing.T) {
+	traceparent := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
+
+	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	hdrs.Set(DistributedTraceW3CTraceParentHeader, traceparent)
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":         "OtherTransaction/Go/hello",
+			"traceId":      "050c91b77efca9b0ef38b30c182355ce",
+			"parentSpanId": "560ccffb087d1906",
+			"guid":         internal.MatchAnything,
+			"sampled":      internal.MatchAnything,
+			"priority":     internal.MatchAnything,
+		},
+	}})
+}

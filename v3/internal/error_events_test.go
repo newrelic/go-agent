@@ -197,10 +197,11 @@ func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
 			App:           "caller-app",
 			Account:       "caller-account",
 		},
-		ID:                "caller-id",
-		TransactionID:     "caller-parent-id",
-		TracedID:          "trip-id",
-		TransportDuration: 2 * time.Second,
+		ID:                   "caller-id",
+		TransactionID:        "caller-parent-id",
+		TracedID:             "trip-id",
+		TransportDuration:    2 * time.Second,
+		HasNewRelicTraceInfo: true,
 	}
 
 	testErrorEventJSON(t, &ErrorEvent{

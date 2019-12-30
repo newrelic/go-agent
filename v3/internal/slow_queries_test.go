@@ -223,10 +223,11 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 			App:           "caller-app",
 			Account:       "caller-account",
 		},
-		ID:                "caller-id",
-		TransactionID:     "caller-parent-id",
-		TracedID:          "trace-id",
-		TransportDuration: 2 * time.Second,
+		ID:                   "caller-id",
+		TransactionID:        "caller-parent-id",
+		TracedID:             "trace-id",
+		TransportDuration:    2 * time.Second,
+		HasNewRelicTraceInfo: true,
 	}
 
 	txnSlows := newSlowQueries(maxTxnSlowQueries)

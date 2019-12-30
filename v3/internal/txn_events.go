@@ -126,7 +126,7 @@ func sharedTransactionIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 // by Transaction, TransactionError, and Slow SQL
 func sharedBetterCATIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 	if e.BetterCAT.Enabled {
-		if p := e.BetterCAT.Inbound; nil != p {
+		if p := e.BetterCAT.Inbound; nil != p && p.HasNewRelicTraceInfo {
 			w.stringField("parent.type", p.Type)
 			w.stringField("parent.app", p.App)
 			w.stringField("parent.account", p.Account)

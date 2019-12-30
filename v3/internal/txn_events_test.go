@@ -149,10 +149,11 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 			App:           "caller-app",
 			Account:       "caller-account",
 		},
-		ID:                "caller-id",
-		TransactionID:     "caller-parent-id",
-		TracedID:          "trip-id",
-		TransportDuration: 2 * time.Second,
+		ID:                   "caller-id",
+		TransactionID:        "caller-parent-id",
+		TracedID:             "trip-id",
+		TransportDuration:    2 * time.Second,
+		HasNewRelicTraceInfo: true,
 	}
 	e.BetterCAT.TraceID = "trip-id"
 	testTxnEventJSON(t, &e, `[
