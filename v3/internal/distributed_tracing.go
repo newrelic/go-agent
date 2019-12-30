@@ -87,7 +87,7 @@ type Payload struct {
 	HasNewRelicTraceInfo bool            `json:"-"`
 	TrustedAccountKey    string          `json:"tk,omitempty"`
 	NonTrustedTraceState string          `json:"-"`
-	OriginalTraceState   string          `json:"="`
+	OriginalTraceState   string          `json:"-"`
 }
 
 type payloadCaller struct {
