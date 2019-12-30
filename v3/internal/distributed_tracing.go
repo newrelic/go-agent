@@ -184,7 +184,7 @@ func (p Payload) W3CTraceParent() string {
 	} else {
 		flags = "00"
 	}
-	return fmt.Sprintf(w3cVersion + "-" + p.TracedID + "-" + p.ID + "-" + flags)
+	return w3cVersion + "-" + p.TracedID + "-" + p.ID + "-" + flags
 }
 
 // W3CTraceState returns the W3C TraceState header for this payload
