@@ -525,3 +525,35 @@ func TestSpanIDTraceStateField(t *testing.T) {
 		}
 	}
 }
+
+func TestVersionTraceStateField(t *testing.T) {
+	// Test that tracestate headers version accepts varying values
+	trustKey := "33"
+	testcases := []struct {
+		tracestate string
+		expAppID   string
+	}{
+		{
+			tracestate: "33@nr=0-0-33-5-0123456789012345-5432109876543210-1-0.5-123",
+			expAppID:   "5",
+		},
+		{
+			// when version is too high we still try to parse what we can
+			tracestate: "33@nr=1-0-33-5-0123456789012345-5432109876543210-1-0.5-123-extra-fields",
+			expAppID:   "5",
+		},
+	}
+
+	for _, tc := range testcases {
+		p := &Payload{}
+		h := http.Header{
+			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
+		}
+		if err := processTraceState(h, trustKey, p); err != nil {
+			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
+		}
+		if p.App != tc.expAppID {
+			t.Errorf("wrong application id set on payload: expect=%s actual=%s", tc.expAppID, p.App)
+		}
+	}
+}

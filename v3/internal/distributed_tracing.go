@@ -399,9 +399,6 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	}
 
 	p.TrustedAccountKey = matches[1]
-	if matches[2] != "0" { // currently we only know about version 0
-		return ErrPayloadParse{errors.New("unknown TraceState version: " + matches[2])}
-	}
 	p.Type = typeMapReverse[matches[3]]
 	p.Account = matches[4]
 	p.App = matches[5]
