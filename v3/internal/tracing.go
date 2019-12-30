@@ -13,16 +13,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-// MarshalJSON limits the number of decimals.
-func (p *Priority) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(priorityFormat, *p)), nil
-}
-
-// WriteJSON limits the number of decimals.
-func (p Priority) WriteJSON(buf *bytes.Buffer) {
-	fmt.Fprintf(buf, priorityFormat, p)
-}
-
 // TxnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events

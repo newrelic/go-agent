@@ -66,8 +66,9 @@ func (tm timestampMillis) MarshalJSON() ([]byte, error) {
 func (tm timestampMillis) Time() time.Time  { return time.Time(tm) }
 func (tm *timestampMillis) Set(t time.Time) { *tm = timestampMillis(t) }
 
-func (tm *timestampMillis) UnixMilliseconds() uint64 {
-	return TimeToUnixMilliseconds(tm.Time())
+func (tm timestampMillis) unixMillisecondsString() string {
+	ms := TimeToUnixMilliseconds(tm.Time())
+	return strconv.FormatUint(ms, 10)
 }
 
 // Payload is the distributed tracing payload.
@@ -205,8 +206,8 @@ func (p Payload) W3CTraceState() string {
 		p.ID + "-" +
 		p.TransactionID + "-" +
 		flags + "-" +
-		strconv.FormatFloat(float64(p.Priority), 'f', 5, 32) + "-" +
-		strconv.FormatUint(p.Timestamp.UnixMilliseconds(), 10)
+		p.Priority.traceStateFormat() + "-" +
+		p.Timestamp.unixMillisecondsString()
 	if p.NonTrustedTraceState != "" {
 		newRelicTraceState = newRelicTraceState + "," + p.NonTrustedTraceState
 	}
