@@ -13,3 +13,16 @@ func TestTraceIDGenerator(t *testing.T) {
 		t.Error(spanID)
 	}
 }
+
+func BenchmarkTraceIDGenerator(b *testing.B) {
+	tg := NewTraceIDGenerator(12345)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		if id := tg.GenerateSpanID(); id == "" {
+			b.Fatal(id)
+		}
+	}
+}

@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"encoding/hex"
 	"math/rand"
 	"sync"
 )
@@ -19,20 +19,26 @@ func NewTraceIDGenerator(seed int64) *TraceIDGenerator {
 	}
 }
 
+const (
+	traceIDLen = 16
+	spanIDLen  = 8
+	maxIDLen   = 16
+)
+
 // GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
 func (tg *TraceIDGenerator) GenerateTraceID() string {
-	return tg.generateID(16)
+	return tg.generateID(traceIDLen)
 }
 
 // GenerateSpanID creates a new span identifier, which is a 16 character hex string.
 func (tg *TraceIDGenerator) GenerateSpanID() string {
-	return tg.generateID(8)
+	return tg.generateID(spanIDLen)
 }
 
 func (tg *TraceIDGenerator) generateID(len int) string {
-	bits := make([]byte, len)
+	var bits [maxIDLen]byte
 	tg.Lock()
 	defer tg.Unlock()
-	tg.rnd.Read(bits)
-	return fmt.Sprintf("%016x", bits)
+	tg.rnd.Read(bits[:len])
+	return hex.EncodeToString(bits[:len])
 }
