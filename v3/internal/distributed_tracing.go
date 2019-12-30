@@ -41,7 +41,7 @@ var (
 	callerUnknown           = payloadCaller{Type: "Unknown", App: "Unknown", Account: "Unknown", TransportType: "Unknown"}
 	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
 	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
-	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+,?`)
+	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+`)
 	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})?-([a-f0-9]{16})?-(\d)?-(\d\.\d+)?-(\d+),?`)
 	traceStateVendorsRegex  = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
@@ -86,6 +86,7 @@ type Payload struct {
 	HasNewRelicTraceInfo bool            `json:"-"`
 	TrustedAccountKey    string          `json:"tk,omitempty"`
 	NonTrustedTraceState string          `json:"-"`
+	OriginalTraceState   string          `json:"="`
 }
 
 type payloadCaller struct {
@@ -387,6 +388,7 @@ var errFieldNum = ErrPayloadParse{errors.New("incorrect number of fields in Trac
 func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
 	traceStates := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceStateHeader)
 	fullTraceState := strings.Join(traceStates, ",")
+	p.OriginalTraceState = fullTraceState
 
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
 	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)
