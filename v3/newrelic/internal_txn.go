@@ -925,8 +925,8 @@ func setW3CHeaders(hdrs http.Header, payload internal.Payload, thd *thread) {
 	if payload.ID == "" {
 		payload.ID = thd.TraceIDGenerator.GenerateSpanID()
 		// If span events are disabled & this is the root, don't generate tracestate headers.
-		if payload.NonTrustedTraceState != "" {
-			hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, payload.NonTrustedTraceState)
+		if payload.OriginalTraceState != "" {
+			hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, payload.OriginalTraceState)
 		}
 	} else {
 		hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, payload.W3CTraceState())
@@ -969,6 +969,7 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	p.TransactionID = txn.BetterCAT.TxnID // Set the transaction ID to the transaction guid.
 	if nil != txn.BetterCAT.Inbound {
 		p.NonTrustedTraceState = txn.BetterCAT.Inbound.NonTrustedTraceState
+		p.OriginalTraceState = txn.BetterCAT.Inbound.OriginalTraceState
 	}
 
 	sampled := txn.lazilyCalculateSampled()

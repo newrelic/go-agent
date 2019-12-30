@@ -86,6 +86,7 @@ type Payload struct {
 	HasNewRelicTraceInfo bool            `json:"-"`
 	TrustedAccountKey    string          `json:"tk,omitempty"`
 	NonTrustedTraceState string          `json:"-"`
+	OriginalTraceState   string          `json:"="`
 }
 
 type payloadCaller struct {
@@ -387,6 +388,7 @@ var errFieldNum = ErrPayloadParse{errors.New("incorrect number of fields in Trac
 func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
 	traceStates := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceStateHeader)
 	fullTraceState := strings.Join(traceStates, ",")
+	p.OriginalTraceState = fullTraceState
 
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
 	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)

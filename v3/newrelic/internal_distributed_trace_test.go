@@ -1791,3 +1791,37 @@ func TestW3CTraceParentWithoutTraceContext(t *testing.T) {
 		},
 	}})
 }
+
+func TestSpansDisabledTraceStateHeader(t *testing.T) {
+	// Test that the tracestate header is properly propagated when span events
+	// are disabled.  In all cases, the incoming tracestate header will be
+	// propagated unchanged.  Note: trusted account key in the
+	// distributedTracingReplyFields is 123.
+	testcases := map[string]string{
+		"empty_tracestate":           "",
+		"non-trusted_nr_key":         "33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0",
+		"non-newrelic_key":           "purple=bestcolor",
+		"non-trusted_and_non-nr":     "33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,purple=bestcolor",
+		"trusted_newrelic_key":       "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0",
+		"trusted_non-nr_non-trusted": "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,purple=bestcolor",
+	}
+	traceparent := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
+
+	for name, tracestate := range testcases {
+		t.Run(name, func(t *testing.T) {
+			app := testApp(distributedTracingReplyFields, disableSpanEvents, t)
+			txn := app.StartTransaction("hello")
+			in := http.Header{}
+			in.Add(DistributedTraceW3CTraceStateHeader, tracestate)
+			in.Add(DistributedTraceW3CTraceParentHeader, traceparent)
+			txn.AcceptDistributedTraceHeaders(TransportHTTP, in)
+
+			out := http.Header{}
+			txn.InsertDistributedTraceHeaders(out)
+
+			if h := out.Get(DistributedTraceW3CTraceStateHeader); h != tracestate {
+				t.Errorf("incorrect outgoing tracestate header: expected=%s actual=%s", tracestate, h)
+			}
+		})
+	}
+}
