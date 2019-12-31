@@ -24,6 +24,14 @@ func ReadFile(name string) ([]byte, error) {
 	return ioutil.ReadFile(filepath.Join(crossAgentDir, name))
 }
 
+// FileMissing returns true if the cross agent test fixture does not exist.
+func FileMissing(name string) bool {
+	if _, err := os.Stat(filepath.Join(crossAgentDir, name)); os.IsNotExist(err) {
+		return true
+	}
+	return false
+}
+
 // ReadJSON takes the name of a file and parses it using JSON.Unmarshal into
 // the interface given.
 func ReadJSON(name string, v interface{}) error {
