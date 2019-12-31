@@ -350,8 +350,6 @@ func processW3CHeaders(hdrs http.Header, trustedAccountKey string, p *Payload) (
 }
 
 var (
-	errTooManyHdrs     = ErrPayloadParse{errors.New("too many TraceParent headers")}
-	errNoHdrs          = ErrPayloadParse{errors.New("missing TraceParent header")}
 	errNumEntries      = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
 	errInvalidTraceID  = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
 	errInvalidParentID = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
@@ -359,14 +357,8 @@ var (
 )
 
 func processTraceParent(hdrs http.Header, p *Payload) error {
-	traceParents := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceParentHeader)
-	if len(traceParents) > 1 {
-		return errTooManyHdrs
-	}
-	if len(traceParents) < 1 {
-		return errNoHdrs
-	}
-	subMatches := traceParentRegex.FindStringSubmatch(traceParents[0])
+	traceParent := hdrs.Get(DistributedTraceW3CTraceParentHeader)
+	subMatches := traceParentRegex.FindStringSubmatch(traceParent)
 
 	if subMatches == nil || len(subMatches) != 6 {
 		return errNumEntries
@@ -407,7 +399,7 @@ func isValidFlag(f string) bool {
 var errFieldNum = ErrPayloadParse{errors.New("incorrect number of fields in TraceState")}
 
 func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
-	traceStates := getAllValuesCaseInsensitive(hdrs, DistributedTraceW3CTraceStateHeader)
+	traceStates := hdrs[DistributedTraceW3CTraceStateHeader]
 	fullTraceState := strings.Join(traceStates, ",")
 	p.OriginalTraceState = fullTraceState
 
@@ -444,18 +436,6 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	}
 	p.HasNewRelicTraceInfo = true
 	return nil
-}
-
-// getAllValuesCaseInsensitive gets all values of a header regardless of all capitalizations.
-// This assumes that the key passed in is already cannoncialized.
-func getAllValuesCaseInsensitive(hdrs http.Header, key string) []string {
-	result := make([]string, 0, 1)
-	for k, v := range hdrs {
-		if key == http.CanonicalHeaderKey(k) {
-			result = append(result, v...)
-		}
-	}
-	return result
 }
 
 func parseNonTrustedTraceStates(fullTraceState string, trustedTraceState string) (tVendors, tState string) {

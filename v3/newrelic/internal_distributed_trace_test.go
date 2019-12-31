@@ -1958,3 +1958,48 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 		})
 	}
 }
+
+func TestW3CTraceStateMultipleHeaders(t *testing.T) {
+	traceparent := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
+	nrstatekey := "123@nr=0-0-123-456-1234567890123456-6543210987654321-1-0.24689-0"
+	testcases := []struct {
+		firstheader  string
+		secondheader string
+	}{
+		{firstheader: "a=1,b=2", secondheader: nrstatekey},
+		{firstheader: "a=1", secondheader: "b=2," + nrstatekey},
+		{firstheader: "a=1", secondheader: nrstatekey + ",b=2"},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.firstheader+"_"+tc.secondheader, func(t *testing.T) {
+			app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+			txn := app.StartTransaction("hello")
+
+			hdrs := http.Header{}
+			hdrs.Add(DistributedTraceW3CTraceParentHeader, traceparent)
+			hdrs.Add(DistributedTraceW3CTraceStateHeader, tc.firstheader)
+			hdrs.Add(DistributedTraceW3CTraceStateHeader, tc.secondheader)
+
+			txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+			txn.End()
+			app.expectNoLoggedErrors(t)
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{{
+				Intrinsics: map[string]interface{}{
+					"category":        "generic",
+					"guid":            "9566c74d10037c4d",
+					"name":            "OtherTransaction/Go/hello",
+					"nr.entryPoint":   true,
+					"parentId":        "560ccffb087d1906",
+					"priority":        internal.MatchAnything,
+					"sampled":         true,
+					"traceId":         "050c91b77efca9b0ef38b30c182355ce",
+					"tracingVendors":  "a,b", // ensures both headers read
+					"transactionId":   "52fdfc072182654f",
+					"trustedParentId": "1234567890123456",
+				},
+			}})
+		})
+	}
+}

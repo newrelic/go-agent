@@ -345,36 +345,6 @@ func TestProcessTraceState(t *testing.T) {
 	}
 }
 
-func TestProcessTraceStateCaseInsensitive(t *testing.T) {
-	cases := []string{"tracestate", "Tracestate", "tRaCEState"}
-	for _, testCase := range cases {
-		var payload Payload
-		traceStateHdr := http.Header{
-			testCase: []string{"190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,rojo=00f067aa0ba902b7"},
-		}
-		processTraceState(traceStateHdr, "190", &payload)
-		if payload.NonTrustedTraceState == "" {
-			t.Errorf("Got an error processing trace state for header %s", testCase)
-		}
-	}
-
-}
-
-func TestProcessTraceParentCaseInsensitive(t *testing.T) {
-	cases := []string{"traceparent", "Traceparent", "tracePARENT"}
-	for _, testCase := range cases {
-		var payload Payload
-		traceParentHdr := http.Header{
-			testCase: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"},
-		}
-		processTraceParent(traceParentHdr, &payload)
-		if payload.TracedID == "" {
-			t.Errorf("Got an error processing trace state for header %s", testCase)
-		}
-	}
-
-}
-
 func TestExtractNRTraceStateEntry(t *testing.T) {
 	trustedAccountID := "12345"
 	trustedNR := "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"
