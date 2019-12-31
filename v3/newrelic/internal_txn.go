@@ -88,9 +88,9 @@ func newTxn(input txnInput, name string) *thread {
 
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
-		txn.BetterCAT.Priority = internal.NewPriority()
 		txn.TraceIDGenerator = input.Reply.TraceIDGenerator
 		txn.BetterCAT.SetTraceAndTxnIDs(txn.TraceIDGenerator.GenerateTraceID())
+		txn.BetterCAT.Priority = txn.TraceIDGenerator.GeneratePriority()
 		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled
 		txn.LazilyCalculateSampled = txn.lazilyCalculateSampled
 	}
@@ -964,7 +964,7 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	p.App = txn.Reply.PrimaryAppID
 	p.TracedID = txn.BetterCAT.TraceID
 	p.Priority = txn.BetterCAT.Priority
-	p.Timestamp.Set(time.Now())
+	p.Timestamp.Set(txn.Reply.DistributedTraceTimestampGenerator())
 	p.TrustedAccountKey = txn.Reply.TrustedAccountKey
 	p.TransactionID = txn.BetterCAT.TxnID // Set the transaction ID to the transaction guid.
 	if nil != txn.BetterCAT.Inbound {

@@ -101,7 +101,7 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 	if hdr := sent.Header.Get("X-B3-SpanId"); hdr != "2e6fb48a8d962779" {
 		t.Error("unexpected value for X-B3-SpanId header:", hdr)
 	}
-	if hdr := sent.Header.Get("X-B3-ParentSpanId"); hdr != "5a291b00ff7bfd6a" {
+	if hdr := sent.Header.Get("X-B3-ParentSpanId"); hdr != "5a291b00ff0f4b36" {
 		t.Error("unexpected value for X-B3-ParentSpanId header:", hdr)
 	}
 	if hdr := sent.Header.Get("X-B3-Sampled"); hdr != "1" {

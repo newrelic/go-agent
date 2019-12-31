@@ -18,9 +18,17 @@ const (
 	priorityFormat = "%.6f"
 )
 
+func newPriorityFromRandom(rnd func() float32) Priority {
+	for {
+		if r := rnd(); 0.0 != r {
+			return Priority(r)
+		}
+	}
+}
+
 // NewPriority returns a new priority.
 func NewPriority() Priority {
-	return Priority(RandFloat32())
+	return newPriorityFromRandom(RandFloat32)
 }
 
 // Float32 returns the priority as a float32.

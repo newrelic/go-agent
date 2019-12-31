@@ -19,6 +19,14 @@ func NewTraceIDGenerator(seed int64) *TraceIDGenerator {
 	}
 }
 
+// GeneratePriority returns a new Priority.
+func (tg *TraceIDGenerator) GeneratePriority() Priority {
+	tg.Lock()
+	defer tg.Unlock()
+
+	return newPriorityFromRandom(tg.rnd.Float32)
+}
+
 const (
 	traceIDLen = 16
 	spanIDLen  = 8

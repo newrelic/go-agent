@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -32,6 +31,9 @@ func distributedTracingReplyFields(reply *internal.ConnectReply) {
 
 	reply.AdaptiveSampler = internal.SampleEverything{}
 	reply.TraceIDGenerator = internal.NewTraceIDGenerator(1)
+	reply.DistributedTraceTimestampGenerator = func() time.Time {
+		return time.Unix(1577830891, 900000000)
+	}
 }
 
 func distributedTracingReplyFieldsNeedTrustKey(reply *internal.ConnectReply) {
@@ -141,7 +143,7 @@ func TestPayloadConnection(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 "52fdfc072182654f",
 			"traceId":                  "52fdfc072182654f163f5f0f9a621d72",
-			"parentSpanId":             "9566c74d10037c4d",
+			"parentSpanId":             "9566c74d10d1e2c6",
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -174,7 +176,7 @@ func TestAcceptMultiple(t *testing.T) {
 			"parent.transportDuration": internal.MatchAnything,
 			"parentId":                 "52fdfc072182654f",
 			"traceId":                  "52fdfc072182654f163f5f0f9a621d72",
-			"parentSpanId":             "9566c74d10037c4d",
+			"parentSpanId":             "9566c74d10d1e2c6",
 			"guid":                     internal.MatchAnything,
 			"sampled":                  internal.MatchAnything,
 			"priority":                 internal.MatchAnything,
@@ -1442,22 +1444,11 @@ func TestW3CTraceHeaders(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceState header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
-	}
-
-	parentHdr := hdrs.Get(DistributedTraceW3CTraceStateHeader)
-	matched, err :=
-		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, parentHdr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !matched {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceStateHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1495,23 +1486,11 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 	outgoingHdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(outgoingHdrs)
 
-	if len(outgoingHdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	traceParent := hdrs.Get(internal.DistributedTraceW3CTraceParentHeader)
-	if traceParent != "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" {
-		t.Errorf("Invalid TraceParent header: %s", traceParent)
-	}
-
-	traceState := outgoingHdrs.Get(internal.DistributedTraceW3CTraceStateHeader)
-	matched, err :=
-		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, traceState)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !matched {
-		t.Errorf("Invalid TraceState header: %s", hdrs.Get(internal.DistributedTraceW3CTraceStateHeader))
+	if !reflect.DeepEqual(outgoingHdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900,99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"},
+	}) {
+		t.Error(outgoingHdrs)
 	}
 
 	txn.End()
@@ -1532,7 +1511,7 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 				"category":       "generic",
 				"parentId":       "00f067aa0ba902b7",
 				"nr.entryPoint":  true,
-				"guid":           "9566c74d10037c4d",
+				"guid":           "9566c74d10d1e2c6",
 				"transactionId":  "52fdfc072182654f",
 				"traceId":        "4bf92f3577b34da6a3ce929d0e0e4736",
 				"tracingVendors": "99999@nr",
@@ -1555,23 +1534,11 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 	outgoingHdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(outgoingHdrs)
 
-	if len(outgoingHdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	traceParent := hdrs.Get(DistributedTraceW3CTraceParentHeader)
-	if traceParent != "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" {
-		t.Errorf("Invalid TraceParent header: %s", traceParent)
-	}
-
-	traceState := outgoingHdrs.Get(DistributedTraceW3CTraceStateHeader)
-	matched, err :=
-		regexp.MatchString(`123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0\.\d+-\d{13}`, traceState)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !matched {
-		t.Errorf("Invalid TraceState header: %s", hdrs.Get(DistributedTraceW3CTraceStateHeader))
+	if !reflect.DeepEqual(outgoingHdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.24689-1577830891900"},
+	}) {
+		t.Error(outgoingHdrs)
 	}
 
 	txn.End()
@@ -1588,12 +1555,10 @@ func TestW3CTraceHeadersSpansDisabledNoTraceState(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 1 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1619,12 +1584,11 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{originalTraceState},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1651,12 +1615,11 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-12345678901234567890123456789012-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-12345678901234567890123456789012-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1678,12 +1641,11 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1706,12 +1668,11 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if len(hdrs) != 2 {
-		t.Log("Not all headers present:", hdrs)
-		t.Fail()
-	}
-	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01" {
-		t.Errorf("Invalid TraceParent header: %s", hdrs.Get(DistributedTraceW3CTraceParentHeader))
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+	}) {
+		t.Error(hdrs)
 	}
 
 	txn.End()
@@ -1746,7 +1707,7 @@ func TestW3CTraceHeadersFutureVersion(t *testing.T) {
 			t.Log("Not all headers present:", outgoingHdrs)
 			t.Fail()
 		}
-		expected := "00-12345678901234567890123456789012-9566c74d10037c4d-01"
+		expected := "00-12345678901234567890123456789012-9566c74d10d1e2c6-01"
 		if failureMessage != "" {
 			if outgoingHdrs.Get(DistributedTraceW3CTraceParentHeader) == expected {
 				t.Errorf("Invalid TraceParent header resulting from %s", testCase)
@@ -1828,7 +1789,7 @@ func TestSpansDisabledTraceStateHeader(t *testing.T) {
 
 func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 	// parent.type  = "App"
-	// parentSpanId = "9566c74d10037c4d"
+	// parentSpanId = "9566c74d10d1e2c6"
 	// traceId      = "52fdfc072182654f163f5f0f9a621d72"
 	newrelicHdr := makeHeaders(t).Get(DistributedTraceNewRelicHeader)
 	// parentSpanId = "560ccffb087d1906"
@@ -1887,7 +1848,7 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 				"name":                     internal.MatchAnything,
 				"parent.transportType":     internal.MatchAnything,
 				"parent.type":              "App",                              // from newrelic header
-				"parentSpanId":             "9566c74d10037c4d",                 // from newrelic header
+				"parentSpanId":             "9566c74d10d1e2c6",                 // from newrelic header
 				"traceId":                  "52fdfc072182654f163f5f0f9a621d72", // from newrelic header
 			},
 		},
@@ -1988,7 +1949,7 @@ func TestW3CTraceStateMultipleHeaders(t *testing.T) {
 			app.ExpectSpanEvents(t, []internal.WantEvent{{
 				Intrinsics: map[string]interface{}{
 					"category":        "generic",
-					"guid":            "9566c74d10037c4d",
+					"guid":            "9566c74d10d1e2c6",
 					"name":            "OtherTransaction/Go/hello",
 					"nr.entryPoint":   true,
 					"parentId":        "560ccffb087d1906",

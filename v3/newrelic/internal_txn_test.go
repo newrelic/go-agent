@@ -339,7 +339,7 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
-	if metadata.SpanID != "e71870997d38ef60" {
+	if metadata.SpanID != "e71870997d57214c" {
 		t.Error(metadata.SpanID)
 	}
 	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
@@ -348,7 +348,7 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 	txn.StartSegment("name")
 	// Span id should be different now that a segment has started.
 	metadata = txn.GetTraceMetadata()
-	if metadata.SpanID != "155c325957214c42" {
+	if metadata.SpanID != "4259d74b863e2fba" {
 		t.Error(metadata.SpanID)
 	}
 	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
@@ -437,7 +437,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	app.expectNoLoggedErrors(t)
 	metadata := txn.GetTraceMetadata()
-	if metadata.SpanID != "e71870997d38ef60" {
+	if metadata.SpanID != "e71870997d57214c" {
 		t.Errorf("Invalid Span ID, expected aeceb05d2fdcde0c but got %s", metadata.SpanID)
 	}
 	if metadata.TraceID != "12345678901234567890123456789012" {
@@ -463,7 +463,7 @@ func TestGetLinkingMetadata(t *testing.T) {
 	if metadata.TraceID != "1ae969564b34a33ecd1af05fe6923d6d" {
 		t.Error("wrong TraceID:", metadata.TraceID)
 	}
-	if metadata.SpanID != "e71870997d38ef60" {
+	if metadata.SpanID != "e71870997d57214c" {
 		t.Error("wrong SpanID:", metadata.SpanID)
 	}
 	if metadata.EntityName != "app-name" {
