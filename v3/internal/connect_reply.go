@@ -70,6 +70,9 @@ type ConnectReply struct {
 	// exists here in the connect reply so it can be modified to create
 	// deterministic identifiers in tests.
 	TraceIDGenerator *TraceIDGenerator `json:"-"`
+	// DistributedTraceTimestampGenerator allows tests to fix the outbound
+	// DT header timestamp.
+	DistributedTraceTimestampGenerator func() time.Time `json:"-"`
 
 	// BetterCAT/Distributed Tracing
 	AccountID                     string `json:"account_id"`
@@ -177,7 +180,8 @@ func ConnectReplyDefaults() *ConnectReply {
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
 
-		TraceIDGenerator: NewTraceIDGenerator(int64(time.Now().UnixNano())),
+		TraceIDGenerator:                   NewTraceIDGenerator(int64(time.Now().UnixNano())),
+		DistributedTraceTimestampGenerator: time.Now,
 	}
 }
 

@@ -40,16 +40,12 @@ func RandUint32() uint32 {
 	return seededRand.Uint32()
 }
 
-// RandFloat32 returns a random float32 between 0.0 and 1.0.
+// RandFloat32 returns a random float32 in [0.0,1.0).
 func RandFloat32() float32 {
 	seededRand.Lock()
 	defer seededRand.Unlock()
 
-	for {
-		if r := seededRand.Float32(); 0.0 != r {
-			return r
-		}
-	}
+	return seededRand.Float32()
 }
 
 // RandUint64N returns a random int64 that's
