@@ -377,13 +377,28 @@ func TestProcessTraceParentCaseInsensitive(t *testing.T) {
 
 func TestExtractNRTraceStateEntry(t *testing.T) {
 	trustedAccountID := "12345"
+	trustedNR := "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"
+	nonTrustedNR := "190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035"
 	cases := map[string]string{
-		"12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE":                                                                             "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
-		"congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,rojo=00f067aa0ba902b7":                                                                             "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
-		"12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035":                                         "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
-		"rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277": "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
-		"rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE":                                                                                          "",
-		"rojo=00f067aa0ba902b7": "",
+		"rojo=00f06": "",
+		// comma separator
+		trustedNR + ",rojo=00f06,congo=t61":                      trustedNR,
+		"congo=t61," + trustedNR + ",rojo=00f06":                 trustedNR,
+		trustedNR + "," + nonTrustedNR:                           trustedNR,
+		"rojo=00f06," + nonTrustedNR + ",congo=t61," + trustedNR: trustedNR,
+		"rojo=00f06," + nonTrustedNR + ",congo=t61":              "",
+		// comma space separator
+		trustedNR + ", rojo=00f06, congo=t61":                       trustedNR,
+		"congo=t61, " + trustedNR + ", rojo=00f06":                  trustedNR,
+		trustedNR + ", " + nonTrustedNR:                             trustedNR,
+		"rojo=00f06, " + nonTrustedNR + ", congo=t61, " + trustedNR: trustedNR,
+		"rojo=00f06, " + nonTrustedNR + ", congo=t61":               "",
+		// comma tab separator
+		trustedNR + ",\trojo=00f06,congo=t61":                          trustedNR,
+		"congo=t61,\t" + trustedNR + ",\trojo=00f06":                   trustedNR,
+		trustedNR + ",\t" + nonTrustedNR:                               trustedNR,
+		"rojo=00f06,\t" + nonTrustedNR + ",\tcongo=t61,\t" + trustedNR: trustedNR,
+		"rojo=00f06,\t" + nonTrustedNR + ",\tcongo=t61":                "",
 	}
 
 	for test, expected := range cases {
