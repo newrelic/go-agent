@@ -1825,3 +1825,136 @@ func TestSpansDisabledTraceStateHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
+	// parent.type  = "App"
+	// parentSpanId = "9566c74d10037c4d"
+	// traceId      = "52fdfc072182654f163f5f0f9a621d72"
+	newrelicHdr := makeHeaders(t).Get(DistributedTraceNewRelicHeader)
+	// parentSpanId = "560ccffb087d1906"
+	// traceId      = "050c91b77efca9b0ef38b30c182355ce"
+	traceparentHdr := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
+	// parent.type  = "Browser"
+	tracestateHdr := "123@nr=0-1-123-456-1234567890123456-6543210987654321-0-0.24689-0"
+
+	testcases := []struct {
+		name          string
+		traceparent   string
+		tracestate    string
+		newrelic      string
+		expIntrinsics map[string]interface{}
+	}{
+		{
+			name:        "w3c present, newrelic absent, failure to parse traceparent",
+			traceparent: "garbage",
+			tracestate:  tracestateHdr,
+			newrelic:    "",
+			expIntrinsics: map[string]interface{}{
+				"guid":     internal.MatchAnything,
+				"priority": internal.MatchAnything,
+				"sampled":  internal.MatchAnything,
+				"name":     internal.MatchAnything,
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72", // randomly generated
+			},
+		},
+		{
+			name:        "w3c present, newrelic absent, failure to parse tracestate",
+			traceparent: traceparentHdr,
+			tracestate:  "123@nr=garbage",
+			newrelic:    "",
+			expIntrinsics: map[string]interface{}{
+				"guid":         internal.MatchAnything,
+				"priority":     internal.MatchAnything,
+				"sampled":      internal.MatchAnything,
+				"name":         internal.MatchAnything,
+				"parentSpanId": "560ccffb087d1906",                 // from traceparent header
+				"traceId":      "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+			},
+		},
+		{
+			name:        "w3c present, newrelic present, failure to parse traceparent",
+			traceparent: "garbage",
+			tracestate:  tracestateHdr,
+			newrelic:    newrelicHdr,
+			expIntrinsics: map[string]interface{}{
+				"parent.app":               internal.MatchAnything,
+				"parent.transportDuration": internal.MatchAnything,
+				"guid":                     internal.MatchAnything,
+				"priority":                 internal.MatchAnything,
+				"sampled":                  internal.MatchAnything,
+				"parent.account":           internal.MatchAnything,
+				"parentId":                 internal.MatchAnything,
+				"name":                     internal.MatchAnything,
+				"parent.transportType":     internal.MatchAnything,
+				"parent.type":              "App",                              // from newrelic header
+				"parentSpanId":             "9566c74d10037c4d",                 // from newrelic header
+				"traceId":                  "52fdfc072182654f163f5f0f9a621d72", // from newrelic header
+			},
+		},
+		{
+			name:        "w3c present, newrelic present, failure to parse tracestate",
+			traceparent: traceparentHdr,
+			tracestate:  "123@nr=garbage",
+			newrelic:    newrelicHdr,
+			expIntrinsics: map[string]interface{}{
+				"parent.app":               internal.MatchAnything,
+				"parent.transportDuration": internal.MatchAnything,
+				"guid":                     internal.MatchAnything,
+				"priority":                 internal.MatchAnything,
+				"sampled":                  internal.MatchAnything,
+				"parent.account":           internal.MatchAnything,
+				"parentId":                 internal.MatchAnything,
+				"name":                     internal.MatchAnything,
+				"parent.transportType":     internal.MatchAnything,
+				"parent.type":              "App",                              // from newrelic header
+				"parentSpanId":             "560ccffb087d1906",                 // from traceparent header
+				"traceId":                  "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+			},
+		},
+		{
+			name:        "w3c present, newrelic present",
+			traceparent: traceparentHdr,
+			tracestate:  tracestateHdr,
+			newrelic:    newrelicHdr,
+			expIntrinsics: map[string]interface{}{
+				"parent.app":               internal.MatchAnything,
+				"parent.transportDuration": internal.MatchAnything,
+				"guid":                     internal.MatchAnything,
+				"priority":                 internal.MatchAnything,
+				"sampled":                  internal.MatchAnything,
+				"parent.account":           internal.MatchAnything,
+				"parentId":                 internal.MatchAnything,
+				"name":                     internal.MatchAnything,
+				"parent.transportType":     internal.MatchAnything,
+				"parent.type":              "Browser",                          // from tracestate header
+				"parentSpanId":             "560ccffb087d1906",                 // from traceparent header
+				"traceId":                  "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+			},
+		},
+	}
+
+	addHdr := func(hdrs http.Header, key, val string) {
+		if val != "" {
+			hdrs.Add(key, val)
+		}
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+			txn := app.StartTransaction("hello")
+
+			hdrs := http.Header{}
+			addHdr(hdrs, DistributedTraceW3CTraceParentHeader, tc.traceparent)
+			addHdr(hdrs, DistributedTraceW3CTraceStateHeader, tc.tracestate)
+			addHdr(hdrs, DistributedTraceNewRelicHeader, tc.newrelic)
+
+			txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+			txn.End()
+
+			app.ExpectTxnEvents(t, []internal.WantEvent{{
+				Intrinsics: tc.expIntrinsics,
+			}})
+		})
+	}
+}

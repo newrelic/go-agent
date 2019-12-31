@@ -252,7 +252,7 @@ func AcceptPayload(hdrs http.Header, trustedAccountKey string) (*Payload, error)
 	// If we get both types of headers, first attempt to extract a New Relic entry from tracestate.
 	// If there is no New Relic entry in tracestate, use the New Relic header instead.
 	if nrPayload != "" && w3cTraceParentHdr != "" {
-		err := processW3CHeaders(hdrs, trustedAccountKey, &payload)
+		_, err := processW3CHeaders(hdrs, trustedAccountKey, &payload)
 		if err != nil {
 			err := processNRDTString(nrPayload, &payload)
 			if err != nil {
@@ -265,7 +265,7 @@ func AcceptPayload(hdrs http.Header, trustedAccountKey string) (*Payload, error)
 			return nil, err
 		}
 	} else if w3cTraceParentHdr != "" {
-		if err := processW3CHeaders(hdrs, trustedAccountKey, &payload); nil != err {
+		if discard, err := processW3CHeaders(hdrs, trustedAccountKey, &payload); discard {
 			return nil, err
 		}
 	} else {
@@ -310,23 +310,43 @@ func processNRDTString(str string, payload *Payload) error {
 			version: envelope.Version.major(),
 		}
 	}
+
+	// If the payload already has an ID or TracedID set it was captured from
+	// the W3C traceparent header, it should not be overwritten.
+	idSet := payload.ID != "" || payload.TracedID != ""
+	var origTracedID, origID string
+	if idSet {
+		origTracedID = payload.TracedID
+		origID = payload.ID
+	}
+
 	if err := json.Unmarshal(envelope.Data, payload); nil != err {
 		return ErrPayloadParse{err: err}
 	}
+
+	if idSet {
+		payload.TracedID = origTracedID
+		payload.ID = origID
+	}
+
 	payload.HasNewRelicTraceInfo = true
 	return payload.validateNewRelicData()
 }
 
-func processW3CHeaders(hdrs http.Header, trustedAccountKey string, p *Payload) error {
+// processW3CHeaders reads the traceparent and tracestate w3c headers. A bool
+// is returned to indicate if the entirety of both headers should be discarded
+// in the case of an error. The second return value, the error, gives the
+// details of what the problem was.
+func processW3CHeaders(hdrs http.Header, trustedAccountKey string, p *Payload) (bool, error) {
 	if err := processTraceParent(hdrs, p); nil != err {
-		return err
+		return true, err
 	}
 
 	if err := processTraceState(hdrs, trustedAccountKey, p); nil != err {
-		return err
+		return false, err
 	}
 
-	return nil
+	return false, nil
 }
 
 var (
