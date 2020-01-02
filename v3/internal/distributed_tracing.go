@@ -39,13 +39,23 @@ const (
 var (
 	currentDistTraceVersion = distTraceVersion([2]int{0 /* Major */, 1 /* Minor */})
 	callerUnknown           = payloadCaller{Type: "Unknown", App: "Unknown", Account: "Unknown", TransportType: "Unknown"}
-	// (version)-(traceId)-(parentId)-(flags)
-	traceParentRegex     = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
-	traceParentFlagRegex = regexp.MustCompile(`^([a-f0-9]{2})$`)
-	fullTraceStateRegex  = regexp.MustCompile(`\d+@nr=[^,=]+`)
-	// (trustKey)@nr=(version)-(parentType)-(accountId)-(appId)-(spanId)-(transactionId)-(sampled)-(priority)-(timestamp)
-	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-([0-9a-zA-Z]+)-([a-f0-9]{16})?-([a-f0-9]{16})?-(\d)?-(\d\.\d+)?-(\d+),?`)
-	traceStateVendorsRegex  = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
+	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-` + // version
+		`([a-f0-9]{32})-` + // traceId
+		`([a-f0-9]{16})-` + // parentId
+		`([a-f0-9]{2})(-.*)?$`) // flags
+	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
+	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+`)
+	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=` + // trustKey@nr=
+		`(\d)-` + // version
+		`(\d)-` + // parentType
+		`(\d+)-` + // accountId
+		`([0-9a-zA-Z]+)-` + // appId
+		`([a-f0-9]{16})?-` + // spanId
+		`([a-f0-9]{16})?-` + // transactionId
+		`(\d)?-` + // sampled
+		`(\d\.\d+)?-` + // priority
+		`(\d+),?`) // timestamp
+	traceStateVendorsRegex = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
 
 // timestampMillis allows raw payloads to use exact times, and marshalled
