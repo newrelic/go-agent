@@ -227,7 +227,19 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 
 	// Affirm that the exact values are in the payload.
 	for k, v := range expect.Exact {
-		exp := fmt.Sprintf("%v", v)
+		var exp string
+		switch val := v.(type) {
+		case bool:
+			if val {
+				exp = "1"
+			} else {
+				exp = "0"
+			}
+		case string:
+			exp = val
+		default:
+			exp = fmt.Sprintf("%v", val)
+		}
 		if val := payload[k]; val != exp {
 			t.Errorf("expected outbound payload wrong value for key %s, expected=%s, actual=%s", k, exp, val)
 		}
