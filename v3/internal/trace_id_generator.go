@@ -28,23 +28,24 @@ func (tg *TraceIDGenerator) GeneratePriority() Priority {
 }
 
 const (
-	traceIDLen = 16
-	spanIDLen  = 8
-	maxIDLen   = 16
+	traceIDByteLen      = 16
+	traceIDHexStringLen = 32
+	spanIDByteLen       = 8
+	maxIDByteLen        = 16
 )
 
 // GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
 func (tg *TraceIDGenerator) GenerateTraceID() string {
-	return tg.generateID(traceIDLen)
+	return tg.generateID(traceIDByteLen)
 }
 
 // GenerateSpanID creates a new span identifier, which is a 16 character hex string.
 func (tg *TraceIDGenerator) GenerateSpanID() string {
-	return tg.generateID(spanIDLen)
+	return tg.generateID(spanIDByteLen)
 }
 
 func (tg *TraceIDGenerator) generateID(len int) string {
-	var bits [maxIDLen]byte
+	var bits [maxIDByteLen]byte
 	tg.Lock()
 	defer tg.Unlock()
 	tg.rnd.Read(bits[:len])
