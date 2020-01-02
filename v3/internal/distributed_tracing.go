@@ -50,8 +50,8 @@ var (
 		`(\d)-` + // parentType
 		`(\d+)-` + // accountId
 		`([0-9a-zA-Z]+)-` + // appId
-		`([a-f0-9]{16})?-` + // spanId
-		`([a-f0-9]{16})?-` + // transactionId
+		`([^,=-@]+)?-` + // spanId
+		`([^,=-@]+)?-` + // transactionId
 		`(\d)?-` + // sampled
 		`(\d\.\d+)?-` + // priority
 		`(\d+),?`) // timestamp

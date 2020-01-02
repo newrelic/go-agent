@@ -549,3 +549,27 @@ func TestPayloadIsSampled(t *testing.T) {
 		t.Error(s)
 	}
 }
+
+func TestTraceStateSpanTxnIDs(t *testing.T) {
+	// Test that we cover this case as stated in the spec for the tracestate
+	// header:
+	// Conforming agents should not require any particular format of this
+	// string on inbound payloads beyond receiving non-delimiter characters
+	// that are valid in a tracestate header entry. meatball! is an acceptable
+	// spanId or transactionId.
+
+	hdrs := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-meatball!-meatballs!-1-0.43771-1577830891900"},
+	}
+	p, err := AcceptPayload(hdrs, "123")
+	if err != nil {
+		t.Error("failure to AcceptPayload:", err)
+	}
+	if p.TrustedParentID != "meatball!" {
+		t.Error("wrong payload ID", p.ID)
+	}
+	if p.TransactionID != "meatballs!" {
+		t.Error("wrong payload TransactionID", p.TransactionID)
+	}
+}
