@@ -186,7 +186,11 @@ func (p Payload) W3CTraceParent() string {
 	} else {
 		flags = "00"
 	}
-	return w3cVersion + "-" + p.TracedID + "-" + p.ID + "-" + flags
+	traceID := p.TracedID
+	if idLen := len(traceID); idLen < 32 {
+		traceID = strings.Repeat("0", 32-idLen) + traceID
+	}
+	return w3cVersion + "-" + traceID + "-" + p.ID + "-" + flags
 }
 
 // W3CTraceState returns the W3C TraceState header for this payload
