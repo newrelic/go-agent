@@ -534,3 +534,18 @@ func TestVersionTraceStateField(t *testing.T) {
 		}
 	}
 }
+
+func TestPayloadIsSampled(t *testing.T) {
+	p := &Payload{}
+	if s := p.isSampled(); s {
+		t.Error(s)
+	}
+	p.SetSampled(true)
+	if s := p.isSampled(); !s {
+		t.Error(s)
+	}
+	p.SetSampled(false)
+	if s := p.isSampled(); s {
+		t.Error(s)
+	}
+}
