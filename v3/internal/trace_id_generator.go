@@ -28,9 +28,10 @@ func (tg *TraceIDGenerator) GeneratePriority() Priority {
 }
 
 const (
-	traceIDLen = 16
-	spanIDLen  = 8
-	maxIDLen   = 16
+	traceIDLen          = 16
+	traceIDHexStringLen = 32
+	spanIDLen           = 8
+	maxIDLen            = 16
 )
 
 // GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
