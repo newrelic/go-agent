@@ -920,20 +920,6 @@ const (
 	maxSampledDistributedPayloads = 35
 )
 
-// This function assumes that thd is already locked.
-func setW3CHeaders(hdrs http.Header, payload internal.Payload, thd *thread) {
-	if payload.ID == "" {
-		payload.ID = thd.TraceIDGenerator.GenerateSpanID()
-		// If span events are disabled & this is the root, don't generate tracestate headers.
-		if payload.OriginalTraceState != "" {
-			hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, payload.OriginalTraceState)
-		}
-	} else {
-		hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, payload.W3CTraceState())
-	}
-	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, payload.W3CTraceParent())
-}
-
 func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	txn := thd.txn
 	txn.Lock()
@@ -990,7 +976,26 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	if !omitNRHeader {
 		hdrs.Set(internal.DistributedTraceNewRelicHeader, p.NRHTTPSafe())
 	}
-	setW3CHeaders(hdrs, *p, thd)
+
+	// ID must be present in the Traceparent header even if span events are
+	// disabled or the transaction is not sampled.  Note that this
+	// assignment occurs after setting the Newrelic header since the ID
+	// field of the Newrelic header should be empty if span events are
+	// disabled or the transaction is not sampled.
+	if p.ID == "" {
+		p.ID = txn.CurrentSpanIdentifier(thd.thread)
+	}
+	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, p.W3CTraceParent())
+
+	// The agent should forward the tracestate header value unchanged when
+	// span events are disabled.
+	if !txn.SpanEventsEnabled {
+		if state := p.OriginalTraceState; state != "" {
+			hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, state)
+		}
+	} else {
+		hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, p.W3CTraceState())
+	}
 }
 
 var (

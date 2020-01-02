@@ -2037,3 +2037,27 @@ func TestW3CZeroPaddingTraceID(t *testing.T) {
 
 	txn.End()
 }
+
+func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.AdaptiveSampler = internal.SampleNothing{}
+	}
+	app := testApp(replyfn, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := make(http.Header)
+	txn.InsertDistributedTraceHeaders(hdrs)
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-0-0.43771-1577830891900"},
+	}) {
+		t.Error(hdrs)
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+}
