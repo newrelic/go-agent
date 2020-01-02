@@ -2004,41 +2004,46 @@ func TestW3CTraceStateMultipleHeaders(t *testing.T) {
 	}
 }
 
-func TestW3CZeroPaddingTraceID(t *testing.T) {
+func TestW3CTraceIDLengths(t *testing.T) {
 	// Test that if the agent received an inbound traceId that is less than 32
 	// characters, the traceId included in an outbound payload must be
-	// left-padded with zeros.
-	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
-	txn := app.StartTransaction("hello")
+	// left-padded with zeros.  If it is too long, we chop off from the left.
+	testcases := []string{
+		"3221bf09aa0bcf0d", // too short
+		"00000000000000000000000000000000000000000000003221bf09aa0bcf0d", // too long
+	}
 
-	in := http.Header{}
-	in.Add(DistributedTraceNewRelicHeader,
-		`{
+	for _, teststr := range testcases {
+		app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+		txn := app.StartTransaction("hello")
+
+		in := http.Header{}
+		in.Add(DistributedTraceNewRelicHeader,
+			fmt.Sprintf(`{
 		   "v": [0,1],
 		   "d": {
 		     "ty": "App",
 		     "ac": "123",
 		     "ap": "51424",
 		     "id": "5f474d64b9cc9b2a",
-		     "tr": "3221bf09aa0bcf0d",
+		     "tr": "%s",
 		     "pr": 0.1234,
 		     "sa": true,
 		     "ti": 1482959525577,
 		     "tx": "27856f70d3d314b7"
 		   }
-		}`)
-	txn.AcceptDistributedTraceHeaders(TransportHTTP, in)
-	app.expectNoLoggedErrors(t)
+		}`, teststr))
+		txn.AcceptDistributedTraceHeaders(TransportHTTP, in)
+		app.expectNoLoggedErrors(t)
 
-	out := http.Header{}
-	txn.InsertDistributedTraceHeaders(out)
-	traceparent := out.Get(DistributedTraceW3CTraceParentHeader)
-	expected := "00-00000000000000003221bf09aa0bcf0d-9566c74d10d1e2c6-01"
-	if traceparent != expected {
-		t.Errorf("incorrect traceparent header: expect=%s actual=%s", expected, traceparent)
+		out := http.Header{}
+		txn.InsertDistributedTraceHeaders(out)
+		traceparent := out.Get(DistributedTraceW3CTraceParentHeader)
+		expected := "00-00000000000000003221bf09aa0bcf0d-9566c74d10d1e2c6-01"
+		if traceparent != expected {
+			t.Errorf("incorrect traceparent header: expect=%s actual=%s", expected, traceparent)
+		}
 	}
-
-	txn.End()
 }
 
 func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
