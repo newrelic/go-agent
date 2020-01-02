@@ -39,10 +39,12 @@ const (
 var (
 	currentDistTraceVersion = distTraceVersion([2]int{0 /* Major */, 1 /* Minor */})
 	callerUnknown           = payloadCaller{Type: "Unknown", App: "Unknown", Account: "Unknown", TransportType: "Unknown"}
-	traceParentRegex        = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
-	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
-	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+`)
-	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-(\d+)-([a-f0-9]{16})?-([a-f0-9]{16})?-(\d)?-(\d\.\d+)?-(\d+),?`)
+	// (version)-(traceId)-(parentId)-(flags)
+	traceParentRegex     = regexp.MustCompile(`^([a-f0-9]{2})-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})(-.*)?$`)
+	traceParentFlagRegex = regexp.MustCompile(`^([a-f0-9]{2})$`)
+	fullTraceStateRegex  = regexp.MustCompile(`\d+@nr=[^,=]+`)
+	// (trustKey)@nr=(version)-(parentType)-(accountId)-(appId)-(spanId)-(transactionId)-(sampled)-(priority)-(timestamp)
+	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=(\d)-(\d)-(\d+)-([0-9a-zA-Z]+)-([a-f0-9]{16})?-([a-f0-9]{16})?-(\d)?-(\d\.\d+)?-(\d+),?`)
 	traceStateVendorsRegex  = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
 
@@ -248,44 +250,18 @@ func (e ErrUnsupportedPayloadVersion) Error() string {
 }
 
 // AcceptPayload parses the inbound distributed tracing payload.
-func AcceptPayload(hdrs http.Header, trustedAccountKey string) (*Payload, error) {
-	var payload Payload
-	nrPayload := hdrs.Get(DistributedTraceNewRelicHeader)
-	w3cTraceParentHdr := hdrs.Get(DistributedTraceW3CTraceParentHeader)
-
-	// If we get both types of headers, first attempt to extract a New Relic entry from tracestate.
-	// If there is no New Relic entry in tracestate, use the New Relic header instead.
-	if nrPayload != "" && w3cTraceParentHdr != "" {
-		_, err := processW3CHeaders(hdrs, trustedAccountKey, &payload)
-		if err != nil {
-			err := processNRDTString(nrPayload, &payload)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else if nrPayload != "" {
-		err := processNRDTString(nrPayload, &payload)
-		if nil != err {
-			return nil, err
-		}
-	} else if w3cTraceParentHdr != "" {
-		if discard, err := processW3CHeaders(hdrs, trustedAccountKey, &payload); discard {
-			return nil, err
-		}
-	} else {
-		return nil, nil
+func AcceptPayload(hdrs http.Header, trustedAccountKey string) (p *Payload, err error) {
+	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "" {
+		p, err = processW3CHeaders(hdrs, trustedAccountKey)
+	} else if nrPayload := hdrs.Get(DistributedTraceNewRelicHeader); nrPayload != "" {
+		p, err = processNRDTString(nrPayload)
 	}
-	// Ensure that we don't have a reference to the input payload: we don't
-	// want to change it, it could be used multiple times.
-	alloc := new(Payload)
-	*alloc = payload
-
-	return alloc, nil
+	return
 }
 
-func processNRDTString(str string, payload *Payload) error {
+func processNRDTString(str string) (*Payload, error) {
 	if str == "" {
-		return nil
+		return nil, nil
 	}
 	var decoded []byte
 	if '{' == str[0] {
@@ -294,7 +270,7 @@ func processNRDTString(str string, payload *Payload) error {
 		var err error
 		decoded, err = base64.StdEncoding.DecodeString(str)
 		if nil != err {
-			return ErrPayloadParse{err: err}
+			return nil, ErrPayloadParse{err: err}
 		}
 	}
 	envelope := struct {
@@ -302,55 +278,37 @@ func processNRDTString(str string, payload *Payload) error {
 		Data    json.RawMessage  `json:"d"`
 	}{}
 	if err := json.Unmarshal(decoded, &envelope); nil != err {
-		return ErrPayloadParse{err: err}
+		return nil, ErrPayloadParse{err: err}
 	}
 
 	if 0 == envelope.Version.major() && 0 == envelope.Version.minor() {
-		return ErrPayloadMissingField{message: "missing v"}
+		return nil, ErrPayloadMissingField{message: "missing v"}
 	}
 
 	if envelope.Version.major() > currentDistTraceVersion.major() {
-		return ErrUnsupportedPayloadVersion{
+		return nil, ErrUnsupportedPayloadVersion{
 			version: envelope.Version.major(),
 		}
 	}
-
-	// If the payload already has an ID or TracedID set it was captured from
-	// the W3C traceparent header, it should not be overwritten.
-	idSet := payload.ID != "" || payload.TracedID != ""
-	var origTracedID, origID string
-	if idSet {
-		origTracedID = payload.TracedID
-		origID = payload.ID
-	}
-
+	payload := new(Payload)
 	if err := json.Unmarshal(envelope.Data, payload); nil != err {
-		return ErrPayloadParse{err: err}
-	}
-
-	if idSet {
-		payload.TracedID = origTracedID
-		payload.ID = origID
+		return nil, ErrPayloadParse{err: err}
 	}
 
 	payload.HasNewRelicTraceInfo = true
-	return payload.validateNewRelicData()
+	if err := payload.validateNewRelicData(); err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
-// processW3CHeaders reads the traceparent and tracestate w3c headers. A bool
-// is returned to indicate if the entirety of both headers should be discarded
-// in the case of an error. The second return value, the error, gives the
-// details of what the problem was.
-func processW3CHeaders(hdrs http.Header, trustedAccountKey string, p *Payload) (bool, error) {
-	if err := processTraceParent(hdrs, p); nil != err {
-		return true, err
+func processW3CHeaders(hdrs http.Header, trustedAccountKey string) (*Payload, error) {
+	p, err := processTraceParent(hdrs)
+	if nil != err {
+		return nil, err
 	}
-
-	if err := processTraceState(hdrs, trustedAccountKey, p); nil != err {
-		return false, err
-	}
-
-	return false, nil
+	processTraceState(hdrs, trustedAccountKey, p)
+	return p, nil
 }
 
 var (
@@ -360,26 +318,28 @@ var (
 	errInvalidFlags    = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
 )
 
-func processTraceParent(hdrs http.Header, p *Payload) error {
+func processTraceParent(hdrs http.Header) (*Payload, error) {
 	traceParent := hdrs.Get(DistributedTraceW3CTraceParentHeader)
 	subMatches := traceParentRegex.FindStringSubmatch(traceParent)
 
 	if subMatches == nil || len(subMatches) != 6 {
-		return errNumEntries
+		return nil, errNumEntries
 	}
 	if !validateVersionAndFlags(subMatches) {
-		return errInvalidFlags
+		return nil, errInvalidFlags
 	}
+
+	p := new(Payload)
 	p.TracedID = subMatches[2]
 	if p.TracedID == "00000000000000000000000000000000" {
-		return errInvalidTraceID
+		return nil, errInvalidTraceID
 	}
 	p.ID = subMatches[3]
 	if p.ID == "0000000000000000" {
-		return errInvalidParentID
+		return nil, errInvalidParentID
 	}
 
-	return nil
+	return p, nil
 }
 
 func validateVersionAndFlags(subMatches []string) bool {
@@ -400,9 +360,7 @@ func isValidFlag(f string) bool {
 	return traceParentFlagRegex.MatchString(f)
 }
 
-var errFieldNum = ErrPayloadParse{errors.New("incorrect number of fields in TraceState")}
-
-func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
+func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	traceStates := hdrs[DistributedTraceW3CTraceStateHeader]
 	fullTraceState := strings.Join(traceStates, ",")
 	p.OriginalTraceState = fullTraceState
@@ -410,11 +368,11 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
 	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)
 	if nrTraceState == "" {
-		return nil
+		return
 	}
 	matches := newRelicTraceStateRegex.FindStringSubmatch(nrTraceState)
 	if len(matches) != 11 {
-		return errFieldNum
+		return
 	}
 
 	p.TrustedAccountKey = matches[1]
@@ -439,7 +397,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 		p.Timestamp = timestampMillis(timeFromUnixMilliseconds(ts))
 	}
 	p.HasNewRelicTraceInfo = true
-	return nil
+	return
 }
 
 func parseNonTrustedTraceStates(fullTraceState string, trustedTraceState string) (tVendors, tState string) {

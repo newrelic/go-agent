@@ -263,11 +263,10 @@ func TestPayload_W3CTraceState(t *testing.T) {
 }
 
 func TestProcessTraceParent(t *testing.T) {
-	var payload Payload
 	traceParentHdr := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"},
 	}
-	err := processTraceParent(traceParentHdr, &payload)
+	payload, err := processTraceParent(traceParentHdr)
 	if nil != err {
 		t.Errorf("Unexpected error for trace parent %s: %v", traceParentHdr, err)
 	}
@@ -300,10 +299,9 @@ func TestProcessTraceParentInvalidFormat(t *testing.T) {
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0",
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-031",
 	}
-	var payload Payload
 	for _, traceParent := range cases {
 		traceParentHdr := http.Header{DistributedTraceW3CTraceParentHeader: []string{traceParent}}
-		err := processTraceParent(traceParentHdr, &payload)
+		_, err := processTraceParent(traceParentHdr)
 		if nil == err {
 			t.Errorf("No error reported for trace parent %s", traceParent)
 		}
@@ -476,9 +474,7 @@ func TestTransactionIDTraceStateField(t *testing.T) {
 		h := http.Header{
 			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
 		}
-		if err := processTraceState(h, trustKey, p); err != nil {
-			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
-		}
+		processTraceState(h, trustKey, p)
 		if p.TransactionID != tc.expect {
 			t.Errorf("wrong transactionId gathered: expect=%s actual=%s", tc.expect, p.TransactionID)
 		}
@@ -502,9 +498,7 @@ func TestSpanIDTraceStateField(t *testing.T) {
 		h := http.Header{
 			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
 		}
-		if err := processTraceState(h, trustKey, p); err != nil {
-			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
-		}
+		processTraceState(h, trustKey, p)
 		if p.TrustedParentID != tc.expect {
 			t.Errorf("wrong transactionId gathered: expect=%s actual=%s", tc.expect, p.TrustedParentID)
 		}
@@ -534,9 +528,7 @@ func TestVersionTraceStateField(t *testing.T) {
 		h := http.Header{
 			DistributedTraceW3CTraceStateHeader: []string{tc.tracestate},
 		}
-		if err := processTraceState(h, trustKey, p); err != nil {
-			t.Errorf("error returned from processTraceState for tracestate=%s", tc.tracestate)
-		}
+		processTraceState(h, trustKey, p)
 		if p.App != tc.expAppID {
 			t.Errorf("wrong application id set on payload: expect=%s actual=%s", tc.expAppID, p.App)
 		}

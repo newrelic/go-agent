@@ -1788,10 +1788,26 @@ func TestSpansDisabledTraceStateHeader(t *testing.T) {
 }
 
 func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
+	// Test what happens in varying cases when both w3c and newrelic headers
+	// are found
+
 	// parent.type  = "App"
-	// parentSpanId = "9566c74d10d1e2c6"
-	// traceId      = "52fdfc072182654f163f5f0f9a621d72"
-	newrelicHdr := makeHeaders(t).Get(DistributedTraceNewRelicHeader)
+	// parentSpanId = "5f474d64b9cc9b2a"
+	// traceId      = "3221bf09aa0bcf0d3221bf09aa0bcf0d"
+	newrelicHdr := `{
+		   "v": [0,1],
+		   "d": {
+		     "ty": "App",
+		     "ac": "123",
+		     "ap": "51424",
+		     "id": "5f474d64b9cc9b2a",
+		     "tr": "3221bf09aa0bcf0d3221bf09aa0bcf0d",
+		     "pr": 0.1234,
+		     "sa": true,
+		     "ti": 1482959525577,
+		     "tx": "27856f70d3d314b7"
+		   }
+		}`
 	// parentSpanId = "560ccffb087d1906"
 	// traceId      = "050c91b77efca9b0ef38b30c182355ce"
 	traceparentHdr := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
@@ -1838,18 +1854,11 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 			tracestate:  tracestateHdr,
 			newrelic:    newrelicHdr,
 			expIntrinsics: map[string]interface{}{
-				"parent.app":               internal.MatchAnything,
-				"parent.transportDuration": internal.MatchAnything,
-				"guid":                     internal.MatchAnything,
-				"priority":                 internal.MatchAnything,
-				"sampled":                  internal.MatchAnything,
-				"parent.account":           internal.MatchAnything,
-				"parentId":                 internal.MatchAnything,
-				"name":                     internal.MatchAnything,
-				"parent.transportType":     internal.MatchAnything,
-				"parent.type":              "App",                              // from newrelic header
-				"parentSpanId":             "9566c74d10d1e2c6",                 // from newrelic header
-				"traceId":                  "52fdfc072182654f163f5f0f9a621d72", // from newrelic header
+				"guid":     internal.MatchAnything,
+				"priority": internal.MatchAnything,
+				"sampled":  internal.MatchAnything,
+				"name":     internal.MatchAnything,
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72", // randomly generated
 			},
 		},
 		{
@@ -1858,18 +1867,12 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 			tracestate:  "123@nr=garbage",
 			newrelic:    newrelicHdr,
 			expIntrinsics: map[string]interface{}{
-				"parent.app":               internal.MatchAnything,
-				"parent.transportDuration": internal.MatchAnything,
-				"guid":                     internal.MatchAnything,
-				"priority":                 internal.MatchAnything,
-				"sampled":                  internal.MatchAnything,
-				"parent.account":           internal.MatchAnything,
-				"parentId":                 internal.MatchAnything,
-				"name":                     internal.MatchAnything,
-				"parent.transportType":     internal.MatchAnything,
-				"parent.type":              "App",                              // from newrelic header
-				"parentSpanId":             "560ccffb087d1906",                 // from traceparent header
-				"traceId":                  "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+				"guid":         internal.MatchAnything,
+				"priority":     internal.MatchAnything,
+				"sampled":      internal.MatchAnything,
+				"name":         internal.MatchAnything,
+				"parentSpanId": "560ccffb087d1906",                 // from traceparent header
+				"traceId":      "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
 			},
 		},
 		{
@@ -1890,6 +1893,39 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 				"parent.type":              "Browser",                          // from tracestate header
 				"parentSpanId":             "560ccffb087d1906",                 // from traceparent header
 				"traceId":                  "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+			},
+		},
+		{
+			name:        "w3c absent, newrelic present",
+			traceparent: "",
+			tracestate:  "",
+			newrelic:    newrelicHdr,
+			expIntrinsics: map[string]interface{}{
+				"parent.app":               internal.MatchAnything,
+				"parent.transportDuration": internal.MatchAnything,
+				"guid":                     internal.MatchAnything,
+				"priority":                 internal.MatchAnything,
+				"sampled":                  internal.MatchAnything,
+				"parent.account":           internal.MatchAnything,
+				"parentId":                 internal.MatchAnything,
+				"name":                     internal.MatchAnything,
+				"parent.transportType":     internal.MatchAnything,
+				"parent.type":              "App",                              // from newrelic header
+				"parentSpanId":             "5f474d64b9cc9b2a",                 // from newrelic header
+				"traceId":                  "3221bf09aa0bcf0d3221bf09aa0bcf0d", // from newrelic header
+			},
+		},
+		{
+			name:        "w3c absent, newrelic absent",
+			traceparent: "",
+			tracestate:  "",
+			newrelic:    "",
+			expIntrinsics: map[string]interface{}{
+				"guid":     internal.MatchAnything,
+				"priority": internal.MatchAnything,
+				"sampled":  internal.MatchAnything,
+				"name":     internal.MatchAnything,
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72", // randomly generated
 			},
 		},
 	}
