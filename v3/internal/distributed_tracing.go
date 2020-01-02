@@ -193,7 +193,7 @@ const (
 // W3CTraceParent returns the W3C TraceParent header for this payload
 func (p Payload) W3CTraceParent() string {
 	var flags string
-	if p.Sampled != nil && *p.Sampled {
+	if p.isSampled() {
 		flags = "01"
 	} else {
 		flags = "00"
@@ -209,12 +209,12 @@ func (p Payload) W3CTraceParent() string {
 func (p Payload) W3CTraceState() string {
 	var flags string
 
-	if p.Sampled != nil && *p.Sampled {
+	if p.isSampled() {
 		flags = "1"
 	} else {
 		flags = "0"
 	}
-	newRelicTraceState := getTraceStatePrefix(p.TrustedAccountKey) + "=" +
+	state := getTraceStatePrefix(p.TrustedAccountKey) + "=" +
 		traceStateVersion + "-" +
 		typeMap[p.Type] + "-" +
 		p.Account + "-" +
@@ -225,9 +225,9 @@ func (p Payload) W3CTraceState() string {
 		p.Priority.traceStateFormat() + "-" +
 		p.Timestamp.unixMillisecondsString()
 	if p.NonTrustedTraceState != "" {
-		newRelicTraceState = newRelicTraceState + "," + p.NonTrustedTraceState
+		state += "," + p.NonTrustedTraceState
 	}
-	return newRelicTraceState
+	return state
 }
 
 // SetSampled lets us set a value for our *bool,
@@ -235,6 +235,10 @@ func (p Payload) W3CTraceState() string {
 // needs something to point at.
 func (p *Payload) SetSampled(sampled bool) {
 	p.Sampled = &sampled
+}
+
+func (p Payload) isSampled() bool {
+	return p.Sampled != nil && *p.Sampled
 }
 
 // ErrPayloadParse indicates that the payload was malformed.
@@ -260,13 +264,11 @@ func (e ErrUnsupportedPayloadVersion) Error() string {
 }
 
 // AcceptPayload parses the inbound distributed tracing payload.
-func AcceptPayload(hdrs http.Header, trustedAccountKey string) (p *Payload, err error) {
+func AcceptPayload(hdrs http.Header, trustedAccountKey string) (*Payload, error) {
 	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "" {
-		p, err = processW3CHeaders(hdrs, trustedAccountKey)
-	} else if nrPayload := hdrs.Get(DistributedTraceNewRelicHeader); nrPayload != "" {
-		p, err = processNRDTString(nrPayload)
+		return processW3CHeaders(hdrs, trustedAccountKey)
 	}
-	return
+	return processNRDTString(hdrs.Get(DistributedTraceNewRelicHeader))
 }
 
 func processNRDTString(str string) (*Payload, error) {
