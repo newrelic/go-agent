@@ -201,6 +201,8 @@ func (p Payload) W3CTraceParent() string {
 	traceID := p.TracedID
 	if idLen := len(traceID); idLen < traceIDHexStringLen {
 		traceID = strings.Repeat("0", traceIDHexStringLen-idLen) + traceID
+	} else if idLen > traceIDHexStringLen {
+		traceID = traceID[idLen-traceIDHexStringLen:]
 	}
 	return w3cVersion + "-" + traceID + "-" + p.ID + "-" + flags
 }
