@@ -1743,12 +1743,13 @@ func TestW3CTraceParentWithoutTraceContext(t *testing.T) {
 
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":         "OtherTransaction/Go/hello",
-			"traceId":      "050c91b77efca9b0ef38b30c182355ce",
-			"parentSpanId": "560ccffb087d1906",
-			"guid":         internal.MatchAnything,
-			"sampled":      internal.MatchAnything,
-			"priority":     internal.MatchAnything,
+			"name":                 "OtherTransaction/Go/hello",
+			"traceId":              "050c91b77efca9b0ef38b30c182355ce",
+			"parentSpanId":         "560ccffb087d1906",
+			"guid":                 internal.MatchAnything,
+			"sampled":              internal.MatchAnything,
+			"priority":             internal.MatchAnything,
+			"parent.transportType": "HTTP",
 		},
 	}})
 }
@@ -1840,12 +1841,13 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 			tracestate:  "123@nr=garbage",
 			newrelic:    "",
 			expIntrinsics: map[string]interface{}{
-				"guid":         internal.MatchAnything,
-				"priority":     internal.MatchAnything,
-				"sampled":      internal.MatchAnything,
-				"name":         internal.MatchAnything,
-				"parentSpanId": "560ccffb087d1906",                 // from traceparent header
-				"traceId":      "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+				"guid":                 internal.MatchAnything,
+				"priority":             internal.MatchAnything,
+				"sampled":              internal.MatchAnything,
+				"name":                 internal.MatchAnything,
+				"parent.transportType": internal.MatchAnything,
+				"parentSpanId":         "560ccffb087d1906",                 // from traceparent header
+				"traceId":              "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
 			},
 		},
 		{
@@ -1867,12 +1869,13 @@ func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
 			tracestate:  "123@nr=garbage",
 			newrelic:    newrelicHdr,
 			expIntrinsics: map[string]interface{}{
-				"guid":         internal.MatchAnything,
-				"priority":     internal.MatchAnything,
-				"sampled":      internal.MatchAnything,
-				"name":         internal.MatchAnything,
-				"parentSpanId": "560ccffb087d1906",                 // from traceparent header
-				"traceId":      "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
+				"guid":                 internal.MatchAnything,
+				"priority":             internal.MatchAnything,
+				"sampled":              internal.MatchAnything,
+				"name":                 internal.MatchAnything,
+				"parent.transportType": internal.MatchAnything,
+				"parentSpanId":         "560ccffb087d1906",                 // from traceparent header
+				"traceId":              "050c91b77efca9b0ef38b30c182355ce", // from traceparent header
 			},
 		},
 		{
