@@ -3,7 +3,7 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"strconv"
+	"strings"
 )
 
 // Priority allows for a priority sampling of events.  When an event
@@ -51,5 +51,7 @@ func (p Priority) WriteJSON(buf *bytes.Buffer) {
 }
 
 func (p Priority) traceStateFormat() string {
-	return strconv.FormatFloat(float64(p), 'f', 5, 32)
+	s := fmt.Sprintf(priorityFormat, p)
+	s = strings.TrimRight(s, "0")
+	return strings.TrimRight(s, ".")
 }
