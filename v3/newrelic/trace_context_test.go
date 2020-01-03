@@ -28,6 +28,7 @@ type TraceContextTestCase struct {
 	RaisesException   bool                `json:"raises_exception"`
 	ForceSampledTrue  bool                `json:"force_sampled_true"`
 	SpanEventsEnabled bool                `json:"span_events_enabled"`
+	ServerlessMode    bool                `json:"serverlessmode_enabled"`
 	TransportType     string              `json:"transport_type"`
 	InboundHeaders    []map[string]string `json:"inbound_headers"`
 	OutboundPayloads  []fieldExpect       `json:"outbound_payloads,omitempty"`
@@ -67,8 +68,11 @@ func TestCrossAgentW3CTraceContext(t *testing.T) {
 
 func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 	configCallback := enableDistributedTracing
-	if false == tc.SpanEventsEnabled {
+	if !tc.SpanEventsEnabled {
 		configCallback = disableSpanEventsConfig
+	}
+	if tc.ServerlessMode {
+		configCallback = serverlessConfig(tc)
 	}
 
 	app := testApp(func(reply *internal.ConnectReply) {
@@ -76,9 +80,6 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 		reply.AppID = "456"
 		reply.PrimaryAppID = "456"
 		reply.TrustedAccountKey = tc.TrustedAccountKey
-
-		// if cross agent tests ever include logic for sampling
-		// we'll need to revisit this testing sampler
 		reply.AdaptiveSampler = internal.SampleEverything{}
 
 	}, configCallback, t)
@@ -175,6 +176,16 @@ func disableSpanEventsConfig(cfg *Config) {
 	cfg.SpanEvents.Enabled = false
 }
 
+func serverlessConfig(tc TraceContextTestCase) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = true
+		cfg.ServerlessMode.AccountID = tc.AccountID
+		cfg.ServerlessMode.TrustedAccountKey = tc.TrustedAccountKey
+		cfg.ServerlessMode.Enabled = true
+	}
+}
+
 // getTransport ensures that our transport names match cross agent test values.
 func getTransportType(transport string) TransportType {
 	switch TransportType(transport) {
@@ -227,7 +238,19 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 
 	// Affirm that the exact values are in the payload.
 	for k, v := range expect.Exact {
-		exp := fmt.Sprintf("%v", v)
+		var exp string
+		switch val := v.(type) {
+		case bool:
+			if val {
+				exp = "1"
+			} else {
+				exp = "0"
+			}
+		case string:
+			exp = val
+		default:
+			exp = fmt.Sprintf("%v", val)
+		}
 		if val := payload[k]; val != exp {
 			t.Errorf("expected outbound payload wrong value for key %s, expected=%s, actual=%s", k, exp, val)
 		}
