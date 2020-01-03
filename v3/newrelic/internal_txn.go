@@ -1045,17 +1045,8 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 		return nil
 	}
 
-	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey)
+	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, &txn.DistributedTracingSupport)
 	if nil != err {
-		if _, ok := err.(internal.ErrPayloadParse); ok {
-			txn.AcceptPayloadParseException = true
-		} else if _, ok := err.(internal.ErrUnsupportedPayloadVersion); ok {
-			txn.AcceptPayloadIgnoredVersion = true
-		} else if _, ok := err.(internal.ErrPayloadMissingField); ok {
-			txn.AcceptPayloadParseException = true
-		} else {
-			txn.AcceptPayloadException = true
-		}
 		return err
 	}
 

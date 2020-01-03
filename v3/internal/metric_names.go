@@ -88,6 +88,10 @@ type DistributedTracingSupport struct {
 	CreatePayloadException          bool // CreatePayload had a generic exception
 }
 
+func (support DistributedTracingSupport) isEmpty() bool {
+	return (DistributedTracingSupport{}) == support
+}
+
 type rollupMetric struct {
 	all      string
 	allWeb   string

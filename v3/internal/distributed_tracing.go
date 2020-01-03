@@ -266,14 +266,14 @@ func (e ErrUnsupportedPayloadVersion) Error() string {
 }
 
 // AcceptPayload parses the inbound distributed tracing payload.
-func AcceptPayload(hdrs http.Header, trustedAccountKey string) (*Payload, error) {
+func AcceptPayload(hdrs http.Header, trustedAccountKey string, support *DistributedTracingSupport) (*Payload, error) {
 	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "" {
-		return processW3CHeaders(hdrs, trustedAccountKey)
+		return processW3CHeaders(hdrs, trustedAccountKey, support)
 	}
-	return processNRDTString(hdrs.Get(DistributedTraceNewRelicHeader))
+	return processNRDTString(hdrs.Get(DistributedTraceNewRelicHeader), support)
 }
 
-func processNRDTString(str string) (*Payload, error) {
+func processNRDTString(str string, support *DistributedTracingSupport) (*Payload, error) {
 	if str == "" {
 		return nil, nil
 	}
@@ -284,6 +284,7 @@ func processNRDTString(str string) (*Payload, error) {
 		var err error
 		decoded, err = base64.StdEncoding.DecodeString(str)
 		if nil != err {
+			support.AcceptPayloadParseException = true
 			return nil, ErrPayloadParse{err: err}
 		}
 	}
@@ -292,33 +293,39 @@ func processNRDTString(str string) (*Payload, error) {
 		Data    json.RawMessage  `json:"d"`
 	}{}
 	if err := json.Unmarshal(decoded, &envelope); nil != err {
+		support.AcceptPayloadParseException = true
 		return nil, ErrPayloadParse{err: err}
 	}
 
 	if 0 == envelope.Version.major() && 0 == envelope.Version.minor() {
+		support.AcceptPayloadParseException = true
 		return nil, ErrPayloadMissingField{message: "missing v"}
 	}
 
 	if envelope.Version.major() > currentDistTraceVersion.major() {
+		support.AcceptPayloadIgnoredVersion = true
 		return nil, ErrUnsupportedPayloadVersion{
 			version: envelope.Version.major(),
 		}
 	}
 	payload := new(Payload)
 	if err := json.Unmarshal(envelope.Data, payload); nil != err {
+		support.AcceptPayloadParseException = true
 		return nil, ErrPayloadParse{err: err}
 	}
 
 	payload.HasNewRelicTraceInfo = true
 	if err := payload.validateNewRelicData(); err != nil {
+		support.AcceptPayloadParseException = true
 		return nil, err
 	}
 	return payload, nil
 }
 
-func processW3CHeaders(hdrs http.Header, trustedAccountKey string) (*Payload, error) {
+func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *DistributedTracingSupport) (*Payload, error) {
 	p, err := processTraceParent(hdrs)
 	if nil != err {
+		support.AcceptPayloadParseException = true
 		return nil, err
 	}
 	processTraceState(hdrs, trustedAccountKey, p)
