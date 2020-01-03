@@ -44,7 +44,6 @@ var (
 		`([a-f0-9]{16})-` + // parentId
 		`([a-f0-9]{2})(-.*)?$`) // flags
 	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
-	fullTraceStateRegex     = regexp.MustCompile(`\d+@nr=[^,=]+`)
 	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=` + // trustKey@nr=
 		`(\d)-` + // version
 		`(\d)-` + // parentType
@@ -55,7 +54,6 @@ var (
 		`(\d)?-` + // sampled
 		`(\d\.\d+)?-` + // priority
 		`(\d+),?`) // timestamp
-	traceStateVendorsRegex = regexp.MustCompile(`((?:[\w_\-*\s/]*@)?[\w_\-*\s/]+)=[^,]*`)
 )
 
 // timestampMillis allows raw payloads to use exact times, and marshalled
@@ -216,7 +214,7 @@ func (p Payload) W3CTraceState() string {
 	} else {
 		flags = "0"
 	}
-	state := getTraceStatePrefix(p.TrustedAccountKey) + "=" +
+	state := p.TrustedAccountKey + "@nr=" +
 		traceStateVersion + "-" +
 		typeMap[p.Type] + "-" +
 		p.Account + "-" +
@@ -379,8 +377,8 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	fullTraceState := strings.Join(traceStates, ",")
 	p.OriginalTraceState = fullTraceState
 
-	nrTraceState := findTrustedNREntry(fullTraceState, trustedAccountKey)
-	p.TracingVendors, p.NonTrustedTraceState = parseNonTrustedTraceStates(fullTraceState, nrTraceState)
+	var nrTraceState string
+	p.TracingVendors, p.NonTrustedTraceState, nrTraceState = parseTraceState(fullTraceState, trustedAccountKey)
 	if nrTraceState == "" {
 		return
 	}
@@ -414,43 +412,25 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	return
 }
 
-func parseNonTrustedTraceStates(fullTraceState string, trustedTraceState string) (tVendors, tState string) {
-	vendorMatches := traceStateVendorsRegex.FindAllStringSubmatch(fullTraceState, -1)
-	if len(vendorMatches) == 0 {
-		return
-	}
-	vendors := make([]string, 0, len(vendorMatches))
-	states := make([]string, 0, len(vendorMatches))
-	for _, vendorMatch := range vendorMatches {
-		if vendorMatch[0] == trustedTraceState {
+func parseTraceState(fullState, trustedAccountKey string) (nonTrustedVendors string, nonTrustedState string, trustedEntry string) {
+	trustedKey := trustedAccountKey + "@nr"
+	pairs := strings.Split(fullState, ",")
+	vendors := make([]string, 0, len(pairs))
+	states := make([]string, 0, len(pairs))
+	for _, entry := range pairs {
+		entry = strings.TrimSpace(entry)
+		m := strings.Split(entry, "=")
+		if len(m) != 2 {
 			continue
 		}
-		if len(vendorMatch) != 2 {
-			break
-		}
-		if vendorMatch[1] != "" {
-			vendors = append(vendors, vendorMatch[1])
-			states = append(states, vendorMatch[0])
+		if key := m[0]; key == trustedKey {
+			trustedEntry = entry
+		} else {
+			vendors = append(vendors, key)
+			states = append(states, entry)
 		}
 	}
-
-	tVendors = strings.Join(vendors, ",")
-	tState = strings.Join(states, ",")
+	nonTrustedVendors = strings.Join(vendors, ",")
+	nonTrustedState = strings.Join(states, ",")
 	return
-}
-
-func findTrustedNREntry(fullTraceState string, trustedAccount string) string {
-	submatches := fullTraceStateRegex.FindAllStringSubmatch(fullTraceState, -1)
-	accountStr := getTraceStatePrefix(trustedAccount)
-	for _, str := range submatches {
-		nrString := str[0]
-		if strings.HasPrefix(nrString, accountStr) {
-			return nrString
-		}
-	}
-	return ""
-}
-
-func getTraceStatePrefix(trustedAccount string) string {
-	return trustedAccount + "@nr"
 }
