@@ -974,8 +974,7 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 
 	txn.CreatePayloadSuccess = true
 
-	omitNRHeader := thd.Config.DistributedTracer.OmitNewRelicHeader
-	if !omitNRHeader {
+	if thd.Config.DistributedTracer.InsertNewRelicHeader {
 		hdrs.Set(internal.DistributedTraceNewRelicHeader, p.NRHTTPSafe())
 	}
 

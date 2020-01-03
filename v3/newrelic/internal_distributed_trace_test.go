@@ -95,7 +95,7 @@ func enableBetterCAT(cfg *Config) {
 
 func enableW3COnly(cfg *Config) {
 	cfg.DistributedTracer.Enabled = true
-	cfg.DistributedTracer.OmitNewRelicHeader = true
+	cfg.DistributedTracer.InsertNewRelicHeader = false
 }
 
 func disableSpanEvents(cfg *Config) {
