@@ -214,16 +214,20 @@ type Config struct {
 		Enabled bool
 	}
 
-	// DistributedTracer controls behavior relating to Distributed Tracing,
-	// available since Go Agent v2.1.  In the case where CrossApplicationTracer
-	// and DistributedTracer are both enabled, DistributedTracer takes
-	// precedence.
+	// DistributedTracer controls behavior relating to Distributed Tracing.  In
+	// the case where CrossApplicationTracer and DistributedTracer are both
+	// enabled, DistributedTracer takes precedence.
 	//
 	// https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing
 	DistributedTracer struct {
 		Enabled bool
-		// InsertNewRelicHeader allows you to choose whether to omit the New Relic Distributed Tracing header,
-		// which by default is emitted along with the W3C trace context headers.
+		// InsertNewRelicHeader allows you to choose whether to insert the New
+		// Relic Distributed Tracing header, which by default is emitted along
+		// with the W3C trace context headers.
+		//
+		// The agent accepts and inserts both New Relic and W3C distributed
+		// tracing headers by default.  Disabling the New Relic header here
+		// does not prevent the agent from accepting inbound New Relic headers.
 		InsertNewRelicHeader bool
 	}
 
