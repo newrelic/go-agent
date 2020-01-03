@@ -23,18 +23,26 @@ var (
 )
 
 func TestPayloadNil(t *testing.T) {
-	out, err := AcceptPayload(nil, "123")
+	var support DistributedTracingSupport
+	out, err := AcceptPayload(nil, "123", &support)
 	if err != nil || out != nil {
 		t.Fatal(err, out)
+	}
+	if !support.isEmpty() {
+		t.Error("support flags expected to be empty", support)
 	}
 }
 
 func TestPayloadText(t *testing.T) {
 	hdrs := http.Header{}
 	hdrs.Set(DistributedTraceNewRelicHeader, samplePayload.NRText())
-	out, err := AcceptPayload(hdrs, "123")
+	var support DistributedTracingSupport
+	out, err := AcceptPayload(hdrs, "123", &support)
 	if err != nil || out == nil {
 		t.Fatal(err, out)
+	}
+	if !support.isEmpty() {
+		t.Error("support flags expected to be empty", support)
 	}
 	out.Timestamp = samplePayload.Timestamp // account for timezone differences
 	if samplePayload != *out {
@@ -45,9 +53,13 @@ func TestPayloadText(t *testing.T) {
 func TestPayloadHTTPSafe(t *testing.T) {
 	hdrs := http.Header{}
 	hdrs.Set(DistributedTraceNewRelicHeader, samplePayload.NRHTTPSafe())
-	out, err := AcceptPayload(hdrs, "123")
+	var support DistributedTracingSupport
+	out, err := AcceptPayload(hdrs, "123", &support)
 	if err != nil || nil == out {
 		t.Fatal(err, out)
+	}
+	if !support.isEmpty() {
+		t.Error("support flags expected to be empty", support)
 	}
 	out.Timestamp = samplePayload.Timestamp // account for timezone differences
 	if samplePayload != *out {
@@ -562,9 +574,13 @@ func TestTraceStateSpanTxnIDs(t *testing.T) {
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-meatball!-meatballs!-1-0.43771-1577830891900"},
 	}
-	p, err := AcceptPayload(hdrs, "123")
+	var support DistributedTracingSupport
+	p, err := AcceptPayload(hdrs, "123", &support)
 	if err != nil {
 		t.Error("failure to AcceptPayload:", err)
+	}
+	if !support.isEmpty() {
+		t.Error("support flags expected to be empty", support)
 	}
 	if p.TrustedParentID != "meatball!" {
 		t.Error("wrong payload ID", p.ID)
