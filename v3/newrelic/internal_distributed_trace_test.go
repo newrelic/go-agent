@@ -1446,7 +1446,7 @@ func TestW3CTraceHeaders(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
@@ -1488,7 +1488,7 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 
 	if !reflect.DeepEqual(outgoingHdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900,99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.437714-1577830891900,99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"},
 	}) {
 		t.Error(outgoingHdrs)
 	}
@@ -1617,7 +1617,7 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-12345678901234567890123456789012-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
@@ -1643,7 +1643,7 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
@@ -1670,7 +1670,7 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.43771-1577830891900"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
@@ -2058,7 +2058,7 @@ func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 	txn.InsertDistributedTraceHeaders(hdrs)
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
-		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-0-0.43771-1577830891900"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-0-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
