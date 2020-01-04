@@ -605,3 +605,20 @@ func TestTraceStateSpanTxnIDs(t *testing.T) {
 		t.Error("wrong payload TransactionID", p.TransactionID)
 	}
 }
+
+func TestAcceptMultipleTraceParentHeaders(t *testing.T) {
+	// Test that when multiple traceparent headers are received, we discard the
+	// headers all together.  From
+	// https://github.com/w3c/trace-context/blob/3d02cfc15778ef850df9bc4e9d2740a4a2627fd5/test/test.py#L134
+	sup := new(DistributedTracingSupport)
+	hdrs := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{
+			"00-01234567890123456789012345678901-0123456789012345-01",
+			"00-01234567890123456789012345678902-0123456789012346-01",
+		},
+	}
+	_, err := AcceptPayload(hdrs, "123", sup)
+	if err == nil {
+		t.Error("error should have been returned")
+	}
+}

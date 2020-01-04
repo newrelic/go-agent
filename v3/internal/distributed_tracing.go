@@ -331,6 +331,7 @@ func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *Dist
 }
 
 var (
+	errTooManyHdrs     = ErrPayloadParse{errors.New("too many TraceParent headers")}
 	errNumEntries      = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
 	errInvalidTraceID  = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
 	errInvalidParentID = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
@@ -338,8 +339,11 @@ var (
 )
 
 func processTraceParent(hdrs http.Header) (*Payload, error) {
-	traceParent := hdrs.Get(DistributedTraceW3CTraceParentHeader)
-	subMatches := traceParentRegex.FindStringSubmatch(traceParent)
+	traceParents := hdrs[DistributedTraceW3CTraceParentHeader]
+	if len(traceParents) > 1 {
+		return nil, errTooManyHdrs
+	}
+	subMatches := traceParentRegex.FindStringSubmatch(traceParents[0])
 
 	if subMatches == nil || len(subMatches) != 6 {
 		return nil, errNumEntries
