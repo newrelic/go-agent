@@ -358,27 +358,28 @@ func TestProcessTraceState(t *testing.T) {
 
 func TestExtractNRTraceStateEntry(t *testing.T) {
 	trustedAccountID := "12345"
-	trustedNR := "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"
+	trustedNRVal := "0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"
+	trustedNR := "12345@nr=" + trustedNRVal
 	nonTrustedNR := "190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035"
 	cases := map[string]string{
 		"rojo=00f06": "",
 		// comma separator
-		trustedNR + ",rojo=00f06,congo=t61":                      trustedNR,
-		"congo=t61," + trustedNR + ",rojo=00f06":                 trustedNR,
-		trustedNR + "," + nonTrustedNR:                           trustedNR,
-		"rojo=00f06," + nonTrustedNR + ",congo=t61," + trustedNR: trustedNR,
+		trustedNR + ",rojo=00f06,congo=t61":                      trustedNRVal,
+		"congo=t61," + trustedNR + ",rojo=00f06":                 trustedNRVal,
+		trustedNR + "," + nonTrustedNR:                           trustedNRVal,
+		"rojo=00f06," + nonTrustedNR + ",congo=t61," + trustedNR: trustedNRVal,
 		"rojo=00f06," + nonTrustedNR + ",congo=t61":              "",
 		// comma space separator
-		trustedNR + ", rojo=00f06, congo=t61":                       trustedNR,
-		"congo=t61, " + trustedNR + ", rojo=00f06":                  trustedNR,
-		trustedNR + ", " + nonTrustedNR:                             trustedNR,
-		"rojo=00f06, " + nonTrustedNR + ", congo=t61, " + trustedNR: trustedNR,
+		trustedNR + ", rojo=00f06, congo=t61":                       trustedNRVal,
+		"congo=t61, " + trustedNR + ", rojo=00f06":                  trustedNRVal,
+		trustedNR + ", " + nonTrustedNR:                             trustedNRVal,
+		"rojo=00f06, " + nonTrustedNR + ", congo=t61, " + trustedNR: trustedNRVal,
 		"rojo=00f06, " + nonTrustedNR + ", congo=t61":               "",
 		// comma tab separator
-		trustedNR + ",\trojo=00f06,congo=t61":                          trustedNR,
-		"congo=t61,\t" + trustedNR + ",\trojo=00f06":                   trustedNR,
-		trustedNR + ",\t" + nonTrustedNR:                               trustedNR,
-		"rojo=00f06,\t" + nonTrustedNR + ",\tcongo=t61,\t" + trustedNR: trustedNR,
+		trustedNR + ",\trojo=00f06,congo=t61":                          trustedNRVal,
+		"congo=t61,\t" + trustedNR + ",\trojo=00f06":                   trustedNRVal,
+		trustedNR + ",\t" + nonTrustedNR:                               trustedNRVal,
+		"rojo=00f06,\t" + nonTrustedNR + ",\tcongo=t61,\t" + trustedNR: trustedNRVal,
 		"rojo=00f06,\t" + nonTrustedNR + ",\tcongo=t61":                "",
 	}
 
@@ -403,28 +404,28 @@ func TestParseTraceState(t *testing.T) {
 		{
 			trustedAccount:   "12345",
 			full:             "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-			trusted:          "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+			trusted:          "0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
 			expVendors:       "rojo,congo",
 			expNonTrustState: "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
 		},
 		{
 			trustedAccount:   "12345",
 			full:             "congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,rojo=00f067aa0ba902b7",
-			trusted:          "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+			trusted:          "0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
 			expVendors:       "congo,rojo",
 			expNonTrustState: "congo=t61rcWkgMzE,rojo=00f067aa0ba902b7",
 		},
 		{
 			trustedAccount:   "12345",
 			full:             "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035",
-			trusted:          "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+			trusted:          "0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
 			expVendors:       "190@nr",
 			expNonTrustState: "190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035",
 		},
 		{
 			trustedAccount:   "12345",
 			full:             "atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
-			trusted:          "12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+			trusted:          "0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
 			expVendors:       "atd@rojo,190@nr,congo",
 			expNonTrustState: "atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE",
 		},
