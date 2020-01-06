@@ -1,5 +1,15 @@
 # ChangeLog
 
+### New Features
+
+* Event data is now sent to New Relic every five seconds, instead of every
+  minute. As a result, transaction, custom, and error events will appear in
+  near-realtime within APM and Insights.
+
+  Note that the overall limits on how many events can be sent per minute have
+  not changed. Also, metric and trace data is unaffected, and will still be
+  sent every minute.
+
 ## 3.0.0
 
 We are pleased to announce the release of Go Agent v3.0.0!  This is a major release
