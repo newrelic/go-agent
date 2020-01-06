@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -620,5 +621,70 @@ func TestAcceptMultipleTraceParentHeaders(t *testing.T) {
 	_, err := AcceptPayload(hdrs, "123", sup)
 	if err == nil {
 		t.Error("error should have been returned")
+	}
+}
+
+func TestAcceptW3CSuccess(t *testing.T) {
+	hdrs := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{
+			"00-11223344556677889900aabbccddeeff-0aaabbbcccdddeee-01",
+		},
+		DistributedTraceW3CTraceStateHeader: []string{
+			"atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+		},
+	}
+	trustedAccountKey := "12345"
+	support := DistributedTracingSupport{}
+	p, err := AcceptPayload(hdrs, trustedAccountKey, &support)
+	if err != nil {
+		t.Fatal(err)
+	}
+	truePtr := true
+	expect := &Payload{
+		payloadCaller: payloadCaller{
+			TransportType: "",
+			Type:          "App",
+			App:           "41346604",
+			Account:       "1349956",
+		},
+		TransactionID:        "b28be285632bbc0a",
+		ID:                   "0aaabbbcccdddeee",
+		TracedID:             "11223344556677889900aabbccddeeff",
+		Priority:             0.24689,
+		Sampled:              &truePtr,
+		Timestamp:            timestampMillis(timeFromUnixMilliseconds(1569367663277)),
+		TransportDuration:    0,
+		TrustedParentID:      "27ddd2d8890283b4",
+		TracingVendors:       "atd@rojo,190@nr,congo",
+		HasNewRelicTraceInfo: true,
+		TrustedAccountKey:    "12345",
+		NonTrustedTraceState: "atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE",
+		OriginalTraceState:   "atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+	}
+	if !reflect.DeepEqual(p, expect) {
+		t.Errorf("%#v", p)
+	}
+}
+
+func BenchmarkAcceptW3C(b *testing.B) {
+	hdrs := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{
+			"00-11223344556677889900aabbccddeeff-0aaabbbcccdddeee-01",
+		},
+		DistributedTraceW3CTraceStateHeader: []string{
+			"atd@rojo=00f067aa0ba902b7,190@nr=0-2-332029-2827902-5f474d64b9cc9b2a-7d3efb1b173fecfa---1518469636035,congo=t61rcWkgMzE,12345@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277",
+		},
+	}
+	trustedAccountKey := "12345"
+	support := DistributedTracingSupport{}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		_, err := AcceptPayload(hdrs, trustedAccountKey, &support)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
