@@ -43,16 +43,6 @@ var (
 		`([a-f0-9]{32})-` + // traceId
 		`([a-f0-9]{16})-` + // parentId
 		`([a-f0-9]{2})(-.*)?$`) // flags
-	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=` + // trustKey@nr=
-		`(\d)-` + // version
-		`(\d)-` + // parentType
-		`(\d+)-` + // accountId
-		`([0-9a-zA-Z]+)-` + // appId
-		`([^,=-@]+)?-` + // spanId
-		`([^,=-@]+)?-` + // transactionId
-		`(\d)?-` + // sampled
-		`(\d\.\d+)?-` + // priority
-		`(\d+),?`) // timestamp
 )
 
 // timestampMillis allows raw payloads to use exact times, and marshalled
@@ -229,11 +219,20 @@ func (p Payload) W3CTraceState() string {
 	return state
 }
 
+var (
+	trueVal  = true
+	falseVal = false
+	boolPtrs = map[bool]*bool{
+		true:  &trueVal,
+		false: &falseVal,
+	}
+)
+
 // SetSampled lets us set a value for our *bool,
 // which we can't do directly since a pointer
 // needs something to point at.
 func (p *Payload) SetSampled(sampled bool) {
-	p.Sampled = &sampled
+	p.Sampled = boolPtrs[sampled]
 }
 
 func (p Payload) isSampled() bool {
@@ -382,42 +381,51 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	fullTraceState := strings.Join(traceStates, ",")
 	p.OriginalTraceState = fullTraceState
 
-	var nrTraceState string
-	p.TracingVendors, p.NonTrustedTraceState, nrTraceState = parseTraceState(fullTraceState, trustedAccountKey)
-	if nrTraceState == "" {
-		return
-	}
-	matches := newRelicTraceStateRegex.FindStringSubmatch(nrTraceState)
-	if len(matches) != 11 {
+	var trustedVal string
+	p.TracingVendors, p.NonTrustedTraceState, trustedVal = parseTraceState(fullTraceState, trustedAccountKey)
+	if trustedVal == "" {
 		return
 	}
 
-	p.TrustedAccountKey = matches[1]
-	p.Type = typeMapReverse[matches[3]]
-	p.Account = matches[4]
-	p.App = matches[5]
-	p.TrustedParentID = matches[6]
-	p.TransactionID = matches[7]
+	matches := strings.Split(trustedVal, "-")
+	if len(matches) < 9 {
+		return
+	}
+
+	// Required Fields:
+	version := matches[0]
+	parentType := typeMapReverse[matches[1]]
+	account := matches[2]
+	app := matches[3]
+	timestamp, err := strconv.ParseUint(matches[8], 10, 64)
+
+	if nil != err || "" == version || "" == parentType || "" == account || "" == app {
+		return
+	}
+
+	p.TrustedAccountKey = trustedAccountKey
+	p.Type = parentType
+	p.Account = account
+	p.App = app
+	p.TrustedParentID = matches[4]
+	p.TransactionID = matches[5]
 
 	// If sampled isn't "1" or "0", leave it unset
-	if matches[8] == "1" {
+	if matches[6] == "1" {
 		p.SetSampled(true)
-	} else if matches[8] == "0" {
+	} else if matches[6] == "0" {
 		p.SetSampled(false)
 	}
-	priority, err := strconv.ParseFloat(matches[9], 32)
+	priority, err := strconv.ParseFloat(matches[7], 32)
 	if nil == err {
 		p.Priority = Priority(priority)
 	}
-	ts, err := strconv.ParseUint(matches[10], 10, 64)
-	if nil == err {
-		p.Timestamp = timestampMillis(timeFromUnixMilliseconds(ts))
-	}
+	p.Timestamp = timestampMillis(timeFromUnixMilliseconds(timestamp))
 	p.HasNewRelicTraceInfo = true
 	return
 }
 
-func parseTraceState(fullState, trustedAccountKey string) (nonTrustedVendors string, nonTrustedState string, trustedEntry string) {
+func parseTraceState(fullState, trustedAccountKey string) (nonTrustedVendors string, nonTrustedState string, trustedEntryValue string) {
 	trustedKey := trustedAccountKey + "@nr"
 	pairs := strings.Split(fullState, ",")
 	vendors := make([]string, 0, len(pairs))
@@ -428,8 +436,8 @@ func parseTraceState(fullState, trustedAccountKey string) (nonTrustedVendors str
 		if len(m) != 2 {
 			continue
 		}
-		if key := m[0]; key == trustedKey {
-			trustedEntry = entry
+		if key, val := m[0], m[1]; key == trustedKey {
+			trustedEntryValue = val
 		} else {
 			vendors = append(vendors, key)
 			states = append(states, entry)
