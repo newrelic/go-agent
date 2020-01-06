@@ -43,7 +43,6 @@ var (
 		`([a-f0-9]{32})-` + // traceId
 		`([a-f0-9]{16})-` + // parentId
 		`([a-f0-9]{2})(-.*)?$`) // flags
-	traceParentFlagRegex    = regexp.MustCompile(`^([a-f0-9]{2})$`)
 	newRelicTraceStateRegex = regexp.MustCompile(`(\d+)@nr=` + // trustKey@nr=
 		`(\d)-` + // version
 		`(\d)-` + // parentType
@@ -370,17 +369,12 @@ func validateVersionAndFlags(subMatches []string) bool {
 		if subMatches[5] != "" {
 			return false
 		}
-		return isValidFlag(subMatches[4])
 	}
 	// Invalid version: https://w3c.github.io/trace-context/#version
 	if subMatches[1] == "ff" {
 		return false
 	}
 	return true
-}
-
-func isValidFlag(f string) bool {
-	return traceParentFlagRegex.MatchString(f)
 }
 
 func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
