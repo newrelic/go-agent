@@ -45,13 +45,6 @@ type TraceContextTestCase struct {
 func TestCrossAgentW3CTraceContext(t *testing.T) {
 	var tcs []TraceContextTestCase
 
-	// Skip the tests until the fixture has been added. Once added, remove the
-	// following lines:
-	if crossagent.FileMissing("distributed_tracing/trace_context.json") {
-		return
-	}
-	t.Fatal("test fixture should not yet be added to agent, but file was found anyway!")
-
 	data, err := crossagent.ReadFile("distributed_tracing/trace_context.json")
 	if err != nil {
 		t.Fatal(err)
