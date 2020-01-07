@@ -49,8 +49,11 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 //
 // Example:
 //
-//	cfg := newrelic.NewConfig("gRPC Server", os.Getenv("NEW_RELIC_LICENSE_KEY"))
-//	app, _ := newrelic.NewApplication(cfg)
+//	app, _ := newrelic.NewApplication(
+//		newrelic.ConfigAppName("gRPC Server"),
+//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//		newrelic.ConfigDebugLogger(os.Stdout),
+//	)
 //	server := grpc.NewServer(
 //		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
 //		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
@@ -107,8 +110,11 @@ func newWrappedServerStream(stream grpc.ServerStream, txn *newrelic.Transaction)
 //
 // Example:
 //
-//	cfg := newrelic.NewConfig("gRPC Server", os.Getenv("NEW_RELIC_LICENSE_KEY"))
-//	app, _ := newrelic.NewApplication(cfg)
+//	app, _ := newrelic.NewApplication(
+//		newrelic.ConfigAppName("gRPC Server"),
+//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//		newrelic.ConfigDebugLogger(os.Stdout),
+//	)
 //	server := grpc.NewServer(
 //		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
 //		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
