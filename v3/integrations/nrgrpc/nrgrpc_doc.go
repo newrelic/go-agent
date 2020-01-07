@@ -2,13 +2,18 @@
 //
 // This package can be used to instrument gRPC servers and gRPC clients.
 //
+// Server
+//
 // To instrument a gRPC server, use UnaryServerInterceptor and
 // StreamServerInterceptor with your newrelic.Application to create server
 // interceptors to pass to grpc.NewServer.  Example:
 //
 //
-//	cfg := newrelic.NewConfig("gRPC Server", os.Getenv("NEW_RELIC_LICENSE_KEY"))
-//	app, _ := newrelic.NewApplication(cfg)
+//	app, _ := newrelic.NewApplication(
+//		newrelic.ConfigAppName("gRPC Server"),
+//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//		newrelic.ConfigDebugLogger(os.Stdout),
+//	)
 //	server := grpc.NewServer(
 //		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
 //		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
@@ -18,8 +23,21 @@
 // added to the call context and can be accessed in your method handlers
 // using newrelic.FromContext.
 //
+//	// handler is your gRPC server handler. Access the currently running
+//	// transaction using newrelic.FromContext.
+//	func (s *Server) handler(ctx context.Context, msg *pb.Message) (*pb.Message, error) {
+//		if err := processMsg(msg); err != nil {
+//			txn := newrelic.FromContext(ctx)
+//			txn.NoticeError(err)
+//			return nil, err
+//		}
+// 		return &pb.Message{Text: "Hello World!"}, nil
+// 	}
+//
 // Full server example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
+//
+// Client
 //
 // To instrument a gRPC client, follow these two steps:
 //
@@ -34,6 +52,11 @@
 //
 // 2. Ensure that calls made with this grpc.ClientConn are done with a context
 // which contains a newrelic.Transaction.
+//
+//	// Add the currently running transaction to the context before making a
+//	// client call.
+//	ctx := newrelic.NewContext(context.Background(), txn)
+//	msg, err := client.handler(ctx, &pb.Message{"Hello World"})
 //
 // Full client example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/client/client.go
