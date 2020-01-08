@@ -138,7 +138,7 @@ func TestShouldSaveTrace(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		reply := internal.ConnectReplyDefaults()
 		reply.CollectTraces = tc.collectTraces
-		txn.appRun = newAppRun(cfg, reply)
+		txn.appRun = newAppRun(config{Config: cfg}, reply)
 
 		txn.Duration = tc.duration
 		if tc.synthetics {
@@ -460,7 +460,7 @@ func TestGetLinkingMetadata(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	metadata := txn.GetLinkingMetadata()
-	host := txn.thread.appRun.hostname
+	host := txn.thread.appRun.Config.hostname
 	if metadata.TraceID != "d9466896a525ccbf" {
 		t.Error("wrong TraceID:", metadata.TraceID)
 	}
