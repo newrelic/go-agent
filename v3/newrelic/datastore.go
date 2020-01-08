@@ -22,6 +22,7 @@ const (
 	DatastoreRedis         DatastoreProduct = "Redis"
 	DatastoreSolr          DatastoreProduct = "Solr"
 	DatastoreSQLite        DatastoreProduct = "SQLite"
+	DatastoreTarantool     DatastoreProduct = "Tarantool"
 	DatastoreCouchDB       DatastoreProduct = "CouchDB"
 	DatastoreRiak          DatastoreProduct = "Riak"
 	DatastoreVoltDB        DatastoreProduct = "VoltDB"
