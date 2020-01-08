@@ -944,9 +944,16 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	txn.numPayloadsCreated++
 
 	p := &internal.Payload{}
+
+	// Calculate sampled first since this also changes the value for the
+	// priority
+	sampled := txn.lazilyCalculateSampled()
+	if sampled && txn.SpanEventsEnabled {
+		p.ID = txn.CurrentSpanIdentifier(thd.thread)
+	}
+
 	p.Type = internal.CallerTypeApp
 	p.Account = txn.Reply.AccountID
-
 	p.App = txn.Reply.PrimaryAppID
 	p.TracedID = txn.BetterCAT.TraceID
 	p.Priority = txn.BetterCAT.Priority
@@ -956,11 +963,6 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	if nil != txn.BetterCAT.Inbound {
 		p.NonTrustedTraceState = txn.BetterCAT.Inbound.NonTrustedTraceState
 		p.OriginalTraceState = txn.BetterCAT.Inbound.OriginalTraceState
-	}
-
-	sampled := txn.lazilyCalculateSampled()
-	if sampled && txn.SpanEventsEnabled {
-		p.ID = txn.CurrentSpanIdentifier(thd.thread)
 	}
 
 	// limit the number of outbound sampled=true payloads to prevent too
