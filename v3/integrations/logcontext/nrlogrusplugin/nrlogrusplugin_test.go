@@ -19,7 +19,7 @@ import (
 var (
 	testTime      = time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	matchAnything = struct{}{}
-	host, _       = sysinfo.Hostname(false, nil)
+	host, _       = sysinfo.Hostname()
 )
 
 func newTestLogger(out io.Writer) *logrus.Logger {

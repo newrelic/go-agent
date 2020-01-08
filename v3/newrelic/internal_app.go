@@ -26,7 +26,7 @@ type appData struct {
 
 type app struct {
 	Logger
-	config      Config
+	config      config
 	rpmControls internal.RpmControls
 	testHarvest *internal.Harvest
 
@@ -120,7 +120,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 func (app *app) connectRoutine() {
 	connectAttempt := 0
 	for {
-		reply, resp := internal.ConnectAttempt(config{app.config}, app.rpmControls)
+		reply, resp := internal.ConnectAttempt(app.config, app.rpmControls)
 
 		if reply != nil {
 			select {
@@ -330,14 +330,15 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 	}
 }
 
-func newApp(c Config) (*app, error) {
-	c = copyConfigReferenceFields(c)
-	if err := c.validate(); nil != err {
+func newApp(cfg Config) (*app, error) {
+	cfg = copyConfigReferenceFields(cfg)
+	if err := cfg.validate(); nil != err {
 		return nil, err
 	}
-	if nil == c.Logger {
-		c.Logger = logger.ShimLogger{}
+	if nil == cfg.Logger {
+		cfg.Logger = logger.ShimLogger{}
 	}
+	c := newInternalConfig(cfg, os.Getenv, os.Environ())
 	app := &app{
 		Logger:         c.Logger,
 		config:         c,
@@ -450,7 +451,7 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 	if nil == app {
 		return nil
 	}
-	if app.config.HighSecurity {
+	if app.config.Config.HighSecurity {
 		return errHighSecurityEnabled
 	}
 

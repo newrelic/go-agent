@@ -19,17 +19,16 @@ const (
 
 // Config controls the behavior of utilization information capture.
 type Config struct {
-	DetectAWS                 bool
-	DetectAzure               bool
-	DetectGCP                 bool
-	DetectPCF                 bool
-	DetectDocker              bool
-	DetectKubernetes          bool
-	LogicalProcessors         int
-	TotalRAMMIB               int
-	BillingHostname           string
-	UseDynoNames              bool
-	DynoNamePrefixesToShorten []string
+	DetectAWS         bool
+	DetectAzure       bool
+	DetectGCP         bool
+	DetectPCF         bool
+	DetectDocker      bool
+	DetectKubernetes  bool
+	LogicalProcessors int
+	TotalRAMMIB       int
+	BillingHostname   string
+	Hostname          string
 }
 
 type override struct {
@@ -207,11 +206,7 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 		}
 	}
 
-	if host, err := sysinfo.Hostname(config.UseDynoNames, config.DynoNamePrefixesToShorten); err == nil {
-		uDat.Hostname = host
-	} else {
-		warnGatherError("hostname", err)
-	}
+	uDat.Hostname = config.Hostname
 
 	if bts, err := sysinfo.PhysicalMemoryBytes(); nil == err {
 		mib := sysinfo.BytesToMebibytes(bts)

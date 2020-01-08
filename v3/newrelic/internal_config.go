@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/newrelic/go-agent/internal/sysinfo"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 	"github.com/newrelic/go-agent/v3/internal/utilization"
@@ -157,9 +158,8 @@ const (
 	metadataPrefix = "NEW_RELIC_METADATA_"
 )
 
-func gatherMetadata(environ func() []string) map[string]string {
+func gatherMetadata(env []string) map[string]string {
 	metadata := make(map[string]string)
-	env := environ()
 	for _, pair := range env {
 		if strings.HasPrefix(pair, metadataPrefix) {
 			idx := strings.Index(pair, "=")
@@ -173,24 +173,63 @@ func gatherMetadata(environ func() []string) map[string]string {
 
 // config satisfies internal.ConnectConfig which allows the internal package to
 // have access to connect fields without adding public methods to Config.
-type config struct{ Config }
+type config struct {
+	Config
+	metadata map[string]string
+	hostname string
+}
+
+func (c Config) computeDynoHostname(getenv func(string) string) string {
+	if !c.Heroku.UseDynoNames {
+		return ""
+	}
+	dyno := getenv("DYNO")
+	if dyno == "" {
+		return ""
+	}
+	for _, prefix := range c.Heroku.DynoNamePrefixesToShorten {
+		if prefix == "" {
+			continue
+		}
+		if strings.HasPrefix(dyno, prefix+".") {
+			dyno = prefix + ".*"
+			break
+		}
+	}
+	return dyno
+}
+
+func newInternalConfig(cfg Config, getenv func(string) string, environ []string) config {
+	var hostname string
+	if host := cfg.computeDynoHostname(getenv); host != "" {
+		hostname = host
+	} else if host, err := sysinfo.Hostname(); err == nil {
+		hostname = host
+	} else {
+		hostname = "unknown"
+	}
+	return config{
+		Config:   cfg,
+		metadata: gatherMetadata(environ),
+		hostname: hostname,
+	}
+}
 
 func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
-		DetectAWS:                 c.Utilization.DetectAWS,
-		DetectAzure:               c.Utilization.DetectAzure,
-		DetectPCF:                 c.Utilization.DetectPCF,
-		DetectGCP:                 c.Utilization.DetectGCP,
-		DetectDocker:              c.Utilization.DetectDocker,
-		DetectKubernetes:          c.Utilization.DetectKubernetes,
-		LogicalProcessors:         c.Utilization.LogicalProcessors,
-		TotalRAMMIB:               c.Utilization.TotalRAMMIB,
-		BillingHostname:           c.Utilization.BillingHostname,
-		UseDynoNames:              c.Heroku.UseDynoNames,
-		DynoNamePrefixesToShorten: c.Heroku.DynoNamePrefixesToShorten,
+		DetectAWS:         c.Utilization.DetectAWS,
+		DetectAzure:       c.Utilization.DetectAzure,
+		DetectPCF:         c.Utilization.DetectPCF,
+		DetectGCP:         c.Utilization.DetectGCP,
+		DetectDocker:      c.Utilization.DetectDocker,
+		DetectKubernetes:  c.Utilization.DetectKubernetes,
+		LogicalProcessors: c.Utilization.LogicalProcessors,
+		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
+		BillingHostname:   c.Utilization.BillingHostname,
+		Hostname:          c.hostname,
 	}, c.Logger)
-	return configConnectJSONInternal(c.Config, os.Getpid(), util, env, Version, securityPolicies, gatherMetadata(os.Environ))
+	return configConnectJSONInternal(c.Config, os.Getpid(), util, env, Version, securityPolicies, c.metadata)
 }
 
 var (
