@@ -2,6 +2,17 @@
 
 ### New Features
 
++ Distributed Tracing now supports W3C Trace Context headers.  When distributed
+  tracing is enabled with `Config.DistributedTracer.Enabled = true`, the agent
+  will now accept W3C's `traceparent` and `tracestate` headers when calling
+  [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders).
+  When calling
+  [`Transaction.InsertDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.InsertDistributedTraceHeaders)
+  the agent will include the W3C headers along with the New Relic distributed
+  tracing header.  To disable insertion of the New Relic distributed trace
+  header (while keeping the W3C headers) use the
+  `Config.DistributedTracer.ExcludeNewRelicHeader` configuration field.
+
 * Event data is now sent to New Relic every five seconds, instead of every
   minute. As a result, transaction, custom, and error events will appear in
   near-realtime within APM and Insights.
