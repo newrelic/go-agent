@@ -2,6 +2,7 @@ package nrawssdk
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -34,15 +35,29 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type fakeCreds struct{}
+type fakeCredsWithoutContext struct{}
 
-func (c fakeCreds) Retrieve() (aws.Credentials, error) {
+func (c fakeCredsWithoutContext) Retrieve() (aws.Credentials, error) {
 	return aws.Credentials{}, nil
 }
 
+type fakeCredsWithContext struct{}
+
+func (c fakeCredsWithContext) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{}, nil
+}
+
+var fakeCreds = func() interface{} {
+	var c interface{} = fakeCredsWithoutContext{}
+	if _, ok := c.(aws.CredentialsProvider); ok {
+		return c
+	}
+	return fakeCredsWithContext{}
+}()
+
 func newConfig(instrument bool) aws.Config {
 	cfg, _ := external.LoadDefaultAWSConfig()
-	cfg.Credentials = fakeCreds{}
+	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
 	cfg.Region = endpoints.UsWest2RegionID
 	cfg.HTTPClient = &http.Client{
 		Transport: &fakeTransport{},
