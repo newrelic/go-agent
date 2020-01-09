@@ -7,7 +7,9 @@ type DatastoreProduct string
 // Datastore names used across New Relic agents:
 const (
 	DatastoreCassandra     DatastoreProduct = "Cassandra"
+	DatastoreCouchDB       DatastoreProduct = "CouchDB"
 	DatastoreDerby         DatastoreProduct = "Derby"
+	DatastoreDynamoDB      DatastoreProduct = "DynamoDB"
 	DatastoreElasticsearch DatastoreProduct = "Elasticsearch"
 	DatastoreFirebird      DatastoreProduct = "Firebird"
 	DatastoreIBMDB2        DatastoreProduct = "IBMDB2"
@@ -20,10 +22,9 @@ const (
 	DatastoreOracle        DatastoreProduct = "Oracle"
 	DatastorePostgres      DatastoreProduct = "Postgres"
 	DatastoreRedis         DatastoreProduct = "Redis"
+	DatastoreRiak          DatastoreProduct = "Riak"
 	DatastoreSolr          DatastoreProduct = "Solr"
 	DatastoreSQLite        DatastoreProduct = "SQLite"
-	DatastoreCouchDB       DatastoreProduct = "CouchDB"
-	DatastoreRiak          DatastoreProduct = "Riak"
+	DatastoreTarantool     DatastoreProduct = "Tarantool"
 	DatastoreVoltDB        DatastoreProduct = "VoltDB"
-	DatastoreDynamoDB      DatastoreProduct = "DynamoDB"
 )
