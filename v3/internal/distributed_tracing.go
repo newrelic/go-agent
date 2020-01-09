@@ -315,25 +315,31 @@ func processNRDTString(str string, support *DistributedTracingSupport) (*Payload
 		support.AcceptPayloadParseException = true
 		return nil, err
 	}
+	support.AcceptPayloadSuccess = true
 	return payload, nil
 }
 
 func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *DistributedTracingSupport) (*Payload, error) {
 	p, err := processTraceParent(hdrs)
 	if nil != err {
-		support.AcceptPayloadParseException = true
+		support.TraceContextParentParseException = true
 		return nil, err
 	}
-	processTraceState(hdrs, trustedAccountKey, p)
+	err = processTraceState(hdrs, trustedAccountKey, p)
+	if nil != err {
+		support.TraceContextStateNoNrEntry = true
+	}
+	support.TraceContextAcceptSuccess = true
 	return p, nil
 }
 
 var (
-	errTooManyHdrs     = ErrPayloadParse{errors.New("too many TraceParent headers")}
-	errNumEntries      = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
-	errInvalidTraceID  = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
-	errInvalidParentID = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
-	errInvalidFlags    = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
+	errTooManyHdrs      = ErrPayloadParse{errors.New("too many TraceParent headers")}
+	errNumEntries       = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
+	errInvalidTraceID   = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
+	errInvalidParentID  = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
+	errInvalidFlags     = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
+	errMissingTrustedNR = ErrPayloadParse{errors.New("no trusted NR entry found in trace state")}
 )
 
 func processTraceParent(hdrs http.Header) (*Payload, error) {
@@ -376,7 +382,7 @@ func validateVersionAndFlags(subMatches []string) bool {
 	return true
 }
 
-func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
+func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) error {
 	traceStates := hdrs[DistributedTraceW3CTraceStateHeader]
 	fullTraceState := strings.Join(traceStates, ",")
 	p.OriginalTraceState = fullTraceState
@@ -384,12 +390,12 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	var trustedVal string
 	p.TracingVendors, p.NonTrustedTraceState, trustedVal = parseTraceState(fullTraceState, trustedAccountKey)
 	if trustedVal == "" {
-		return
+		return errMissingTrustedNR
 	}
 
 	matches := strings.Split(trustedVal, "-")
 	if len(matches) < 9 {
-		return
+		return errMissingTrustedNR
 	}
 
 	// Required Fields:
@@ -400,7 +406,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	timestamp, err := strconv.ParseUint(matches[8], 10, 64)
 
 	if nil != err || "" == version || "" == parentType || "" == account || "" == app {
-		return
+		return errMissingTrustedNR
 	}
 
 	p.TrustedAccountKey = trustedAccountKey
@@ -422,7 +428,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) {
 	}
 	p.Timestamp = timestampMillis(timeFromUnixMilliseconds(timestamp))
 	p.HasNewRelicTraceInfo = true
-	return
+	return nil
 }
 
 func parseTraceState(fullState, trustedAccountKey string) (nonTrustedVendors string, nonTrustedState string, trustedEntryValue string) {

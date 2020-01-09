@@ -322,6 +322,14 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		supportMetric(metrics, args.AcceptPayloadNullPayload, supportTracingAcceptNull)
 		supportMetric(metrics, args.CreatePayloadSuccess, supportTracingCreatePayloadSuccess)
 		supportMetric(metrics, args.CreatePayloadException, supportTracingCreatePayloadException)
+
+		supportMetric(metrics, args.TraceContextAcceptSuccess, supportTraceContextAcceptSuccess)
+		supportMetric(metrics, args.TraceContextAcceptException, supportTraceContextAcceptException)
+		supportMetric(metrics, args.TraceContextParentParseException, supportTraceContextParentParseException)
+		supportMetric(metrics, args.TraceContextStateParseException, supportTraceContextStateParseException)
+		supportMetric(metrics, args.TraceContextCreateSuccess, supportTraceContextCreateSuccess)
+		supportMetric(metrics, args.TraceContextCreateException, supportTraceContextCreateException)
+		supportMetric(metrics, args.TraceContextStateNoNrEntry, supportTraceContextStateNoNrEntry)
 	}
 
 	// Apdex Metrics

@@ -929,8 +929,12 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		return
 	}
 
+	excludeNRHeader := thd.Config.DistributedTracer.ExcludeNewRelicHeader
 	if txn.finished {
-		txn.CreatePayloadException = true
+		txn.TraceContextCreateException = true
+		if !excludeNRHeader {
+			txn.CreatePayloadException = true
+		}
 		return
 	}
 
@@ -972,11 +976,11 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		p.SetSampled(sampled)
 	}
 
-	txn.CreatePayloadSuccess = true
+	txn.TraceContextCreateSuccess = true
 
-	omitNRHeader := thd.Config.DistributedTracer.ExcludeNewRelicHeader
-	if !omitNRHeader {
+	if !excludeNRHeader {
 		hdrs.Set(internal.DistributedTraceNewRelicHeader, p.NRHTTPSafe())
+		txn.CreatePayloadSuccess = true
 	}
 
 	// ID must be present in the Traceparent header even if span events are
@@ -1087,8 +1091,6 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 	if tm := payload.Timestamp.Time(); txn.Start.After(tm) {
 		txn.BetterCAT.Inbound.TransportDuration = txn.Start.Sub(tm)
 	}
-
-	txn.AcceptPayloadSuccess = true
 
 	return nil
 }

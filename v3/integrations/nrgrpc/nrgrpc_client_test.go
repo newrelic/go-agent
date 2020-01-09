@@ -117,6 +117,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryUnary", Scope: "OtherTransaction/Go/UnaryUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -209,6 +210,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/bufnet/gRPC/TestApplication/DoUnaryStream", Scope: "OtherTransaction/Go/UnaryStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -299,6 +301,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/bufnet/gRPC/TestApplication/DoStreamUnary", Scope: "OtherTransaction/Go/StreamUnary", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -402,6 +405,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{Name: "External/bufnet/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/bufnet/gRPC/TestApplication/DoStreamStream", Scope: "OtherTransaction/Go/StreamStream", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -559,6 +563,7 @@ func TestClientStreamingError(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{

@@ -162,6 +162,7 @@ func TestRoundTripper(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Data: nil},
 	}, backgroundErrorMetrics...))
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

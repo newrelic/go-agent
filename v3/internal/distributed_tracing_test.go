@@ -42,8 +42,8 @@ func TestPayloadText(t *testing.T) {
 	if err != nil || out == nil {
 		t.Fatal(err, out)
 	}
-	if !support.isEmpty() {
-		t.Error("support flags expected to be empty", support)
+	if !support.AcceptPayloadSuccess {
+		t.Error("unexpected support flags", support)
 	}
 	out.Timestamp = samplePayload.Timestamp // account for timezone differences
 	if samplePayload != *out {
@@ -59,8 +59,8 @@ func TestPayloadHTTPSafe(t *testing.T) {
 	if err != nil || nil == out {
 		t.Fatal(err, out)
 	}
-	if !support.isEmpty() {
-		t.Error("support flags expected to be empty", support)
+	if !support.AcceptPayloadSuccess {
+		t.Error("unexpected support flags", support)
 	}
 	out.Timestamp = samplePayload.Timestamp // account for timezone differences
 	if samplePayload != *out {
@@ -597,8 +597,8 @@ func TestTraceStateSpanTxnIDs(t *testing.T) {
 	if err != nil {
 		t.Error("failure to AcceptPayload:", err)
 	}
-	if !support.isEmpty() {
-		t.Error("support flags expected to be empty", support)
+	if !support.TraceContextAcceptSuccess {
+		t.Error("unexpected support flags", support)
 	}
 	if p.TrustedParentID != "meatball!" {
 		t.Error("wrong payload ID", p.ID)

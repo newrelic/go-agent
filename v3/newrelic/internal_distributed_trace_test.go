@@ -120,7 +120,7 @@ var (
 		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: singleCount},
 	}
 )
 
@@ -329,6 +329,7 @@ func TestPayloadAcceptAfterCreate(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/CreateBeforeAccept", Scope: "", Forced: true, Data: singleCount},
 	}, backgroundMetricsUnknownCaller...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
@@ -515,6 +516,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/UntrustedAccount", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
 	}, backgroundMetricsUnknownCaller...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
@@ -822,7 +824,7 @@ func TestErrorsByCaller(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
@@ -916,6 +918,7 @@ func TestCreateDistributedTraceBetterCatEnabled(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
 
@@ -969,6 +972,7 @@ func TestCreateDistributedTraceRequiredFields(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
 
@@ -993,6 +997,7 @@ func TestCreateDistributedTraceTrustKeyAbsent(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
 
@@ -1013,6 +1018,7 @@ func TestCreateDistributedTraceTrustKeyNeeded(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
 
@@ -1455,7 +1461,7 @@ func TestW3CTraceHeaders(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 
 }
@@ -1465,8 +1471,8 @@ var acceptAndSendDT = []internal.WantMetric{
 	{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 	{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
 	{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-	{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-	{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+	{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
+	{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	{Name: "DurationByCaller/App/1349956/41346604/HTTP/all", Scope: "", Forced: false, Data: nil},
 	{Name: "DurationByCaller/App/1349956/41346604/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 	{Name: "TransportDuration/App/1349956/41346604/HTTP/all", Scope: "", Forced: false, Data: nil},
@@ -1497,8 +1503,9 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}, backgroundUnknownCaller...))
@@ -1565,7 +1572,7 @@ func TestW3CTraceHeadersSpansDisabledNoTraceState(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 
 }
@@ -1595,8 +1602,9 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}, backgroundUnknownCaller...))
@@ -2066,6 +2074,6 @@ func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 	txn.End()
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
-		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
