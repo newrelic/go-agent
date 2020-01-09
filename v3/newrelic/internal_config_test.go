@@ -460,22 +460,20 @@ func TestValidateWithPoliciesToken(t *testing.T) {
 }
 
 func TestGatherMetadata(t *testing.T) {
-	metadata := gatherMetadata(func() []string { return nil })
+	metadata := gatherMetadata(nil)
 	if !reflect.DeepEqual(metadata, map[string]string{}) {
 		t.Error(metadata)
 	}
-	metadata = gatherMetadata(func() []string {
-		return []string{
-			"NEW_RELIC_METADATA_ZIP=zap",
-			"NEW_RELIC_METADATA_PIZZA=cheese",
-			"NEW_RELIC_METADATA_=hello",
-			"NEW_RELIC_METADATA_LOTS_OF_EQUALS=one=two",
-			"NEW_RELIC_METADATA_",
-			"NEW_RELIC_METADATA_NO_EQUALS",
-			"NEW_RELIC_METADATA_EMPTY=",
-			"NEW_RELIC_",
-			"hello=world",
-		}
+	metadata = gatherMetadata([]string{
+		"NEW_RELIC_METADATA_ZIP=zap",
+		"NEW_RELIC_METADATA_PIZZA=cheese",
+		"NEW_RELIC_METADATA_=hello",
+		"NEW_RELIC_METADATA_LOTS_OF_EQUALS=one=two",
+		"NEW_RELIC_METADATA_",
+		"NEW_RELIC_METADATA_NO_EQUALS",
+		"NEW_RELIC_METADATA_EMPTY=",
+		"NEW_RELIC_",
+		"hello=world",
 	})
 	if !reflect.DeepEqual(metadata, map[string]string{
 		"NEW_RELIC_METADATA_ZIP":            "zap",
@@ -530,7 +528,7 @@ func TestPreconnectHost(t *testing.T) {
 		},
 	}
 	for idx, tc := range testcases {
-		cfg := config{Config{
+		cfg := config{Config: Config{
 			License: tc.license,
 			Host:    tc.override,
 		}}
@@ -565,7 +563,7 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 			overrideHost = tc.EnvOverrideHost
 		}
 
-		cfg := config{Config{
+		cfg := config{Config: Config{
 			License: configKey,
 			Host:    overrideHost,
 		}}
@@ -577,18 +575,18 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 
 func TestConfigSecurityPoliciesTokenMethod(t *testing.T) {
 	token := "mySecurityToken01234"
-	cfg := config{Config{SecurityPoliciesToken: token}}
+	cfg := config{Config: Config{SecurityPoliciesToken: token}}
 	if got := cfg.SecurityPoliciesToken(); got != token {
 		t.Error(got, token)
 	}
 }
 
 func TestConfigHighSecurityMethod(t *testing.T) {
-	cfg := config{Config{HighSecurity: true}}
+	cfg := config{Config: Config{HighSecurity: true}}
 	if s := cfg.HighSecurity(); !s {
 		t.Error(s)
 	}
-	cfg = config{Config{HighSecurity: false}}
+	cfg = config{Config: Config{HighSecurity: false}}
 	if s := cfg.HighSecurity(); s {
 		t.Error(s)
 	}
@@ -622,5 +620,82 @@ func TestConfigMaxTxnEvents(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 1
 	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
 		t.Error(n)
+	}
+}
+
+func TestComputeDynoHostname(t *testing.T) {
+	testcases := []struct {
+		useDynoNames     bool
+		dynoNamePrefixes []string
+		envVarValue      string
+		expected         string
+	}{
+		{
+			useDynoNames: false,
+			envVarValue:  "dynoname",
+			expected:     "",
+		},
+		{
+			useDynoNames: true,
+			envVarValue:  "",
+			expected:     "",
+		},
+		{
+			useDynoNames: true,
+			envVarValue:  "dynoname",
+			expected:     "dynoname",
+		},
+		{
+			useDynoNames:     true,
+			dynoNamePrefixes: []string{"example"},
+			envVarValue:      "dynoname",
+			expected:         "dynoname",
+		},
+		{
+			useDynoNames:     true,
+			dynoNamePrefixes: []string{""},
+			envVarValue:      "dynoname",
+			expected:         "dynoname",
+		},
+		{
+			useDynoNames:     true,
+			dynoNamePrefixes: []string{"example", "ex"},
+			envVarValue:      "example.asdfasdfasdf",
+			expected:         "example.*",
+		},
+		{
+			useDynoNames:     true,
+			dynoNamePrefixes: []string{"example", "ex"},
+			envVarValue:      "exampleasdfasdfasdf",
+			expected:         "exampleasdfasdfasdf",
+		},
+	}
+
+	for _, test := range testcases {
+		getenv := func(string) string { return test.envVarValue }
+		cfg := Config{}
+		cfg.Heroku.UseDynoNames = test.useDynoNames
+		cfg.Heroku.DynoNamePrefixesToShorten = test.dynoNamePrefixes
+		if actual := cfg.computeDynoHostname(getenv); actual != test.expected {
+			t.Errorf("unexpected output: actual=%s expected=%s", actual, test.expected)
+		}
+	}
+}
+
+func TestNewInternalConfig(t *testing.T) {
+	c := newInternalConfig(defaultConfig(), func(s string) string {
+		switch s {
+		case "DYNO":
+			return "mydyno"
+		}
+		return ""
+	}, []string{"NEW_RELIC_METADATA_ZIP=ZAP"})
+	if c.hostname != "mydyno" {
+		t.Error(c.hostname)
+	}
+	if !reflect.DeepEqual(c.metadata, map[string]string{
+		"NEW_RELIC_METADATA_ZIP": "ZAP",
+	}) {
+		t.Error(c.metadata)
 	}
 }

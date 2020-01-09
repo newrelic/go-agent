@@ -119,8 +119,7 @@ func TestUtilizationHash(t *testing.T) {
 		nil == data.LogicalProcessors ||
 		0 == *data.LogicalProcessors ||
 		data.RAMMiB == nil ||
-		*data.RAMMiB == 0 ||
-		data.Hostname == "" {
+		*data.RAMMiB == 0 {
 		t.Errorf("utilization data unexpected fields: %+v", data)
 	}
 }

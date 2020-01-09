@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 // appRun contains information regarding a single connection session with the
@@ -17,17 +16,13 @@ type appRun struct {
 	// AttributeConfig is calculated on every connect since it depends on
 	// the security policies.
 	AttributeConfig *internal.AttributeConfig
-	Config          Config
+	Config          config
 
 	// firstAppName is the value of Config.AppName up to the first semicolon.
 	firstAppName string
-
-	// hostname is the hostname of this host taking into account Heroku dyno
-	// names.
-	hostname string
 }
 
-func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
+func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	convertConfig := func(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
 		return internal.AttributeDestinationConfig{
 			Enabled: c.Enabled,
@@ -104,15 +99,8 @@ func newAppRun(config Config, reply *internal.ConnectReply) *appRun {
 	// Cache the first application name set on the config
 	run.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
 
-	// Cache the value of hostname for this host
-	if host, err := sysinfo.Hostname(config.Heroku.UseDynoNames, config.Heroku.DynoNamePrefixesToShorten); err == nil {
-		run.hostname = host
-	} else {
-		run.hostname = "unknown"
-	}
-
 	if "" != run.Reply.RunID {
-		js, _ := json.Marshal(settings(run.Config))
+		js, _ := json.Marshal(settings(run.Config.Config))
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
 			"config": internal.JSONString(js),
 		})
@@ -132,7 +120,7 @@ const (
 	serverlessSamplerTarget = 10
 )
 
-func newServerlessConnectReply(config Config) *internal.ConnectReply {
+func newServerlessConnectReply(config config) *internal.ConnectReply {
 	reply := internal.ConnectReplyDefaults()
 
 	reply.ApdexThresholdSeconds = config.ServerlessMode.ApdexThreshold.Seconds()
