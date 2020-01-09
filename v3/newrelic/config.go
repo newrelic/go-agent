@@ -221,14 +221,15 @@ type Config struct {
 	// https://docs.newrelic.com/docs/apm/distributed-tracing/getting-started/introduction-distributed-tracing
 	DistributedTracer struct {
 		Enabled bool
-		// InsertNewRelicHeader allows you to choose whether to insert the New
-		// Relic Distributed Tracing header, which by default is emitted along
-		// with the W3C trace context headers.
+		// ExcludeNewRelicHeader allows you to choose whether to insert the New
+		// Relic Distributed Tracing header on outbound requests, which by
+		// default is emitted along with the W3C trace context headers.  Set
+		// this value to true if you do not want to include the New Relic
+		// distributed tracing header in your outbound requests.
 		//
-		// The agent accepts and inserts both New Relic and W3C distributed
-		// tracing headers by default.  Disabling the New Relic header here
-		// does not prevent the agent from accepting inbound New Relic headers.
-		InsertNewRelicHeader bool
+		// Disabling the New Relic header here does not prevent the agent from
+		// accepting *inbound* New Relic headers.
+		ExcludeNewRelicHeader bool
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
@@ -572,7 +573,6 @@ func defaultConfig() Config {
 
 	c.CrossApplicationTracer.Enabled = true
 	c.DistributedTracer.Enabled = false
-	c.DistributedTracer.InsertNewRelicHeader = true
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 

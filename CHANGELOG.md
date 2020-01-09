@@ -11,7 +11,7 @@
   the agent will include the W3C headers along with the New Relic distributed
   tracing header.  To disable insertion of the New Relic distributed trace
   header (while keeping the W3C headers) use the
-  `Config.DistributedTracer.InsertNewRelicHeader` configuration field.
+  `Config.DistributedTracer.ExcludeNewRelicHeader` configuration field.
 
 * Event data is now sent to New Relic every five seconds, instead of every
   minute. As a result, transaction, custom, and error events will appear in

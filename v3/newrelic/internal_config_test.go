@@ -98,7 +98,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":false,"InsertNewRelicHeader":true},
+			"DistributedTracer":{"Enabled":false,"ExcludeNewRelicHeader":false},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -267,7 +267,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":false,"InsertNewRelicHeader":true},
+			"DistributedTracer":{"Enabled":false,"ExcludeNewRelicHeader":false},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{

@@ -222,9 +222,9 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // time an outbound call is made since the payload contains a timestamp.
 //
 // When the Distributed Tracer is enabled, InsertDistributedTraceHeaders will
-// always insert W3C trace context headers.  It will also insert the New Relic
-// distributed tracing header based on the Config.InsertNewRelicHeader option
-// which defaults to true.
+// always insert W3C trace context headers.  It also by default inserts the New Relic
+// distributed tracing header, but can be configured based on the
+// Config.DistributedTracer.ExcludeNewRelicHeader option.
 //
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
