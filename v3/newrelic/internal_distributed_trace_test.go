@@ -58,6 +58,9 @@ func distributedTracingReplyFieldsSpansDisabled(reply *internal.ConnectReply) {
 	reply.AdaptiveSampler = internal.SampleEverything{}
 	reply.TraceIDGenerator = internal.NewTraceIDGenerator(1)
 	reply.CollectSpanEvents = false
+	reply.DistributedTraceTimestampGenerator = func() time.Time {
+		return time.Unix(1577830891, 900000000)
+	}
 }
 
 func getDTHeaders(app *Application) http.Header {
@@ -1555,7 +1558,7 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 
 }
 
-func TestW3CTraceHeadersSpansDisabledNoTraceState(t *testing.T) {
+func TestW3CTraceHeadersSpansDisabledSampledTrue(t *testing.T) {
 	app := testApp(distributedTracingReplyFieldsSpansDisabled, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
 
@@ -1564,6 +1567,34 @@ func TestW3CTraceHeadersSpansDisabledNoTraceState(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-1-1.437714-1577830891900"},
+	}) {
+		t.Error(hdrs)
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+
+}
+
+func TestW3CTraceHeadersSpansDisabledSampledFalse(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		distributedTracingReplyFieldsSpansDisabled(reply)
+		reply.AdaptiveSampler = internal.SampleNothing{}
+	}
+	app := testApp(replyfn, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-0-0.437714-1577830891900"},
 	}) {
 		t.Error(hdrs)
 	}
@@ -1593,7 +1624,7 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 
 	if !reflect.DeepEqual(hdrs, http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
-		DistributedTraceW3CTraceStateHeader:  []string{originalTraceState},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-1-1.437714-1577830891900," + originalTraceState},
 	}) {
 		t.Error(hdrs)
 	}
@@ -1608,7 +1639,84 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}, backgroundUnknownCaller...))
+}
 
+func TestW3CTraceHeadersTxnEventsDisabled(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		enableW3COnly(cfg)
+		cfg.TransactionEvents.Enabled = false
+	}
+	app := testApp(distributedTracingReplyFields, cfgfn, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6--1-1.437714-1577830891900"},
+	}) {
+		t.Error(hdrs)
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+}
+
+func TestW3CTraceHeadersTxnAndSpanEventsDisabledSampledTrue(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		enableW3COnly(cfg)
+		cfg.TransactionEvents.Enabled = false
+	}
+	app := testApp(distributedTracingReplyFieldsSpansDisabled, cfgfn, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456---1-1.437714-1577830891900"},
+	}) {
+		t.Error(hdrs)
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+}
+
+func TestW3CTraceHeadersTxnAndSpanEventsDisabledSampledFalse(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		enableW3COnly(cfg)
+		cfg.TransactionEvents.Enabled = false
+	}
+	app := testApp(distributedTracingReplyFieldsSpansDisabled, cfgfn, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	if !reflect.DeepEqual(hdrs, http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456---1-1.437714-1577830891900"},
+	}) {
+		t.Error(hdrs)
+	}
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
 }
 
 func TestW3CTraceHeadersNoTraceState(t *testing.T) {
@@ -1760,40 +1868,6 @@ func TestW3CTraceParentWithoutTraceContext(t *testing.T) {
 			"parent.transportType": "HTTP",
 		},
 	}})
-}
-
-func TestSpansDisabledTraceStateHeader(t *testing.T) {
-	// Test that the tracestate header is properly propagated when span events
-	// are disabled.  In all cases, the incoming tracestate header will be
-	// propagated unchanged.  Note: trusted account key in the
-	// distributedTracingReplyFields is 123.
-	testcases := map[string]string{
-		"empty_tracestate":           "",
-		"non-trusted_nr_key":         "33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0",
-		"non-newrelic_key":           "purple=bestcolor",
-		"non-trusted_and_non-nr":     "33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,purple=bestcolor",
-		"trusted_newrelic_key":       "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0",
-		"trusted_non-nr_non-trusted": "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,33@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0,purple=bestcolor",
-	}
-	traceparent := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
-
-	for name, tracestate := range testcases {
-		t.Run(name, func(t *testing.T) {
-			app := testApp(distributedTracingReplyFields, disableSpanEvents, t)
-			txn := app.StartTransaction("hello")
-			in := http.Header{}
-			in.Add(DistributedTraceW3CTraceStateHeader, tracestate)
-			in.Add(DistributedTraceW3CTraceParentHeader, traceparent)
-			txn.AcceptDistributedTraceHeaders(TransportHTTP, in)
-
-			out := http.Header{}
-			txn.InsertDistributedTraceHeaders(out)
-
-			if h := out.Get(DistributedTraceW3CTraceStateHeader); h != tracestate {
-				t.Errorf("incorrect outgoing tracestate header: expected=%s actual=%s", tracestate, h)
-			}
-		})
-	}
 }
 
 func TestDistributedTraceInteroperabilityErrorFallbacks(t *testing.T) {
