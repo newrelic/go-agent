@@ -2157,7 +2157,7 @@ func TestDistributedTracingConstantsMatch(t *testing.T) {
 		t.Fatal(DistributedTraceNewRelicHeader, internal.DistributedTraceNewRelicHeader)
 	}
 	if DistributedTraceW3CTraceStateHeader != internal.DistributedTraceW3CTraceStateHeader {
-		t.Fatal(DistributedTraceW3CTraceStateHeader, DistributedTraceW3CTraceStateHeader)
+		t.Fatal(DistributedTraceW3CTraceStateHeader, internal.DistributedTraceW3CTraceStateHeader)
 	}
 	if DistributedTraceW3CTraceParentHeader != internal.DistributedTraceW3CTraceParentHeader {
 		t.Fatal(DistributedTraceW3CTraceParentHeader, DistributedTraceW3CTraceParentHeader)
