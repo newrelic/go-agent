@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -459,4 +460,42 @@ func TestSearch(t *testing.T) {
 		{Name: "Datastore/statement/Elasticsearch/myindex/search"},
 		{Name: "Datastore/statement/Elasticsearch/myindex/search", Scope: "OtherTransaction/Go/txnName"},
 	})
+}
+
+func TestInfoRequest(t *testing.T) {
+	// Test that the instrumentation works as expected when the Do()
+	// request pattern is used.
+	app := createTestApp()
+	txn := app.StartTransaction("txnName")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	client, err := elasticsearch.NewClient(elasticsearch.Config{
+		Transport: NewRoundTripper(roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			return nil, errSomething
+		})),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := esapi.InfoRequest{}
+	_, err = req.Do(ctx, client)
+	if err != errSomething {
+		t.Fatal(err)
+	}
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransactionTotalTime/Go/txnName"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther"},
+		{Name: "OtherTransaction/Go/txnName"},
+		{Name: "OtherTransaction/all"},
+		{Name: "OtherTransactionTotalTime"},
+		{Name: "Datastore/all", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/Elasticsearch/all", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/Elasticsearch/allOther", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/Elasticsearch/info", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/Elasticsearch/info", Scope: "OtherTransaction/Go/txnName", Forced: nil, Data: nil},
+	})
+
 }
