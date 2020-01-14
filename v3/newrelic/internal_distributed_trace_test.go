@@ -2154,7 +2154,7 @@ func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 
 func TestDistributedTracingConstantsMatch(t *testing.T) {
 	if DistributedTraceNewRelicHeader != internal.DistributedTraceNewRelicHeader {
-		t.Fatal(DistributedTraceNewRelicHeader, DistributedTraceNewRelicHeader)
+		t.Fatal(DistributedTraceNewRelicHeader, internal.DistributedTraceNewRelicHeader)
 	}
 	if DistributedTraceW3CTraceStateHeader != internal.DistributedTraceW3CTraceStateHeader {
 		t.Fatal(DistributedTraceW3CTraceStateHeader, DistributedTraceW3CTraceStateHeader)
