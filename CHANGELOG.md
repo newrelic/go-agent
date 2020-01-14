@@ -2,16 +2,23 @@
 
 ### New Features
 
-+ Distributed Tracing now supports W3C Trace Context headers.  When distributed
-  tracing is enabled with `Config.DistributedTracer.Enabled = true`, the agent
-  will now accept W3C's `traceparent` and `tracestate` headers when calling
-  [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders).
-  When calling
-  [`Transaction.InsertDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.InsertDistributedTraceHeaders)
-  the agent will include the W3C headers along with the New Relic distributed
-  tracing header.  To disable insertion of the New Relic distributed trace
-  header (while keeping the W3C headers) use the
-  `Config.DistributedTracer.ExcludeNewRelicHeader` configuration field.
+* Support for W3C Trace Context, with easy upgrade from New Relic trace context
+  * Distributed Tracing now supports W3C Trace Context headers for HTTP and
+    gRPC protocols when distributed tracing is enabled.  Our implementation can
+    accept and emit both W3C trace header format and New Relic trace header
+    format.  This simplifies agent upgrades, allowing trace context to be
+    propagated between services with older and newer releases of New Relic
+    agents.  W3C trace header format will always be accepted and emitted.  New
+    Relic trace header format will be accepted, and you can optionally disable
+    emission of the New Relic trace header format.
+  * When distributed tracing is enabled with
+    `Config.DistributedTracer.Enabled = true`, the Go agent will now accept
+    W3C's `traceparent` and `tracestate` headers when calling
+    [`Transaction.AcceptDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.AcceptDistributedTraceHeaders).  When calling
+    [`Transaction.InsertDistributedTraceHeaders`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.InsertDistributedTraceHeaders), the Go agent will include the
+    W3C headers along with the New Relic distributed tracing header, unless
+    the New Relic trace header format is disabled using
+    `Config.DistributedTracer.ExcludeNewRelicHeader = true`.
 
 * Event data is now sent to New Relic every five seconds, instead of every
   minute. As a result, transaction, custom, and error events will appear in
