@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -379,13 +377,13 @@ func (txn *Transaction) IsSampled() bool {
 const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
-	DistributedTraceNewRelicHeader = internal.DistributedTraceNewRelicHeader
+	DistributedTraceNewRelicHeader = "Newrelic"
 	// DistributedTraceW3CTraceStateHeader is one of two headers used by W3C
 	// trace context
-	DistributedTraceW3CTraceStateHeader = internal.DistributedTraceW3CTraceStateHeader
+	DistributedTraceW3CTraceStateHeader = "Tracestate"
 	// DistributedTraceW3CTraceParentHeader is one of two headers used by W3C
 	// trace context
-	DistributedTraceW3CTraceParentHeader = internal.DistributedTraceW3CTraceParentHeader
+	DistributedTraceW3CTraceParentHeader = "Traceparent"
 )
 
 // TransportType is used in Transaction.AcceptDistributedTraceHeaders to

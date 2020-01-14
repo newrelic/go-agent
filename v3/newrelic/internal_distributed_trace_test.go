@@ -2151,3 +2151,15 @@ func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCaller...))
 }
+
+func TestDistributedTracingConstantsMatch(t *testing.T) {
+	if DistributedTraceNewRelicHeader != internal.DistributedTraceNewRelicHeader {
+		t.Fatal(DistributedTraceNewRelicHeader, DistributedTraceNewRelicHeader)
+	}
+	if DistributedTraceW3CTraceStateHeader != internal.DistributedTraceW3CTraceStateHeader {
+		t.Fatal(DistributedTraceW3CTraceStateHeader, DistributedTraceW3CTraceStateHeader)
+	}
+	if DistributedTraceW3CTraceParentHeader != internal.DistributedTraceW3CTraceParentHeader {
+		t.Fatal(DistributedTraceW3CTraceParentHeader, DistributedTraceW3CTraceParentHeader)
+	}
+}
