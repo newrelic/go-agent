@@ -983,8 +983,8 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		txn.CreatePayloadSuccess = true
 	}
 
-	// ID must be present in the Traceparent header even if span events are
-	// disabled or the transaction is not sampled.  Note that this
+	// ID must be present in the Traceparent header when span events are
+	// enabled, even if the transaction is not sampled.  Note that this
 	// assignment occurs after setting the Newrelic header since the ID
 	// field of the Newrelic header should be empty if span events are
 	// disabled or the transaction is not sampled.
@@ -993,15 +993,13 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	}
 	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, p.W3CTraceParent())
 
-	// The agent should forward the tracestate header value unchanged when
-	// span events are disabled.
 	if !txn.SpanEventsEnabled {
-		if state := p.OriginalTraceState; state != "" {
-			hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, state)
-		}
-	} else {
-		hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, p.W3CTraceState())
+		p.ID = ""
 	}
+	if !txn.Config.TransactionEvents.Enabled {
+		p.TransactionID = ""
+	}
+	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, p.W3CTraceState())
 }
 
 var (
