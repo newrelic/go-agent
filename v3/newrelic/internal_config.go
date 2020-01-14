@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/newrelic/go-agent/internal/sysinfo"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
