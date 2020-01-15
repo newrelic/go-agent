@@ -20,6 +20,10 @@
     the New Relic trace header format is disabled using
     `Config.DistributedTracer.ExcludeNewRelicHeader = true`.
 
+* Added support for [elastic/go-elasticsearch](https://github.com/elastic/go-elasticsearch)
+  in the new [v3/integrations/nrelasticsearch-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7)
+  package.
+
 * Event data is now sent to New Relic every five seconds, instead of every
   minute. As a result, transaction, custom, and error events will appear in
   near-realtime within APM and Insights.
