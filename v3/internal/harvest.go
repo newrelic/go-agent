@@ -290,7 +290,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	// Better CAT Metrics
 	if cat := args.BetterCAT; cat.Enabled {
 		caller := callerUnknown
-		if nil != cat.Inbound {
+		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
 			caller = cat.Inbound.payloadCaller
 		}
 		m := durationByCallerMetric(caller)
@@ -322,6 +322,15 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		supportMetric(metrics, args.AcceptPayloadNullPayload, supportTracingAcceptNull)
 		supportMetric(metrics, args.CreatePayloadSuccess, supportTracingCreatePayloadSuccess)
 		supportMetric(metrics, args.CreatePayloadException, supportTracingCreatePayloadException)
+
+		supportMetric(metrics, args.TraceContextAcceptSuccess, supportTraceContextAcceptSuccess)
+		supportMetric(metrics, args.TraceContextAcceptException, supportTraceContextAcceptException)
+		supportMetric(metrics, args.TraceContextParentParseException, supportTraceContextParentParseException)
+		supportMetric(metrics, args.TraceContextStateParseException, supportTraceContextStateParseException)
+		supportMetric(metrics, args.TraceContextCreateSuccess, supportTraceContextCreateSuccess)
+		supportMetric(metrics, args.TraceContextCreateException, supportTraceContextCreateException)
+		supportMetric(metrics, args.TraceContextStateInvalidNrEntry, supportTraceContextStateInvalidNrEntry)
+		supportMetric(metrics, args.TraceContextStateNoNrEntry, supportTraceContextStateNoNrEntry)
 	}
 
 	// Apdex Metrics

@@ -127,15 +127,17 @@ func sharedTransactionIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 func sharedBetterCATIntrinsics(e *TxnEvent, w *jsonFieldsWriter) {
 	if e.BetterCAT.Enabled {
 		if p := e.BetterCAT.Inbound; nil != p {
-			w.stringField("parent.type", p.Type)
-			w.stringField("parent.app", p.App)
-			w.stringField("parent.account", p.Account)
+			if p.HasNewRelicTraceInfo {
+				w.stringField("parent.type", p.Type)
+				w.stringField("parent.app", p.App)
+				w.stringField("parent.account", p.Account)
+				w.floatField("parent.transportDuration", p.TransportDuration.Seconds())
+			}
 			w.stringField("parent.transportType", p.TransportType)
-			w.floatField("parent.transportDuration", p.TransportDuration.Seconds())
 		}
 
-		w.stringField("guid", e.BetterCAT.ID)
-		w.stringField("traceId", e.BetterCAT.TraceID())
+		w.stringField("guid", e.BetterCAT.TxnID)
+		w.stringField("traceId", e.BetterCAT.TraceID)
 		w.writerField("priority", e.BetterCAT.Priority)
 		w.boolField("sampled", e.BetterCAT.Sampled)
 	}

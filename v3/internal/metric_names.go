@@ -65,6 +65,16 @@ const (
 	supportTracingCreatePayloadSuccess   = "Supportability/DistributedTrace/CreatePayload/Success"
 	supportTracingCreatePayloadException = "Supportability/DistributedTrace/CreatePayload/Exception"
 
+	// W3C Trace Context Supportability Metrics
+	supportTraceContextAcceptSuccess        = "Supportability/TraceContext/Accept/Success"
+	supportTraceContextAcceptException      = "Supportability/TraceContext/Accept/Exception"
+	supportTraceContextParentParseException = "Supportability/TraceContext/TraceParent/Parse/Exception"
+	supportTraceContextStateParseException  = "Supportability/TraceContext/TraceState/Parse/Exception"
+	supportTraceContextCreateSuccess        = "Supportability/TraceContext/Create/Success"
+	supportTraceContextCreateException      = "Supportability/TraceContext/Create/Exception"
+	supportTraceContextStateInvalidNrEntry  = "Supportability/TraceContext/TraceState/InvalidNrEntry"
+	supportTraceContextStateNoNrEntry       = "Supportability/TraceContext/TraceState/NoNrEntry"
+
 	// Configurable event harvest supportability metrics
 	supportReportPeriod     = "Supportability/EventHarvest/ReportPeriod"
 	supportTxnEventLimit    = "Supportability/EventHarvest/AnalyticEventData/HarvestLimit"
@@ -76,6 +86,7 @@ const (
 // DistributedTracingSupport is used to track distributed tracing activity for
 // supportability.
 type DistributedTracingSupport struct {
+	// New Relic DT fields
 	AcceptPayloadSuccess            bool // AcceptPayload was called successfully
 	AcceptPayloadException          bool // AcceptPayload had a generic exception
 	AcceptPayloadParseException     bool // AcceptPayload had a parsing exception
@@ -86,6 +97,20 @@ type DistributedTracingSupport struct {
 	AcceptPayloadNullPayload        bool // AcceptPayload was ignored because the payload was nil
 	CreatePayloadSuccess            bool // CreatePayload was called successfully
 	CreatePayloadException          bool // CreatePayload had a generic exception
+
+	// W3C Trace Context fields
+	TraceContextAcceptSuccess        bool // The agent successfully accepted inbound traceparent and tracestate headers.
+	TraceContextAcceptException      bool // A generic exception occurred unrelated to parsing while accepting either payload.
+	TraceContextParentParseException bool // The inbound traceparent header could not be parsed.
+	TraceContextStateParseException  bool // The inbound tracestate header could not be parsed.
+	TraceContextStateInvalidNrEntry  bool // The inbound tracestate header exists, and was accepted, but the New Relic entry was invalid.
+	TraceContextStateNoNrEntry       bool // The traceparent header exists, and was accepted, but the tracestate header did not contain a trusted New Relic entry.
+	TraceContextCreateSuccess        bool // The agent successfully created the outbound payloads.
+	TraceContextCreateException      bool // A generic exception occurred while creating the outbound payloads.
+}
+
+func (support DistributedTracingSupport) isEmpty() bool {
+	return (DistributedTracingSupport{}) == support
 }
 
 type rollupMetric struct {

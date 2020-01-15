@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
+
 	proto "github.com/newrelic/go-agent/v3/integrations/nrmicro/example/proto"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -188,6 +189,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/testing/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/testing/Micro/TestHandler.Method", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
@@ -343,6 +345,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/name", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -507,6 +510,7 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 		{Name: "External/testing/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/testing/Micro/TestHandler.StreamingMethod", Scope: "OtherTransaction/Go/name", Forced: false, Data: []float64{1}},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -581,7 +585,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 		{Name: "TransportDuration/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/TestHandler.Method", Scope: "", Forced: false, Data: nil},
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
@@ -595,10 +599,11 @@ func TestServerWrapperWithApp(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -877,7 +882,7 @@ func TestServerSubscribe(t *testing.T) {
 		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/segment", Scope: "OtherTransaction/Go/Message/Micro/Topic/Named/topic", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
@@ -885,10 +890,11 @@ func TestServerSubscribe(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint": true,
-				"parentId":      internal.MatchAnything,
+				"category":        "generic",
+				"name":            "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

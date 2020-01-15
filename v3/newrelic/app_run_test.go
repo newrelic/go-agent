@@ -292,8 +292,13 @@ func TestReplyTraceIDGenerator(t *testing.T) {
 	reply := internal.ConnectReplyDefaults()
 	id1 := reply.TraceIDGenerator.GenerateTraceID()
 	id2 := reply.TraceIDGenerator.GenerateTraceID()
-	if len(id1) != 16 || len(id2) != 16 || id1 == id2 {
+	if len(id1) != 32 || len(id2) != 32 || id1 == id2 {
 		t.Error(id1, id2)
+	}
+	spanID1 := reply.TraceIDGenerator.GenerateSpanID()
+	spanID2 := reply.TraceIDGenerator.GenerateSpanID()
+	if len(spanID1) != 16 || len(spanID2) != 16 || spanID1 == spanID2 {
+		t.Error(spanID1, spanID2)
 	}
 }
 

@@ -186,7 +186,8 @@ func TestSpanEventsMergeFromTransaction(t *testing.T) {
 	args.BetterCAT.Sampled = true
 	args.BetterCAT.Priority = 0.7
 	args.BetterCAT.Enabled = true
-	args.BetterCAT.ID = "txn-id"
+	args.BetterCAT.TxnID = "txn-id"
+	args.BetterCAT.TraceID = "inbound-trace-id"
 	args.BetterCAT.Inbound = &Payload{
 		ID:       "inbound-id",
 		TracedID: "inbound-trace-id",

@@ -116,7 +116,8 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
 // the request is non-nil, SetWebRequestHTTP will additionally collect
 // details on request attributes, url, and method.  If headers are
-// present, the agent will look for a distributed tracing header.
+// present, the agent will look for distributed tracing headers using
+// Transaction.AcceptDistributedTraceHeaders.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 	if nil == r {
 		txn.SetWebRequest(WebRequest{})
@@ -142,10 +143,10 @@ func transport(r *http.Request) TransportType {
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
-// additionally collects details on request attributes, url, and method if these
-// fields are set.  If headers are present, the agent will look for a
-// distributed tracing header.  Use SetWebRequestHTTP if you have a
-// *http.Request.
+// additionally collects details on request attributes, url, and method if
+// these fields are set.  If headers are present, the agent will look for
+// distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
+// Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if nil == txn {
 		return
@@ -214,13 +215,17 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 	}
 }
 
-// InsertDistributedTraceHeaders adds a Distributed Trace header used to link
-// transactions.  InsertDistributedTraceHeaders should be called every
+// InsertDistributedTraceHeaders adds the Distributed Trace headers used to
+// link transactions.  InsertDistributedTraceHeaders should be called every
 // time an outbound call is made since the payload contains a timestamp.
 //
-// StartExternalSegment calls InsertDistributedTraceHeaders, so you
-// don't need to use it for outbound HTTP calls: Just use
-// StartExternalSegment!
+// When the Distributed Tracer is enabled, InsertDistributedTraceHeaders will
+// always insert W3C trace context headers.  It also by default inserts the New Relic
+// distributed tracing header, but can be configured based on the
+// Config.DistributedTracer.ExcludeNewRelicHeader option.
+//
+// StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
+// to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if nil == txn {
 		return
@@ -228,19 +233,23 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if nil == txn.thread {
 		return
 	}
-	insertDistributedTraceHeaders(txn.thread, hdrs)
+	txn.thread.CreateDistributedTracePayload(hdrs)
 }
 
-// AcceptDistributedTraceHeaders links transactions by accepting a
-// distributed trace payload from another transaction.
+// AcceptDistributedTraceHeaders links transactions by accepting distributed
+// trace headers from another transaction.
 //
-// Application.StartTransaction calls this method automatically if a
-// payload is present in the request headers.  Therefore, this method
-// does not need to be used for typical HTTP transactions.
+// Transaction.SetWebRequest and Transaction.SetWebRequestHTTP both call this
+// method automatically with the request headers.  Therefore, this method does
+// not need to be used for typical HTTP transactions.
 //
-// AcceptDistributedTraceHeaders should be used as early in the
-// transaction as possible.  It may not be called after a call to
-// CreateDistributedTracePayload.
+// AcceptDistributedTraceHeaders should be used as early in the transaction as
+// possible.  It may not be called after a call to
+// Transaction.InsertDistributedTraceHeaders.
+//
+// AcceptDistributedTraceHeaders first looks for the presence of W3C trace
+// context headers.  Only when those are not found will it look for the New
+// Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
 	if nil == txn {
 		return
@@ -369,9 +378,15 @@ const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
 	DistributedTraceNewRelicHeader = "Newrelic"
+	// DistributedTraceW3CTraceStateHeader is one of two headers used by W3C
+	// trace context
+	DistributedTraceW3CTraceStateHeader = "Tracestate"
+	// DistributedTraceW3CTraceParentHeader is one of two headers used by W3C
+	// trace context
+	DistributedTraceW3CTraceParentHeader = "Traceparent"
 )
 
-// TransportType is used in Transaction.AcceptDistributedTraceHeaders() to
+// TransportType is used in Transaction.AcceptDistributedTraceHeaders to
 // represent the type of connection that the trace payload was transported
 // over.
 type TransportType string

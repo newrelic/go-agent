@@ -15,7 +15,7 @@ func TestServerlessDistributedTracingConfigPresent(t *testing.T) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.DistributedTracer.Enabled = true
 		cfg.ServerlessMode.AccountID = "123"
-		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
+		cfg.ServerlessMode.TrustedAccountKey = "987"
 		cfg.ServerlessMode.PrimaryAppID = "456"
 	}
 	app := testApp(nil, cfgFn, t)
@@ -33,7 +33,7 @@ func TestServerlessDistributedTracingConfigPresent(t *testing.T) {
 		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: singleCount},
 	})
 }
 
@@ -44,7 +44,7 @@ func TestServerlessDistributedTracingConfigPartiallyPresent(t *testing.T) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.DistributedTracer.Enabled = true
 		cfg.ServerlessMode.AccountID = "123"
-		cfg.ServerlessMode.TrustedAccountKey = "trustkey"
+		cfg.ServerlessMode.TrustedAccountKey = "987"
 	}
 	app := testApp(nil, cfgFn, t)
 	hdrs := http.Header{}
@@ -61,7 +61,7 @@ func TestServerlessDistributedTracingConfigPartiallyPresent(t *testing.T) {
 		{Name: "DurationByCaller/App/123/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: singleCount},
 	})
 }
 
@@ -87,7 +87,7 @@ func TestServerlessDistributedTracingConfigTrustKeyAbsent(t *testing.T) {
 		{Name: "DurationByCaller/App/123/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: singleCount},
 	})
 }
 

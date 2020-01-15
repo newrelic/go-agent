@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"encoding/hex"
 	"math/rand"
 	"sync"
 )
@@ -19,13 +19,35 @@ func NewTraceIDGenerator(seed int64) *TraceIDGenerator {
 	}
 }
 
-// GenerateTraceID creates a new trace identifier.
-func (tg *TraceIDGenerator) GenerateTraceID() string {
+// GeneratePriority returns a new Priority.
+func (tg *TraceIDGenerator) GeneratePriority() Priority {
 	tg.Lock()
 	defer tg.Unlock()
 
-	u1 := tg.rnd.Uint32()
-	u2 := tg.rnd.Uint32()
-	bits := (uint64(u1) << 32) | uint64(u2)
-	return fmt.Sprintf("%016x", bits)
+	return newPriorityFromRandom(tg.rnd.Float32)
+}
+
+const (
+	traceIDByteLen      = 16
+	traceIDHexStringLen = 32
+	spanIDByteLen       = 8
+	maxIDByteLen        = 16
+)
+
+// GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
+func (tg *TraceIDGenerator) GenerateTraceID() string {
+	return tg.generateID(traceIDByteLen)
+}
+
+// GenerateSpanID creates a new span identifier, which is a 16 character hex string.
+func (tg *TraceIDGenerator) GenerateSpanID() string {
+	return tg.generateID(spanIDByteLen)
+}
+
+func (tg *TraceIDGenerator) generateID(len int) string {
+	var bits [maxIDByteLen]byte
+	tg.Lock()
+	defer tg.Unlock()
+	tg.rnd.Read(bits[:len])
+	return hex.EncodeToString(bits[:len])
 }

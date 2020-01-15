@@ -88,9 +88,9 @@ func newTxn(input txnInput, name string) *thread {
 
 	if input.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
-		txn.BetterCAT.Priority = internal.NewPriority()
 		txn.TraceIDGenerator = input.Reply.TraceIDGenerator
-		txn.BetterCAT.ID = txn.TraceIDGenerator.GenerateTraceID()
+		txn.BetterCAT.SetTraceAndTxnIDs(txn.TraceIDGenerator.GenerateTraceID())
+		txn.BetterCAT.Priority = txn.TraceIDGenerator.GeneratePriority()
 		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled
 		txn.LazilyCalculateSampled = txn.lazilyCalculateSampled
 	}
@@ -911,7 +911,7 @@ func outboundHeaders(s *ExternalSegment) http.Header {
 
 	// hdr may be empty, or it may contain headers.  If DistributedTracer
 	// is enabled, add more to the existing hdr
-	insertDistributedTraceHeaders(thd, hdr)
+	thd.CreateDistributedTracePayload(hdr)
 
 	return hdr
 }
@@ -920,57 +920,53 @@ const (
 	maxSampledDistributedPayloads = 35
 )
 
-func insertDistributedTraceHeaders(thd *thread, hdrs http.Header) {
-	if nil == hdrs {
-		return
-	}
-	payload := thd.CreateDistributedTracePayload()
-	if nil == payload {
-		return
-	}
-	hdrs.Set(DistributedTraceNewRelicHeader, payload.HTTPSafe())
-}
-
-func (thd *thread) CreateDistributedTracePayload() *internal.Payload {
+func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
 	if !txn.BetterCAT.Enabled {
-		return nil
+		return
 	}
 
+	excludeNRHeader := thd.Config.DistributedTracer.ExcludeNewRelicHeader
 	if txn.finished {
-		txn.CreatePayloadException = true
-		return nil
+		txn.TraceContextCreateException = true
+		if !excludeNRHeader {
+			txn.CreatePayloadException = true
+		}
+		return
 	}
 
 	if "" == txn.Reply.AccountID || "" == txn.Reply.TrustedAccountKey {
 		// We can't create a payload:  The application is not yet
 		// connected or serverless distributed tracing configuration was
 		// not provided.
-		return nil
+		return
 	}
 
 	txn.numPayloadsCreated++
 
 	p := &internal.Payload{}
-	p.Type = internal.CallerType
-	p.Account = txn.Reply.AccountID
 
-	p.App = txn.Reply.PrimaryAppID
-	p.TracedID = txn.BetterCAT.TraceID()
-	p.Priority = txn.BetterCAT.Priority
-	p.Timestamp.Set(time.Now())
-	p.TransactionID = txn.BetterCAT.ID // Set the transaction ID to the transaction guid.
-
-	if txn.Reply.AccountID != txn.Reply.TrustedAccountKey {
-		p.TrustedAccountKey = txn.Reply.TrustedAccountKey
-	}
-
+	// Calculate sampled first since this also changes the value for the
+	// priority
 	sampled := txn.lazilyCalculateSampled()
 	if sampled && txn.SpanEventsEnabled {
 		p.ID = txn.CurrentSpanIdentifier(thd.thread)
+	}
+
+	p.Type = internal.CallerTypeApp
+	p.Account = txn.Reply.AccountID
+	p.App = txn.Reply.PrimaryAppID
+	p.TracedID = txn.BetterCAT.TraceID
+	p.Priority = txn.BetterCAT.Priority
+	p.Timestamp.Set(txn.Reply.DistributedTraceTimestampGenerator())
+	p.TrustedAccountKey = txn.Reply.TrustedAccountKey
+	p.TransactionID = txn.BetterCAT.TxnID // Set the transaction ID to the transaction guid.
+	if nil != txn.BetterCAT.Inbound {
+		p.NonTrustedTraceState = txn.BetterCAT.Inbound.NonTrustedTraceState
+		p.OriginalTraceState = txn.BetterCAT.Inbound.OriginalTraceState
 	}
 
 	// limit the number of outbound sampled=true payloads to prevent too
@@ -980,9 +976,30 @@ func (thd *thread) CreateDistributedTracePayload() *internal.Payload {
 		p.SetSampled(sampled)
 	}
 
-	txn.CreatePayloadSuccess = true
+	txn.TraceContextCreateSuccess = true
 
-	return p
+	if !excludeNRHeader {
+		hdrs.Set(internal.DistributedTraceNewRelicHeader, p.NRHTTPSafe())
+		txn.CreatePayloadSuccess = true
+	}
+
+	// ID must be present in the Traceparent header when span events are
+	// enabled, even if the transaction is not sampled.  Note that this
+	// assignment occurs after setting the Newrelic header since the ID
+	// field of the Newrelic header should be empty if span events are
+	// disabled or the transaction is not sampled.
+	if p.ID == "" {
+		p.ID = txn.CurrentSpanIdentifier(thd.thread)
+	}
+	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, p.W3CTraceParent())
+
+	if !txn.SpanEventsEnabled {
+		p.ID = ""
+	}
+	if !txn.Config.TransactionEvents.Enabled {
+		p.TransactionID = ""
+	}
+	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, p.W3CTraceState())
 }
 
 var (
@@ -999,7 +1016,7 @@ func (txn *txn) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header)
 	return txn.acceptDistributedTraceHeadersLocked(t, hdrs)
 }
 
-func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Header) error {
+func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.Header) error {
 
 	if !txn.BetterCAT.Enabled {
 		return errInboundPayloadDTDisabled
@@ -1020,7 +1037,7 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Head
 		return errAlreadyAccepted
 	}
 
-	if nil == p {
+	if nil == hdrs {
 		txn.AcceptPayloadNullPayload = true
 		return nil
 	}
@@ -1032,17 +1049,8 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Head
 		return nil
 	}
 
-	payload, err := internal.AcceptPayload(p.Get(DistributedTraceNewRelicHeader))
+	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, &txn.DistributedTracingSupport)
 	if nil != err {
-		if _, ok := err.(internal.ErrPayloadParse); ok {
-			txn.AcceptPayloadParseException = true
-		} else if _, ok := err.(internal.ErrUnsupportedPayloadVersion); ok {
-			txn.AcceptPayloadIgnoredVersion = true
-		} else if _, ok := err.(internal.ErrPayloadMissingField); ok {
-			txn.AcceptPayloadParseException = true
-		} else {
-			txn.AcceptPayloadException = true
-		}
 		return err
 	}
 
@@ -1050,19 +1058,16 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Head
 		return nil
 	}
 
-	// now that we have a parsed and alloc'd payload,
-	// let's make  sure it has the correct fields
-	if err := payload.IsValid(); nil != err {
-		txn.AcceptPayloadParseException = true
-		return err
-	}
-
 	// and let's also do our trustedKey check
 	receivedTrustKey := payload.TrustedAccountKey
 	if "" == receivedTrustKey {
 		receivedTrustKey = payload.Account
 	}
-	if receivedTrustKey != txn.Reply.TrustedAccountKey {
+
+	// If the trust key doesn't match but we don't have any New Relic trace info, this means
+	// we just got the TraceParent header, and we still need to save that info to BetterCAT
+	// farther down.
+	if receivedTrustKey != txn.Reply.TrustedAccountKey && payload.HasNewRelicTraceInfo {
 		txn.AcceptPayloadUntrustedAccount = true
 		return errTrustedAccountKey
 	}
@@ -1078,13 +1083,12 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, p http.Head
 	}
 
 	txn.BetterCAT.Inbound = payload
+	txn.BetterCAT.TraceID = payload.TracedID
 	txn.BetterCAT.Inbound.TransportType = t.toString()
 
 	if tm := payload.Timestamp.Time(); txn.Start.After(tm) {
 		txn.BetterCAT.Inbound.TransportDuration = txn.Start.Sub(tm)
 	}
-
-	txn.AcceptPayloadSuccess = true
 
 	return nil
 }
@@ -1123,7 +1127,7 @@ func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
 	}
 
 	if txn.BetterCAT.Enabled {
-		metadata.TraceID = txn.BetterCAT.TraceID()
+		metadata.TraceID = txn.BetterCAT.TraceID
 		if txn.SpanEventsEnabled && txn.lazilyCalculateSampled() {
 			metadata.SpanID = txn.CurrentSpanIdentifier(thd.thread)
 		}

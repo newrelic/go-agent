@@ -300,10 +300,10 @@ func TestGetRootSpanID(t *testing.T) {
 	txndata := &TxnData{
 		TraceIDGenerator: NewTraceIDGenerator(12345),
 	}
-	if id := txndata.getRootSpanID(); id != "d9466896a525ccbf" {
+	if id := txndata.getRootSpanID(); id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
-	if id := txndata.getRootSpanID(); id != "d9466896a525ccbf" {
+	if id := txndata.getRootSpanID(); id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
 }
@@ -315,7 +315,7 @@ func TestCurrentSpanIdentifier(t *testing.T) {
 	}
 	thread := &Thread{}
 	id := txndata.CurrentSpanIdentifier(thread)
-	if id != "d9466896a525ccbf" {
+	if id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
 
@@ -327,14 +327,14 @@ func TestCurrentSpanIdentifier(t *testing.T) {
 	}
 
 	id = txndata.CurrentSpanIdentifier(thread)
-	if id != "d9466896a525ccbf" {
+	if id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
 
 	// After starting a new segment, there should be a new current span id.
 	StartSegment(txndata, thread, start.Add(2*time.Second))
 	id2 := txndata.CurrentSpanIdentifier(thread)
-	if id2 != "bcfb32e050b264b8" {
+	if id2 != "cd1af05fe6923d6d" {
 		t.Error(id2)
 	}
 }
@@ -838,4 +838,21 @@ func TestEndMessageSegment(t *testing.T) {
 		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "WebTransaction/Go/zip", false, []float64{1, 2, 2, 2, 2, 4}},
 		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "", false, []float64{1, 2, 2, 2, 2, 4}},
 	})
+}
+
+func TestBetterCAT_SetTraceAndTxnIDs(t *testing.T) {
+	cases := map[string]string{
+		"12345678901234567890123456789012": "1234567890123456",
+		"12345678901234567890":             "1234567890123456",
+		"1234567890123456":                 "1234567890123456",
+		"":                                 "",
+		"123456":                           "123456",
+	}
+	for k, v := range cases {
+		bc := BetterCAT{}
+		bc.SetTraceAndTxnIDs(k)
+		if bc.TxnID != v {
+			t.Errorf("Unexpected txn ID - for key %s got %s, but expected %s", k, bc.TxnID, v)
+		}
+	}
 }

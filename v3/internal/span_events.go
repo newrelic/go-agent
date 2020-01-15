@@ -17,20 +17,22 @@ const (
 
 // SpanEvent represents a span event, necessary to support Distributed Tracing.
 type SpanEvent struct {
-	TraceID       string
-	GUID          string
-	ParentID      string
-	TransactionID string
-	Sampled       bool
-	Priority      Priority
-	Timestamp     time.Time
-	Duration      time.Duration
-	Name          string
-	Category      spanCategory
-	Component     string
-	Kind          string
-	IsEntrypoint  bool
-	Attributes    spanAttributeMap
+	TraceID         string
+	GUID            string
+	ParentID        string
+	TransactionID   string
+	Sampled         bool
+	Priority        Priority
+	Timestamp       time.Time
+	Duration        time.Duration
+	Name            string
+	Category        spanCategory
+	Component       string
+	Kind            string
+	IsEntrypoint    bool
+	TrustedParentID string
+	TracingVendors  string
+	Attributes      spanAttributeMap
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -59,6 +61,12 @@ func (e *SpanEvent) WriteJSON(buf *bytes.Buffer) {
 	}
 	if e.Kind != "" {
 		w.stringField("span.kind", e.Kind)
+	}
+	if "" != e.TrustedParentID {
+		w.stringField("trustedParentId", e.TrustedParentID)
+	}
+	if "" != e.TracingVendors {
+		w.stringField("tracingVendors", e.TracingVendors)
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
@@ -97,8 +105,8 @@ func newSpanEvents(max int) *spanEvents {
 }
 
 func (events *spanEvents) addEvent(e *SpanEvent, cat *BetterCAT) {
-	e.TraceID = cat.TraceID()
-	e.TransactionID = cat.ID
+	e.TraceID = cat.TraceID
+	e.TransactionID = cat.TxnID
 	e.Sampled = cat.Sampled
 	e.Priority = cat.Priority
 	events.addEventPopulated(e)
@@ -122,6 +130,8 @@ func (events *spanEvents) MergeFromTransaction(txndata *TxnData) {
 	}
 	if nil != txndata.BetterCAT.Inbound {
 		root.ParentID = txndata.BetterCAT.Inbound.ID
+		root.TrustedParentID = txndata.BetterCAT.Inbound.TrustedParentID
+		root.TracingVendors = txndata.BetterCAT.Inbound.TracingVendors
 	}
 	events.addEvent(root, &txndata.BetterCAT)
 

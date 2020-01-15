@@ -13,16 +13,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-// MarshalJSON limits the number of decimals.
-func (p *Priority) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(priorityFormat, *p)), nil
-}
-
-// WriteJSON limits the number of decimals.
-func (p Priority) WriteJSON(buf *bytes.Buffer) {
-	fmt.Fprintf(buf, priorityFormat, p)
-}
-
 // TxnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
@@ -47,15 +37,20 @@ type BetterCAT struct {
 	Priority Priority
 	Sampled  bool
 	Inbound  *Payload
-	ID       string
+	TxnID    string
+	TraceID  string
 }
 
-// TraceID returns the trace id.
-func (e BetterCAT) TraceID() string {
-	if nil != e.Inbound {
-		return e.Inbound.TracedID
+// SetTraceAndTxnIDs takes a single 32 character ID and uses it to
+// set both the trace (32 char) and transaction (16 char) ID.
+func (bc *BetterCAT) SetTraceAndTxnIDs(traceID string) {
+	txnLength := 16
+	bc.TraceID = traceID
+	if len(traceID) <= txnLength {
+		bc.TxnID = traceID
+	} else {
+		bc.TxnID = traceID[:txnLength]
 	}
-	return e.ID
 }
 
 // TxnData contains the recorded data of a transaction.
@@ -258,7 +253,7 @@ func StartSegment(t *TxnData, thread *Thread, now time.Time) SegmentStartTime {
 
 func (t *TxnData) getRootSpanID() string {
 	if "" == t.rootSpanID {
-		t.rootSpanID = t.TraceIDGenerator.GenerateTraceID()
+		t.rootSpanID = t.TraceIDGenerator.GenerateSpanID()
 	}
 	return t.rootSpanID
 }
@@ -270,7 +265,7 @@ func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
 		return t.getRootSpanID()
 	}
 	if "" == thread.stack[len(thread.stack)-1].spanID {
-		thread.stack[len(thread.stack)-1].spanID = t.TraceIDGenerator.GenerateTraceID()
+		thread.stack[len(thread.stack)-1].spanID = t.TraceIDGenerator.GenerateSpanID()
 	}
 	return thread.stack[len(thread.stack)-1].spanID
 }
@@ -334,7 +329,7 @@ func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Tim
 	if t.SpanEventsEnabled && t.LazilyCalculateSampled() {
 		s.SpanID = frame.spanID
 		if "" == s.SpanID {
-			s.SpanID = t.TraceIDGenerator.GenerateTraceID()
+			s.SpanID = t.TraceIDGenerator.GenerateSpanID()
 		}
 		// Note that the current span identifier is the parent's
 		// identifier because we've already popped the segment that's

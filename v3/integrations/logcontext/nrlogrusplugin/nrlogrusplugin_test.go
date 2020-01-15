@@ -176,7 +176,7 @@ func TestLogSampledFalse(t *testing.T) {
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/v3/integrations/logcontext/nrlogrusplugin.TestLogSampledFalse",
 		"timestamp":   float64(1417136460000),
-		"trace.id":    "d9466896a525ccbf",
+		"trace.id":    "1ae969564b34a33ecd1af05fe6923d6d",
 	})
 }
 
@@ -204,9 +204,9 @@ func TestLogSampledTrue(t *testing.T) {
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/v3/integrations/logcontext/nrlogrusplugin.TestLogSampledTrue",
-		"span.id":     "bcfb32e050b264b8",
+		"span.id":     "e71870997d57214c",
 		"timestamp":   float64(1417136460000),
-		"trace.id":    "d9466896a525ccbf",
+		"trace.id":    "1ae969564b34a33ecd1af05fe6923d6d",
 	})
 }
 
@@ -237,9 +237,9 @@ func TestEntryUsedTwice(t *testing.T) {
 		"log.level":   "info",
 		"message":     "Hello World!",
 		"method.name": "github.com/newrelic/go-agent/v3/integrations/logcontext/nrlogrusplugin.TestEntryUsedTwice",
-		"span.id":     "bcfb32e050b264b8",
+		"span.id":     "e71870997d57214c",
 		"timestamp":   float64(1417136460000),
-		"trace.id":    "d9466896a525ccbf",
+		"trace.id":    "1ae969564b34a33ecd1af05fe6923d6d",
 	})
 
 	// First log has dt enabled, ensure trace.id and span.id are included

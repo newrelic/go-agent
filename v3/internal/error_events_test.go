@@ -43,7 +43,8 @@ func TestErrorEventMarshal(t *testing.T) {
 			BetterCAT: BetterCAT{
 				Enabled:  true,
 				Priority: 0.5,
-				ID:       "txn-guid-id",
+				TxnID:    "txn-guid-id",
+				TraceID:  "trace-id",
 			},
 		},
 	}, `[
@@ -55,7 +56,7 @@ func TestErrorEventMarshal(t *testing.T) {
 			"transactionName":"myName",
 			"duration":3,
 			"guid":"txn-guid-id",
-			"traceId":"txn-guid-id",
+			"traceId":"trace-id",
 			"priority":0.500000,
 			"sampled":false
 		},
@@ -115,7 +116,8 @@ func TestErrorEventAttributes(t *testing.T) {
 			BetterCAT: BetterCAT{
 				Enabled:  true,
 				Priority: 0.5,
-				ID:       "txn-guid-id",
+				TxnID:    "txn-guid-id",
+				TraceID:  "trace-id",
 			},
 		},
 	}, `[
@@ -127,7 +129,7 @@ func TestErrorEventAttributes(t *testing.T) {
 			"transactionName":"myName",
 			"duration":3,
 			"guid":"txn-guid-id",
-			"traceId":"txn-guid-id",
+			"traceId":"trace-id",
  			"priority":0.500000,
  			"sampled":false
 		},
@@ -187,6 +189,7 @@ func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
 	}
 
 	e.BetterCAT.Enabled = true
+	e.BetterCAT.TraceID = "trip-id"
 	e.BetterCAT.Inbound = &Payload{
 		payloadCaller: payloadCaller{
 			TransportType: "HTTP",
@@ -194,10 +197,11 @@ func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
 			App:           "caller-app",
 			Account:       "caller-account",
 		},
-		ID:                "caller-id",
-		TransactionID:     "caller-parent-id",
-		TracedID:          "trip-id",
-		TransportDuration: 2 * time.Second,
+		ID:                   "caller-id",
+		TransactionID:        "caller-parent-id",
+		TracedID:             "trip-id",
+		TransportDuration:    2 * time.Second,
+		HasNewRelicTraceInfo: true,
 	}
 
 	testErrorEventJSON(t, &ErrorEvent{
@@ -214,8 +218,8 @@ func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
 			"parent.type": "Browser",
 			"parent.app": "caller-app",
 			"parent.account": "caller-account",
-			"parent.transportType": "HTTP",
 			"parent.transportDuration": 2,
+			"parent.transportType": "HTTP",
 			"guid":"",
 			"traceId":"trip-id",
 			"priority":0.000000,
