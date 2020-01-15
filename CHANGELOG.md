@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.1.0
+
 ### New Features
 
 * Support for W3C Trace Context, with easy upgrade from New Relic trace context.
