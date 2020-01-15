@@ -72,6 +72,7 @@ const (
 	supportTraceContextStateParseException  = "Supportability/TraceContext/TraceState/Parse/Exception"
 	supportTraceContextCreateSuccess        = "Supportability/TraceContext/Create/Success"
 	supportTraceContextCreateException      = "Supportability/TraceContext/Create/Exception"
+	supportTraceContextStateInvalidNrEntry  = "Supportability/TraceContext/TraceState/InvalidNrEntry"
 	supportTraceContextStateNoNrEntry       = "Supportability/TraceContext/TraceState/NoNrEntry"
 
 	// Configurable event harvest supportability metrics
@@ -102,6 +103,7 @@ type DistributedTracingSupport struct {
 	TraceContextAcceptException      bool // A generic exception occurred unrelated to parsing while accepting either payload.
 	TraceContextParentParseException bool // The inbound traceparent header could not be parsed.
 	TraceContextStateParseException  bool // The inbound tracestate header could not be parsed.
+	TraceContextStateInvalidNrEntry  bool // The inbound tracestate header exists, and was accepted, but the New Relic entry was invalid.
 	TraceContextStateNoNrEntry       bool // The traceparent header exists, and was accepted, but the tracestate header did not contain a trusted New Relic entry.
 	TraceContextCreateSuccess        bool // The agent successfully created the outbound payloads.
 	TraceContextCreateException      bool // A generic exception occurred while creating the outbound payloads.

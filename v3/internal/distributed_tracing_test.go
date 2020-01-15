@@ -689,3 +689,15 @@ func BenchmarkAcceptW3C(b *testing.B) {
 		}
 	}
 }
+
+func Test_processTraceState_invalidEntry(t *testing.T) {
+	payload := Payload{}
+	hdrs := http.Header{
+		DistributedTraceW3CTraceStateHeader: []string{"33@nr=-0-33-2827902-b4a146e3237b4df1-e8b91a159289ff74-1-1.23456-1518469636035"},
+	}
+
+	err := processTraceState(hdrs, "33", &payload)
+	if err == nil || err != errInvalidNRTraceState {
+		t.Errorf("expected invalidNRTraceState error but got %v", err)
+	}
+}

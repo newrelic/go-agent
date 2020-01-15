@@ -112,10 +112,8 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 	// create WantMetrics and assert
 	var wantMetrics []internal.WantMetric
 	for _, metric := range tc.ExpectedMetrics {
-		if !strings.HasPrefix(metric[0].(string), "Supportability/") {
-			wantMetrics = append(wantMetrics,
-				internal.WantMetric{Name: metric[0].(string), Scope: "", Forced: nil, Data: nil})
-		}
+		wantMetrics = append(wantMetrics,
+			internal.WantMetric{Name: metric[0].(string), Scope: "", Forced: nil, Data: nil})
 	}
 	app.ExpectMetricsPresent(t, wantMetrics)
 

@@ -327,19 +327,24 @@ func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *Dist
 	}
 	err = processTraceState(hdrs, trustedAccountKey, p)
 	if nil != err {
-		support.TraceContextStateNoNrEntry = true
+		if err == errInvalidNRTraceState {
+			support.TraceContextStateInvalidNrEntry = true
+		} else {
+			support.TraceContextStateNoNrEntry = true
+		}
 	}
 	support.TraceContextAcceptSuccess = true
 	return p, nil
 }
 
 var (
-	errTooManyHdrs      = ErrPayloadParse{errors.New("too many TraceParent headers")}
-	errNumEntries       = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
-	errInvalidTraceID   = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
-	errInvalidParentID  = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
-	errInvalidFlags     = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
-	errMissingTrustedNR = ErrPayloadParse{errors.New("no trusted NR entry found in trace state")}
+	errTooManyHdrs         = ErrPayloadParse{errors.New("too many TraceParent headers")}
+	errNumEntries          = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
+	errInvalidTraceID      = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
+	errInvalidParentID     = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
+	errInvalidFlags        = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
+	errInvalidNRTraceState = ErrPayloadParse{errors.New("invalid NR entry in trace state")}
+	errMissingTrustedNR    = ErrPayloadParse{errors.New("no trusted NR entry found in trace state")}
 )
 
 func processTraceParent(hdrs http.Header) (*Payload, error) {
@@ -406,7 +411,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 	timestamp, err := strconv.ParseUint(matches[8], 10, 64)
 
 	if nil != err || "" == version || "" == parentType || "" == account || "" == app {
-		return errMissingTrustedNR
+		return errInvalidNRTraceState
 	}
 
 	p.TrustedAccountKey = trustedAccountKey

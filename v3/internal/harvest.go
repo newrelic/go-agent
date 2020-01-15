@@ -329,6 +329,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		supportMetric(metrics, args.TraceContextStateParseException, supportTraceContextStateParseException)
 		supportMetric(metrics, args.TraceContextCreateSuccess, supportTraceContextCreateSuccess)
 		supportMetric(metrics, args.TraceContextCreateException, supportTraceContextCreateException)
+		supportMetric(metrics, args.TraceContextStateInvalidNrEntry, supportTraceContextStateInvalidNrEntry)
 		supportMetric(metrics, args.TraceContextStateNoNrEntry, supportTraceContextStateNoNrEntry)
 	}
 
