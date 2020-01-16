@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -636,5 +637,58 @@ func TestEmptyTransaction(t *testing.T) {
 	}
 	if s := txn.IsSampled(); s {
 		t.Error(s)
+	}
+}
+
+func TestDTPriority(t *testing.T) {
+	type testCase struct {
+		name                       string
+		incomingSampledAndPriority string
+		expectedPriority           string // inserted into a regex, so special chars should be escaped
+	}
+	// We expect to either receive both a priority and a sampled field, or neither - not one without the other.
+	cases := []testCase{
+		{
+			name:                       "IncludesIncomingPriority",
+			incomingSampledAndPriority: `,"sa":true,"pr":1.5`,
+			expectedPriority:           `1\.5`,
+		},
+		{
+			name:                       "NoIncomingPriority",
+			incomingSampledAndPriority: "",
+			expectedPriority:           `1\.315222`,
+		},
+	}
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		reply.AccountID = "123"
+		reply.TrustedAccountKey = "123"
+
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfgfn := func(cfg *Config) {
+				cfg.DistributedTracer.Enabled = true
+			}
+			app := testApp(replyfn, cfgfn, t)
+			txn := app.StartTransaction("hello")
+
+			inboundHdrs := map[string][]string{
+				DistributedTraceNewRelicHeader: {`{"v":[0,1],"d":{"ty":"App","ap":"456","ac":"123","id":"myid","tr":"mytrip","ti":1574881875872` +
+					tc.incomingSampledAndPriority + "}}",
+				},
+			}
+
+			txn.AcceptDistributedTraceHeaders(TransportHTTP, inboundHdrs)
+			outboundHdrs := http.Header{}
+			txn.InsertDistributedTraceHeaders(outboundHdrs)
+			traceState := outboundHdrs.Get(DistributedTraceW3CTraceStateHeader)
+			stateMatcher := regexp.MustCompile(`123@nr=0-0-123--e71870997d57214c-1ae969564b34a33e-1-` + tc.expectedPriority + `-\d{13}`)
+			if !stateMatcher.MatchString(traceState) {
+				t.Error(tc.expectedPriority, traceState)
+			}
+		})
+
 	}
 }
