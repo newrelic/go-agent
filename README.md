@@ -81,7 +81,7 @@ will appear as "Example App" in your New Relic applications list.  To run it:
 
 ```
 env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
-    go run examples/server/main.go
+    go run v3/examples/server/main.go
 ```
 
 Some endpoints exposed are [http://localhost:8000/](http://localhost:8000/)
