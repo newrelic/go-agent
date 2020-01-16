@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
-	"regexp"
 	"testing"
 	"time"
 
@@ -644,24 +643,27 @@ func TestDTPriority(t *testing.T) {
 	type testCase struct {
 		name                       string
 		incomingSampledAndPriority string
-		expectedPriority           string // inserted into a regex, so special chars should be escaped
+		expectedPriority           string
 	}
 	// We expect to either receive both a priority and a sampled field, or neither - not one without the other.
 	cases := []testCase{
 		{
 			name:                       "IncludesIncomingPriority",
 			incomingSampledAndPriority: `,"sa":true,"pr":1.5`,
-			expectedPriority:           `1\.5`,
+			expectedPriority:           "1.5",
 		},
 		{
 			name:                       "NoIncomingPriority",
 			incomingSampledAndPriority: "",
-			expectedPriority:           `1\.315222`,
+			expectedPriority:           "1.315222",
 		},
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.AdaptiveSampler = internal.SampleEverything{}
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		reply.DistributedTraceTimestampGenerator = func() time.Time {
+			return time.Unix(1577830891, 900000000)
+		}
 		reply.AccountID = "123"
 		reply.TrustedAccountKey = "123"
 
@@ -684,8 +686,7 @@ func TestDTPriority(t *testing.T) {
 			outboundHdrs := http.Header{}
 			txn.InsertDistributedTraceHeaders(outboundHdrs)
 			traceState := outboundHdrs.Get(DistributedTraceW3CTraceStateHeader)
-			stateMatcher := regexp.MustCompile(`123@nr=0-0-123--e71870997d57214c-1ae969564b34a33e-1-` + tc.expectedPriority + `-\d{13}`)
-			if !stateMatcher.MatchString(traceState) {
+			if traceState != "123@nr=0-0-123--e71870997d57214c-1ae969564b34a33e-1-"+tc.expectedPriority+"-1577830891900" {
 				t.Error(tc.expectedPriority, traceState)
 			}
 		})
