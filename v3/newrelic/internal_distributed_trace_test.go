@@ -2163,3 +2163,29 @@ func TestDistributedTracingConstantsMatch(t *testing.T) {
 		t.Fatal(DistributedTraceW3CTraceParentHeader, internal.DistributedTraceW3CTraceParentHeader)
 	}
 }
+
+func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
+	// If the tracestate header has fewer entries (separated by '-') than
+	// expected, make sure the correct Supportability metrics are created
+	replyfn := func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.AdaptiveSampler = internal.SampleNothing{}
+	}
+	app := testApp(replyfn, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=garbage"},
+	}
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/TraceState/InvalidNrEntry", Scope: "", Forced: true, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundUnknownCaller...))
+}

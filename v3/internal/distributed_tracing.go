@@ -400,7 +400,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *Payload) e
 
 	matches := strings.Split(trustedVal, "-")
 	if len(matches) < 9 {
-		return errMissingTrustedNR
+		return errInvalidNRTraceState
 	}
 
 	// Required Fields:
