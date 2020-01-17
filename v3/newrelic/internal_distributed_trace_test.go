@@ -662,6 +662,14 @@ var (
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}
+	backgroundUnknownCallerWithTransport = []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+	}
 )
 
 func TestNilPayload(t *testing.T) {
@@ -1509,9 +1517,9 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
@@ -1636,9 +1644,9 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestW3CTraceHeadersTxnEventsDisabled(t *testing.T) {
