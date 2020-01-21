@@ -35,7 +35,7 @@ func main() {
 	client.AddHook(nrredis.NewHook(opts))
 
 	//
-	// Step 2: Ensure that all client calls contain a context with includes
+	// Step 2: Ensure that all client calls contain a context which includes
 	// the transaction.
 	//
 	pipe := client.WithContext(ctx).Pipeline()
