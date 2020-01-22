@@ -25,8 +25,9 @@ var (
 
 // NewHook creates a redis.Hook to instrument Redis calls.  Add it to your
 // client, then ensure that all calls contain a context with includes the
-// transaction.  The options are optional.  Provide them to get instance
-// metrics.
+// transaction.  The options are optional.  Provide them to get instance metrics
+// broken out by host and port.  The hook returned can be used with
+// redis.Client, redis.ClusterClient, and redis.Ring.
 func NewHook(opts *redis.Options) redis.Hook {
 	h := hook{}
 	h.segment.Product = newrelic.DatastoreRedis
