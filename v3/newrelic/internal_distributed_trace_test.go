@@ -422,7 +422,7 @@ func TestPayloadFutureVersion(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/MajorVersion", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -449,7 +449,7 @@ func TestPayloadParsingError(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -520,7 +520,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/UntrustedAccount", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -729,7 +729,7 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestMissingVersionForSupportabilityMetric(t *testing.T) {
@@ -756,7 +756,7 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestMissingFieldForSupportabilityMetric(t *testing.T) {
@@ -784,7 +784,7 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestParseExceptionSupportabilityMetric(t *testing.T) {
@@ -812,7 +812,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestErrorsByCaller(t *testing.T) {
