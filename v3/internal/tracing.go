@@ -33,12 +33,13 @@ type TxnEvent struct {
 // BetterCAT stores the transaction's priority and all fields related
 // to a DistributedTracer's Cross-Application Trace.
 type BetterCAT struct {
-	Enabled  bool
-	Priority Priority
-	Sampled  bool
-	Inbound  *Payload
-	TxnID    string
-	TraceID  string
+	Enabled       bool
+	Priority      Priority
+	Sampled       bool
+	Inbound       *Payload
+	TxnID         string
+	TraceID       string
+	TransportType string
 }
 
 // SetTraceAndTxnIDs takes a single 32 character ID and uses it to

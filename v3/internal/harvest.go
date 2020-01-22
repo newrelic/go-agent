@@ -290,12 +290,11 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	// Better CAT Metrics
 	if cat := args.BetterCAT; cat.Enabled {
 		caller := callerUnknown
-		if nil != cat.Inbound {
-			if cat.Inbound.HasNewRelicTraceInfo {
-				caller = cat.Inbound.payloadCaller
-			} else if cat.Inbound.TransportType != "" {
-				caller.TransportType = cat.Inbound.TransportType
-			}
+		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
+			caller = cat.Inbound.payloadCaller
+		}
+		if cat.TransportType != "" {
+			caller.TransportType = cat.TransportType
 		}
 		m := durationByCallerMetric(caller)
 		metrics.addDuration(m.all, "", args.Duration, args.Duration, unforced)

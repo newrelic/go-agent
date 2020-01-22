@@ -1049,6 +1049,8 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 		return nil
 	}
 
+	txn.BetterCAT.TransportType = string(t)
+
 	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, &txn.DistributedTracingSupport)
 	if nil != err {
 		return err
