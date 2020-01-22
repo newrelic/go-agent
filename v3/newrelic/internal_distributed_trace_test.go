@@ -1517,8 +1517,6 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -1644,8 +1642,6 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 	}, backgroundUnknownCallerWithTransport...))
 }
 
@@ -2193,7 +2189,5 @@ func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/InvalidNrEntry", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }

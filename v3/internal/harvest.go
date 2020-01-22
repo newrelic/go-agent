@@ -302,7 +302,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 		metrics.addDuration(m.webOrOther(args.IsWeb), "", args.Duration, args.Duration, unforced)
 
 		// Transport Duration Metric
-		if nil != cat.Inbound {
+		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
 			d := cat.Inbound.TransportDuration
 			m = transportDurationMetric(caller)
 			metrics.addDuration(m.all, "", d, d, unforced)
