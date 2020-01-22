@@ -85,3 +85,80 @@ func TestPipelineOperation(t *testing.T) {
 		t.Error(op)
 	}
 }
+
+func TestNewHookAddress(t *testing.T) {
+	testcases := []struct {
+		network string
+		address string
+		expHost string
+		expPort string
+	}{
+		// examples from net.Dial https://godoc.org/net#Dial
+		{
+			network: "tcp",
+			address: "golang.org:http",
+			expHost: "golang.org",
+			expPort: "http",
+		},
+		{
+			network: "", // tcp is assumed if missing
+			address: "golang.org:http",
+			expHost: "golang.org",
+			expPort: "http",
+		},
+		{
+			network: "tcp",
+			address: "192.0.2.1:http",
+			expHost: "192.0.2.1",
+			expPort: "http",
+		},
+		{
+			network: "tcp",
+			address: "198.51.100.1:80",
+			expHost: "198.51.100.1",
+			expPort: "80",
+		},
+		{
+			network: "tcp",
+			address: ":80",
+			expHost: "localhost",
+			expPort: "80",
+		},
+		{
+			network: "tcp",
+			address: "0.0.0.0:80",
+			expHost: "0.0.0.0",
+			expPort: "80",
+		},
+		{
+			network: "tcp",
+			address: "[::]:80",
+			expHost: "::",
+			expPort: "80",
+		},
+		{
+			network: "unix",
+			address: "path/to/socket",
+			expHost: "localhost",
+			expPort: "path/to/socket",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.network+","+tc.address, func(t *testing.T) {
+			hk := NewHook(&redis.Options{
+				Network: tc.network,
+				Addr:    tc.address,
+			}).(hook)
+
+			if hk.segment.Host != tc.expHost {
+				t.Errorf("incorrect host: expect=%s actual=%s",
+					tc.expHost, hk.segment.Host)
+			}
+			if hk.segment.PortPathOrID != tc.expPort {
+				t.Errorf("incorrect port: expect=%s actual=%s",
+					tc.expPort, hk.segment.PortPathOrID)
+			}
+		})
+	}
+}

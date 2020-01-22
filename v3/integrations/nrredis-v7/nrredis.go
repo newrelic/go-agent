@@ -32,7 +32,15 @@ func NewHook(opts *redis.Options) redis.Hook {
 	h := hook{}
 	h.segment.Product = newrelic.DatastoreRedis
 	if opts != nil {
-		if host, port, err := net.SplitHostPort(opts.Addr); err == nil {
+		// Per https://godoc.org/github.com/go-redis/redis#Options the
+		// network should either be tcp or unix, and the default is tcp.
+		if opts.Network == "unix" {
+			h.segment.Host = "localhost"
+			h.segment.PortPathOrID = opts.Addr
+		} else if host, port, err := net.SplitHostPort(opts.Addr); err == nil {
+			if "" == host {
+				host = "localhost"
+			}
 			h.segment.Host = host
 			h.segment.PortPathOrID = port
 		}
