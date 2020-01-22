@@ -22,7 +22,6 @@ func main() {
 	}
 	app.WaitForConnection(10 * time.Second)
 	txn := app.StartTransaction("ping txn")
-	ctx := newrelic.NewContext(context.Background(), txn)
 
 	opts := &redis.Options{
 		Addr: "localhost:6379",
@@ -38,6 +37,7 @@ func main() {
 	// Step 2: Ensure that all client calls contain a context which includes
 	// the transaction.
 	//
+	ctx := newrelic.NewContext(context.Background(), txn)
 	pipe := client.WithContext(ctx).Pipeline()
 	incr := pipe.Incr("pipeline_counter")
 	pipe.Expire("pipeline_counter", time.Hour)
