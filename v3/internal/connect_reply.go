@@ -172,7 +172,7 @@ func ConnectReplyDefaults() *ConnectReply {
 		CollectErrors:          true,
 		CollectErrorEvents:     true,
 		CollectSpanEvents:      true,
-		MaxPayloadSizeInBytes:  maxPayloadSizeInBytes,
+		MaxPayloadSizeInBytes:  MaxPayloadSizeInBytes,
 		// No transactions should be sampled before the application is
 		// connected.
 		AdaptiveSampler: SampleNothing{},

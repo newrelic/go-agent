@@ -27,7 +27,7 @@ type appData struct {
 type app struct {
 	Logger
 	config      config
-	rpmControls internal.RpmControls
+	rpmControls rpmControls
 	testHarvest *internal.Harvest
 
 	// placeholderRun is used when the application is not connected.
@@ -49,7 +49,7 @@ type app struct {
 	// Sends to these channels should not occur without a <-shutdownStarted
 	// select option to prevent deadlock.
 	dataChan           chan appData
-	collectorErrorChan chan internal.RPMResponse
+	collectorErrorChan chan rpmResponse
 	connectChan        chan *appRun
 
 	// This mutex protects both `run` and `err`, both of which should only
@@ -84,7 +84,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 			continue
 		}
 
-		call := internal.RpmCmd{
+		call := rpmCmd{
 			Collector:         run.Reply.Collector,
 			RunID:             run.Reply.RunID.String(),
 			Name:              cmd,
@@ -93,7 +93,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 			MaxPayloadSize:    run.Reply.MaxPayloadSizeInBytes,
 		}
 
-		resp := internal.CollectorRequest(call, app.rpmControls)
+		resp := collectorRequest(call, app.rpmControls)
 
 		if resp.IsDisconnect() || resp.IsRestartException() {
 			select {
@@ -118,9 +118,9 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 }
 
 func (app *app) connectRoutine() {
-	connectAttempt := 0
+	attempts := 0
 	for {
-		reply, resp := internal.ConnectAttempt(app.config, app.rpmControls)
+		reply, resp := connectAttempt(app.config, app.rpmControls)
 
 		if reply != nil {
 			select {
@@ -144,9 +144,9 @@ func (app *app) connectRoutine() {
 			})
 		}
 
-		backoff := getConnectBackoffTime(connectAttempt)
+		backoff := getConnectBackoffTime(attempts)
 		time.Sleep(time.Duration(backoff) * time.Second)
-		connectAttempt++
+		attempts++
 	}
 }
 
@@ -351,9 +351,9 @@ func newApp(cfg Config) (*app, error) {
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		connectChan:        make(chan *appRun, 1),
-		collectorErrorChan: make(chan internal.RPMResponse, 1),
+		collectorErrorChan: make(chan rpmResponse, 1),
 		dataChan:           make(chan appData, internal.AppDataChanSize),
-		rpmControls: internal.RpmControls{
+		rpmControls: rpmControls{
 			License: c.License,
 			Client: &http.Client{
 				Transport: c.Transport,

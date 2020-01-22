@@ -1,4 +1,4 @@
-package internal
+package newrelic
 
 import (
 	"encoding/json"
@@ -8,32 +8,21 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
 const (
-	// ProcotolVersion is the protocol version used to communicate with NR
-	// backend.
-	ProcotolVersion = 17
 	userAgentPrefix = "NewRelic-Go-Agent/"
 
 	// Methods used in collector communication.
-	cmdPreconnect   = "preconnect"
-	cmdConnect      = "connect"
-	cmdMetrics      = "metric_data"
-	cmdCustomEvents = "custom_event_data"
-	cmdTxnEvents    = "analytic_event_data"
-	cmdErrorEvents  = "error_event_data"
-	cmdErrorData    = "error_data"
-	cmdTxnTraces    = "transaction_sample_data"
-	cmdSlowSQLs     = "sql_trace_data"
-	cmdSpanEvents   = "span_event_data"
+	cmdPreconnect = "preconnect"
+	cmdConnect    = "connect"
 )
 
-// RpmCmd contains fields specific to an individual call made to RPM.
-type RpmCmd struct {
+// rpmCmd contains fields specific to an individual call made to RPM.
+type rpmCmd struct {
 	Name              string
 	Collector         string
 	RunID             string
@@ -42,16 +31,16 @@ type RpmCmd struct {
 	MaxPayloadSize    int
 }
 
-// RpmControls contains fields which will be the same for all calls made
+// rpmControls contains fields which will be the same for all calls made
 // by the same application.
-type RpmControls struct {
+type rpmControls struct {
 	License      string
 	Client       *http.Client
 	Logger       logger.Logger
 	AgentVersion string
 }
 
-// RPMResponse contains a NR endpoint response.
+// rpmResponse contains a NR endpoint response.
 //
 // Agent Behavior Summary:
 //
@@ -65,7 +54,7 @@ type RpmControls struct {
 //     401, 409 mean restart run
 //     408, 429, 500, 503 mean save data for next harvest
 //     all other response codes and errors discard the data and continue the current harvest
-type RPMResponse struct {
+type rpmResponse struct {
 	statusCode int
 	body       []byte
 	// Err indicates whether or not the call was successful: newRPMResponse
@@ -74,28 +63,28 @@ type RPMResponse struct {
 	disconnectSecurityPolicy bool
 }
 
-func newRPMResponse(statusCode int) RPMResponse {
+func newRPMResponse(statusCode int) rpmResponse {
 	var err error
 	if statusCode != 200 && statusCode != 202 {
 		err = fmt.Errorf("response code: %d", statusCode)
 	}
-	return RPMResponse{statusCode: statusCode, Err: err}
+	return rpmResponse{statusCode: statusCode, Err: err}
 }
 
 // IsDisconnect indicates that the agent should disconnect.
-func (resp RPMResponse) IsDisconnect() bool {
+func (resp rpmResponse) IsDisconnect() bool {
 	return resp.statusCode == 410 || resp.disconnectSecurityPolicy
 }
 
 // IsRestartException indicates that the agent should restart.
-func (resp RPMResponse) IsRestartException() bool {
+func (resp rpmResponse) IsRestartException() bool {
 	return resp.statusCode == 401 ||
 		resp.statusCode == 409
 }
 
 // ShouldSaveHarvestData indicates that the agent should save the data and try
 // to send it in the next harvest.
-func (resp RPMResponse) ShouldSaveHarvestData() bool {
+func (resp rpmResponse) ShouldSaveHarvestData() bool {
 	switch resp.statusCode {
 	case 408, 429, 500, 503:
 		return true
@@ -104,7 +93,7 @@ func (resp RPMResponse) ShouldSaveHarvestData() bool {
 	}
 }
 
-func rpmURL(cmd RpmCmd, cs RpmControls) string {
+func rpmURL(cmd rpmCmd, cs rpmControls) string {
 	var u url.URL
 
 	u.Host = cmd.Collector
@@ -113,7 +102,7 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 
 	query := url.Values{}
 	query.Set("marshal_format", "json")
-	query.Set("protocol_version", strconv.Itoa(ProcotolVersion))
+	query.Set("protocol_version", strconv.Itoa(internal.ProcotolVersion))
 	query.Set("method", cmd.Name)
 	query.Set("license_key", cs.License)
 
@@ -125,19 +114,19 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 	return u.String()
 }
 
-func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMResponse {
-	compressed, err := compress(cmd.Data)
+func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmResponse {
+	compressed, err := internal.Compress(cmd.Data)
 	if nil != err {
-		return RPMResponse{Err: err}
+		return rpmResponse{Err: err}
 	}
 
 	if l := compressed.Len(); l > cmd.MaxPayloadSize {
-		return RPMResponse{Err: fmt.Errorf("Payload size for %s too large: %d greater than %d", cmd.Name, l, cmd.MaxPayloadSize)}
+		return rpmResponse{Err: fmt.Errorf("Payload size for %s too large: %d greater than %d", cmd.Name, l, cmd.MaxPayloadSize)}
 	}
 
 	req, err := http.NewRequest("POST", url, compressed)
 	if nil != err {
-		return RPMResponse{Err: err}
+		return rpmResponse{Err: err}
 	}
 
 	req.Header.Add("Accept-Encoding", "identity, deflate")
@@ -150,7 +139,7 @@ func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMRespons
 
 	resp, err := cs.Client.Do(req)
 	if err != nil {
-		return RPMResponse{Err: err}
+		return rpmResponse{Err: err}
 	}
 
 	defer resp.Body.Close()
@@ -171,15 +160,15 @@ func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMRespons
 	return r
 }
 
-// CollectorRequest makes a request to New Relic.
-func CollectorRequest(cmd RpmCmd, cs RpmControls) RPMResponse {
+// collectorRequest makes a request to New Relic.
+func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 	url := rpmURL(cmd, cs)
 
 	if cs.Logger.DebugEnabled() {
 		cs.Logger.Debug("rpm request", map[string]interface{}{
 			"command": cmd.Name,
 			"url":     url,
-			"payload": JSONString(cmd.Data),
+			"payload": internal.JSONString(cmd.Data),
 		})
 	}
 
@@ -197,22 +186,12 @@ func CollectorRequest(cmd RpmCmd, cs RpmControls) RPMResponse {
 			cs.Logger.Debug("rpm response", map[string]interface{}{
 				"command":  cmd.Name,
 				"url":      url,
-				"response": JSONString(resp.body),
+				"response": internal.JSONString(resp.body),
 			})
 		}
 	}
 
 	return resp
-}
-
-// ConnectConfig allows the creation of the connect payload JSON to be
-// deferred until the SecurityPolicies are acquired and vetted, and exposes
-// other top level Config fields.
-type ConnectConfig interface {
-	CreateConnectJSON(*SecurityPolicies) ([]byte, error)
-	HighSecurity() bool
-	SecurityPoliciesToken() string
-	PreconnectHost() string
 }
 
 type preconnectRequest struct {
@@ -224,87 +203,64 @@ var (
 	errMissingAgentRunID = errors.New("connect reply missing agent run id")
 )
 
-// ConnectAttempt tries to connect an application.
-func ConnectAttempt(config ConnectConfig, cs RpmControls) (*ConnectReply, RPMResponse) {
+// connectAttempt tries to connect an application.
+func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{{
-		SecurityPoliciesToken: config.SecurityPoliciesToken(),
-		HighSecurity:          config.HighSecurity(),
+		SecurityPoliciesToken: config.SecurityPoliciesToken,
+		HighSecurity:          config.HighSecurity,
 	}})
 	if nil != err {
-		return nil, RPMResponse{Err: fmt.Errorf("unable to marshal preconnect data: %v", err)}
+		return nil, rpmResponse{Err: fmt.Errorf("unable to marshal preconnect data: %v", err)}
 	}
 
-	call := RpmCmd{
+	call := rpmCmd{
 		Name:           cmdPreconnect,
-		Collector:      config.PreconnectHost(),
+		Collector:      config.preconnectHost(),
 		Data:           preconnectData,
-		MaxPayloadSize: maxPayloadSizeInBytes,
+		MaxPayloadSize: internal.MaxPayloadSizeInBytes,
 	}
 
-	resp := CollectorRequest(call, cs)
+	resp := collectorRequest(call, cs)
 	if nil != resp.Err {
 		return nil, resp
 	}
 
 	var preconnect struct {
-		Preconnect PreconnectReply `json:"return_value"`
+		Preconnect internal.PreconnectReply `json:"return_value"`
 	}
 	err = json.Unmarshal(resp.body, &preconnect)
 	if nil != err {
 		// Certain security policy errors must be treated as a disconnect.
-		return nil, RPMResponse{
+		return nil, rpmResponse{
 			Err:                      fmt.Errorf("unable to process preconnect reply: %v", err),
-			disconnectSecurityPolicy: isDisconnectSecurityPolicyError(err),
+			disconnectSecurityPolicy: internal.IsDisconnectSecurityPolicyError(err),
 		}
 	}
 
-	js, err := config.CreateConnectJSON(preconnect.Preconnect.SecurityPolicies.PointerIfPopulated())
+	js, err := config.createConnectJSON(preconnect.Preconnect.SecurityPolicies.PointerIfPopulated())
 	if nil != err {
-		return nil, RPMResponse{Err: fmt.Errorf("unable to create connect data: %v", err)}
+		return nil, rpmResponse{Err: fmt.Errorf("unable to create connect data: %v", err)}
 	}
 
 	call.Collector = preconnect.Preconnect.Collector
 	call.Data = js
 	call.Name = cmdConnect
 
-	resp = CollectorRequest(call, cs)
+	resp = collectorRequest(call, cs)
 	if nil != resp.Err {
 		return nil, resp
 	}
 
-	reply, err := ConstructConnectReply(resp.body, preconnect.Preconnect)
+	reply, err := internal.ConstructConnectReply(resp.body, preconnect.Preconnect)
 	if nil != err {
-		return nil, RPMResponse{Err: err}
+		return nil, rpmResponse{Err: err}
 	}
 
 	// Note:  This should never happen.  It would mean the collector
 	// response is malformed.  This exists merely as extra defensiveness.
 	if "" == reply.RunID {
-		return nil, RPMResponse{Err: errMissingAgentRunID}
+		return nil, rpmResponse{Err: errMissingAgentRunID}
 	}
 
 	return reply, resp
-}
-
-// ConstructConnectReply takes the body of a Connect reply, in the form of bytes, and a
-// PreconnectReply, and converts it into a *ConnectReply
-func ConstructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
-	var reply struct {
-		Reply *ConnectReply `json:"return_value"`
-	}
-	reply.Reply = ConnectReplyDefaults()
-	err := json.Unmarshal(body, &reply)
-	if nil != err {
-		return nil, fmt.Errorf("unable to parse connect reply: %v", err)
-	}
-
-	reply.Reply.PreconnectReply = preconnect
-
-	reply.Reply.AdaptiveSampler = NewAdaptiveSampler(
-		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
-		reply.Reply.SamplingTarget,
-		time.Now())
-	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
-
-	return reply.Reply, nil
 }

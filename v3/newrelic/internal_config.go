@@ -215,7 +215,7 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 	}
 }
 
-func (c config) CreateConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
+func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
 	env := internal.NewEnvironment()
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:         c.Utilization.DetectAWS,
@@ -237,7 +237,7 @@ var (
 	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
 )
 
-func (c config) PreconnectHost() string {
+func (c config) preconnectHost() string {
 	if "" != c.Host {
 		return c.Host
 	}
@@ -247,6 +247,3 @@ func (c config) PreconnectHost() string {
 	}
 	return preconnectHostDefault
 }
-
-func (c config) SecurityPoliciesToken() string { return c.Config.SecurityPoliciesToken }
-func (c config) HighSecurity() bool            { return c.Config.HighSecurity }

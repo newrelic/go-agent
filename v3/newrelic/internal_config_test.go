@@ -532,7 +532,7 @@ func TestPreconnectHost(t *testing.T) {
 			License: tc.license,
 			Host:    tc.override,
 		}}
-		if got := cfg.PreconnectHost(); got != tc.expect {
+		if got := cfg.preconnectHost(); got != tc.expect {
 			t.Error("testcase", idx, got, tc.expect)
 		}
 	}
@@ -567,28 +567,9 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 			License: configKey,
 			Host:    overrideHost,
 		}}
-		if host := cfg.PreconnectHost(); host != tc.ExpectHostname {
+		if host := cfg.preconnectHost(); host != tc.ExpectHostname {
 			t.Errorf(`test="%s" got="%s" expected="%s"`, tc.Name, host, tc.ExpectHostname)
 		}
-	}
-}
-
-func TestConfigSecurityPoliciesTokenMethod(t *testing.T) {
-	token := "mySecurityToken01234"
-	cfg := config{Config: Config{SecurityPoliciesToken: token}}
-	if got := cfg.SecurityPoliciesToken(); got != token {
-		t.Error(got, token)
-	}
-}
-
-func TestConfigHighSecurityMethod(t *testing.T) {
-	cfg := config{Config: Config{HighSecurity: true}}
-	if s := cfg.HighSecurity(); !s {
-		t.Error(s)
-	}
-	cfg = config{Config: Config{HighSecurity: false}}
-	if s := cfg.HighSecurity(); s {
-		t.Error(s)
 	}
 }
 

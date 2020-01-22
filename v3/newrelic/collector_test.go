@@ -1,4 +1,4 @@
-package internal
+package newrelic
 
 import (
 	"encoding/json"
@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-func TestResponseCodeError(t *testing.T) {
+func TestCollectorResponseCodeError(t *testing.T) {
 	testcases := []struct {
 		code            int
 		success         bool
@@ -68,27 +69,21 @@ func TestResponseCodeError(t *testing.T) {
 	}
 }
 
-type roundTripperFunc func(*http.Request) (*http.Response, error)
-
-func (fn roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return fn(r)
-}
-
 func TestCollectorRequest(t *testing.T) {
-	cmd := RpmCmd{
+	cmd := rpmCmd{
 		Name:              "cmd_name",
 		Collector:         "collector.com",
 		RunID:             "run_id",
 		Data:              nil,
 		RequestHeadersMap: map[string]string{"zip": "zap"},
-		MaxPayloadSize:    maxPayloadSizeInBytes,
+		MaxPayloadSize:    internal.MaxPayloadSizeInBytes,
 	}
 	testField := func(name, v1, v2 string) {
 		if v1 != v2 {
 			t.Error(name, v1, v2)
 		}
 	}
-	cs := RpmControls{
+	cs := rpmControls{
 		License: "the_license",
 		Client: &http.Client{
 			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
@@ -108,21 +103,21 @@ func TestCollectorRequest(t *testing.T) {
 		Logger:       logger.ShimLogger{IsDebugEnabled: true},
 		AgentVersion: "agent_version",
 	}
-	resp := CollectorRequest(cmd, cs)
+	resp := collectorRequest(cmd, cs)
 	if nil != resp.Err {
 		t.Error(resp.Err)
 	}
 }
 
 func TestCollectorBadRequest(t *testing.T) {
-	cmd := RpmCmd{
+	cmd := rpmCmd{
 		Name:              "cmd_name",
 		Collector:         "collector.com",
 		RunID:             "run_id",
 		Data:              nil,
 		RequestHeadersMap: map[string]string{"zip": "zap"},
 	}
-	cs := RpmControls{
+	cs := rpmControls{
 		License: "the_license",
 		Client: &http.Client{
 			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
@@ -144,11 +139,11 @@ func TestCollectorBadRequest(t *testing.T) {
 }
 
 func TestUrl(t *testing.T) {
-	cmd := RpmCmd{
+	cmd := rpmCmd{
 		Name:      "foo_method",
 		Collector: "example.com",
 	}
-	cs := RpmControls{
+	cs := rpmControls{
 		License:      "123abc",
 		Client:       nil,
 		Logger:       nil,
@@ -192,8 +187,7 @@ type endpointResult struct {
 type connectMock struct {
 	redirect endpointResult
 	connect  endpointResult
-	// testConfig will be used if this is nil
-	config ConnectConfig
+	config   config
 }
 
 func (m connectMock) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -210,35 +204,15 @@ func (m connectMock) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func (m connectMock) CancelRequest(req *http.Request) {}
 
-type testConfig struct{}
-
-func (tc testConfig) HighSecurity() bool            { return false }
-func (tc testConfig) SecurityPoliciesToken() string { return "" }
-func (tc testConfig) PreconnectHost() string        { return "collector.newrelic.com" }
-
-func (tc testConfig) CreateConnectJSON(*SecurityPolicies) ([]byte, error) {
-	return []byte(`"connect-json"`), nil
-}
-
-type errorConfig struct{ testConfig }
-
-func (c errorConfig) CreateConnectJSON(*SecurityPolicies) ([]byte, error) {
-	return nil, errors.New("error creating config JSON")
-}
-
-func testConnectHelper(cm connectMock) (*ConnectReply, RPMResponse) {
-	config := cm.config
-	if nil == config {
-		config = testConfig{}
-	}
-	cs := RpmControls{
+func testConnectHelper(cm connectMock) (*internal.ConnectReply, rpmResponse) {
+	cs := rpmControls{
 		License:      "12345",
 		Client:       &http.Client{Transport: cm},
 		Logger:       logger.ShimLogger{IsDebugEnabled: true},
 		AgentVersion: "1",
 	}
 
-	return ConnectAttempt(config, cs)
+	return connectAttempt(cm.config, cs)
 }
 
 func TestConnectAttemptSuccess(t *testing.T) {
@@ -261,20 +235,6 @@ func TestConnectClientError(t *testing.T) {
 	run, resp := testConnectHelper(connectMock{
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{err: errors.New("client error")},
-	})
-	if nil != run {
-		t.Fatal(run)
-	}
-	if resp.Err == nil {
-		t.Fatal("missing expected error")
-	}
-}
-
-func TestConnectConfigJSONError(t *testing.T) {
-	run, resp := testConnectHelper(connectMock{
-		redirect: endpointResult{response: makeResponse(200, redirectBody)},
-		connect:  endpointResult{response: makeResponse(200, connectBody)},
-		config:   errorConfig{},
 	})
 	if nil != run {
 		t.Fatal(run)
@@ -403,14 +363,14 @@ func TestConnectAttemptMissingRunID(t *testing.T) {
 func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
 	// Test that CollectorRequest returns an error when MaxPayloadSize is
 	// exceeded
-	cmd := RpmCmd{
+	cmd := rpmCmd{
 		Name:           "cmd_name",
 		Collector:      "collector.com",
 		RunID:          "run_id",
 		Data:           []byte("abcdefghijklmnopqrstuvwxyz"),
 		MaxPayloadSize: 3,
 	}
-	cs := RpmControls{
+	cs := rpmControls{
 		Client: &http.Client{
 			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 				t.Error("no response should have gone out!")
@@ -419,7 +379,7 @@ func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
 	}
-	resp := CollectorRequest(cmd, cs)
+	resp := collectorRequest(cmd, cs)
 	if nil == resp.Err {
 		t.Error("response should have contained error")
 	}
@@ -443,8 +403,8 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 		},
 	}
 
-	controls := func(replyBody string) RpmControls {
-		return RpmControls{
+	controls := func(replyBody string) rpmControls {
+		return rpmControls{
 			Client: &http.Client{
 				Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 					return &http.Response{
@@ -458,7 +418,7 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 	}
 
 	for _, test := range testcases {
-		reply, resp := ConnectAttempt(testConfig{}, controls(test.replyBody))
+		reply, resp := connectAttempt(config{}, controls(test.replyBody))
 		if nil != resp.Err {
 			t.Error("resp returned unexpected error:", resp.Err)
 		}
