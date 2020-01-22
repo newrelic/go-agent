@@ -1,5 +1,11 @@
 # ChangeLog
 
+### New Features
+
+* Added support for `v7` of [go-redis/redis](https://github.com/go-redis/redis)
+  in the new [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7)
+  package.
+
 ## 3.1.0
 
 ### New Features
