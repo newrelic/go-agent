@@ -1,5 +1,13 @@
 # ChangeLog
 
+### New Features
+
+* Added support for [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go)
+  applications in the new [v3/integrations/nr-graph-gophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
+  package.
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
+  * [Example](v3/integrations/nr-graph-gophers/example/main.go)
+
 ### Changes
 
 * When using
