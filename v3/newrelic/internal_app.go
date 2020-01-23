@@ -359,8 +359,7 @@ func newApp(cfg Config) (*app, error) {
 				Transport: c.Transport,
 				Timeout:   internal.CollectorTimeout,
 			},
-			Logger:       c.Logger,
-			AgentVersion: Version,
+			Logger: c.Logger,
 		},
 	}
 

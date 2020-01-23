@@ -91,7 +91,7 @@ func TestCollectorRequest(t *testing.T) {
 				testField("url", r.URL.String(), "https://collector.com/agent_listener/invoke_raw_method?license_key=the_license&marshal_format=json&method=cmd_name&protocol_version=17&run_id=run_id")
 				testField("Accept-Encoding", r.Header.Get("Accept-Encoding"), "identity, deflate")
 				testField("Content-Type", r.Header.Get("Content-Type"), "application/octet-stream")
-				testField("User-Agent", r.Header.Get("User-Agent"), "NewRelic-Go-Agent/agent_version")
+				testField("User-Agent", r.Header.Get("User-Agent"), "NewRelic-Go-Agent/"+Version)
 				testField("Content-Encoding", r.Header.Get("Content-Encoding"), "gzip")
 				testField("zip", r.Header.Get("zip"), "zap")
 				return &http.Response{
@@ -100,8 +100,7 @@ func TestCollectorRequest(t *testing.T) {
 				}, nil
 			}),
 		},
-		Logger:       logger.ShimLogger{IsDebugEnabled: true},
-		AgentVersion: "agent_version",
+		Logger: logger.ShimLogger{IsDebugEnabled: true},
 	}
 	resp := collectorRequest(cmd, cs)
 	if nil != resp.Err {
@@ -127,8 +126,7 @@ func TestCollectorBadRequest(t *testing.T) {
 				}, nil
 			}),
 		},
-		Logger:       logger.ShimLogger{IsDebugEnabled: true},
-		AgentVersion: "agent_version",
+		Logger: logger.ShimLogger{IsDebugEnabled: true},
 	}
 	u := ":" // bad url
 	resp := collectorRequestInternal(u, cmd, cs)
@@ -144,10 +142,9 @@ func TestUrl(t *testing.T) {
 		Collector: "example.com",
 	}
 	cs := rpmControls{
-		License:      "123abc",
-		Client:       nil,
-		Logger:       nil,
-		AgentVersion: "1",
+		License: "123abc",
+		Client:  nil,
+		Logger:  nil,
 	}
 
 	out := rpmURL(cmd, cs)
@@ -206,10 +203,9 @@ func (m connectMock) CancelRequest(req *http.Request) {}
 
 func testConnectHelper(cm connectMock) (*internal.ConnectReply, rpmResponse) {
 	cs := rpmControls{
-		License:      "12345",
-		Client:       &http.Client{Transport: cm},
-		Logger:       logger.ShimLogger{IsDebugEnabled: true},
-		AgentVersion: "1",
+		License: "12345",
+		Client:  &http.Client{Transport: cm},
+		Logger:  logger.ShimLogger{IsDebugEnabled: true},
 	}
 
 	return connectAttempt(cm.config, cs)

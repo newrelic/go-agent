@@ -34,10 +34,9 @@ type rpmCmd struct {
 // rpmControls contains fields which will be the same for all calls made
 // by the same application.
 type rpmControls struct {
-	License      string
-	Client       *http.Client
-	Logger       logger.Logger
-	AgentVersion string
+	License string
+	Client  *http.Client
+	Logger  logger.Logger
 }
 
 // rpmResponse contains a NR endpoint response.
@@ -131,7 +130,7 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmRespons
 
 	req.Header.Add("Accept-Encoding", "identity, deflate")
 	req.Header.Add("Content-Type", "application/octet-stream")
-	req.Header.Add("User-Agent", userAgentPrefix+cs.AgentVersion)
+	req.Header.Add("User-Agent", userAgentPrefix+Version)
 	req.Header.Add("Content-Encoding", "gzip")
 	for k, v := range cmd.RequestHeadersMap {
 		req.Header.Add(k, v)
