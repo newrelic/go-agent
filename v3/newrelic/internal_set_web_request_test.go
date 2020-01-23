@@ -126,8 +126,8 @@ func TestSetWebRequestHTTPRequest(t *testing.T) {
 		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex/Go/hello", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		AgentAttributes: sampleRequestAgentAttributes,

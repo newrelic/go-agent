@@ -291,14 +291,19 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	if cat := args.BetterCAT; cat.Enabled {
 		caller := callerUnknown
 		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
-			caller = cat.Inbound.payloadCaller
+			caller.Type = cat.Inbound.Type
+			caller.App = cat.Inbound.App
+			caller.Account = cat.Inbound.Account
+		}
+		if cat.TransportType != "" {
+			caller.TransportType = cat.TransportType
 		}
 		m := durationByCallerMetric(caller)
 		metrics.addDuration(m.all, "", args.Duration, args.Duration, unforced)
 		metrics.addDuration(m.webOrOther(args.IsWeb), "", args.Duration, args.Duration, unforced)
 
 		// Transport Duration Metric
-		if nil != cat.Inbound {
+		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
 			d := cat.Inbound.TransportDuration
 			m = transportDurationMetric(caller)
 			metrics.addDuration(m.all, "", d, d, unforced)

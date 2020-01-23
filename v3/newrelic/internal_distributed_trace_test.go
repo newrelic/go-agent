@@ -422,7 +422,7 @@ func TestPayloadFutureVersion(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/MajorVersion", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -449,7 +449,7 @@ func TestPayloadParsingError(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -520,7 +520,7 @@ func TestPayloadUntrustedAccount(t *testing.T) {
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Ignored/UntrustedAccount", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Supportability/DistributedTrace/AcceptPayload/Success", Scope: "", Forced: true, Data: singleCount},
-	}, backgroundMetricsUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":     "OtherTransaction/Go/hello",
@@ -662,6 +662,14 @@ var (
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	}
+	backgroundUnknownCallerWithTransport = []internal.WantMetric{
+		{Name: "OtherTransaction/Go/hello", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/hello", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
+	}
 )
 
 func TestNilPayload(t *testing.T) {
@@ -721,7 +729,7 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestMissingVersionForSupportabilityMetric(t *testing.T) {
@@ -748,7 +756,7 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestMissingFieldForSupportabilityMetric(t *testing.T) {
@@ -776,7 +784,7 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestParseExceptionSupportabilityMetric(t *testing.T) {
@@ -804,7 +812,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/DistributedTrace/AcceptPayload/ParseException", Scope: "", Forced: true, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestErrorsByCaller(t *testing.T) {
@@ -1509,9 +1517,7 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
@@ -1636,9 +1642,7 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/NoNrEntry", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }
 
 func TestW3CTraceHeadersTxnEventsDisabled(t *testing.T) {
@@ -2185,7 +2189,5 @@ func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
 	app.ExpectMetrics(t, append([]internal.WantMetric{
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/InvalidNrEntry", Scope: "", Forced: true, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "TransportDuration/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-	}, backgroundUnknownCaller...))
+	}, backgroundUnknownCallerWithTransport...))
 }

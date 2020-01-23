@@ -1049,6 +1049,8 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 		return nil
 	}
 
+	txn.BetterCAT.TransportType = t.toString()
+
 	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, &txn.DistributedTracingSupport)
 	if nil != err {
 		return err
@@ -1084,7 +1086,6 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 
 	txn.BetterCAT.Inbound = payload
 	txn.BetterCAT.TraceID = payload.TracedID
-	txn.BetterCAT.Inbound.TransportType = t.toString()
 
 	if tm := payload.Timestamp.Time(); txn.Start.After(tm) {
 		txn.BetterCAT.Inbound.TransportDuration = txn.Start.Sub(tm)
