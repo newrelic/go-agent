@@ -217,18 +217,16 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 	}
 
 	txnEvent.BetterCAT.Inbound = &Payload{
-		payloadCaller: payloadCaller{
-			TransportType: "HTTP",
-			Type:          "Browser",
-			App:           "caller-app",
-			Account:       "caller-account",
-		},
+		Type:                 "Browser",
+		App:                  "caller-app",
+		Account:              "caller-account",
 		ID:                   "caller-id",
 		TransactionID:        "caller-parent-id",
 		TracedID:             "trace-id",
 		TransportDuration:    2 * time.Second,
 		HasNewRelicTraceInfo: true,
 	}
+	txnEvent.BetterCAT.TransportType = "HTTP"
 
 	txnSlows := newSlowQueries(maxTxnSlowQueries)
 	qParams, err := vetQueryParameters(map[string]interface{}{

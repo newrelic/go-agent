@@ -72,7 +72,9 @@ func (tm timestampMillis) unixMillisecondsString() string {
 
 // Payload is the distributed tracing payload.
 type Payload struct {
-	payloadCaller
+	Type          string   `json:"ty"`
+	App           string   `json:"ap"`
+	Account       string   `json:"ac"`
 	TransactionID string   `json:"tx,omitempty"`
 	ID            string   `json:"id,omitempty"`
 	TracedID      string   `json:"tr"`
@@ -90,10 +92,10 @@ type Payload struct {
 }
 
 type payloadCaller struct {
-	TransportType string `json:"-"`
-	Type          string `json:"ty"`
-	App           string `json:"ap"`
-	Account       string `json:"ac"`
+	TransportType string
+	Type          string
+	App           string
+	Account       string
 }
 
 // IsValid IsValidNewRelicData the payload data by looking for missing fields.

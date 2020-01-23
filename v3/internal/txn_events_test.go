@@ -143,12 +143,9 @@ func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 	e := sampleTxnEvent
 	e.BetterCAT.Inbound = &Payload{
-		payloadCaller: payloadCaller{
-			TransportType: "HTTP",
-			Type:          "Browser",
-			App:           "caller-app",
-			Account:       "caller-account",
-		},
+		Type:                 "Browser",
+		App:                  "caller-app",
+		Account:              "caller-account",
 		ID:                   "caller-id",
 		TransactionID:        "caller-parent-id",
 		TracedID:             "trip-id",
@@ -156,6 +153,7 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 		HasNewRelicTraceInfo: true,
 	}
 	e.BetterCAT.TraceID = "trip-id"
+	e.BetterCAT.TransportType = "HTTP"
 	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
@@ -183,12 +181,9 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 func TestTxnEventMarshalWithInboundCallerOldCAT(t *testing.T) {
 	e := sampleTxnEventWithOldCAT
 	e.BetterCAT.Inbound = &Payload{
-		payloadCaller: payloadCaller{
-			TransportType: "HTTP",
-			Type:          "Browser",
-			App:           "caller-app",
-			Account:       "caller-account",
-		},
+		Type:              "Browser",
+		App:               "caller-app",
+		Account:           "caller-account",
 		ID:                "caller-id",
 		TransactionID:     "caller-parent-id",
 		TracedID:          "trip-id",

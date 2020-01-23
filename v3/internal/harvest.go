@@ -291,7 +291,9 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	if cat := args.BetterCAT; cat.Enabled {
 		caller := callerUnknown
 		if nil != cat.Inbound && cat.Inbound.HasNewRelicTraceInfo {
-			caller = cat.Inbound.payloadCaller
+			caller.Type = cat.Inbound.Type
+			caller.App = cat.Inbound.App
+			caller.Account = cat.Inbound.Account
 		}
 		if cat.TransportType != "" {
 			caller.TransportType = cat.TransportType

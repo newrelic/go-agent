@@ -10,11 +10,9 @@ import (
 
 var (
 	samplePayload = Payload{
-		payloadCaller: payloadCaller{
-			Type:    CallerTypeApp,
-			Account: "123",
-			App:     "456",
-		},
+		Type:                 CallerTypeApp,
+		Account:              "123",
+		App:                  "456",
 		ID:                   "myid",
 		TracedID:             "mytrip",
 		Priority:             0.12345,
@@ -642,12 +640,9 @@ func TestAcceptW3CSuccess(t *testing.T) {
 	}
 	truePtr := true
 	expect := &Payload{
-		payloadCaller: payloadCaller{
-			TransportType: "",
-			Type:          "App",
-			App:           "41346604",
-			Account:       "1349956",
-		},
+		Type:                 "App",
+		App:                  "41346604",
+		Account:              "1349956",
 		TransactionID:        "b28be285632bbc0a",
 		ID:                   "0aaabbbcccdddeee",
 		TracedID:             "11223344556677889900aabbccddeeff",

@@ -190,13 +190,11 @@ func TestErrorEventMarshalWithInboundCaller(t *testing.T) {
 
 	e.BetterCAT.Enabled = true
 	e.BetterCAT.TraceID = "trip-id"
+	e.BetterCAT.TransportType = "HTTP"
 	e.BetterCAT.Inbound = &Payload{
-		payloadCaller: payloadCaller{
-			TransportType: "HTTP",
-			Type:          "Browser",
-			App:           "caller-app",
-			Account:       "caller-account",
-		},
+		Type:                 "Browser",
+		App:                  "caller-app",
+		Account:              "caller-account",
 		ID:                   "caller-id",
 		TransactionID:        "caller-parent-id",
 		TracedID:             "trip-id",
