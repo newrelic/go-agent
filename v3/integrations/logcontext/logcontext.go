@@ -1,3 +1,12 @@
+// Package logcontext facilitates adding New Relic context to your logs.
+//
+// Adding New Relic context to your logs will allow you to see links between
+// your events and traces in APM and your logs.  If you are using a logging
+// framework that does not already have a New Relic plugin for log decoration,
+// use this package to manually add logging context.
+//
+// See https://github.com/newrelic/newrelic-exporter-specs/tree/master/logging
+// for a complete specification.
 package logcontext
 
 import newrelic "github.com/newrelic/go-agent/v3/newrelic"

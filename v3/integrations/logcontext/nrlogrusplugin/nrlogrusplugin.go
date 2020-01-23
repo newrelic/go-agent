@@ -1,7 +1,7 @@
 // Package nrlogrusplugin decorates logs for sending to the New Relic backend.
 //
-// Use this package if you want to enable the New Relic logging product and see
-// your log messages in the New Relic UI.
+// Use this package if you already send your logs to New Relic and want to
+// enable linking between your APM events and traces with your logs.
 //
 // Since Logrus is completely api-compatible with the stdlib logger, you can
 // replace your `"log"` imports with `log "github.com/sirupsen/logrus"` and
