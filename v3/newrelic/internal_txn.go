@@ -162,7 +162,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 
 	h := r.Header
 	if nil != h {
-		txn.Queuing = internal.QueueDuration(h, txn.Start)
+		txn.Queuing = queueDuration(h, txn.Start)
 		txn.acceptDistributedTraceHeadersLocked(r.Transport, h)
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}

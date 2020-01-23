@@ -106,7 +106,26 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fields)
 }
 
-func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e internal.Environment, version string, securityPolicies *internal.SecurityPolicies, metadata map[string]string) ([]byte, error) {
+// labels is used for connect JSON formatting.
+type labels map[string]string
+
+func (l labels) MarshalJSON() ([]byte, error) {
+	ls := make([]struct {
+		Key   string `json:"label_type"`
+		Value string `json:"label_value"`
+	}, len(l))
+
+	i := 0
+	for key, val := range l {
+		ls[i].Key = key
+		ls[i].Value = val
+		i++
+	}
+
+	return json.Marshal(ls)
+}
+
+func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e environment, version string, securityPolicies *internal.SecurityPolicies, metadata map[string]string) ([]byte, error) {
 	return json.Marshal([]interface{}{struct {
 		Pid              int                         `json:"pid"`
 		Language         string                      `json:"language"`
@@ -116,8 +135,8 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e inte
 		Settings         interface{}                 `json:"settings"`
 		AppName          []string                    `json:"app_name"`
 		HighSecurity     bool                        `json:"high_security"`
-		Labels           internal.Labels             `json:"labels,omitempty"`
-		Environment      internal.Environment        `json:"environment"`
+		Labels           labels                      `json:"labels,omitempty"`
+		Environment      environment                 `json:"environment"`
 		Identifier       string                      `json:"identifier"`
 		Util             *utilization.Data           `json:"utilization"`
 		SecurityPolicies *internal.SecurityPolicies  `json:"security_policies,omitempty"`
@@ -216,7 +235,7 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 }
 
 func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
-	env := internal.NewEnvironment()
+	env := newEnvironment()
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:         c.Utilization.DetectAWS,
 		DetectAzure:       c.Utilization.DetectAzure,

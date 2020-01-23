@@ -220,7 +220,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	metadata := map[string]string{
 		"NEW_RELIC_METADATA_ZAP": "zip",
 	}
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", sp.PointerIfPopulated(), metadata)
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", sp.PointerIfPopulated(), metadata)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	}]`)
 
 	metadata := map[string]string{}
-	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, internal.SampleEnvironment, "0.2.2", nil, metadata)
+	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
 	if nil != err {
 		t.Fatal(err)
 	}
