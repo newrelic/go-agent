@@ -87,6 +87,16 @@ env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
 Some endpoints exposed are [http://localhost:8000/](http://localhost:8000/)
 and [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
 
+## Alternatives
+
+If you are already using another open source solution to gather telemetry data, you may find it easier to use one of our open source exporters to send this data to New Relic:
+
+* OpenTelemetry: [github.com/newrelic/opentelemetry-exporter-go](https://github.com/newrelic/opentelemetry-exporter-go)
+* OpenCensus: [github.com/newrelic/newrelic-opencensus-exporter-go](https://github.com/newrelic/newrelic-opencensus-exporter-go)
+* Prometheus Exporter: [github.com/newrelic/nri-prometheus](https://github.com/newrelic/nri-prometheus)
+* Istio Adapter: [github.com/newrelic/newrelic-istio-adapter](https://github.com/newrelic/newrelic-istio-adapter)
+* Telemetry SDK: [github.com/newrelic/newrelic-telemetry-sdk-go](https://github.com/newrelic/newrelic-telemetry-sdk-go)
+
 ## Support
 
 You can find more detailed documentation [in the guide](GUIDE.md) and on
