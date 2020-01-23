@@ -100,7 +100,8 @@ func (err errUnsetPolicy) Error() string {
 	return fmt.Sprintf("policy '%s' not received, please contact support", err.name)
 }
 
-func isDisconnectSecurityPolicyError(e error) bool {
+// IsDisconnectSecurityPolicyError indicates if the error is disconnect worthy.
+func IsDisconnectSecurityPolicyError(e error) bool {
 	if _, ok := e.(errUnknownRequiredPolicy); ok {
 		return true
 	}

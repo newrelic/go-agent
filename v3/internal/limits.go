@@ -20,9 +20,9 @@ const (
 	AppDataChanSize           = 200
 	failedMetricAttemptsLimit = 5
 	failedEventsAttemptsLimit = 10
-	// maxPayloadSizeInBytes specifies the maximum payload size in bytes that
+	// MaxPayloadSizeInBytes specifies the maximum payload size in bytes that
 	// should be sent to any endpoint
-	maxPayloadSizeInBytes = 1000 * 1000
+	MaxPayloadSizeInBytes = 1000 * 1000
 
 	// transaction behavior
 	maxStackTraceFrames = 100

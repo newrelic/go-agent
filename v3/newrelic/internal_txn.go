@@ -411,7 +411,7 @@ func (txn *txn) AddAttribute(name string, value interface{}) error {
 	txn.Lock()
 	defer txn.Unlock()
 
-	if txn.Config.HighSecurity() {
+	if txn.Config.HighSecurity {
 		return errHighSecurityEnabled
 	}
 
@@ -449,7 +449,7 @@ func (txn *txn) noticeErrorInternal(err internal.ErrorData) error {
 		txn.Errors = internal.NewTxnErrors(internal.MaxTxnErrors)
 	}
 
-	if txn.Config.HighSecurity() {
+	if txn.Config.HighSecurity {
 		err.Msg = highSecurityErrorMsg
 	}
 
@@ -575,7 +575,7 @@ func (txn *txn) NoticeError(input error) error {
 		return err
 	}
 
-	if txn.Config.HighSecurity() || !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
+	if txn.Config.HighSecurity || !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
 		data.ExtraAttributes = nil
 	}
 
@@ -744,7 +744,7 @@ func endDatastore(s *DatastoreSegment) error {
 	if txn.finished {
 		return errAlreadyEnded
 	}
-	if txn.Config.HighSecurity() {
+	if txn.Config.HighSecurity {
 		s.QueryParameters = nil
 	}
 	if !txn.Config.DatastoreTracer.QueryParameters.Enabled {
