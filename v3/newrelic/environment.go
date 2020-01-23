@@ -1,4 +1,4 @@
-package internal
+package newrelic
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"runtime"
 )
 
-// Environment describes the application's environment.
-type Environment struct {
+// environment describes the application's environment.
+type environment struct {
 	Compiler string `env:"runtime.Compiler"`
 	GOARCH   string `env:"runtime.GOARCH"`
 	GOOS     string `env:"runtime.GOOS"`
@@ -16,8 +16,8 @@ type Environment struct {
 }
 
 var (
-	// SampleEnvironment is useful for testing.
-	SampleEnvironment = Environment{
+	// sampleEnvironment is useful for testing.
+	sampleEnvironment = environment{
 		Compiler: "comp",
 		GOARCH:   "arch",
 		GOOS:     "goos",
@@ -26,9 +26,9 @@ var (
 	}
 )
 
-// NewEnvironment returns a new Environment.
-func NewEnvironment() Environment {
-	return Environment{
+// newEnvironment returns a new Environment.
+func newEnvironment() environment {
+	return environment{
 		Compiler: runtime.Compiler,
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
@@ -39,7 +39,7 @@ func NewEnvironment() Environment {
 
 // MarshalJSON prepares Environment JSON in the format expected by the collector
 // during the connect command.
-func (e Environment) MarshalJSON() ([]byte, error) {
+func (e environment) MarshalJSON() ([]byte, error) {
 	var arr [][]interface{}
 
 	val := reflect.ValueOf(e)

@@ -1,17 +1,19 @@
-package internal
+package newrelic
 
 import (
 	"encoding/json"
 	"runtime"
 	"testing"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 func TestMarshalEnvironment(t *testing.T) {
-	js, err := json.Marshal(&SampleEnvironment)
+	js, err := json.Marshal(&sampleEnvironment)
 	if nil != err {
 		t.Fatal(err)
 	}
-	expect := CompactJSONString(`[
+	expect := internal.CompactJSONString(`[
 		["runtime.Compiler","comp"],
 		["runtime.GOARCH","arch"],
 		["runtime.GOOS","goos"],
@@ -23,7 +25,7 @@ func TestMarshalEnvironment(t *testing.T) {
 }
 
 func TestEnvironmentFields(t *testing.T) {
-	env := NewEnvironment()
+	env := newEnvironment()
 	if env.Compiler != runtime.Compiler {
 		t.Error(env.Compiler, runtime.Compiler)
 	}

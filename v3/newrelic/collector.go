@@ -1,6 +1,8 @@
 package newrelic
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -113,8 +115,21 @@ func rpmURL(cmd rpmCmd, cs rpmControls) string {
 	return u.String()
 }
 
+func compress(b []byte) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	_, err := w.Write(b)
+	w.Close()
+
+	if nil != err {
+		return nil, err
+	}
+
+	return &buf, nil
+}
+
 func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmResponse {
-	compressed, err := internal.Compress(cmd.Data)
+	compressed, err := compress(cmd.Data)
 	if nil != err {
 		return rpmResponse{Err: err}
 	}

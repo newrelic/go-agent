@@ -1,4 +1,4 @@
-package internal
+package newrelic
 
 import (
 	"net/http"
@@ -51,34 +51,34 @@ func TestParseQueueTime(t *testing.T) {
 func TestQueueDuration(t *testing.T) {
 	hdr := make(http.Header)
 	hdr.Set("X-Queue-Start", "1465798814")
-	qd := QueueDuration(hdr, time.Unix(1465798816, 0))
+	qd := queueDuration(hdr, time.Unix(1465798816, 0))
 	if qd != 2*time.Second {
 		t.Error(qd)
 	}
 
 	hdr = make(http.Header)
 	hdr.Set("X-Request-Start", "1465798814")
-	qd = QueueDuration(hdr, time.Unix(1465798816, 0))
+	qd = queueDuration(hdr, time.Unix(1465798816, 0))
 	if qd != 2*time.Second {
 		t.Error(qd)
 	}
 
 	hdr = make(http.Header)
-	qd = QueueDuration(hdr, time.Unix(1465798816, 0))
+	qd = queueDuration(hdr, time.Unix(1465798816, 0))
 	if qd != 0 {
 		t.Error(qd)
 	}
 
 	hdr = make(http.Header)
 	hdr.Set("X-Request-Start", "invalid-time")
-	qd = QueueDuration(hdr, time.Unix(1465798816, 0))
+	qd = queueDuration(hdr, time.Unix(1465798816, 0))
 	if qd != 0 {
 		t.Error(qd)
 	}
 
 	hdr = make(http.Header)
 	hdr.Set("X-Queue-Start", "t=1465798814")
-	qd = QueueDuration(hdr, time.Unix(1465798816, 0))
+	qd = queueDuration(hdr, time.Unix(1465798816, 0))
 	if qd != 2*time.Second {
 		t.Error(qd)
 	}
@@ -86,7 +86,7 @@ func TestQueueDuration(t *testing.T) {
 	// incorrect time order
 	hdr = make(http.Header)
 	hdr.Set("X-Queue-Start", "t=1465798816")
-	qd = QueueDuration(hdr, time.Unix(1465798814, 0))
+	qd = queueDuration(hdr, time.Unix(1465798814, 0))
 	if qd != 0 {
 		t.Error(qd)
 	}
