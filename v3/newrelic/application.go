@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"os"
 	"time"
 )
 
@@ -122,10 +123,9 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 			}
 		}
 	}
-
-	app, err := newApp(c)
+	cfg, err := newInternalConfig(c, os.Getenv, os.Environ())
 	if nil != err {
 		return nil, err
 	}
-	return newApplication(app), nil
+	return newApplication(newApp(cfg)), nil
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
 type dataConsumer interface {
@@ -330,15 +329,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 	}
 }
 
-func newApp(cfg Config) (*app, error) {
-	cfg = copyConfigReferenceFields(cfg)
-	if err := cfg.validate(); nil != err {
-		return nil, err
-	}
-	if nil == cfg.Logger {
-		cfg.Logger = logger.ShimLogger{}
-	}
-	c := newInternalConfig(cfg, os.Getenv, os.Environ())
+func newApp(c config) *app {
 	app := &app{
 		Logger:         c.Logger,
 		config:         c,
@@ -383,7 +374,7 @@ func newApp(cfg Config) (*app, error) {
 		}
 	}
 
-	return app, nil
+	return app
 }
 
 var (

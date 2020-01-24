@@ -437,6 +437,22 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+func TestValidateCalled(t *testing.T) {
+	// Test that config validation is actually done when creating an
+	// application.
+	app, err := NewApplication(func(cfg *Config) {
+		cfg.License = ""
+		cfg.AppName = "my app"
+		cfg.Enabled = true
+	})
+	if app != nil {
+		t.Error(app)
+	}
+	if err != errLicenseLen {
+		t.Error(err)
+	}
+}
+
 func TestValidateWithPoliciesToken(t *testing.T) {
 	c := Config{
 		License:               "0123456789012345678901234567890123456789",
@@ -664,13 +680,29 @@ func TestComputeDynoHostname(t *testing.T) {
 }
 
 func TestNewInternalConfig(t *testing.T) {
-	c := newInternalConfig(defaultConfig(), func(s string) string {
+	labels := map[string]string{"zip": "zap"}
+	cfg := defaultConfig()
+	cfg.License = "0123456789012345678901234567890123456789"
+	cfg.AppName = "my app"
+	cfg.Logger = nil
+	cfg.Labels = labels
+	c, err := newInternalConfig(cfg, func(s string) string {
 		switch s {
 		case "DYNO":
 			return "mydyno"
 		}
 		return ""
 	}, []string{"NEW_RELIC_METADATA_ZIP=ZAP"})
+	if err != nil {
+		t.Error(err)
+	}
+	if c.Logger == nil {
+		t.Error("non nil Logger expected")
+	}
+	labels["zip"] = "1234"
+	if c.Labels["zip"] != "zap" {
+		t.Error("labels should have been copied", c.Labels)
+	}
 	if c.hostname != "mydyno" {
 		t.Error(c.hostname)
 	}
