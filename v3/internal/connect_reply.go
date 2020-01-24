@@ -240,12 +240,12 @@ func constructFullTxnName(input string, reply *ConnectReply, isWeb bool) string 
 	return reply.SegmentTerms.apply(afterNameRules)
 }
 
-// SampleEverything is used for testing to ensure span events get saved.
-func (r *ConnectReply) SampleEverything() {
+// SetSampleEverything is used for testing to ensure span events get saved.
+func (r *ConnectReply) SetSampleEverything() {
 	r.AdaptiveSampler = sampleEverything{}
 }
 
-// SampleNothing is used for testing to ensure no span events get saved.
-func (r *ConnectReply) SampleNothing() {
+// SetSampleNothing is used for testing to ensure no span events get saved.
+func (r *ConnectReply) SetSampleNothing() {
 	r.AdaptiveSampler = sampleNothing{}
 }

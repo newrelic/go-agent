@@ -235,5 +235,5 @@ func createTestApp() integrationsupport.ExpectApp {
 }
 
 var replyFn = func(reply *internal.ConnectReply) {
-	reply.SampleEverything()
+	reply.SetSampleEverything()
 }

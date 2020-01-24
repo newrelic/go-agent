@@ -79,7 +79,7 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 		reply.AppID = "456"
 		reply.PrimaryAppID = "456"
 		reply.TrustedAccountKey = tc.TrustedAccountKey
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 
 	}, configCallback, t)
 

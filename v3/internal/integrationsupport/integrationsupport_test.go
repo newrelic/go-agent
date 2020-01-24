@@ -32,7 +32,7 @@ func TestSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 	}
 	internal.HarvestTesting(app.Private, replyfn)
 

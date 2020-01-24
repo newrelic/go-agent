@@ -154,7 +154,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 func TestLogSampledFalse(t *testing.T) {
 	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
-			reply.SampleNothing()
+			reply.SetSampleNothing()
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		},
 		func(cfg *newrelic.Config) {
@@ -183,7 +183,7 @@ func TestLogSampledFalse(t *testing.T) {
 func TestLogSampledTrue(t *testing.T) {
 	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
-			reply.SampleEverything()
+			reply.SetSampleEverything()
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		},
 		func(cfg *newrelic.Config) {
@@ -218,7 +218,7 @@ func TestEntryUsedTwice(t *testing.T) {
 	// First log has dt enabled, ensure trace.id and span.id are included
 	app := integrationsupport.NewTestApp(
 		func(reply *internal.ConnectReply) {
-			reply.SampleEverything()
+			reply.SetSampleEverything()
 			reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		},
 		func(cfg *newrelic.Config) {

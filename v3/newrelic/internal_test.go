@@ -1323,7 +1323,7 @@ func TestTraceExternal(t *testing.T) {
 
 func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -1381,7 +1381,7 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 
 func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -1437,7 +1437,7 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 
 func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -1919,7 +1919,7 @@ func TestAsync(t *testing.T) {
 
 func TestMessageProducerSegmentBasic(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.SampleEverything()
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
