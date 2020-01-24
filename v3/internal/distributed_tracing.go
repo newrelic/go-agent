@@ -98,6 +98,16 @@ type payloadCaller struct {
 	Account       string
 }
 
+var (
+	errPayloadMissingGUIDTxnID = errors.New("payload is missing both guid/id and TransactionId/tx")
+	errPayloadMissingType      = errors.New("payload is missing Type/ty")
+	errPayloadMissingAccount   = errors.New("payload is missing Account/ac")
+	errPayloadMissingApp       = errors.New("payload is missing App/ap")
+	errPayloadMissingTraceID   = errors.New("payload is missing TracedID/tr")
+	errPayloadMissingTimestamp = errors.New("payload is missing Timestamp/ti")
+	errPayloadMissingVersion   = errors.New("payload is missing Version/v")
+)
+
 // IsValid IsValidNewRelicData the payload data by looking for missing fields.
 // Returns an error if there's a problem, nil if everything's fine
 func (p Payload) validateNewRelicData() error {
@@ -105,27 +115,27 @@ func (p Payload) validateNewRelicData() error {
 	// If a payload is missing both `guid` and `transactionId` is received,
 	// a ParseException supportability metric should be generated.
 	if "" == p.TransactionID && "" == p.ID {
-		return ErrPayloadMissingField{message: "missing both guid/id and TransactionId/tx"}
+		return errPayloadMissingGUIDTxnID
 	}
 
 	if "" == p.Type {
-		return ErrPayloadMissingField{message: "missing Type/ty"}
+		return errPayloadMissingType
 	}
 
 	if "" == p.Account {
-		return ErrPayloadMissingField{message: "missing Account/ac"}
+		return errPayloadMissingAccount
 	}
 
 	if "" == p.App {
-		return ErrPayloadMissingField{message: "missing App/ap"}
+		return errPayloadMissingApp
 	}
 
 	if "" == p.TracedID {
-		return ErrPayloadMissingField{message: "missing TracedID/tr"}
+		return errPayloadMissingTraceID
 	}
 
 	if p.Timestamp.Time().IsZero() || 0 == p.Timestamp.Time().Unix() {
-		return ErrPayloadMissingField{message: "missing Timestamp/ti"}
+		return errPayloadMissingTimestamp
 	}
 
 	return nil
@@ -241,28 +251,6 @@ func (p Payload) isSampled() bool {
 	return p.Sampled != nil && *p.Sampled
 }
 
-// ErrPayloadParse indicates that the payload was malformed.
-type ErrPayloadParse struct{ err error }
-
-func (e ErrPayloadParse) Error() string {
-	return fmt.Sprintf("unable to parse inbound payload: %s", e.err.Error())
-}
-
-// ErrPayloadMissingField indicates there's a required field that's missing
-type ErrPayloadMissingField struct{ message string }
-
-func (e ErrPayloadMissingField) Error() string {
-	return fmt.Sprintf("payload is missing required fields: %s", e.message)
-}
-
-// ErrUnsupportedPayloadVersion indicates that the major version number is
-// unknown.
-type ErrUnsupportedPayloadVersion struct{ version int }
-
-func (e ErrUnsupportedPayloadVersion) Error() string {
-	return fmt.Sprintf("unsupported major version number %d", e.version)
-}
-
 // AcceptPayload parses the inbound distributed tracing payload.
 func AcceptPayload(hdrs http.Header, trustedAccountKey string, support *DistributedTracingSupport) (*Payload, error) {
 	if hdrs.Get(DistributedTraceW3CTraceParentHeader) != "" {
@@ -283,7 +271,7 @@ func processNRDTString(str string, support *DistributedTracingSupport) (*Payload
 		decoded, err = base64.StdEncoding.DecodeString(str)
 		if nil != err {
 			support.AcceptPayloadParseException = true
-			return nil, ErrPayloadParse{err: err}
+			return nil, fmt.Errorf("unable to decode payload: %v", err)
 		}
 	}
 	envelope := struct {
@@ -292,24 +280,23 @@ func processNRDTString(str string, support *DistributedTracingSupport) (*Payload
 	}{}
 	if err := json.Unmarshal(decoded, &envelope); nil != err {
 		support.AcceptPayloadParseException = true
-		return nil, ErrPayloadParse{err: err}
+		return nil, fmt.Errorf("unable to unmarshal payload: %v", err)
 	}
 
 	if 0 == envelope.Version.major() && 0 == envelope.Version.minor() {
 		support.AcceptPayloadParseException = true
-		return nil, ErrPayloadMissingField{message: "missing v"}
+		return nil, errPayloadMissingVersion
 	}
 
 	if envelope.Version.major() > currentDistTraceVersion.major() {
 		support.AcceptPayloadIgnoredVersion = true
-		return nil, ErrUnsupportedPayloadVersion{
-			version: envelope.Version.major(),
-		}
+		return nil, fmt.Errorf("unsupported major version number %v",
+			envelope.Version.major())
 	}
 	payload := new(Payload)
 	if err := json.Unmarshal(envelope.Data, payload); nil != err {
 		support.AcceptPayloadParseException = true
-		return nil, ErrPayloadParse{err: err}
+		return nil, fmt.Errorf("unable to unmarshal payload data: %v", err)
 	}
 
 	payload.HasNewRelicTraceInfo = true
@@ -340,13 +327,13 @@ func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *Dist
 }
 
 var (
-	errTooManyHdrs         = ErrPayloadParse{errors.New("too many TraceParent headers")}
-	errNumEntries          = ErrPayloadParse{errors.New("invalid number of TraceParent entries")}
-	errInvalidTraceID      = ErrPayloadParse{errors.New("invalid TraceParent trace ID")}
-	errInvalidParentID     = ErrPayloadParse{errors.New("invalid TraceParent parent ID")}
-	errInvalidFlags        = ErrPayloadParse{errors.New("invalid TraceParent flags for this version")}
-	errInvalidNRTraceState = ErrPayloadParse{errors.New("invalid NR entry in trace state")}
-	errMissingTrustedNR    = ErrPayloadParse{errors.New("no trusted NR entry found in trace state")}
+	errTooManyHdrs         = errors.New("too many TraceParent headers")
+	errNumEntries          = errors.New("invalid number of TraceParent entries")
+	errInvalidTraceID      = errors.New("invalid TraceParent trace ID")
+	errInvalidParentID     = errors.New("invalid TraceParent parent ID")
+	errInvalidFlags        = errors.New("invalid TraceParent flags for this version")
+	errInvalidNRTraceState = errors.New("invalid NR entry in trace state")
+	errMissingTrustedNR    = errors.New("no trusted NR entry found in trace state")
 )
 
 func processTraceParent(hdrs http.Header) (*Payload, error) {
