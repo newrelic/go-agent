@@ -443,7 +443,7 @@ func TestPayloadParsingError(t *testing.T) {
 		}`
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "unable to parse inbound payload: json: cannot unmarshal array into Go value of type internal.Payload",
+		"reason": "unable to unmarshal payload data: json: cannot unmarshal array into Go value of type internal.Payload",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -548,7 +548,7 @@ func TestPayloadMissingVersion(t *testing.T) {
 		}`
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "payload is missing required fields: missing v",
+		"reason": "payload is missing Version/v",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -722,7 +722,7 @@ func TestMissingIDsForSupportabilityMetric(t *testing.T) {
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "payload is missing required fields: missing both guid/id and TransactionId/tx",
+		"reason": "payload is missing both guid/id and TransactionId/tx",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -749,7 +749,7 @@ func TestMissingVersionForSupportabilityMetric(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "payload is missing required fields: missing v",
+		"reason": "payload is missing Version/v",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -777,7 +777,7 @@ func TestMissingFieldForSupportabilityMetric(t *testing.T) {
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "payload is missing required fields: missing Account/ac",
+		"reason": "payload is missing Account/ac",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -805,7 +805,7 @@ func TestParseExceptionSupportabilityMetric(t *testing.T) {
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "unable to parse inbound payload: unexpected end of JSON input",
+		"reason": "unable to unmarshal payload: unexpected end of JSON input",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1770,7 +1770,7 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 
 	txn.End()
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "unable to parse inbound payload: invalid TraceParent trace ID",
+		"reason": "invalid TraceParent trace ID",
 	})
 }
 
@@ -1797,7 +1797,7 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 
 	txn.End()
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "unable to parse inbound payload: invalid TraceParent parent ID",
+		"reason": "invalid TraceParent parent ID",
 	})
 }
 
@@ -1805,11 +1805,11 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 // https://github.com/w3c/trace-context/blob/3d02cfc15778ef850df9bc4e9d2740a4a2627fd5/test/test.py
 func TestW3CTraceHeadersFutureVersion(t *testing.T) {
 	cases := map[string]string{
-		"00-12345678901234567890123456789012-1234567890123456-01-what-the-future-will-be-like": "unable to parse inbound payload: invalid TraceParent flags for this version",
+		"00-12345678901234567890123456789012-1234567890123456-01-what-the-future-will-be-like": "invalid TraceParent flags for this version",
 		"cc-12345678901234567890123456789012-1234567890123456-01":                              "",
 		"cc-12345678901234567890123456789012-1234567890123456-01-what-the-future-will-be-like": "",
-		"cc-12345678901234567890123456789012-1234567890123456-01.what-the-future-will-be-like": "unable to parse inbound payload: invalid number of TraceParent entries",
-		"ff-12345678901234567890123456789012-1234567890123456-01":                              "unable to parse inbound payload: invalid TraceParent flags for this version",
+		"cc-12345678901234567890123456789012-1234567890123456-01.what-the-future-will-be-like": "invalid number of TraceParent entries",
+		"ff-12345678901234567890123456789012-1234567890123456-01":                              "invalid TraceParent flags for this version",
 	}
 	for testCase, failureMessage := range cases {
 		app := testApp(distributedTracingReplyFields, enableW3COnly, t)
