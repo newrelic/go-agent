@@ -15,10 +15,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-type dataConsumer interface {
-	Consume(internal.AgentRunID, internal.Harvestable)
-}
-
 type appData struct {
 	id   internal.AgentRunID
 	data internal.Harvestable
@@ -433,9 +429,8 @@ func (app *app) StartTransaction(name string) *Transaction {
 	}
 	run, _ := app.getState()
 	return newTransaction(newTxn(txnInput{
-		app:      app,
-		appRun:   run,
-		Consumer: app,
+		app:    app,
+		appRun: run,
 	}, name))
 }
 
