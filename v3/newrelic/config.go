@@ -1,17 +1,19 @@
 package newrelic
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
-	"strconv"
+	"regexp"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/logger"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
+	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -339,197 +341,6 @@ type AttributeDestinationConfig struct {
 	Exclude []string
 }
 
-// ConfigOption configures the Config when provided to NewApplication.
-type ConfigOption func(*Config)
-
-// ConfigEnabled sets the whether or not the agent is enabled.
-func ConfigEnabled(enabled bool) ConfigOption {
-	return func(cfg *Config) { cfg.Enabled = enabled }
-}
-
-// ConfigAppName sets the application name.
-func ConfigAppName(appName string) ConfigOption {
-	return func(cfg *Config) { cfg.AppName = appName }
-}
-
-// ConfigLicense sets the license.
-func ConfigLicense(license string) ConfigOption {
-	return func(cfg *Config) { cfg.License = license }
-}
-
-// ConfigDistributedTracerEnabled populates the Config's
-// DistributedTracer.Enabled setting.
-func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
-	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
-}
-
-// ConfigLogger populates the Config's Logger.
-func ConfigLogger(l Logger) ConfigOption {
-	return func(cfg *Config) { cfg.Logger = l }
-}
-
-// ConfigInfoLogger populates the config with basic Logger at info level.
-func ConfigInfoLogger(w io.Writer) ConfigOption {
-	return ConfigLogger(NewLogger(w))
-}
-
-// ConfigDebugLogger populates the config with a Logger at debug level.
-func ConfigDebugLogger(w io.Writer) ConfigOption {
-	return ConfigLogger(NewDebugLogger(w))
-}
-
-// ConfigFromEnvironment populates the config based on environment variables:
-//
-//  NEW_RELIC_APP_NAME                       sets AppName
-//  NEW_RELIC_LICENSE_KEY                    sets License
-//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED    sets DistributedTracer.Enabled using strconv.ParseBool
-//  NEW_RELIC_ENABLED                        sets Enabled using strconv.ParseBool
-//  NEW_RELIC_HIGH_SECURITY                  sets HighSecurity using strconv.ParseBool
-//  NEW_RELIC_SECURITY_POLICIES_TOKEN        sets SecurityPoliciesToken
-//  NEW_RELIC_HOST                           sets Host
-//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME      sets HostDisplayName
-//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME   sets Utilization.BillingHostname
-//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS sets Utilization.LogicalProcessors using strconv.Atoi
-//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB      sets Utilization.TotalRAMMIB using strconv.Atoi
-//  NEW_RELIC_LABELS                         sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//  NEW_RELIC_ATTRIBUTES_EXCLUDE             sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//  NEW_RELIC_ATTRIBUTES_INCLUDE             sets Attributes.Include using a comma-separated list
-//  NEW_RELIC_LOG                            sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//  NEW_RELIC_LOG_LEVEL                      controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//
-// This function is strict and will assign Config.Error if any of the
-// environment variables cannot be parsed.
-func ConfigFromEnvironment() ConfigOption {
-	return configFromEnvironment(os.Getenv)
-}
-
-func configFromEnvironment(getenv func(string) string) ConfigOption {
-	return func(cfg *Config) {
-		// Because fields could have been assigned in a previous
-		// ConfigOption, we only want to assign fields using environment
-		// variables that have been populated.  This is especially
-		// relevant for the string case where no processing occurs.
-		assignBool := func(field *bool, name string) {
-			if env := getenv(name); env != "" {
-				if b, err := strconv.ParseBool(env); nil != err {
-					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
-				} else {
-					*field = b
-				}
-			}
-		}
-		assignInt := func(field *int, name string) {
-			if env := getenv(name); env != "" {
-				if i, err := strconv.Atoi(env); nil != err {
-					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
-				} else {
-					*field = i
-				}
-			}
-		}
-		assignString := func(field *string, name string) {
-			if env := getenv(name); env != "" {
-				*field = env
-			}
-		}
-
-		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
-		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
-		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
-		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
-		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
-		assignString(&cfg.SecurityPoliciesToken, "NEW_RELIC_SECURITY_POLICIES_TOKEN")
-		assignString(&cfg.Host, "NEW_RELIC_HOST")
-		assignString(&cfg.HostDisplayName, "NEW_RELIC_PROCESS_HOST_DISPLAY_NAME")
-		assignString(&cfg.Utilization.BillingHostname, "NEW_RELIC_UTILIZATION_BILLING_HOSTNAME")
-		assignInt(&cfg.Utilization.LogicalProcessors, "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")
-		assignInt(&cfg.Utilization.TotalRAMMIB, "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")
-
-		if env := getenv("NEW_RELIC_LABELS"); env != "" {
-			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
-				cfg.Labels = labels
-			} else {
-				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LABELS value: %s", env)
-			}
-		}
-
-		if env := getenv("NEW_RELIC_ATTRIBUTES_INCLUDE"); env != "" {
-			cfg.Attributes.Include = strings.Split(env, ",")
-		}
-		if env := getenv("NEW_RELIC_ATTRIBUTES_EXCLUDE"); env != "" {
-			cfg.Attributes.Exclude = strings.Split(env, ",")
-		}
-
-		if env := getenv("NEW_RELIC_LOG"); env != "" {
-			if dest := getLogDest(env); dest != nil {
-				if isDebugEnv(getenv("NEW_RELIC_LOG_LEVEL")) {
-					cfg.Logger = NewDebugLogger(dest)
-				} else {
-					cfg.Logger = NewLogger(dest)
-				}
-			} else {
-				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LOG value %s", env)
-			}
-		}
-	}
-}
-
-func getLogDest(env string) io.Writer {
-	switch env {
-	case "stdout", "Stdout", "STDOUT":
-		return os.Stdout
-	case "stderr", "Stderr", "STDERR":
-		return os.Stderr
-	default:
-		return nil
-	}
-}
-
-func isDebugEnv(env string) bool {
-	switch env {
-	case "debug", "Debug", "DEBUG", "d", "D":
-		return true
-	default:
-		return false
-	}
-}
-
-// getLabels reads Labels from the env string, expressed as a semi-colon
-// delimited string of colon-separated pairs (for example, "Server:One;Data
-// Center:Primary").  Label keys and values must be 255 characters or less in
-// length.  No more than 64 Labels can be set.
-func getLabels(env string) map[string]string {
-	out := make(map[string]string)
-	env = strings.Trim(env, ";\t\n\v\f\r ")
-	for _, entry := range strings.Split(env, ";") {
-		if entry == "" {
-			return nil
-		}
-		split := strings.Split(entry, ":")
-		if len(split) != 2 {
-			return nil
-		}
-		left := strings.TrimSpace(split[0])
-		right := strings.TrimSpace(split[1])
-		if left == "" || right == "" {
-			return nil
-		}
-		if utf8.RuneCountInString(left) > 255 {
-			runes := []rune(left)
-			left = string(runes[:255])
-		}
-		if utf8.RuneCountInString(right) > 255 {
-			runes := []rune(right)
-			right = string(runes[:255])
-		}
-		out[left] = right
-		if len(out) >= 64 {
-			return out
-		}
-	}
-	return out
-}
-
 // defaultConfig creates a Config populated with default settings.
 func defaultConfig() Config {
 	c := Config{}
@@ -637,4 +448,266 @@ func (c Config) maxTxnEvents() int {
 		return internal.MaxTxnEvents
 	}
 	return configured
+}
+
+func copyDestConfig(c AttributeDestinationConfig) AttributeDestinationConfig {
+	cp := c
+	if nil != c.Include {
+		cp.Include = make([]string, len(c.Include))
+		copy(cp.Include, c.Include)
+	}
+	if nil != c.Exclude {
+		cp.Exclude = make([]string, len(c.Exclude))
+		copy(cp.Exclude, c.Exclude)
+	}
+	return cp
+}
+
+func copyConfigReferenceFields(cfg Config) Config {
+	cp := cfg
+	if nil != cfg.Labels {
+		cp.Labels = make(map[string]string, len(cfg.Labels))
+		for key, val := range cfg.Labels {
+			cp.Labels[key] = val
+		}
+	}
+	if nil != cfg.ErrorCollector.IgnoreStatusCodes {
+		ignored := make([]int, len(cfg.ErrorCollector.IgnoreStatusCodes))
+		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
+		cp.ErrorCollector.IgnoreStatusCodes = ignored
+	}
+
+	cp.Attributes = copyDestConfig(cfg.Attributes)
+	cp.ErrorCollector.Attributes = copyDestConfig(cfg.ErrorCollector.Attributes)
+	cp.TransactionEvents.Attributes = copyDestConfig(cfg.TransactionEvents.Attributes)
+	cp.TransactionTracer.Attributes = copyDestConfig(cfg.TransactionTracer.Attributes)
+	cp.BrowserMonitoring.Attributes = copyDestConfig(cfg.BrowserMonitoring.Attributes)
+	cp.SpanEvents.Attributes = copyDestConfig(cfg.SpanEvents.Attributes)
+	cp.TransactionTracer.Segments.Attributes = copyDestConfig(cfg.TransactionTracer.Segments.Attributes)
+
+	return cp
+}
+
+func transportSetting(t http.RoundTripper) interface{} {
+	if nil == t {
+		return nil
+	}
+	return fmt.Sprintf("%T", t)
+}
+
+func loggerSetting(lg Logger) interface{} {
+	if nil == lg {
+		return nil
+	}
+	if _, ok := lg.(logger.ShimLogger); ok {
+		return nil
+	}
+	return fmt.Sprintf("%T", lg)
+}
+
+const (
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Custom-Host-Names.md
+	hostByteLimit = 255
+)
+
+type settings Config
+
+func (s settings) MarshalJSON() ([]byte, error) {
+	c := Config(s)
+	transport := c.Transport
+	c.Transport = nil
+	l := c.Logger
+	c.Logger = nil
+
+	js, err := json.Marshal(c)
+	if nil != err {
+		return nil, err
+	}
+	fields := make(map[string]interface{})
+	err = json.Unmarshal(js, &fields)
+	if nil != err {
+		return nil, err
+	}
+	// The License field is not simply ignored by adding the `json:"-"` tag
+	// to it since we want to allow consumers to populate Config from JSON.
+	delete(fields, `License`)
+	fields[`Transport`] = transportSetting(transport)
+	fields[`Logger`] = loggerSetting(l)
+
+	// Browser monitoring support.
+	if c.BrowserMonitoring.Enabled {
+		fields[`browser_monitoring.loader`] = "rum"
+	}
+
+	return json.Marshal(fields)
+}
+
+// labels is used for connect JSON formatting.
+type labels map[string]string
+
+func (l labels) MarshalJSON() ([]byte, error) {
+	ls := make([]struct {
+		Key   string `json:"label_type"`
+		Value string `json:"label_value"`
+	}, len(l))
+
+	i := 0
+	for key, val := range l {
+		ls[i].Key = key
+		ls[i].Value = val
+		i++
+	}
+
+	return json.Marshal(ls)
+}
+
+func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e environment, version string, securityPolicies *internal.SecurityPolicies, metadata map[string]string) ([]byte, error) {
+	return json.Marshal([]interface{}{struct {
+		Pid              int                         `json:"pid"`
+		Language         string                      `json:"language"`
+		Version          string                      `json:"agent_version"`
+		Host             string                      `json:"host"`
+		HostDisplayName  string                      `json:"display_host,omitempty"`
+		Settings         interface{}                 `json:"settings"`
+		AppName          []string                    `json:"app_name"`
+		HighSecurity     bool                        `json:"high_security"`
+		Labels           labels                      `json:"labels,omitempty"`
+		Environment      environment                 `json:"environment"`
+		Identifier       string                      `json:"identifier"`
+		Util             *utilization.Data           `json:"utilization"`
+		SecurityPolicies *internal.SecurityPolicies  `json:"security_policies,omitempty"`
+		Metadata         map[string]string           `json:"metadata"`
+		EventData        internal.EventHarvestConfig `json:"event_harvest_config"`
+	}{
+		Pid:             pid,
+		Language:        internal.AgentLanguage,
+		Version:         version,
+		Host:            internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
+		HostDisplayName: internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
+		Settings:        (settings)(c),
+		AppName:         strings.Split(c.AppName, ";"),
+		HighSecurity:    c.HighSecurity,
+		Labels:          c.Labels,
+		Environment:     e,
+		// This identifier field is provided to avoid:
+		// https://newrelic.atlassian.net/browse/DSCORE-778
+		//
+		// This identifier is used by the collector to look up the real
+		// agent. If an identifier isn't provided, the collector will
+		// create its own based on the first appname, which prevents a
+		// single daemon from connecting "a;b" and "a;c" at the same
+		// time.
+		//
+		// Providing the identifier below works around this issue and
+		// allows users more flexibility in using application rollups.
+		Identifier:       c.AppName,
+		Util:             util,
+		SecurityPolicies: securityPolicies,
+		Metadata:         metadata,
+		EventData:        internal.DefaultEventHarvestConfig(c.maxTxnEvents()),
+	}})
+}
+
+const (
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Connect-LEGACY.md#metadata-hash
+	metadataPrefix = "NEW_RELIC_METADATA_"
+)
+
+func gatherMetadata(env []string) map[string]string {
+	metadata := make(map[string]string)
+	for _, pair := range env {
+		if strings.HasPrefix(pair, metadataPrefix) {
+			idx := strings.Index(pair, "=")
+			if idx >= 0 {
+				metadata[pair[0:idx]] = pair[idx+1:]
+			}
+		}
+	}
+	return metadata
+}
+
+// config exists to avoid adding private fields to Config.
+type config struct {
+	Config
+	metadata map[string]string
+	hostname string
+}
+
+func (c Config) computeDynoHostname(getenv func(string) string) string {
+	if !c.Heroku.UseDynoNames {
+		return ""
+	}
+	dyno := getenv("DYNO")
+	if dyno == "" {
+		return ""
+	}
+	for _, prefix := range c.Heroku.DynoNamePrefixesToShorten {
+		if prefix == "" {
+			continue
+		}
+		if strings.HasPrefix(dyno, prefix+".") {
+			dyno = prefix + ".*"
+			break
+		}
+	}
+	return dyno
+}
+
+func newInternalConfig(cfg Config, getenv func(string) string, environ []string) (config, error) {
+	// Copy maps and slices to prevent race conditions if a consumer changes
+	// them after calling NewApplication.
+	cfg = copyConfigReferenceFields(cfg)
+	if err := cfg.validate(); nil != err {
+		return config{}, err
+	}
+	// Ensure that Logger is always set to avoid nil checks.
+	if nil == cfg.Logger {
+		cfg.Logger = logger.ShimLogger{}
+	}
+	var hostname string
+	if host := cfg.computeDynoHostname(getenv); host != "" {
+		hostname = host
+	} else if host, err := sysinfo.Hostname(); err == nil {
+		hostname = host
+	} else {
+		hostname = "unknown"
+	}
+	return config{
+		Config:   cfg,
+		metadata: gatherMetadata(environ),
+		hostname: hostname,
+	}, nil
+}
+
+func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
+	env := newEnvironment()
+	util := utilization.Gather(utilization.Config{
+		DetectAWS:         c.Utilization.DetectAWS,
+		DetectAzure:       c.Utilization.DetectAzure,
+		DetectPCF:         c.Utilization.DetectPCF,
+		DetectGCP:         c.Utilization.DetectGCP,
+		DetectDocker:      c.Utilization.DetectDocker,
+		DetectKubernetes:  c.Utilization.DetectKubernetes,
+		LogicalProcessors: c.Utilization.LogicalProcessors,
+		TotalRAMMIB:       c.Utilization.TotalRAMMIB,
+		BillingHostname:   c.Utilization.BillingHostname,
+		Hostname:          c.hostname,
+	}, c.Logger)
+	return configConnectJSONInternal(c.Config, os.Getpid(), util, env, Version, securityPolicies, c.metadata)
+}
+
+var (
+	preconnectHostDefault        = "collector.newrelic.com"
+	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
+)
+
+func (c config) preconnectHost() string {
+	if "" != c.Host {
+		return c.Host
+	}
+	m := preconnectRegionLicenseRegex.FindStringSubmatch(c.License)
+	if len(m) > 1 {
+		return "collector." + m[1] + ".nr-data.net"
+	}
+	return preconnectHostDefault
 }
