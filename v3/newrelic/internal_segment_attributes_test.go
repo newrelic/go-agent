@@ -11,7 +11,7 @@ import (
 
 func TestTraceSegments(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Segments.Threshold = 0
@@ -93,7 +93,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 	// Test that backtrace will only appear if the segment's duration
 	// exceeds TransactionTracer.Segments.StackTraceThreshold.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Segments.Threshold = 0
@@ -208,7 +208,7 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 func TestTraceSegmentAttributesExcluded(t *testing.T) {
 	// Test that segment attributes can be excluded by Attributes.Exclude.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Segments.Threshold = 0
@@ -288,7 +288,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 	// Test that segment attributes can be excluded by
 	// TransactionTracer.Segments.Attributes.Exclude.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Segments.Threshold = 0

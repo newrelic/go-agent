@@ -58,7 +58,7 @@ func TestRoundTripperNoTxn(t *testing.T) {
 
 func TestRoundTripperWithTxnSampled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(123)
 	}
 	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
@@ -123,7 +123,7 @@ func TestRoundTripperWithTxnSampled(t *testing.T) {
 
 func TestRoundTripperWithTxnNotSampled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SetSampleNothing()
 	}
 	app := integrationsupport.NewTestApp(replyfn, integrationsupport.DTEnabledCfgFn)
 	txn := app.StartTransaction("test")

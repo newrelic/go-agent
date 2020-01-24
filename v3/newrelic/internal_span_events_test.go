@@ -11,7 +11,7 @@ func TestSpanEventSuccess(t *testing.T) {
 	// Test that a basic segment creates a span event, and that a
 	// transaction has a root span event.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
@@ -58,7 +58,7 @@ func TestSpanEventsLocallyDisabled(t *testing.T) {
 	// Test that span events do not get created if Config.SpanEvents.Enabled
 	// is false.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -76,7 +76,7 @@ func TestSpanEventsRemotelyDisabled(t *testing.T) {
 	// Test that span events do not get created if the connect reply
 	// disables span events.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.CollectSpanEvents = false
 	}
 	cfgfn := func(cfg *Config) {
@@ -94,7 +94,7 @@ func TestSpanEventsDisabledWithoutDistributedTracing(t *testing.T) {
 	// Test that span events do not get created distributed tracing is not
 	// enabled.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = false
@@ -111,7 +111,7 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 	// Test that a datastore and external segments creates the correct span
 	// events.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -183,7 +183,7 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 	// Test that SpanEvents.Attributes.Enabled correctly disables span
 	// attributes.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -246,7 +246,7 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 	// Test that SpanEvents.Attributes.Exclude excludes span attributes.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -317,7 +317,7 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 func TestSpanEventAttributesExcluded(t *testing.T) {
 	// Test that Attributes.Exclude excludes span attributes.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -389,7 +389,7 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 	// Test that security policies prevent the capture of the input query
 	// statement.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.SecurityPolicies.RecordSQL.SetEnabled(false)
 	}
 	cfgfn := func(cfg *Config) {
@@ -462,7 +462,7 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 	// Test that AddAgentSpanAttribute successfully adds attributes to
 	// spans.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -507,7 +507,7 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 	// Test that span attributes added by AddAgentSpanAttribute are subject
 	// to span attribute configuration.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -553,7 +553,7 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 	// Test that AddAgentSpanAttribute does not have problems if called when
 	// there is no active span.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true

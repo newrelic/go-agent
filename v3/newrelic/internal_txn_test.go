@@ -158,14 +158,13 @@ func TestLazilyCalculateSampledTrue(t *testing.T) {
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
-	tx.Reply = &internal.ConnectReply{
-		AdaptiveSampler: internal.SampleEverything{},
-	}
+	tx.Reply = &internal.ConnectReply{}
+	tx.Reply.SetSampleEverything()
 	out := tx.lazilyCalculateSampled()
 	if !out || !tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 1.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
 	}
-	tx.Reply.AdaptiveSampler = internal.SampleNothing{}
+	tx.Reply.SetSampleNothing()
 	out = tx.lazilyCalculateSampled()
 	if !out || !tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 1.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
@@ -178,14 +177,13 @@ func TestLazilyCalculateSampledFalse(t *testing.T) {
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
-	tx.Reply = &internal.ConnectReply{
-		AdaptiveSampler: internal.SampleNothing{},
-	}
+	tx.Reply = &internal.ConnectReply{}
+	tx.Reply.SetSampleNothing()
 	out := tx.lazilyCalculateSampled()
 	if out || tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
 	}
-	tx.Reply.AdaptiveSampler = internal.SampleEverything{}
+	tx.Reply.SetSampleEverything()
 	out = tx.lazilyCalculateSampled()
 	if out || tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
@@ -198,9 +196,8 @@ func TestLazilyCalculateSampledCATDisabled(t *testing.T) {
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = false
-	tx.Reply = &internal.ConnectReply{
-		AdaptiveSampler: internal.SampleEverything{},
-	}
+	tx.Reply = &internal.ConnectReply{}
+	tx.Reply.SetSampleEverything()
 	out := tx.lazilyCalculateSampled()
 	if out || tx.BetterCAT.Sampled || tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
@@ -312,7 +309,7 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 
 func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = false
@@ -330,7 +327,7 @@ func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
 
 func TestGetTraceMetadataSuccess(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
@@ -360,7 +357,7 @@ func TestGetTraceMetadataEnded(t *testing.T) {
 	// Test that GetTraceMetadata returns empty strings if the transaction
 	// has been finished.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
@@ -380,7 +377,7 @@ func TestGetTraceMetadataEnded(t *testing.T) {
 
 func TestGetTraceMetadataNotSampled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SetSampleNothing()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
@@ -399,7 +396,7 @@ func TestGetTraceMetadataNotSampled(t *testing.T) {
 
 func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
 	cfgfn := func(cfg *Config) {
@@ -419,7 +416,7 @@ func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 
 func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		reply.AccountID = "account-id"
 		reply.TrustedAccountKey = "123"
@@ -447,7 +444,7 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 
 func TestGetLinkingMetadata(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.EntityGUID = "entities-are-guid"
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
@@ -506,7 +503,7 @@ func TestGetLinkingMetadataAppNames(t *testing.T) {
 
 func TestIsSampledFalse(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SetSampleNothing()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -521,7 +518,7 @@ func TestIsSampledFalse(t *testing.T) {
 
 func TestIsSampledTrue(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -538,7 +535,7 @@ func TestIsSampledEnded(t *testing.T) {
 	// Test that Transaction.IsSampled returns false if the transaction has
 	// already ended.
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
@@ -659,7 +656,7 @@ func TestDTPriority(t *testing.T) {
 		},
 	}
 	replyfn := func(reply *internal.ConnectReply) {
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		reply.DistributedTraceTimestampGenerator = func() time.Time {
 			return time.Unix(1577830891, 900000000)

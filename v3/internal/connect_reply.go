@@ -175,7 +175,7 @@ func ConnectReplyDefaults() *ConnectReply {
 		MaxPayloadSizeInBytes:  MaxPayloadSizeInBytes,
 		// No transactions should be sampled before the application is
 		// connected.
-		AdaptiveSampler: SampleNothing{},
+		AdaptiveSampler: sampleNothing{},
 
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
@@ -238,4 +238,14 @@ func constructFullTxnName(input string, reply *ConnectReply, isWeb bool) string 
 	}
 
 	return reply.SegmentTerms.apply(afterNameRules)
+}
+
+// SetSampleEverything is used for testing to ensure span events get saved.
+func (r *ConnectReply) SetSampleEverything() {
+	r.AdaptiveSampler = sampleEverything{}
+}
+
+// SetSampleNothing is used for testing to ensure no span events get saved.
+func (r *ConnectReply) SetSampleNothing() {
+	r.AdaptiveSampler = sampleNothing{}
 }
