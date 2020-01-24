@@ -190,8 +190,7 @@ func gatherMetadata(env []string) map[string]string {
 	return metadata
 }
 
-// config satisfies internal.ConnectConfig which allows the internal package to
-// have access to connect fields without adding public methods to Config.
+// config exists to avoid adding private fields to Config.
 type config struct {
 	Config
 	metadata map[string]string
@@ -218,7 +217,17 @@ func (c Config) computeDynoHostname(getenv func(string) string) string {
 	return dyno
 }
 
-func newInternalConfig(cfg Config, getenv func(string) string, environ []string) config {
+func newInternalConfig(cfg Config, getenv func(string) string, environ []string) (config, error) {
+	// Copy maps and slices to prevent race conditions if a consumer changes
+	// them after calling NewApplication.
+	cfg = copyConfigReferenceFields(cfg)
+	if err := cfg.validate(); nil != err {
+		return config{}, err
+	}
+	// Ensure that Logger is always set to avoid nil checks.
+	if nil == cfg.Logger {
+		cfg.Logger = logger.ShimLogger{}
+	}
 	var hostname string
 	if host := cfg.computeDynoHostname(getenv); host != "" {
 		hostname = host
@@ -231,7 +240,7 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 		Config:   cfg,
 		metadata: gatherMetadata(environ),
 		hostname: hostname,
-	}
+	}, nil
 }
 
 func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
