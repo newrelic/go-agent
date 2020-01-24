@@ -29,7 +29,7 @@ func distributedTracingReplyFields(reply *internal.ConnectReply) {
 	}
 	reply.TrustedAccountKey = "123"
 
-	reply.AdaptiveSampler = internal.SampleEverything{}
+	reply.SampleEverything()
 	reply.TraceIDGenerator = internal.NewTraceIDGenerator(1)
 	reply.DistributedTraceTimestampGenerator = func() time.Time {
 		return time.Unix(1577830891, 900000000)
@@ -55,7 +55,7 @@ func distributedTracingReplyFieldsSpansDisabled(reply *internal.ConnectReply) {
 	}
 	reply.TrustedAccountKey = "123"
 
-	reply.AdaptiveSampler = internal.SampleEverything{}
+	reply.SampleEverything()
 	reply.TraceIDGenerator = internal.NewTraceIDGenerator(1)
 	reply.CollectSpanEvents = false
 	reply.DistributedTraceTimestampGenerator = func() time.Time {
@@ -1187,7 +1187,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 
 		// if cross agent tests ever include logic for sampling
 		// we'll need to revisit this testing sampler
-		reply.AdaptiveSampler = internal.SampleEverything{}
+		reply.SampleEverything()
 
 	}, configCallback, tst)
 
@@ -1590,7 +1590,7 @@ func TestW3CTraceHeadersSpansDisabledSampledTrue(t *testing.T) {
 func TestW3CTraceHeadersSpansDisabledSampledFalse(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFieldsSpansDisabled(reply)
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SampleNothing()
 	}
 	app := testApp(replyfn, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
@@ -2135,7 +2135,7 @@ func TestW3CTraceIDLengths(t *testing.T) {
 func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFields(reply)
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SampleNothing()
 	}
 	app := testApp(replyfn, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
@@ -2173,7 +2173,7 @@ func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
 	// expected, make sure the correct Supportability metrics are created
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFields(reply)
-		reply.AdaptiveSampler = internal.SampleNothing{}
+		reply.SampleNothing()
 	}
 	app := testApp(replyfn, enableW3COnly, t)
 	txn := app.StartTransaction("hello")

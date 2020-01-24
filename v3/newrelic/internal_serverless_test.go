@@ -253,9 +253,20 @@ func TestServerlessJSON(t *testing.T) {
 }
 
 func validSampler(s internal.AdaptiveSampler) bool {
-	_, isSampleEverything := s.(internal.SampleEverything)
-	_, isSampleNothing := s.(internal.SampleEverything)
-	return (nil != s) && !isSampleEverything && !isSampleNothing
+	// Ensure that the sampler can return both true and false.
+	seenTrue := false
+	seenFalse := false
+	for i := 0; i < 3*serverlessSamplerTarget; i++ {
+		if sampled := s.ComputeSampled(internal.RandFloat32(), time.Now()); sampled {
+			seenTrue = true
+		} else {
+			seenFalse = true
+		}
+		if seenTrue && seenFalse {
+			return true
+		}
+	}
+	return false
 }
 
 func TestServerlessConnectReply(t *testing.T) {

@@ -75,7 +75,7 @@ func testApp() integrationsupport.ExpectApp {
 }
 
 var replyFn = func(reply *internal.ConnectReply) {
-	reply.AdaptiveSampler = internal.SampleEverything{}
+	reply.SampleEverything()
 	reply.AccountID = "123"
 	reply.TrustedAccountKey = "123"
 	reply.PrimaryAppID = "456"

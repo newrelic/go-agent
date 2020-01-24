@@ -12,17 +12,17 @@ type AdaptiveSampler interface {
 	ComputeSampled(priority float32, now time.Time) bool
 }
 
-// SampleEverything is used for testing.
-type SampleEverything struct{}
+// sampleEverything is used for testing.
+type sampleEverything struct{}
 
-// SampleNothing is used when the application is not yet connected.
-type SampleNothing struct{}
-
-// ComputeSampled implements AdaptiveSampler.
-func (s SampleEverything) ComputeSampled(priority float32, now time.Time) bool { return true }
+// sampleNothing is used when the application is not yet connected.
+type sampleNothing struct{}
 
 // ComputeSampled implements AdaptiveSampler.
-func (s SampleNothing) ComputeSampled(priority float32, now time.Time) bool { return false }
+func (s sampleEverything) ComputeSampled(priority float32, now time.Time) bool { return true }
+
+// ComputeSampled implements AdaptiveSampler.
+func (s sampleNothing) ComputeSampled(priority float32, now time.Time) bool { return false }
 
 type adaptiveSampler struct {
 	sync.Mutex

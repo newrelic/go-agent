@@ -92,5 +92,5 @@ var DTEnabledCfgFn = func(cfg *newrelic.Config) {
 
 // SampleEverythingReplyFn is a reusable ConnectReply function that samples everything
 var SampleEverythingReplyFn = func(reply *internal.ConnectReply) {
-	reply.AdaptiveSampler = internal.SampleEverything{}
+	reply.SampleEverything()
 }
