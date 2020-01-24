@@ -5,6 +5,8 @@
 * Added support for `v7` of [go-redis/redis](https://github.com/go-redis/redis)
   in the new [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7)
   package.
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7)
+  * [Example](v3/integrations/nrredis-v7/example/main.go)
 
 ### Changes
 
@@ -65,13 +67,11 @@
   in the new [v3/integrations/nrelasticsearch-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7)
   package.
 
-* Event data is now sent to New Relic every five seconds, instead of every
-  minute. As a result, transaction, custom, and error events will appear in
-  near-realtime within APM and Insights.
-
-  Note that the overall limits on how many events can be sent per minute have
-  not changed. Also, metric and trace data is unaffected, and will still be
-  sent every minute.
+* At this time, the New Relic backend has enabled support for real time
+  streaming.  Versions 2.8 and above will now send data to New Relic every five
+  seconds, instead of every minute.  As a result, transaction, error, and custom
+  events will now be available in New Relic One and Insights dashboards in near
+  real time.
 
 ## 3.0.0
 
@@ -616,6 +616,18 @@ package.  This package supports instrumentation for servers and clients.
 ## 2.8.0
 
 ### New Features
+
+* Support for Real Time Streaming
+
+  * The agent now has support for sending event data to New Relic every five
+    seconds, instead of every minute.  As a result, transaction, error, and
+    custom events will now be available in New Relic One and Insights dashboards
+    in near real time. For more information on how to view your events with a
+    five-second refresh, see the documentation.
+
+  * Note that the overall limits on how many events can be sent per minute have
+    not changed. Also, span events, metrics, and trace data is unaffected, and
+    will still be sent every minute.
 
 * Introduce support for databases using
   [database/sql](https://golang.org/pkg/database/sql/).  This new functionality
