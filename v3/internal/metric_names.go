@@ -53,28 +53,6 @@ const (
 	gcPauseFraction      = "GC/System/Pause Fraction"
 	gcPauses             = "GC/System/Pauses"
 
-	// Distributed Tracing Supportability Metrics
-	supportTracingAcceptSuccess          = "Supportability/DistributedTrace/AcceptPayload/Success"
-	supportTracingAcceptException        = "Supportability/DistributedTrace/AcceptPayload/Exception"
-	supportTracingAcceptParseException   = "Supportability/DistributedTrace/AcceptPayload/ParseException"
-	supportTracingCreateBeforeAccept     = "Supportability/DistributedTrace/AcceptPayload/Ignored/CreateBeforeAccept"
-	supportTracingIgnoredMultiple        = "Supportability/DistributedTrace/AcceptPayload/Ignored/Multiple"
-	supportTracingIgnoredVersion         = "Supportability/DistributedTrace/AcceptPayload/Ignored/MajorVersion"
-	supportTracingAcceptUntrustedAccount = "Supportability/DistributedTrace/AcceptPayload/Ignored/UntrustedAccount"
-	supportTracingAcceptNull             = "Supportability/DistributedTrace/AcceptPayload/Ignored/Null"
-	supportTracingCreatePayloadSuccess   = "Supportability/DistributedTrace/CreatePayload/Success"
-	supportTracingCreatePayloadException = "Supportability/DistributedTrace/CreatePayload/Exception"
-
-	// W3C Trace Context Supportability Metrics
-	supportTraceContextAcceptSuccess        = "Supportability/TraceContext/Accept/Success"
-	supportTraceContextAcceptException      = "Supportability/TraceContext/Accept/Exception"
-	supportTraceContextParentParseException = "Supportability/TraceContext/TraceParent/Parse/Exception"
-	supportTraceContextStateParseException  = "Supportability/TraceContext/TraceState/Parse/Exception"
-	supportTraceContextCreateSuccess        = "Supportability/TraceContext/Create/Success"
-	supportTraceContextCreateException      = "Supportability/TraceContext/Create/Exception"
-	supportTraceContextStateInvalidNrEntry  = "Supportability/TraceContext/TraceState/InvalidNrEntry"
-	supportTraceContextStateNoNrEntry       = "Supportability/TraceContext/TraceState/NoNrEntry"
-
 	// Configurable event harvest supportability metrics
 	supportReportPeriod     = "Supportability/EventHarvest/ReportPeriod"
 	supportTxnEventLimit    = "Supportability/EventHarvest/AnalyticEventData/HarvestLimit"
@@ -109,8 +87,38 @@ type DistributedTracingSupport struct {
 	TraceContextCreateException      bool // A generic exception occurred while creating the outbound payloads.
 }
 
-func (support DistributedTracingSupport) isEmpty() bool {
-	return (DistributedTracingSupport{}) == support
+func (dts DistributedTracingSupport) isEmpty() bool {
+	return (DistributedTracingSupport{}) == dts
+}
+
+func supportMetric(metrics *metricTable, b bool, metricName string) {
+	if b {
+		metrics.addSingleCount(metricName, forced)
+	}
+}
+
+func (dts DistributedTracingSupport) createMetrics(ms *metricTable) {
+	// Distributed Tracing Supportability Metrics
+	supportMetric(ms, dts.AcceptPayloadSuccess, "Supportability/DistributedTrace/AcceptPayload/Success")
+	supportMetric(ms, dts.AcceptPayloadException, "Supportability/DistributedTrace/AcceptPayload/Exception")
+	supportMetric(ms, dts.AcceptPayloadParseException, "Supportability/DistributedTrace/AcceptPayload/ParseException")
+	supportMetric(ms, dts.AcceptPayloadCreateBeforeAccept, "Supportability/DistributedTrace/AcceptPayload/Ignored/CreateBeforeAccept")
+	supportMetric(ms, dts.AcceptPayloadIgnoredMultiple, "Supportability/DistributedTrace/AcceptPayload/Ignored/Multiple")
+	supportMetric(ms, dts.AcceptPayloadIgnoredVersion, "Supportability/DistributedTrace/AcceptPayload/Ignored/MajorVersion")
+	supportMetric(ms, dts.AcceptPayloadUntrustedAccount, "Supportability/DistributedTrace/AcceptPayload/Ignored/UntrustedAccount")
+	supportMetric(ms, dts.AcceptPayloadNullPayload, "Supportability/DistributedTrace/AcceptPayload/Ignored/Null")
+	supportMetric(ms, dts.CreatePayloadSuccess, "Supportability/DistributedTrace/CreatePayload/Success")
+	supportMetric(ms, dts.CreatePayloadException, "Supportability/DistributedTrace/CreatePayload/Exception")
+
+	// W3C Trace Context Supportability Metrics
+	supportMetric(ms, dts.TraceContextAcceptSuccess, "Supportability/TraceContext/Accept/Success")
+	supportMetric(ms, dts.TraceContextAcceptException, "Supportability/TraceContext/Accept/Exception")
+	supportMetric(ms, dts.TraceContextParentParseException, "Supportability/TraceContext/TraceParent/Parse/Exception")
+	supportMetric(ms, dts.TraceContextStateParseException, "Supportability/TraceContext/TraceState/Parse/Exception")
+	supportMetric(ms, dts.TraceContextCreateSuccess, "Supportability/TraceContext/Create/Success")
+	supportMetric(ms, dts.TraceContextCreateException, "Supportability/TraceContext/Create/Exception")
+	supportMetric(ms, dts.TraceContextStateInvalidNrEntry, "Supportability/TraceContext/TraceState/InvalidNrEntry")
+	supportMetric(ms, dts.TraceContextStateNoNrEntry, "Supportability/TraceContext/TraceState/NoNrEntry")
 }
 
 type rollupMetric struct {

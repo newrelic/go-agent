@@ -929,11 +929,13 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		return
 	}
 
+	support := &txn.DistributedTracingSupport
+
 	excludeNRHeader := thd.Config.DistributedTracer.ExcludeNewRelicHeader
 	if txn.finished {
-		txn.TraceContextCreateException = true
+		support.TraceContextCreateException = true
 		if !excludeNRHeader {
-			txn.CreatePayloadException = true
+			support.CreatePayloadException = true
 		}
 		return
 	}
@@ -976,11 +978,11 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		p.SetSampled(sampled)
 	}
 
-	txn.TraceContextCreateSuccess = true
+	support.TraceContextCreateSuccess = true
 
 	if !excludeNRHeader {
 		hdrs.Set(internal.DistributedTraceNewRelicHeader, p.NRHTTPSafe())
-		txn.CreatePayloadSuccess = true
+		support.CreatePayloadSuccess = true
 	}
 
 	// ID must be present in the Traceparent header when span events are
@@ -1023,22 +1025,23 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 	}
 
 	if txn.finished {
-		txn.AcceptPayloadException = true
 		return errAlreadyEnded
 	}
 
+	support := &txn.DistributedTracingSupport
+
 	if txn.numPayloadsCreated > 0 {
-		txn.AcceptPayloadCreateBeforeAccept = true
+		support.AcceptPayloadCreateBeforeAccept = true
 		return errOutboundPayloadCreated
 	}
 
 	if txn.BetterCAT.Inbound != nil {
-		txn.AcceptPayloadIgnoredMultiple = true
+		support.AcceptPayloadIgnoredMultiple = true
 		return errAlreadyAccepted
 	}
 
 	if nil == hdrs {
-		txn.AcceptPayloadNullPayload = true
+		support.AcceptPayloadNullPayload = true
 		return nil
 	}
 
@@ -1051,7 +1054,7 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 
 	txn.BetterCAT.TransportType = t.toString()
 
-	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, &txn.DistributedTracingSupport)
+	payload, err := internal.AcceptPayload(hdrs, txn.Reply.TrustedAccountKey, support)
 	if nil != err {
 		return err
 	}
@@ -1070,7 +1073,7 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 	// we just got the TraceParent header, and we still need to save that info to BetterCAT
 	// farther down.
 	if receivedTrustKey != txn.Reply.TrustedAccountKey && payload.HasNewRelicTraceInfo {
-		txn.AcceptPayloadUntrustedAccount = true
+		support.AcceptPayloadUntrustedAccount = true
 		return errTrustedAccountKey
 	}
 
