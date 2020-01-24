@@ -13,8 +13,7 @@ import (
 )
 
 type txnInput struct {
-	app      *app
-	Consumer dataConsumer
+	app *app
 	*appRun
 }
 
@@ -395,7 +394,7 @@ func (thd *thread) End(recovered interface{}) error {
 	}
 
 	if !txn.ignore {
-		txn.Consumer.Consume(txn.Reply.RunID, txn)
+		txn.app.Consume(txn.Reply.RunID, txn)
 	}
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not
