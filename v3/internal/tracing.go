@@ -85,7 +85,7 @@ type TxnData struct {
 
 	// These better CAT supportability fields are left outside of
 	// TxnEvent.BetterCAT to minimize the size of transaction event memory.
-	DistributedTracingSupport
+	DistributedTracingSupport DistributedTracingSupport
 }
 
 func (t *TxnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {

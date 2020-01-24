@@ -259,12 +259,6 @@ type PayloadCreator interface {
 	EndpointMethod() string
 }
 
-func supportMetric(metrics *metricTable, b bool, metricName string) {
-	if b {
-		metrics.addSingleCount(metricName, forced)
-	}
-}
-
 // CreateTxnMetrics creates metrics for a transaction.
 func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 	withoutFirstSegment := removeFirstSegment(args.FinalName)
@@ -317,25 +311,7 @@ func CreateTxnMetrics(args *TxnData, metrics *metricTable) {
 			metrics.addSingleCount(m.webOrOther(args.IsWeb), unforced)
 		}
 
-		supportMetric(metrics, args.AcceptPayloadSuccess, supportTracingAcceptSuccess)
-		supportMetric(metrics, args.AcceptPayloadException, supportTracingAcceptException)
-		supportMetric(metrics, args.AcceptPayloadParseException, supportTracingAcceptParseException)
-		supportMetric(metrics, args.AcceptPayloadCreateBeforeAccept, supportTracingCreateBeforeAccept)
-		supportMetric(metrics, args.AcceptPayloadIgnoredMultiple, supportTracingIgnoredMultiple)
-		supportMetric(metrics, args.AcceptPayloadIgnoredVersion, supportTracingIgnoredVersion)
-		supportMetric(metrics, args.AcceptPayloadUntrustedAccount, supportTracingAcceptUntrustedAccount)
-		supportMetric(metrics, args.AcceptPayloadNullPayload, supportTracingAcceptNull)
-		supportMetric(metrics, args.CreatePayloadSuccess, supportTracingCreatePayloadSuccess)
-		supportMetric(metrics, args.CreatePayloadException, supportTracingCreatePayloadException)
-
-		supportMetric(metrics, args.TraceContextAcceptSuccess, supportTraceContextAcceptSuccess)
-		supportMetric(metrics, args.TraceContextAcceptException, supportTraceContextAcceptException)
-		supportMetric(metrics, args.TraceContextParentParseException, supportTraceContextParentParseException)
-		supportMetric(metrics, args.TraceContextStateParseException, supportTraceContextStateParseException)
-		supportMetric(metrics, args.TraceContextCreateSuccess, supportTraceContextCreateSuccess)
-		supportMetric(metrics, args.TraceContextCreateException, supportTraceContextCreateException)
-		supportMetric(metrics, args.TraceContextStateInvalidNrEntry, supportTraceContextStateInvalidNrEntry)
-		supportMetric(metrics, args.TraceContextStateNoNrEntry, supportTraceContextStateNoNrEntry)
+		args.DistributedTracingSupport.createMetrics(metrics)
 	}
 
 	// Apdex Metrics
