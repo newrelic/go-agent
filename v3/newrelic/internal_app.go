@@ -419,10 +419,7 @@ func (app *app) StartTransaction(name string) *Transaction {
 		return nil
 	}
 	run, _ := app.getState()
-	return newTransaction(newTxn(txnInput{
-		app:    app,
-		appRun: run,
-	}, name))
+	return newTransaction(newTxn(app, run, name))
 }
 
 var (

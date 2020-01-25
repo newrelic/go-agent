@@ -12,13 +12,10 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-type txnInput struct {
+type txn struct {
 	app *app
 	*appRun
-}
 
-type txn struct {
-	txnInput
 	// This mutex is required since the consumer may call the public API
 	// interface functions from different routines.
 	sync.Mutex
@@ -76,18 +73,19 @@ func (txn *txn) markEnd(now time.Time, thread *internal.Thread) {
 	}
 }
 
-func newTxn(input txnInput, name string) *thread {
+func newTxn(app *app, run *appRun, name string) *thread {
 	txn := &txn{
-		txnInput: input,
+		app:    app,
+		appRun: run,
 	}
 	txn.markStart(time.Now())
 
 	txn.Name = name
-	txn.Attrs = internal.NewAttributes(input.AttributeConfig)
+	txn.Attrs = internal.NewAttributes(run.AttributeConfig)
 
-	if input.Config.DistributedTracer.Enabled {
+	if run.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
-		txn.TraceIDGenerator = input.Reply.TraceIDGenerator
+		txn.TraceIDGenerator = run.Reply.TraceIDGenerator
 		txn.BetterCAT.SetTraceAndTxnIDs(txn.TraceIDGenerator.GenerateTraceID())
 		txn.BetterCAT.Priority = txn.TraceIDGenerator.GeneratePriority()
 		txn.SpanEventsEnabled = txn.Config.SpanEvents.Enabled
@@ -107,7 +105,7 @@ func newTxn(input txnInput, name string) *thread {
 	// the top-level configuration.
 	doOldCAT := txn.Config.CrossApplicationTracer.Enabled
 	noGUID := txn.Config.DistributedTracer.Enabled
-	txn.CrossProcess.Init(doOldCAT, noGUID, input.Reply)
+	txn.CrossProcess.Init(doOldCAT, noGUID, run.Reply)
 
 	return &thread{
 		txn:    txn,
