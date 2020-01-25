@@ -113,12 +113,11 @@ func TestTxnEventMarshalWithApdex(t *testing.T) {
 
 func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 	e := sampleTxnEvent
-	e.DatastoreExternalTotals = DatastoreExternalTotals{
-		externalCallCount:  22,
-		externalDuration:   1122334 * time.Millisecond,
-		datastoreCallCount: 33,
-		datastoreDuration:  5566778 * time.Millisecond,
-	}
+	e.externalCallCount = 22
+	e.externalDuration = 1122334 * time.Millisecond
+	e.datastoreCallCount = 33
+	e.datastoreDuration = 5566778 * time.Millisecond
+
 	testTxnEventJSON(t, &e, `[
 	{
 		"type":"Transaction",
