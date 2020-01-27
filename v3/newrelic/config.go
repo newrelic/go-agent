@@ -580,7 +580,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		EventData        internal.EventHarvestConfig `json:"event_harvest_config"`
 	}{
 		Pid:             pid,
-		Language:        internal.AgentLanguage,
+		Language:        agentLanguage,
 		Version:         version,
 		Host:            internal.StringLengthByteLimit(util.Hostname, hostByteLimit),
 		HostDisplayName: internal.StringLengthByteLimit(c.HostDisplayName, hostByteLimit),
