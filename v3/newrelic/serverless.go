@@ -139,7 +139,7 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 			AgentLanguage        string `json:"agent_language"`
 		}{
 			MetadataVersion:      lambdaMetadataVersion,
-			ProtocolVersion:      internal.ProcotolVersion,
+			ProtocolVersion:      procotolVersion,
 			AgentVersion:         Version,
 			ExecutionEnvironment: sh.awsExecutionEnv,
 			ARN:                  arn,
