@@ -329,7 +329,7 @@ func newApp(c config) *app {
 	app := &app{
 		Logger:         c.Logger,
 		config:         c,
-		placeholderRun: newAppRun(c, internal.ConnectReplyDefaults()),
+		placeholderRun: newPlaceholderAppRun(c),
 
 		// This channel must be buffered since Shutdown makes a
 		// non-blocking send attempt.

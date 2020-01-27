@@ -252,23 +252,6 @@ func TestServerlessJSON(t *testing.T) {
 	}
 }
 
-func validSampler(s internal.AdaptiveSampler) bool {
-	// Ensure that the sampler can return both true and false.
-	seenTrue := false
-	seenFalse := false
-	for i := 0; i < 3*serverlessSamplerTarget; i++ {
-		if sampled := s.ComputeSampled(internal.RandFloat32(), time.Now()); sampled {
-			seenTrue = true
-		} else {
-			seenFalse = true
-		}
-		if seenTrue && seenFalse {
-			return true
-		}
-	}
-	return false
-}
-
 func TestServerlessConnectReply(t *testing.T) {
 	cfg := config{Config: defaultConfig()}
 	cfg.ServerlessMode.ApdexThreshold = 2 * time.Second
@@ -288,8 +271,11 @@ func TestServerlessConnectReply(t *testing.T) {
 	if reply.PrimaryAppID != "the-primary-app" {
 		t.Error(reply.PrimaryAppID)
 	}
-	if !validSampler(reply.AdaptiveSampler) {
-		t.Error(reply.AdaptiveSampler)
+	if reply.SamplingTargetPeriodInSeconds != 60 {
+		t.Error(reply.SamplingTargetPeriodInSeconds)
+	}
+	if reply.SamplingTarget != 10 {
+		t.Error(reply.SamplingTarget)
 	}
 
 	// Now test the defaults:
@@ -306,8 +292,5 @@ func TestServerlessConnectReply(t *testing.T) {
 	}
 	if reply.PrimaryAppID != "Unknown" {
 		t.Error(reply.PrimaryAppID)
-	}
-	if !validSampler(reply.AdaptiveSampler) {
-		t.Error(reply.AdaptiveSampler)
 	}
 }

@@ -65,7 +65,6 @@ type ConnectReply struct {
 		Level   string `json:"level"`
 	} `json:"messages"`
 
-	AdaptiveSampler AdaptiveSampler
 	// TraceIDGenerator creates random IDs for distributed tracing.  It
 	// exists here in the connect reply so it can be modified to create
 	// deterministic identifiers in tests.
@@ -173,9 +172,6 @@ func ConnectReplyDefaults() *ConnectReply {
 		CollectErrorEvents:     true,
 		CollectSpanEvents:      true,
 		MaxPayloadSizeInBytes:  MaxPayloadSizeInBytes,
-		// No transactions should be sampled before the application is
-		// connected.
-		AdaptiveSampler: sampleNothing{},
 
 		SamplingTarget:                10,
 		SamplingTargetPeriodInSeconds: 60,
@@ -242,10 +238,13 @@ func constructFullTxnName(input string, reply *ConnectReply, isWeb bool) string 
 
 // SetSampleEverything is used for testing to ensure span events get saved.
 func (r *ConnectReply) SetSampleEverything() {
-	r.AdaptiveSampler = sampleEverything{}
+	// These constants are not large enough to sample everything forever,
+	// but should satisfy our tests!
+	r.SamplingTarget = 1000 * 1000 * 1000
+	r.SamplingTargetPeriodInSeconds = 1000 * 1000 * 1000
 }
 
 // SetSampleNothing is used for testing to ensure no span events get saved.
 func (r *ConnectReply) SetSampleNothing() {
-	r.AdaptiveSampler = sampleNothing{}
+	r.SamplingTarget = 0
 }

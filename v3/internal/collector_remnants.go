@@ -3,7 +3,6 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 const (
@@ -36,10 +35,6 @@ func ConstructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectRep
 
 	reply.Reply.PreconnectReply = preconnect
 
-	reply.Reply.AdaptiveSampler = NewAdaptiveSampler(
-		time.Duration(reply.Reply.SamplingTargetPeriodInSeconds)*time.Second,
-		reply.Reply.SamplingTarget,
-		time.Now())
 	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
 
 	return reply.Reply, nil

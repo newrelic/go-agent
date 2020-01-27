@@ -138,7 +138,7 @@ func (txn *txn) lazilyCalculateSampled() bool {
 	if txn.sampledCalculated {
 		return txn.BetterCAT.Sampled
 	}
-	txn.BetterCAT.Sampled = txn.Reply.AdaptiveSampler.ComputeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
+	txn.BetterCAT.Sampled = txn.appRun.adaptiveSampler.computeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
 	if txn.BetterCAT.Sampled {
 		txn.BetterCAT.Priority += 1.0
 	}

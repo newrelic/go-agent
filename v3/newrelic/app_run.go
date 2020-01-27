@@ -20,6 +20,8 @@ type appRun struct {
 
 	// firstAppName is the value of Config.AppName up to the first semicolon.
 	firstAppName string
+
+	adaptiveSampler *adaptiveSampler
 }
 
 func newAppRun(config config, reply *internal.ConnectReply) *appRun {
@@ -99,6 +101,11 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	// Cache the first application name set on the config
 	run.firstAppName = strings.SplitN(config.AppName, ";", 2)[0]
 
+	run.adaptiveSampler = newAdaptiveSampler(
+		time.Duration(reply.SamplingTargetPeriodInSeconds)*time.Second,
+		reply.SamplingTarget,
+		time.Now())
+
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config.Config))
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
@@ -109,15 +116,16 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	return run
 }
 
+func newPlaceholderAppRun(config config) *appRun {
+	reply := internal.ConnectReplyDefaults()
+	// Do no sampling if the app isn't connected:
+	reply.SamplingTarget = 0
+	return newAppRun(config, reply)
+}
+
 const (
 	// https://source.datanerd.us/agents/agent-specs/blob/master/Lambda.md#distributed-tracing
 	serverlessDefaultPrimaryAppID = "Unknown"
-)
-
-const (
-	// https://source.datanerd.us/agents/agent-specs/blob/master/Lambda.md#adaptive-sampling
-	serverlessSamplerPeriod = 60 * time.Second
-	serverlessSamplerTarget = 10
 )
 
 func newServerlessConnectReply(config config) *internal.ConnectReply {
@@ -139,8 +147,9 @@ func newServerlessConnectReply(config config) *internal.ConnectReply {
 		reply.PrimaryAppID = serverlessDefaultPrimaryAppID
 	}
 
-	reply.AdaptiveSampler = internal.NewAdaptiveSampler(serverlessSamplerPeriod,
-		serverlessSamplerTarget, time.Now())
+	// https://source.datanerd.us/agents/agent-specs/blob/master/Lambda.md#adaptive-sampling
+	reply.SamplingTargetPeriodInSeconds = 60
+	reply.SamplingTarget = 10
 
 	return reply
 }
