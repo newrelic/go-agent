@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.2.0
+
 ### New Features
 
 * Added support for `v7` of [go-redis/redis](https://github.com/go-redis/redis)
@@ -37,7 +39,6 @@
 
   http.ListenAndServe(":8000", r)
   ```
-
 
 ## 3.1.0
 
