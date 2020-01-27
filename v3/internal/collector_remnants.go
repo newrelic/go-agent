@@ -7,10 +7,6 @@ import (
 )
 
 const (
-	// ProcotolVersion is the protocol version used to communicate with NR
-	// backend.
-	ProcotolVersion = 17
-
 	// Methods used in collector communication.
 	cmdMetrics      = "metric_data"
 	cmdCustomEvents = "custom_event_data"

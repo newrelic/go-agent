@@ -24,7 +24,6 @@ const (
 // serverless mode.
 type serverlessHarvest struct {
 	logger          Logger
-	version         string
 	awsExecutionEnv string
 
 	// The Lambda handler could be using multiple goroutines so we use a
@@ -34,10 +33,9 @@ type serverlessHarvest struct {
 }
 
 // newServerlessHarvest creates a new serverlessHarvest.
-func newServerlessHarvest(logger Logger, version string, getEnv func(string) string) *serverlessHarvest {
+func newServerlessHarvest(logger Logger, getEnv func(string) string) *serverlessHarvest {
 	return &serverlessHarvest{
 		logger:          logger,
-		version:         version,
 		awsExecutionEnv: getEnv("AWS_EXECUTION_ENV"),
 
 		// We can use a default HarvestConfigured parameter because
@@ -141,8 +139,8 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 			AgentLanguage        string `json:"agent_language"`
 		}{
 			MetadataVersion:      lambdaMetadataVersion,
-			ProtocolVersion:      internal.ProcotolVersion,
-			AgentVersion:         sh.version,
+			ProtocolVersion:      procotolVersion,
+			AgentVersion:         Version,
 			ExecutionEnvironment: sh.awsExecutionEnv,
 			ARN:                  arn,
 			AgentLanguage:        agentLanguage,
