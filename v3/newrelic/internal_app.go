@@ -360,7 +360,7 @@ func newApp(c config) *app {
 		if app.config.ServerlessMode.Enabled {
 			reply := newServerlessConnectReply(c)
 			app.run = newAppRun(c, reply)
-			app.serverless = newServerlessHarvest(c.Logger, Version, os.Getenv)
+			app.serverless = newServerlessHarvest(c.Logger, os.Getenv)
 		} else {
 			go app.process()
 			go app.connectRoutine()

@@ -19,7 +19,7 @@ func serverlessGetenvShim(s string) string {
 
 func TestServerlessHarvest(t *testing.T) {
 	// Test the expected ServerlessHarvest use.
-	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := newServerlessHarvest(logger.ShimLogger{}, serverlessGetenvShim)
 	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestServerlessHarvest(t *testing.T) {
 	if v := string(metadata["execution_environment"]); v != `"the-execution-env"` {
 		t.Error(v)
 	}
-	if v := string(metadata["agent_version"]); v != `"the-version"` {
+	if v := string(metadata["agent_version"]); v != `"`+Version+`"` {
 		t.Error(v)
 	}
 	if v := string(metadata["agent_language"]); v != `"go"` {
@@ -80,7 +80,7 @@ func TestServerlessHarvestNil(t *testing.T) {
 func TestServerlessHarvestEmpty(t *testing.T) {
 	// Test that ServerlessHarvest.Write doesn't do anything if the harvest
 	// is empty.
-	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := newServerlessHarvest(logger.ShimLogger{}, serverlessGetenvShim)
 	buf := &bytes.Buffer{}
 	sh.Write("arn", buf)
 	if 0 != buf.Len() {
@@ -91,7 +91,7 @@ func TestServerlessHarvestEmpty(t *testing.T) {
 func BenchmarkServerless(b *testing.B) {
 	// The JSON creation in ServerlessHarvest.Write has not been optimized.
 	// This benchmark would be useful for doing so.
-	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := newServerlessHarvest(logger.ShimLogger{}, serverlessGetenvShim)
 	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		b.Fatal(err)
