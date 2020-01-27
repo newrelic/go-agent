@@ -629,6 +629,11 @@ func gatherMetadata(env []string) map[string]string {
 // config exists to avoid adding private fields to Config.
 type config struct {
 	Config
+	// These fields based on environment variables are located here, rather
+	// than in appRun, to ensure that they are calculated during
+	// NewApplication (instead of at each connect) because some customers
+	// may unset environment variables after startup:
+	// https://github.com/newrelic/go-agent/issues/127
 	metadata map[string]string
 	hostname string
 }
