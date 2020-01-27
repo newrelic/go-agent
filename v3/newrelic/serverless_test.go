@@ -1,4 +1,4 @@
-package internal
+package newrelic
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
@@ -18,15 +19,15 @@ func serverlessGetenvShim(s string) string {
 
 func TestServerlessHarvest(t *testing.T) {
 	// Test the expected ServerlessHarvest use.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
-	event, err := CreateCustomEvent("myEvent", nil, time.Now())
+	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
 	}
 	sh.Consume(event)
 	buf := &bytes.Buffer{}
 	sh.Write("arn", buf)
-	metadata, data, err := ParseServerlessPayload(buf.Bytes())
+	metadata, data, err := internal.ParseServerlessPayload(buf.Bytes())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -66,8 +67,8 @@ func TestServerlessHarvest(t *testing.T) {
 func TestServerlessHarvestNil(t *testing.T) {
 	// The public ServerlessHarvest methods should not panic if the
 	// receiver is nil.
-	var sh *ServerlessHarvest
-	event, err := CreateCustomEvent("myEvent", nil, time.Now())
+	var sh *serverlessHarvest
+	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -79,7 +80,7 @@ func TestServerlessHarvestNil(t *testing.T) {
 func TestServerlessHarvestEmpty(t *testing.T) {
 	// Test that ServerlessHarvest.Write doesn't do anything if the harvest
 	// is empty.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
 	buf := &bytes.Buffer{}
 	sh.Write("arn", buf)
 	if 0 != buf.Len() {
@@ -90,8 +91,8 @@ func TestServerlessHarvestEmpty(t *testing.T) {
 func BenchmarkServerless(b *testing.B) {
 	// The JSON creation in ServerlessHarvest.Write has not been optimized.
 	// This benchmark would be useful for doing so.
-	sh := NewServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
-	event, err := CreateCustomEvent("myEvent", nil, time.Now())
+	sh := newServerlessHarvest(logger.ShimLogger{}, "the-version", serverlessGetenvShim)
+	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		b.Fatal(err)
 	}
