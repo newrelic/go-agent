@@ -49,7 +49,7 @@ func (e *ext) ValidationDidStart(ctx context.Context) (context.Context, graphql.
 		seg = txn.StartSegment("Validation")
 	}
 
-	return ctx, func(errors []gqlerrors.FormattedError) {
+	return ctx, func([]gqlerrors.FormattedError) {
 		seg.End()
 	}
 }
