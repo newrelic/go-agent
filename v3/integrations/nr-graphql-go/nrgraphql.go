@@ -37,7 +37,7 @@ func (e *ext) ParseDidStart(ctx context.Context) (context.Context, graphql.Parse
 		seg = txn.StartSegment("Parse")
 	}
 
-	return ctx, func(err error) {
+	return ctx, func(error) {
 		seg.End()
 	}
 }
