@@ -1,28 +1,12 @@
-package internal
+package newrelic
 
 import (
 	"math"
 	"sync"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
-
-// AdaptiveSampler calculates which transactions should be sampled.  An interface
-// is used in the connect reply to facilitate testing.
-type AdaptiveSampler interface {
-	ComputeSampled(priority float32, now time.Time) bool
-}
-
-// sampleEverything is used for testing.
-type sampleEverything struct{}
-
-// sampleNothing is used when the application is not yet connected.
-type sampleNothing struct{}
-
-// ComputeSampled implements AdaptiveSampler.
-func (s sampleEverything) ComputeSampled(priority float32, now time.Time) bool { return true }
-
-// ComputeSampled implements AdaptiveSampler.
-func (s sampleNothing) ComputeSampled(priority float32, now time.Time) bool { return false }
 
 type adaptiveSampler struct {
 	sync.Mutex
@@ -40,8 +24,8 @@ type adaptiveSampler struct {
 	}
 }
 
-// NewAdaptiveSampler creates an AdaptiveSampler.
-func NewAdaptiveSampler(period time.Duration, target uint64, now time.Time) AdaptiveSampler {
+// newAdaptiveSampler creates an adaptiveSampler.
+func newAdaptiveSampler(period time.Duration, target uint64, now time.Time) *adaptiveSampler {
 	as := &adaptiveSampler{}
 	as.period = period
 	as.target = target
@@ -52,10 +36,17 @@ func NewAdaptiveSampler(period time.Duration, target uint64, now time.Time) Adap
 	return as
 }
 
-// ComputeSampled calculates if the transaction should be sampled.
-func (as *adaptiveSampler) ComputeSampled(priority float32, now time.Time) bool {
+// computeSampled calculates if the transaction should be sampled.
+func (as *adaptiveSampler) computeSampled(priority float32, now time.Time) bool {
 	as.Lock()
 	defer as.Unlock()
+
+	// Never sample anything if the target is zero.  This is not an expected
+	// connect reply response, but it is used for the placeholder run (app
+	// not connected yet), and is used for testing.
+	if 0 == as.target {
+		return false
+	}
 
 	// If the current time is after the end of the "currentPeriod".  This is in
 	// a `for`/`while` loop in case there's a harvest where no sampling happened.
@@ -94,6 +85,6 @@ func (as *adaptiveSampler) ComputeSampled(priority float32, now time.Time) bool 
 }
 
 func (as *adaptiveSampler) computeSampledBackoff(target uint64, decidedCount uint64, sampledTrueCount uint64) bool {
-	return float64(RandUint64N(decidedCount)) <
+	return float64(internal.RandUint64N(decidedCount)) <
 		math.Pow(float64(target), (float64(target)/float64(sampledTrueCount)))-math.Pow(float64(target), 0.5)
 }

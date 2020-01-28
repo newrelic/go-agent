@@ -154,12 +154,13 @@ func TestShouldSaveTrace(t *testing.T) {
 
 func TestLazilyCalculateSampledTrue(t *testing.T) {
 	tx := &txn{}
-	tx.appRun = &appRun{}
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
-	tx.Reply = &internal.ConnectReply{}
-	tx.Reply.SetSampleEverything()
+	cfg := config{Config: defaultConfig()}
+	reply := &internal.ConnectReply{}
+	reply.SetSampleEverything()
+	tx.appRun = newAppRun(cfg, reply)
 	out := tx.lazilyCalculateSampled()
 	if !out || !tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 1.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)
@@ -173,12 +174,13 @@ func TestLazilyCalculateSampledTrue(t *testing.T) {
 
 func TestLazilyCalculateSampledFalse(t *testing.T) {
 	tx := &txn{}
-	tx.appRun = &appRun{}
 	tx.BetterCAT.Priority = 0.5
 	tx.sampledCalculated = false
 	tx.BetterCAT.Enabled = true
-	tx.Reply = &internal.ConnectReply{}
-	tx.Reply.SetSampleNothing()
+	cfg := config{Config: defaultConfig()}
+	reply := &internal.ConnectReply{}
+	reply.SetSampleNothing()
+	tx.appRun = newAppRun(cfg, reply)
 	out := tx.lazilyCalculateSampled()
 	if out || tx.BetterCAT.Sampled || !tx.sampledCalculated || tx.BetterCAT.Priority != 0.5 {
 		t.Error(out, tx.BetterCAT.Sampled, tx.sampledCalculated, tx.BetterCAT.Priority)

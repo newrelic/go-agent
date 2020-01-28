@@ -388,3 +388,26 @@ func assertHarvestConfig(t testing.TB, hc *internal.HarvestConfigurer, expect ex
 		t.Error(periods, expect.periods)
 	}
 }
+
+func TestPlaceholderAppRunSampler(t *testing.T) {
+	// Test that the placeholder run used before connect does not sample
+	// transactions.
+	run := newPlaceholderAppRun(config{Config: defaultConfig()})
+	if sampled := run.adaptiveSampler.computeSampled(1.0, time.Now()); sampled {
+		t.Fatal(sampled)
+	}
+}
+
+func TestAppRunSampler(t *testing.T) {
+	// Test that a default app run samples transactions.
+	// Test that the default txn trace threshold is the failing apdex.
+	cfg := config{Config: defaultConfig()}
+	run := newAppRun(cfg, internal.ConnectReplyDefaults())
+	if sampled := run.adaptiveSampler.computeSampled(1.0, time.Now()); !sampled {
+		t.Fatal(sampled)
+	}
+	if run.adaptiveSampler.target != 10 || run.adaptiveSampler.period != 60*time.Second {
+		t.Fatal("invalid sampler initialization",
+			run.adaptiveSampler.target, run.adaptiveSampler.period)
+	}
+}
