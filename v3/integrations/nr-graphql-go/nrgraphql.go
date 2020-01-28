@@ -16,7 +16,7 @@ type ext struct{}
 var _ graphql.Extension = new(ext)
 
 // NewExtension TODO
-func NewExtension() *ext {
+func NewExtension() graphql.Extension {
 	return &ext{}
 }
 
