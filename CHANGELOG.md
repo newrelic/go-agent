@@ -22,6 +22,12 @@
   if existing cross application tracing or distributed tracing headers are
   present on the request, they will be replaced instead of added.
 
+* The
+  [`FromContext`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#FromContext)
+  API which allows you to pull a Transaction from a context.Context will no
+  longer panic if the provided context is nil.  In this case, a nil is
+  returned.
+
 ## 3.2.0
 
 ### New Features
