@@ -61,7 +61,7 @@ func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.E
 		seg = txn.StartSegment("Execution")
 	}
 
-	return ctx, func(result *graphql.Result) {
+	return ctx, func(*graphql.Result) {
 		seg.End()
 	}
 }
@@ -76,7 +76,6 @@ func (e *ext) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) 
 	return ctx, func(interface{}, error) {
 		seg.End()
 	}
-
 }
 
 // HasResult returns if the extension wants to add data to the result
