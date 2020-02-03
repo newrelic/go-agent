@@ -15,11 +15,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
 )
 
-type PayloadTest struct {
-	V *[2]int                `json:"v,omitempty"`
-	D map[string]interface{} `json:"d,omitempty"`
-}
-
 func distributedTracingReplyFields(reply *internal.ConnectReply) {
 	reply.AccountID = "123"
 	reply.AppID = "456"
@@ -185,11 +180,6 @@ func TestAcceptMultiple(t *testing.T) {
 			"priority":                 internal.MatchAnything,
 		},
 	}})
-}
-
-func validBase64(s string) bool {
-	_, err := base64.StdEncoding.DecodeString(s)
-	return err == nil
 }
 
 func TestInsertDistributedTraceHeadersNotConnected(t *testing.T) {
@@ -2190,4 +2180,43 @@ func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/TraceState/InvalidNrEntry", Scope: "", Forced: true, Data: nil},
 	}, backgroundUnknownCallerWithTransport...))
+}
+
+func TestUpperCaseTraceIDReceived(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.SetSampleNothing()
+	}
+	app := testApp(replyfn, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	originalTraceID := "85D7FA2DD1B66D6C" // Legacy .NET agents may send uppercase trace IDs
+	incoming := internal.Payload{
+		Type:              internal.CallerTypeApp,
+		App:               "123",
+		Account:           "456",
+		TransactionID:     "1a2b3c",
+		ID:                "0f9a8d",
+		TracedID:          originalTraceID,
+		TrustedAccountKey: "123",
+	}
+	hdrs := http.Header{
+		DistributedTraceNewRelicHeader: []string{incoming.NRText()},
+	}
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+	outgoing := http.Header{}
+	txn.InsertDistributedTraceHeaders(outgoing)
+
+	// Verify the NR header uses the original (short, uppercase) Trace ID
+	p := payloadFieldsFromHeaders(t, outgoing)
+	s, ok := p.Data["tr"].(string)
+	if !ok || s != originalTraceID {
+		t.Error("Invalid NewRelic header trace ID", p.Data)
+	}
+
+	// Verify that the TraceParent header uses padded and lower-cased Trace ID
+	ts := outgoing.Get(DistributedTraceW3CTraceParentHeader)
+	expected := "0000000000000000" + strings.ToLower(originalTraceID)
+	if ts != "00-"+expected+"-9566c74d10d1e2c6-00" {
+		t.Error("Invalid TraceParent header", ts)
+	}
 }

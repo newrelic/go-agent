@@ -197,7 +197,7 @@ func (p Payload) W3CTraceParent() string {
 	} else {
 		flags = "00"
 	}
-	traceID := p.TracedID
+	traceID := strings.ToLower(p.TracedID)
 	if idLen := len(traceID); idLen < traceIDHexStringLen {
 		traceID = strings.Repeat("0", traceIDHexStringLen-idLen) + traceID
 	} else if idLen > traceIDHexStringLen {
