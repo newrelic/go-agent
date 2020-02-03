@@ -66,6 +66,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
 | [nats-io/nats.go](https://github.com/nats-io/nats.go) | [v3/integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrnats) | Instrument publishers and subscribers using the NATS client |
 | [nats-io/stan.go](https://github.com/nats-io/stan.go) | [v3/integrations/nrstan](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrstan) | Instrument publishers and subscribers using the NATS streaming client |
+| [graphql-go/graphql](https://github.com/graphql-go/graphql) | [v3/integrations/nr-graphql-go](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graphql-go) | Instrument graphql-go GraphQL framework |
 
 
 These integration packages must be imported along
