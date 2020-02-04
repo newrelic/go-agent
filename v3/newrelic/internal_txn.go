@@ -133,6 +133,9 @@ func (txn *txn) shouldCollectSpanEvents() bool {
 	if !txn.Config.SpanEvents.Enabled {
 		return false
 	}
+	if "" != txn.Config.MTB.Endpoint {
+		return true
+	}
 	return txn.lazilyCalculateSampled()
 }
 
@@ -433,6 +436,11 @@ func (thd *thread) End(recovered interface{}) error {
 
 	if !txn.ignore {
 		txn.app.Consume(txn.Reply.RunID, txn)
+		// TODO: Think a lot more about the conditions under which
+		// we send these span events, and think about concurrency.
+		if box := txn.app.TraceBox; nil != box && txn.shouldCollectSpanEvents() {
+			box.sendSpans(txn.SpanEvents)
+		}
 	}
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not

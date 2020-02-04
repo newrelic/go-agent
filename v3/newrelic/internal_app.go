@@ -25,6 +25,8 @@ type app struct {
 	rpmControls rpmControls
 	testHarvest *harvest
 
+	TraceBox *traceBox
+
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
 
@@ -180,18 +182,18 @@ func (app *app) process() {
 	var h *harvest
 	var run *appRun
 
-	harvestTicker := time.NewTicker(time.Second)
-	defer harvestTicker.Stop()
+	// harvestTicker := time.NewTicker(time.Second)
+	// defer harvestTicker.Stop()
 
 	for {
 		select {
-		case <-harvestTicker.C:
-			if nil != run {
-				now := time.Now()
-				if ready := h.Ready(now); nil != ready {
-					go app.doHarvest(ready, now, run)
-				}
-			}
+		// case <-harvestTicker.C:
+		// 	if nil != run {
+		// 		now := time.Now()
+		// 		if ready := h.Ready(now); nil != ready {
+		// 			go app.doHarvest(ready, now, run)
+		// 		}
+		// 	}
 		case d := <-app.dataChan:
 			if nil != run && run.Reply.RunID == d.id {
 				d.data.MergeIntoHarvest(h)
@@ -355,6 +357,23 @@ func newApp(c config) *app {
 		"version": Version,
 		"enabled": app.config.Enabled,
 	})
+
+	// TODO: I think this should probably check for span events enabled, etc.
+	if "" != c.MTB.Endpoint {
+		// MTB.APIKey presence is validated in Config.validate.
+		box, err := newTraceBox(c.MTB.Endpoint, c.MTB.APIKey)
+		if nil != err {
+			// TODO: Perhaps figure out how to make a supportability
+			// metric here.
+			app.Error("unable to make mtb connection", map[string]interface{}{
+				"err": err.Error(),
+			})
+			panic(err)
+		} else {
+			fmt.Println("Tracebox Created!!!")
+			app.TraceBox = box
+		}
+	}
 
 	if app.config.Enabled {
 		if app.config.ServerlessMode.Enabled {
