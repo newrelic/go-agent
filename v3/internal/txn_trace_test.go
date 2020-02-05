@@ -300,19 +300,19 @@ func TestTxnTraceAsync(t *testing.T) {
 		t.Error(tt)
 	}
 
-	if len(txndata.spanEvents) != 5 {
-		t.Fatal(txndata.spanEvents)
+	if len(txndata.SpanEvents) != 5 {
+		t.Fatal(txndata.SpanEvents)
 	}
-	for _, e := range txndata.spanEvents {
+	for _, e := range txndata.SpanEvents {
 		if e.GUID == "" || e.ParentID == "" {
 			t.Error(e.GUID, e.ParentID)
 		}
 	}
-	spanEventT1S2 := txndata.spanEvents[0]
-	spanEventT2S1 := txndata.spanEvents[1]
-	spanEventT1S1 := txndata.spanEvents[2]
-	spanEventT3S2 := txndata.spanEvents[3]
-	spanEventT3S1 := txndata.spanEvents[4]
+	spanEventT1S2 := txndata.SpanEvents[0]
+	spanEventT2S1 := txndata.SpanEvents[1]
+	spanEventT1S1 := txndata.SpanEvents[2]
+	spanEventT3S2 := txndata.SpanEvents[3]
+	spanEventT3S1 := txndata.SpanEvents[4]
 
 	if txndata.rootSpanID == "" {
 		t.Error(txndata.rootSpanID)

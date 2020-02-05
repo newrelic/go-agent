@@ -72,7 +72,7 @@ type TxnData struct {
 	TraceIDGenerator        *TraceIDGenerator
 	ShouldCollectSpanEvents func() bool
 	rootSpanID              string
-	spanEvents              []*SpanEvent
+	SpanEvents              []*SpanEvent
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
@@ -254,7 +254,8 @@ func StartSegment(t *TxnData, thread *Thread, now time.Time) SegmentStartTime {
 	}
 }
 
-func (t *TxnData) getRootSpanID() string {
+// GetRootSpanID returns the root span ID.
+func (t *TxnData) GetRootSpanID() string {
 	if "" == t.rootSpanID {
 		t.rootSpanID = t.TraceIDGenerator.GenerateSpanID()
 	}
@@ -265,7 +266,7 @@ func (t *TxnData) getRootSpanID() string {
 // segment stack.
 func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
 	if 0 == len(thread.stack) {
-		return t.getRootSpanID()
+		return t.GetRootSpanID()
 	}
 	if "" == thread.stack[len(thread.stack)-1].spanID {
 		thread.stack[len(thread.stack)-1].spanID = t.TraceIDGenerator.GenerateSpanID()
@@ -275,8 +276,8 @@ func (t *TxnData) CurrentSpanIdentifier(thread *Thread) string {
 
 func (t *TxnData) saveSpanEvent(e *SpanEvent) {
 	e.Attributes = t.Attrs.filterSpanAttributes(e.Attributes, destSpan)
-	if len(t.spanEvents) < MaxSpanEvents {
-		t.spanEvents = append(t.spanEvents, e)
+	if len(t.SpanEvents) < MaxSpanEvents {
+		t.SpanEvents = append(t.SpanEvents, e)
 	}
 }
 
@@ -375,7 +376,7 @@ func EndBasicSegment(t *TxnData, thread *Thread, start SegmentStartTime, now tim
 
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = customSegmentMetric(name)
-		evt.Category = spanCategoryGeneric
+		evt.Category = SpanCategoryGeneric
 		t.saveSpanEvent(evt)
 	}
 
@@ -533,7 +534,7 @@ func EndMessageSegment(p EndMessageParams) error {
 
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = key.Name()
-		evt.Category = spanCategoryGeneric
+		evt.Category = SpanCategoryGeneric
 		t.saveSpanEvent(evt)
 	}
 

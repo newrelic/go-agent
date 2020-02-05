@@ -53,14 +53,6 @@ func TestSuccess(t *testing.T) {
 	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"name":     "Custom/mySegment",
 				"parentId": internal.MatchAnything,
 				"category": "generic",
@@ -68,6 +60,14 @@ func TestSuccess(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				newrelic.SpanAttributeAWSOperation: "operation",
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }

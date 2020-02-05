@@ -88,18 +88,18 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/testing",
-				"nr.entryPoint": true,
+				"category": "generic",
+				"name":     "MessageBroker/NATS/Topic/Produce/Named/mysubject",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "MessageBroker/NATS/Topic/Produce/Named/mysubject",
-				"parentId": internal.MatchAnything,
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/testing",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

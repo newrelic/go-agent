@@ -12,7 +12,8 @@ type spanCategory string
 const (
 	spanCategoryHTTP      spanCategory = "http"
 	spanCategoryDatastore              = "datastore"
-	spanCategoryGeneric                = "generic"
+	// SpanCategoryGeneric is a generic span category.
+	SpanCategoryGeneric = "generic"
 )
 
 // SpanEvent represents a span event, necessary to support Distributed Tracing.
@@ -104,39 +105,16 @@ func newSpanEvents(max int) *spanEvents {
 	}
 }
 
-func (events *spanEvents) addEvent(e *SpanEvent, cat *BetterCAT) {
-	e.TraceID = cat.TraceID
-	e.TransactionID = cat.TxnID
-	e.Sampled = cat.Sampled
-	e.Priority = cat.Priority
-	events.addEventPopulated(e)
-}
-
 func (events *spanEvents) addEventPopulated(e *SpanEvent) {
 	events.analyticsEvents.addEvent(analyticsEvent{priority: e.Priority, jsonWriter: e})
 }
 
-// MergeFromTransaction merges the span events from a transaction into the
+// MergeSpanEvents merges the span events from a transaction into the
 // harvest's span events.  This should only be called if the transaction was
 // sampled and span events are enabled.
-func (events *spanEvents) MergeFromTransaction(txndata *TxnData) {
-	root := &SpanEvent{
-		GUID:         txndata.getRootSpanID(),
-		Timestamp:    txndata.Start,
-		Duration:     txndata.Duration,
-		Name:         txndata.FinalName,
-		Category:     spanCategoryGeneric,
-		IsEntrypoint: true,
-	}
-	if nil != txndata.BetterCAT.Inbound {
-		root.ParentID = txndata.BetterCAT.Inbound.ID
-		root.TrustedParentID = txndata.BetterCAT.Inbound.TrustedParentID
-		root.TracingVendors = txndata.BetterCAT.Inbound.TracingVendors
-	}
-	events.addEvent(root, &txndata.BetterCAT)
-
-	for _, evt := range txndata.spanEvents {
-		events.addEvent(evt, &txndata.BetterCAT)
+func (events *spanEvents) MergeSpanEvents(evts []*SpanEvent) {
+	for _, evt := range evts {
+		events.addEventPopulated(evt)
 	}
 }
 

@@ -148,16 +148,6 @@ func TestMonitor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/txnName",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"name":      "Datastore/statement/MongoDB/collName/commName",
 				"sampled":   true,
 				"category":  "datastore",
@@ -173,6 +163,16 @@ func TestMonitor(t *testing.T) {
 				"db.instance":   "testdb",
 				"db.collection": "collName",
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/txnName",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 
