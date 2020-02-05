@@ -635,13 +635,10 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 func TestGenericSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	txndata := &TxnData{
-		TraceIDGenerator: NewTraceIDGenerator(12345),
+		TraceIDGenerator:        NewTraceIDGenerator(12345),
+		ShouldCollectSpanEvents: func() bool { return true },
 	}
 	thread := &Thread{}
-
-	// Enable that which is necessary to generate span events when segments are ended.
-	txndata.LazilyCalculateSampled = func() bool { return true }
-	txndata.SpanEventsEnabled = true
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1")
@@ -655,33 +652,15 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	}
 }
 
-func TestSpanEventNotSampled(t *testing.T) {
+func TestSpanEventNotCollected(t *testing.T) {
+	// Test the situation where ShouldCollectSpanEvents is populated but returns
+	// false.
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	txndata := &TxnData{
-		TraceIDGenerator: NewTraceIDGenerator(12345),
+		TraceIDGenerator:        NewTraceIDGenerator(12345),
+		ShouldCollectSpanEvents: func() bool { return false },
 	}
 	thread := &Thread{}
-
-	txndata.LazilyCalculateSampled = func() bool { return false }
-	txndata.SpanEventsEnabled = true
-
-	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
-	EndBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1")
-
-	if 0 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
-	}
-}
-
-func TestSpanEventNotEnabled(t *testing.T) {
-	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
-	txndata := &TxnData{
-		TraceIDGenerator: NewTraceIDGenerator(12345),
-	}
-	thread := &Thread{}
-
-	txndata.LazilyCalculateSampled = func() bool { return true }
-	txndata.SpanEventsEnabled = false
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1")
@@ -699,8 +678,7 @@ func TestDatastoreSpanEventCreation(t *testing.T) {
 	thread := &Thread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	txndata.LazilyCalculateSampled = func() bool { return true }
-	txndata.SpanEventsEnabled = true
+	txndata.ShouldCollectSpanEvents = func() bool { return true }
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndDatastoreSegment(EndDatastoreParams{
@@ -730,8 +708,7 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	thread := &Thread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	txndata.LazilyCalculateSampled = func() bool { return true }
-	txndata.SpanEventsEnabled = true
+	txndata.ShouldCollectSpanEvents = func() bool { return true }
 
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndExternalSegment(EndExternalParams{
@@ -803,8 +780,6 @@ func TestEndMessageSegment(t *testing.T) {
 		TraceIDGenerator: NewTraceIDGenerator(12345),
 	}
 	txndata.CrossProcess.Enabled = true
-	txndata.LazilyCalculateSampled = func() bool { return true }
-	txndata.SpanEventsEnabled = true
 	thread := &Thread{}
 
 	seg1 := StartSegment(txndata, thread, start.Add(1*time.Second))

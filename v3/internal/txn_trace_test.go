@@ -275,8 +275,7 @@ func TestTxnTraceAsync(t *testing.T) {
 	txndata.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	txndata.TxnTrace.SegmentThreshold = 0
 	txndata.BetterCAT.Sampled = true
-	txndata.SpanEventsEnabled = true
-	txndata.LazilyCalculateSampled = func() bool { return true }
+	txndata.ShouldCollectSpanEvents = func() bool { return true }
 
 	t1s1 := StartSegment(txndata, thread1, start.Add(1*time.Second))
 	t1s2 := StartSegment(txndata, thread1, start.Add(2*time.Second))
