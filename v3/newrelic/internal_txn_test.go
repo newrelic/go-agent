@@ -692,3 +692,44 @@ func TestDTPriority(t *testing.T) {
 
 	}
 }
+
+func TestShouldCollectSpanEvents(t *testing.T) {
+	txn := &txn{}
+	txn.appRun = &appRun{}
+	txn.sampledCalculated = true
+	txn.BetterCAT.Sampled = true
+	txn.BetterCAT.Enabled = true
+	txn.Config.DistributedTracer.Enabled = true
+	txn.Config.SpanEvents.Enabled = true
+
+	// Success
+	if collect := txn.shouldCollectSpanEvents(); !collect {
+		t.Error(collect)
+	}
+
+	// Not sampled
+	txn.BetterCAT.Sampled = false
+	if collect := txn.shouldCollectSpanEvents(); collect {
+		t.Error(collect)
+	}
+	txn.BetterCAT.Sampled = true
+
+	// Span events disabled
+	txn.Config.SpanEvents.Enabled = false
+	if collect := txn.shouldCollectSpanEvents(); collect {
+		t.Error(collect)
+	}
+	txn.Config.SpanEvents.Enabled = true
+
+	// DT disabled
+	txn.Config.DistributedTracer.Enabled = false
+	if collect := txn.shouldCollectSpanEvents(); collect {
+		t.Error(collect)
+	}
+	txn.Config.DistributedTracer.Enabled = true
+
+	// Success, validate previous testcases.
+	if collect := txn.shouldCollectSpanEvents(); !collect {
+		t.Error(collect)
+	}
+}

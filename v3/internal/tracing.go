@@ -69,11 +69,10 @@ type TxnData struct {
 	stamp           segmentStamp
 	threadIDCounter uint64
 
-	TraceIDGenerator       *TraceIDGenerator
-	LazilyCalculateSampled func() bool
-	SpanEventsEnabled      bool
-	rootSpanID             string
-	spanEvents             []*SpanEvent
+	TraceIDGenerator        *TraceIDGenerator
+	ShouldCollectSpanEvents func() bool
+	rootSpanID              string
+	spanEvents              []*SpanEvent
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[DatastoreMetricKey]*metricData
@@ -330,7 +329,7 @@ func endSegment(t *TxnData, thread *Thread, start SegmentStartTime, now time.Tim
 
 	thread.stack = thread.stack[0:start.Depth]
 
-	if t.SpanEventsEnabled && t.LazilyCalculateSampled() {
+	if fn := t.ShouldCollectSpanEvents; nil != fn && fn() {
 		s.SpanID = frame.spanID
 		if "" == s.SpanID {
 			s.SpanID = t.TraceIDGenerator.GenerateSpanID()
