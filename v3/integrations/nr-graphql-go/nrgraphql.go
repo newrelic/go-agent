@@ -86,14 +86,16 @@ func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.E
 // ResolveFieldDidStart notifies about the start of the resolving of a field
 func (e *ext) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
 	var seg *newrelic.Segment
+	var id requestID
 	if txn := newrelic.FromContext(ctx); txn != nil {
-		id := ctx.Value(requestIDKey).(requestID)
+		id = ctx.Value(requestIDKey).(requestID)
 		e.resolveSegmentMap[id].End()
 		seg = txn.StartSegment("Resolve " + i.FieldName)
 		e.resolveSegmentMap[id] = seg
 	}
 
 	return ctx, func(interface{}, error) {
+		delete(e.resolveSegmentMap, id)
 		seg.End()
 	}
 }

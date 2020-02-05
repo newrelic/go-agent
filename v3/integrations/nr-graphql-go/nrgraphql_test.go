@@ -126,6 +126,9 @@ func TestExtensionResolveErrorFirst(t *testing.T) {
 	}
 
 	txn.End()
+	// if Resolve becomes asynchronous, an error will be logged saying that we
+	// tried to end a segment twice.
+	app.ExpectNoLoggedErrors(t)
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/Execution", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Execution", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
@@ -168,6 +171,9 @@ func TestExtensionResolveErrorLast(t *testing.T) {
 	}
 
 	txn.End()
+	// if Resolve becomes asynchronous, an error will be logged saying that we
+	// tried to end a segment twice.
+	app.ExpectNoLoggedErrors(t)
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/Execution", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Execution", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},

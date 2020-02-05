@@ -3,6 +3,8 @@
 package integrationsupport
 
 import (
+	"testing"
+
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -37,6 +39,7 @@ const (
 type ExpectApp struct {
 	internal.Expect
 	*newrelic.Application
+	*errorSaverLogger
 }
 
 // ConfigFullTraces enables distributed tracing and sets transaction
@@ -48,8 +51,33 @@ func ConfigFullTraces(cfg *newrelic.Config) {
 	cfg.TransactionTracer.Threshold.Duration = 0
 }
 
+type recordedLogMessage struct {
+	msg     string
+	context map[string]interface{}
+}
+
+type errorSaverLogger struct{ errors []recordedLogMessage }
+
+func (lg *errorSaverLogger) ExpectNoLoggedErrors(tb testing.TB) {
+	if h, ok := tb.(interface{ Helper() }); ok {
+		h.Helper()
+	}
+	if len(lg.errors) != 0 {
+		tb.Errorf("unexpected non-zero number of errors logged: count=%d errors=%#v", len(lg.errors), lg.errors)
+	}
+}
+
+func (lg *errorSaverLogger) Error(msg string, context map[string]interface{}) {
+	lg.errors = append(lg.errors, recordedLogMessage{msg: msg, context: context})
+}
+func (lg *errorSaverLogger) Warn(msg string, context map[string]interface{})  {}
+func (lg *errorSaverLogger) Info(msg string, context map[string]interface{})  {}
+func (lg *errorSaverLogger) Debug(msg string, context map[string]interface{}) {}
+func (lg *errorSaverLogger) DebugEnabled() bool                               { return false }
+
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
 func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...newrelic.ConfigOption) ExpectApp {
+	lg := new(errorSaverLogger)
 	cfgFn = append(cfgFn,
 		func(cfg *newrelic.Config) {
 			// Prevent spawning app goroutines in tests.
@@ -59,6 +87,7 @@ func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...newrelic.ConfigOp
 		},
 		newrelic.ConfigAppName(SampleAppName),
 		newrelic.ConfigLicense(testLicenseKey),
+		newrelic.ConfigLogger(lg),
 	)
 
 	app, err := newrelic.NewApplication(cfgFn...)
@@ -69,8 +98,9 @@ func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...newrelic.ConfigOp
 	internal.HarvestTesting(app.Private, replyfn)
 
 	return ExpectApp{
-		Expect:      app.Private.(internal.Expect),
-		Application: app,
+		Expect:           app.Private.(internal.Expect),
+		Application:      app,
+		errorSaverLogger: lg,
 	}
 }
 
