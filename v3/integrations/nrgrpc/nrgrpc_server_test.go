@@ -108,20 +108,20 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/DoUnaryUnary",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/DoUnaryUnary",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -272,20 +272,20 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/DoUnaryStream",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/DoUnaryStream",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -364,20 +364,20 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/DoStreamUnary",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/DoStreamUnary",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -469,20 +469,20 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoStreamStream",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/DoStreamStream",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/DoStreamStream",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestApplication/DoStreamStream",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

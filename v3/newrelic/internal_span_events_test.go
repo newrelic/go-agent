@@ -25,20 +25,6 @@ func TestSpanEventSuccess(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"priority":      internal.MatchAnything,
-				"guid":          "4259d74b863e2fba",
-				"transactionId": "1ae969564b34a33e",
-				"nr.entryPoint": true,
-				"traceId":       "1ae969564b34a33ecd1af05fe6923d6d",
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"name":          "Custom/mySegment",
 				"sampled":       true,
 				"category":      "generic",
@@ -47,6 +33,20 @@ func TestSpanEventSuccess(t *testing.T) {
 				"transactionId": "1ae969564b34a33e",
 				"traceId":       "1ae969564b34a33ecd1af05fe6923d6d",
 				"parentId":      "4259d74b863e2fba",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          "4259d74b863e2fba",
+				"transactionId": "1ae969564b34a33e",
+				"nr.entryPoint": true,
+				"traceId":       "1ae969564b34a33ecd1af05fe6923d6d",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -136,16 +136,6 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"sampled":   true,
 				"name":      "Datastore/statement/MySQL/mycollection/myoperation",
@@ -175,6 +165,16 @@ func TestSpanEventDatastoreExternal(t *testing.T) {
 				"http.url":    "http://example.com",
 				"http.method": "GET",
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -209,16 +209,6 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"sampled":   true,
 				"name":      "Datastore/statement/MySQL/mycollection/myoperation",
@@ -236,6 +226,16 @@ func TestSpanEventAttributesDisabled(t *testing.T) {
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -280,16 +280,6 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"sampled":   true,
 				"name":      "Datastore/statement/MySQL/mycollection/myoperation",
@@ -307,6 +297,16 @@ func TestSpanEventAttributesSpecificallyExcluded(t *testing.T) {
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -351,16 +351,6 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"sampled":   true,
 				"name":      "Datastore/statement/MySQL/mycollection/myoperation",
@@ -378,6 +368,16 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 				"category":  "http",
 				"component": "http",
 				"span.kind": "client",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -415,16 +415,6 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"sampled":   true,
 				"name":      "Datastore/statement/MySQL/mycollection/myoperation",
@@ -455,6 +445,16 @@ func TestSpanEventAttributesLASP(t *testing.T) {
 				"http.method": "GET",
 			},
 		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
 	})
 }
 
@@ -478,16 +478,6 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"name":     "Custom/hi",
 				"sampled":  true,
 				"category": "generic",
@@ -499,6 +489,16 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 				"aws.requestId": "123",
 				"aws.region":    "west",
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -528,20 +528,20 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":     "Custom/hi",
+				"sampled":  true,
+				"category": "generic",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":     "Custom/hi",
-				"sampled":  true,
-				"category": "generic",
-				"parentId": internal.MatchAnything,
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

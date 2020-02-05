@@ -195,20 +195,20 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "Micro",
+				"name":      "External/testing/Micro/TestHandler.Method",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "Micro",
-				"name":      "External/testing/Micro/TestHandler.Method",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/name",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -350,18 +350,18 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category": "generic",
+				"name":     "MessageBroker/Micro/Topic/Produce/Named/topic",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "MessageBroker/Micro/Topic/Produce/Named/topic",
-				"parentId": internal.MatchAnything,
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/name",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -515,20 +515,20 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "Micro",
+				"name":      "External/testing/Micro/TestHandler.StreamingMethod",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "Micro",
-				"name":      "External/testing/Micro/TestHandler.StreamingMethod",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/name",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -599,20 +599,20 @@ func TestServerWrapperWithApp(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/Method",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/Method",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -890,20 +890,20 @@ func TestServerSubscribe(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category": "generic",
+				"name":     "Custom/segment",
+				"parentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/segment",
-				"parentId": internal.MatchAnything,
+				"category":        "generic",
+				"name":            "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":   true,
+				"parentId":        internal.MatchAnything,
+				"trustedParentId": internal.MatchAnything,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

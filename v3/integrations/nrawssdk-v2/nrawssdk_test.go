@@ -211,7 +211,7 @@ func TestInstrumentRequestExternal(t *testing.T) {
 
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpan})
+		externalSpan, genericSpan})
 }
 
 func TestInstrumentRequestDatastore(t *testing.T) {
@@ -236,7 +236,7 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 
 	app.ExpectMetrics(t, datastoreMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, datastoreSpan})
+		datastoreSpan, genericSpan})
 }
 
 func TestInstrumentRequestExternalNoTxn(t *testing.T) {
@@ -301,7 +301,7 @@ func TestInstrumentConfigExternal(t *testing.T) {
 
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpan})
+		externalSpan, genericSpan})
 }
 
 func TestInstrumentConfigDatastore(t *testing.T) {
@@ -326,7 +326,7 @@ func TestInstrumentConfigDatastore(t *testing.T) {
 
 	app.ExpectMetrics(t, datastoreMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, datastoreSpan})
+		datastoreSpan, genericSpan})
 }
 
 func TestInstrumentConfigExternalNoTxn(t *testing.T) {
@@ -492,7 +492,7 @@ func TestRetrySend(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpanNoRequestID, externalSpan})
+		externalSpanNoRequestID, externalSpan, genericSpan})
 }
 
 func TestRequestSentTwice(t *testing.T) {
@@ -536,7 +536,7 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpan, externalSpan})
+		externalSpan, externalSpan, genericSpan})
 }
 
 type noRequestIDTransport struct{}
@@ -579,7 +579,7 @@ func TestNoRequestIDFound(t *testing.T) {
 
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		genericSpan, externalSpanNoRequestID})
+		externalSpanNoRequestID, genericSpan})
 }
 
 func TestGetRequestID(t *testing.T) {

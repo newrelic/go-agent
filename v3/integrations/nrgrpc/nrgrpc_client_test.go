@@ -122,20 +122,20 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/UnaryUnary",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "gRPC",
+				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/UnaryUnary",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -215,20 +215,20 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/UnaryStream",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "gRPC",
+				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryStream",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryStream",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/UnaryStream",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -306,20 +306,20 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/StreamUnary",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "gRPC",
+				"name":      "External/bufnet/gRPC/TestApplication/DoStreamUnary",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoStreamUnary",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/StreamUnary",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -410,20 +410,20 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/StreamStream",
-				"nr.entryPoint": true,
+				"category":  "http",
+				"component": "gRPC",
+				"name":      "External/bufnet/gRPC/TestApplication/DoStreamStream",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoStreamStream",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/StreamStream",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

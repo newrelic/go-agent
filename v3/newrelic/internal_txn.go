@@ -280,7 +280,7 @@ func (txn *txn) MergeIntoHarvest(h *internal.Harvest) {
 	}
 
 	if txn.shouldCollectSpanEvents() {
-		h.SpanEvents.MergeFromTransaction(&txn.TxnData)
+		h.SpanEvents.MergeSpanEvents(txn.TxnData.SpanEvents)
 	}
 }
 
@@ -398,6 +398,33 @@ func (thd *thread) End(recovered interface{}) error {
 			"ignored":       txn.ignore,
 			"app_connected": "" != txn.Reply.RunID,
 		})
+	}
+
+	if txn.shouldCollectSpanEvents() {
+		root := &internal.SpanEvent{
+			GUID:         txn.GetRootSpanID(),
+			Timestamp:    txn.Start,
+			Duration:     txn.Duration,
+			Name:         txn.FinalName,
+			Category:     internal.SpanCategoryGeneric,
+			IsEntrypoint: true,
+		}
+		if nil != txn.BetterCAT.Inbound {
+			root.ParentID = txn.BetterCAT.Inbound.ID
+			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
+			root.TracingVendors = txn.BetterCAT.Inbound.TracingVendors
+		}
+		txn.SpanEvents = append(txn.SpanEvents, root)
+
+		// Add transaction tracing fields to span events at the end of
+		// the transaction since we could accept payload after the early
+		// segments occur.
+		for _, evt := range txn.SpanEvents {
+			evt.TraceID = txn.BetterCAT.TraceID
+			evt.TransactionID = txn.BetterCAT.TxnID
+			evt.Sampled = txn.BetterCAT.Sampled
+			evt.Priority = txn.BetterCAT.Priority
+		}
 	}
 
 	if !txn.ignore {

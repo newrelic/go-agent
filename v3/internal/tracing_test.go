@@ -36,8 +36,8 @@ func TestStartEndSegment(t *testing.T) {
 	if end.stop.Time != stop {
 		t.Error(end.stop, stop)
 	}
-	if 0 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
+	if 0 != len(txndata.SpanEvents) {
+		t.Error(txndata.SpanEvents)
 	}
 }
 
@@ -300,10 +300,10 @@ func TestGetRootSpanID(t *testing.T) {
 	txndata := &TxnData{
 		TraceIDGenerator: NewTraceIDGenerator(12345),
 	}
-	if id := txndata.getRootSpanID(); id != "1ae969564b34a33e" {
+	if id := txndata.GetRootSpanID(); id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
-	if id := txndata.getRootSpanID(); id != "1ae969564b34a33e" {
+	if id := txndata.GetRootSpanID(); id != "1ae969564b34a33e" {
 		t.Error(id)
 	}
 }
@@ -643,12 +643,12 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1")
 
-	// Since a basic segment has just ended, there should be exactly one generic span event in txndata.spanEvents[]
-	if 1 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
+	// Since a basic segment has just ended, there should be exactly one generic span event in txndata.SpanEvents[]
+	if 1 != len(txndata.SpanEvents) {
+		t.Error(txndata.SpanEvents)
 	}
-	if txndata.spanEvents[0].Category != spanCategoryGeneric {
-		t.Error(txndata.spanEvents[0].Category)
+	if txndata.SpanEvents[0].Category != SpanCategoryGeneric {
+		t.Error(txndata.SpanEvents[0].Category)
 	}
 }
 
@@ -665,8 +665,8 @@ func TestSpanEventNotCollected(t *testing.T) {
 	t1 := StartSegment(txndata, thread, start.Add(1*time.Second))
 	EndBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1")
 
-	if 0 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
+	if 0 != len(txndata.SpanEvents) {
+		t.Error(txndata.SpanEvents)
 	}
 }
 
@@ -691,12 +691,12 @@ func TestDatastoreSpanEventCreation(t *testing.T) {
 		Collection: "my_table",
 	})
 
-	// Since a datastore segment has just ended, there should be exactly one datastore span event in txndata.spanEvents[]
-	if 1 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
+	// Since a datastore segment has just ended, there should be exactly one datastore span event in txndata.SpanEvents[]
+	if 1 != len(txndata.SpanEvents) {
+		t.Error(txndata.SpanEvents)
 	}
-	if txndata.spanEvents[0].Category != spanCategoryDatastore {
-		t.Error(txndata.spanEvents[0].Category)
+	if txndata.SpanEvents[0].Category != spanCategoryDatastore {
+		t.Error(txndata.SpanEvents[0].Category)
 	}
 }
 
@@ -720,12 +720,12 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 		Logger:  logger.ShimLogger{},
 	})
 
-	// Since an external segment has just ended, there should be exactly one HTTP span event in txndata.spanEvents[]
-	if 1 != len(txndata.spanEvents) {
-		t.Error(txndata.spanEvents)
+	// Since an external segment has just ended, there should be exactly one HTTP span event in txndata.SpanEvents[]
+	if 1 != len(txndata.SpanEvents) {
+		t.Error(txndata.SpanEvents)
 	}
-	if txndata.spanEvents[0].Category != spanCategoryHTTP {
-		t.Error(txndata.spanEvents[0].Category)
+	if txndata.SpanEvents[0].Category != spanCategoryHTTP {
+		t.Error(txndata.SpanEvents[0].Category)
 	}
 }
 

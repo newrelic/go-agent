@@ -1354,16 +1354,6 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
@@ -1375,6 +1365,16 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "WebTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -1410,16 +1410,6 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
@@ -1431,6 +1421,16 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "WebTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -1470,16 +1470,6 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		},
-		{
-			Intrinsics: map[string]interface{}{
 				"parentId":  internal.MatchAnything,
 				"name":      "External/bufnet/grpc/TestApplication/DoUnaryUnary",
 				"category":  "http",
@@ -1491,6 +1481,16 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
 			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "WebTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -1948,19 +1948,19 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"parentId": internal.MatchAnything,
+				"name":     "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue",
+				"category": "generic",
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"parentId": internal.MatchAnything,
-				"name":     "MessageBroker/RabbitMQ/Queue/Produce/Named/myQueue",
-				"category": "generic",
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
