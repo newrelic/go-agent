@@ -3,8 +3,6 @@
 package integrationsupport
 
 import (
-	"testing"
-
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -56,14 +54,18 @@ type recordedLogMessage struct {
 	context map[string]interface{}
 }
 
+// helperErrorer means we do not need to import the testing package.
+type helperErrorer interface {
+	Helper()
+	Errorf(format string, args ...interface{})
+}
+
 type errorSaverLogger struct{ errors []recordedLogMessage }
 
-func (lg *errorSaverLogger) ExpectNoLoggedErrors(tb testing.TB) {
-	if h, ok := tb.(interface{ Helper() }); ok {
-		h.Helper()
-	}
+func (lg *errorSaverLogger) ExpectNoLoggedErrors(he helperErrorer) {
+	he.Helper()
 	if len(lg.errors) != 0 {
-		tb.Errorf("unexpected non-zero number of errors logged: count=%d errors=%#v", len(lg.errors), lg.errors)
+		he.Errorf("unexpected non-zero number of errors logged: count=%d errors=%#v", len(lg.errors), lg.errors)
 	}
 }
 
