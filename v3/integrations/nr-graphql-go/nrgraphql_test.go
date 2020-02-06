@@ -79,7 +79,6 @@ func TestExtensionWithTransaction(t *testing.T) {
 	}
 
 	txn.End()
-	app.ExpectNoLoggedErrors(t)
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/Execution", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Execution", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
@@ -120,7 +119,6 @@ func TestExtensionResolveError(t *testing.T) {
 	}
 
 	txn.End()
-	app.ExpectNoLoggedErrors(t)
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Custom/Execution", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Execution", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
