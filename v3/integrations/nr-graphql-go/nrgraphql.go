@@ -2,7 +2,6 @@ package nrgraphql
 
 import (
 	"context"
-	"sync"
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/gqlerrors"
@@ -12,24 +11,13 @@ import (
 
 func init() { internal.TrackUsage("integration", "framework", "graphql-go") }
 
-type ext struct {
-	resolveSegmentMap map[requestID]*newrelic.Segment
+type ext struct{}
 
-	sync.Mutex
-	counter uint64
-}
-
-type key struct{}
-type requestID *uint64
-
-var requestIDKey key
 var _ graphql.Extension = new(ext)
 
 // NewExtension TODO
 func NewExtension() graphql.Extension {
-	return &ext{
-		resolveSegmentMap: make(map[requestID]*newrelic.Segment),
-	}
+	return &ext{}
 }
 
 // Init is used to help you initialize the extension
@@ -69,16 +57,11 @@ func (e *ext) ValidationDidStart(ctx context.Context) (context.Context, graphql.
 // ExecutionDidStart notifies about the start of the execution
 func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	var seg *newrelic.Segment
-	var id requestID
 	if txn := newrelic.FromContext(ctx); txn != nil {
-		id = e.newRequestID()
-		ctx = context.WithValue(ctx, requestIDKey, id)
 		seg = txn.StartSegment("Execution")
 	}
 
 	return ctx, func(*graphql.Result) {
-		e.resolveSegmentMap[id].End()
-		delete(e.resolveSegmentMap, id)
 		seg.End()
 	}
 }
@@ -86,27 +69,13 @@ func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.E
 // ResolveFieldDidStart notifies about the start of the resolving of a field
 func (e *ext) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
 	var seg *newrelic.Segment
-	var id requestID
 	if txn := newrelic.FromContext(ctx); txn != nil {
-		id = ctx.Value(requestIDKey).(requestID)
-		e.resolveSegmentMap[id].End()
 		seg = txn.StartSegment("Resolve " + i.FieldName)
-		e.resolveSegmentMap[id] = seg
 	}
 
 	return ctx, func(interface{}, error) {
-		delete(e.resolveSegmentMap, id)
 		seg.End()
 	}
-}
-
-func (e *ext) newRequestID() requestID {
-	e.Lock()
-	defer e.Unlock()
-
-	id := e.counter
-	e.counter++
-	return &id
 }
 
 // HasResult returns if the extension wants to add data to the result
