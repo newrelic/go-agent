@@ -28,11 +28,7 @@ func (e Extension) Name() string {
 
 // ParseDidStart is being called before starting the parse
 func (e Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
-	var seg *newrelic.Segment
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		seg = txn.StartSegment("Parse")
-	}
-
+	seg := newrelic.FromContext(ctx).StartSegment("Parse")
 	return ctx, func(error) {
 		seg.End()
 	}
@@ -40,11 +36,7 @@ func (e Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.
 
 // ValidationDidStart is called just before the validation begins
 func (e Extension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
-	var seg *newrelic.Segment
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		seg = txn.StartSegment("Validation")
-	}
-
+	seg := newrelic.FromContext(ctx).StartSegment("Validation")
 	return ctx, func([]gqlerrors.FormattedError) {
 		seg.End()
 	}
@@ -52,11 +44,7 @@ func (e Extension) ValidationDidStart(ctx context.Context) (context.Context, gra
 
 // ExecutionDidStart notifies about the start of the execution
 func (e Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
-	var seg *newrelic.Segment
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		seg = txn.StartSegment("Execution")
-	}
-
+	seg := newrelic.FromContext(ctx).StartSegment("Execution")
 	return ctx, func(*graphql.Result) {
 		seg.End()
 	}
@@ -64,11 +52,7 @@ func (e Extension) ExecutionDidStart(ctx context.Context) (context.Context, grap
 
 // ResolveFieldDidStart notifies about the start of the resolving of a field
 func (e Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
-	var seg *newrelic.Segment
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		seg = txn.StartSegment("Resolve " + i.FieldName)
-	}
-
+	seg := newrelic.FromContext(ctx).StartSegment("Resolve " + i.FieldName)
 	return ctx, func(interface{}, error) {
 		seg.End()
 	}
