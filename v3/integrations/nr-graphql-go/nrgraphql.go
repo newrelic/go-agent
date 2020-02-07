@@ -17,17 +17,17 @@ type Extension struct{}
 var _ graphql.Extension = Extension{}
 
 // Init is used to help you initialize the extension
-func (e Extension) Init(ctx context.Context, _ *graphql.Params) context.Context {
+func (Extension) Init(ctx context.Context, _ *graphql.Params) context.Context {
 	return ctx
 }
 
 // Name returns the name of the extension (make sure it's custom)
-func (e Extension) Name() string {
+func (Extension) Name() string {
 	return "New Relic Extension"
 }
 
 // ParseDidStart is being called before starting the parse
-func (e Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
+func (Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
 	seg := newrelic.FromContext(ctx).StartSegment("Parse")
 	return ctx, func(error) {
 		seg.End()
@@ -35,7 +35,7 @@ func (e Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.
 }
 
 // ValidationDidStart is called just before the validation begins
-func (e Extension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
+func (Extension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
 	seg := newrelic.FromContext(ctx).StartSegment("Validation")
 	return ctx, func([]gqlerrors.FormattedError) {
 		seg.End()
@@ -43,7 +43,7 @@ func (e Extension) ValidationDidStart(ctx context.Context) (context.Context, gra
 }
 
 // ExecutionDidStart notifies about the start of the execution
-func (e Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
+func (Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	seg := newrelic.FromContext(ctx).StartSegment("Execution")
 	return ctx, func(*graphql.Result) {
 		seg.End()
@@ -51,7 +51,7 @@ func (e Extension) ExecutionDidStart(ctx context.Context) (context.Context, grap
 }
 
 // ResolveFieldDidStart notifies about the start of the resolving of a field
-func (e Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
+func (Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
 	seg := newrelic.FromContext(ctx).StartSegment("Resolve " + i.FieldName)
 	return ctx, func(interface{}, error) {
 		seg.End()
@@ -59,11 +59,11 @@ func (e Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveI
 }
 
 // HasResult returns if the extension wants to add data to the result
-func (e Extension) HasResult() bool {
+func (Extension) HasResult() bool {
 	return false
 }
 
 // GetResult returns the data that the extension wants to add to the result
-func (e Extension) GetResult(context.Context) interface{} {
+func (Extension) GetResult(context.Context) interface{} {
 	return nil
 }
