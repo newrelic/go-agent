@@ -27,4 +27,5 @@ const (
 	DatastoreSQLite        DatastoreProduct = "SQLite"
 	DatastoreTarantool     DatastoreProduct = "Tarantool"
 	DatastoreVoltDB        DatastoreProduct = "VoltDB"
+	DatastoreSnowflake     DatastoreProduct = "Snowflake"
 )
