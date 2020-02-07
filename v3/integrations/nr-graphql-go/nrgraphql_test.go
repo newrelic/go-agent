@@ -31,7 +31,7 @@ var schema = func() graphql.Schema {
 				},
 			},
 		}),
-		Extensions: []graphql.Extension{NewExtension()},
+		Extensions: []graphql.Extension{Extension{}},
 	})
 	if err != nil {
 		panic(err)

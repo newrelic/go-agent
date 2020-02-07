@@ -11,27 +11,23 @@ import (
 
 func init() { internal.TrackUsage("integration", "framework", "graphql-go") }
 
-type ext struct{}
+// Extension TODO
+type Extension struct{}
 
-var _ graphql.Extension = new(ext)
-
-// NewExtension TODO
-func NewExtension() graphql.Extension {
-	return &ext{}
-}
+var _ graphql.Extension = Extension{}
 
 // Init is used to help you initialize the extension
-func (e *ext) Init(ctx context.Context, _ *graphql.Params) context.Context {
+func (e Extension) Init(ctx context.Context, _ *graphql.Params) context.Context {
 	return ctx
 }
 
 // Name returns the name of the extension (make sure it's custom)
-func (e *ext) Name() string {
+func (e Extension) Name() string {
 	return "New Relic Extension"
 }
 
 // ParseDidStart is being called before starting the parse
-func (e *ext) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
+func (e Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
 	var seg *newrelic.Segment
 	if txn := newrelic.FromContext(ctx); txn != nil {
 		seg = txn.StartSegment("Parse")
@@ -43,7 +39,7 @@ func (e *ext) ParseDidStart(ctx context.Context) (context.Context, graphql.Parse
 }
 
 // ValidationDidStart is called just before the validation begins
-func (e *ext) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
+func (e Extension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
 	var seg *newrelic.Segment
 	if txn := newrelic.FromContext(ctx); txn != nil {
 		seg = txn.StartSegment("Validation")
@@ -55,7 +51,7 @@ func (e *ext) ValidationDidStart(ctx context.Context) (context.Context, graphql.
 }
 
 // ExecutionDidStart notifies about the start of the execution
-func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
+func (e Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	var seg *newrelic.Segment
 	if txn := newrelic.FromContext(ctx); txn != nil {
 		seg = txn.StartSegment("Execution")
@@ -67,7 +63,7 @@ func (e *ext) ExecutionDidStart(ctx context.Context) (context.Context, graphql.E
 }
 
 // ResolveFieldDidStart notifies about the start of the resolving of a field
-func (e *ext) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
+func (e Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
 	var seg *newrelic.Segment
 	if txn := newrelic.FromContext(ctx); txn != nil {
 		seg = txn.StartSegment("Resolve " + i.FieldName)
@@ -79,11 +75,11 @@ func (e *ext) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) 
 }
 
 // HasResult returns if the extension wants to add data to the result
-func (e *ext) HasResult() bool {
+func (e Extension) HasResult() bool {
 	return false
 }
 
 // GetResult returns the data that the extension wants to add to the result
-func (e *ext) GetResult(context.Context) interface{} {
+func (e Extension) GetResult(context.Context) interface{} {
 	return nil
 }
