@@ -130,9 +130,95 @@ func TestExtensionResolveError(t *testing.T) {
 		{Name: "Custom/Resolve errors", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
 		{Name: "Custom/Validation", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Validation", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
 	})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   "ooooooops",
+			"error.class":     internal.MatchAnything,
+			"transactionName": "OtherTransaction/Go/query",
+		},
+	}})
+}
+
+func TestExtensionParseError(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	txn := app.StartTransaction("query")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	query := `purple`
+	params := graphql.Params{
+		Schema:        schema,
+		RequestString: query,
+		Context:       ctx,
+	}
+	resp := graphql.Do(params)
+	if len(resp.Errors) != 1 {
+		t.Error("incorrect number of errors on response", resp.Errors)
+	}
+
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Custom/Parse", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/Parse", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+	})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   internal.MatchAnything,
+			"error.class":     internal.MatchAnything,
+			"transactionName": "OtherTransaction/Go/query",
+		},
+	}})
+}
+
+func TestExtensionValidationError(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	txn := app.StartTransaction("query")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	query := `{ goodbye }`
+	params := graphql.Params{
+		Schema:        schema,
+		RequestString: query,
+		Context:       ctx,
+	}
+	resp := graphql.Do(params)
+	if len(resp.Errors) != 1 {
+		t.Error("incorrect number of errors on response", resp.Errors)
+	}
+
+	txn.End()
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Custom/Parse", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/Parse", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
+		{Name: "Custom/Validation", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/Validation", Scope: "OtherTransaction/Go/query", Forced: false, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/query", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+	})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.message":   internal.MatchAnything,
+			"error.class":     internal.MatchAnything,
+			"transactionName": "OtherTransaction/Go/query",
+		},
+	}})
 }

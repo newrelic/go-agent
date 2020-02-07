@@ -28,24 +28,37 @@ func (Extension) Name() string {
 
 // ParseDidStart is being called before starting the parse
 func (Extension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
-	seg := newrelic.FromContext(ctx).StartSegment("Parse")
-	return ctx, func(error) {
+	txn := newrelic.FromContext(ctx)
+	seg := txn.StartSegment("Parse")
+	return ctx, func(err error) {
+		if err != nil {
+			txn.NoticeError(err)
+		}
 		seg.End()
 	}
 }
 
 // ValidationDidStart is called just before the validation begins
 func (Extension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
-	seg := newrelic.FromContext(ctx).StartSegment("Validation")
-	return ctx, func([]gqlerrors.FormattedError) {
+	txn := newrelic.FromContext(ctx)
+	seg := txn.StartSegment("Validation")
+	return ctx, func(errs []gqlerrors.FormattedError) {
+		for _, err := range errs {
+			txn.NoticeError(err)
+		}
 		seg.End()
 	}
 }
 
 // ExecutionDidStart notifies about the start of the execution
 func (Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
-	seg := newrelic.FromContext(ctx).StartSegment("Execution")
-	return ctx, func(*graphql.Result) {
+	txn := newrelic.FromContext(ctx)
+	seg := txn.StartSegment("Execution")
+	return ctx, func(res *graphql.Result) {
+		// noticing here also captures those during resolve
+		for _, err := range res.Errors {
+			txn.NoticeError(err)
+		}
 		seg.End()
 	}
 }
