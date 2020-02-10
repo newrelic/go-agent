@@ -211,8 +211,7 @@ func (txn *txn) freezeName() {
 	if txn.ignore || ("" != txn.FinalName) {
 		return
 	}
-
-	txn.FinalName = internal.CreateFullTxnName(txn.Name, txn.Reply, txn.IsWeb)
+	txn.FinalName = txn.appRun.createTransactionName(txn.Name, txn.IsWeb)
 	if "" == txn.FinalName {
 		txn.ignore = true
 	}

@@ -31,7 +31,5 @@ func ConstructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectRep
 
 	reply.Reply.PreconnectReply = preconnect
 
-	reply.Reply.rulesCache = newRulesCache(txnNameCacheLimit)
-
 	return reply.Reply, nil
 }

@@ -22,7 +22,16 @@ type appRun struct {
 	firstAppName string
 
 	adaptiveSampler *adaptiveSampler
+
+	// rulesCache caches the results of creating transaction names.  It
+	// exists here since it is specific to a set of rules and is shared
+	// between transactions.
+	rulesCache *rulesCache
 }
+
+const (
+	txnNameCacheLimit = 40
+)
 
 func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	convertConfig := func(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
@@ -43,7 +52,8 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 			SpanEvents:        convertConfig(config.SpanEvents.Attributes),
 			TraceSegments:     convertConfig(config.TransactionTracer.Segments.Attributes),
 		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
-		Config: config,
+		Config:     config,
+		rulesCache: newRulesCache(txnNameCacheLimit),
 	}
 
 	// Overwrite local settings with any server-side-config settings
@@ -213,4 +223,19 @@ func (run *appRun) ReportPeriods() map[internal.HarvestTypes]time.Duration {
 		configurable: run.Reply.ConfigurablePeriod(),
 		fixed:        internal.FixedHarvestPeriod,
 	}
+}
+
+func (run *appRun) createTransactionName(input string, isWeb bool) string {
+	if name := run.rulesCache.find(input, isWeb); "" != name {
+		return name
+	}
+	name := internal.CreateFullTxnName(input, run.Reply, isWeb)
+	if "" != name {
+		// Note that we  don't cache situations where the rules say
+		// ignore.  It would increase complication (we would need to
+		// disambiguate not-found vs ignore).  Also, the ignore code
+		// path is probably extremely uncommon.
+		run.rulesCache.set(input, isWeb, name)
+	}
+	return name
 }
