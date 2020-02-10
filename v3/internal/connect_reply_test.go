@@ -62,40 +62,6 @@ func TestCreateFullTxnNameTxnRulesIgnore(t *testing.T) {
 	}
 }
 
-func TestCreateFullTxnNameAllRulesWithCache(t *testing.T) {
-	js := `{
-		"url_rules":[
-			{"match_expression":"zip","each_segment":true,"replacement":"zoop"}
-		],
-		"transaction_name_rules":[
-			{"match_expression":"WebTransaction/Go/zap/zoop/zep",
-			 "replacement":"WebTransaction/Go/zap/zoop/zep/zup/zyp"}
-		],
-		"transaction_segment_terms":[
-			{"prefix": "WebTransaction/Go/",
-			 "terms": ["zyp", "zoop", "zap"]}
-		]
-	}`
-	reply := ConnectReplyDefaults()
-	reply.rulesCache = newRulesCache(3)
-	err := json.Unmarshal([]byte(js), &reply)
-	if nil != err {
-		t.Fatal(err)
-	}
-	want := "WebTransaction/Go/zap/zoop/*/zyp"
-	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != want {
-		t.Error("wanted:", want, "got:", out)
-	}
-	// Check that the cache was populated as expected.
-	if out := reply.rulesCache.find("/zap/zip/zep", true); out != want {
-		t.Error("wanted:", want, "got:", out)
-	}
-	// Check that the next CreateFullTxnName returns the same output.
-	if out := CreateFullTxnName("/zap/zip/zep", reply, true); out != want {
-		t.Error("wanted:", want, "got:", out)
-	}
-}
-
 func TestCalculateApdexThreshold(t *testing.T) {
 	reply := ConnectReplyDefaults()
 	threshold := CalculateApdexThreshold(reply, "WebTransaction/Go/hello")
@@ -172,7 +138,6 @@ func BenchmarkDefaultRules(b *testing.B) {
 		}
 	]}`
 	reply := ConnectReplyDefaults()
-	reply.rulesCache = newRulesCache(1)
 	err := json.Unmarshal([]byte(js), &reply)
 	if nil != err {
 		b.Fatal(err)

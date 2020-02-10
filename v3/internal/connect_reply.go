@@ -80,11 +80,6 @@ type ConnectReply struct {
 	SamplingTarget                uint64 `json:"sampling_target"`
 	SamplingTargetPeriodInSeconds int    `json:"sampling_target_period_in_seconds"`
 
-	// rulesCache caches the results of calling CreateFullTxnName.  It
-	// exists here in ConnectReply since it is specific to a set of rules
-	// and is shared between transactions.
-	rulesCache *rulesCache
-
 	ServerSideConfig struct {
 		TransactionTracerEnabled *bool `json:"transaction_tracer.enabled"`
 		// TransactionTracerThreshold should contain either a number or
@@ -193,21 +188,6 @@ func CalculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 // construct the full transaction metric name from the name given by the
 // consumer.
 func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
-	if name := reply.rulesCache.find(input, isWeb); "" != name {
-		return name
-	}
-	name := constructFullTxnName(input, reply, isWeb)
-	if "" != name {
-		// Note that we  don't cache situations where the rules say
-		// ignore.  It would increase complication (we would need to
-		// disambiguate not-found vs ignore).  Also, the ignore code
-		// path is probably extremely uncommon.
-		reply.rulesCache.set(input, isWeb, name)
-	}
-	return name
-}
-
-func constructFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	var afterURLRules string
 	if "" != input {
 		afterURLRules = reply.URLRules.Apply(input)

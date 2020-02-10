@@ -411,3 +411,36 @@ func TestAppRunSampler(t *testing.T) {
 			run.adaptiveSampler.target, run.adaptiveSampler.period)
 	}
 }
+
+func TestCreateTransactionName(t *testing.T) {
+	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+		"url_rules":[
+			{"match_expression":"zip","each_segment":true,"replacement":"zoop"}
+		],
+		"transaction_name_rules":[
+			{"match_expression":"WebTransaction/Go/zap/zoop/zep",
+			 "replacement":"WebTransaction/Go/zap/zoop/zep/zup/zyp"}
+		],
+		"transaction_segment_terms":[
+			{"prefix": "WebTransaction/Go/",
+			 "terms": ["zyp", "zoop", "zap"]}
+		]
+	}}`), internal.PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	run := newAppRun(config{Config: defaultConfig()}, reply)
+
+	want := "WebTransaction/Go/zap/zoop/*/zyp"
+	if out := run.createTransactionName("/zap/zip/zep", true); out != want {
+		t.Error("wanted:", want, "got:", out)
+	}
+	// Check that the cache was populated as expected.
+	if out := run.rulesCache.find("/zap/zip/zep", true); out != want {
+		t.Error("wanted:", want, "got:", out)
+	}
+	// Check that the next call returns the same output.
+	if out := run.createTransactionName("/zap/zip/zep", true); out != want {
+		t.Error("wanted:", want, "got:", out)
+	}
+}
