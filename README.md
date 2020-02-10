@@ -60,6 +60,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
 | [go-redis/redis](https://github.com/go-redis/redis) | [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7) | Instrument Redis calls |
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3) | Instrument SQLite driver |
+| [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
 | [google.golang.org/grpc](https://github.com/grpc/grpc-go) | [v3/integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgrpc) | Instrument gRPC servers and clients |
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |

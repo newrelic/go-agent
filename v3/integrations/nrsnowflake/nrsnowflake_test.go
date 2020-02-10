@@ -3,7 +3,7 @@ package nrsnowflake
 import (
 	"testing"
 
-	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/snowflakedb/gosnowflake"
 )
 

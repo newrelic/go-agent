@@ -8,6 +8,11 @@
   * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
   * [Example](v3/integrations/nr-graph-gophers/example/main.go)
 
+* Added database instrumentation support for
+  [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake).
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake)
+  * [Example](v3/integrations/nrsnowflake/example/main.go)
+
 ### Changes
 
 * When using
