@@ -50,8 +50,8 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/sqlparse"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/sqlparse"
 )
 
 var (

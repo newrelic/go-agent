@@ -61,8 +61,8 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/sqlparse"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/sqlparse"
 )
 
 var (

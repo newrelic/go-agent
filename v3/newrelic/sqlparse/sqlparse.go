@@ -43,7 +43,14 @@ var (
 	sqlPrefixRegex   = regexp.MustCompile(`^[\s;]*`)
 )
 
-// ParseQuery parses table and operation from the SQL query string.
+// ParseQuery parses table and operation from the SQL query string.  It is
+// a helper meant to be used when writing database/sql driver instrumentation.
+// Check out full example usage here:
+// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmysql/nrmysql.go
+//
+// ParseQuery is designed to work with MySQL, Postgres, and SQLite drivers.
+// Ability to correctly parse queries for other SQL databases is not
+// guaranteed.
 func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	s := cCommentRegex.ReplaceAllString(query, "")
 	s = lineCommentRegex.ReplaceAllString(s, "")
