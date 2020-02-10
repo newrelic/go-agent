@@ -39,6 +39,11 @@
 
   http.ListenAndServe(":8000", r)
   ```
+  
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.1.0
 
@@ -73,6 +78,11 @@
   seconds, instead of every minute.  As a result, transaction, error, and custom
   events will now be available in New Relic One and Insights dashboards in near
   real time.
+  
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.0.0
 
