@@ -1,5 +1,14 @@
 # ChangeLog
 
+### Changes
+
+* When using
+  [`newrelic.StartExternalSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#StartExternalSegment)
+  or
+  [`newrelic.NewRoundTripper`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewRoundTripper),
+  if existing cross application tracing or distributed tracing headers are
+  present on the request, they will be replaced instead of added.
+
 ## 3.2.0
 
 ### New Features
@@ -39,7 +48,7 @@
 
   http.ListenAndServe(":8000", r)
   ```
-  
+
 ### Known Issues and Workarounds
 
 * If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
