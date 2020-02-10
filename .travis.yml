@@ -122,6 +122,10 @@ matrix:
       - EXTRATESTING="go get -u github.com/gorilla/mux@master"
   - go: "1.13.4"
     env:
+      - DIRS=v3/integrations/nr-graph-gophers
+      - EXTRATESTING="go get -u github.com/graph-gophers/graphql-go@master"
+  - go: "1.13.4"
+    env:
       - DIRS=v3/integrations/nrlogrus
       - EXTRATESTING="go get -u github.com/sirupsen/logrus@master"
   - go: "1.13.4"
