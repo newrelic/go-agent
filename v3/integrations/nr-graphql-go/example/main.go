@@ -66,8 +66,8 @@ func main() {
 	defer app.Shutdown(10 * time.Second)
 
 	h := handler.New(&handler.Config{
-		Schema: &schema,
-		Pretty: true,
+		Schema:   &schema,
+		Pretty:   true,
 		GraphiQL: true,
 	})
 
