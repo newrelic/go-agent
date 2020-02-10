@@ -1,13 +1,15 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/graphql-go/graphql"
+	handler "github.com/graphql-go/graphql-go-handler"
+
 	nrgraphql "github.com/newrelic/go-agent/v3/integrations/nr-graphql-go"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -50,6 +52,7 @@ var schema = func() graphql.Schema {
 }()
 
 func main() {
+	// 2. Create the New Relic application and defer its shutdown
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example GraphQL App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
@@ -62,26 +65,21 @@ func main() {
 	app.WaitForConnection(10 * time.Second)
 	defer app.Shutdown(10 * time.Second)
 
-	// 2. Ensure the graphql code is called from within a running transaction
-	txn := app.StartTransaction("main")
-	defer txn.End()
-
-	// 3. Add the transaction to the context
-	ctx := newrelic.NewContext(context.Background(), txn)
-
-	query := `query{
-		latestPost,
-		randomNumber,
-		erroring,
-	}`
-	res := graphql.Do(graphql.Params{
-		Schema:        schema,
-		RequestString: query,
-		// 4. Add the context to the calling params
-		Context: ctx,
+	h := handler.New(&handler.Config{
+		Schema: &schema,
+		Pretty: true,
+		GraphiQL: true,
 	})
 
-	for _, e := range res.Errors {
-		fmt.Println("graphql result contained error:", e)
-	}
+	// 3. Make sure to instrument your HTTP handler, which will
+	// create/end transactions, record error codes, and add
+	// the transactions to the context.
+	http.Handle(newrelic.WrapHandle(app, "/graphql", h))
+
+	// You can test your example query with curl:
+	//   curl -X POST \
+	//   -H "Content-Type: application/json" \
+	//   -d '{"query": "{latestPost, randomNumber}"}' \
+	//   localhost:8080/graphql
+	http.ListenAndServe(":8080", nil)
 }
