@@ -2220,3 +2220,36 @@ func TestUpperCaseTraceIDReceived(t *testing.T) {
 		t.Error("Invalid TraceParent header", ts)
 	}
 }
+
+func TestDTHeadersAddedTwice(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+
+	// make sure outbound headers are not added twice
+	assertHdrs := func(hdrs http.Header) {
+		if h := hdrs[DistributedTraceNewRelicHeader]; len(h) != 1 {
+			t.Errorf("incorrect number of newrelic headers: %#v", h)
+		}
+		if h := hdrs[DistributedTraceW3CTraceParentHeader]; len(h) != 1 {
+			t.Errorf("incorrect number of traceparent headers: %#v", h)
+		}
+		if h := hdrs[DistributedTraceW3CTraceStateHeader]; len(h) != 1 {
+			t.Errorf("incorrect number of tracestate headers: %#v", h)
+		}
+	}
+
+	// Using StartExternalSegment
+	req, _ := http.NewRequest("GET", "https://www.something.com/path/zip/zap?secret=ssshhh", nil)
+	s := StartExternalSegment(txn, req)
+	s.End()
+	s = StartExternalSegment(txn, req)
+	s.End()
+	app.expectNoLoggedErrors(t)
+	assertHdrs(req.Header)
+
+	// Using InsertDistributedTraceHeaders
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+	txn.InsertDistributedTraceHeaders(hdrs)
+	assertHdrs(hdrs)
+}
