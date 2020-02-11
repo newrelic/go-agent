@@ -161,6 +161,10 @@ matrix:
       - EXTRATESTING="go get -u github.com/mattn/go-sqlite3@master"
   - go: "1.13.4"
     env:
+      - DIRS=v3/integrations/nrsnowflake
+      - EXTRATESTING="go get -u github.com/snowflakedb/gosnowflake@master"
+  - go: "1.13.4"
+    env:
       - DIRS=v3/integrations/nrgrpc
       # As of Nov 2019, go get -u google.golang.org/grpc@master
       # doesn't work.  So instead let's test against the latest
