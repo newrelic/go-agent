@@ -8,3 +8,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.3.0
 	github.com/newrelic/go-agent/v3/integrations/nr-graphql-go v1.0.0
 )
+
+replace github.com/newrelic/go-agent/v3 => ../../../
+
+replace github.com/newrelic/go-agent/v3/integrations/nr-graphql-go => ../
