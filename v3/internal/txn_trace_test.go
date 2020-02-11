@@ -10,6 +10,8 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
+func float64Ptr(f float64) *float64 { return &f }
+
 func TestTxnTrace(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	txndata := &TxnData{}
@@ -110,6 +112,7 @@ func TestTxnTrace(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{"zap": 123},
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -239,6 +242,7 @@ func TestTxnTraceNoNodes(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{},
@@ -352,6 +356,7 @@ func TestTxnTraceAsync(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{},
@@ -462,6 +467,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{"zap": 123},
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -524,6 +530,7 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{},
@@ -579,6 +586,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(20 * 1000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{},
@@ -645,6 +653,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(123000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -747,6 +756,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(123000.0),
 		MetricName:      "WebTransaction/Go/hello",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -863,6 +873,7 @@ func TestLongestTraceSaved(t *testing.T) {
 	})
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{{
+		DurationMillis:  float64Ptr(5000.0),
 		MetricName:      "WebTransaction/Go/5",
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -930,6 +941,7 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{
 		{
+			DurationMillis:  float64Ptr(3000.0),
 			MetricName:      "WebTransaction/Go/3",
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -1037,6 +1049,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 
 	ExpectTxnTraces(t, ht, []WantTxnTrace{
 		{
+			DurationMillis:  float64Ptr(3000.0),
 			MetricName:      "WebTransaction/Go/3",
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -1059,6 +1072,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			},
 		},
 		{
+			DurationMillis:  float64Ptr(5000.0),
 			MetricName:      "WebTransaction/Go/5",
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
@@ -1081,6 +1095,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 			},
 		},
 		{
+			DurationMillis:  float64Ptr(4000.0),
 			MetricName:      "WebTransaction/Go/4",
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{"request.uri": "/url"},
