@@ -37,42 +37,27 @@ NOTE!  When updating the table below, be sure to update the docs site version to
 https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements
 -->
 
-### AWS
-
-| Project | Integration Package |  |
-| ------------- | ------------- | - |
-| [aws/aws-sdk-go](https://github.com/aws/aws-sdk-go) | [v3/integrations/nrawssdk-v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk-v1) | Instrument outbound calls made using Go AWS SDK |
-| [aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2) | [v3/integrations/nrawssdk-v2](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk-v2) | Instrument outbound calls made using Go AWS SDK v2 |
-| [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [v3/integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda) | Instrument AWS Lambda applications |
-
 ### Service Frameworks
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
-| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3) | Instrument inbound requests through version 3 of the Echo framework |
-| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4) | Instrument inbound requests through version 4 of the Echo framework |
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla) | Instrument inbound requests through the Gorilla framework |
+| [google.golang.org/grpc](https://github.com/grpc/grpc-go) | [v3/integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgrpc) | Instrument gRPC servers and clients |
+| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v3) | Instrument inbound requests through version 3 of the Echo framework |
+| [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4) | Instrument inbound requests through version 4 of the Echo framework |
 | [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [v3/integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
-| [google.golang.org/grpc](https://github.com/grpc/grpc-go) | [v3/integrations/nrgrpc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgrpc) | Instrument gRPC servers and clients |
-
-### GraphQL
-
-| Project | Integration Package |  |
-| ------------- | ------------- | - |
-| [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go) | [v3/integrations/nrgraphgophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgraphgophers) | Instrument inbound requests using graph-gophers/graphql-go |
-| [graphql-go/graphql](https://github.com/graphql-go/graphql) | [v3/integrations/nrgraphqlgo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo) | Instrument inbound requests using graphql-go/graphql |
 
 ### Datastores
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
+| [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
+| [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql) | Instrument MySQL driver |
 | [elastic/go-elasticsearch](https://github.com/elastic/go-elasticsearch) | [v3/integrations/nrelasticsearch-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7) | Instrument Elasticsearch datastore calls |
 | [database/sql](https://godoc.org/database/sql) | Use a supported database driver or [builtin instrumentation](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#InstrumentSQLConnector) | Instrument database calls with SQL |
 | [jmoiron/sqlx](https://github.com/jmoiron/sqlx) | Use a supported [database driver](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq/example/sqlx) or [builtin instrumentation](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#InstrumentSQLConnector) | Instrument database calls with SQLx |
-| [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql) | Instrument MySQL driver |
-| [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
 | [go-redis/redis](https://github.com/go-redis/redis) | [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7) | Instrument Redis calls |
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3) | Instrument SQLite driver |
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
@@ -85,6 +70,21 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
 | [uber-go/zap](https://github.com/uber-go/zap) | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap) | Send agent log messages to Zap |
+
+### AWS
+
+| Project | Integration Package |  |
+| ------------- | ------------- | - |
+| [aws/aws-sdk-go](https://github.com/aws/aws-sdk-go) | [v3/integrations/nrawssdk-v1](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk-v1) | Instrument outbound calls made using Go AWS SDK |
+| [aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2) | [v3/integrations/nrawssdk-v2](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawssdk-v2) | Instrument outbound calls made using Go AWS SDK v2 |
+| [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [v3/integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda) | Instrument AWS Lambda applications |
+
+### GraphQL
+
+| Project | Integration Package |  |
+| ------------- | ------------- | - |
+| [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go) | [v3/integrations/nrgraphgophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgraphgophers) | Instrument inbound requests using graph-gophers/graphql-go |
+| [graphql-go/graphql](https://github.com/graphql-go/graphql) | [v3/integrations/nrgraphqlgo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo) | Instrument inbound requests using graphql-go/graphql |
 
 ### Misc
 
