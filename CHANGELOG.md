@@ -2,7 +2,7 @@
 
 ### New Features
 
-* Added support for GraphQL in two new integrations.
+* Added support for GraphQL in two new integrations:
   * [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go)
   with
   [v3/integrations/nrgraphgophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgraphgophers).
