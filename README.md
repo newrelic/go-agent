@@ -29,11 +29,10 @@ extend the base [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/new
 to support the following frameworks and libraries.
 Frameworks and databases which don't have an integration package may still be
 instrumented using the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
-package primitives.  Specifically, more information about instrumenting your database using
-these primitives can be found [here](GUIDE.md#datastore-segments).
+package primitives.
 
 <!---
-NOTE!  When updating the table below, be sure to update the docs site version too:
+NOTE!  When updating the tables below, be sure to update the docs site version too:
 https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements
 -->
 
@@ -50,6 +49,10 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
 
 ### Datastores
+
+More information about instrumenting databases without an integration package
+using [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
+package primitives can be found [here](GUIDE.md#datastore-segments).
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
