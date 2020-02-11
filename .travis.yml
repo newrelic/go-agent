@@ -216,6 +216,10 @@ matrix:
     env:
       - DIRS=v3/integrations/nrmongo
       - EXTRATESTING="go get -u go.mongodb.org/mongo-driver@master"
+  - go: "1.13.4"
+    env:
+      - DIRS=v3/integrations/nr-graphql-go,v3/integrations/nr-graphql-go/example
+      - EXTRATESTING="go get -u github.com/graphql-go/graphql@master"
 
 # Skip the install step. Don't `go get` dependencies.
 install: true

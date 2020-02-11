@@ -16,6 +16,9 @@ func NewContext(ctx context.Context, txn *Transaction) context.Context {
 // FromContext returns the Transaction from the context if present, and nil
 // otherwise.
 func FromContext(ctx context.Context) *Transaction {
+	if nil == ctx {
+		return nil
+	}
 	h, _ := ctx.Value(internal.TransactionContextKey).(*Transaction)
 	if nil != h {
 		return h
