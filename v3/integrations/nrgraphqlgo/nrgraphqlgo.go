@@ -1,4 +1,4 @@
-// Package nrgraphql instruments https://github.com/graphql-go/graphql
+// Package nrgraphqlgo instruments https://github.com/graphql-go/graphql
 // applications.
 //
 // This package creates an Extension that adds segment
@@ -18,8 +18,8 @@
 // https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla)
 //
 // For a complete example, including instrumenting a graphql-go-handler, see:
-// https://github.com/newrelic/go-agent/tree/master/v3/integrations/nr-graphql-go/example/main.go
-package nrgraphql
+// https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrgraphqlgo/example/main.go
+package nrgraphqlgo
 
 import (
 	"context"

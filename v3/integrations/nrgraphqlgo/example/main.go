@@ -10,7 +10,7 @@ import (
 	"github.com/graphql-go/graphql"
 	handler "github.com/graphql-go/graphql-go-handler"
 
-	nrgraphql "github.com/newrelic/go-agent/v3/integrations/nr-graphql-go"
+	"github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -42,8 +42,8 @@ var schema = func() graphql.Schema {
 				},
 			},
 		}),
-		// 1. Add the nrgraphql.Extension to the schema
-		Extensions: []graphql.Extension{nrgraphql.Extension{}},
+		// 1. Add the nrgraphqlgo.Extension to the schema
+		Extensions: []graphql.Extension{nrgraphqlgo.Extension{}},
 	})
 	if err != nil {
 		panic(err)

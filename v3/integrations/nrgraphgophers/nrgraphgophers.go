@@ -1,9 +1,9 @@
-// Package nrgraphql instruments https://github.com/graph-gophers/graphql-go
+// Package nrgraphgophers instruments https://github.com/graph-gophers/graphql-go
 // applications.
 //
 // This package creates a graphql-go Tracer that adds adds segment
 // instrumentation to your graphql request transactions.
-package nrgraphql
+package nrgraphgophers
 
 import (
 	"context"
