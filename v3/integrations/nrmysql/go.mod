@@ -9,5 +9,6 @@ require (
 	// not support modules, though there is an unreleased go.mod on master.
 	// v1.3.0 is required for ParseDSN.
 	github.com/go-sql-driver/mysql v1.3.0
-	github.com/newrelic/go-agent/v3 v3.0.0
+	// v3.3.0 includes the new location of ParseQuery
+	github.com/newrelic/go-agent/v3 v3.3.0
 )
