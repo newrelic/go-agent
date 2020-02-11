@@ -2,11 +2,17 @@
 
 ### New Features
 
-* Added support for [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go)
-  applications in the new [v3/integrations/nr-graph-gophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
-  package.
-  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
-  * [Example](v3/integrations/nr-graph-gophers/example/main.go)
+* Added support for GraphQL in two new integrations.
+  * [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go)
+  with
+  [v3/integrations/nr-graph-gophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers).
+    * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers)
+    * [Example](v3/integrations/nr-graph-gophers/example/main.go)
+  * [graphql-go/graphql](https://github.com/graphql-go/graphql)
+  with
+  [v3/integrations/nr-graphql-go](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graphql-go).
+    * [Documentation](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graphql-go)
+    * [Example](v3/integrations/nr-graphql-go/example/main.go)
 
 * Added database instrumentation support for
   [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake).
