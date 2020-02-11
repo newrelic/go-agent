@@ -269,7 +269,7 @@ func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmR
 		return nil, resp
 	}
 
-	reply, err := internal.ConstructConnectReply(resp.body, preconnect.Preconnect)
+	reply, err := internal.UnmarshalConnectReply(resp.body, preconnect.Preconnect)
 	if nil != err {
 		return nil, rpmResponse{Err: err}
 	}

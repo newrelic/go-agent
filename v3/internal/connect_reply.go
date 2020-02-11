@@ -230,9 +230,9 @@ func (r *ConnectReply) SetSampleNothing() {
 	r.SamplingTarget = 0
 }
 
-// ConstructConnectReply takes the body of a Connect reply, in the form of bytes, and a
+// UnmarshalConnectReply takes the body of a Connect reply, in the form of bytes, and a
 // PreconnectReply, and converts it into a *ConnectReply
-func ConstructConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
+func UnmarshalConnectReply(body []byte, preconnect PreconnectReply) (*ConnectReply, error) {
 	var reply struct {
 		Reply *ConnectReply `json:"return_value"`
 	}

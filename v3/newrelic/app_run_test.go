@@ -135,7 +135,7 @@ func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 }
 
 func TestEventHarvestFieldsAllPopulated(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": {
@@ -163,7 +163,7 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 }
 
 func TestZeroReportPeriod(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 0
 			}
@@ -185,7 +185,7 @@ func TestZeroReportPeriod(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "span_event_data": 3 }
@@ -207,7 +207,7 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "analytic_event_data": 3 }
@@ -229,7 +229,7 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "error_event_data": 3 }
@@ -251,7 +251,7 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 }
 
 func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 5000,
 				"harvest_limits": { "custom_event_data": 3 }
@@ -273,7 +273,7 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 }
 
 func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
-	h, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	h, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": -1
 			}}}`), internal.PreconnectReply{})
@@ -303,7 +303,7 @@ func TestReplyTraceIDGenerator(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
-	h, err := internal.ConstructConnectReply([]byte(
+	h, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000,
@@ -322,7 +322,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(
+	reply, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000
@@ -341,7 +341,7 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 }
 
 func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
-	h, err := internal.ConstructConnectReply([]byte(
+	h, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{
 			"event_harvest_config": {
 				"report_period_ms": 10000
@@ -413,7 +413,7 @@ func TestAppRunSampler(t *testing.T) {
 }
 
 func TestCreateTransactionName(t *testing.T) {
-	reply, err := internal.ConstructConnectReply([]byte(`{"return_value":{
+	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 		"url_rules":[
 			{"match_expression":"zip","each_segment":true,"replacement":"zoop"}
 		],
