@@ -47,6 +47,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla) | Instrument inbound requests through the Gorilla framework |
 | [graph-gophers/graphql-go](https://github.com/graph-gophers/graphql-go) | [v3/integrations/nr-graph-gophers](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers) | Instrument inbound requests using graph-gophers/graphql-go |
+| [graphql-go/graphql](https://github.com/graphql-go/graphql) | [v3/integrations/nr-graphql-go](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graphql-go) | Instrument inbound requests using graphql-go/graphql |
 | [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [v3/integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
 | [aws/aws-lambda-go](https://github.com/aws/aws-lambda-go) | [v3/integrations/nrlambda](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda) | Instrument AWS Lambda applications |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
@@ -66,7 +67,6 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
 | [nats-io/nats.go](https://github.com/nats-io/nats.go) | [v3/integrations/nrnats](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrnats) | Instrument publishers and subscribers using the NATS client |
 | [nats-io/stan.go](https://github.com/nats-io/stan.go) | [v3/integrations/nrstan](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrstan) | Instrument publishers and subscribers using the NATS streaming client |
-| [graphql-go/graphql](https://github.com/graphql-go/graphql) | [v3/integrations/nr-graphql-go](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nr-graphql-go) | Instrument graphql-go GraphQL framework |
 
 
 These integration packages must be imported along
