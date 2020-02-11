@@ -3,17 +3,8 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 
 	"time"
-)
-
-var (
-	// Unfortunately, the resolution of time.Now() on Windows is coarse: Two
-	// sequential calls to time.Now() may return the same value, and tests
-	// which expect non-zero durations may fail.  To avoid adding sleep
-	// statements or mocking time.Now(), those tests are skipped on Windows.
-	doDurationTests = runtime.GOOS != `windows`
 )
 
 // Validator is used for testing.
@@ -82,6 +73,8 @@ type WantEvent struct {
 
 // WantTxnTrace is a transaction trace expectation.
 type WantTxnTrace struct {
+	// DurationMillis is compared if non-nil.
+	DurationMillis  *float64
 	MetricName      string
 	NumSegments     int
 	UserAttributes  map[string]interface{}
@@ -494,8 +487,8 @@ func expectTxnTrace(v Validator, got interface{}, expect WantTxnTrace) {
 
 	validateStringField(v, "metric name", expect.MetricName, name)
 
-	if doDurationTests && 0 == duration {
-		v.Error("zero trace duration")
+	if d := expect.DurationMillis; nil != d && *d != duration {
+		v.Error("incorrect trace duration millis", *d, duration)
 	}
 
 	if nil != expect.UserAttributes {
