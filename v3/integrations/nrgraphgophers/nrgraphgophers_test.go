@@ -1,4 +1,4 @@
-package nrgraphql
+package nrgraphgophers
 
 import (
 	"context"

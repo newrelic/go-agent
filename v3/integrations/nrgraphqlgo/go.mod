@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nr-graphql-go
+module github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo
 
 go 1.13
 

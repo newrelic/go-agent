@@ -1,4 +1,4 @@
-package main
+package nrgraphgophers_test
 
 import (
 	"log"
@@ -7,15 +7,15 @@ import (
 
 	graphql "github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
-	nrgraphql "github.com/newrelic/go-agent/v3/integrations/nr-graph-gophers"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrgraphgophers"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 type query struct{}
 
-func (*query) Hello() string { return "Hello, world!" }
+func (*query) Hello() string { return "hello world" }
 
-func main() {
+func Example() {
 	// First create your New Relic Application:
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("GraphQL App"),
@@ -26,18 +26,15 @@ func main() {
 		panic(err)
 	}
 
-	s := `type Query { hello: String! }`
+	querySchema := `type Query { hello: String! }`
 
-	// Then add a graphql.Tracer(nrgraphql.NewTracer()) option to your
+	// Then add a graphql.Tracer(nrgraphgophers.NewTracer()) option to your
 	// schema parsing to get field and query segment instrumentation:
-	opt := graphql.Tracer(nrgraphql.NewTracer())
-	schema := graphql.MustParseSchema(s, &query{}, opt)
+	opt := graphql.Tracer(nrgraphgophers.NewTracer())
+	schema := graphql.MustParseSchema(querySchema, &query{}, opt)
 
 	// Finally, instrument your request handler using newrelic.WrapHandle
 	// to create transactions for requests:
-	http.Handle(newrelic.WrapHandle(app, "/graphql", &relay.Handler{Schema: schema}))
-
-	// To test, run:
-	// curl -X POST -d '{"query": "query HelloOperation { hello }" }' localhost:8000/graphql
+	http.Handle(newrelic.WrapHandle(app, "/", &relay.Handler{Schema: schema}))
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
