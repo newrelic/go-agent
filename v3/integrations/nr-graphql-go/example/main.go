@@ -52,7 +52,7 @@ var schema = func() graphql.Schema {
 }()
 
 func main() {
-	// 2. Create the New Relic application and defer its shutdown
+	// 2. Create the New Relic application
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example GraphQL App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
@@ -62,8 +62,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	app.WaitForConnection(10 * time.Second)
-	defer app.Shutdown(10 * time.Second)
 
 	h := handler.New(&handler.Config{
 		Schema:   &schema,
