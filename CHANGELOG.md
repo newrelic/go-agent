@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.3.0
+
 ### New Features
 
 * Added support for GraphQL in two new integrations:
