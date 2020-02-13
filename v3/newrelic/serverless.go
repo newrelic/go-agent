@@ -9,8 +9,6 @@ import (
 	"io"
 	"sync"
 	"time"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 const (
@@ -29,7 +27,7 @@ type serverlessHarvest struct {
 	// The Lambda handler could be using multiple goroutines so we use a
 	// mutex to prevent race conditions.
 	sync.Mutex
-	harvest *internal.Harvest
+	harvest *harvest
 }
 
 // newServerlessHarvest creates a new serverlessHarvest.
@@ -41,12 +39,12 @@ func newServerlessHarvest(logger Logger, getEnv func(string) string) *serverless
 		// We can use a default HarvestConfigured parameter because
 		// serverless mode doesn't have a connect, and therefore won't
 		// have custom event limits from the server.
-		harvest: internal.NewHarvest(time.Now(), &internal.DfltHarvestCfgr{}),
+		harvest: newHarvest(time.Now(), &dfltHarvestCfgr{}),
 	}
 }
 
 // Consume adds data to the harvest.
-func (sh *serverlessHarvest) Consume(data internal.Harvestable) {
+func (sh *serverlessHarvest) Consume(data harvestable) {
 	if nil == sh {
 		return
 	}
@@ -56,12 +54,12 @@ func (sh *serverlessHarvest) Consume(data internal.Harvestable) {
 	data.MergeIntoHarvest(sh.harvest)
 }
 
-func (sh *serverlessHarvest) swapHarvest() *internal.Harvest {
+func (sh *serverlessHarvest) swapHarvest() *harvest {
 	sh.Lock()
 	defer sh.Unlock()
 
 	h := sh.harvest
-	sh.harvest = internal.NewHarvest(time.Now(), &internal.DfltHarvestCfgr{})
+	sh.harvest = newHarvest(time.Now(), &dfltHarvestCfgr{})
 	return h
 }
 

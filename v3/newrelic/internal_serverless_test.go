@@ -203,7 +203,7 @@ func TestServerlessRecordCustomEvent(t *testing.T) {
 	buf := &bytes.Buffer{}
 	internal.ServerlessWrite(app.Application.Private, "my-arn", buf)
 
-	_, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	_, data, err := parseServerlessPayload(buf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestServerlessJSON(t *testing.T) {
 	buf := &bytes.Buffer{}
 	internal.ServerlessWrite(app.Application.Private, "lambda-test-arn", buf)
 
-	metadata, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	metadata, data, err := parseServerlessPayload(buf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}

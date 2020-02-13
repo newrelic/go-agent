@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
@@ -20,14 +19,14 @@ func serverlessGetenvShim(s string) string {
 func TestServerlessHarvest(t *testing.T) {
 	// Test the expected ServerlessHarvest use.
 	sh := newServerlessHarvest(logger.ShimLogger{}, serverlessGetenvShim)
-	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
+	event, err := createCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
 	}
 	sh.Consume(event)
 	buf := &bytes.Buffer{}
 	sh.Write("arn", buf)
-	metadata, data, err := internal.ParseServerlessPayload(buf.Bytes())
+	metadata, data, err := parseServerlessPayload(buf.Bytes())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -68,7 +67,7 @@ func TestServerlessHarvestNil(t *testing.T) {
 	// The public ServerlessHarvest methods should not panic if the
 	// receiver is nil.
 	var sh *serverlessHarvest
-	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
+	event, err := createCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -92,7 +91,7 @@ func BenchmarkServerless(b *testing.B) {
 	// The JSON creation in ServerlessHarvest.Write has not been optimized.
 	// This benchmark would be useful for doing so.
 	sh := newServerlessHarvest(logger.ShimLogger{}, serverlessGetenvShim)
-	event, err := internal.CreateCustomEvent("myEvent", nil, time.Now())
+	event, err := createCustomEvent("myEvent", nil, time.Now())
 	if nil != err {
 		b.Fatal(err)
 	}

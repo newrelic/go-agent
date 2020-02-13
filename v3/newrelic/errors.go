@@ -1,7 +1,5 @@
 package newrelic
 
-import "github.com/newrelic/go-agent/v3/internal"
-
 // stackTracer can be implemented by errors to provide a stack trace when using
 // Transaction.NoticeError.
 type stackTracer interface {
@@ -42,7 +40,7 @@ type Error struct {
 // NewStackTrace generates a stack trace for the newrelic.Error struct's Stack
 // field.
 func NewStackTrace() []uintptr {
-	st := internal.GetStackTrace()
+	st := getStackTrace()
 	return []uintptr(st)
 }
 

@@ -12,7 +12,7 @@ func TestTraceIDGenerator(t *testing.T) {
 	if spanID != "e71870997d38ef60" {
 		t.Error(spanID)
 	}
-	if p := tg.GeneratePriority(); p.Float32() != 0.05700199 {
+	if p := tg.Float32(); p != 0.05700199 {
 		t.Error(p)
 	}
 }

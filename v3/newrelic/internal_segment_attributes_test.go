@@ -27,7 +27,7 @@ func TestTraceSegments(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -40,11 +40,11 @@ func TestTraceSegments(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -109,7 +109,7 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -122,11 +122,11 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -237,7 +237,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -250,11 +250,11 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -317,7 +317,7 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -330,11 +330,11 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -377,7 +377,7 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 	app := testApp(crossProcessReplyFn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -390,14 +390,14 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
 	externalSegment.Response = &http.Response{
 		Header: outboundCrossProcessResponse(),
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -448,7 +448,7 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 	app := testApp(crossProcessReplyFn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	basicSegment := txn.StartSegment("basic")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
 	basicSegment.End()
 	datastoreSegment := DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
@@ -461,14 +461,14 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 		DatabaseName:       "dbname",
 		QueryParameters:    map[string]interface{}{"zap": "zip"},
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
 	datastoreSegment.End()
 	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
 	externalSegment := StartExternalSegment(txn, req)
 	externalSegment.Response = &http.Response{
 		Header: outboundCrossProcessResponse(),
 	}
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	externalSegment.End()
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{

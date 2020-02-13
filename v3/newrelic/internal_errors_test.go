@@ -552,7 +552,7 @@ func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 
 func TestTooManyExtraErrorAttributes(t *testing.T) {
 	attrs := make(map[string]interface{})
-	for i := 0; i <= internal.AttributeErrorLimit; i++ {
+	for i := 0; i <= attributeErrorLimit; i++ {
 		attrs[strconv.Itoa(i)] = i
 	}
 	app := testApp(nil, nil, t)

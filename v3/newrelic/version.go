@@ -11,7 +11,11 @@ const (
 	Version = "3.3.0"
 )
 
+var (
+	goVersionSimple = minorVersion(runtime.Version())
+)
+
 func init() {
 	internal.TrackUsage("Go", "Version", Version)
-	internal.TrackUsage("Go", "Runtime", "Version", internal.MinorVersion(runtime.Version()))
+	internal.TrackUsage("Go", "Runtime", "Version", goVersionSimple)
 }

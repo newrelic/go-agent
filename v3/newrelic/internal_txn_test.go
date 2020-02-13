@@ -242,8 +242,8 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	// Basic transaction with no async activity.
 	tx := &txn{}
 	tx.markStart(start)
-	segmentStart := internal.StartSegment(&tx.TxnData, &tx.mainThread, start.Add(1*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
+	segmentStart := startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
 	tx.markEnd(start.Add(3*time.Second), &tx.mainThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -257,11 +257,11 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	// Transaction with async activity.
 	tx = &txn{}
 	tx.markStart(start)
-	segmentStart = internal.StartSegment(&tx.TxnData, &tx.mainThread, start.Add(1*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
+	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
 	asyncThread := createThread(tx)
-	asyncSegmentStart := internal.StartSegment(&tx.TxnData, asyncThread, start.Add(1*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name")
+	asyncSegmentStart := startSegment(&tx.txnData, asyncThread, start.Add(1*time.Second))
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name")
 	tx.markEnd(start.Add(3*time.Second), &tx.mainThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -275,11 +275,11 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	// Transaction ended on async thread.
 	tx = &txn{}
 	tx.markStart(start)
-	segmentStart = internal.StartSegment(&tx.TxnData, &tx.mainThread, start.Add(1*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
+	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name")
 	asyncThread = createThread(tx)
-	asyncSegmentStart = internal.StartSegment(&tx.TxnData, asyncThread, start.Add(1*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name")
+	asyncSegmentStart = startSegment(&tx.txnData, asyncThread, start.Add(1*time.Second))
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name")
 	tx.markEnd(start.Add(3*time.Second), asyncThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -293,11 +293,11 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	// Duration exceeds TotalTime.
 	tx = &txn{}
 	tx.markStart(start)
-	segmentStart = internal.StartSegment(&tx.TxnData, &tx.mainThread, start.Add(0*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, &tx.mainThread, segmentStart, start.Add(1*time.Second), "name")
+	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(0*time.Second))
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(1*time.Second), "name")
 	asyncThread = createThread(tx)
-	asyncSegmentStart = internal.StartSegment(&tx.TxnData, asyncThread, start.Add(2*time.Second))
-	internal.EndBasicSegment(&tx.TxnData, asyncThread, asyncSegmentStart, start.Add(3*time.Second), "name")
+	asyncSegmentStart = startSegment(&tx.txnData, asyncThread, start.Add(2*time.Second))
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(3*time.Second), "name")
 	tx.markEnd(start.Add(3*time.Second), asyncThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -429,8 +429,8 @@ func TestGetTraceMetadataInboundPayload(t *testing.T) {
 	}
 	app := testApp(replyfn, cfgfn, t)
 	hdrs := http.Header{}
-	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader, "00-12345678901234567890123456789012-9566c74d10037c4d-01")
-	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader, "123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0.390345-1563574856827")
+	hdrs.Set(DistributedTraceW3CTraceParentHeader, "00-12345678901234567890123456789012-9566c74d10037c4d-01")
+	hdrs.Set(DistributedTraceW3CTraceStateHeader, "123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0.390345-1563574856827")
 
 	txn := app.StartTransaction("hello")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)

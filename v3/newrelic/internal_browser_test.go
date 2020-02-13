@@ -30,8 +30,8 @@ func TestBrowserTimingHeaderSuccess(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	encodingKey := browserEncodingKey(testLicenseKey)
-	obfuscatedTxnName, _ := internal.Obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
-	obfuscatedAttributes, _ := internal.Obfuscate([]byte(`{"u":{"zip":"zap"},"a":{"http.statusCode":200}}`), encodingKey)
+	obfuscatedTxnName, _ := obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
+	obfuscatedAttributes, _ := obfuscate([]byte(`{"u":{"zip":"zap"},"a":{"http.statusCode":200}}`), encodingKey)
 
 	// This is a cheat: we can't deterministically set this, but DeepEqual
 	// doesn't have any ability to say "equal everything except these
@@ -53,8 +53,8 @@ func TestBrowserTimingHeaderSuccess(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(hdr, expected) {
-		txnName, _ := internal.Deobfuscate(hdr.info.TransactionName, encodingKey)
-		attr, _ := internal.Deobfuscate(hdr.info.ObfuscatedAttributes, encodingKey)
+		txnName, _ := deobfuscate(hdr.info.TransactionName, encodingKey)
+		attr, _ := deobfuscate(hdr.info.ObfuscatedAttributes, encodingKey)
 		t.Errorf("header did not match: expected %#v; got %#v txnName=%s attr=%s",
 			expected, hdr, string(txnName), string(attr))
 	}
@@ -73,8 +73,8 @@ func TestBrowserTimingHeaderSuccessWithoutAttributes(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 
 	encodingKey := browserEncodingKey(testLicenseKey)
-	obfuscatedTxnName, _ := internal.Obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
-	obfuscatedAttributes, _ := internal.Obfuscate([]byte(`{"u":{},"a":{}}`), encodingKey)
+	obfuscatedTxnName, _ := obfuscate([]byte("OtherTransaction/Go/hello"), encodingKey)
+	obfuscatedAttributes, _ := obfuscate([]byte(`{"u":{},"a":{}}`), encodingKey)
 
 	// This is a cheat: we can't deterministically set this, but DeepEqual
 	// doesn't have any ability to say "equal everything except these
@@ -96,8 +96,8 @@ func TestBrowserTimingHeaderSuccessWithoutAttributes(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(hdr, expected) {
-		txnName, _ := internal.Deobfuscate(hdr.info.TransactionName, encodingKey)
-		attr, _ := internal.Deobfuscate(hdr.info.ObfuscatedAttributes, encodingKey)
+		txnName, _ := deobfuscate(hdr.info.TransactionName, encodingKey)
+		attr, _ := deobfuscate(hdr.info.ObfuscatedAttributes, encodingKey)
 		t.Errorf("header did not match: expected %#v; got %#v txnName=%s attr=%s",
 			expected, hdr, string(txnName), string(attr))
 	}

@@ -121,15 +121,15 @@ func TestTxnTraceThreshold(t *testing.T) {
 }
 
 func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, &internal.ConnectReply{})
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, &internal.ConnectReply{})
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   internal.MaxSpanEvents,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll: 60 * time.Second,
-			0:                        60 * time.Second,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll: 60 * time.Second,
+			0:               60 * time.Second,
 		},
 	})
 }
@@ -149,15 +149,15 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    1,
 		maxCustomEvents: 2,
 		maxErrorEvents:  4,
 		maxSpanEvents:   3,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestMetricsTraces: 60 * time.Second,
-			internal.HarvestTypesEvents:   5 * time.Second,
+		periods: map[harvestTypes]time.Duration{
+			harvestMetricsTraces: 60 * time.Second,
+			harvestTypesEvents:   5 * time.Second,
 		},
 	})
 }
@@ -171,15 +171,15 @@ func TestZeroReportPeriod(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   internal.MaxSpanEvents,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll: 60 * time.Second,
-			0:                        60 * time.Second,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll: 60 * time.Second,
+			0:               60 * time.Second,
 		},
 	})
 }
@@ -193,15 +193,15 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
 		maxSpanEvents:   3,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll ^ internal.HarvestSpanEvents: 60 * time.Second,
-			internal.HarvestSpanEvents:                            5 * time.Second,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestSpanEvents: 60 * time.Second,
+			harvestSpanEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -215,15 +215,15 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    3,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   internal.MaxSpanEvents,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll ^ internal.HarvestTxnEvents: 60 * time.Second,
-			internal.HarvestTxnEvents:                            5 * time.Second,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestTxnEvents: 60 * time.Second,
+			harvestTxnEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -237,15 +237,15 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  3,
-		maxSpanEvents:   internal.MaxSpanEvents,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll ^ internal.HarvestErrorEvents: 60 * time.Second,
-			internal.HarvestErrorEvents:                            5 * time.Second,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestErrorEvents: 60 * time.Second,
+			harvestErrorEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -259,15 +259,15 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	var run internal.HarvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
+	var run harvestConfigurer = newAppRun(config{Config: defaultConfig()}, reply)
 	assertHarvestConfig(t, &run, expectHarvestConfig{
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: 3,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   internal.MaxSpanEvents,
-		periods: map[internal.HarvestTypes]time.Duration{
-			internal.HarvestTypesAll ^ internal.HarvestCustomEvents: 60 * time.Second,
-			internal.HarvestCustomEvents:                            5 * time.Second,
+		maxSpanEvents:   maxSpanEvents,
+		periods: map[harvestTypes]time.Duration{
+			harvestTypesAll ^ harvestCustomEvents: 60 * time.Second,
+			harvestCustomEvents:                   5 * time.Second,
 		},
 	})
 }
@@ -363,10 +363,10 @@ type expectHarvestConfig struct {
 	maxCustomEvents int
 	maxErrorEvents  int
 	maxSpanEvents   int
-	periods         map[internal.HarvestTypes]time.Duration
+	periods         map[harvestTypes]time.Duration
 }
 
-func assertHarvestConfig(t testing.TB, hc *internal.HarvestConfigurer, expect expectHarvestConfig) {
+func assertHarvestConfig(t testing.TB, hc *harvestConfigurer, expect expectHarvestConfig) {
 	if h, ok := t.(interface {
 		Helper()
 	}); ok {
