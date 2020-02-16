@@ -54,15 +54,15 @@ func TestMetricsCreated(t *testing.T) {
 	stats.MergeIntoHarvest(h)
 
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
-		{"Memory/Heap/AllocatedObjects", "", true, []float64{1, 5000, 5000, 5000, 5000, 25000000}},
-		{"Memory/Physical", "", true, []float64{1, 37, 0, 37, 37, 1369}},
-		{"CPU/User Time", "", true, []float64{1, 0.02, 0.02, 0.02, 0.02, 0.0004}},
-		{"CPU/System Time", "", true, []float64{1, 0.04, 0.04, 0.04, 0.04, 0.0016}},
-		{"CPU/User/Utilization", "", true, []float64{1, 0.01, 0, 0.01, 0.01, 0.0001}},
-		{"CPU/System/Utilization", "", true, []float64{1, 0.02, 0, 0.02, 0.02, 0.0004}},
-		{"Go/Runtime/Goroutines", "", true, []float64{1, 23, 23, 23, 23, 529}},
-		{"GC/System/Pause Fraction", "", true, []float64{1, 3e-05, 0, 3e-05, 3e-05, 9e-10}},
-		{"GC/System/Pauses", "", true, []float64{2, 0.0005, 0, 0.0001, 0.0004, 2.5e-7}},
+		{Name: "Memory/Heap/AllocatedObjects", Scope: "", Forced: true, Data: []float64{1, 5000, 5000, 5000, 5000, 25000000}},
+		{Name: "Memory/Physical", Scope: "", Forced: true, Data: []float64{1, 37, 0, 37, 37, 1369}},
+		{Name: "CPU/User Time", Scope: "", Forced: true, Data: []float64{1, 0.02, 0.02, 0.02, 0.02, 0.0004}},
+		{Name: "CPU/System Time", Scope: "", Forced: true, Data: []float64{1, 0.04, 0.04, 0.04, 0.04, 0.0016}},
+		{Name: "CPU/User/Utilization", Scope: "", Forced: true, Data: []float64{1, 0.01, 0, 0.01, 0.01, 0.0001}},
+		{Name: "CPU/System/Utilization", Scope: "", Forced: true, Data: []float64{1, 0.02, 0, 0.02, 0.02, 0.0004}},
+		{Name: "Go/Runtime/Goroutines", Scope: "", Forced: true, Data: []float64{1, 23, 23, 23, 23, 529}},
+		{Name: "GC/System/Pause Fraction", Scope: "", Forced: true, Data: []float64{1, 3e-05, 0, 3e-05, 3e-05, 9e-10}},
+		{Name: "GC/System/Pauses", Scope: "", Forced: true, Data: []float64{2, 0.0005, 0, 0.0001, 0.0004, 2.5e-7}},
 	})
 }
 
@@ -74,13 +74,13 @@ func TestMetricsCreatedEmpty(t *testing.T) {
 	stats.MergeIntoHarvest(h)
 
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
-		{"Memory/Heap/AllocatedObjects", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"Memory/Physical", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"CPU/User Time", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"CPU/System Time", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"CPU/User/Utilization", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"CPU/System/Utilization", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"Go/Runtime/Goroutines", "", true, []float64{1, 0, 0, 0, 0, 0}},
-		{"GC/System/Pause Fraction", "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Memory/Heap/AllocatedObjects", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Memory/Physical", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "CPU/User Time", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "CPU/System Time", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "CPU/User/Utilization", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "CPU/System/Utilization", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Go/Runtime/Goroutines", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "GC/System/Pause Fraction", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }

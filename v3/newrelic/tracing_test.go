@@ -202,16 +202,16 @@ func TestLostChildren(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"Custom/alpha", "", false, []float64{1, 11, 7, 11, 11, 121}},
-		{"Custom/t1", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t4", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/alpha", txndata.FinalName, false, []float64{1, 11, 7, 11, 11, 121}},
-		{"Custom/t1", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t2", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t4", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/alpha", Scope: "", Forced: false, Data: []float64{1, 11, 7, 11, 11, 121}},
+		{Name: "Custom/t1", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t2", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t4", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/alpha", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 11, 7, 11, 11, 121}},
+		{Name: "Custom/t1", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t2", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t4", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
@@ -245,14 +245,14 @@ func TestLostChildrenRoot(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"Custom/t1", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t4", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t1", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t2", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t4", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t1", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t2", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t4", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t1", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t2", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t4", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
@@ -373,12 +373,12 @@ func TestSegmentBasic(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"Custom/t1", "", false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Custom/t2", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", "", false, []float64{1, 2, 2, 2, 2, 4}},
-		{"Custom/t1", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Custom/t2", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Custom/t3", txndata.FinalName, false, []float64{1, 2, 2, 2, 2, 4}},
+		{Name: "Custom/t1", Scope: "", Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "Custom/t2", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: "", Forced: false, Data: []float64{1, 2, 2, 2, 2, 4}},
+		{Name: "Custom/t1", Scope: txndata.FinalName, Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "Custom/t2", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Custom/t3", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 2, 2, 2, 2, 4}},
 	})
 }
 
@@ -442,12 +442,12 @@ func TestSegmentExternal(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"External/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/allWeb", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/f1/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/all", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"External/f1/http", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/http", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "External/all", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "External/allWeb", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "External/f1/all", Scope: "", Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "External/unknown/all", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "External/f1/http", Scope: txndata.FinalName, Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "External/unknown/http", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 
 	metrics = newMetricTable(100, time.Now())
@@ -455,12 +455,12 @@ func TestSegmentExternal(t *testing.T) {
 	txndata.IsWeb = false
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"External/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/allOther", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"External/f1/all", "", false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/all", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"External/f1/http", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"External/unknown/http", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "External/all", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "External/f1/all", Scope: "", Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "External/unknown/all", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "External/f1/http", Scope: txndata.FinalName, Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "External/unknown/http", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
@@ -529,18 +529,18 @@ func TestSegmentDatastore(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"Datastore/all", "", true, []float64{4, 6, 5, 1, 3, 12}},
-		{"Datastore/allWeb", "", true, []float64{4, 6, 5, 1, 3, 12}},
-		{"Datastore/MySQL/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/MySQL/allWeb", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/Unknown/all", "", true, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/Unknown/allWeb", "", true, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/operation/MySQL/SELECT", "", false, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/operation/MySQL/SELECT", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Datastore/operation/Unknown/other", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/operation/Unknown/other", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/statement/MySQL/my_table/SELECT", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: []float64{4, 6, 5, 1, 3, 12}},
+		{Name: "Datastore/allWeb", Scope: "", Forced: true, Data: []float64{4, 6, 5, 1, 3, 12}},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/MySQL/allWeb", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/Unknown/all", Scope: "", Forced: true, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/Unknown/allWeb", Scope: "", Forced: true, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/operation/MySQL/SELECT", Scope: "", Forced: false, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/operation/MySQL/SELECT", Scope: txndata.FinalName, Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "Datastore/operation/Unknown/other", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/operation/Unknown/other", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/statement/MySQL/my_table/SELECT", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/statement/MySQL/my_table/SELECT", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 
 	metrics = newMetricTable(100, time.Now())
@@ -548,18 +548,18 @@ func TestSegmentDatastore(t *testing.T) {
 	txndata.IsWeb = false
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"Datastore/all", "", true, []float64{4, 6, 5, 1, 3, 12}},
-		{"Datastore/allOther", "", true, []float64{4, 6, 5, 1, 3, 12}},
-		{"Datastore/MySQL/all", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/MySQL/allOther", "", true, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/Unknown/all", "", true, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/Unknown/allOther", "", true, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/operation/MySQL/SELECT", "", false, []float64{3, 5, 4, 1, 3, 11}},
-		{"Datastore/operation/MySQL/SELECT", txndata.FinalName, false, []float64{2, 4, 3, 1, 3, 10}},
-		{"Datastore/operation/Unknown/other", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/operation/Unknown/other", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/statement/MySQL/my_table/SELECT", "", false, []float64{1, 1, 1, 1, 1, 1}},
-		{"Datastore/statement/MySQL/my_table/SELECT", txndata.FinalName, false, []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: []float64{4, 6, 5, 1, 3, 12}},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: []float64{4, 6, 5, 1, 3, 12}},
+		{Name: "Datastore/MySQL/all", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/MySQL/allOther", Scope: "", Forced: true, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/Unknown/all", Scope: "", Forced: true, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/Unknown/allOther", Scope: "", Forced: true, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/operation/MySQL/SELECT", Scope: "", Forced: false, Data: []float64{3, 5, 4, 1, 3, 11}},
+		{Name: "Datastore/operation/MySQL/SELECT", Scope: txndata.FinalName, Forced: false, Data: []float64{2, 4, 3, 1, 3, 10}},
+		{Name: "Datastore/operation/Unknown/other", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/operation/Unknown/other", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/statement/MySQL/my_table/SELECT", Scope: "", Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
+		{Name: "Datastore/statement/MySQL/my_table/SELECT", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 1, 1, 1, 1, 1}},
 	})
 }
 
@@ -621,14 +621,14 @@ func TestDatastoreInstancesCrossAgent(t *testing.T) {
 		mergeBreakdownMetrics(txndata, metrics)
 		data := []float64{1, 1, 1, 1, 1, 1}
 		expectMetrics(extendValidator(t, tc.Name), metrics, []internal.WantMetric{
-			{"Datastore/all", "", true, data},
-			{"Datastore/allOther", "", true, data},
-			{"Datastore/" + tc.Product + "/all", "", true, data},
-			{"Datastore/" + tc.Product + "/allOther", "", true, data},
-			{"Datastore/operation/" + tc.Product + "/SELECT", "", false, data},
-			{"Datastore/statement/" + tc.Product + "/my_table/SELECT", "", false, data},
-			{"Datastore/statement/" + tc.Product + "/my_table/SELECT", txndata.FinalName, false, data},
-			{expect, "", false, data},
+			{Name: "Datastore/all", Scope: "", Forced: true, Data: data},
+			{Name: "Datastore/allOther", Scope: "", Forced: true, Data: data},
+			{Name: "Datastore/" + tc.Product + "/all", Scope: "", Forced: true, Data: data},
+			{Name: "Datastore/" + tc.Product + "/allOther", Scope: "", Forced: true, Data: data},
+			{Name: "Datastore/operation/" + tc.Product + "/SELECT", Scope: "", Forced: false, Data: data},
+			{Name: "Datastore/statement/" + tc.Product + "/my_table/SELECT", Scope: "", Forced: false, Data: data},
+			{Name: "Datastore/statement/" + tc.Product + "/my_table/SELECT", Scope: txndata.FinalName, Forced: false, Data: data},
+			{Name: expect, Scope: "", Forced: false, Data: data},
 		})
 	}
 }
@@ -768,10 +768,10 @@ func TestExternalSegmentCAT(t *testing.T) {
 	txndata.IsWeb = false
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"External/all", "", true, []float64{1, 3, 3, 3, 3, 9}},
-		{"External/allOther", "", true, []float64{1, 3, 3, 3, 3, 9}},
-		{"External/f1.com/all", "", false, []float64{1, 3, 3, 3, 3, 9}},
-		{"External/f1.com/http", txndata.FinalName, false, []float64{1, 3, 3, 3, 3, 9}},
+		{Name: "External/all", Scope: "", Forced: true, Data: []float64{1, 3, 3, 3, 3, 9}},
+		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{1, 3, 3, 3, 3, 9}},
+		{Name: "External/f1.com/all", Scope: "", Forced: false, Data: []float64{1, 3, 3, 3, 3, 9}},
+		{Name: "External/f1.com/http", Scope: txndata.FinalName, Forced: false, Data: []float64{1, 3, 3, 3, 3, 9}},
 	})
 }
 
@@ -811,8 +811,8 @@ func TestEndMessageSegment(t *testing.T) {
 	txndata.IsWeb = true
 	mergeBreakdownMetrics(txndata, metrics)
 	expectMetrics(t, metrics, []internal.WantMetric{
-		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "WebTransaction/Go/zip", false, []float64{1, 2, 2, 2, 2, 4}},
-		{"MessageBroker/Kafka/Topic/Produce/Named/MyTopic", "", false, []float64{1, 2, 2, 2, 2, 4}},
+		{Name: "MessageBroker/Kafka/Topic/Produce/Named/MyTopic", Scope: "WebTransaction/Go/zip", Forced: false, Data: []float64{1, 2, 2, 2, 2, 4}},
+		{Name: "MessageBroker/Kafka/Topic/Produce/Named/MyTopic", Scope: "", Forced: false, Data: []float64{1, 2, 2, 2, 2, 4}},
 	})
 }
 

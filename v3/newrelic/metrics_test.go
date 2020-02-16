@@ -49,14 +49,14 @@ func TestMetrics(t *testing.T) {
 	mt.addSingleCount("count 1", unforced)
 
 	expectMetrics(t, mt, []internal.WantMetric{
-		{"apdex satisfied", "", false, []float64{2, 0, 0, 8, 9, 0}},
-		{"apdex tolerated", "", false, []float64{0, 2, 0, 7, 8, 0}},
-		{"one", "", false, []float64{2, 4, 2, 2, 2, 8}},
-		{"apdex failed", "my_scope", false, []float64{0, 0, 1, 1, 1, 0}},
-		{"one", "my_scope", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "my_scope", false, []float64{1, 4, 2, 4, 4, 16}},
-		{"count 123", "", false, []float64{123, 0, 0, 0, 0, 0}},
-		{"count 1", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "apdex satisfied", Scope: "", Forced: false, Data: []float64{2, 0, 0, 8, 9, 0}},
+		{Name: "apdex tolerated", Scope: "", Forced: false, Data: []float64{0, 2, 0, 7, 8, 0}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{2, 4, 2, 2, 2, 8}},
+		{Name: "apdex failed", Scope: "my_scope", Forced: false, Data: []float64{0, 0, 1, 1, 1, 0}},
+		{Name: "one", Scope: "my_scope", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "my_scope", Forced: false, Data: []float64{1, 4, 2, 4, 4, 16}},
+		{Name: "count 123", Scope: "", Forced: false, Data: []float64{123, 0, 0, 0, 0, 0}},
+		{Name: "count 1", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	js, err := mt.Data("12345", end)
@@ -117,10 +117,10 @@ func TestApplyRules(t *testing.T) {
 
 	applied := mt.ApplyRules(rules)
 	expectMetrics(t, applied, []internal.WantMetric{
-		{"been_renamed", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"been_renamed", "scope1", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"been_renamed", "scope2", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"merge_me", "", false, []float64{2, 4, 2, 2, 2, 8}},
+		{Name: "been_renamed", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "been_renamed", Scope: "scope1", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "been_renamed", Scope: "scope2", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "merge_me", Scope: "", Forced: false, Data: []float64{2, 4, 2, 2, 2, 8}},
 	})
 }
 
@@ -136,8 +136,8 @@ func TestApplyEmptyRules(t *testing.T) {
 	mt.addDuration("one", "my_scope", 2*time.Second, 1*time.Second, unforced)
 	applied := mt.ApplyRules(rules)
 	expectMetrics(t, applied, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"one", "my_scope", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "my_scope", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -149,8 +149,8 @@ func TestApplyNilRules(t *testing.T) {
 	mt.addDuration("one", "my_scope", 2*time.Second, 1*time.Second, unforced)
 	applied := mt.ApplyRules(rules)
 	expectMetrics(t, applied, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"one", "my_scope", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "my_scope", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -161,8 +161,8 @@ func TestForced(t *testing.T) {
 	mt.addDuration("forced", "", 2*time.Second, 2*time.Second, forced)
 
 	expectMetrics(t, mt, []internal.WantMetric{
-		{"forced", "", true, []float64{1, 2, 2, 2, 2, 4}},
-		{supportabilityDropped, "", true, []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "forced", Scope: "", Forced: true, Data: []float64{1, 2, 2, 2, 2, 4}},
+		{Name: supportabilityDropped, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 }
@@ -175,8 +175,8 @@ func TestMetricsMergeIntoEmpty(t *testing.T) {
 	dest.merge(src, "")
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -188,8 +188,8 @@ func TestMetricsMergeFromEmpty(t *testing.T) {
 	dest.merge(src, "")
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -204,9 +204,9 @@ func TestMetricsMerge(t *testing.T) {
 	dest.merge(src, "")
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "", false, []float64{2, 4, 2, 2, 2, 8}},
-		{"three", "", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "", Forced: false, Data: []float64{2, 4, 2, 2, 2, 8}},
+		{Name: "three", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -225,9 +225,9 @@ func TestMergeFailedSuccess(t *testing.T) {
 	dest.mergeFailed(src)
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "", false, []float64{2, 4, 2, 2, 2, 8}},
-		{"three", "", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "", Forced: false, Data: []float64{2, 4, 2, 2, 2, 8}},
+		{Name: "three", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -244,8 +244,8 @@ func TestMergeFailedLimitReached(t *testing.T) {
 	dest.mergeFailed(src)
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "", false, []float64{1, 2, 1, 2, 2, 4}},
-		{"two", "", false, []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "one", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
+		{Name: "two", Scope: "", Forced: false, Data: []float64{1, 2, 1, 2, 2, 4}},
 	})
 }
 
@@ -317,7 +317,7 @@ func TestMergedMetricsAreCopied(t *testing.T) {
 	dest.merge(src, "")
 	src.addSingleCount("zip", unforced)
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"zip", "", false, []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "zip", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -331,7 +331,7 @@ func TestMergedWithScope(t *testing.T) {
 	dest.merge(src, "my_scope")
 
 	expectMetrics(t, dest, []internal.WantMetric{
-		{"one", "my_scope", false, []float64{1, 0, 0, 0, 0, 0}},
-		{"two", "my_scope", false, []float64{2, 4, 2, 2, 2, 8}},
+		{Name: "one", Scope: "my_scope", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "two", Scope: "my_scope", Forced: false, Data: []float64{2, 4, 2, 2, 2, 8}},
 	})
 }
