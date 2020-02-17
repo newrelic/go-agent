@@ -19,8 +19,8 @@ func TrackUsage(s ...string) {
 	trackMetrics = append(trackMetrics, m)
 }
 
-// GetUsage returns supportability metric names.
-func GetUsage() []string {
+// GetUsageSupportabilityMetrics returns supportability metric names.
+func GetUsageSupportabilityMetrics() []string {
 	trackMutex.Lock()
 	defer trackMutex.Unlock()
 

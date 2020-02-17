@@ -190,7 +190,7 @@ func newHarvest(now time.Time, configurer harvestConfigurer) *harvest {
 }
 
 func createTrackUsageMetrics(metrics *metricTable) {
-	for _, m := range internal.GetUsage() {
+	for _, m := range internal.GetUsageSupportabilityMetrics() {
 		metrics.addSingleCount(m, forced)
 	}
 }
