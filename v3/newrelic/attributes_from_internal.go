@@ -74,7 +74,6 @@ var (
 	agentAttributeInfo = map[agentAttributeID]struct {
 		name         string
 		defaultDests destinationSet
-		integration  bool
 	}{
 		attributeHostDisplayName:                   {name: "host.displayName", defaultDests: usualDests},
 		attributeRequestMethod:                     {name: "request.method", defaultDests: usualDests},
@@ -90,15 +89,15 @@ var (
 		attributeResponseHeadersContentLength:      {name: "response.headers.contentLength", defaultDests: usualDests},
 		attributeResponseCode:                      {name: "http.statusCode", defaultDests: usualDests},
 		attributeResponseCodeDeprecated:            {name: "httpResponseCode", defaultDests: usualDests},
-		attributeAWSRequestID:                      {name: "aws.requestId", defaultDests: usualDests, integration: true},
-		attributeAWSLambdaARN:                      {name: "aws.lambda.arn", defaultDests: usualDests, integration: true},
-		attributeAWSLambdaColdStart:                {name: "aws.lambda.coldStart", defaultDests: usualDests, integration: true},
-		attributeAWSLambdaEventSourceARN:           {name: "aws.lambda.eventSource.arn", defaultDests: usualDests, integration: true},
-		attributeMessageRoutingKey:                 {name: "message.routingKey", defaultDests: usualDests, integration: true},
-		attributeMessageQueueName:                  {name: "message.queueName", defaultDests: usualDests, integration: true},
-		attributeMessageExchangeType:               {name: "message.exchangeType", defaultDests: destNone, integration: true},
-		attributeMessageReplyTo:                    {name: "message.replyTo", defaultDests: destNone, integration: true},
-		attributeMessageCorrelationID:              {name: "message.correlationId", defaultDests: destNone, integration: true},
+		attributeAWSRequestID:                      {name: "aws.requestId", defaultDests: usualDests},
+		attributeAWSLambdaARN:                      {name: "aws.lambda.arn", defaultDests: usualDests},
+		attributeAWSLambdaColdStart:                {name: "aws.lambda.coldStart", defaultDests: usualDests},
+		attributeAWSLambdaEventSourceARN:           {name: "aws.lambda.eventSource.arn", defaultDests: usualDests},
+		attributeMessageRoutingKey:                 {name: "message.routingKey", defaultDests: usualDests},
+		attributeMessageQueueName:                  {name: "message.queueName", defaultDests: usualDests},
+		attributeMessageExchangeType:               {name: "message.exchangeType", defaultDests: destNone},
+		attributeMessageReplyTo:                    {name: "message.replyTo", defaultDests: destNone},
+		attributeMessageCorrelationID:              {name: "message.correlationId", defaultDests: destNone},
 	}
 	spanAttributes = []spanAttribute{
 		spanAttributeDBStatement,
@@ -113,12 +112,10 @@ var (
 		spanattributeAWSRequestID,
 		spanAttributeAWSRegion,
 	}
-	integrationAgentAttributes = func() map[string]agentAttributeID {
-		m := make(map[string]agentAttributeID)
+	agentAttributesByName = func() map[string]agentAttributeID {
+		m := make(map[string]agentAttributeID, len(agentAttributeInfo))
 		for id, info := range agentAttributeInfo {
-			if info.integration {
-				m[info.name] = id
-			}
+			m[info.name] = id
 		}
 		return m
 	}()

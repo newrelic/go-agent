@@ -1150,9 +1150,9 @@ func (txn *txn) AddAgentAttribute(name string, stringVal string, otherVal interf
 	if txn.finished {
 		return
 	}
-	// This lookup should always succeed:  A failure is indicative of an
-	// integration bug.
-	id, ok := integrationAgentAttributes[name]
+	// This lookup should always succeed:  A failure is indication that an
+	// integration is using an invalid name.
+	id, ok := agentAttributesByName[name]
 	if !ok {
 		return
 	}
