@@ -15,25 +15,6 @@ import (
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func dataShouldContain(tb testing.TB, data map[string]json.RawMessage, keys ...string) {
-	if h, ok := tb.(interface {
-		Helper()
-	}); ok {
-		h.Helper()
-	}
-	if len(data) != len(keys) {
-		tb.Errorf("data key length mismatch, expected=%v got=%v",
-			len(keys), len(data))
-		return
-	}
-	for _, k := range keys {
-		_, ok := data[k]
-		if !ok {
-			tb.Errorf("data does not contain key %v", k)
-		}
-	}
-}
-
 func testApp(getenv func(string) string, t *testing.T) *newrelic.Application {
 	if nil == getenv {
 		getenv = func(string) string { return "" }
