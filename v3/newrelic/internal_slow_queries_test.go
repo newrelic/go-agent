@@ -813,7 +813,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 				tc.Input.SystemHostname, host, -1)
 		}
 
-		tt := internal.ExtendValidator(t, tc.TestName)
+		tt := extendValidator(t, tc.TestName)
 		app.ExpectMetrics(tt, metrics)
 		app.ExpectSlowQueries(tt, []internal.WantSlowQuery{{
 			Count:        1,

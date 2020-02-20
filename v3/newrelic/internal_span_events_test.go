@@ -470,9 +470,9 @@ func TestAddAgentSpanAttribute(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	s := txn.StartSegment("hi")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	s.End()
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
@@ -520,9 +520,9 @@ func TestAddAgentSpanAttributeExcluded(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	s := txn.StartSegment("hi")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	s.End()
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
@@ -561,9 +561,9 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	// Do not panic if there are no active spans!
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(txn.Private, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(txn.Private, SpanAttributeAWSOperation, "secret")
 	txn.End()
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
@@ -582,7 +582,7 @@ func TestAddSpanAttributeNoActiveSpan(t *testing.T) {
 func TestAddSpanAttributeNilTransaction(t *testing.T) {
 	// Test that AddAgentSpanAttribute does not panic if the transaction is
 	// nil.
-	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSRegion, "west")
-	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSRequestID, "123")
-	internal.AddAgentSpanAttribute(nil, internal.SpanAttributeAWSOperation, "secret")
+	internal.AddAgentSpanAttribute(nil, SpanAttributeAWSRegion, "west")
+	internal.AddAgentSpanAttribute(nil, SpanAttributeAWSRequestID, "123")
+	internal.AddAgentSpanAttribute(nil, SpanAttributeAWSOperation, "secret")
 }

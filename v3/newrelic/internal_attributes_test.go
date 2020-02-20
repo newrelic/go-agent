@@ -206,18 +206,6 @@ func TestUserAttributeConfiguration(t *testing.T) {
 	}})
 }
 
-// Second attributes have priority.
-func mergeAttributes(a1, a2 map[string]interface{}) map[string]interface{} {
-	a := make(map[string]interface{})
-	for k, v := range a1 {
-		a[k] = v
-	}
-	for k, v := range a2 {
-		a[k] = v
-	}
-	return a
-}
-
 var (
 	// Agent attributes expected in txn events from usualAttributeTestTransaction.
 	agent1 = map[string]interface{}{

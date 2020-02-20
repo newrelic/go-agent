@@ -47,16 +47,17 @@ func TestStackTrace(t *testing.T) {
 	// First choice is any StackTrace() of the immediate error.
 	// Second choice is any StackTrace() of the error's cause.
 	// Final choice is stack trace of the current location.
+	getStackTraceFrame := "github.com/newrelic/go-agent/v3/newrelic.getStackTrace"
 	testcases := []struct {
 		Error          error
 		ExpectTopFrame string
 	}{
-		{Error: basicError{}, ExpectTopFrame: "internal.GetStackTrace"},
+		{Error: basicError{}, ExpectTopFrame: getStackTraceFrame},
 		{Error: withStack{stack: alpha()}, ExpectTopFrame: "alpha"},
-		{Error: withStack{stack: nil}, ExpectTopFrame: "internal.GetStackTrace"},
+		{Error: withStack{stack: nil}, ExpectTopFrame: getStackTraceFrame},
 		{Error: withStackAndCause{stack: alpha(), cause: basicError{}}, ExpectTopFrame: "alpha"},
 		{Error: withStackAndCause{stack: nil, cause: withStack{stack: beta()}}, ExpectTopFrame: "beta"},
-		{Error: withStackAndCause{stack: nil, cause: withStack{stack: nil}}, ExpectTopFrame: "internal.GetStackTrace"},
+		{Error: withStackAndCause{stack: nil, cause: withStack{stack: nil}}, ExpectTopFrame: getStackTraceFrame},
 	}
 
 	for idx, tc := range testcases {

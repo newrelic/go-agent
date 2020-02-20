@@ -301,7 +301,7 @@ func TestRecordCustomEventBadInput(t *testing.T) {
 	app.RecordCustomEvent("????", validParams)
 	app.expectSingleLoggedError(t, "unable to record custom event", map[string]interface{}{
 		"event-type": "????",
-		"reason":     internal.ErrEventTypeRegex.Error(),
+		"reason":     errEventTypeRegex.Error(),
 	})
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 }
@@ -497,11 +497,11 @@ func TestPanicError(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my msg",
-		Klass:   internal.PanicErrorKlass,
+		Klass:   panicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     internal.PanicErrorKlass,
+			"error.class":     panicErrorKlass,
 			"error.message":   "my msg",
 			"transactionName": "OtherTransaction/Go/hello",
 		},
@@ -522,11 +522,11 @@ func TestPanicString(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "my string",
-		Klass:   internal.PanicErrorKlass,
+		Klass:   panicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     internal.PanicErrorKlass,
+			"error.class":     panicErrorKlass,
 			"error.message":   "my string",
 			"transactionName": "OtherTransaction/Go/hello",
 		},
@@ -547,11 +547,11 @@ func TestPanicInt(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "OtherTransaction/Go/hello",
 		Msg:     "22",
-		Klass:   internal.PanicErrorKlass,
+		Klass:   panicErrorKlass,
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     internal.PanicErrorKlass,
+			"error.class":     panicErrorKlass,
 			"error.message":   "22",
 			"transactionName": "OtherTransaction/Go/hello",
 		},
@@ -915,25 +915,25 @@ func TestExternalSegmentURL(t *testing.T) {
 
 	// empty segment
 	u, err := externalSegmentURL(&ExternalSegment{})
-	host := internal.HostFromURL(u)
+	host := hostFromURL(u)
 	if nil != err || nil != u || "" != host {
-		t.Error(u, err, internal.HostFromURL(u))
+		t.Error(u, err, hostFromURL(u))
 	}
 	// segment only containing url
 	u, err = externalSegmentURL(&ExternalSegment{URL: rawURL})
-	host = internal.HostFromURL(u)
+	host = hostFromURL(u)
 	if nil != err || host != "url.com" {
-		t.Error(u, err, internal.HostFromURL(u))
+		t.Error(u, err, hostFromURL(u))
 	}
 	// segment only containing request
 	u, err = externalSegmentURL(&ExternalSegment{Request: req})
-	host = internal.HostFromURL(u)
+	host = hostFromURL(u)
 	if nil != err || "request.com" != host {
 		t.Error(host)
 	}
 	// segment only containing response
 	u, err = externalSegmentURL(&ExternalSegment{Response: response})
-	host = internal.HostFromURL(u)
+	host = hostFromURL(u)
 	if nil != err || "response.com" != host {
 		t.Error(host)
 	}
@@ -942,7 +942,7 @@ func TestExternalSegmentURL(t *testing.T) {
 		Request:  req,
 		Response: response,
 	})
-	host = internal.HostFromURL(u)
+	host = hostFromURL(u)
 	if nil != err || "response.com" != host {
 		t.Error(host)
 	}
@@ -952,7 +952,7 @@ func TestExternalSegmentURL(t *testing.T) {
 		Request:  req,
 		Response: response,
 	})
-	host = internal.HostFromURL(u)
+	host = hostFromURL(u)
 	if nil != err || "url.com" != host {
 		t.Error(err, host)
 	}
@@ -1014,7 +1014,7 @@ func TestTraceSegmentOutOfOrder(t *testing.T) {
 	app.expectNoLoggedErrors(t)
 	s2.End()
 	app.expectSingleLoggedError(t, "unable to end segment", map[string]interface{}{
-		"reason": internal.ErrSegmentOrder.Error(),
+		"reason": errSegmentOrder.Error(),
 	})
 	txn.End()
 	scope := "WebTransaction/Go/hello"

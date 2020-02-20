@@ -19,17 +19,19 @@ func NewTraceIDGenerator(seed int64) *TraceIDGenerator {
 	}
 }
 
-// GeneratePriority returns a new Priority.
-func (tg *TraceIDGenerator) GeneratePriority() Priority {
+// Float32 returns a random float32 from its random source.
+func (tg *TraceIDGenerator) Float32() float32 {
 	tg.Lock()
 	defer tg.Unlock()
 
-	return newPriorityFromRandom(tg.rnd.Float32)
+	return tg.rnd.Float32()
 }
 
 const (
-	traceIDByteLen      = 16
-	traceIDHexStringLen = 32
+	traceIDByteLen = 16
+	// TraceIDHexStringLen is the length of the trace ID when represented
+	// as a hex string.
+	TraceIDHexStringLen = 32
 	spanIDByteLen       = 8
 	maxIDByteLen        = 16
 )

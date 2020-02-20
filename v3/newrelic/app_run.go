@@ -15,7 +15,7 @@ type appRun struct {
 
 	// AttributeConfig is calculated on every connect since it depends on
 	// the security policies.
-	AttributeConfig *internal.AttributeConfig
+	AttributeConfig *attributeConfig
 	Config          config
 
 	// firstAppName is the value of Config.AppName up to the first semicolon.
@@ -34,26 +34,11 @@ const (
 )
 
 func newAppRun(config config, reply *internal.ConnectReply) *appRun {
-	convertConfig := func(c AttributeDestinationConfig) internal.AttributeDestinationConfig {
-		return internal.AttributeDestinationConfig{
-			Enabled: c.Enabled,
-			Include: c.Include,
-			Exclude: c.Exclude,
-		}
-	}
 	run := &appRun{
-		Reply: reply,
-		AttributeConfig: internal.CreateAttributeConfig(internal.AttributeConfigInput{
-			Attributes:        convertConfig(config.Attributes),
-			ErrorCollector:    convertConfig(config.ErrorCollector.Attributes),
-			TransactionEvents: convertConfig(config.TransactionEvents.Attributes),
-			TransactionTracer: convertConfig(config.TransactionTracer.Attributes),
-			BrowserMonitoring: convertConfig(config.BrowserMonitoring.Attributes),
-			SpanEvents:        convertConfig(config.SpanEvents.Attributes),
-			TraceSegments:     convertConfig(config.TransactionTracer.Segments.Attributes),
-		}, reply.SecurityPolicies.AttributesInclude.Enabled()),
-		Config:     config,
-		rulesCache: newRulesCache(txnNameCacheLimit),
+		Reply:           reply,
+		AttributeConfig: createAttributeConfig(config, reply.SecurityPolicies.AttributesInclude.Enabled()),
+		Config:          config,
+		rulesCache:      newRulesCache(txnNameCacheLimit),
 	}
 
 	// Overwrite local settings with any server-side-config settings
@@ -119,7 +104,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	if "" != run.Reply.RunID {
 		js, _ := json.Marshal(settings(run.Config.Config))
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
-			"config": internal.JSONString(js),
+			"config": jsonString(js),
 		})
 	}
 
@@ -179,7 +164,7 @@ func (run *appRun) responseCodeIsError(code int) bool {
 
 func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration {
 	if run.Config.TransactionTracer.Threshold.IsApdexFailing {
-		return internal.ApdexFailingThreshold(apdexThreshold)
+		return apdexFailingThreshold(apdexThreshold)
 	}
 	return run.Config.TransactionTracer.Threshold.Duration
 }
@@ -194,7 +179,7 @@ func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }
 func (run *appRun) MaxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
-func (run *appRun) MaxSpanEvents() int  { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
+func (run *appRun) MaxSpanEvents() int  { return run.limit(maxSpanEvents, run.ptrSpanEvents) }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
 	if nil != field() {
@@ -203,15 +188,15 @@ func (run *appRun) limit(dflt int, field func() *uint) int {
 	return dflt
 }
 
-func (run *appRun) ReportPeriods() map[internal.HarvestTypes]time.Duration {
-	fixed := internal.HarvestMetricsTraces
-	configurable := internal.HarvestTypes(0)
+func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {
+	fixed := harvestMetricsTraces
+	configurable := harvestTypes(0)
 
-	for tp, fn := range map[internal.HarvestTypes]func() *uint{
-		internal.HarvestTxnEvents:    run.ptrTxnEvents,
-		internal.HarvestCustomEvents: run.ptrCustomEvents,
-		internal.HarvestErrorEvents:  run.ptrErrorEvents,
-		internal.HarvestSpanEvents:   run.ptrSpanEvents,
+	for tp, fn := range map[harvestTypes]func() *uint{
+		harvestTxnEvents:    run.ptrTxnEvents,
+		harvestCustomEvents: run.ptrCustomEvents,
+		harvestErrorEvents:  run.ptrErrorEvents,
+		harvestSpanEvents:   run.ptrSpanEvents,
 	} {
 		if nil != run && fn() != nil {
 			configurable |= tp
@@ -219,9 +204,9 @@ func (run *appRun) ReportPeriods() map[internal.HarvestTypes]time.Duration {
 			fixed |= tp
 		}
 	}
-	return map[internal.HarvestTypes]time.Duration{
+	return map[harvestTypes]time.Duration{
 		configurable: run.Reply.ConfigurablePeriod(),
-		fixed:        internal.FixedHarvestPeriod,
+		fixed:        fixedHarvestPeriod,
 	}
 }
 

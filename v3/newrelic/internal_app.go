@@ -16,14 +16,14 @@ import (
 
 type appData struct {
 	id   internal.AgentRunID
-	data internal.Harvestable
+	data harvestable
 }
 
 type app struct {
 	Logger
 	config      config
 	rpmControls rpmControls
-	testHarvest *internal.Harvest
+	testHarvest *harvest
 
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
@@ -60,7 +60,7 @@ type app struct {
 	serverless *serverlessHarvest
 }
 
-func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
+func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 	h.CreateFinalMetrics(run.Reply, run)
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
@@ -177,7 +177,7 @@ func processConnectMessages(run *appRun, lg Logger) {
 func (app *app) process() {
 	// Both the harvest and the run are non-nil when the app is connected,
 	// and nil otherwise.
-	var h *internal.Harvest
+	var h *harvest
 	var run *appRun
 
 	harvestTicker := time.NewTicker(time.Second)
@@ -236,7 +236,7 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
-			h = internal.NewHarvest(time.Now(), run)
+			h = newHarvest(time.Now(), run)
 			app.setState(run, nil)
 
 			app.Info("application connected", map[string]interface{}{
@@ -278,14 +278,14 @@ func (app *app) Shutdown(timeout time.Duration) {
 }
 
 func runSampler(app *app, period time.Duration) {
-	previous := internal.GetSample(time.Now(), app)
+	previous := getSystemSample(time.Now(), app)
 	t := time.NewTicker(period)
 	for {
 		select {
 		case now := <-t.C:
-			current := internal.GetSample(now, app)
+			current := getSystemSample(now, app)
 			run, _ := app.getState()
-			app.Consume(run.Reply.RunID, internal.GetStats(internal.Samples{
+			app.Consume(run.Reply.RunID, getSystemStats(systemSamples{
 				Previous: previous,
 				Current:  current,
 			}))
@@ -339,12 +339,12 @@ func newApp(c config) *app {
 		shutdownComplete:   make(chan struct{}),
 		connectChan:        make(chan *appRun, 1),
 		collectorErrorChan: make(chan rpmResponse, 1),
-		dataChan:           make(chan appData, internal.AppDataChanSize),
+		dataChan:           make(chan appData, appDataChanSize),
 		rpmControls: rpmControls{
 			License: c.License,
 			Client: &http.Client{
 				Transport: c.Transport,
-				Timeout:   internal.CollectorTimeout,
+				Timeout:   collectorTimeout,
 			},
 			Logger: c.Logger,
 		},
@@ -365,7 +365,7 @@ func newApp(c config) *app {
 			go app.process()
 			go app.connectRoutine()
 			if app.config.RuntimeSampler.Enabled {
-				go runSampler(app, internal.RuntimeSamplerPeriod)
+				go runSampler(app, runtimeSamplerPeriod)
 			}
 		}
 	}
@@ -384,7 +384,7 @@ func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
 		replyfn(reply)
 		app.placeholderRun = newAppRun(app.config, reply)
 	}
-	app.testHarvest = internal.NewHarvest(time.Now(), &internal.DfltHarvestCfgr{})
+	app.testHarvest = newHarvest(time.Now(), &dfltHarvestCfgr{})
 }
 
 func (app *app) getState() (*appRun, error) {
@@ -441,7 +441,7 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 		return errCustomEventsDisabled
 	}
 
-	event, e := internal.CreateCustomEvent(eventType, params, time.Now())
+	event, e := createCustomEvent(eventType, params, time.Now())
 	if nil != e {
 		return e
 	}
@@ -485,7 +485,7 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 		return errMetricNameEmpty
 	}
 	run, _ := app.getState()
-	app.Consume(run.Reply.RunID, internal.CustomMetric{
+	app.Consume(run.Reply.RunID, customMetric{
 		RawInputName: name,
 		Value:        value,
 	})
@@ -500,7 +500,7 @@ func (app *app) ServerlessWrite(arn string, writer io.Writer) {
 	app.serverless.Write(arn, writer)
 }
 
-func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
+func (app *app) Consume(id internal.AgentRunID, data harvestable) {
 
 	app.serverless.Consume(data)
 
@@ -520,50 +520,50 @@ func (app *app) Consume(id internal.AgentRunID, data internal.Harvestable) {
 }
 
 func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
-	internal.ExpectCustomEvents(internal.ExtendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
+	expectCustomEvents(extendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
 }
 
 func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {
-	t = internal.ExtendValidator(t, "traced errors")
-	internal.ExpectErrors(t, app.testHarvest.ErrorTraces, want)
+	t = extendValidator(t, "traced errors")
+	expectErrors(t, app.testHarvest.ErrorTraces, want)
 }
 
 func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "error events")
-	internal.ExpectErrorEvents(t, app.testHarvest.ErrorEvents, want)
+	t = extendValidator(t, "error events")
+	expectErrorEvents(t, app.testHarvest.ErrorEvents, want)
 }
 
 func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "spans events")
-	internal.ExpectSpanEvents(t, app.testHarvest.SpanEvents, want)
+	t = extendValidator(t, "spans events")
+	expectSpanEvents(t, app.testHarvest.SpanEvents, want)
 }
 
 func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
-	t = internal.ExtendValidator(t, "txn events")
-	internal.ExpectTxnEvents(t, app.testHarvest.TxnEvents, want)
+	t = extendValidator(t, "txn events")
+	expectTxnEvents(t, app.testHarvest.TxnEvents, want)
 }
 
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
-	t = internal.ExtendValidator(t, "metrics")
-	internal.ExpectMetrics(t, app.testHarvest.Metrics, want)
+	t = extendValidator(t, "metrics")
+	expectMetrics(t, app.testHarvest.Metrics, want)
 }
 
 func (app *app) ExpectMetricsPresent(t internal.Validator, want []internal.WantMetric) {
-	t = internal.ExtendValidator(t, "metrics")
-	internal.ExpectMetricsPresent(t, app.testHarvest.Metrics, want)
+	t = extendValidator(t, "metrics")
+	expectMetricsPresent(t, app.testHarvest.Metrics, want)
 }
 
 func (app *app) ExpectTxnMetrics(t internal.Validator, want internal.WantTxn) {
-	t = internal.ExtendValidator(t, "metrics")
-	internal.ExpectTxnMetrics(t, app.testHarvest.Metrics, want)
+	t = extendValidator(t, "metrics")
+	expectTxnMetrics(t, app.testHarvest.Metrics, want)
 }
 
 func (app *app) ExpectTxnTraces(t internal.Validator, want []internal.WantTxnTrace) {
-	t = internal.ExtendValidator(t, "txn traces")
-	internal.ExpectTxnTraces(t, app.testHarvest.TxnTraces, want)
+	t = extendValidator(t, "txn traces")
+	expectTxnTraces(t, app.testHarvest.TxnTraces, want)
 }
 
 func (app *app) ExpectSlowQueries(t internal.Validator, want []internal.WantSlowQuery) {
-	t = internal.ExtendValidator(t, "slow queries")
-	internal.ExpectSlowQueries(t, app.testHarvest.SlowSQLs, want)
+	t = extendValidator(t, "slow queries")
+	expectSlowQueries(t, app.testHarvest.SlowSQLs, want)
 }

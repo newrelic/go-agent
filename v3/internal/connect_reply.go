@@ -30,14 +30,14 @@ type ConnectReply struct {
 
 	// Transaction Name Modifiers
 	SegmentTerms segmentRules `json:"transaction_segment_terms"`
-	TxnNameRules metricRules  `json:"transaction_name_rules"`
-	URLRules     metricRules  `json:"url_rules"`
-	MetricRules  metricRules  `json:"metric_name_rules"`
+	TxnNameRules MetricRules  `json:"transaction_name_rules"`
+	URLRules     MetricRules  `json:"url_rules"`
+	MetricRules  MetricRules  `json:"metric_name_rules"`
 
 	// Cross Process
 	EncodingKey     string            `json:"encoding_key"`
 	CrossProcessID  string            `json:"cross_process_id"`
-	TrustedAccounts trustedAccountSet `json:"trusted_account_ids"`
+	TrustedAccounts TrustedAccountSet `json:"trusted_account_ids"`
 
 	// Settings
 	KeyTxnApdex            map[string]float64 `json:"web_transactions_apdex"`
@@ -134,20 +134,23 @@ func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
 	return cfg
 }
 
-type trustedAccountSet map[int]struct{}
+// TrustedAccountSet is used for CAT.
+type TrustedAccountSet map[int]struct{}
 
-func (t *trustedAccountSet) IsTrusted(account int) bool {
+// IsTrusted reveals whether the account can be trusted.
+func (t *TrustedAccountSet) IsTrusted(account int) bool {
 	_, exists := (*t)[account]
 	return exists
 }
 
-func (t *trustedAccountSet) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON unmarshals the trusted set from the connect reply JSON.
+func (t *TrustedAccountSet) UnmarshalJSON(data []byte) error {
 	accounts := make([]int, 0)
 	if err := json.Unmarshal(data, &accounts); err != nil {
 		return err
 	}
 
-	*t = make(trustedAccountSet)
+	*t = make(TrustedAccountSet)
 	for _, account := range accounts {
 		(*t)[account] = struct{}{}
 	}
@@ -184,6 +187,11 @@ func CalculateApdexThreshold(c *ConnectReply, txnName string) time.Duration {
 	}
 	return FloatSecondsToDuration(c.ApdexThresholdSeconds)
 }
+
+const (
+	webMetricPrefix        = "WebTransaction/Go"
+	backgroundMetricPrefix = "OtherTransaction/Go"
+)
 
 // CreateFullTxnName uses collector rules and the appropriate metric prefix to
 // construct the full transaction metric name from the name given by the

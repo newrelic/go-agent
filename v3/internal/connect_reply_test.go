@@ -96,7 +96,7 @@ func TestIsTrusted(t *testing.T) {
 		{1, `[1]`, true},
 		{1, `[1, 2, 3]`, true},
 	} {
-		trustedAccounts := make(trustedAccountSet)
+		trustedAccounts := make(TrustedAccountSet)
 		if err := json.Unmarshal([]byte(test.trusted), &trustedAccounts); err != nil {
 			t.Fatal(err)
 		}

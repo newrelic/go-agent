@@ -23,8 +23,16 @@ const (
 	userAgentPrefix = "NewRelic-Go-Agent/"
 
 	// Methods used in collector communication.
-	cmdPreconnect = "preconnect"
-	cmdConnect    = "connect"
+	cmdPreconnect   = "preconnect"
+	cmdConnect      = "connect"
+	cmdMetrics      = "metric_data"
+	cmdCustomEvents = "custom_event_data"
+	cmdTxnEvents    = "analytic_event_data"
+	cmdErrorEvents  = "error_event_data"
+	cmdErrorData    = "error_data"
+	cmdTxnTraces    = "transaction_sample_data"
+	cmdSlowSQLs     = "sql_trace_data"
+	cmdSpanEvents   = "span_event_data"
 )
 
 // rpmCmd contains fields specific to an individual call made to RPM.
@@ -186,7 +194,7 @@ func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 		cs.Logger.Debug("rpm request", map[string]interface{}{
 			"command": cmd.Name,
 			"url":     url,
-			"payload": internal.JSONString(cmd.Data),
+			"payload": jsonString(cmd.Data),
 		})
 	}
 
@@ -204,7 +212,7 @@ func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 			cs.Logger.Debug("rpm response", map[string]interface{}{
 				"command":  cmd.Name,
 				"url":      url,
-				"response": internal.JSONString(resp.body),
+				"response": jsonString(resp.body),
 			})
 		}
 	}

@@ -433,7 +433,7 @@ func TestPayloadParsingError(t *testing.T) {
 		}`
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, headersFromString(p))
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
-		"reason": "unable to unmarshal payload data: json: cannot unmarshal array into Go value of type internal.Payload",
+		"reason": "unable to unmarshal payload data: json: cannot unmarshal array into Go value of type newrelic.payload",
 	})
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -457,7 +457,7 @@ func TestPayloadFromFuture(t *testing.T) {
 	traceParent := "00-52fdfc072182654f163f5f0f9a621d72-9566c74d10037c4d-01"
 	traceState := "123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0.390345-TIME"
 	futureTime := time.Now().Add(1 * time.Hour)
-	timeStr := fmt.Sprintf("%d", internal.TimeToUnixMilliseconds(futureTime))
+	timeStr := fmt.Sprintf("%d", timeToUnixMilliseconds(futureTime))
 	traceState = strings.Replace(traceState, "TIME", timeStr, 1)
 	hdrs.Set(DistributedTraceW3CTraceParentHeader, traceParent)
 	hdrs.Set(DistributedTraceW3CTraceStateHeader, traceState)
@@ -1163,7 +1163,7 @@ func getTransport(transport string) TransportType {
 }
 
 func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTestcase, extraAsserts func(expectApp, internal.Validator)) {
-	t := internal.ExtendValidator(tst, "test="+tc.TestName)
+	t := extendValidator(tst, "test="+tc.TestName)
 	configCallback := enableBetterCAT
 	if false == tc.SpanEventsEnabled {
 		configCallback = disableSpanEvents
@@ -1485,9 +1485,9 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 	txn := app.StartTransaction("hello")
 
 	hdrs := http.Header{}
-	hdrs.Set(internal.DistributedTraceW3CTraceParentHeader,
+	hdrs.Set(DistributedTraceW3CTraceParentHeader,
 		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
-	hdrs.Set(internal.DistributedTraceW3CTraceStateHeader,
+	hdrs.Set(DistributedTraceW3CTraceStateHeader,
 		"99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277")
 	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
 	outgoingHdrs := http.Header{}
@@ -2146,18 +2146,6 @@ func TestW3CTraceNotSampledOutboundHeaders(t *testing.T) {
 	}, backgroundUnknownCaller...))
 }
 
-func TestDistributedTracingConstantsMatch(t *testing.T) {
-	if DistributedTraceNewRelicHeader != internal.DistributedTraceNewRelicHeader {
-		t.Fatal(DistributedTraceNewRelicHeader, internal.DistributedTraceNewRelicHeader)
-	}
-	if DistributedTraceW3CTraceStateHeader != internal.DistributedTraceW3CTraceStateHeader {
-		t.Fatal(DistributedTraceW3CTraceStateHeader, internal.DistributedTraceW3CTraceStateHeader)
-	}
-	if DistributedTraceW3CTraceParentHeader != internal.DistributedTraceW3CTraceParentHeader {
-		t.Fatal(DistributedTraceW3CTraceParentHeader, internal.DistributedTraceW3CTraceParentHeader)
-	}
-}
-
 func TestW3CTraceStateInvalidNrEntry(t *testing.T) {
 	// If the tracestate header has fewer entries (separated by '-') than
 	// expected, make sure the correct Supportability metrics are created
@@ -2190,8 +2178,8 @@ func TestUpperCaseTraceIDReceived(t *testing.T) {
 	app := testApp(replyfn, enableBetterCAT, t)
 	txn := app.StartTransaction("hello")
 	originalTraceID := "85D7FA2DD1B66D6C" // Legacy .NET agents may send uppercase trace IDs
-	incoming := internal.Payload{
-		Type:              internal.CallerTypeApp,
+	incoming := payload{
+		Type:              callerTypeApp,
 		App:               "123",
 		Account:           "456",
 		TransactionID:     "1a2b3c",

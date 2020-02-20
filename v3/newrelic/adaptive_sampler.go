@@ -4,8 +4,6 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 type adaptiveSampler struct {
@@ -85,6 +83,6 @@ func (as *adaptiveSampler) computeSampled(priority float32, now time.Time) bool 
 }
 
 func (as *adaptiveSampler) computeSampledBackoff(target uint64, decidedCount uint64, sampledTrueCount uint64) bool {
-	return float64(internal.RandUint64N(decidedCount)) <
+	return float64(randUint64N(decidedCount)) <
 		math.Pow(float64(target), (float64(target)/float64(sampledTrueCount)))-math.Pow(float64(target), 0.5)
 }

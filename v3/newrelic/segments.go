@@ -2,8 +2,6 @@ package newrelic
 
 import (
 	"net/http"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -130,7 +128,7 @@ func (s *Segment) End() {
 	if s == nil {
 		return
 	}
-	if err := endSegment(s); err != nil {
+	if err := endBasic(s); err != nil {
 		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
 			"name": s.Name,
 		})
@@ -163,7 +161,7 @@ func (s *ExternalSegment) End() {
 			"library":   s.Library,
 		}
 		if s.Request != nil {
-			extraDetails["request.url"] = internal.SafeURL(s.Request.URL)
+			extraDetails["request.url"] = safeURL(s.Request.URL)
 		}
 		s.StartTime.thread.logAPIError(err, "end external segment", extraDetails)
 	}

@@ -10,15 +10,15 @@ import (
 func TestNilTransaction(t *testing.T) {
 	var txn *newrelic.Transaction
 
-	AddAgentAttribute(txn, internal.AttributeHostDisplayName, "hostname", nil)
-	AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "operation")
+	AddAgentAttribute(txn, newrelic.AttributeHostDisplayName, "hostname", nil)
+	AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
 }
 
 func TestEmptyTransaction(t *testing.T) {
 	txn := &newrelic.Transaction{}
 
-	AddAgentAttribute(txn, internal.AttributeHostDisplayName, "hostname", nil)
-	AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "operation")
+	AddAgentAttribute(txn, newrelic.AttributeHostDisplayName, "hostname", nil)
+	AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
 }
 
 func TestSuccess(t *testing.T) {
@@ -37,9 +37,9 @@ func TestSuccess(t *testing.T) {
 	internal.HarvestTesting(app.Private, replyfn)
 
 	txn := app.StartTransaction("hello")
-	AddAgentAttribute(txn, internal.AttributeHostDisplayName, "hostname", nil)
+	AddAgentAttribute(txn, newrelic.AttributeHostDisplayName, "hostname", nil)
 	segment := txn.StartSegment("mySegment")
-	AddAgentSpanAttribute(txn, internal.SpanAttributeAWSOperation, "operation")
+	AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
 	segment.End()
 	txn.End()
 
