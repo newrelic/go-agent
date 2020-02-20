@@ -26,7 +26,7 @@ const (
 const (
 	// HarvestTypesEvents includes all Event types
 	harvestTypesEvents = harvestSpanEvents | harvestCustomEvents | harvestTxnEvents | harvestErrorEvents
-	// HarvestTypesAll includes all harvest types
+	// harvestTypesAll includes all harvest types
 	harvestTypesAll = harvestMetricsTraces | harvestTypesEvents
 )
 
