@@ -183,7 +183,7 @@ func (slow *slowQuery) WriteJSON(buf *bytes.Buffer) {
 	// TODO: Change this to the transaction trace segment destination
 	// once transaction trace segment attribute configuration has been
 	// added.
-	uri, _ := slow.txnEvent.Attrs.GetAgentValue(attributeRequestURI, destAll)
+	uri, _ := slow.txnEvent.Attrs.GetAgentValue(AttributeRequestURI, destAll)
 	jsonx.AppendString(buf, uri)
 	buf.WriteByte(',')
 	jsonx.AppendInt(buf, int64(makeSlowQueryID(slow.ParameterizedQuery)))

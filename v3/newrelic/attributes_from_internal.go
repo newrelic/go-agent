@@ -10,39 +10,6 @@ import (
 	"strings"
 )
 
-// agentAttributeID uniquely identifies each agent attribute.
-type agentAttributeID int
-
-// New agent attributes must be added in the following places:
-// * Constants here.
-// * Top level attributes.go file.
-// * agentAttributeInfo
-const (
-	attributeHostDisplayName agentAttributeID = iota
-	attributeRequestMethod
-	attributeRequestAcceptHeader
-	attributeRequestContentType
-	attributeRequestContentLength
-	attributeRequestHeadersHost
-	attributeRequestHeadersUserAgent
-	attributeRequestHeadersUserAgentDeprecated
-	attributeRequestHeadersReferer
-	attributeRequestURI
-	attributeResponseHeadersContentType
-	attributeResponseHeadersContentLength
-	attributeResponseCode
-	attributeResponseCodeDeprecated
-	attributeAWSRequestID
-	attributeAWSLambdaARN
-	attributeAWSLambdaColdStart
-	attributeAWSLambdaEventSourceARN
-	attributeMessageRoutingKey
-	attributeMessageQueueName
-	attributeMessageExchangeType
-	attributeMessageReplyTo
-	attributeMessageCorrelationID
-)
-
 // spanAttribute is an attribute put in span events.
 type spanAttribute string
 
@@ -69,35 +36,36 @@ const (
 func (sa spanAttribute) String() string { return string(sa) }
 
 var (
-	usualDests         = destAll &^ destBrowser
-	tracesDests        = destTxnTrace | destError
-	agentAttributeInfo = map[agentAttributeID]struct {
-		name         string
-		defaultDests destinationSet
-	}{
-		attributeHostDisplayName:                   {name: "host.displayName", defaultDests: usualDests},
-		attributeRequestMethod:                     {name: "request.method", defaultDests: usualDests},
-		attributeRequestAcceptHeader:               {name: "request.headers.accept", defaultDests: usualDests},
-		attributeRequestContentType:                {name: "request.headers.contentType", defaultDests: usualDests},
-		attributeRequestContentLength:              {name: "request.headers.contentLength", defaultDests: usualDests},
-		attributeRequestHeadersHost:                {name: "request.headers.host", defaultDests: usualDests},
-		attributeRequestHeadersUserAgent:           {name: "request.headers.userAgent", defaultDests: tracesDests},
-		attributeRequestHeadersUserAgentDeprecated: {name: "request.headers.User-Agent", defaultDests: tracesDests},
-		attributeRequestHeadersReferer:             {name: "request.headers.referer", defaultDests: tracesDests},
-		attributeRequestURI:                        {name: "request.uri", defaultDests: usualDests},
-		attributeResponseHeadersContentType:        {name: "response.headers.contentType", defaultDests: usualDests},
-		attributeResponseHeadersContentLength:      {name: "response.headers.contentLength", defaultDests: usualDests},
-		attributeResponseCode:                      {name: "http.statusCode", defaultDests: usualDests},
-		attributeResponseCodeDeprecated:            {name: "httpResponseCode", defaultDests: usualDests},
-		attributeAWSRequestID:                      {name: "aws.requestId", defaultDests: usualDests},
-		attributeAWSLambdaARN:                      {name: "aws.lambda.arn", defaultDests: usualDests},
-		attributeAWSLambdaColdStart:                {name: "aws.lambda.coldStart", defaultDests: usualDests},
-		attributeAWSLambdaEventSourceARN:           {name: "aws.lambda.eventSource.arn", defaultDests: usualDests},
-		attributeMessageRoutingKey:                 {name: "message.routingKey", defaultDests: usualDests},
-		attributeMessageQueueName:                  {name: "message.queueName", defaultDests: usualDests},
-		attributeMessageExchangeType:               {name: "message.exchangeType", defaultDests: destNone},
-		attributeMessageReplyTo:                    {name: "message.replyTo", defaultDests: destNone},
-		attributeMessageCorrelationID:              {name: "message.correlationId", defaultDests: destNone},
+	usualDests  = destAll &^ destBrowser
+	tracesDests = destTxnTrace | destError
+	//
+	// To add an agent attribute, add it to the public constants in
+	// attributes.go and add its default destinations here.
+	//
+	agentAttributeDefaultDests = map[string]destinationSet{
+		AttributeHostDisplayName:            usualDests,
+		AttributeRequestMethod:              usualDests,
+		AttributeRequestAccept:              usualDests,
+		AttributeRequestContentType:         usualDests,
+		AttributeRequestContentLength:       usualDests,
+		AttributeRequestHost:                usualDests,
+		AttributeRequestUserAgent:           tracesDests,
+		AttributeRequestUserAgentDeprecated: tracesDests,
+		AttributeRequestReferer:             tracesDests,
+		AttributeRequestURI:                 usualDests,
+		AttributeResponseContentType:        usualDests,
+		AttributeResponseContentLength:      usualDests,
+		AttributeResponseCode:               usualDests,
+		AttributeResponseCodeDeprecated:     usualDests,
+		AttributeAWSRequestID:               usualDests,
+		AttributeAWSLambdaARN:               usualDests,
+		AttributeAWSLambdaColdStart:         usualDests,
+		AttributeAWSLambdaEventSourceARN:    usualDests,
+		AttributeMessageRoutingKey:          usualDests,
+		AttributeMessageQueueName:           usualDests,
+		AttributeMessageExchangeType:        destNone,
+		AttributeMessageReplyTo:             destNone,
+		AttributeMessageCorrelationID:       destNone,
 	}
 	spanAttributes = []spanAttribute{
 		spanAttributeDBStatement,
@@ -112,16 +80,7 @@ var (
 		spanattributeAWSRequestID,
 		spanAttributeAWSRegion,
 	}
-	agentAttributesByName = func() map[string]agentAttributeID {
-		m := make(map[string]agentAttributeID, len(agentAttributeInfo))
-		for id, info := range agentAttributeInfo {
-			m[info.name] = id
-		}
-		return m
-	}()
 )
-
-func (id agentAttributeID) name() string { return agentAttributeInfo[id].name }
 
 // https://source.datanerd.us/agents/agent-specs/blob/master/Agent-Attributes-PORTED.md
 
@@ -165,7 +124,7 @@ type attributeConfig struct {
 	// lexicographical order.  Modifiers appearing later have precedence
 	// over modifiers appearing earlier.
 	wildcardModifiers []*attributeModifier
-	agentDests        map[agentAttributeID]destinationSet
+	agentDests        map[string]destinationSet
 	spanDests         map[spanAttribute]destinationSet
 }
 
@@ -267,9 +226,9 @@ func createAttributeConfig(input config, includeEnabled bool) *attributeConfig {
 
 	sort.Sort(byMatch(c.wildcardModifiers))
 
-	c.agentDests = make(map[agentAttributeID]destinationSet)
-	for id, info := range agentAttributeInfo {
-		c.agentDests[id] = applyAttributeConfig(c, info.name, info.defaultDests)
+	c.agentDests = make(map[string]destinationSet)
+	for name, dest := range agentAttributeDefaultDests {
+		c.agentDests[name] = applyAttributeConfig(c, name, dest)
 	}
 	c.spanDests = make(map[spanAttribute]destinationSet, len(spanAttributes))
 	for _, id := range spanAttributes {
@@ -289,7 +248,7 @@ type agentAttributeValue struct {
 	otherVal  interface{}
 }
 
-type agentAttributes map[agentAttributeID]agentAttributeValue
+type agentAttributes map[string]agentAttributeValue
 
 func (a *attributes) filterSpanAttributes(s map[spanAttribute]jsonWriter, d destinationSet) map[spanAttribute]jsonWriter {
 	if nil != a {
@@ -305,7 +264,7 @@ func (a *attributes) filterSpanAttributes(s map[spanAttribute]jsonWriter, d dest
 // GetAgentValue is used to access agent attributes.  This function returns ("",
 // nil) if the attribute doesn't exist or it doesn't match the destinations
 // provided.
-func (a *attributes) GetAgentValue(id agentAttributeID, d destinationSet) (string, interface{}) {
+func (a *attributes) GetAgentValue(id string, d destinationSet) (string, interface{}) {
 	if nil == a || 0 == a.config.agentDests[id]&d {
 		return "", nil
 	}
@@ -316,7 +275,7 @@ func (a *attributes) GetAgentValue(id agentAttributeID, d destinationSet) (strin
 // Add is used to add agent attributes.  Only one of stringVal and
 // otherVal should be populated.  Since most agent attribute values are strings,
 // stringVal exists to avoid allocations.
-func (attr agentAttributes) Add(id agentAttributeID, stringVal string, otherVal interface{}) {
+func (attr agentAttributes) Add(id string, stringVal string, otherVal interface{}) {
 	if "" != stringVal || otherVal != nil {
 		attr[id] = agentAttributeValue{
 			stringVal: truncateStringValueIfLong(stringVal),
@@ -474,9 +433,9 @@ func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
 	for id, val := range a.Agent {
 		if 0 != a.config.agentDests[id]&d {
 			if val.stringVal != "" {
-				w.stringField(id.name(), val.stringVal)
+				w.stringField(id, val.stringVal)
 			} else {
-				writeAttributeValueJSON(&w, id.name(), val.otherVal)
+				writeAttributeValueJSON(&w, id, val.otherVal)
 			}
 		}
 	}
@@ -516,24 +475,24 @@ func userAttributesStringJSON(a *attributes, d destinationSet, extraAttributes m
 
 // RequestAgentAttributes gathers agent attributes out of the request.
 func requestAgentAttributes(a *attributes, method string, h http.Header, u *url.URL) {
-	a.Agent.Add(attributeRequestMethod, method, nil)
+	a.Agent.Add(AttributeRequestMethod, method, nil)
 
 	if nil != u {
-		a.Agent.Add(attributeRequestURI, safeURL(u), nil)
+		a.Agent.Add(AttributeRequestURI, safeURL(u), nil)
 	}
 
 	if nil == h {
 		return
 	}
-	a.Agent.Add(attributeRequestAcceptHeader, h.Get("Accept"), nil)
-	a.Agent.Add(attributeRequestContentType, h.Get("Content-Type"), nil)
-	a.Agent.Add(attributeRequestHeadersHost, h.Get("Host"), nil)
-	a.Agent.Add(attributeRequestHeadersUserAgent, h.Get("User-Agent"), nil)
-	a.Agent.Add(attributeRequestHeadersUserAgentDeprecated, h.Get("User-Agent"), nil)
-	a.Agent.Add(attributeRequestHeadersReferer, safeURLFromString(h.Get("Referer")), nil)
+	a.Agent.Add(AttributeRequestAccept, h.Get("Accept"), nil)
+	a.Agent.Add(AttributeRequestContentType, h.Get("Content-Type"), nil)
+	a.Agent.Add(AttributeRequestHost, h.Get("Host"), nil)
+	a.Agent.Add(AttributeRequestUserAgent, h.Get("User-Agent"), nil)
+	a.Agent.Add(AttributeRequestUserAgentDeprecated, h.Get("User-Agent"), nil)
+	a.Agent.Add(AttributeRequestReferer, safeURLFromString(h.Get("Referer")), nil)
 
 	if l := getContentLengthFromHeader(h); l >= 0 {
-		a.Agent.Add(attributeRequestContentLength, "", l)
+		a.Agent.Add(AttributeRequestContentLength, "", l)
 	}
 }
 
@@ -542,10 +501,10 @@ func responseHeaderAttributes(a *attributes, h http.Header) {
 	if nil == h {
 		return
 	}
-	a.Agent.Add(attributeResponseHeadersContentType, h.Get("Content-Type"), nil)
+	a.Agent.Add(AttributeResponseContentType, h.Get("Content-Type"), nil)
 
 	if l := getContentLengthFromHeader(h); l >= 0 {
-		a.Agent.Add(attributeResponseHeadersContentLength, "", l)
+		a.Agent.Add(AttributeResponseContentLength, "", l)
 	}
 }
 
@@ -569,6 +528,6 @@ func responseCodeAttribute(a *attributes, code int) {
 	if rc == "" {
 		rc = strconv.Itoa(code)
 	}
-	a.Agent.Add(attributeResponseCode, "", code)
-	a.Agent.Add(attributeResponseCodeDeprecated, rc, nil)
+	a.Agent.Add(AttributeResponseCode, "", code)
+	a.Agent.Add(AttributeResponseCodeDeprecated, rc, nil)
 }

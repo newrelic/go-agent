@@ -91,7 +91,7 @@ func TestTxnTrace(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 	addUserAttribute(attr, "zap", 123, destAll)
 
 	ht := newHarvestTraces()
@@ -452,7 +452,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 	addUserAttribute(attr, "zap", 123, destAll)
 
 	ht := newHarvestTraces()
@@ -511,7 +511,7 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 	c.TransactionTracer.Attributes.Exclude = []string{"request.uri"}
 	acfg := createAttributeConfig(c, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&harvestTrace{
@@ -633,7 +633,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&harvestTrace{
@@ -736,7 +736,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 
 	ht := newHarvestTraces()
 	ht.regular.addTxnTrace(&harvestTrace{
@@ -822,7 +822,7 @@ func TestLongestTraceSaved(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 	ht := newHarvestTraces()
 
 	ht.Witness(harvestTrace{
@@ -996,7 +996,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/url", nil)
+	attr.Agent.Add(AttributeRequestURI, "/url", nil)
 	ht := newHarvestTraces()
 
 	ht.Witness(harvestTrace{

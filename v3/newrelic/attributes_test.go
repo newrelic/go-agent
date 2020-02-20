@@ -424,7 +424,7 @@ func BenchmarkAgentAttributes(b *testing.B) {
 func TestGetAgentValue(t *testing.T) {
 	// Test nil safe
 	var attrs *attributes
-	outstr, outother := attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
+	outstr, outother := attrs.GetAgentValue(AttributeRequestURI, destTxnTrace)
 	if outstr != "" || outother != nil {
 		t.Error(outstr, outother)
 	}
@@ -433,19 +433,19 @@ func TestGetAgentValue(t *testing.T) {
 	c.TransactionTracer.Attributes.Exclude = []string{"request.uri"}
 	cfg := createAttributeConfig(c, true)
 	attrs = newAttributes(cfg)
-	attrs.Agent.Add(attributeResponseHeadersContentLength, "", 123)
-	attrs.Agent.Add(attributeRequestMethod, "GET", nil)
-	attrs.Agent.Add(attributeRequestURI, "/url", nil) // disabled by configuration
+	attrs.Agent.Add(AttributeResponseContentLength, "", 123)
+	attrs.Agent.Add(AttributeRequestMethod, "GET", nil)
+	attrs.Agent.Add(AttributeRequestURI, "/url", nil) // disabled by configuration
 
-	outstr, outother = attrs.GetAgentValue(attributeResponseHeadersContentLength, destTxnTrace)
+	outstr, outother = attrs.GetAgentValue(AttributeResponseContentLength, destTxnTrace)
 	if outstr != "" || outother != 123 {
 		t.Error(outstr, outother)
 	}
-	outstr, outother = attrs.GetAgentValue(attributeRequestMethod, destTxnTrace)
+	outstr, outother = attrs.GetAgentValue(AttributeRequestMethod, destTxnTrace)
 	if outstr != "GET" || outother != nil {
 		t.Error(outstr, outother)
 	}
-	outstr, outother = attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
+	outstr, outother = attrs.GetAgentValue(AttributeRequestURI, destTxnTrace)
 	if outstr != "" || outother != nil {
 		t.Error(outstr, outother)
 	}
