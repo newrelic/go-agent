@@ -25,8 +25,8 @@ func StreamingSubWrapper(app *newrelic.Application, f func(msg *stan.Msg)) func(
 		txn := app.StartTransaction(namer.Name())
 		defer txn.End()
 
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, msg.MsgProto.Subject, nil)
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageReplyTo, msg.MsgProto.Reply, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, msg.MsgProto.Subject, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageReplyTo, msg.MsgProto.Reply, nil)
 
 		f(msg)
 	}

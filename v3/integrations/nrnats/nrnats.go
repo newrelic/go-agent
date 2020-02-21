@@ -54,9 +54,9 @@ func SubWrapper(app *newrelic.Application, f func(msg *nats.Msg)) func(msg *nats
 		txn := app.StartTransaction(namer.Name())
 		defer txn.End()
 
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageQueueName, msg.Sub.Queue, nil)
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageReplyTo, msg.Reply, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageQueueName, msg.Sub.Queue, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageReplyTo, msg.Reply, nil)
 
 		f(msg)
 	}

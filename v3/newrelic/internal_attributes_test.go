@@ -605,11 +605,11 @@ func TestMessageAttributes(t *testing.T) {
 	app := testApp(nil, nil, t)
 
 	txn := app.StartTransaction("hello1")
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageRoutingKey, "myRoutingKey", nil)
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageExchangeType, "myExchangeType", nil)
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageCorrelationID, "myCorrelationID", nil)
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageQueueName, "myQueueName", nil)
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeMessageReplyTo, "myReplyTo", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageRoutingKey, "myRoutingKey", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageExchangeType, "myExchangeType", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageCorrelationID, "myCorrelationID", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageQueueName, "myQueueName", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageReplyTo, "myReplyTo", nil)
 	txn.End()
 
 	txn = app.StartTransaction("hello2")

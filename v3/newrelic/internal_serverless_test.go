@@ -225,7 +225,7 @@ func TestServerlessJSON(t *testing.T) {
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
-	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(internal.AttributeAWSLambdaARN, "thearn", nil)
+	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeAWSLambdaARN, "thearn", nil)
 	txn.End()
 
 	buf := &bytes.Buffer{}

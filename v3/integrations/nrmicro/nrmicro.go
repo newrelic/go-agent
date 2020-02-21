@@ -203,7 +203,7 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 			}
 			txn := app.StartTransaction(namer.Name())
 			defer txn.End()
-			integrationsupport.AddAgentAttribute(txn, internal.AttributeMessageRoutingKey, m.Topic(), nil)
+			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, m.Topic(), nil)
 			if md, ok := metadata.FromContext(ctx); ok {
 				hdrs := http.Header{}
 				for k, v := range md {
