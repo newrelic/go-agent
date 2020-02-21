@@ -7,7 +7,10 @@ import (
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
 // safely be ended.
-type SegmentStartTime struct{ segment }
+type SegmentStartTime struct {
+	start  segmentStartTime
+	thread *thread
+}
 
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
