@@ -28,6 +28,9 @@ type appRun struct {
 	// between transactions.
 	rulesCache *rulesCache
 
+	// harvestConfig contains configuration related to event limits and
+	// flexible harvest periods.  This field is created once at appRun
+	// creation.
 	harvestConfig harvestConfig
 }
 
