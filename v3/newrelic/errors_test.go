@@ -114,11 +114,11 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 func TestErrorTraceAttributes(t *testing.T) {
 	aci := config{Config: defaultConfig()}
 	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, "zap")
-	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, attributeHostDisplayName.name())
+	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, AttributeHostDisplayName)
 	cfg := createAttributeConfig(aci, true)
 	attr := newAttributes(cfg)
-	attr.Agent.Add(attributeHostDisplayName, "exclude me", nil)
-	attr.Agent.Add(attributeRequestURI, "my_request_uri", nil)
+	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
+	attr.Agent.Add(AttributeRequestURI, "my_request_uri", nil)
 	addUserAttribute(attr, "zap", 123, destAll)
 	addUserAttribute(attr, "zip", 456, destAll)
 
@@ -169,11 +169,11 @@ func TestErrorTraceAttributes(t *testing.T) {
 func TestErrorTraceAttributesOldCAT(t *testing.T) {
 	aci := config{Config: defaultConfig()}
 	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, "zap")
-	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, attributeHostDisplayName.name())
+	aci.ErrorCollector.Attributes.Exclude = append(aci.ErrorCollector.Attributes.Exclude, AttributeHostDisplayName)
 	cfg := createAttributeConfig(aci, true)
 	attr := newAttributes(cfg)
-	attr.Agent.Add(attributeHostDisplayName, "exclude me", nil)
-	attr.Agent.Add(attributeRequestURI, "my_request_uri", nil)
+	attr.Agent.Add(AttributeHostDisplayName, "exclude me", nil)
+	attr.Agent.Add(AttributeRequestURI, "my_request_uri", nil)
 	addUserAttribute(attr, "zap", 123, destAll)
 	addUserAttribute(attr, "zip", 456, destAll)
 
@@ -334,7 +334,7 @@ func BenchmarkErrorsJSON(b *testing.B) {
 
 	cfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(cfg)
-	attr.Agent.Add(attributeRequestMethod, "GET", nil)
+	attr.Agent.Add(AttributeRequestMethod, "GET", nil)
 	addUserAttribute(attr, "zip", 456, destAll)
 
 	he := newHarvestErrors(max)

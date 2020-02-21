@@ -18,7 +18,7 @@ func TestBrowserAttributes(t *testing.T) {
 	a := newAttributes(createAttributeConfig(config, true))
 	addUserAttribute(a, "user", "thing", destBrowser)
 	addUserAttribute(a, "not", "shown", destError)
-	a.Agent.Add(attributeHostDisplayName, "host", nil)
+	a.Agent.Add(AttributeHostDisplayName, "host", nil)
 
 	expected := `{"u":{"user":"thing"},"a":{}}`
 	actual := string(browserAttributes(a))

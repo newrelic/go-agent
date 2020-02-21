@@ -19,7 +19,7 @@ func TestEmptySlowQueriesData(t *testing.T) {
 func TestSlowQueriesBasic(t *testing.T) {
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/zip/zap", nil)
+	attr.Agent.Add(AttributeRequestURI, "/zip/zap", nil)
 	txnEvent := txnEvent{
 		FinalName: "WebTransaction/Go/hello",
 		Duration:  3 * time.Second,
@@ -85,7 +85,7 @@ func TestSlowQueriesExcludeURI(t *testing.T) {
 	c.Attributes.Exclude = []string{"request.uri"}
 	acfg := createAttributeConfig(c, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/zip/zap", nil)
+	attr.Agent.Add(AttributeRequestURI, "/zip/zap", nil)
 	txnEvent := txnEvent{
 		FinalName: "WebTransaction/Go/hello",
 		Duration:  3 * time.Second,
@@ -203,7 +203,7 @@ func TestSlowQueriesAggregation(t *testing.T) {
 func TestSlowQueriesBetterCAT(t *testing.T) {
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attr := newAttributes(acfg)
-	attr.Agent.Add(attributeRequestURI, "/zip/zap", nil)
+	attr.Agent.Add(AttributeRequestURI, "/zip/zap", nil)
 	txnEvent := txnEvent{
 		FinalName: "WebTransaction/Go/hello",
 		Duration:  3 * time.Second,

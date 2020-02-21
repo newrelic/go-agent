@@ -436,7 +436,7 @@ func expectSlowQuery(t internal.Validator, slowQuery *slowQuery, want internal.W
 	if slowQuery.Count != want.Count {
 		t.Error("wrong Count field", slowQuery.Count, want.Count)
 	}
-	uri, _ := slowQuery.txnEvent.Attrs.GetAgentValue(attributeRequestURI, destTxnTrace)
+	uri, _ := slowQuery.txnEvent.Attrs.GetAgentValue(AttributeRequestURI, destTxnTrace)
 	validateStringField(t, "MetricName", slowQuery.DatastoreMetric, want.MetricName)
 	validateStringField(t, "Query", slowQuery.ParameterizedQuery, want.Query)
 	validateStringField(t, "TxnEvent.FinalName", slowQuery.txnEvent.FinalName, want.TxnName)

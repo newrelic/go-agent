@@ -217,7 +217,7 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	jsonx.AppendString(buf, trace.FinalName)
 	buf.WriteByte(',')
-	if uri, _ := trace.Attrs.GetAgentValue(attributeRequestURI, destTxnTrace); "" != uri {
+	if uri, _ := trace.Attrs.GetAgentValue(AttributeRequestURI, destTxnTrace); "" != uri {
 		jsonx.AppendString(buf, uri)
 	} else {
 		buf.WriteString("null")

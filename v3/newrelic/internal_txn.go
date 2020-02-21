@@ -91,7 +91,7 @@ func newTxn(app *app, run *appRun, name string) *thread {
 		txn.ShouldCollectSpanEvents = txn.shouldCollectSpanEvents
 	}
 
-	txn.Attrs.Agent.Add(attributeHostDisplayName, txn.Config.HostDisplayName, nil)
+	txn.Attrs.Agent.Add(AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
 	txn.TxnTrace.Enabled = txn.Config.TransactionTracer.Enabled
 	txn.TxnTrace.SegmentThreshold = txn.Config.TransactionTracer.Segments.Threshold
 	txn.TxnTrace.StackTraceThreshold = txn.Config.TransactionTracer.Segments.StackTraceThreshold
@@ -1150,13 +1150,7 @@ func (txn *txn) AddAgentAttribute(name string, stringVal string, otherVal interf
 	if txn.finished {
 		return
 	}
-	// This lookup should always succeed:  A failure is indication that an
-	// integration is using an invalid name.
-	id, ok := agentAttributesByName[name]
-	if !ok {
-		return
-	}
-	txn.Attrs.Agent.Add(id, stringVal, otherVal)
+	txn.Attrs.Agent.Add(name, stringVal, otherVal)
 }
 
 func (thd *thread) GetTraceMetadata() (metadata TraceMetadata) {
