@@ -45,7 +45,7 @@ func requestEvent(ctx context.Context, event interface{}) {
 	}
 
 	if sourceARN := getEventSourceARN(event); "" != sourceARN {
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
 	}
 
 	if request := eventWebRequest(event); nil != request {
@@ -76,10 +76,10 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 	txn := h.app.StartTransaction(h.functionName)
 	defer txn.End()
 
-	integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSRequestID, requestID, nil)
-	integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaARN, arn, nil)
+	integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSRequestID, requestID, nil)
+	integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaARN, arn, nil)
 	h.firstTransaction.Do(func() {
-		integrationsupport.AddAgentAttribute(txn, internal.AttributeAWSLambdaColdStart, "", true)
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaColdStart, "", true)
 	})
 
 	ctx = newrelic.NewContext(ctx, txn)

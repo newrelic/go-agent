@@ -19,21 +19,6 @@ func ServerlessWrite(app interface{}, arn string, writer io.Writer) {
 	}
 }
 
-// These are agent attributes that are used in integration packages.  They are
-// duplicated in the newrelic package.  They exist here to ensure that
-// integrations get the spelling right.
-const (
-	AttributeAWSRequestID            = "aws.requestId"
-	AttributeAWSLambdaARN            = "aws.lambda.arn"
-	AttributeAWSLambdaColdStart      = "aws.lambda.coldStart"
-	AttributeAWSLambdaEventSourceARN = "aws.lambda.eventSource.arn"
-	AttributeMessageRoutingKey       = "message.routingKey"
-	AttributeMessageQueueName        = "message.queueName"
-	AttributeMessageExchangeType     = "message.exchangeType"
-	AttributeMessageReplyTo          = "message.replyTo"
-	AttributeMessageCorrelationID    = "message.correlationId"
-)
-
 // AddAgentAttributer allows instrumentation to add agent attributes without
 // exposing a Transaction method.
 type AddAgentAttributer interface {
