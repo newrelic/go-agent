@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"bytes"
 	"encoding/json"
 )
 
@@ -77,4 +78,19 @@ func (h *BrowserTimingHeader) WithoutTags() []byte {
 	}
 
 	return appendSlices([]byte(h.agentLoader), browserInfoPrefix, info)
+}
+
+// browserAttributes returns a string with the attributes that are attached to
+// the browser destination encoded in the JSON format expected by the Browser
+// agent.
+func browserAttributes(a *attributes) []byte {
+	buf := &bytes.Buffer{}
+
+	buf.WriteString(`{"u":`)
+	userAttributesJSON(a, buf, destBrowser, nil)
+	buf.WriteString(`,"a":`)
+	agentAttributesJSON(a, buf, destBrowser)
+	buf.WriteByte('}')
+
+	return buf.Bytes()
 }
