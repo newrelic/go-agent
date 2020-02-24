@@ -646,10 +646,8 @@ func (thd *thread) StartSegmentNow() SegmentStartTime {
 	}
 	txn.Unlock()
 	return SegmentStartTime{
-		segment: segment{
-			start:  s,
-			thread: thd,
-		},
+		start:  s,
+		thread: thd,
 	}
 }
 
@@ -740,11 +738,6 @@ func (thd *thread) NewGoroutine() *Transaction {
 		thread: createThread(txn),
 		txn:    txn,
 	})
-}
-
-type segment struct {
-	start  segmentStartTime
-	thread *thread
 }
 
 func endBasic(s *Segment) error {
