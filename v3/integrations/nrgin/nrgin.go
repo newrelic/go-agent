@@ -91,9 +91,29 @@ func Transaction(c Context) *newrelic.Transaction {
 	return nil
 }
 
-func getName(c interface{}) string {
+type config struct {
+	useFullPath bool
+}
+
+func newDefaultConfig() config {
+	return config{
+		useFullPath: false,
+	}
+}
+
+type ConfigOption struct {
+	f func(*config)
+}
+
+func ConfigUseFullPath(use bool) ConfigOption {
+	return ConfigOption{
+		f: func(cfg *config) { cfg.useFullPath = use },
+	}
+}
+
+func getName(c interface{}, cfg config) string {
 	var name string
-	if fp, ok := c.(interface{ FullPath() string }); ok {
+	if fp, ok := c.(interface{ FullPath() string }); ok && cfg.useFullPath {
 		name = fp.FullPath()
 	} else if hn, ok := c.(interface{ HandlerName() string }); ok {
 		name = hn.HandlerName()
@@ -107,10 +127,14 @@ func getName(c interface{}) string {
 //	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
-func Middleware(app *newrelic.Application) gin.HandlerFunc {
+func Middleware(app *newrelic.Application, options ...ConfigOption) gin.HandlerFunc {
+	cfg := newDefaultConfig()
+	for _, co := range options {
+		co.f(&cfg)
+	}
 	return func(c *gin.Context) {
 		if app != nil {
-			name := c.Request.Method + " " + getName(c)
+			name := c.Request.Method + " " + getName(c, cfg)
 
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name)
