@@ -101,24 +101,27 @@ func newDefaultConfig() config {
 	}
 }
 
+// ConfigOption TODO
 type ConfigOption struct {
 	f func(*config)
 }
 
+// ConfigUseFullPath TODO
 func ConfigUseFullPath(use bool) ConfigOption {
 	return ConfigOption{
 		f: func(cfg *config) { cfg.useFullPath = use },
 	}
 }
 
-func getName(c interface{}, cfg config) string {
-	var name string
+type handlerNamer interface {
+	HandlerName() string
+}
+
+func getName(c handlerNamer, cfg config) string {
 	if fp, ok := c.(interface{ FullPath() string }); ok && cfg.useFullPath {
-		name = fp.FullPath()
-	} else if hn, ok := c.(interface{ HandlerName() string }); ok {
-		name = hn.HandlerName()
+		return fp.FullPath()
 	}
-	return name
+	return c.HandlerName()
 }
 
 // Middleware creates a Gin middleware that instruments requests.
