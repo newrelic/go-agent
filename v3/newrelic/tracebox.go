@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
@@ -15,54 +16,120 @@ import (
 )
 
 type traceBox struct {
-	apiKey        string
-	conn          *grpc.ClientConn
-	serviceClient v1.IngestServiceClient
-	spanClient    v1.IngestService_RecordSpanClient
+	messages chan *internal.SpanEvent
 }
 
 const (
-	apiKeyMetadataKey = "api_key"
+	apiKeyMetadataKey        = "api_key"
+	traceboxMessageQueueSize = 1000
 )
 
-func newTraceBox(endpoint, apiKey string) (*traceBox, error) {
+var (
+	traceBoxBackoffStrategy = []time.Duration{
+		15 * time.Second,
+		15 * time.Second,
+		30 * time.Second,
+		60 * time.Second,
+		120 * time.Second,
+		300 * time.Second,
+	}
+)
+
+func getTraceBoxBackoff(attempt int) time.Duration {
+	if attempt < len(traceBoxBackoffStrategy) {
+		return traceBoxBackoffStrategy[attempt]
+	}
+	return traceBoxBackoffStrategy[len(traceBoxBackoffStrategy)-1]
+}
+
+func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
+	messages := make(chan *internal.SpanEvent, traceboxMessageQueueSize)
+
+	go func() {
+		attempts := 0
+		for {
+			err := spawnConnection(endpoint, apiKey, lg, messages)
+			if nil != err {
+				// TODO: Maybe decide if a reconnect should be
+				// tried.
+				fmt.Println(err)
+			}
+			time.Sleep(getTraceBoxBackoff(attempts))
+			attempts++
+
+		}
+	}()
+
+	return &traceBox{messages: messages}, nil
+}
+
+func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *internal.SpanEvent) error {
+
+	responseError := make(chan error, 1)
+
 	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	if nil != err {
-		return nil, err
+		return fmt.Errorf("unable to dial grpc endpoint %s: %v", endpoint, err)
 	}
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
-	ctx := context.Background()
-
-	// TODO: This commented code does not work, dunno why.  Only the
-	// metadata.AppendToOutgoingContext pattern works.
-	//
-	// md := metadata.New(map[string]string{
-	// 	apiKeyMetadataKey: apiKey,
-	// })
-	// opt := grpc.Header(&md)
-	// spanClient, err := serviceClient.RecordSpan(ctx, opt)
-
-	spanClient, err := serviceClient.RecordSpan(metadata.AppendToOutgoingContext(ctx, "api_key", apiKey))
+	spanClient, err := serviceClient.RecordSpan(metadata.AppendToOutgoingContext(context.Background(), "api_key", apiKey))
 	if nil != err {
-		fmt.Println("unable to spanClient", err.Error())
-		return nil, err
+		return fmt.Errorf("unable to create span client: %v", err)
 	}
 
 	go func() {
 		for {
 			status, err := spanClient.Recv()
-			fmt.Println("spanClient.Recv", "status:", status, "err:", err)
+			if nil != err {
+				lg.Error("trace box response error", map[string]interface{}{
+					"err": err.Error(),
+				})
+				responseError <- err
+				return
+			}
+			lg.Debug("trace box response", map[string]interface{}{
+				"messages_seen": status.GetMessagesSeen(),
+			})
 		}
 	}()
 
-	return &traceBox{
-		conn:          conn,
-		apiKey:        apiKey,
-		serviceClient: serviceClient,
-		spanClient:    spanClient,
-	}, nil
+	for {
+		var err error
+		var event *internal.SpanEvent
+		select {
+		case err = <-responseError:
+		case event = <-messages:
+		}
+		if nil != err {
+			lg.Debug("trace box sender received response error", map[string]interface{}{
+				"err": err.Error(),
+			})
+			break
+		}
+		span := transformEvent(event)
+		lg.Debug("sending span to trace box", map[string]interface{}{
+			"name": event.Name,
+		})
+		err = spanClient.Send(span)
+		if nil != err {
+			lg.Debug("trace box sender send error", map[string]interface{}{
+				"err": err.Error(),
+			})
+			break
+		}
+	}
+
+	lg.Debug("closing trace box sender", map[string]interface{}{})
+	err = spanClient.CloseSend()
+	if nil != err {
+		lg.Debug("error closing trace box sender", map[string]interface{}{
+			"err": err.Error(),
+		})
+	}
+
+	return nil
 }
 
 func mtbString(s string) *v1.AttributeValue {
@@ -130,14 +197,23 @@ func transformEvent(e *internal.SpanEvent) *v1.Span {
 	return span
 }
 
-func (tb *traceBox) sendSpans(events []*internal.SpanEvent) {
-	for _, e := range events {
-		span := transformEvent(e)
-		fmt.Println("sending span", e.Name)
-		err := tb.spanClient.Send(span)
-		if nil != err {
-			// TODO: Deal with this.
-			fmt.Println("spanClient.Send error", err.Error())
-		}
+// func (tb *traceBox) sendSpans(events []*internal.SpanEvent) {
+// 	for _, e := range events {
+// 		span := transformEvent(e)
+// 		fmt.Println("sending span", e.Name)
+// 		err := tb.spanClient.Send(span)
+// 		if nil != err {
+// 			// TODO: Deal with this.
+// 			fmt.Println("spanClient.Send error", err.Error())
+// 		}
+// 	}
+// }
+
+func (tb *traceBox) consumeSpan(span *internal.SpanEvent) bool {
+	select {
+	case tb.messages <- span:
+		return true
+	default:
+		return false
 	}
 }

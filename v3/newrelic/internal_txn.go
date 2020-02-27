@@ -439,7 +439,9 @@ func (thd *thread) End(recovered interface{}) error {
 		// TODO: Think a lot more about the conditions under which
 		// we send these span events, and think about concurrency.
 		if box := txn.app.TraceBox; nil != box && txn.shouldCollectSpanEvents() {
-			box.sendSpans(txn.SpanEvents)
+			for _, evt := range txn.SpanEvents {
+				box.consumeSpan(evt)
+			}
 		}
 	}
 

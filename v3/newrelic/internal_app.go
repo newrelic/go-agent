@@ -361,7 +361,7 @@ func newApp(c config) *app {
 	// TODO: I think this should probably check for span events enabled, etc.
 	if "" != c.MTB.Endpoint {
 		// MTB.APIKey presence is validated in Config.validate.
-		box, err := newTraceBox(c.MTB.Endpoint, c.MTB.APIKey)
+		box, err := newTraceBox(c.MTB.Endpoint, c.MTB.APIKey, c.Logger)
 		if nil != err {
 			// TODO: Perhaps figure out how to make a supportability
 			// metric here.
