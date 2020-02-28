@@ -59,16 +59,19 @@ func TestStartExternalSegmentNilTransaction(t *testing.T) {
 		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
 	})
 }
+
 func TestNewRoundTripperNilTransaction(t *testing.T) {
 	// Test that NewRoundTripper pulls the transaction from the
 	// request's context if it is not explicitly provided.
 
-	app := testApp(nil, nil, t)
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
 	txn := app.StartTransaction("myTxn")
 
 	client := &http.Client{}
 	client.Transport = roundTripperFunc(func(*http.Request) (*http.Response, error) {
-		return &http.Response{}, nil
+		return &http.Response{
+			StatusCode: 202,
+		}, nil
 	})
 	client.Transport = NewRoundTripper(client.Transport)
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -78,13 +81,44 @@ func TestNewRoundTripperNilTransaction(t *testing.T) {
 
 	scope := "OtherTransaction/Go/myTxn"
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/myTxn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/example.com/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/example.com/http/GET", Scope: scope, Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/myTxn", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
+		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":  "http",
+				"component": "http",
+				"name":      "External/example.com/http/GET",
+				"parentId":  internal.MatchAnything,
+				"span.kind": "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"http.method":     "GET",
+				"http.statusCode": 202,
+				"http.url":        "http://example.com",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category":      "generic",
+				"name":          "OtherTransaction/Go/myTxn",
+				"nr.entryPoint": true,
+				"sampled":       true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
 	})
 }
