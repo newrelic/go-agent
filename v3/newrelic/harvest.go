@@ -306,9 +306,8 @@ func createTxnMetrics(args *txnData, metrics *metricTable) {
 }
 
 var (
-	// dfltHarvestCfgr implements harvestConfigurer for internal test cases,
-	// and for situations where we don't have a ConnectReply, such as for
-	// serverless harvests
+	// dfltHarvestCfgr is use in internal test cases, and for situations
+	// where we don't have a ConnectReply, such as for serverless harvests
 	dfltHarvestCfgr = harvestConfig{
 		ReportPeriods:   map[harvestTypes]time.Duration{harvestTypesAll: fixedHarvestPeriod},
 		MaxTxnEvents:    internal.MaxTxnEvents,
