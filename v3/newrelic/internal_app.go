@@ -61,7 +61,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, run)
+	h.CreateFinalMetrics(run.Reply, run.harvestConfig)
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -236,7 +236,7 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
-			h = newHarvest(time.Now(), run)
+			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
 
 			app.Info("application connected", map[string]interface{}{
@@ -384,7 +384,7 @@ func (app *app) HarvestTesting(replyfn func(*internal.ConnectReply)) {
 		replyfn(reply)
 		app.placeholderRun = newAppRun(app.config, reply)
 	}
-	app.testHarvest = newHarvest(time.Now(), &dfltHarvestCfgr{})
+	app.testHarvest = newHarvest(time.Now(), app.placeholderRun.harvestConfig)
 }
 
 func (app *app) getState() (*appRun, error) {

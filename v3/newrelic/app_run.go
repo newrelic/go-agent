@@ -27,6 +27,11 @@ type appRun struct {
 	// exists here since it is specific to a set of rules and is shared
 	// between transactions.
 	rulesCache *rulesCache
+
+	// harvestConfig contains configuration related to event limits and
+	// flexible harvest periods.  This field is created once at appRun
+	// creation.
+	harvestConfig harvestConfig
 }
 
 const (
@@ -106,6 +111,14 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
 			"config": jsonString(js),
 		})
+	}
+
+	run.harvestConfig = harvestConfig{
+		ReportPeriods:   run.ReportPeriods(),
+		MaxTxnEvents:    run.MaxTxnEvents(),
+		MaxCustomEvents: run.MaxCustomEvents(),
+		MaxErrorEvents:  run.MaxErrorEvents(),
+		MaxSpanEvents:   run.MaxSpanEvents(),
 	}
 
 	return run
