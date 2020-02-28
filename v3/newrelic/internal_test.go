@@ -1447,7 +1447,10 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	req, _ := http.NewRequest("GET", "https://www.something.com/path/zip/zap?secret=ssshhh", nil)
-	resp := &http.Response{Request: req}
+	resp := &http.Response{
+		Request:    req,
+		StatusCode: 13,
+	}
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		Response:  resp,
@@ -1480,7 +1483,7 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
-				"http.statusCode": 0,
+				"http.statusCode": 13,
 			},
 		},
 		{
