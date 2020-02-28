@@ -155,6 +155,12 @@ func (s stringJSONWriter) WriteJSON(buf *bytes.Buffer) {
 	jsonx.AppendString(buf, string(s))
 }
 
+type intJSONWriter int
+
+func (i intJSONWriter) WriteJSON(buf *bytes.Buffer) {
+	jsonx.AppendInt(buf, int64(i))
+}
+
 // spanAttributeMap is used for span attributes and segment attributes. The
 // value is a jsonWriter to allow for segment query parameters.
 type spanAttributeMap map[spanAttribute]jsonWriter
@@ -163,6 +169,10 @@ func (m *spanAttributeMap) addString(key spanAttribute, val string) {
 	if "" != val {
 		m.add(key, stringJSONWriter(val))
 	}
+}
+
+func (m *spanAttributeMap) addInt(key spanAttribute, val int) {
+	m.add(key, intJSONWriter(val))
 }
 
 func (m *spanAttributeMap) add(key spanAttribute, val jsonWriter) {
@@ -479,6 +489,9 @@ func endExternalSegment(p endExternalParams) error {
 		if p.Library == "http" {
 			evt.Attributes.addString(spanAttributeHTTPURL, safeURL(p.URL))
 			evt.Attributes.addString(spanAttributeHTTPMethod, p.Method)
+		}
+		if p.Response != nil {
+			evt.Attributes.addInt(spanAttributeHTTPStatusCode, p.Response.StatusCode)
 		}
 		t.saveSpanEvent(evt)
 	}

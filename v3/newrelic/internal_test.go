@@ -1476,10 +1476,11 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 				"component": "grpc",
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
+				"http.statusCode": 0,
 			},
 		},
 		{

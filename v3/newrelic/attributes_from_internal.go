@@ -16,13 +16,14 @@ type spanAttribute string
 // These span event string constants must match the contents of the top level
 // attributes.go file.
 const (
-	spanAttributeDBStatement  spanAttribute = "db.statement"
-	spanAttributeDBInstance   spanAttribute = "db.instance"
-	spanAttributeDBCollection spanAttribute = "db.collection"
-	spanAttributePeerAddress  spanAttribute = "peer.address"
-	spanAttributePeerHostname spanAttribute = "peer.hostname"
-	spanAttributeHTTPURL      spanAttribute = "http.url"
-	spanAttributeHTTPMethod   spanAttribute = "http.method"
+	spanAttributeDBStatement    spanAttribute = "db.statement"
+	spanAttributeDBInstance     spanAttribute = "db.instance"
+	spanAttributeDBCollection   spanAttribute = "db.collection"
+	spanAttributePeerAddress    spanAttribute = "peer.address"
+	spanAttributePeerHostname   spanAttribute = "peer.hostname"
+	spanAttributeHTTPURL        spanAttribute = "http.url"
+	spanAttributeHTTPMethod     spanAttribute = "http.method"
+	spanAttributeHTTPStatusCode spanAttribute = "http.statusCode"
 	// query parameters only appear in segments, not span events, but is
 	// listed as span attributes to simplify code.
 	spanAttributeQueryParameters spanAttribute = "query_parameters"
@@ -75,6 +76,7 @@ var (
 		spanAttributePeerHostname,
 		spanAttributeHTTPURL,
 		spanAttributeHTTPMethod,
+		spanAttributeHTTPStatusCode,
 		spanAttributeQueryParameters,
 		spanAttributeAWSOperation,
 		spanattributeAWSRequestID,
