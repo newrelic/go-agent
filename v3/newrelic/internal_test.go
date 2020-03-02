@@ -42,6 +42,12 @@ var (
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: singleCount},
 		{Name: "Errors/OtherTransaction/Go/hello", Scope: "", Forced: true, Data: singleCount},
 	}, backgroundMetrics...)
+	backgroundErrorMetricsUnknownCaller = append([]internal.WantMetric{
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+	}, backgroundErrorMetrics...)
 )
 
 type recordedLogMessage struct {
