@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -217,6 +218,33 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 		p["tracestate.sampled"] = sSplit[6]
 		p["tracestate.priority"] = sSplit[7]
 		p["tracestate.timestamp"] = sSplit[8]
+	}
+
+	nHdr := hdrs.Get("newrelic")
+	decoded, err := base64.StdEncoding.DecodeString(nHdr)
+	if err != nil {
+		t.Error("failure to decode newrelic header: ", err)
+	}
+	nrPayload := struct {
+		Version [2]int  `json:"v"`
+		Data    payload `json:"d"`
+	}{}
+	if err := json.Unmarshal(decoded, &nrPayload); nil != err {
+		t.Error("unable to unmarshall newrelic header: ", err)
+	}
+	p["newrelic.v"] = fmt.Sprintf("%v", nrPayload.Version)
+	p["newrelic.d.ac"] = nrPayload.Data.Account
+	p["newrelic.d.ap"] = nrPayload.Data.App
+	p["newrelic.d.id"] = nrPayload.Data.ID
+	p["newrelic.d.pr"] = fmt.Sprintf("%v", nrPayload.Data.Priority)
+	p["newrelic.d.ti"] = fmt.Sprintf("%v", nrPayload.Data.Timestamp)
+	p["newrelic.d.tr"] = nrPayload.Data.TracedID
+	p["newrelic.d.tx"] = nrPayload.Data.TransactionID
+	p["newrelic.d.ty"] = nrPayload.Data.Type
+	if *nrPayload.Data.Sampled {
+		p["newrelic.d.sa"] = "1"
+	} else {
+		p["newrelic.d.sa"] = "0"
 	}
 
 	// Affirm that the exact values are in the payload.
