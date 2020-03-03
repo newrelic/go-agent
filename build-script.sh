@@ -1,7 +1,7 @@
 set -x
 set -e
 
-LATEST_VERSION="go1.13"
+LATEST_VERSION="go1.14"
 
 pwd=`pwd`
 
