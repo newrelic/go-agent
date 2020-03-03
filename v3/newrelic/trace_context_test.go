@@ -29,6 +29,7 @@ type TraceContextTestCase struct {
 	RaisesException   bool                `json:"raises_exception"`
 	ForceSampledTrue  bool                `json:"force_sampled_true"`
 	SpanEventsEnabled bool                `json:"span_events_enabled"`
+	TxnEventsEnabled  bool                `json:"transaction_events_enabled"`
 	TransportType     string              `json:"transport_type"`
 	InboundHeaders    []map[string]string `json:"inbound_headers"`
 	OutboundPayloads  []fieldExpect       `json:"outbound_payloads,omitempty"`
@@ -66,9 +67,11 @@ func TestCrossAgentW3CTraceContext(t *testing.T) {
 }
 
 func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
-	configCallback := enableDistributedTracing
-	if !tc.SpanEventsEnabled {
-		configCallback = disableSpanEventsConfig
+	configCallback := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Enabled = tc.SpanEventsEnabled
+		cfg.TransactionEvents.Enabled = tc.TxnEventsEnabled
 	}
 
 	app := testApp(func(reply *internal.ConnectReply) {
@@ -157,17 +160,6 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 				extraErrorFields)
 		}
 	}
-}
-
-func enableDistributedTracing(cfg *Config) {
-	cfg.CrossApplicationTracer.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-}
-
-func disableSpanEventsConfig(cfg *Config) {
-	cfg.CrossApplicationTracer.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.SpanEvents.Enabled = false
 }
 
 // getTransport ensures that our transport names match cross agent test values.
