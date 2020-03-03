@@ -186,6 +186,7 @@ func headersFromStringMap(hdrs []map[string]string) http.Header {
 func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.Header) {
 	p := make(map[string]string)
 
+	// prepare traceparent header
 	pHdr := hdrs.Get("traceparent")
 	pSplit := strings.Split(pHdr, "-")
 	if len(pSplit) != 4 {
@@ -197,6 +198,7 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 	p["traceparent.parent_id"] = pSplit[2]
 	p["traceparent.trace_flags"] = pSplit[3]
 
+	// prepare tracestate header
 	sHdr := hdrs.Get("tracestate")
 	sSplit := strings.Split(sHdr, "-")
 	if len(sSplit) >= 9 {
@@ -212,6 +214,7 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 		p["tracestate.timestamp"] = sSplit[8]
 	}
 
+	// prepare newrelic header
 	nHdr := hdrs.Get("newrelic")
 	decoded, err := base64.StdEncoding.DecodeString(nHdr)
 	if err != nil {
