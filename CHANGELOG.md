@@ -1,5 +1,23 @@
 # ChangeLog
 
+### Changes
+
+* Use
+  [`Context.FullPath()`](https://godoc.org/github.com/gin-gonic/gin#Context.FullPath)
+  for transaction names when using Gin version 1.5.0 or greater.  Gin
+  Transactions were formally named after the
+  [`Context.HandlerName()`](https://godoc.org/github.com/gin-gonic/gin#Context.HandlerName)
+  which uses reflection.  This change both improves transaction naming and
+  overhead.  Please note that because your transaction names will change, you
+  may have to update any related dashboards and alerts to match the new name.
+
+  ```go
+  // Transactions previously named
+  "GET main.handleGetUsers"
+  // will be change to something like this match the full path
+  "GET /user/:id"
+  ```
+
 ## 3.3.0
 
 ### New Features
