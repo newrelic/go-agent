@@ -396,16 +396,17 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 
 // endExternalParams contains the parameters for endExternalSegment.
 type endExternalParams struct {
-	TxnData  *txnData
-	Thread   *tracingThread
-	Start    segmentStartTime
-	Now      time.Time
-	Logger   logger.Logger
-	Response *http.Response
-	URL      *url.URL
-	Host     string
-	Library  string
-	Method   string
+	TxnData    *txnData
+	Thread     *tracingThread
+	Start      segmentStartTime
+	Now        time.Time
+	Logger     logger.Logger
+	Response   *http.Response
+	URL        *url.URL
+	Host       string
+	Library    string
+	Method     string
+	StatusCode *int
 }
 
 // endExternalSegment ends an external segment.
@@ -490,7 +491,9 @@ func endExternalSegment(p endExternalParams) error {
 			evt.Attributes.addString(spanAttributeHTTPURL, safeURL(p.URL))
 			evt.Attributes.addString(spanAttributeHTTPMethod, p.Method)
 		}
-		if p.Response != nil {
+		if p.StatusCode != nil {
+			evt.Attributes.addInt(spanAttributeHTTPStatusCode, *p.StatusCode)
+		} else if p.Response != nil {
 			evt.Attributes.addInt(spanAttributeHTTPStatusCode, p.Response.StatusCode)
 		}
 		t.saveSpanEvent(evt)

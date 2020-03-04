@@ -94,6 +94,8 @@ type ExternalSegment struct {
 	// external metrics and the "component" span attribute.  It should be
 	// the framework making the external call.
 	Library string
+	// statusCode TODO
+	statusCode *int
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -181,6 +183,11 @@ func (s *MessageProducerSegment) End() {
 			"destination-name": s.DestinationName,
 		})
 	}
+}
+
+// SetStatusCode TODO
+func (s *ExternalSegment) SetStatusCode(code int) {
+	s.statusCode = &code
 }
 
 // outboundHeaders returns the headers that should be attached to the external
