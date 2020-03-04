@@ -200,6 +200,19 @@ func ExampleStartExternalSegment_context() {
 	segment.End()
 }
 
+func doSendRequest(*http.Request) int { return 418 }
+
+// Use ExternalSegment.SetStatusCode when you do not have access to an
+// http.Response and still want to record the response status code.
+func ExampleExternalSegment_SetStatusCode() {
+	txn := currentTransaction()
+	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	segment := newrelic.StartExternalSegment(txn, request)
+	statusCode := doSendRequest(request)
+	segment.SetStatusCode(statusCode)
+	segment.End()
+}
+
 func ExampleTransaction_SetWebRequest() {
 	app := getApp()
 	txn := app.StartTransaction("My-Transaction")
