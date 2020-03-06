@@ -8,7 +8,7 @@ import (
 )
 
 type replacementResponseWriter struct {
-	txn      *txn
+	thd      *thread
 	original http.ResponseWriter
 }
 
@@ -21,11 +21,11 @@ func (rw *replacementResponseWriter) Write(b []byte) (n int, err error) {
 
 	// This is safe to call unconditionally, even if Write() is called multiple
 	// times; see also the commentary in addCrossProcessHeaders().
-	addCrossProcessHeaders(rw.txn, hdr)
+	addCrossProcessHeaders(rw.thd.txn, hdr)
 
 	n, err = rw.original.Write(b)
 
-	headersJustWritten(rw.txn, http.StatusOK, hdr)
+	headersJustWritten(rw.thd, http.StatusOK, hdr)
 
 	return
 }
@@ -33,11 +33,11 @@ func (rw *replacementResponseWriter) Write(b []byte) (n int, err error) {
 func (rw *replacementResponseWriter) WriteHeader(code int) {
 	hdr := rw.original.Header()
 
-	addCrossProcessHeaders(rw.txn, hdr)
+	addCrossProcessHeaders(rw.thd.txn, hdr)
 
 	rw.original.WriteHeader(code)
 
-	headersJustWritten(rw.txn, code, hdr)
+	headersJustWritten(rw.thd, code, hdr)
 }
 
 func (rw *replacementResponseWriter) CloseNotify() <-chan bool {

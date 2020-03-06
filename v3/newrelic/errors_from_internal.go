@@ -57,6 +57,7 @@ type errorData struct {
 	ExtraAttributes map[string]interface{}
 	Msg             string
 	Klass           string
+	SpanID          string
 }
 
 // txnError combines error data with information about a transaction.  txnError is used for

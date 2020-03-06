@@ -627,3 +627,92 @@ func TestErrorClass(t *testing.T) {
 		}
 	}
 }
+
+func TestNoticeErrorSpanID(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	txn.NoticeError(myError{})
+	app.expectNoLoggedErrors(t)
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my msg",
+		Klass:   "newrelic.myError",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "newrelic.myError",
+			"error.message":   "my msg",
+			"guid":            "52fdfc072182654f",
+			"priority":        1.437714,
+			"sampled":         true,
+			"spanId":          "9566c74d10d1e2c6",
+			"traceId":         "52fdfc072182654f163f5f0f9a621d72",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetricsUnknownCaller)
+}
+
+func TestNoticeErrorWriteHeaderSpanID(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	txn.SetWebResponse(nil).WriteHeader(500)
+	app.expectNoLoggedErrors(t)
+	txn.End()
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "Internal Server Error",
+		Klass:   "500",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "500",
+			"error.message":   "Internal Server Error",
+			"guid":            "52fdfc072182654f",
+			"priority":        1.437714,
+			"sampled":         true,
+			"spanId":          "9566c74d10d1e2c6",
+			"traceId":         "52fdfc072182654f163f5f0f9a621d72",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetricsUnknownCaller)
+}
+
+func TestNoticeErrorPanicRecoverySpanID(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		enableBetterCAT(cfg)
+		cfg.ErrorCollector.RecordPanics = true
+	}
+	app := testApp(distributedTracingReplyFields, cfgfn, t)
+	func() {
+		defer func() {
+			if recovered := recover(); recovered == nil {
+				t.Error("no panic recovered")
+			}
+		}()
+		txn := app.StartTransaction("hello")
+		defer txn.End()
+		panic("oops")
+	}()
+	app.expectNoLoggedErrors(t)
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "oops",
+		Klass:   "panic",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "panic",
+			"error.message":   "oops",
+			"guid":            "52fdfc072182654f",
+			"priority":        1.437714,
+			"sampled":         true,
+			"spanId":          "9566c74d10d1e2c6",
+			"traceId":         "52fdfc072182654f163f5f0f9a621d72",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetricsUnknownCaller)
+}

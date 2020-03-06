@@ -25,6 +25,9 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("error.message", e.Msg)
 	w.floatField("timestamp", timeToFloatSeconds(e.When))
 	w.stringField("transactionName", e.FinalName)
+	if e.SpanID != "" {
+		w.stringField("spanId", e.SpanID)
+	}
 
 	sharedTransactionIntrinsics(&e.txnEvent, &w)
 	sharedBetterCATIntrinsics(&e.txnEvent, &w)

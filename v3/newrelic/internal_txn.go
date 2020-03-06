@@ -202,7 +202,7 @@ func (thd *thread) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
 	}
 
 	return upgradeResponseWriter(&replacementResponseWriter{
-		txn:      txn,
+		thd:      thd,
 		original: w,
 	})
 }
@@ -283,7 +283,8 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 	}
 }
 
-func headersJustWritten(txn *txn, code int, hdr http.Header) {
+func headersJustWritten(thd *thread, code int, hdr http.Header) {
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -301,7 +302,7 @@ func headersJustWritten(txn *txn, code int, hdr http.Header) {
 	if txn.appRun.responseCodeIsError(code) {
 		e := txnErrorFromResponseCode(time.Now(), code)
 		e.Stack = getStackTrace()
-		txn.noticeErrorInternal(e)
+		thd.noticeErrorInternal(e)
 	}
 }
 
@@ -360,7 +361,7 @@ func (thd *thread) End(recovered interface{}) error {
 	if nil != recovered {
 		e := txnErrorFromPanic(time.Now(), recovered)
 		e.Stack = getStackTrace()
-		txn.noticeErrorInternal(e)
+		thd.noticeErrorInternal(e)
 	}
 
 	txn.markEnd(time.Now(), thd.thread)
@@ -472,7 +473,8 @@ const (
 	securityPolicyErrorMsg = "message removed by security policy"
 )
 
-func (txn *txn) noticeErrorInternal(err errorData) error {
+func (thd *thread) noticeErrorInternal(err errorData) error {
+	txn := thd.txn
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsDisabled
 	}
@@ -488,7 +490,9 @@ func (txn *txn) noticeErrorInternal(err errorData) error {
 	if !txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled() {
 		err.Msg = securityPolicyErrorMsg
 	}
-
+	if txn.shouldCollectSpanEvents() {
+		err.SpanID = txn.CurrentSpanIdentifier(thd.thread)
+	}
 	txn.Errors.Add(err)
 	txn.txnData.txnEvent.HasError = true //mark transaction as having an error
 	return nil
@@ -590,7 +594,8 @@ func errDataFromError(input error) (data errorData, err error) {
 	return data, nil
 }
 
-func (txn *txn) NoticeError(input error) error {
+func (thd *thread) NoticeError(input error) error {
+	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
 
@@ -611,7 +616,7 @@ func (txn *txn) NoticeError(input error) error {
 		data.ExtraAttributes = nil
 	}
 
-	return txn.noticeErrorInternal(data)
+	return thd.noticeErrorInternal(data)
 }
 
 func (txn *txn) SetName(name string) error {
