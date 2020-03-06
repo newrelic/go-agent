@@ -7,7 +7,7 @@ Please be careful when adding new tests from real world failures.
 
 ### Access
 
-Push access to this repository is granted via membership in the cross-agent-team GHE group. Contact Belinda Runkle if you are on the agent team but don't have push access.
+Push access to this repository is granted via membership in the agents GHE group.
 
 ### Tests
 
