@@ -94,6 +94,10 @@ type ExternalSegment struct {
 	// external metrics and the "component" span attribute.  It should be
 	// the framework making the external call.
 	Library string
+
+	// statusCode is the status code for the response.  This value takes
+	// precedence over the status code set on the Response.
+	statusCode *int
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -181,6 +185,18 @@ func (s *MessageProducerSegment) End() {
 			"destination-name": s.DestinationName,
 		})
 	}
+}
+
+// SetStatusCode sets the status code for the response of this ExternalSegment.
+// This status code will be included as an attribute on Span Events.  If status
+// code is not set using this method, then the status code found on the
+// ExternalSegment.Response will be used.
+//
+// Use this method when you are creating ExternalSegment manually using either
+// StartExternalSegment or the ExternalSegment struct directly.  Status code is
+// set automatically when using NewRoundTripper.
+func (s *ExternalSegment) SetStatusCode(code int) {
+	s.statusCode = &code
 }
 
 // outboundHeaders returns the headers that should be attached to the external

@@ -586,3 +586,45 @@ func TestAddSpanAttributeNilTransaction(t *testing.T) {
 	internal.AddAgentSpanAttribute(nil, SpanAttributeAWSRequestID, "123")
 	internal.AddAgentSpanAttribute(nil, SpanAttributeAWSOperation, "secret")
 }
+
+func TestSpanEventHTTPStatusCode(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	resp := &http.Response{
+		StatusCode: 13,
+	}
+	s := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		Response:  resp,
+	}
+	s.SetStatusCode(0)
+	s.End()
+	app.expectNoLoggedErrors(t)
+	txn.End()
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId":  internal.MatchAnything,
+				"name":      "External/unknown/http",
+				"category":  "http",
+				"component": "http",
+				"span.kind": "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				// SetStatusCode takes precedence over Response.StatusCode
+				"http.statusCode": 0,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "OtherTransaction/Go/hello",
+				"sampled":       true,
+				"category":      "generic",
+				"nr.entryPoint": true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}

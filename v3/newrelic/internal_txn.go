@@ -857,16 +857,17 @@ func endExternal(s *ExternalSegment) error {
 		return err
 	}
 	return endExternalSegment(endExternalParams{
-		TxnData:  &txn.txnData,
-		Thread:   thd.thread,
-		Start:    s.StartTime.start,
-		Now:      time.Now(),
-		Logger:   txn.Config.Logger,
-		Response: s.Response,
-		URL:      u,
-		Host:     s.Host,
-		Library:  s.Library,
-		Method:   externalSegmentMethod(s),
+		TxnData:    &txn.txnData,
+		Thread:     thd.thread,
+		Start:      s.StartTime.start,
+		Now:        time.Now(),
+		Logger:     txn.Config.Logger,
+		Response:   s.Response,
+		URL:        u,
+		Host:       s.Host,
+		Library:    s.Library,
+		Method:     externalSegmentMethod(s),
+		StatusCode: s.statusCode,
 	})
 }
 
