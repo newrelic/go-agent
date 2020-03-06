@@ -36,10 +36,10 @@ func newServerlessHarvest(logger Logger, getEnv func(string) string) *serverless
 		logger:          logger,
 		awsExecutionEnv: getEnv("AWS_EXECUTION_ENV"),
 
-		// We can use a default HarvestConfigured parameter because
+		// We can use dfltHarvestCfgr because
 		// serverless mode doesn't have a connect, and therefore won't
 		// have custom event limits from the server.
-		harvest: newHarvest(time.Now(), &dfltHarvestCfgr{}),
+		harvest: newHarvest(time.Now(), dfltHarvestCfgr),
 	}
 }
 
@@ -59,7 +59,7 @@ func (sh *serverlessHarvest) swapHarvest() *harvest {
 	defer sh.Unlock()
 
 	h := sh.harvest
-	sh.harvest = newHarvest(time.Now(), &dfltHarvestCfgr{})
+	sh.harvest = newHarvest(time.Now(), dfltHarvestCfgr)
 	return h
 }
 

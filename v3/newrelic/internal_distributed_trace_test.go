@@ -1238,7 +1238,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	extraErrorFields := &fieldExpectations{
 		Expected: []string{"parent.type", "parent.account", "parent.app",
 			"parent.transportType", "error.message", "transactionName",
-			"parent.transportDuration", "error.class"},
+			"parent.transportDuration", "error.class", "spanId"},
 	}
 
 	for _, value := range tc.Intrinsics.TargetEvents {

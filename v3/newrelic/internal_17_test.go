@@ -166,6 +166,7 @@ func TestRoundTripper(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.class":       "newrelic.myError",
 			"error.message":     "my msg",
+			"spanId":            "4981855ad8681d0d",
 			"transactionName":   "OtherTransaction/Go/hello",
 			"externalCallCount": 1,
 			"externalDuration":  internal.MatchAnything,

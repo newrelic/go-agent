@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,7 +29,7 @@ type TraceContextTestCase struct {
 	RaisesException   bool                `json:"raises_exception"`
 	ForceSampledTrue  bool                `json:"force_sampled_true"`
 	SpanEventsEnabled bool                `json:"span_events_enabled"`
-	ServerlessMode    bool                `json:"serverlessmode_enabled"`
+	TxnEventsEnabled  bool                `json:"transaction_events_enabled"`
 	TransportType     string              `json:"transport_type"`
 	InboundHeaders    []map[string]string `json:"inbound_headers"`
 	OutboundPayloads  []fieldExpect       `json:"outbound_payloads,omitempty"`
@@ -66,12 +67,11 @@ func TestCrossAgentW3CTraceContext(t *testing.T) {
 }
 
 func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
-	configCallback := enableDistributedTracing
-	if !tc.SpanEventsEnabled {
-		configCallback = disableSpanEventsConfig
-	}
-	if tc.ServerlessMode {
-		configCallback = serverlessConfig(tc)
+	configCallback := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Enabled = tc.SpanEventsEnabled
+		cfg.TransactionEvents.Enabled = tc.TxnEventsEnabled
 	}
 
 	app := testApp(func(reply *internal.ConnectReply) {
@@ -134,7 +134,7 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 	extraErrorFields := &fieldExpect{
 		Expected: []string{"parent.type", "parent.account", "parent.app",
 			"parent.transportType", "error.message", "transactionName",
-			"parent.transportDuration", "error.class"},
+			"parent.transportDuration", "error.class", "spanId"},
 	}
 
 	for _, value := range tc.Intrinsics.TargetEvents {
@@ -162,27 +162,6 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 	}
 }
 
-func enableDistributedTracing(cfg *Config) {
-	cfg.CrossApplicationTracer.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-}
-
-func disableSpanEventsConfig(cfg *Config) {
-	cfg.CrossApplicationTracer.Enabled = false
-	cfg.DistributedTracer.Enabled = true
-	cfg.SpanEvents.Enabled = false
-}
-
-func serverlessConfig(tc TraceContextTestCase) ConfigOption {
-	return func(cfg *Config) {
-		cfg.CrossApplicationTracer.Enabled = false
-		cfg.DistributedTracer.Enabled = true
-		cfg.ServerlessMode.AccountID = tc.AccountID
-		cfg.ServerlessMode.TrustedAccountKey = tc.TrustedAccountKey
-		cfg.ServerlessMode.Enabled = true
-	}
-}
-
 // getTransport ensures that our transport names match cross agent test values.
 func getTransportType(transport string) TransportType {
 	switch TransportType(transport) {
@@ -205,32 +184,62 @@ func headersFromStringMap(hdrs []map[string]string) http.Header {
 }
 
 func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.Header) {
-	payload := make(map[string]string)
+	p := make(map[string]string)
 
+	// prepare traceparent header
 	pHdr := hdrs.Get("traceparent")
 	pSplit := strings.Split(pHdr, "-")
 	if len(pSplit) != 4 {
 		t.Error("incorrect traceparent header created ", pHdr)
 		return
 	}
-	payload["traceparent.version"] = pSplit[0]
-	payload["traceparent.trace_id"] = pSplit[1]
-	payload["traceparent.parent_id"] = pSplit[2]
-	payload["traceparent.trace_flags"] = pSplit[3]
+	p["traceparent.version"] = pSplit[0]
+	p["traceparent.trace_id"] = pSplit[1]
+	p["traceparent.parent_id"] = pSplit[2]
+	p["traceparent.trace_flags"] = pSplit[3]
 
+	// prepare tracestate header
 	sHdr := hdrs.Get("tracestate")
 	sSplit := strings.Split(sHdr, "-")
 	if len(sSplit) >= 9 {
-		payload["tracestate.tenant_id"] = strings.Split(sHdr, "@")[0]
-		payload["tracestate.version"] = strings.Split(sSplit[0], "=")[1]
-		payload["tracestate.parent_type"] = sSplit[1]
-		payload["tracestate.parent_account_id"] = sSplit[2]
-		payload["tracestate.parent_application_id"] = sSplit[3]
-		payload["tracestate.span_id"] = sSplit[4]
-		payload["tracestate.transaction_id"] = sSplit[5]
-		payload["tracestate.sampled"] = sSplit[6]
-		payload["tracestate.priority"] = sSplit[7]
-		payload["tracestate.timestamp"] = sSplit[8]
+		p["tracestate.tenant_id"] = strings.Split(sHdr, "@")[0]
+		p["tracestate.version"] = strings.Split(sSplit[0], "=")[1]
+		p["tracestate.parent_type"] = sSplit[1]
+		p["tracestate.parent_account_id"] = sSplit[2]
+		p["tracestate.parent_application_id"] = sSplit[3]
+		p["tracestate.span_id"] = sSplit[4]
+		p["tracestate.transaction_id"] = sSplit[5]
+		p["tracestate.sampled"] = sSplit[6]
+		p["tracestate.priority"] = sSplit[7]
+		p["tracestate.timestamp"] = sSplit[8]
+	}
+
+	// prepare newrelic header
+	nHdr := hdrs.Get("newrelic")
+	decoded, err := base64.StdEncoding.DecodeString(nHdr)
+	if err != nil {
+		t.Error("failure to decode newrelic header: ", err)
+	}
+	nrPayload := struct {
+		Version [2]int  `json:"v"`
+		Data    payload `json:"d"`
+	}{}
+	if err := json.Unmarshal(decoded, &nrPayload); nil != err {
+		t.Error("unable to unmarshall newrelic header: ", err)
+	}
+	p["newrelic.v"] = fmt.Sprintf("%v", nrPayload.Version)
+	p["newrelic.d.ac"] = nrPayload.Data.Account
+	p["newrelic.d.ap"] = nrPayload.Data.App
+	p["newrelic.d.id"] = nrPayload.Data.ID
+	p["newrelic.d.pr"] = fmt.Sprintf("%v", nrPayload.Data.Priority)
+	p["newrelic.d.ti"] = fmt.Sprintf("%v", nrPayload.Data.Timestamp)
+	p["newrelic.d.tr"] = nrPayload.Data.TracedID
+	p["newrelic.d.tx"] = nrPayload.Data.TransactionID
+	p["newrelic.d.ty"] = nrPayload.Data.Type
+	if *nrPayload.Data.Sampled {
+		p["newrelic.d.sa"] = "1"
+	} else {
+		p["newrelic.d.sa"] = "0"
 	}
 
 	// Affirm that the exact values are in the payload.
@@ -248,21 +257,21 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 		default:
 			exp = fmt.Sprintf("%v", val)
 		}
-		if val := payload[k]; val != exp {
+		if val := p[k]; val != exp {
 			t.Errorf("expected outbound payload wrong value for key %s, expected=%s, actual=%s", k, exp, val)
 		}
 	}
 
 	// Affirm that the expected values are in the actual payload.
 	for _, e := range expect.Expected {
-		if val := payload[e]; val == "" {
+		if val := p[e]; val == "" {
 			t.Errorf("expected outbound payload missing key %s", e)
 		}
 	}
 
 	// Affirm that the unexpected values are not in the actual payload.
 	for _, e := range expect.Unexpected {
-		if val := payload[e]; val != "" {
+		if val := p[e]; val != "" {
 			t.Errorf("expected outbound payload contains key %s", e)
 		}
 	}
@@ -270,7 +279,7 @@ func assertTestCaseOutboundHeaders(expect fieldExpect, t *testing.T, hdrs http.H
 	// Affirm that not equal values are not equal in the actual payload
 	for k, v := range expect.NotEqual {
 		exp := fmt.Sprintf("%v", v)
-		if val := payload[k]; val == exp {
+		if val := p[k]; val == exp {
 			t.Errorf("expected outbound payload has equal value for key %s, value=%s", k, val)
 		}
 	}

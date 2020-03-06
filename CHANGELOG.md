@@ -1,5 +1,27 @@
 # ChangeLog
 
+### New Features
+
+* Attribute `http.statusCode` has been added to external span events
+  representing the status code on an http response.  The attribute will be
+  included when added to the ExternalSegment in one of these three ways:
+
+  1. Using
+     [`NewRoundTripper`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#NewRoundTripper)
+     with your http.Client
+  2. Including the http.Response as a field on your
+     [`ExternalSegment`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ExternalSegment)
+  3. Using the new
+     [`ExternalSegment.SetStatusCode`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#ExternalSegment.SetStatusCode)
+     API to set the status code directly
+
+  To exclude the `http.statusCode` attribute from span events, update your
+  agent configuration like so, where `cfg` is your [`newrelic.Config`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config) object.
+
+  ```go
+  cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, newrelic.SpanAttributeHTTPStatusCode)
+  ```
+
 ### Changes
 
 * Use
@@ -16,7 +38,6 @@
   "GET main.handleGetUsers"
   // will be change to something like this match the full path
   "GET /user/:id"
-  ```
 
 ## 3.3.0
 

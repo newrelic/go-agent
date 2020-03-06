@@ -746,6 +746,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 			"traceId":         internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"guid":            internal.MatchAnything,
+			"spanId":          internal.MatchAnything,
 			"sampled":         "true",
 		},
 	}})
@@ -810,6 +811,7 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 			"traceId":         internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"guid":            internal.MatchAnything,
+			"spanId":          internal.MatchAnything,
 			"sampled":         "true",
 		},
 	}})
@@ -1023,6 +1025,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 			"traceId":         internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"guid":            internal.MatchAnything,
+			"spanId":          internal.MatchAnything,
 			"sampled":         "true",
 		},
 	}})

@@ -17,10 +17,11 @@ the agent under test. Here's what the various fields in each test case mean:
 | `force_sampled_true` | Whether to force a transaction to be sampled or not. |
 | `transport_type` | The transport type for the inbound request. |
 | `inbound_headers` | The headers you should mock coming into the agent. |
-| `outbound_payloads` | The exact/expected/unexpected values for outbound headers. |
+| `outbound_payloads` | The exact/expected/unexpected values for outbound `w3c` headers. |
 | `intrinsics` | The exact/expected/unexpected attributes for events. |
 | `expected_metrics` | The expected metrics and associated counts as a result of the test. |
 | `span_events_enabled` | Whether span events are enabled in the agent or not. |
+| `transaction_events_enabled` | Whether transaction events are enabled in the agent or not. |
 
 The `outbound_payloads` and `intrinsics` field can have nested values, for example:
 ```javascript
@@ -64,3 +65,43 @@ have a `guid`, both have `da8bc8cc6d062849b0efcf3c169afb5a` as the `traceId`, an
 The `Transaction` block means anything in there should only apply to the transaction object. Same for the `Span` block.
 
 The same idea goes for the `outbound_payloads` block but will apply specifically for the outbound `traceparent` header and `tracestate` header.
+
+`outbound_payloads` may also target `newrelic` headers and follow same basic structure inline with trace context headers, for example:
+```javascript
+  ...
+  "outbound_payloads": [
+    {
+      "exact": {
+        "traceparent.version": "00",
+        "traceparent.trace_id": "00000000000000006e2fea0b173fdad0",
+        "traceparent.trace_flags": "01",
+        "tracestate.tenant_id": "33",
+        "tracestate.version": 0,
+        "tracestate.parent_type": 0,
+        "tracestate.parent_account_id": "33",
+        "tracestate.sampled": true,
+        "tracestate.priority": 1.123432,
+        "newrelic.v": [0, 1],
+        "newrelic.d.ty": "App",
+        "newrelic.d.ac": "33",
+        "newrelic.d.ap": "2827902",
+        "newrelic.d.tr": "6E2fEA0B173FDAD0",
+        "newrelic.d.sa": true,
+        "newrelic.d.pr": 1.1234321
+      },
+      "expected": [
+        "traceparent.parent_id",
+        "tracestate.timestamp",
+        "tracestate.parent_application_id",
+        "tracestate.span_id",
+        "tracestate.transaction_id",
+        "newrelic.d.ap", 
+        "newrelic.d.tx", 
+        "newrelic.d.ti", 
+        "newrelic.d.id"
+      ],
+      "unexpected": ["newrelic.d.tk"]
+    }
+  ],
+  ...
+```

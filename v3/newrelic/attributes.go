@@ -122,14 +122,15 @@ const (
 //	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 //		newrelic.SpanAttributeDBStatement)
 const (
-	SpanAttributeDBStatement  = "db.statement"
-	SpanAttributeDBInstance   = "db.instance"
-	SpanAttributeDBCollection = "db.collection"
-	SpanAttributePeerAddress  = "peer.address"
-	SpanAttributePeerHostname = "peer.hostname"
-	SpanAttributeHTTPURL      = "http.url"
-	SpanAttributeHTTPMethod   = "http.method"
-	SpanAttributeAWSOperation = "aws.operation"
-	SpanAttributeAWSRequestID = "aws.requestId"
-	SpanAttributeAWSRegion    = "aws.region"
+	SpanAttributeDBStatement    = "db.statement"
+	SpanAttributeDBInstance     = "db.instance"
+	SpanAttributeDBCollection   = "db.collection"
+	SpanAttributePeerAddress    = "peer.address"
+	SpanAttributePeerHostname   = "peer.hostname"
+	SpanAttributeHTTPURL        = "http.url"
+	SpanAttributeHTTPMethod     = "http.method"
+	SpanAttributeHTTPStatusCode = "http.statusCode"
+	SpanAttributeAWSOperation   = "aws.operation"
+	SpanAttributeAWSRequestID   = "aws.requestId"
+	SpanAttributeAWSRegion      = "aws.region"
 )
