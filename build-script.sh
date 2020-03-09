@@ -3,7 +3,7 @@ set -e
 
 LATEST_VERSION="go1.14"
 
-if [[ -n "$(go version | grep $LATEST_VERSION)" ]]; then
+if [[ -n "$(go version | grep $LATEST_VERSION)" ]] && [[ "$TRAVIS" == "true" ]]; then
   echo "Installing updated glibc\n"
   # can we get this from an actual repository?
   curl -LO 'http://launchpadlibrarian.net/130794928/libc6_2.17-0ubuntu4_amd64.deb'
