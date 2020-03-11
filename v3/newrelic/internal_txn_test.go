@@ -309,14 +309,21 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	})
 }
 
-func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
+var (
+	replyFn = func(reply *internal.ConnectReply) {
 		reply.SetSampleEverything()
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
-	cfgfn := func(cfg *Config) {
+	cfgFn = func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+)
+
+func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
+	cfgFnDTDisabled := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = false
 	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFnDTDisabled, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
@@ -328,14 +335,7 @@ func TestGetTraceMetadataDistributedTracingDisabled(t *testing.T) {
 }
 
 func TestGetTraceMetadataSuccess(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
-	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "e71870997d57214c" {
@@ -358,14 +358,7 @@ func TestGetTraceMetadataSuccess(t *testing.T) {
 func TestGetTraceMetadataEnded(t *testing.T) {
 	// Test that GetTraceMetadata returns empty strings if the transaction
 	// has been finished.
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
-	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
 	metadata := txn.GetTraceMetadata()
@@ -378,14 +371,11 @@ func TestGetTraceMetadataEnded(t *testing.T) {
 }
 
 func TestGetTraceMetadataNotSampled(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
+	replyFnNotSampled := func(reply *internal.ConnectReply) {
 		reply.SetSampleNothing()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFnNotSampled, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
@@ -397,15 +387,11 @@ func TestGetTraceMetadataNotSampled(t *testing.T) {
 }
 
 func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
-	}
-	cfgfn := func(cfg *Config) {
+	cfgFnSpansDisabled := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true
 		cfg.SpanEvents.Enabled = false
 	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFnSpansDisabled, t)
 	txn := app.StartTransaction("hello")
 	metadata := txn.GetTraceMetadata()
 	if metadata.SpanID != "" {
@@ -417,17 +403,14 @@ func TestGetTraceMetadataSpanEventsDisabled(t *testing.T) {
 }
 
 func TestGetTraceMetadataInboundPayload(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
+	replyFnWithAccountInfo := func(reply *internal.ConnectReply) {
 		reply.SetSampleEverything()
 		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
 		reply.AccountID = "account-id"
 		reply.TrustedAccountKey = "123"
 		reply.PrimaryAppID = "app-id"
 	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFnWithAccountInfo, cfgFn, t)
 	hdrs := http.Header{}
 	hdrs.Set(DistributedTraceW3CTraceParentHeader, "00-12345678901234567890123456789012-9566c74d10037c4d-01")
 	hdrs.Set(DistributedTraceW3CTraceStateHeader, "123@nr=0-0-123-456-9566c74d10037c4d-52fdfc072182654f-1-0.390345-1563574856827")
@@ -504,13 +487,10 @@ func TestGetLinkingMetadataAppNames(t *testing.T) {
 }
 
 func TestIsSampledFalse(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
+	replyFnSampleNothing := func(reply *internal.ConnectReply) {
 		reply.SetSampleNothing()
 	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFnSampleNothing, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	sampled := txn.IsSampled()
 	if sampled == true {
@@ -519,13 +499,7 @@ func TestIsSampledFalse(t *testing.T) {
 }
 
 func TestIsSampledTrue(t *testing.T) {
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	sampled := txn.IsSampled()
 	if sampled == false {
@@ -536,13 +510,7 @@ func TestIsSampledTrue(t *testing.T) {
 func TestIsSampledEnded(t *testing.T) {
 	// Test that Transaction.IsSampled returns false if the transaction has
 	// already ended.
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-	}
-	cfgfn := func(cfg *Config) {
-		cfg.DistributedTracer.Enabled = true
-	}
-	app := testApp(replyfn, cfgfn, t)
+	app := testApp(replyFn, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.End()
 	sampled := txn.IsSampled()
@@ -669,10 +637,7 @@ func TestDTPriority(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfgfn := func(cfg *Config) {
-				cfg.DistributedTracer.Enabled = true
-			}
-			app := testApp(replyfn, cfgfn, t)
+			app := testApp(replyfn, cfgFn, t)
 			txn := app.StartTransaction("hello")
 
 			inboundHdrs := map[string][]string{
@@ -732,4 +697,211 @@ func TestShouldCollectSpanEvents(t *testing.T) {
 	if collect := txn.shouldCollectSpanEvents(); !collect {
 		t.Error(collect)
 	}
+}
+
+func TestErrorAttrsAddedToSpan(t *testing.T) {
+	app := testApp(replyFn, cfgFn, t)
+	txn := app.StartTransaction("hello")
+	s1 := txn.StartSegment("s1")
+	s2 := txn.StartSegment("s2")
+	txn.NoticeError(errors.New("error"))
+	s2.End()
+	s1.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			AgentAttributes: map[string]interface{}{
+				SpanAttributeErrorClass:   "*errors.errorString",
+				SpanAttributeErrorMessage: "error",
+			},
+			Intrinsics: map[string]interface{}{
+				"category":  internal.MatchAnything,
+				"timestamp": internal.MatchAnything,
+				"parentId":  internal.MatchAnything,
+				"name":      "Custom/s2",
+			},
+		},
+		{
+			AgentAttributes: map[string]interface{}{},
+			Intrinsics: map[string]interface{}{
+				"category":  internal.MatchAnything,
+				"timestamp": internal.MatchAnything,
+				"parentId":  internal.MatchAnything,
+				"name":      "Custom/s1",
+			},
+		},
+		{
+			AgentAttributes: map[string]interface{}{},
+			Intrinsics: map[string]interface{}{
+				"category":      internal.MatchAnything,
+				"timestamp":     internal.MatchAnything,
+				"name":          "OtherTransaction/Go/hello",
+				"nr.entryPoint": true,
+			},
+		},
+	})
+}
+
+type sampleErrorClass struct{}
+
+func (s sampleErrorClass) Error() string {
+	return "Custom error message"
+}
+
+func TestErrorAttrsAreOverwritten(t *testing.T) {
+	app := testApp(replyFn, cfgFn, t)
+	txn := app.StartTransaction("hello")
+	s1 := txn.StartSegment("s1")
+
+	txn.NoticeError(errors.New("error"))
+	txn.NoticeError(sampleErrorClass{})
+
+	s1.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			AgentAttributes: map[string]interface{}{
+				SpanAttributeErrorClass:   "newrelic.sampleErrorClass",
+				SpanAttributeErrorMessage: "Custom error message",
+			},
+			Intrinsics: map[string]interface{}{
+				"category":  internal.MatchAnything,
+				"timestamp": internal.MatchAnything,
+				"parentId":  internal.MatchAnything,
+				"name":      "Custom/s1",
+			},
+		},
+		{
+			AgentAttributes: map[string]interface{}{},
+			Intrinsics: map[string]interface{}{
+				"category":      internal.MatchAnything,
+				"timestamp":     internal.MatchAnything,
+				"name":          "OtherTransaction/Go/hello",
+				"nr.entryPoint": true,
+			},
+		},
+	})
+}
+
+func TestErrMsgDisallowed_ErrorMsgIsNotAdded(t *testing.T) {
+	type testCase struct {
+		name    string
+		replyFn func(reply *internal.ConnectReply)
+		cfgFn   func(cfg *Config)
+		message string
+	}
+
+	cases := []testCase{
+		{
+			name:    "High Security enabled",
+			replyFn: replyFn,
+			cfgFn: func(cfg *Config) {
+				cfg.DistributedTracer.Enabled = true
+				cfg.HighSecurity = true
+			},
+			message: "message removed by high security setting",
+		},
+		{
+			name: "Security Policies disallows raw exception messages",
+			replyFn: func(reply *internal.ConnectReply) {
+				reply.SetSampleEverything()
+				reply.SecurityPolicies.AllowRawExceptionMessages.SetEnabled(false)
+			},
+			cfgFn:   cfgFn,
+			message: "message removed by security policy",
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			app := testApp(testCase.replyFn, testCase.cfgFn, t)
+			txn := app.StartTransaction("hello")
+			s1 := txn.StartSegment("s1")
+			txn.NoticeError(sampleErrorClass{})
+			s1.End()
+			txn.End()
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				{
+					AgentAttributes: map[string]interface{}{
+						SpanAttributeErrorClass:   "newrelic.sampleErrorClass",
+						SpanAttributeErrorMessage: testCase.message,
+					},
+					Intrinsics: map[string]interface{}{
+						"category":  internal.MatchAnything,
+						"timestamp": internal.MatchAnything,
+						"parentId":  internal.MatchAnything,
+						"name":      "Custom/s1",
+					},
+				},
+				{
+					AgentAttributes: map[string]interface{}{},
+					Intrinsics: map[string]interface{}{
+						"category":      internal.MatchAnything,
+						"timestamp":     internal.MatchAnything,
+						"name":          "OtherTransaction/Go/hello",
+						"nr.entryPoint": true,
+					},
+				},
+			})
+
+		})
+
+	}
+}
+
+func TestErrAttrsAddedToRootSpan(t *testing.T) {
+	app := testApp(replyFn, cfgFn, t)
+	txn := app.StartTransaction("hello")
+	txn.NoticeError(sampleErrorClass{})
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			AgentAttributes: map[string]interface{}{
+				SpanAttributeErrorClass:   "newrelic.sampleErrorClass",
+				SpanAttributeErrorMessage: "Custom error message",
+			},
+			Intrinsics: map[string]interface{}{
+				"category":      internal.MatchAnything,
+				"timestamp":     internal.MatchAnything,
+				"name":          "OtherTransaction/Go/hello",
+				"nr.entryPoint": true,
+			},
+		},
+	})
+}
+
+func TestErrAttrsAddedWhenPanic(t *testing.T) {
+	cfgFnRecordPanics := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.ErrorCollector.RecordPanics = true
+	}
+	app := testApp(replyFn, cfgFnRecordPanics, t)
+	func() {
+		defer func() {
+			if recovered := recover(); recovered == nil {
+				t.Error("code did not panic as expected")
+			}
+		}()
+		txn := app.StartTransaction("hello")
+		defer txn.End()
+		panic("whoopsidoodle")
+	}()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			AgentAttributes: map[string]interface{}{
+				SpanAttributeErrorClass:   "panic",
+				SpanAttributeErrorMessage: "whoopsidoodle",
+			},
+			Intrinsics: map[string]interface{}{
+				"category":      internal.MatchAnything,
+				"timestamp":     internal.MatchAnything,
+				"name":          "OtherTransaction/Go/hello",
+				"nr.entryPoint": true,
+			},
+		},
+	})
 }

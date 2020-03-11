@@ -409,6 +409,10 @@ func (thd *thread) End(recovered interface{}) error {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
+		if txn.rootSpanErrData != nil {
+			root.Attributes.addString(spanAttributeErrorClass, txn.rootSpanErrData.Klass)
+			root.Attributes.addString(spanAttributeErrorMessage, txn.rootSpanErrData.Msg)
+		}
 		if nil != txn.BetterCAT.Inbound {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
@@ -490,12 +494,32 @@ func (thd *thread) noticeErrorInternal(err errorData) error {
 	if !txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled() {
 		err.Msg = securityPolicyErrorMsg
 	}
+
 	if txn.shouldCollectSpanEvents() {
 		err.SpanID = txn.CurrentSpanIdentifier(thd.thread)
+		addErrorAttrs(thd, err)
 	}
 	txn.Errors.Add(err)
 	txn.txnData.txnEvent.HasError = true //mark transaction as having an error
 	return nil
+}
+
+var errorAttrs = []spanAttribute{
+	spanAttributeErrorClass,
+	spanAttributeErrorMessage,
+}
+
+func addErrorAttrs(t *thread, err errorData) {
+	// If there are no current segments, we'll add them to the root span when it is created later
+	if len(t.thread.stack) <= 0 {
+		t.rootSpanErrData = &err
+		return
+	}
+	for _, attr := range errorAttrs {
+		t.thread.RemoveErrorSpanAttribute(attr)
+	}
+	t.thread.AddAgentSpanAttribute(spanAttributeErrorClass, err.Klass)
+	t.thread.AddAgentSpanAttribute(spanAttributeErrorMessage, err.Msg)
 }
 
 var (

@@ -32,6 +32,8 @@ const (
 	spanAttributeAWSOperation spanAttribute = "aws.operation"
 	spanattributeAWSRequestID spanAttribute = "aws.requestId"
 	spanAttributeAWSRegion    spanAttribute = "aws.region"
+	spanAttributeErrorClass   spanAttribute = "error.class"
+	spanAttributeErrorMessage spanAttribute = "error.message"
 )
 
 func (sa spanAttribute) String() string { return string(sa) }
@@ -81,6 +83,8 @@ var (
 		spanAttributeAWSOperation,
 		spanattributeAWSRequestID,
 		spanAttributeAWSRegion,
+		spanAttributeErrorClass,
+		spanAttributeErrorMessage,
 	}
 )
 

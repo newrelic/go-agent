@@ -22,6 +22,19 @@
   cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, newrelic.SpanAttributeHTTPStatusCode)
   ```
 
+* Error attributes `error.class` and `error.message` are now included on the
+ span event in which the error was noticed (or on the root span, if an error
+ occurs in a transaction with no segments.) Only the most recent error
+ information is added to the attributes; older errors on the same span are
+ overwritten.
+
+  To exclude the `error.class` and/or `error.message` attributes from span events, update your
+  agent configuration like so, where `cfg` is your [`newrelic.Config`](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config) object.
+
+  ```go
+  cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, newrelic.newrelic.SpanAttributeErrorClass, newrelic.SpanAttributeErrorMessage)
+  ```
+
 ## 3.3.0
 
 ### New Features

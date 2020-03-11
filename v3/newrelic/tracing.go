@@ -73,6 +73,7 @@ type txnData struct {
 	TraceIDGenerator        *internal.TraceIDGenerator
 	ShouldCollectSpanEvents func() bool
 	rootSpanID              string
+	rootSpanErrData         *errorData
 	SpanEvents              []*spanEvent
 
 	customSegments    map[string]*metricData
@@ -249,6 +250,15 @@ func (thread *tracingThread) AddAgentSpanAttribute(key spanAttribute, val string
 	if len(thread.stack) > 0 {
 		thread.stack[len(thread.stack)-1].attributes.addString(key, val)
 	}
+}
+
+// RemoveErrorSpanAttribute allows attributes to be removed from spans.
+func (thread *tracingThread) RemoveErrorSpanAttribute(key spanAttribute) {
+	stackLen := len(thread.stack)
+	if stackLen <= 0 {
+		return
+	}
+	delete(thread.stack[stackLen-1].attributes, key)
 }
 
 // startSegment begins a segment.
