@@ -697,8 +697,11 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 				"name":          "WebTransaction/Go/TestHandlerWithError.Method",
 				"nr.entryPoint": true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				newrelic.SpanAttributeErrorClass:   "401",
+				newrelic.SpanAttributeErrorMessage: "Unauthorized",
+			},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -996,8 +999,11 @@ func TestServerSubscribeWithError(t *testing.T) {
 				"name":          "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
 				"nr.entryPoint": true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
+				newrelic.SpanAttributeErrorMessage: "subscriber error",
+			},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{

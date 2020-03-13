@@ -191,8 +191,10 @@ func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents
 func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }
-func (run *appRun) MaxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
-func (run *appRun) MaxSpanEvents() int  { return run.limit(maxSpanEvents, run.ptrSpanEvents) }
+func (run *appRun) MaxErrorEvents() int {
+	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+func (run *appRun) MaxSpanEvents() int { return run.limit(maxSpanEvents, run.ptrSpanEvents) }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
 	if nil != field() {

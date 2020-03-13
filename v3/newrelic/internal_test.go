@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,7 +84,16 @@ func (lg *errorSaverLogger) expectSingleLoggedError(tb testing.TB, msg string, c
 		return
 	}
 	for k, v := range context {
-		if lg.errors[0].context[k] != v {
+		var fail bool
+		switch val := v.(type) {
+		case string:
+			// If the value is type string, then only assert that the actual
+			// value contains the expected value rather than them being equal.
+			fail = !strings.Contains(lg.errors[0].context[k].(string), val)
+		default:
+			fail = lg.errors[0].context[k] != val
+		}
+		if fail {
 			tb.Error("incorrect logged error context", lg.errors[0].context, context)
 		}
 	}
@@ -1515,7 +1525,7 @@ func TestTraceExternalBadURL(t *testing.T) {
 	}
 	s.End()
 	app.expectSingleLoggedError(t, "unable to end external segment", map[string]interface{}{
-		"reason": "parse :example.com/: missing protocol scheme",
+		"reason": "missing protocol scheme",
 	})
 	txn.NoticeError(myError{})
 	txn.End()

@@ -133,4 +133,6 @@ const (
 	SpanAttributeAWSOperation   = "aws.operation"
 	SpanAttributeAWSRequestID   = "aws.requestId"
 	SpanAttributeAWSRegion      = "aws.region"
+	SpanAttributeErrorClass     = "error.class"
+	SpanAttributeErrorMessage   = "error.message"
 )
