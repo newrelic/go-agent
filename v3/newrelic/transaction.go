@@ -306,6 +306,8 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 //
 // All Transaction methods can be used in any Transaction reference.
 // The Transaction will end when End() is called in any goroutine.
+// Note that any segments that end after the transaction ends will not
+// be reported.
 //
 // Example passing a new Transaction reference directly to another
 // goroutine:
