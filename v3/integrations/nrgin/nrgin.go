@@ -91,6 +91,17 @@ func Transaction(c Context) *newrelic.Transaction {
 	return nil
 }
 
+type handlerNamer interface {
+	HandlerName() string
+}
+
+func getName(c handlerNamer) string {
+	if fp, ok := c.(interface{ FullPath() string }); ok {
+		return fp.FullPath()
+	}
+	return c.HandlerName()
+}
+
 // Middleware creates a Gin middleware that instruments requests.
 //
 //	router := gin.Default()
@@ -100,7 +111,8 @@ func Transaction(c Context) *newrelic.Transaction {
 func Middleware(app *newrelic.Application) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
-			name := c.Request.Method + " " + c.HandlerName()
+			name := c.Request.Method + " " + getName(c)
+
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name)
 			txn.SetWebRequestHTTP(c.Request)

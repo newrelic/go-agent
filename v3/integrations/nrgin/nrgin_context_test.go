@@ -28,6 +28,11 @@ func TestContextContextTransaction(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionContextContext)
 
+	txnName := "GET " + pkg + ".accessTransactionContextContext"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /txn"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/txn", nil)
 	if err != nil {
@@ -41,7 +46,7 @@ func TestContextContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET " + pkg + ".accessTransactionContextContext",
+		Name:      txnName,
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -61,6 +66,11 @@ func TestFromContext(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionFromContext)
 
+	txnName := "GET " + pkg + ".accessTransactionFromContext"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /txn"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/txn", nil)
 	if err != nil {
@@ -74,7 +84,7 @@ func TestFromContext(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET " + pkg + ".accessTransactionFromContext",
+		Name:      txnName,
 		IsWeb:     true,
 		NumErrors: 1,
 	})

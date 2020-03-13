@@ -26,6 +26,11 @@ func TestBasicRoute(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/hello", hello)
 
+	txnName := "GET " + pkg + ".hello"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /hello"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/hello", nil)
 	if err != nil {
@@ -36,7 +41,7 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET " + pkg + ".hello",
+		Name:  txnName,
 		IsWeb: true,
 	})
 }
@@ -48,6 +53,11 @@ func TestRouterGroup(t *testing.T) {
 	group := router.Group("/group")
 	group.GET("/hello", hello)
 
+	txnName := "GET " + pkg + ".hello"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /group/hello"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/group/hello", nil)
 	if err != nil {
@@ -58,7 +68,7 @@ func TestRouterGroup(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET " + pkg + ".hello",
+		Name:  txnName,
 		IsWeb: true,
 	})
 }
@@ -71,6 +81,11 @@ func TestAnonymousHandler(t *testing.T) {
 		c.Writer.WriteString("anonymous function handler")
 	})
 
+	txnName := "GET " + pkg + ".TestAnonymousHandler.func1"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /anon"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/anon", nil)
 	if err != nil {
@@ -81,7 +96,7 @@ func TestAnonymousHandler(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET " + pkg + ".TestAnonymousHandler.func1",
+		Name:  txnName,
 		IsWeb: true,
 	})
 }
@@ -101,6 +116,11 @@ func TestMultipleWriteHeader(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/header", multipleWriteHeader)
 
+	txnName := "GET " + pkg + ".multipleWriteHeader"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /header"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/header", nil)
 	if err != nil {
@@ -115,7 +135,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 	}
 	// Error metrics test the 500 response code capture.
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET " + pkg + ".multipleWriteHeader",
+		Name:      txnName,
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -133,6 +153,11 @@ func TestContextTransaction(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/txn", accessTransactionGinContext)
 
+	txnName := "GET " + pkg + ".accessTransactionGinContext"
+	if gin.Version == fullPathVersion {
+		txnName = "GET /txn"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/txn", nil)
 	if err != nil {
@@ -146,7 +171,7 @@ func TestContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET " + pkg + ".accessTransactionGinContext",
+		Name:      txnName,
 		IsWeb:     true,
 		NumErrors: 1,
 	})
@@ -180,6 +205,9 @@ const (
 	// and below, we always recorded a 200 status, whereas with newer Gin
 	// versions we now correctly capture the status.
 	statusFixVersion = "v1.5.0"
+	// Gin added the FullPath method to the Gin.Context in this version. When
+	// available, we use this method to set the transaction name.
+	fullPathVersion = "v1.5.0"
 )
 
 func TestStatusCodes(t *testing.T) {
@@ -192,6 +220,11 @@ func TestStatusCodes(t *testing.T) {
 	router := gin.Default()
 	router.Use(Middleware(app.Application))
 	router.GET("/err", errorStatus)
+
+	txnName := "WebTransaction/Go/GET " + pkg + ".errorStatus"
+	if gin.Version == fullPathVersion {
+		txnName = "WebTransaction/Go/GET /err"
+	}
 
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/err", nil)
@@ -207,7 +240,7 @@ func TestStatusCodes(t *testing.T) {
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET " + pkg + ".errorStatus",
+			"name":             txnName,
 			"nr.apdexPerfZone": internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{},
@@ -237,6 +270,11 @@ func TestNoResponseBody(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/nobody", noBody)
 
+	txnName := "WebTransaction/Go/GET " + pkg + ".noBody"
+	if gin.Version == fullPathVersion {
+		txnName = "WebTransaction/Go/GET /nobody"
+	}
+
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/nobody", nil)
 	if err != nil {
@@ -251,7 +289,7 @@ func TestNoResponseBody(t *testing.T) {
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET " + pkg + ".noBody",
+			"name":             txnName,
 			"nr.apdexPerfZone": internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{},
@@ -262,4 +300,31 @@ func TestNoResponseBody(t *testing.T) {
 			"request.uri":      "/nobody",
 		},
 	}})
+}
+
+func TestRouteWithParams(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	router := gin.Default()
+	router.Use(Middleware(app.Application))
+	router.GET("/hello/:name/*action", hello)
+
+	txnName := "GET " + pkg + ".hello"
+	if gin.Version == fullPathVersion {
+		// ensure the transaction is named after the route and not the url
+		txnName = "GET /hello/:name/*action"
+	}
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello/world/fun", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "hello response" {
+		t.Error("wrong response body", respBody)
+	}
+	app.ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  txnName,
+		IsWeb: true,
+	})
 }
