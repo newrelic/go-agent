@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.4.0
+
 ### New Features
 
 * Attribute `http.statusCode` has been added to external span events
@@ -34,7 +36,7 @@
   ```go
   cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude, newrelic.newrelic.SpanAttributeErrorClass, newrelic.SpanAttributeErrorMessage)
   ```
-  
+
 ### Changes
 
 * Use
@@ -51,6 +53,7 @@
   "GET main.handleGetUsers"
   // will be change to something like this match the full path
   "GET /user/:id"
+  ```
 
 ## 3.3.0
 
