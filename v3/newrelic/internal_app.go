@@ -182,18 +182,18 @@ func (app *app) process() {
 	var h *harvest
 	var run *appRun
 
-	// harvestTicker := time.NewTicker(time.Second)
-	// defer harvestTicker.Stop()
+	harvestTicker := time.NewTicker(time.Second)
+	defer harvestTicker.Stop()
 
 	for {
 		select {
-		// case <-harvestTicker.C:
-		// 	if nil != run {
-		// 		now := time.Now()
-		// 		if ready := h.Ready(now); nil != ready {
-		// 			go app.doHarvest(ready, now, run)
-		// 		}
-		// 	}
+		case <-harvestTicker.C:
+			if nil != run {
+				now := time.Now()
+				if ready := h.Ready(now); nil != ready {
+					go app.doHarvest(ready, now, run)
+				}
+			}
 		case d := <-app.dataChan:
 			if nil != run && run.Reply.RunID == d.id {
 				d.data.MergeIntoHarvest(h)

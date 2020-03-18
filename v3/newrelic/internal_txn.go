@@ -281,7 +281,7 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.txnEvent)
 	}
 
-	if txn.shouldCollectSpanEvents() {
+	if txn.shouldCollectSpanEvents() && "" == txn.Config.MTB.Endpoint {
 		h.SpanEvents.MergeSpanEvents(txn.txnData.SpanEvents)
 	}
 }
