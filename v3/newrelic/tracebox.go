@@ -1,3 +1,6 @@
+// +build go1.9
+// This build tag is necessary because GRPC/ProtoBuf libraries only support Go version 1.9 and up.
+
 package newrelic
 
 import (
@@ -8,31 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/internal"
-	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-)
 
-type traceBox struct {
-	messages chan *internal.SpanEvent
-}
-
-const (
-	apiKeyMetadataKey        = "api_key"
-	traceboxMessageQueueSize = 1000
-)
-
-var (
-	traceBoxBackoffStrategy = []time.Duration{
-		15 * time.Second,
-		15 * time.Second,
-		30 * time.Second,
-		60 * time.Second,
-		120 * time.Second,
-		300 * time.Second,
-	}
+	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
 
 func getTraceBoxBackoff(attempt int) time.Duration {
@@ -43,7 +26,7 @@ func getTraceBoxBackoff(attempt int) time.Duration {
 }
 
 func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
-	messages := make(chan *internal.SpanEvent, traceboxMessageQueueSize)
+	messages := make(chan *spanEvent, traceboxMessageQueueSize)
 
 	go func() {
 		attempts := 0
@@ -63,7 +46,7 @@ func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
 	return &traceBox{messages: messages}, nil
 }
 
-func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *internal.SpanEvent) error {
+func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *spanEvent) error {
 
 	responseError := make(chan error, 1)
 
@@ -97,7 +80,7 @@ func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *intern
 
 	for {
 		var err error
-		var event *internal.SpanEvent
+		var event *spanEvent
 		select {
 		case err = <-responseError:
 		case event = <-messages:
@@ -148,7 +131,7 @@ func mtbDouble(x float64) *v1.AttributeValue {
 	return &v1.AttributeValue{Value: &v1.AttributeValue_DoubleValue{DoubleValue: x}}
 }
 
-func transformEvent(e *internal.SpanEvent) *v1.Span {
+func transformEvent(e *spanEvent) *v1.Span {
 	span := &v1.Span{
 		TraceId:         e.TraceID,
 		Intrinsics:      make(map[string]*v1.AttributeValue),
@@ -197,7 +180,7 @@ func transformEvent(e *internal.SpanEvent) *v1.Span {
 	return span
 }
 
-// func (tb *traceBox) sendSpans(events []*internal.SpanEvent) {
+// func (tb *traceBox) sendSpans(events []*spanEvent) {
 // 	for _, e := range events {
 // 		span := transformEvent(e)
 // 		fmt.Println("sending span", e.Name)
@@ -209,7 +192,7 @@ func transformEvent(e *internal.SpanEvent) *v1.Span {
 // 	}
 // }
 
-func (tb *traceBox) consumeSpan(span *internal.SpanEvent) bool {
+func (tb *traceBox) consumeSpan(span *spanEvent) bool {
 	select {
 	case tb.messages <- span:
 		return true

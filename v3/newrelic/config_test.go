@@ -161,6 +161,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"HostDisplayName":"",
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
+			"MTB": {"APIKey": "","Endpoint": ""},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -330,6 +331,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"HostDisplayName":"",
 			"Labels":null,
 			"Logger":null,
+			"MTB": {"APIKey": "","Endpoint": ""},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
