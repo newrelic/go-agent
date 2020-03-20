@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -58,7 +57,7 @@ var fakeCreds = func() interface{} {
 func newConfig(instrument bool) aws.Config {
 	cfg, _ := external.LoadDefaultAWSConfig()
 	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
-	cfg.Region = endpoints.UsWest2RegionID
+	cfg.Region = "us-west-2"
 	cfg.HTTPClient = &http.Client{
 		Transport: &fakeTransport{},
 	}

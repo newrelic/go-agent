@@ -41,7 +41,7 @@ func endSegment(req *aws.Request) {
 // Handlers and add the current Transaction to the `http.Request`'s Context:
 //
 //    cfg, _ := external.LoadDefaultAWSConfig()
-//    cfg.Region = endpoints.UsWest2RegionID
+//    cfg.Region = "us-west-2"
 //    // Add instrumentation to handlers
 //    nrawssdk.InstrumentHandlers(&cfg.Handlers)
 //    lambdaClient   = lambda.New(cfg)
