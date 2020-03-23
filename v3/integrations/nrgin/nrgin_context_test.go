@@ -29,7 +29,7 @@ func TestContextContextTransaction(t *testing.T) {
 	router.GET("/txn", accessTransactionContextContext)
 
 	txnName := "GET " + pkg + ".accessTransactionContextContext"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /txn"
 	}
 
@@ -67,7 +67,7 @@ func TestFromContext(t *testing.T) {
 	router.GET("/txn", accessTransactionFromContext)
 
 	txnName := "GET " + pkg + ".accessTransactionFromContext"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /txn"
 	}
 

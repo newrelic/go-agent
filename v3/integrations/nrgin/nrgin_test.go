@@ -4,12 +4,13 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 var (
@@ -27,7 +28,7 @@ func TestBasicRoute(t *testing.T) {
 	router.GET("/hello", hello)
 
 	txnName := "GET " + pkg + ".hello"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /hello"
 	}
 
@@ -54,7 +55,7 @@ func TestRouterGroup(t *testing.T) {
 	group.GET("/hello", hello)
 
 	txnName := "GET " + pkg + ".hello"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /group/hello"
 	}
 
@@ -82,7 +83,7 @@ func TestAnonymousHandler(t *testing.T) {
 	})
 
 	txnName := "GET " + pkg + ".TestAnonymousHandler.func1"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /anon"
 	}
 
@@ -117,7 +118,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 	router.GET("/header", multipleWriteHeader)
 
 	txnName := "GET " + pkg + ".multipleWriteHeader"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /header"
 	}
 
@@ -154,7 +155,7 @@ func TestContextTransaction(t *testing.T) {
 	router.GET("/txn", accessTransactionGinContext)
 
 	txnName := "GET " + pkg + ".accessTransactionGinContext"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "GET /txn"
 	}
 
@@ -198,22 +199,40 @@ func errorStatus(c *gin.Context) {
 	c.String(500, "an error happened")
 }
 
-const (
-	// The Gin.Context.Status method behavior changed with this pull
-	// request: https://github.com/gin-gonic/gin/pull/1606.  This change
-	// affects our ability to instrument the response code. In Gin v1.4.0
-	// and below, we always recorded a 200 status, whereas with newer Gin
-	// versions we now correctly capture the status.
-	statusFixVersion = "v1.5.0"
-	// Gin added the FullPath method to the Gin.Context in this version. When
-	// available, we use this method to set the transaction name.
-	fullPathVersion = "v1.5.0"
-)
+// The Gin.Context.Status method behavior changed with this pull
+// request: https://github.com/gin-gonic/gin/pull/1606.  This change
+// affects our ability to instrument the response code. In Gin v1.4.0
+// and below, we always recorded a 200 status, whereas with newer Gin
+// versions we now correctly capture the status.
+var statusFixVersion = [...]string{"1", "5"}
+
+// Gin added the FullPath method to the Gin.Context in this version. When
+// available, we use this method to set the transaction name.
+var fullPathVersion = [...]string{"1", "5"}
+
+func useFullPathVersion(v string) bool {
+	return checkVersion(v, fullPathVersion)
+}
+
+func useStatusFixVersion(v string) bool {
+	return checkVersion(v, statusFixVersion)
+}
+
+func checkVersion(checkV string, checkAgainst [2]string) bool {
+	parts := strings.Split(strings.TrimPrefix(checkV, "v"), ".")
+	if len(parts) < 2 {
+		return false
+	}
+	if parts[0] < checkAgainst[0] {
+		return false
+	}
+	return parts[1] >= checkAgainst[1]
+}
 
 func TestStatusCodes(t *testing.T) {
 	// Test that we are correctly able to collect status code.
 	expectCode := 200
-	if gin.Version == statusFixVersion {
+	if useStatusFixVersion(gin.Version) {
 		expectCode = 500
 	}
 	app := integrationsupport.NewBasicTestApp()
@@ -222,7 +241,7 @@ func TestStatusCodes(t *testing.T) {
 	router.GET("/err", errorStatus)
 
 	txnName := "WebTransaction/Go/GET " + pkg + ".errorStatus"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "WebTransaction/Go/GET /err"
 	}
 
@@ -262,7 +281,7 @@ func TestNoResponseBody(t *testing.T) {
 	// Test that when no response body is sent (i.e. c.Writer.Write is never
 	// called) that we still capture status code.
 	expectCode := 200
-	if gin.Version == statusFixVersion {
+	if useFullPathVersion(gin.Version) {
 		expectCode = 500
 	}
 	app := integrationsupport.NewBasicTestApp()
@@ -271,7 +290,7 @@ func TestNoResponseBody(t *testing.T) {
 	router.GET("/nobody", noBody)
 
 	txnName := "WebTransaction/Go/GET " + pkg + ".noBody"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		txnName = "WebTransaction/Go/GET /nobody"
 	}
 
@@ -309,7 +328,7 @@ func TestRouteWithParams(t *testing.T) {
 	router.GET("/hello/:name/*action", hello)
 
 	txnName := "GET " + pkg + ".hello"
-	if gin.Version == fullPathVersion {
+	if useFullPathVersion(gin.Version) {
 		// ensure the transaction is named after the route and not the url
 		txnName = "GET /hello/:name/*action"
 	}
