@@ -1,6 +1,7 @@
 package newrelic_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -33,6 +34,7 @@ func Example() {
 		txn := app.StartTransaction("myTask")
 		defer txn.End()
 
+		// Do some work
 		time.Sleep(time.Second)
 	}()
 
@@ -66,6 +68,8 @@ func Example() {
 func currentTransaction() *newrelic.Transaction {
 	return nil
 }
+
+var txn *newrelic.Transaction
 
 func ExampleNewRoundTripper() {
 	client := &http.Client{}
@@ -348,4 +352,42 @@ func ExampleTransaction_StartSegmentNow() {
 	}
 	// add message to queue here
 	seg.End()
+}
+
+// Passing a new Transaction reference directly to another goroutine.
+func ExampleTransaction_NewGoroutine() {
+	go func(txn *newrelic.Transaction) {
+		defer txn.StartSegment("async").End()
+		// Do some work
+		time.Sleep(100 * time.Millisecond)
+	}(txn.NewGoroutine())
+}
+
+// Passing a new Transaction reference on a channel to another goroutine.
+func ExampleTransaction_NewGoroutine_channel() {
+	ch := make(chan *newrelic.Transaction)
+	go func() {
+		txn := <-ch
+		defer txn.StartSegment("async").End()
+		// Do some work
+		time.Sleep(100 * time.Millisecond)
+	}()
+	ch <- txn.NewGoroutine()
+}
+
+// Sometimes it is not possible to call txn.NewGoroutine() before the goroutine
+// has started.  In this case, it is okay to call the method from inside the
+// newly started goroutine.
+func ExampleTransaction_NewGoroutine_insideGoroutines() {
+	// async will always be called using `go async(ctx)`
+	async := func(ctx context.Context) {
+		txn := newrelic.FromContext(ctx)
+		txn = txn.NewGoroutine()
+		defer txn.StartSegment("async").End()
+
+		// Do some work
+		time.Sleep(100 * time.Millisecond)
+	}
+	ctx := newrelic.NewContext(context.Background(), currentTransaction())
+	go async(ctx)
 }
