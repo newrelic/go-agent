@@ -211,14 +211,14 @@ var statusFixVersion = [...]string{"1", "5"}
 var fullPathVersion = [...]string{"1", "5"}
 
 func useFullPathVersion(v string) bool {
-	return checkVersion(v, fullPathVersion)
+	return checkVersionIsAtLeast(v, fullPathVersion)
 }
 
 func useStatusFixVersion(v string) bool {
-	return checkVersion(v, statusFixVersion)
+	return checkVersionIsAtLeast(v, statusFixVersion)
 }
 
-func checkVersion(checkV string, checkAgainst [2]string) bool {
+func checkVersionIsAtLeast(checkV string, checkAgainst [2]string) bool {
 	parts := strings.Split(strings.TrimPrefix(checkV, "v"), ".")
 	if len(parts) < 2 {
 		return false
