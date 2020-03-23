@@ -308,26 +308,6 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // The Transaction will end when End() is called in any goroutine.
 // Note that any segments that end after the transaction ends will not
 // be reported.
-//
-// Example passing a new Transaction reference directly to another
-// goroutine:
-//
-//	go func(txn newrelic.Transaction) {
-//		defer txn.StartSegment("async").End()
-//		time.Sleep(100 * time.Millisecond)
-//	}(txn.NewGoroutine())
-//
-// Example passing a new Transaction reference on a channel to another
-// goroutine:
-//
-//	ch := make(chan newrelic.Transaction)
-//	go func() {
-//		txn := <-ch
-//		defer txn.StartSegment("async").End()
-//		time.Sleep(100 * time.Millisecond)
-//	}()
-//	ch <- txn.NewGoroutine()
-//
 func (txn *Transaction) NewGoroutine() *Transaction {
 	if nil == txn {
 		return nil

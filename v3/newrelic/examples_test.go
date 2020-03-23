@@ -67,6 +67,8 @@ func currentTransaction() *newrelic.Transaction {
 	return nil
 }
 
+var txn *newrelic.Transaction
+
 func ExampleNewRoundTripper() {
 	client := &http.Client{}
 	// The http.RoundTripper returned by NewRoundTripper instruments all
@@ -348,4 +350,23 @@ func ExampleTransaction_StartSegmentNow() {
 	}
 	// add message to queue here
 	seg.End()
+}
+
+// Passing a new Transaction reference directly to another goroutine.
+func ExampleTransaction_NewGoroutine() {
+	go func(txn *newrelic.Transaction) {
+		defer txn.StartSegment("async").End()
+		time.Sleep(100 * time.Millisecond)
+	}(txn.NewGoroutine())
+}
+
+// Passing a new Transaction reference on a channel to another goroutine.
+func ExampleTransaction_NewGoroutine_channel() {
+	ch := make(chan *newrelic.Transaction)
+	go func() {
+		txn := <-ch
+		defer txn.StartSegment("async").End()
+		time.Sleep(100 * time.Millisecond)
+	}()
+	ch <- txn.NewGoroutine()
 }
