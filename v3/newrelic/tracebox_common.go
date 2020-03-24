@@ -8,6 +8,7 @@ type traceBox struct {
 
 const (
 	apiKeyMetadataKey        = "api_key"
+	runIDMetadataKey         = "agent_run_token"
 	traceboxMessageQueueSize = 1000
 )
 

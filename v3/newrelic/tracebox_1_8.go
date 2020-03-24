@@ -2,9 +2,13 @@
 
 package newrelic
 
-import "errors"
+import (
+	"errors"
 
-func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
+	"github.com/newrelic/go-agent/v3/internal"
+)
+
+func newTraceBox(endpoint, apiKey string, runID internal.AgentRunID, lg Logger, connected chan<- bool) (*traceBox, error) {
 	return nil, errors.New("Non supported Go version - to use Magic Trace Box, " +
 		"you must use at least version 1.9 or higher of Go.")
 }

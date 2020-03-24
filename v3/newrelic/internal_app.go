@@ -48,6 +48,7 @@ type app struct {
 	dataChan           chan appData
 	collectorErrorChan chan rpmResponse
 	connectChan        chan *appRun
+	observerChan       chan bool
 
 	// This mutex protects both `run` and `err`, both of which should only
 	// be accessed using getState and setState.
@@ -58,6 +59,9 @@ type app struct {
 	// err is non-nil if the application will never be connected again
 	// (disconnect, license exception, shutdown).
 	err error
+	// observerState is true when the infinite tracing observer is connected
+	// and accepting spans.
+	observerState bool
 
 	serverless *serverlessHarvest
 }
@@ -144,6 +148,25 @@ func (app *app) connectRoutine() {
 		backoff := getConnectBackoffTime(attempts)
 		time.Sleep(time.Duration(backoff) * time.Second)
 		attempts++
+	}
+}
+
+func (app *app) connectTracebox() {
+	run, _ := app.getState()
+	// MTB.APIKey presence is validated in Config.validate.
+	box, err := newTraceBox(app.config.MTB.Endpoint, app.config.MTB.APIKey, run.Reply.RunID, app.config.Logger, app.observerChan)
+	if nil != err {
+		// TODO: Perhaps figure out how to make a supportability
+		// metric here.
+		app.Error("unable to make mtb connection", map[string]interface{}{
+			"err": err.Error(),
+		})
+	} else {
+		app.Debug("trace observer connected", map[string]interface{}{
+			"url": app.config.MTB.Endpoint,
+		})
+		// TODO: does this need lock?
+		app.TraceBox = box
 	}
 }
 
@@ -246,6 +269,12 @@ func (app *app) process() {
 				"run": run.Reply.RunID.String(),
 			})
 			processConnectMessages(run, app)
+			// TODO: I think this should probably check for span events enabled, etc.
+			if "" != app.config.MTB.Endpoint {
+				app.connectTracebox()
+			}
+		case connected := <-app.observerChan:
+			app.setObserverState(connected)
 		}
 	}
 }
@@ -318,7 +347,13 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 			return err
 		}
 		if run.Reply.RunID != "" {
-			return nil
+			if "" != app.config.MTB.Endpoint {
+				if app.getObserverState() {
+					return nil
+				}
+			} else {
+				return nil
+			}
 		}
 		if time.Now().After(deadline) {
 			return fmt.Errorf("timeout out after %s", timeout.String())
@@ -340,6 +375,7 @@ func newApp(c config) *app {
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		connectChan:        make(chan *appRun, 1),
+		observerChan:       make(chan bool, 1),
 		collectorErrorChan: make(chan rpmResponse, 1),
 		dataChan:           make(chan appData, appDataChanSize),
 		rpmControls: rpmControls{
@@ -357,23 +393,6 @@ func newApp(c config) *app {
 		"version": Version,
 		"enabled": app.config.Enabled,
 	})
-
-	// TODO: I think this should probably check for span events enabled, etc.
-	if "" != c.MTB.Endpoint {
-		// MTB.APIKey presence is validated in Config.validate.
-		box, err := newTraceBox(c.MTB.Endpoint, c.MTB.APIKey, c.Logger)
-		if nil != err {
-			// TODO: Perhaps figure out how to make a supportability
-			// metric here.
-			app.Error("unable to make mtb connection", map[string]interface{}{
-				"err": err.Error(),
-			})
-			panic(err)
-		} else {
-			fmt.Println("Tracebox Created!!!")
-			app.TraceBox = box
-		}
-	}
 
 	if app.config.Enabled {
 		if app.config.ServerlessMode.Enabled {
@@ -423,6 +442,18 @@ func (app *app) setState(run *appRun, err error) {
 
 	app.run = run
 	app.err = err
+}
+
+func (app *app) getObserverState() bool {
+	app.RLock()
+	defer app.RUnlock()
+	return app.observerState
+}
+
+func (app *app) setObserverState(state bool) {
+	app.Lock()
+	defer app.Unlock()
+	app.observerState = state
 }
 
 func newTransaction(thd *thread) *Transaction {

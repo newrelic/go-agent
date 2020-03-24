@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
 
@@ -25,13 +26,13 @@ func getTraceBoxBackoff(attempt int) time.Duration {
 	return traceBoxBackoffStrategy[len(traceBoxBackoffStrategy)-1]
 }
 
-func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
+func newTraceBox(endpoint, apiKey string, runID internal.AgentRunID, lg Logger, connected chan<- bool) (*traceBox, error) {
 	messages := make(chan *spanEvent, traceboxMessageQueueSize)
 
 	go func() {
 		attempts := 0
 		for {
-			err := spawnConnection(endpoint, apiKey, lg, messages)
+			err := spawnConnection(endpoint, apiKey, runID, lg, messages, connected)
 			if nil != err {
 				// TODO: Maybe decide if a reconnect should be
 				// tried.
@@ -46,7 +47,7 @@ func newTraceBox(endpoint, apiKey string, lg Logger) (*traceBox, error) {
 	return &traceBox{messages: messages}, nil
 }
 
-func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *spanEvent) error {
+func spawnConnection(endpoint, apiKey string, runID internal.AgentRunID, lg Logger, messages <-chan *spanEvent, connected chan<- bool) error {
 
 	responseError := make(chan error, 1)
 
@@ -57,10 +58,15 @@ func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *spanEv
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
-	spanClient, err := serviceClient.RecordSpan(metadata.AppendToOutgoingContext(context.Background(), "api_key", apiKey))
+	ctx := metadata.AppendToOutgoingContext(context.Background(),
+		apiKeyMetadataKey, apiKey,
+		runIDMetadataKey, string(runID),
+	)
+	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
 		return fmt.Errorf("unable to create span client: %v", err)
 	}
+	connected <- true
 
 	go func() {
 		for {
@@ -105,6 +111,7 @@ func spawnConnection(endpoint, apiKey string, lg Logger, messages <-chan *spanEv
 	}
 
 	lg.Debug("closing trace box sender", map[string]interface{}{})
+	connected <- false
 	err = spanClient.CloseSend()
 	if nil != err {
 		lg.Debug("error closing trace box sender", map[string]interface{}{
