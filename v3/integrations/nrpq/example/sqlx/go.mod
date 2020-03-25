@@ -8,7 +8,7 @@ go 1.13
 require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.0
-	github.com/newrelic/go-agent/v3 v3.0.0
+	github.com/newrelic/go-agent/v3 v3.3.0
 	github.com/newrelic/go-agent/v3/integrations/nrpq v0.0.0
 )
 
