@@ -165,8 +165,7 @@ func (app *app) connectTracebox() {
 		app.Debug("trace observer connected", map[string]interface{}{
 			"url": app.config.MTB.Endpoint,
 		})
-		// TODO: does this need lock?
-		app.TraceBox = box
+		app.setObserver(box)
 	}
 }
 
@@ -269,8 +268,7 @@ func (app *app) process() {
 				"run": run.Reply.RunID.String(),
 			})
 			processConnectMessages(run, app)
-			// TODO: I think this should probably check for span events enabled, etc.
-			if "" != app.config.MTB.Endpoint {
+			if shouldUseTraceObserver(app.config) {
 				app.connectTracebox()
 			}
 		case connected := <-app.observerChan:
@@ -347,7 +345,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 			return err
 		}
 		if run.Reply.RunID != "" {
-			if "" != app.config.MTB.Endpoint {
+			if shouldUseTraceObserver(app.config) {
 				if app.getObserverState() {
 					return nil
 				}
@@ -411,6 +409,10 @@ func newApp(c config) *app {
 	return app
 }
 
+func shouldUseTraceObserver(c config) bool {
+	return "" != c.MTB.Endpoint && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
+}
+
 var (
 	_ internal.HarvestTestinger = &app{}
 	_ internal.Expect           = &app{}
@@ -454,6 +456,24 @@ func (app *app) setObserverState(state bool) {
 	app.Lock()
 	defer app.Unlock()
 	app.observerState = state
+}
+
+func (app *app) getObserver() *traceBox {
+	if nil == app {
+		return nil
+	}
+	app.RLock()
+	defer app.RUnlock()
+	return app.TraceBox
+}
+
+func (app *app) setObserver(observer *traceBox) {
+	if nil == app {
+		return
+	}
+	app.Lock()
+	defer app.Unlock()
+	app.TraceBox = observer
 }
 
 func newTransaction(thd *thread) *Transaction {

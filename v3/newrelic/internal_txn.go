@@ -133,7 +133,7 @@ func (txn *txn) shouldCollectSpanEvents() bool {
 	if !txn.Config.SpanEvents.Enabled {
 		return false
 	}
-	if "" != txn.Config.MTB.Endpoint {
+	if shouldUseTraceObserver(txn.Config) {
 		return true
 	}
 	return txn.lazilyCalculateSampled()
@@ -281,7 +281,7 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.txnEvent)
 	}
 
-	if txn.shouldCollectSpanEvents() && "" == txn.Config.MTB.Endpoint {
+	if txn.shouldCollectSpanEvents() && !shouldUseTraceObserver(txn.Config) {
 		h.SpanEvents.MergeSpanEvents(txn.txnData.SpanEvents)
 	}
 }
@@ -436,11 +436,9 @@ func (thd *thread) End(recovered interface{}) error {
 
 	if !txn.ignore {
 		txn.app.Consume(txn.Reply.RunID, txn)
-		// TODO: Think a lot more about the conditions under which
-		// we send these span events, and think about concurrency.
-		if box := txn.app.TraceBox; nil != box && txn.shouldCollectSpanEvents() {
+		if observer := txn.app.getObserver(); nil != observer {
 			for _, evt := range txn.SpanEvents {
-				box.consumeSpan(evt)
+				observer.consumeSpan(evt)
 			}
 		}
 	}
