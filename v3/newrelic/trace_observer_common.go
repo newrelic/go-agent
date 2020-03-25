@@ -1,13 +1,25 @@
 package newrelic
 
-import "time"
+import (
+	"time"
+
+	"github.com/newrelic/go-agent/v3/internal"
+)
 
 type traceObserver struct {
 	messages chan *spanEvent
 }
 
+type observerConfig struct {
+	endpoint  string
+	license   string
+	runID     internal.AgentRunID
+	log       Logger
+	connected chan<- bool
+}
+
 const (
-	apiKeyMetadataKey             = "api_key"
+	licenseMetadataKey            = "license_key"
 	runIDMetadataKey              = "agent_run_token"
 	traceObserverMessageQueueSize = 1000
 )

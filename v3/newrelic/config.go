@@ -311,7 +311,6 @@ type Config struct {
 
 	InfiniteTracing struct {
 		TraceObserverURI string
-		APIKey           string
 	}
 
 	// Error may be populated by the ConfigOptions provided to NewApplication
@@ -418,7 +417,6 @@ var (
 	errAppNameMissing                   = errors.New("string AppName required")
 	errAppNameLimit                     = fmt.Errorf("max of %d rollup application names", appNameLimit)
 	errHighSecurityWithSecurityPolicies = errors.New("SecurityPoliciesToken and HighSecurity are incompatible; please ensure HighSecurity is set to false if SecurityPoliciesToken is a non-empty string and a security policy has been set for your account")
-	errMTBAPIKeyMissing                 = errors.New("MTB.APIKey must be provided along with MTB.Endpoint")
 	errInfTracingServerless             = errors.New("ServerlessMode cannot be used with Infinite Tracing")
 )
 
@@ -443,9 +441,6 @@ func (c Config) validate() error {
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
-	}
-	if "" != c.InfiniteTracing.TraceObserverURI && "" == c.InfiniteTracing.APIKey {
-		return errMTBAPIKeyMissing
 	}
 	if "" != c.InfiniteTracing.TraceObserverURI && c.ServerlessMode.Enabled {
 		return errInfTracingServerless
