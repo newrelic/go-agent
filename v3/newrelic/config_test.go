@@ -159,9 +159,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"HighSecurity":false,
 			"Host":"",
 			"HostDisplayName":"",
+			"InfiniteTracing": {"APIKey": "","TraceObserverURI": ""},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
-			"MTB": {"APIKey": "","Endpoint": ""},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -329,9 +329,9 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"HighSecurity":false,
 			"Host":"",
 			"HostDisplayName":"",
+			"InfiniteTracing": {"APIKey": "","TraceObserverURI": ""},
 			"Labels":null,
 			"Logger":null,
-			"MTB": {"APIKey": "","Endpoint": ""},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{

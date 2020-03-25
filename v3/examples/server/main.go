@@ -246,11 +246,11 @@ func main() {
 		func(cfg *newrelic.Config) {
 			cfg.SpanEvents.Enabled = true
 			cfg.DistributedTracer.Enabled = true
-			cfg.MTB.Endpoint = "mtb.nr-data.net:443"
-			cfg.MTB.APIKey = panicIfUnset("NEW_RELIC_API_KEY")
+			cfg.InfiniteTracing.TraceObserverURI = "mtb.nr-data.net:443"
+			cfg.InfiniteTracing.APIKey = panicIfUnset("NEW_RELIC_API_KEY")
 			cfg.Host = "staging-collector.newrelic.com"
 		},
-		newrelic.ConfigAppName("Go Agent MTB App"),
+		newrelic.ConfigAppName("Go Agent InfiniteTracing App"),
 		newrelic.ConfigLicense(panicIfUnset("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)

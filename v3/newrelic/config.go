@@ -309,9 +309,9 @@ type Config struct {
 	// Host can be used to override the New Relic endpoint.
 	Host string
 
-	MTB struct {
-		Endpoint string
-		APIKey   string
+	InfiniteTracing struct {
+		TraceObserverURI string
+		APIKey           string
 	}
 
 	// Error may be populated by the ConfigOptions provided to NewApplication
@@ -419,7 +419,7 @@ var (
 	errAppNameLimit                     = fmt.Errorf("max of %d rollup application names", appNameLimit)
 	errHighSecurityWithSecurityPolicies = errors.New("SecurityPoliciesToken and HighSecurity are incompatible; please ensure HighSecurity is set to false if SecurityPoliciesToken is a non-empty string and a security policy has been set for your account")
 	errMTBAPIKeyMissing                 = errors.New("MTB.APIKey must be provided along with MTB.Endpoint")
-	errMTBServerless                    = errors.New("ServerlessMode cannot be used with MTB")
+	errInfTracingServerless             = errors.New("ServerlessMode cannot be used with Infinite Tracing")
 )
 
 // validate checks the config for improper fields.  If the config is invalid,
@@ -444,11 +444,11 @@ func (c Config) validate() error {
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
-	if "" != c.MTB.Endpoint && "" == c.MTB.APIKey {
+	if "" != c.InfiniteTracing.TraceObserverURI && "" == c.InfiniteTracing.APIKey {
 		return errMTBAPIKeyMissing
 	}
-	if "" != c.MTB.Endpoint && c.ServerlessMode.Enabled {
-		return errMTBServerless
+	if "" != c.InfiniteTracing.TraceObserverURI && c.ServerlessMode.Enabled {
+		return errInfTracingServerless
 	}
 
 	return nil

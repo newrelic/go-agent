@@ -25,7 +25,7 @@ type app struct {
 	rpmControls rpmControls
 	testHarvest *harvest
 
-	TraceBox *traceBox
+	TraceObserver *traceObserver
 
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
@@ -151,21 +151,21 @@ func (app *app) connectRoutine() {
 	}
 }
 
-func (app *app) connectTracebox() {
+func (app *app) connectTraceObserver() {
 	run, _ := app.getState()
-	// MTB.APIKey presence is validated in Config.validate.
-	box, err := newTraceBox(app.config.MTB.Endpoint, app.config.MTB.APIKey, run.Reply.RunID, app.config.Logger, app.observerChan)
+	// InfiniteTracing.APIKey presence is validated in Config.validate.
+	observer, err := newTraceObserver(app.config.InfiniteTracing.TraceObserverURI, app.config.InfiniteTracing.APIKey, run.Reply.RunID, app.config.Logger, app.observerChan)
 	if nil != err {
 		// TODO: Perhaps figure out how to make a supportability
 		// metric here.
-		app.Error("unable to make mtb connection", map[string]interface{}{
+		app.Error("unable to make trace observer connection", map[string]interface{}{
 			"err": err.Error(),
 		})
 	} else {
 		app.Debug("trace observer connected", map[string]interface{}{
-			"url": app.config.MTB.Endpoint,
+			"url": app.config.InfiniteTracing.TraceObserverURI,
 		})
-		app.setObserver(box)
+		app.setObserver(observer)
 	}
 }
 
@@ -269,7 +269,7 @@ func (app *app) process() {
 			})
 			processConnectMessages(run, app)
 			if shouldUseTraceObserver(app.config) {
-				app.connectTracebox()
+				app.connectTraceObserver()
 			}
 		case connected := <-app.observerChan:
 			app.setObserverState(connected)
@@ -410,7 +410,7 @@ func newApp(c config) *app {
 }
 
 func shouldUseTraceObserver(c config) bool {
-	return "" != c.MTB.Endpoint && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
+	return "" != c.InfiniteTracing.TraceObserverURI && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
 }
 
 var (
@@ -458,22 +458,22 @@ func (app *app) setObserverState(state bool) {
 	app.observerState = state
 }
 
-func (app *app) getObserver() *traceBox {
+func (app *app) getObserver() *traceObserver {
 	if nil == app {
 		return nil
 	}
 	app.RLock()
 	defer app.RUnlock()
-	return app.TraceBox
+	return app.TraceObserver
 }
 
-func (app *app) setObserver(observer *traceBox) {
+func (app *app) setObserver(observer *traceObserver) {
 	if nil == app {
 		return
 	}
 	app.Lock()
 	defer app.Unlock()
-	app.TraceBox = observer
+	app.TraceObserver = observer
 }
 
 func newTransaction(thd *thread) *Transaction {
