@@ -18,13 +18,6 @@ import (
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
 
-func getInfiniteTracingBackoff(attempt int) time.Duration {
-	if attempt < len(infiniteTracingBackoffStrategy) {
-		return infiniteTracingBackoffStrategy[attempt]
-	}
-	return infiniteTracingBackoffStrategy[len(infiniteTracingBackoffStrategy)-1]
-}
-
 func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 	messages := make(chan *spanEvent, traceObserverMessageQueueSize)
 
@@ -37,9 +30,9 @@ func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 				// tried.
 				fmt.Println(err)
 			}
-			time.Sleep(getInfiniteTracingBackoff(attempts))
+			backoff := getConnectBackoffTime(attempts)
+			time.Sleep(time.Duration(backoff) * time.Second)
 			attempts++
-
 		}
 	}()
 
