@@ -153,8 +153,13 @@ func (app *app) connectRoutine() {
 
 func (app *app) connectTraceObserver() {
 	run, _ := app.getState()
-	// InfiniteTracing.APIKey presence is validated in Config.validate.
-	observer, err := newTraceObserver(app.config.InfiniteTracing.TraceObserverURI, app.config.InfiniteTracing.APIKey, run.Reply.RunID, app.config.Logger, app.observerChan)
+	observer, err := newTraceObserver(observerConfig{
+		endpoint:  app.config.InfiniteTracing.TraceObserverURI,
+		license:   app.config.License,
+		runID:     run.Reply.RunID,
+		log:       app.config.Logger,
+		connected: app.observerChan,
+	})
 	if nil != err {
 		// TODO: Perhaps figure out how to make a supportability
 		// metric here.
