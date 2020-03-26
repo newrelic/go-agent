@@ -176,6 +176,7 @@ func (app *app) connectTraceObserver() {
 
 // Connect backoff time follows the sequence defined at
 // https://source.datanerd.us/agents/agent-specs/blob/master/Collector-Response-Handling.md#retries-and-backoffs
+// Also used for connecting to the Trace Observer.
 func getConnectBackoffTime(attempt int) int {
 	connectBackoffTimes := [...]int{15, 15, 30, 60, 120, 300}
 	l := len(connectBackoffTimes)
