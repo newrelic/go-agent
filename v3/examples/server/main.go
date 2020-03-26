@@ -84,10 +84,10 @@ func segments(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 
 	func() {
-		defer txn.StartSegment("zipper").End()
+		defer txn.StartSegment("f1").End()
 
 		func() {
-			defer txn.StartSegment("zapper").End()
+			defer txn.StartSegment("f2").End()
 
 			io.WriteString(w, "segments!")
 			time.Sleep(10 * time.Millisecond)
@@ -233,24 +233,10 @@ func browser(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "browser header page")
 }
 
-func panicIfUnset(varname string) string {
-	s := os.Getenv(varname)
-	if "" == s {
-		panic(fmt.Sprintf("environment variable %s is empty", varname))
-	}
-	return s
-}
-
 func main() {
 	app, err := newrelic.NewApplication(
-		func(cfg *newrelic.Config) {
-			cfg.SpanEvents.Enabled = true
-			cfg.DistributedTracer.Enabled = true
-			cfg.InfiniteTracing.TraceObserverURI = "mtb.nr-data.net:443"
-			cfg.Host = "staging-collector.newrelic.com"
-		},
-		newrelic.ConfigAppName("Go Agent InfiniteTracing App"),
-		newrelic.ConfigLicense(panicIfUnset("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigAppName("Example App"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
 	if nil != err {
