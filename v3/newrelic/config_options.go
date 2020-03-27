@@ -50,22 +50,23 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//  NEW_RELIC_APP_NAME                       sets AppName
-//  NEW_RELIC_LICENSE_KEY                    sets License
-//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED    sets DistributedTracer.Enabled using strconv.ParseBool
-//  NEW_RELIC_ENABLED                        sets Enabled using strconv.ParseBool
-//  NEW_RELIC_HIGH_SECURITY                  sets HighSecurity using strconv.ParseBool
-//  NEW_RELIC_SECURITY_POLICIES_TOKEN        sets SecurityPoliciesToken
-//  NEW_RELIC_HOST                           sets Host
-//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME      sets HostDisplayName
-//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME   sets Utilization.BillingHostname
-//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS sets Utilization.LogicalProcessors using strconv.Atoi
-//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB      sets Utilization.TotalRAMMIB using strconv.Atoi
-//  NEW_RELIC_LABELS                         sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//  NEW_RELIC_ATTRIBUTES_EXCLUDE             sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//  NEW_RELIC_ATTRIBUTES_INCLUDE             sets Attributes.Include using a comma-separated list
-//  NEW_RELIC_LOG                            sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//  NEW_RELIC_LOG_LEVEL                      controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//  NEW_RELIC_APP_NAME                            sets AppName
+//  NEW_RELIC_ATTRIBUTES_EXCLUDE                  sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//  NEW_RELIC_ATTRIBUTES_INCLUDE                  sets Attributes.Include using a comma-separated list
+//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED         sets DistributedTracer.Enabled using strconv.ParseBool
+//  NEW_RELIC_ENABLED                             sets Enabled using strconv.ParseBool
+//  NEW_RELIC_HIGH_SECURITY                       sets HighSecurity using strconv.ParseBool
+//  NEW_RELIC_HOST                                sets Host
+//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_URL sets InfiniteTracing.TraceObserverURL
+//  NEW_RELIC_LABELS                              sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//  NEW_RELIC_LICENSE_KEY                         sets License
+//  NEW_RELIC_LOG                                 sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//  NEW_RELIC_LOG_LEVEL                           controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME           sets HostDisplayName
+//  NEW_RELIC_SECURITY_POLICIES_TOKEN             sets SecurityPoliciesToken
+//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME        sets Utilization.BillingHostname
+//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS      sets Utilization.LogicalProcessors using strconv.Atoi
+//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB           sets Utilization.TotalRAMMIB using strconv.Atoi
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -112,6 +113,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignString(&cfg.Host, "NEW_RELIC_HOST")
 		assignString(&cfg.HostDisplayName, "NEW_RELIC_PROCESS_HOST_DISPLAY_NAME")
 		assignString(&cfg.Utilization.BillingHostname, "NEW_RELIC_UTILIZATION_BILLING_HOSTNAME")
+		assignString(&cfg.InfiniteTracing.TraceObserverURL, "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_URL")
 		assignInt(&cfg.Utilization.LogicalProcessors, "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")
 		assignInt(&cfg.Utilization.TotalRAMMIB, "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")
 

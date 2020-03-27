@@ -9,11 +9,16 @@ type traceObserver struct {
 }
 
 type observerConfig struct {
-	endpoint  string
+	endpoint  *observerURL
 	license   string
 	runID     internal.AgentRunID
 	log       Logger
 	connected chan<- bool
+}
+
+type observerURL struct {
+	host   string
+	secure bool
 }
 
 const (

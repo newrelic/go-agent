@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -309,8 +311,10 @@ type Config struct {
 	// Host can be used to override the New Relic endpoint.
 	Host string
 
+	// InfiniteTracing TODO
 	InfiniteTracing struct {
-		TraceObserverURI string
+		// TraceObserverURL TODO
+		TraceObserverURL string
 	}
 
 	// Error may be populated by the ConfigOptions provided to NewApplication
@@ -442,11 +446,42 @@ func (c Config) validate() error {
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
-	if "" != c.InfiniteTracing.TraceObserverURI && c.ServerlessMode.Enabled {
+	if "" != c.InfiniteTracing.TraceObserverURL && c.ServerlessMode.Enabled {
 		return errInfTracingServerless
 	}
 
 	return nil
+}
+
+func (c Config) validateTraceObserverURL() (*observerURL, error) {
+	configURL := c.InfiniteTracing.TraceObserverURL
+	if "" == configURL {
+		// This is the only instance from which we can return nil, nil.
+		// If the user requests use of a trace observer, we must either provide
+		// them with a valid observerURL _or_ alert them to the failure to do so.
+		return nil, nil
+	}
+	u, err := url.Parse(configURL)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme == "" {
+		return nil, errors.New("scheme is required for Trace Observer URL: " + configURL)
+	}
+	if u.Scheme != "https" && u.Scheme != "http" {
+		return nil, errors.New("scheme must be http or https for Trace Observer URL: " + configURL)
+	}
+	if _, port, _ := net.SplitHostPort(u.Host); port == "" {
+		if u.Scheme == "https" {
+			u.Host = strings.Trim(u.Host, ":") + ":443"
+		} else {
+			u.Host = strings.Trim(u.Host, ":") + ":80"
+		}
+	}
+	return &observerURL{
+		host:   u.Host + u.Path,
+		secure: u.Scheme == "https",
+	}, nil
 }
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
@@ -643,8 +678,9 @@ type config struct {
 	// NewApplication (instead of at each connect) because some customers
 	// may unset environment variables after startup:
 	// https://github.com/newrelic/go-agent/issues/127
-	metadata map[string]string
-	hostname string
+	metadata         map[string]string
+	hostname         string
+	traceObserverURL *observerURL
 }
 
 func (c Config) computeDynoHostname(getenv func(string) string) string {
@@ -674,6 +710,10 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 	if err := cfg.validate(); nil != err {
 		return config{}, err
 	}
+	obsURL, err := cfg.validateTraceObserverURL()
+	if err != nil {
+		return config{}, err
+	}
 	// Ensure that Logger is always set to avoid nil checks.
 	if nil == cfg.Logger {
 		cfg.Logger = logger.ShimLogger{}
@@ -687,9 +727,10 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 		hostname = "unknown"
 	}
 	return config{
-		Config:   cfg,
-		metadata: gatherMetadata(environ),
-		hostname: hostname,
+		Config:           cfg,
+		metadata:         gatherMetadata(environ),
+		hostname:         hostname,
+		traceObserverURL: obsURL,
 	}, nil
 }
 

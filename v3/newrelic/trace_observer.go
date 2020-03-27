@@ -42,12 +42,18 @@ func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 func spawnConnection(messages <-chan *spanEvent, cfg observerConfig) error {
 	responseError := make(chan error, 1)
 
+	var cred grpc.DialOption
+	if cfg.endpoint.secure {
+		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
+	} else {
+		cred = grpc.WithInsecure()
+	}
 	conn, err := grpc.Dial(
-		cfg.endpoint,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+		cfg.endpoint.host,
+		cred,
 	)
 	if nil != err {
-		return fmt.Errorf("unable to dial grpc endpoint %s: %v", cfg.endpoint, err)
+		return fmt.Errorf("unable to dial grpc endpoint %s: %v", cfg.endpoint.host, err)
 	}
 
 	serviceClient := v1.NewIngestServiceClient(conn)

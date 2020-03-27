@@ -36,6 +36,8 @@ func TestConfigFromEnvironment(t *testing.T) {
 			return "zip,zap"
 		case "NEW_RELIC_ATTRIBUTES_EXCLUDE":
 			return "zop,zup,zep"
+		case "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_URL":
+			return "https://myhost.com"
 		}
 		return ""
 	})
@@ -54,6 +56,7 @@ func TestConfigFromEnvironment(t *testing.T) {
 	expect.Labels = map[string]string{"star": "car", "far": "bar"}
 	expect.Attributes.Include = []string{"zip", "zap"}
 	expect.Attributes.Exclude = []string{"zop", "zup", "zep"}
+	expect.InfiniteTracing.TraceObserverURL = "https://myhost.com"
 
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
