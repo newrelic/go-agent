@@ -19,7 +19,7 @@ import (
 )
 
 func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
-	messages := make(chan *spanEvent, traceObserverMessageQueueSize)
+	messages := make(chan *spanEvent, cfg.queueSize)
 
 	go func() {
 		attempts := 0

@@ -14,6 +14,7 @@ type observerConfig struct {
 	runID     internal.AgentRunID
 	log       Logger
 	connected chan<- bool
+	queueSize int
 }
 
 type observerURL struct {
@@ -22,7 +23,6 @@ type observerURL struct {
 }
 
 const (
-	licenseMetadataKey            = "license_key"
-	runIDMetadataKey              = "agent_run_token"
-	traceObserverMessageQueueSize = 1000
+	licenseMetadataKey = "license_key"
+	runIDMetadataKey   = "agent_run_token"
 )

@@ -159,6 +159,7 @@ func (app *app) connectTraceObserver() {
 		runID:     run.Reply.RunID,
 		log:       app.config.Logger,
 		connected: app.observerChan,
+		queueSize: app.config.InfiniteTracing.SpanEvents.QueueSize,
 	})
 	if nil != err {
 		// TODO: Perhaps figure out how to make a supportability

@@ -315,6 +315,11 @@ type Config struct {
 	InfiniteTracing struct {
 		// TraceObserverURL TODO
 		TraceObserverURL string
+		// SpanEvents TODO
+		SpanEvents struct {
+			// QueueSize TODO default 10,000
+			QueueSize int
+		}
 	}
 
 	// Error may be populated by the ConfigOptions provided to NewApplication
@@ -406,6 +411,8 @@ func defaultConfig() Config {
 
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
+
+	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	return c
 }

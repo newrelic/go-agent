@@ -38,6 +38,8 @@ func TestConfigFromEnvironment(t *testing.T) {
 			return "zop,zup,zep"
 		case "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_URL":
 			return "https://myhost.com"
+		case "NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE":
+			return "98765"
 		}
 		return ""
 	})
@@ -57,6 +59,7 @@ func TestConfigFromEnvironment(t *testing.T) {
 	expect.Attributes.Include = []string{"zip", "zap"}
 	expect.Attributes.Exclude = []string{"zop", "zup", "zep"}
 	expect.InfiniteTracing.TraceObserverURL = "https://myhost.com"
+	expect.InfiniteTracing.SpanEvents.QueueSize = 98765
 
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
