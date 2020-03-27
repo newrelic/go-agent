@@ -154,7 +154,7 @@ func (app *app) connectRoutine() {
 func (app *app) connectTraceObserver() {
 	run, _ := app.getState()
 	observer, err := newTraceObserver(observerConfig{
-		endpoint:  app.config.InfiniteTracing.TraceObserverURI,
+		endpoint:  app.config.traceObserverURL,
 		license:   app.config.License,
 		runID:     run.Reply.RunID,
 		log:       app.config.Logger,
@@ -168,7 +168,7 @@ func (app *app) connectTraceObserver() {
 		})
 	} else {
 		app.Debug("trace observer connected", map[string]interface{}{
-			"url": app.config.InfiniteTracing.TraceObserverURI,
+			"url": app.config.traceObserverURL,
 		})
 		app.setObserver(observer)
 	}
@@ -416,7 +416,7 @@ func newApp(c config) *app {
 }
 
 func shouldUseTraceObserver(c config) bool {
-	return "" != c.InfiniteTracing.TraceObserverURI && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
+	return nil != c.traceObserverURL && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
 }
 
 var (
