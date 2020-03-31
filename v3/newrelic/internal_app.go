@@ -48,7 +48,6 @@ type app struct {
 	dataChan           chan appData
 	collectorErrorChan chan rpmResponse
 	connectChan        chan *appRun
-	observerChan       chan bool
 
 	// This mutex protects both `run` and `err`, both of which should only
 	// be accessed using getState and setState.
@@ -59,9 +58,6 @@ type app struct {
 	// err is non-nil if the application will never be connected again
 	// (disconnect, license exception, shutdown).
 	err error
-	// observerState is true when the infinite tracing observer is connected
-	// and accepting spans.
-	observerState bool
 
 	serverless *serverlessHarvest
 }
@@ -158,7 +154,6 @@ func (app *app) connectTraceObserver() {
 		license:   app.config.License,
 		runID:     run.Reply.RunID,
 		log:       app.config.Logger,
-		connected: app.observerChan,
 		queueSize: app.config.InfiniteTracing.SpanEvents.QueueSize,
 	})
 	if nil != err {
@@ -171,7 +166,7 @@ func (app *app) connectTraceObserver() {
 		app.Debug("trace observer connected", map[string]interface{}{
 			"url": app.config.traceObserverURL,
 		})
-		app.setObserver(observer)
+		app.swapObserver(observer)
 	}
 }
 
@@ -278,8 +273,6 @@ func (app *app) process() {
 			if shouldUseTraceObserver(app.config) {
 				app.connectTraceObserver()
 			}
-		case connected := <-app.observerChan:
-			app.setObserverState(connected)
 		}
 	}
 }
@@ -353,7 +346,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 		}
 		if run.Reply.RunID != "" {
 			if shouldUseTraceObserver(app.config) {
-				if app.getObserverState() {
+				if obs := app.getObserver(); obs != nil && obs.getConnectedState() {
 					return nil
 				}
 			} else {
@@ -380,7 +373,6 @@ func newApp(c config) *app {
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		connectChan:        make(chan *appRun, 1),
-		observerChan:       make(chan bool, 1),
 		collectorErrorChan: make(chan rpmResponse, 1),
 		dataChan:           make(chan appData, appDataChanSize),
 		rpmControls: rpmControls{
@@ -453,18 +445,6 @@ func (app *app) setState(run *appRun, err error) {
 	app.err = err
 }
 
-func (app *app) getObserverState() bool {
-	app.RLock()
-	defer app.RUnlock()
-	return app.observerState
-}
-
-func (app *app) setObserverState(state bool) {
-	app.Lock()
-	defer app.Unlock()
-	app.observerState = state
-}
-
 func (app *app) getObserver() *traceObserver {
 	if nil == app {
 		return nil
@@ -474,13 +454,19 @@ func (app *app) getObserver() *traceObserver {
 	return app.TraceObserver
 }
 
-func (app *app) setObserver(observer *traceObserver) {
+// swapObserver closes the message channel for the app's current traceObserver,
+// if it exists, and replaces it with the traceObserver that was passed in.
+func (app *app) swapObserver(observer *traceObserver) {
 	if nil == app {
 		return
 	}
 	app.Lock()
 	defer app.Unlock()
+	prevObserver := app.TraceObserver
 	app.TraceObserver = observer
+	if nil != prevObserver {
+		close(prevObserver.messages)
+	}
 }
 
 func newTransaction(thd *thread) *Transaction {

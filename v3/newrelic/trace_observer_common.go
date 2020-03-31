@@ -1,11 +1,17 @@
 package newrelic
 
 import (
+	"sync"
+
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
 type traceObserver struct {
 	messages chan *spanEvent
+
+	// This mutex protects `connected`, which should be accessed via `getConnectedState` and `setConnectedState`
+	sync.Mutex
+	connected bool
 }
 
 type observerConfig struct {
@@ -13,7 +19,6 @@ type observerConfig struct {
 	license   string
 	runID     internal.AgentRunID
 	log       Logger
-	connected chan<- bool
 	queueSize int
 }
 

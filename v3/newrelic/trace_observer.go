@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -20,26 +21,27 @@ import (
 
 func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 	messages := make(chan *spanEvent, cfg.queueSize)
-
+	to := &traceObserver{messages: messages}
 	go func() {
 		attempts := 0
 		for {
-			err := spawnConnection(messages, cfg)
-			if nil != err {
-				// TODO: Maybe decide if a reconnect should be
-				// tried.
-				fmt.Println(err)
+			err := connectToTraceObserver(to, cfg)
+			// If we returned nil, that means we're done.
+			if nil == err {
+				return
 			}
+			// TODO: Maybe decide if a reconnect should be
+			// tried.
+			fmt.Println(err)
 			backoff := getConnectBackoffTime(attempts)
 			time.Sleep(time.Duration(backoff) * time.Second)
 			attempts++
 		}
 	}()
-
-	return &traceObserver{messages: messages}, nil
+	return to, nil
 }
 
-func spawnConnection(messages <-chan *spanEvent, cfg observerConfig) error {
+func connectToTraceObserver(to *traceObserver, cfg observerConfig) error {
 	responseError := make(chan error, 1)
 
 	var cred grpc.DialOption
@@ -55,6 +57,7 @@ func spawnConnection(messages <-chan *spanEvent, cfg observerConfig) error {
 	if nil != err {
 		return fmt.Errorf("unable to dial grpc endpoint %s: %v", cfg.endpoint.host, err)
 	}
+	defer conn.Close()
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
@@ -66,16 +69,19 @@ func spawnConnection(messages <-chan *spanEvent, cfg observerConfig) error {
 	if nil != err {
 		return fmt.Errorf("unable to create span client: %v", err)
 	}
-	cfg.connected <- true
+	to.setConnectedState(true)
 
 	go func() {
 		for {
 			status, err := spanClient.Recv()
 			if nil != err {
-				cfg.log.Error("trace observer response error", map[string]interface{}{
-					"err": err.Error(),
-				})
-				responseError <- err
+				// If the error is an "already closed" error, break?
+				if io.EOF != err {
+					cfg.log.Error("trace observer response error", map[string]interface{}{
+						"err": err.Error(),
+					})
+					responseError <- err
+				}
 				return
 			}
 			cfg.log.Debug("trace observer response", map[string]interface{}{
@@ -84,41 +90,28 @@ func spawnConnection(messages <-chan *spanEvent, cfg observerConfig) error {
 		}
 	}()
 
-	for {
-		var err error
-		var event *spanEvent
-		select {
-		case err = <-responseError:
-		case event = <-messages:
-		}
-		if nil != err {
-			cfg.log.Debug("trace observer sender received response error", map[string]interface{}{
-				"err": err.Error(),
-			})
-			break
-		}
-		span := transformEvent(event)
+	// This will loop until the messages channel is closed and the messages have all been drained
+	for msg := range to.messages {
+		span := transformEvent(msg)
 		cfg.log.Debug("sending span to trace observer", map[string]interface{}{
-			"name": event.Name,
+			"name": msg.Name,
 		})
 		err = spanClient.Send(span)
 		if nil != err {
 			cfg.log.Debug("trace observer sender send error", map[string]interface{}{
 				"err": err.Error(),
 			})
-			break
 		}
 	}
 
 	cfg.log.Debug("closing trace observer sender", map[string]interface{}{})
-	cfg.connected <- false
+	to.setConnectedState(false)
 	err = spanClient.CloseSend()
 	if nil != err {
 		cfg.log.Debug("error closing trace observer sender", map[string]interface{}{
 			"err": err.Error(),
 		})
 	}
-
 	return nil
 }
 
@@ -194,4 +187,20 @@ func (to *traceObserver) consumeSpan(span *spanEvent) bool {
 	default:
 		return false
 	}
+}
+
+// getConnectedState returns true if this traceObserver is currently connected
+// to the remote traceObserver server
+func (to *traceObserver) getConnectedState() bool {
+	to.Lock()
+	defer to.Unlock()
+	return to.connected
+}
+
+// setConnectedState sets whether this traceObserver is currently connected
+//  to the remote traceObserver server
+func (to *traceObserver) setConnectedState(c bool) {
+	to.Lock()
+	defer to.Unlock()
+	to.connected = c
 }

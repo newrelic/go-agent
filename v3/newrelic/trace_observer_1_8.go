@@ -14,3 +14,7 @@ func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 func (to *traceObserver) consumeSpan(span *spanEvent) bool {
 	return false
 }
+
+func (to *traceObserver) getConnectedState() bool {
+	return false
+}
