@@ -54,6 +54,17 @@
   // will be change to something like this match the full path
   "GET /user/:id"
   ```
+* If you are using any of these integrations, you must upgrade them when you
+ upgrade the agent:
+    * [nrlambda v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda)
+    * [nrmicro v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro)
+    * [nrnats v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrnats)
+    * [nrstan v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrstan)
+    
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.3.0
 
@@ -90,6 +101,11 @@
   API which allows you to pull a Transaction from a context.Context will no
   longer panic if the provided context is nil.  In this case, a nil is
   returned.
+  
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.2.0
 
