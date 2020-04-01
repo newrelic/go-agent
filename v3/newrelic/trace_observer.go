@@ -170,12 +170,17 @@ func transformEvent(e *spanEvent) *v1.Span {
 	}
 
 	for key, val := range e.Attributes {
-		// This assumes all values are string types.
-		// TODO: Future-proof this!
-		b := bytes.Buffer{}
-		val.WriteJSON(&b)
-		s := strings.Trim(b.String(), `"`)
-		span.AgentAttributes[key.String()] = obsvString(s)
+		switch v := val.(type) {
+		case stringJSONWriter:
+			span.AgentAttributes[key.String()] = obsvString(string(v))
+		case intJSONWriter:
+			span.AgentAttributes[key.String()] = obsvInt(int64(v))
+		default:
+			b := bytes.Buffer{}
+			val.WriteJSON(&b)
+			s := strings.Trim(b.String(), `"`)
+			span.AgentAttributes[key.String()] = obsvString(s)
+		}
 	}
 
 	return span
@@ -256,8 +261,8 @@ func expectObserverAttributes(v internal.Validator, actual map[string]*v1.Attrib
 			if f := found.GetDoubleValue(); f-exp > plusOrMinus || exp-f > plusOrMinus {
 				v.Error("incorrect double value for key", key, "in trace observer. actual:", f, "expect:", exp)
 			}
-		case int64:
-			if f := found.GetIntValue(); f != exp {
+		case int:
+			if f := found.GetIntValue(); f != int64(exp) {
 				v.Error("incorrect int value for key", key, "in trace observer. actual:", f, "expect:", exp)
 			}
 		default:

@@ -1499,7 +1499,7 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				// "http.url" and "http.method" are not saved if
 				// library is not "http".
-				"http.statusCode": "13",
+				"http.statusCode": 13,
 			},
 		},
 		{

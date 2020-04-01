@@ -613,7 +613,7 @@ func TestSpanEventHTTPStatusCode(t *testing.T) {
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				// SetStatusCode takes precedence over Response.StatusCode
-				"http.statusCode": "0",
+				"http.statusCode": 0,
 			},
 		},
 		{
