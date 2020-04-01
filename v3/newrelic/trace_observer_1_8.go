@@ -4,6 +4,8 @@ package newrelic
 
 import (
 	"errors"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
@@ -17,4 +19,7 @@ func (to *traceObserver) consumeSpan(span *spanEvent) bool {
 
 func (to *traceObserver) getConnectedState() bool {
 	return false
+}
+
+func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
 }

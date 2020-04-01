@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
 
@@ -203,4 +204,71 @@ func (to *traceObserver) setConnectedState(c bool) {
 	to.Lock()
 	defer to.Unlock()
 	to.connected = c
+}
+
+func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
+	for i, e := range expect {
+		if nil != e.Intrinsics {
+			e.Intrinsics = mergeAttributes(extraAttributes, e.Intrinsics)
+		}
+		event := events.events[i].jsonWriter.(*spanEvent)
+		expectObserverEvent(v, event, e)
+	}
+}
+
+func expectObserverEvent(v internal.Validator, e *spanEvent, expect internal.WantEvent) {
+	span := transformEvent(e)
+	if nil != expect.Intrinsics {
+		expectObserverAttributes(v, span.Intrinsics, expect.Intrinsics)
+	}
+	if nil != expect.UserAttributes {
+		expectObserverAttributes(v, span.UserAttributes, expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectObserverAttributes(v, span.AgentAttributes, expect.AgentAttributes)
+	}
+}
+
+func expectObserverAttributes(v internal.Validator, actual map[string]*v1.AttributeValue, expect map[string]interface{}) {
+	if len(actual) != len(expect) {
+		v.Error("attributes length difference in trace observer. actual:", len(actual), "expect:", len(expect))
+	}
+	for key, val := range expect {
+		found, ok := actual[key]
+		if !ok {
+			v.Error("expected attribute not found in trace observer: ", key)
+			continue
+		}
+		if val == internal.MatchAnything {
+			continue
+		}
+		switch exp := val.(type) {
+		case bool:
+			if f := found.GetBoolValue(); f != exp {
+				v.Error("incorrect bool value for key", key, "in trace observer. actual:", f, "expect:", exp)
+			}
+		case string:
+			if f := found.GetStringValue(); f != exp {
+				v.Error("incorrect string value for key", key, "in trace observer. actual:", f, "expect:", exp)
+			}
+		case float64:
+			plusOrMinus := 0.0000001 // with floating point math we can only get so close
+			if f := found.GetDoubleValue(); f-exp > plusOrMinus || exp-f > plusOrMinus {
+				v.Error("incorrect double value for key", key, "in trace observer. actual:", f, "expect:", exp)
+			}
+		case int64:
+			if f := found.GetIntValue(); f != exp {
+				v.Error("incorrect int value for key", key, "in trace observer. actual:", f, "expect:", exp)
+			}
+		default:
+			v.Error("unknown type for key", key, "in trace observer. expected:", exp)
+		}
+	}
+	for key, val := range actual {
+		_, ok := expect[key]
+		if !ok {
+			v.Error("unexpected attribute present in trace observer. key:", key, "value:", val)
+			continue
+		}
+	}
 }

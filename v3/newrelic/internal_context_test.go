@@ -106,7 +106,7 @@ func TestNewRoundTripperNilTransaction(t *testing.T) {
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				"http.method":     "GET",
-				"http.statusCode": 202,
+				"http.statusCode": "202",
 				"http.url":        "http://example.com",
 			},
 		},
