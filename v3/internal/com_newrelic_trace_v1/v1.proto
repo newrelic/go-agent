@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package com.newrelic.trace.v1;
 
+option go_package = "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1";
+
 service IngestService {
   // Accepts a stream of Span messages, and returns an irregular stream of
   // RecordStatus messages.
