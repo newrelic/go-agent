@@ -95,9 +95,11 @@ type handlerNamer interface {
 	HandlerName() string
 }
 
-func getName(c handlerNamer) string {
-	if fp, ok := c.(interface{ FullPath() string }); ok {
-		return fp.FullPath()
+func getName(c handlerNamer, useNewNames bool) string {
+	if useNewNames {
+		if fp, ok := c.(interface{ FullPath() string }); ok {
+			return fp.FullPath()
+		}
 	}
 	return c.HandlerName()
 }
@@ -108,10 +110,35 @@ func getName(c handlerNamer) string {
 //	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
+// Gin v1.5.0 introduced the gin.Context.FullPath method which allows for much
+// improved transaction naming.  This Middleware will use that
+// gin.Context.FullPath if available and fall back to the original
+// gin.Context.HandlerName if not.  If you are using Gin v1.5.0 and wish to
+// continue using the old transaction names, use
+// nrgin.MiddlewareHandlerTxnNames.
 func Middleware(app *newrelic.Application) gin.HandlerFunc {
+	return middleware(app, true)
+}
+
+// MiddlewareHandlerTxnNames creates a Gin middleware that instruments
+// requests.
+//
+//	router := gin.Default()
+//	// Add the nrgin middleware before other middlewares or routes:
+//	router.Use(nrgin.MiddlewareHandlerTxnNames(app))
+//
+// The use of gin.Context.HandlerName for naming transactions will be removed
+// in a future release.  Available in Gin v1.5.0 and newer is the
+// gin.Context.FullPath method which allows for much improved transaction
+// names.  Use nrgin.Middleware to take full advantage of this new naming!
+func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
+	return middleware(app, false)
+}
+
+func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
-			name := c.Request.Method + " " + getName(c)
+			name := c.Request.Method + " " + getName(c, useNewNames)
 
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name)

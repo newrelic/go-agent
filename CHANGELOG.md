@@ -1,5 +1,33 @@
 # ChangeLog
 
+### Changes
+
+* [`nrgin.Middleware`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin#Middleware)
+  uses
+  [`Context.FullPath()`](https://godoc.org/github.com/gin-gonic/gin#Context.FullPath)
+  for transaction names when using Gin version 1.5.0 or greater.  Gin
+  transactions were formerly named after the
+  [`Context.HandlerName()`](https://godoc.org/github.com/gin-gonic/gin#Context.HandlerName),
+  which uses reflection.  This change improves transaction naming and reduces
+  overhead.  Please note that because your transaction names will change, you
+  may have to update any related dashboards and alerts to match the new name.
+  If you wish to continue using `Context.HandlerName()` for your transaction
+  names, use
+  [`nrgin.MiddlewareHandlerTxnNames`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin#MiddlewareHandlerTxnNames)
+  instead.
+
+  ```go
+  // Transactions previously named
+  "GET main.handleGetUsers"
+  // will be change to something like this match the full path
+  "GET /user/:id"
+  ```
+
+  Note: As part of agent release v3.4.0, a v2.0.0 tag was added to the nrgin
+  package.  When using go modules however, it was impossible to install this
+  latest version of nrgin.  The v2.0.0 tag has been removed and replaced with
+  v1.1.0.
+
 ## 3.4.0
 
 ### New Features
