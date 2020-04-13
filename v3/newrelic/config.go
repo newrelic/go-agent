@@ -460,13 +460,16 @@ func (c Config) validate() error {
 	return nil
 }
 
-func (c Config) validateTraceObserverURL() (*observerURL, error) {
+func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	configURL := c.InfiniteTracing.TraceObserverURL
 	if "" == configURL {
 		// This is the only instance from which we can return nil, nil.
 		// If the user requests use of a trace observer, we must either provide
 		// them with a valid observerURL _or_ alert them to the failure to do so.
 		return nil, nil
+	}
+	if !versionSupports8T {
+		return nil, errUnsupportedVersion
 	}
 	u, err := url.Parse(configURL)
 	if err != nil {
@@ -717,7 +720,7 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 	if err := cfg.validate(); nil != err {
 		return config{}, err
 	}
-	obsURL, err := cfg.validateTraceObserverURL()
+	obsURL, err := cfg.validateTraceObserverConfig()
 	if err != nil {
 		return config{}, err
 	}

@@ -42,6 +42,10 @@ func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 	return to, nil
 }
 
+// versionSupports8T records whether we are using a supported version of Go for
+// Infinite Tracing
+const versionSupports8T = true
+
 func connectToTraceObserver(to *traceObserver, cfg observerConfig) error {
 	responseError := make(chan error, 1)
 

@@ -3,15 +3,16 @@
 package newrelic
 
 import (
-	"errors"
-
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
 func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
-	return nil, errors.New("Non supported Go version - to use Infinite Tracing, " +
-		"you must use at least version 1.9 or higher of Go.")
+	return nil, errUnsupportedVersion
 }
+
+// versionSupports8T records whether we are using a supported version of Go for
+// Infinite Tracing
+const versionSupports8T = false
 
 func (to *traceObserver) consumeSpan(span *spanEvent) bool {
 	return false
