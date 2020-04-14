@@ -76,6 +76,8 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // method is useful for short-lived processes since the application will
 // not gather data until it is connected.  nil is returned if the
 // application is connected successfully.
+//
+// TODO: add behavior when 8T is configured
 func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if nil == app {
 		return nil

@@ -81,7 +81,9 @@ matrix:
     env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.10"
     env: DIRS=v3/newrelic,v3/internal,v3/examples
-  - go: "1.11"
+  - go: "1.11.9"
+    # on 4/13/20 go get -u github.com/golang/protobuf/protoc-gen-go was failing
+    # for go1.11.0, so we specify the latest version to get around that error.
     env: DIRS=v3/newrelic,v3/internal,v3/examples
   - go: "1.12"
     env: DIRS=v3/newrelic,v3/internal,v3/examples

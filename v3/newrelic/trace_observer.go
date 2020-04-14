@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -20,20 +21,28 @@ import (
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
 
-func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
-	messages := make(chan *spanEvent, cfg.queueSize)
-	to := &traceObserver{messages: messages}
+func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObserver, error) {
+	to := &traceObserver{
+		messages:           make(chan *spanEvent, cfg.queueSize),
+		initialConnSuccess: make(chan struct{}),
+		restart:            make(chan internal.AgentRunID),
+		initiateShutdown:   make(chan struct{}),
+		shutdownComplete:   make(chan struct{}),
+		runID:              runID,
+		observerConfig:     cfg,
+	}
 	go func() {
 		attempts := 0
 		for {
-			err := connectToTraceObserver(to, cfg)
+			err := to.connectToTraceObserver()
 			// If we returned nil, that means we're done.
 			if nil == err {
+				close(to.shutdownComplete)
 				return
 			}
-			// TODO: Maybe decide if a reconnect should be
-			// tried.
 			fmt.Println(err)
+			// TODO: the sleeps here need to be fixed. Maybe the error should
+			// include what the expected backoff should be?
 			backoff := getConnectBackoffTime(attempts)
 			time.Sleep(time.Duration(backoff) * time.Second)
 			attempts++
@@ -46,76 +55,104 @@ func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
 // Infinite Tracing
 const versionSupports8T = true
 
-func connectToTraceObserver(to *traceObserver, cfg observerConfig) error {
+func (to *traceObserver) connectToTraceObserver() error {
 	responseError := make(chan error, 1)
 
 	var cred grpc.DialOption
-	if cfg.endpoint.secure {
+	if to.endpoint.secure {
 		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	} else {
 		cred = grpc.WithInsecure()
 	}
 	conn, err := grpc.Dial(
-		cfg.endpoint.host,
+		to.endpoint.host,
 		cred,
 	)
 	if nil != err {
-		return fmt.Errorf("unable to dial grpc endpoint %s: %v", cfg.endpoint.host, err)
+		return fmt.Errorf("unable to dial grpc endpoint %s: %v", to.endpoint.host, err)
 	}
 	defer conn.Close()
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(),
-		licenseMetadataKey, cfg.license,
-		runIDMetadataKey, string(cfg.runID),
+		licenseMetadataKey, to.license,
+		runIDMetadataKey, string(to.runID),
 	)
 	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
 		return fmt.Errorf("unable to create span client: %v", err)
 	}
-	to.setConnectedState(true)
+	defer func() {
+		to.log.Debug("closing trace observer sender", map[string]interface{}{})
+		if err := spanClient.CloseSend(); err != nil {
+			to.log.Debug("error closing trace observer sender", map[string]interface{}{
+				"err": err.Error(),
+			})
+		}
+	}()
+	select {
+	case <-to.initialConnSuccess:
+		// chan has already been closed
+	default:
+		close(to.initialConnSuccess)
+	}
 
 	go func() {
 		for {
 			status, err := spanClient.Recv()
 			if nil != err {
-				// If the error is an "already closed" error, break?
 				if io.EOF != err {
-					cfg.log.Error("trace observer response error", map[string]interface{}{
+					to.log.Error("trace observer response error", map[string]interface{}{
 						"err": err.Error(),
 					})
+					// TODO: for certain errors we'll want to hard shutdown
+					// (aka err == nil)
 					responseError <- err
 				}
 				return
 			}
-			cfg.log.Debug("trace observer response", map[string]interface{}{
+			to.log.Debug("trace observer response", map[string]interface{}{
 				"messages_seen": status.GetMessagesSeen(),
 			})
 		}
 	}()
 
-	// This will loop until the messages channel is closed and the messages have all been drained
-	for msg := range to.messages {
-		span := transformEvent(msg)
-		cfg.log.Debug("sending span to trace observer", map[string]interface{}{
-			"name": msg.Name,
-		})
-		err = spanClient.Send(span)
-		if nil != err {
-			cfg.log.Debug("trace observer sender send error", map[string]interface{}{
-				"err": err.Error(),
-			})
+	for {
+		select {
+		case msg := <-to.messages:
+			if err := to.sendSpan(spanClient, msg); err != nil {
+				return err
+			}
+		case runID := <-to.restart:
+			to.runID = runID
+			return errors.New("reconnect please")
+		case err := <-responseError:
+			return err
+		case <-to.initiateShutdown:
+			close(to.messages)
+			for msg := range to.messages {
+				if err := to.sendSpan(spanClient, msg); err != nil {
+					// if we fail to send a span, do not send the rest
+					break
+				}
+			}
+			return nil
 		}
 	}
+}
 
-	cfg.log.Debug("closing trace observer sender", map[string]interface{}{})
-	to.setConnectedState(false)
-	err = spanClient.CloseSend()
-	if nil != err {
-		cfg.log.Debug("error closing trace observer sender", map[string]interface{}{
+func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
+	span := transformEvent(msg)
+	to.log.Debug("sending span to trace observer", map[string]interface{}{
+		"name": msg.Name,
+	})
+	if err := spanClient.Send(span); err != nil {
+		to.log.Debug("trace observer sender send error", map[string]interface{}{
 			"err": err.Error(),
 		})
+		// TODO: return nil if shutdown is requested
+		return err
 	}
 	return nil
 }
@@ -197,22 +234,6 @@ func (to *traceObserver) consumeSpan(span *spanEvent) bool {
 	default:
 		return false
 	}
-}
-
-// getConnectedState returns true if this traceObserver is currently connected
-// to the remote traceObserver server
-func (to *traceObserver) getConnectedState() bool {
-	to.Lock()
-	defer to.Unlock()
-	return to.connected
-}
-
-// setConnectedState sets whether this traceObserver is currently connected
-//  to the remote traceObserver server
-func (to *traceObserver) setConnectedState(c bool) {
-	to.Lock()
-	defer to.Unlock()
-	to.connected = c
 }
 
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {

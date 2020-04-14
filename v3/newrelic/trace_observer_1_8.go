@@ -6,7 +6,7 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-func newTraceObserver(cfg observerConfig) (*traceObserver, error) {
+func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObserver, error) {
 	return nil, errUnsupportedVersion
 }
 

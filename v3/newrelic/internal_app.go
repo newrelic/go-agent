@@ -147,26 +147,28 @@ func (app *app) connectRoutine() {
 	}
 }
 
-func (app *app) connectTraceObserver() {
-	run, _ := app.getState()
-	observer, err := newTraceObserver(observerConfig{
+func (app *app) connectTraceObserver(runID internal.AgentRunID) {
+	if obs := app.getObserver(); obs != nil {
+		obs.restart <- runID
+		return
+	}
+	observer, err := newTraceObserver(runID, observerConfig{
 		endpoint:  app.config.traceObserverURL,
 		license:   app.config.License,
-		runID:     run.Reply.RunID,
 		log:       app.config.Logger,
 		queueSize: app.config.InfiniteTracing.SpanEvents.QueueSize,
 	})
 	if nil != err {
 		// TODO: Perhaps figure out how to make a supportability
 		// metric here.
-		app.Error("unable to make trace observer connection", map[string]interface{}{
+		app.Error("unable to create trace observer", map[string]interface{}{
 			"err": err.Error(),
 		})
 	} else {
 		app.Debug("trace observer connected", map[string]interface{}{
 			"url": app.config.traceObserverURL,
 		})
-		app.swapObserver(observer)
+		app.setObserver(observer)
 	}
 }
 
@@ -243,6 +245,12 @@ func (app *app) process() {
 				app.doHarvest(h, time.Now(), run)
 			}
 
+			if obs := app.getObserver(); obs != nil {
+				close(obs.initiateShutdown)
+				// Block until the observer shutdown is complete
+				<-obs.shutdownComplete
+			}
+
 			close(app.shutdownComplete)
 			return
 		case resp := <-app.collectorErrorChan:
@@ -262,6 +270,9 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
+			if shouldUseTraceObserver(app.config) {
+				app.connectTraceObserver(run.Reply.RunID)
+			}
 			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
 
@@ -270,9 +281,6 @@ func (app *app) process() {
 				"run": run.Reply.RunID.String(),
 			})
 			processConnectMessages(run, app)
-			if shouldUseTraceObserver(app.config) {
-				app.connectTraceObserver()
-			}
 		}
 	}
 }
@@ -346,8 +354,12 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 		}
 		if run.Reply.RunID != "" {
 			if shouldUseTraceObserver(app.config) {
-				if obs := app.getObserver(); obs != nil && obs.getConnectedState() {
-					return nil
+				if obs := app.getObserver(); obs != nil {
+					select {
+					case <-obs.initialConnSuccess:
+						return nil
+					default:
+					}
 				}
 			} else {
 				return nil
@@ -446,27 +458,15 @@ func (app *app) setState(run *appRun, err error) {
 }
 
 func (app *app) getObserver() *traceObserver {
-	if nil == app {
-		return nil
-	}
 	app.RLock()
 	defer app.RUnlock()
 	return app.TraceObserver
 }
 
-// swapObserver closes the message channel for the app's current traceObserver,
-// if it exists, and replaces it with the traceObserver that was passed in.
-func (app *app) swapObserver(observer *traceObserver) {
-	if nil == app {
-		return
-	}
+func (app *app) setObserver(observer *traceObserver) {
 	app.Lock()
 	defer app.Unlock()
-	prevObserver := app.TraceObserver
 	app.TraceObserver = observer
-	if nil != prevObserver {
-		close(prevObserver.messages)
-	}
 }
 
 func newTransaction(thd *thread) *Transaction {
