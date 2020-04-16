@@ -10,17 +10,18 @@ import (
 
 func TestValidateTraceObserverURL(t *testing.T) {
 	testcases := []struct {
-		inputURL  string
+		inputHost string
+		inputPort int
 		expectErr bool
 		expectURL *observerURL
 	}{
 		{
-			inputURL:  "",
+			inputHost: "",
 			expectErr: false,
 			expectURL: nil,
 		},
 		{
-			inputURL:  "https://testing.com",
+			inputHost: "testing.com",
 			expectErr: false,
 			expectURL: &observerURL{
 				host:   "testing.com:443",
@@ -28,7 +29,7 @@ func TestValidateTraceObserverURL(t *testing.T) {
 			},
 		},
 		{
-			inputURL:  "https://1.2.3.4",
+			inputHost: "1.2.3.4",
 			expectErr: false,
 			expectURL: &observerURL{
 				host:   "1.2.3.4:443",
@@ -36,65 +37,8 @@ func TestValidateTraceObserverURL(t *testing.T) {
 			},
 		},
 		{
-			inputURL:  "https://1.2.3.4:",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "1.2.3.4:443",
-				secure: true,
-			},
-		},
-		{
-			inputURL:  "http://1.2.3.4:",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "1.2.3.4:80",
-				secure: false,
-			},
-		},
-		{
-			inputURL:  "http://testing.com",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "testing.com:80",
-				secure: false,
-			},
-		},
-		{
-			inputURL:  "https://testing.com/",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "testing.com:443/",
-				secure: true,
-			},
-		},
-		{
-			inputURL:  "//not valid url",
-			expectErr: true,
-			expectURL: nil,
-		},
-		{
-			inputURL:  "this has no host",
-			expectErr: true,
-			expectURL: nil,
-		},
-		{
-			inputURL:  "https://testing.com/with/path",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "testing.com:443/with/path",
-				secure: true,
-			},
-		},
-		{
-			inputURL:  "https://testing.com?with=queries",
-			expectErr: false,
-			expectURL: &observerURL{
-				host:   "testing.com:443",
-				secure: true,
-			},
-		},
-		{
-			inputURL:  "https://testing.com:123",
+			inputHost: "testing.com",
+			inputPort: 123,
 			expectErr: false,
 			expectURL: &observerURL{
 				host:   "testing.com:123",
@@ -102,28 +46,25 @@ func TestValidateTraceObserverURL(t *testing.T) {
 			},
 		},
 		{
-			inputURL:  "testing.com",
-			expectErr: true,
-			expectURL: nil,
-		},
-		{
-			inputURL:  "testing.com:443",
-			expectErr: true,
-			expectURL: nil,
-		},
-		{
-			inputURL:  "grpc://testing.com",
-			expectErr: true,
-			expectURL: nil,
+			inputHost: "localhost",
+			inputPort: 8080,
+			expectErr: false,
+			expectURL: &observerURL{
+				host:   "localhost:8080",
+				secure: false,
+			},
 		},
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.inputURL, func(t *testing.T) {
+		t.Run(tc.inputHost, func(t *testing.T) {
 			c := defaultConfig()
 			c.DistributedTracer.Enabled = true
 			c.SpanEvents.Enabled = true
-			c.InfiniteTracing.TraceObserverURL = tc.inputURL
+			c.InfiniteTracing.TraceObserver.Host = tc.inputHost
+			if tc.inputPort != 0 {
+				c.InfiniteTracing.TraceObserver.Port = tc.inputPort
+			}
 			url, err := c.validateTraceObserverConfig()
 
 			if tc.expectErr && err == nil {
@@ -141,37 +82,37 @@ func TestValidateTraceObserverURL(t *testing.T) {
 
 func Test8TConfig(t *testing.T) {
 	testcases := []struct {
-		URL          string
+		host         string
 		spansEnabled bool
 		DTEnabled    bool
 		validConfig  bool
 	}{
 		{
-			URL:          "http://localhost:8080",
+			host:         "localhost",
 			spansEnabled: true,
 			DTEnabled:    true,
 			validConfig:  true,
 		},
 		{
-			URL:          "http://localhost:8080",
+			host:         "localhost",
 			spansEnabled: false,
 			DTEnabled:    true,
 			validConfig:  false,
 		},
 		{
-			URL:          "http://localhost:8080",
+			host:         "localhost",
 			spansEnabled: true,
 			DTEnabled:    false,
 			validConfig:  false,
 		},
 		{
-			URL:          "http://localhost:8080",
+			host:         "localhost",
 			spansEnabled: false,
 			DTEnabled:    false,
 			validConfig:  false,
 		},
 		{
-			URL:          "",
+			host:         "",
 			spansEnabled: false,
 			DTEnabled:    false,
 			validConfig:  true,
@@ -182,7 +123,7 @@ func Test8TConfig(t *testing.T) {
 		cfg := Config{}
 		cfg.License = "1234567890123456789012345678901234567890"
 		cfg.AppName = "app"
-		cfg.InfiniteTracing.TraceObserverURL = test.URL
+		cfg.InfiniteTracing.TraceObserver.Host = test.host
 		cfg.SpanEvents.Enabled = test.spansEnabled
 		cfg.DistributedTracer.Enabled = test.DTEnabled
 

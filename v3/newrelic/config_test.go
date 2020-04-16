@@ -161,7 +161,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"HostDisplayName":"",
 			"InfiniteTracing": {
 				"SpanEvents": {"QueueSize":10000},
-				"TraceObserverURL": ""
+				"TraceObserver": {
+					"Host": "",
+					"Port": 443
+                }
 			},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
@@ -334,7 +337,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"HostDisplayName":"",
 			"InfiniteTracing": {
 				"SpanEvents": {"QueueSize":10000},
-				"TraceObserverURL": ""
+				"TraceObserver": {
+					"Host": "",
+					"Port": 443
+                }
 			},
 			"Labels":null,
 			"Logger":null,

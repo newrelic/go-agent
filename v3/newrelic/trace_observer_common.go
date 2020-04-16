@@ -30,8 +30,10 @@ type observerURL struct {
 }
 
 const (
-	licenseMetadataKey = "license_key"
-	runIDMetadataKey   = "agent_run_token"
+	licenseMetadataKey    = "license_key"
+	runIDMetadataKey      = "agent_run_token"
+	localTestingHost      = "localhost"
+	infTracingDefaultPort = 443
 )
 
 var (

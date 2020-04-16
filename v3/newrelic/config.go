@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -314,7 +312,12 @@ type Config struct {
 	// InfiniteTracing TODO
 	InfiniteTracing struct {
 		// TraceObserverURL TODO
-		TraceObserverURL string
+		TraceObserver struct {
+			// Host TODO
+			Host string
+			// Port TODO default 443
+			Port int
+		}
 		// SpanEvents TODO
 		SpanEvents struct {
 			// QueueSize TODO default 10,000
@@ -412,6 +415,7 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
+	c.InfiniteTracing.TraceObserver.Port = infTracingDefaultPort
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	return c
@@ -453,7 +457,7 @@ func (c Config) validate() error {
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
-	if "" != c.InfiniteTracing.TraceObserverURL && c.ServerlessMode.Enabled {
+	if "" != c.InfiniteTracing.TraceObserver.Host && c.ServerlessMode.Enabled {
 		return errInfTracingServerless
 	}
 
@@ -461,8 +465,8 @@ func (c Config) validate() error {
 }
 
 func (c Config) validateTraceObserverConfig() (*observerURL, error) {
-	configURL := c.InfiniteTracing.TraceObserverURL
-	if "" == configURL {
+	configHost := c.InfiniteTracing.TraceObserver.Host
+	if "" == configHost {
 		// This is the only instance from which we can return nil, nil.
 		// If the user requests use of a trace observer, we must either provide
 		// them with a valid observerURL _or_ alert them to the failure to do so.
@@ -474,26 +478,9 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	if !c.DistributedTracer.Enabled || !c.SpanEvents.Enabled {
 		return nil, errSpanOrDTDisabled
 	}
-	u, err := url.Parse(configURL)
-	if err != nil {
-		return nil, err
-	}
-	if u.Scheme == "" {
-		return nil, errors.New("scheme is required for Trace Observer URL: " + configURL)
-	}
-	if u.Scheme != "https" && u.Scheme != "http" {
-		return nil, errors.New("scheme must be http or https for Trace Observer URL: " + configURL)
-	}
-	if _, port, _ := net.SplitHostPort(u.Host); port == "" {
-		if u.Scheme == "https" {
-			u.Host = strings.Trim(u.Host, ":") + ":443"
-		} else {
-			u.Host = strings.Trim(u.Host, ":") + ":80"
-		}
-	}
 	return &observerURL{
-		host:   u.Host + u.Path,
-		secure: u.Scheme == "https",
+		host:   fmt.Sprintf("%s:%d", configHost, c.InfiniteTracing.TraceObserver.Port),
+		secure: configHost != localTestingHost,
 	}, nil
 }
 

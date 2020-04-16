@@ -10,7 +10,7 @@ func TestSupported8TVersion(t *testing.T) {
 		ConfigLicense("1234567890123456789012345678901234567890"),
 		ConfigAppName("name"),
 		func(c *Config) {
-			c.InfiniteTracing.TraceObserverURL = "http://localhost:8080"
+			c.InfiniteTracing.TraceObserver.Host = "localhost"
 		},
 	)
 	if nil == err {
