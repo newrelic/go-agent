@@ -34,5 +34,10 @@ const (
 	runIDMetadataKey   = "agent_run_token"
 )
 
-var errUnsupportedVersion = errors.New("non supported Go version - to use Infinite Tracing, " +
-	"you must use at least version 1.9 or higher of Go")
+var (
+	errUnsupportedVersion = errors.New("non supported Go version - to use Infinite Tracing, " +
+		"you must use at least version 1.9 or higher of Go")
+
+	errSpanOrDTDisabled = errors.New("in order to enable Infinite Tracing, you must have both " +
+		"Distributed Tracing and Span Events enabled")
+)

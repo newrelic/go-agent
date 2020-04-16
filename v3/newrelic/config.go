@@ -471,6 +471,9 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	if !versionSupports8T {
 		return nil, errUnsupportedVersion
 	}
+	if !c.DistributedTracer.Enabled || !c.SpanEvents.Enabled {
+		return nil, errSpanOrDTDisabled
+	}
 	u, err := url.Parse(configURL)
 	if err != nil {
 		return nil, err

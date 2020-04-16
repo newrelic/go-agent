@@ -121,6 +121,8 @@ func TestValidateTraceObserverURL(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.inputURL, func(t *testing.T) {
 			c := defaultConfig()
+			c.DistributedTracer.Enabled = true
+			c.SpanEvents.Enabled = true
 			c.InfiniteTracing.TraceObserverURL = tc.inputURL
 			url, err := c.validateTraceObserverConfig()
 
@@ -134,5 +136,60 @@ func TestValidateTraceObserverURL(t *testing.T) {
 				t.Errorf("url is not as expected: actual=%#v expect=%#v", url, tc.expectURL)
 			}
 		})
+	}
+}
+
+func Test8TConfig(t *testing.T) {
+	testcases := []struct {
+		URL          string
+		spansEnabled bool
+		DTEnabled    bool
+		validConfig  bool
+	}{
+		{
+			URL:          "http://localhost:8080",
+			spansEnabled: true,
+			DTEnabled:    true,
+			validConfig:  true,
+		},
+		{
+			URL:          "http://localhost:8080",
+			spansEnabled: false,
+			DTEnabled:    true,
+			validConfig:  false,
+		},
+		{
+			URL:          "http://localhost:8080",
+			spansEnabled: true,
+			DTEnabled:    false,
+			validConfig:  false,
+		},
+		{
+			URL:          "http://localhost:8080",
+			spansEnabled: false,
+			DTEnabled:    false,
+			validConfig:  false,
+		},
+		{
+			URL:          "",
+			spansEnabled: false,
+			DTEnabled:    false,
+			validConfig:  true,
+		},
+	}
+
+	for _, test := range testcases {
+		cfg := Config{}
+		cfg.License = "1234567890123456789012345678901234567890"
+		cfg.AppName = "app"
+		cfg.InfiniteTracing.TraceObserverURL = test.URL
+		cfg.SpanEvents.Enabled = test.spansEnabled
+		cfg.DistributedTracer.Enabled = test.DTEnabled
+
+		_, err := newInternalConfig(cfg, func(s string) string { return "" }, []string{})
+		if (err == nil) != test.validConfig {
+			t.Errorf("Infite Tracing config validation failed: %v", test)
+		}
+
 	}
 }
