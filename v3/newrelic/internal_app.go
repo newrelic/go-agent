@@ -159,14 +159,12 @@ func (app *app) connectTraceObserver(runID internal.AgentRunID) {
 		queueSize: app.config.InfiniteTracing.SpanEvents.QueueSize,
 	})
 	if nil != err {
-		// TODO: Perhaps figure out how to make a supportability
-		// metric here.
 		app.Error("unable to create trace observer", map[string]interface{}{
 			"err": err.Error(),
 		})
 	} else {
 		app.Debug("trace observer connected", map[string]interface{}{
-			"url": app.config.traceObserverURL,
+			"url": app.config.traceObserverURL.host,
 		})
 		app.setObserver(observer)
 	}
@@ -174,7 +172,6 @@ func (app *app) connectTraceObserver(runID internal.AgentRunID) {
 
 // Connect backoff time follows the sequence defined at
 // https://source.datanerd.us/agents/agent-specs/blob/master/Collector-Response-Handling.md#retries-and-backoffs
-// Also used for connecting to the Trace Observer.
 func getConnectBackoffTime(attempt int) int {
 	connectBackoffTimes := [...]int{15, 15, 30, 60, 120, 300}
 	l := len(connectBackoffTimes)

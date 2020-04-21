@@ -7,19 +7,37 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
-	"fmt"
-	"io"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
+
+const (
+	// versionSupports8T records whether we are using a supported version of Go
+	// for Infinite Tracing
+	versionSupports8T = true
+	// recordSpanBackoff is the time to wait after a failure on the RecordSpan
+	// endpoint before retrying
+	recordSpanBackoff = 15 * time.Second
+)
+
+type obsResult struct {
+	// shutdown is if the trace observer should shutdown and stop sending
+	// spans.
+	shutdown bool
+	// withoutBackoff is true if RecordSpan should be retried immediately and
+	// without a backoff.
+	withoutBackoff bool
+}
 
 func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObserver, error) {
 	to := &traceObserver{
@@ -32,32 +50,13 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 		observerConfig:     cfg,
 	}
 	go func() {
-		attempts := 0
-		for {
-			err := to.connectToTraceObserver()
-			// If we returned nil, that means we're done.
-			if nil == err {
-				close(to.shutdownComplete)
-				return
-			}
-			fmt.Println(err)
-			// TODO: the sleeps here need to be fixed. Maybe the error should
-			// include what the expected backoff should be?
-			backoff := getConnectBackoffTime(attempts)
-			time.Sleep(time.Duration(backoff) * time.Second)
-			attempts++
-		}
+		defer close(to.shutdownComplete)
+		to.connectToTraceObserver()
 	}()
 	return to, nil
 }
 
-// versionSupports8T records whether we are using a supported version of Go for
-// Infinite Tracing
-const versionSupports8T = true
-
-func (to *traceObserver) connectToTraceObserver() error {
-	responseError := make(chan error, 1)
-
+func (to *traceObserver) connectToTraceObserver() {
 	var cred grpc.DialOption
 	if to.endpoint.secure {
 		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
@@ -67,21 +66,48 @@ func (to *traceObserver) connectToTraceObserver() error {
 	conn, err := grpc.Dial(
 		to.endpoint.host,
 		cred,
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  15 * time.Second,
+				Multiplier: 2,
+				MaxDelay:   300 * time.Second,
+			},
+		}),
 	)
 	if nil != err {
-		return fmt.Errorf("unable to dial grpc endpoint %s: %v", to.endpoint.host, err)
+		// this error is unrecoverable and will not be retried
+		to.log.Error("trace observer unable to dial grpc endpoint", map[string]interface{}{
+			"host": to.endpoint.host,
+			"err":  err.Error(),
+		})
+		return
 	}
 	defer conn.Close()
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
+	for {
+		result := to.connectToStream(serviceClient)
+		if result.shutdown {
+			return
+		}
+		if !result.withoutBackoff {
+			time.Sleep(recordSpanBackoff)
+		}
+	}
+}
+
+func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
 	ctx := metadata.AppendToOutgoingContext(context.Background(),
 		licenseMetadataKey, to.license,
 		runIDMetadataKey, string(to.runID),
 	)
 	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
-		return fmt.Errorf("unable to create span client: %v", err)
+		to.log.Error("trace observer unable to create span client", map[string]interface{}{
+			"err": err.Error(),
+		})
+		return obsResult{}
 	}
 	defer func() {
 		to.log.Debug("closing trace observer sender", map[string]interface{}{})
@@ -98,22 +124,20 @@ func (to *traceObserver) connectToTraceObserver() error {
 		close(to.initialConnSuccess)
 	}
 
+	responseError := make(chan error, 1)
+
 	go func() {
 		for {
-			status, err := spanClient.Recv()
+			s, err := spanClient.Recv()
 			if nil != err {
-				if io.EOF != err {
-					to.log.Error("trace observer response error", map[string]interface{}{
-						"err": err.Error(),
-					})
-					// TODO: for certain errors we'll want to hard shutdown
-					// (aka err == nil)
-					responseError <- err
-				}
+				to.log.Error("trace observer response error", map[string]interface{}{
+					"err": err.Error(),
+				})
+				responseError <- err
 				return
 			}
 			to.log.Debug("trace observer response", map[string]interface{}{
-				"messages_seen": status.GetMessagesSeen(),
+				"messages_seen": s.GetMessagesSeen(),
 			})
 		}
 	}()
@@ -122,13 +146,19 @@ func (to *traceObserver) connectToTraceObserver() error {
 		select {
 		case msg := <-to.messages:
 			if err := to.sendSpan(spanClient, msg); err != nil {
-				return err
+				return obsResult{
+					shutdown: errShouldShutdown(err),
+				}
 			}
 		case runID := <-to.restart:
 			to.runID = runID
-			return errors.New("reconnect please")
+			return obsResult{
+				withoutBackoff: true,
+			}
 		case err := <-responseError:
-			return err
+			return obsResult{
+				shutdown: errShouldShutdown(err),
+			}
 		case <-to.initiateShutdown:
 			close(to.messages)
 			for msg := range to.messages {
@@ -137,9 +167,17 @@ func (to *traceObserver) connectToTraceObserver() error {
 					break
 				}
 			}
-			return nil
+			return obsResult{
+				shutdown: true,
+			}
 		}
 	}
+}
+
+// errShouldShutdown returns true if the given error is an Unimplemented error
+// meaning the connection to the trace observer should be shutdown.
+func errShouldShutdown(err error) bool {
+	return status.Code(err) == codes.Unimplemented
 }
 
 func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
@@ -148,10 +186,9 @@ func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, 
 		"name": msg.Name,
 	})
 	if err := spanClient.Send(span); err != nil {
-		to.log.Debug("trace observer sender send error", map[string]interface{}{
+		to.log.Error("trace observer send error", map[string]interface{}{
 			"err": err.Error(),
 		})
-		// TODO: return nil if shutdown is requested
 		return err
 	}
 	return nil
