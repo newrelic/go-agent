@@ -267,8 +267,15 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
-			if shouldUseTraceObserver(app.config) {
+			if shouldUseTraceObserver(run.Config) {
 				app.connectTraceObserver(run.Reply.RunID)
+			} else if shouldUseTraceObserver(app.config) {
+				app.Debug("trace observer disabled via backend", map[string]interface{}{
+					"local-DistributedTracer.Enabled":  app.config.DistributedTracer.Enabled,
+					"server-DistributedTracer.Enabled": run.Config.DistributedTracer.Enabled,
+					"local-SpanEvents.Enabled":         app.config.SpanEvents.Enabled,
+					"server-SpanEvents.Enabled":        run.Config.SpanEvents.Enabled,
+				})
 			}
 			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
@@ -350,7 +357,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 			return err
 		}
 		if run.Reply.RunID != "" {
-			if shouldUseTraceObserver(app.config) {
+			if shouldUseTraceObserver(run.Config) {
 				if obs := app.getObserver(); obs != nil {
 					select {
 					case <-obs.initialConnSuccess:
