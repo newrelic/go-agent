@@ -2,12 +2,16 @@ package newrelic
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
 type traceObserver struct {
-	messages           chan *spanEvent
+	messages chan *spanEvent
+	// once protects messages from being closed multiple times.
+	once sync.Once
+
 	initialConnSuccess chan struct{}
 	restart            chan internal.AgentRunID
 	initiateShutdown   chan struct{}

@@ -50,10 +50,26 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 		observerConfig:     cfg,
 	}
 	go func() {
-		defer close(to.shutdownComplete)
 		to.connectToTraceObserver()
+
+		// Closing shutdownComplete must be done before closing messages.  This
+		// prevents a panic from happening if consumeSpan is called between the
+		// time when the messages and the shutdownComplete channels are closed.
+		close(to.shutdownComplete)
+		to.closeMessages()
+		for range to.messages {
+			// drain the channel
+		}
 	}()
 	return to, nil
+}
+
+// closeMessages closes the traceObserver messages channel and is safe to call
+// multiple times.
+func (to *traceObserver) closeMessages() {
+	to.once.Do(func() {
+		close(to.messages)
+	})
 }
 
 func (to *traceObserver) connectToTraceObserver() {
@@ -160,7 +176,7 @@ func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) o
 				shutdown: errShouldShutdown(err),
 			}
 		case <-to.initiateShutdown:
-			close(to.messages)
+			to.closeMessages()
 			for msg := range to.messages {
 				if err := to.sendSpan(spanClient, msg); err != nil {
 					// if we fail to send a span, do not send the rest
@@ -265,6 +281,13 @@ func transformEvent(e *spanEvent) *v1.Span {
 }
 
 func (to *traceObserver) consumeSpan(span *spanEvent) bool {
+	// check if shutdownComplete channel has been closed
+	select {
+	case <-to.shutdownComplete:
+		return false
+	default:
+	}
+
 	select {
 	case to.messages <- span:
 		return true
