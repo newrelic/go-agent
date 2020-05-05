@@ -63,7 +63,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, run.harvestConfig)
+	h.CreateFinalMetrics(run.Reply, run.harvestConfig, app.getObserver())
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -153,10 +153,11 @@ func (app *app) connectTraceObserver(runID internal.AgentRunID) {
 		return
 	}
 	observer, err := newTraceObserver(runID, observerConfig{
-		endpoint:  app.config.traceObserverURL,
-		license:   app.config.License,
-		log:       app.config.Logger,
-		queueSize: app.config.InfiniteTracing.SpanEvents.QueueSize,
+		endpoint:    app.config.traceObserverURL,
+		license:     app.config.License,
+		log:         app.config.Logger,
+		queueSize:   app.config.InfiniteTracing.SpanEvents.QueueSize,
+		appShutdown: app.shutdownComplete,
 	})
 	if nil != err {
 		app.Error("unable to create trace observer", map[string]interface{}{
@@ -246,6 +247,7 @@ func (app *app) process() {
 				close(obs.initiateShutdown)
 				// Block until the observer shutdown is complete
 				<-obs.shutdownComplete
+				app.setObserver(nil)
 			}
 
 			close(app.shutdownComplete)

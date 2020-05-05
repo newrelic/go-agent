@@ -28,6 +28,24 @@ const (
 	// recordSpanBackoff is the time to wait after a failure on the RecordSpan
 	// endpoint before retrying
 	recordSpanBackoff = 15 * time.Second
+	// numCodes is the total number of grpc.Codes
+	numCodes = 17
+
+	observerSeen        = "Supportability/InfiniteTracing/Span/Seen"
+	observerSent        = "Supportability/InfiniteTracing/Span/Sent"
+	observerCodeErr     = "Supportability/InfiniteTracing/Span/gRPC/"
+	observerResponseErr = "Supportability/InfiniteTracing/Span/Response/Error"
+)
+
+var (
+	codeStrings = func() map[codes.Code]string {
+		codeStrings := make(map[codes.Code]string, numCodes)
+		for i := 0; i < numCodes; i++ {
+			code := codes.Code(i)
+			codeStrings[code] = strings.ToUpper(code.String())
+		}
+		return codeStrings
+	}()
 )
 
 type obsResult struct {
@@ -48,7 +66,9 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 		shutdownComplete:   make(chan struct{}),
 		runID:              runID,
 		observerConfig:     cfg,
+		supportability:     newObserverSupport(),
 	}
+	go to.handleSupportability()
 	go func() {
 		to.connectToTraceObserver()
 
@@ -149,6 +169,7 @@ func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) o
 				to.log.Error("trace observer response error", map[string]interface{}{
 					"err": err.Error(),
 				})
+				to.supportabilityError(err)
 				responseError <- err
 				return
 			}
@@ -205,9 +226,64 @@ func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, 
 		to.log.Error("trace observer send error", map[string]interface{}{
 			"err": err.Error(),
 		})
+		to.supportabilityError(err)
 		return err
 	}
+	to.supportability.increment <- observerSent
 	return nil
+}
+
+func (to *traceObserver) handleSupportability() {
+	metrics := newSupportMetrics()
+	for {
+		select {
+		case <-to.appShutdown:
+			// Only close this goroutine once the application _and_ the trace
+			// observer have shutdown. This is because we will want to continue
+			// to increment the Seen/Sent metrics when the application is
+			// running but the trace observer is not.
+			return
+		case key := <-to.supportability.increment:
+			metrics[key]++
+		case to.supportability.dump <- metrics:
+			// reset the metrics map
+			metrics = newSupportMetrics()
+		}
+	}
+}
+
+func newSupportMetrics() map[string]float64 {
+	// grpc codes, plus 2 for seen/sent, plus 1 for response errs
+	metrics := make(map[string]float64, numCodes+3)
+	// these two metrics must always be sent
+	metrics[observerSeen] = 0
+	metrics[observerSent] = 0
+	return metrics
+}
+
+func newObserverSupport() *observerSupport {
+	return &observerSupport{
+		increment: make(chan string),
+		dump:      make(chan map[string]float64),
+	}
+}
+
+func (to *traceObserver) dumpSupportabiityMetrics() map[string]float64 {
+	return <-to.supportability.dump
+}
+
+func errToCodeString(err error) string {
+	code := status.Code(err)
+	str, ok := codeStrings[code]
+	if !ok {
+		str = strings.ToUpper(code.String())
+	}
+	return str
+}
+
+func (to *traceObserver) supportabilityError(err error) {
+	to.supportability.increment <- observerCodeErr + errToCodeString(err)
+	to.supportability.increment <- observerResponseErr
 }
 
 func obsvString(s string) *v1.AttributeValue {
@@ -281,6 +357,8 @@ func transformEvent(e *spanEvent) *v1.Span {
 }
 
 func (to *traceObserver) consumeSpan(span *spanEvent) bool {
+	to.supportability.increment <- observerSeen
+
 	// check if shutdownComplete channel has been closed
 	select {
 	case <-to.shutdownComplete:

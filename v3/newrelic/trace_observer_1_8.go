@@ -24,3 +24,5 @@ func (to *traceObserver) getConnectedState() bool {
 
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
 }
+
+func (to *traceObserver) dumpSupportabiityMetrics() map[string]float64 { return nil }

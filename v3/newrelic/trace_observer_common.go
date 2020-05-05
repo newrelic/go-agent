@@ -18,19 +18,27 @@ type traceObserver struct {
 	shutdownComplete   chan struct{}
 	runID              internal.AgentRunID
 
+	supportability *observerSupport
+
 	observerConfig
 }
 
 type observerConfig struct {
-	endpoint  *observerURL
-	license   string
-	log       Logger
-	queueSize int
+	endpoint    *observerURL
+	license     string
+	log         Logger
+	queueSize   int
+	appShutdown <-chan struct{}
 }
 
 type observerURL struct {
 	host   string
 	secure bool
+}
+
+type observerSupport struct {
+	increment chan string
+	dump      chan map[string]float64
 }
 
 const (

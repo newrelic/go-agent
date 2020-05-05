@@ -6,6 +6,9 @@ package newrelic
 import (
 	"reflect"
 	"testing"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestValidateTraceObserverURL(t *testing.T) {
@@ -132,5 +135,44 @@ func Test8TConfig(t *testing.T) {
 			t.Errorf("Infite Tracing config validation failed: %v", test)
 		}
 
+	}
+}
+
+func TestTraceObserverErrToCodeString(t *testing.T) {
+	// if the grpc code names change upstream, this test will alert us to that
+	testcases := []struct {
+		code   codes.Code
+		expect string
+	}{
+		{code: 0, expect: "OK"},
+		{code: 1, expect: "CANCELED"},
+		{code: 2, expect: "UNKNOWN"},
+		{code: 3, expect: "INVALIDARGUMENT"},
+		{code: 4, expect: "DEADLINEEXCEEDED"},
+		{code: 5, expect: "NOTFOUND"},
+		{code: 6, expect: "ALREADYEXISTS"},
+		{code: 7, expect: "PERMISSIONDENIED"},
+		{code: 8, expect: "RESOURCEEXHAUSTED"},
+		{code: 9, expect: "FAILEDPRECONDITION"},
+		{code: 10, expect: "ABORTED"},
+		{code: 11, expect: "OUTOFRANGE"},
+		{code: 12, expect: "UNIMPLEMENTED"},
+		{code: 13, expect: "INTERNAL"},
+		{code: 14, expect: "UNAVAILABLE"},
+		{code: 15, expect: "DATALOSS"},
+		{code: 16, expect: "UNAUTHENTICATED"},
+		// we should always test one more than the number of codes supported by
+		// grpc so we can detect when a new code is added
+		{code: 17, expect: "CODE(17)"},
+	}
+	for _, test := range testcases {
+		t.Run(test.expect, func(t *testing.T) {
+			err := status.Error(test.code, "oops")
+			actual := errToCodeString(err)
+			if actual != test.expect {
+				t.Errorf("incorrect error string returned: actual=%s expected=%s",
+					actual, test.expect)
+			}
+		})
 	}
 }
