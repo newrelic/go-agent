@@ -150,7 +150,7 @@ func Test8TConfig(t *testing.T) {
 }
 
 func TestTraceObserverRoundTrip(t *testing.T) {
-	s := newTestObsServer(t)
+	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	runToken := "aRunToken"
 	app := testAppBlockOnTrObs(DTReplyFieldsWithTrObsDialer(s.dialer, runToken), toCfgWithTrObserver, t)
@@ -170,14 +170,21 @@ func TestTraceObserverRoundTrip(t *testing.T) {
 	})
 }
 
+type recordSpanFunc func(*expectServer, v1.IngestService_RecordSpanServer) error
+
 type expectServer struct {
 	metadata metadata.MD
 	sync.Mutex
 
 	spansReceivedChan chan struct{}
+	recordSpanFunc    recordSpanFunc
 }
 
 func (s *expectServer) RecordSpan(stream v1.IngestService_RecordSpanServer) error {
+	return s.recordSpanFunc(s, stream)
+}
+
+func simpleRecordSpan(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if ok {
 		s.Lock()
@@ -269,11 +276,12 @@ func (ts *testObsServer) Close() {
 
 // newTestObsServer creates a new testObsServer for use in testing. Be sure
 // to Close() the server when done with it.
-func newTestObsServer(t *testing.T) testObsServer {
+func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 	grpcServer := grpc.NewServer()
 	s := &expectServer{
 		// Hard coding the buffer to 10 for now, but it could be variable if needed later.
 		spansReceivedChan: make(chan struct{}, 10),
+		recordSpanFunc:    fn,
 	}
 	v1.RegisterIngestServiceServer(grpcServer, s)
 	lis := bufconn.Listen(1024 * 1024)
