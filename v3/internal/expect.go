@@ -31,6 +31,8 @@ func uniquePointer() *struct{} {
 var (
 	// MatchAnything is for use when matching attributes.
 	MatchAnything = uniquePointer()
+	// MatchAnyString is a placeholder for matching any string
+	MatchAnyString = "xxANY-STRINGxx"
 )
 
 // WantEvent is a transaction or error event expectation.

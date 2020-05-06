@@ -87,29 +87,48 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 // closeMessages closes the traceObserver messages channel and is safe to call
 // multiple times.
 func (to *traceObserver) closeMessages() {
-	to.once.Do(func() {
+	to.messagesOnce.Do(func() {
 		close(to.messages)
+	})
+}
+
+// markInitialConnSuccessful closes the traceObserver initialConnSuccess channel and
+// is safe to call multiple times.
+func (to *traceObserver) markInitialConnSuccessful() {
+	to.initConnOnce.Do(func() {
+		close(to.initialConnSuccess)
 	})
 }
 
 func (to *traceObserver) connectToTraceObserver() {
 	var cred grpc.DialOption
-	if to.endpoint.secure {
-		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-	} else {
+	if nil == to.endpoint || !to.endpoint.secure {
 		cred = grpc.WithInsecure()
+	} else {
+		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	}
-	conn, err := grpc.Dial(
-		to.endpoint.host,
-		cred,
-		grpc.WithConnectParams(grpc.ConnectParams{
-			Backoff: backoff.Config{
-				BaseDelay:  15 * time.Second,
-				Multiplier: 2,
-				MaxDelay:   300 * time.Second,
-			},
-		}),
-	)
+	var conn *grpc.ClientConn
+	var err error
+	connectParams := grpc.ConnectParams{
+		Backoff: backoff.Config{
+			BaseDelay:  15 * time.Second,
+			Multiplier: 2,
+			MaxDelay:   300 * time.Second,
+		},
+	}
+	if nil == to.dialer {
+		conn, err = grpc.Dial(
+			to.endpoint.host,
+			cred,
+			grpc.WithConnectParams(connectParams),
+		)
+	} else {
+		conn, err = grpc.Dial("bufnet",
+			grpc.WithDialer(to.dialer),
+			grpc.WithInsecure(),
+			grpc.WithConnectParams(connectParams),
+		)
+	}
 	if nil != err {
 		// this error is unrecoverable and will not be retried
 		to.log.Error("trace observer unable to dial grpc endpoint", map[string]interface{}{
@@ -118,7 +137,14 @@ func (to *traceObserver) connectToTraceObserver() {
 		})
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		// Related to https://github.com/grpc/grpc-go/issues/2159
+		// If we call conn.Close() immediately, some messages may still be
+		// buffered and will never be sent. Initial testing suggests this takes
+		// around 150-200ms with a full channel.
+		time.Sleep(500 * time.Millisecond)
+		conn.Close()
+	}()
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
@@ -153,12 +179,7 @@ func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) o
 			})
 		}
 	}()
-	select {
-	case <-to.initialConnSuccess:
-		// chan has already been closed
-	default:
-		close(to.initialConnSuccess)
-	}
+	to.markInitialConnSuccessful()
 
 	responseError := make(chan error, 1)
 

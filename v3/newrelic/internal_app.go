@@ -147,17 +147,19 @@ func (app *app) connectRoutine() {
 	}
 }
 
-func (app *app) connectTraceObserver(runID internal.AgentRunID) {
+func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 	if obs := app.getObserver(); obs != nil {
-		obs.restart <- runID
+		obs.restart <- reply.RunID
 		return
 	}
-	observer, err := newTraceObserver(runID, observerConfig{
+
+	observer, err := newTraceObserver(reply.RunID, observerConfig{
 		endpoint:    app.config.traceObserverURL,
 		license:     app.config.License,
 		log:         app.config.Logger,
 		queueSize:   app.config.InfiniteTracing.SpanEvents.QueueSize,
 		appShutdown: app.shutdownComplete,
+		dialer:      reply.TraceObsDialer,
 	})
 	if nil != err {
 		app.Error("unable to create trace observer", map[string]interface{}{
@@ -270,7 +272,7 @@ func (app *app) process() {
 			}
 		case run = <-app.connectChan:
 			if shouldUseTraceObserver(run.Config) {
-				app.connectTraceObserver(run.Reply.RunID)
+				app.connectTraceObserver(run.Reply)
 			} else if shouldUseTraceObserver(app.config) {
 				app.Debug("trace observer disabled via backend", map[string]interface{}{
 					"local-DistributedTracer.Enabled":  app.config.DistributedTracer.Enabled,

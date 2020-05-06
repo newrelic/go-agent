@@ -9,14 +9,17 @@ import (
 
 type traceObserver struct {
 	messages chan *spanEvent
-	// once protects messages from being closed multiple times.
-	once sync.Once
+	// messagesOnce protects messages from being closed multiple times.
+	messagesOnce sync.Once
 
 	initialConnSuccess chan struct{}
-	restart            chan internal.AgentRunID
-	initiateShutdown   chan struct{}
-	shutdownComplete   chan struct{}
-	runID              internal.AgentRunID
+	// initConnOnce protects initialConnSuccess from being closed multiple times.
+	initConnOnce sync.Once
+
+	restart          chan internal.AgentRunID
+	initiateShutdown chan struct{}
+	shutdownComplete chan struct{}
+	runID            internal.AgentRunID
 
 	supportability *observerSupport
 
@@ -29,6 +32,7 @@ type observerConfig struct {
 	log         Logger
 	queueSize   int
 	appShutdown <-chan struct{}
+	dialer      internal.DialerFunc
 }
 
 type observerURL struct {
