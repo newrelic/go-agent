@@ -242,6 +242,34 @@ type Config struct {
 		Attributes AttributeDestinationConfig
 	}
 
+	// InfiniteTracing controls behavior related to Infinite Tracing tail based
+	// sampling.  InfiniteTracing requires that both DistributedTracer and
+	// SpanEvents are enabled.
+	//
+	// https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing
+	InfiniteTracing struct {
+		// TraceObserver controls behavior of connecting to the Trace Observer.
+		TraceObserver struct {
+			// Host is the Trace Observer host to connect to and tells the
+			// Application to enable Infinite Tracing support. When this field
+			// is set to an empty string, which is the default, Infinite
+			// Tracing support is disabled.
+			Host string
+			// Port is the Trace Observer port to connect to. The default is
+			// 443.
+			Port int
+		}
+		// SpanEvents controls the behavior of the span events sent to the
+		// Trace Observer.
+		SpanEvents struct {
+			// QueueSize is the maximum number of span events that may be held
+			// in memory as they wait to be serialized and sent to the Trace
+			// Observer.  Default value is 10,000. Any span event created when
+			// the QueueSize limit is reached will be discarded.
+			QueueSize int
+		}
+	}
+
 	// DatastoreTracer controls behavior relating to datastore segments.
 	DatastoreTracer struct {
 		// InstanceReporting controls whether the host and port are collected
@@ -308,22 +336,6 @@ type Config struct {
 
 	// Host can be used to override the New Relic endpoint.
 	Host string
-
-	// InfiniteTracing TODO
-	InfiniteTracing struct {
-		// TraceObserverURL TODO
-		TraceObserver struct {
-			// Host TODO
-			Host string
-			// Port TODO default 443
-			Port int
-		}
-		// SpanEvents TODO
-		SpanEvents struct {
-			// QueueSize TODO default 10,000
-			QueueSize int
-		}
-	}
 
 	// Error may be populated by the ConfigOptions provided to NewApplication
 	// to indicate that setup has failed.  NewApplication will return this

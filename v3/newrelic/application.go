@@ -77,7 +77,9 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // not gather data until it is connected.  nil is returned if the
 // application is connected successfully.
 //
-// TODO: add behavior when 8T is configured
+// If Infinite Tracing is enabled, WaitForConnection will block until a
+// connection to the Trace Observer is made, a fatal error is reached, or the
+// timeout is hit.
 func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if nil == app {
 		return nil
@@ -91,6 +93,9 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 // again.  This method blocks until all final data is sent to New Relic
 // or the timeout has elapsed.  Increase the timeout and check debug
 // logs if you aren't seeing data.
+//
+// If Infinite Tracing is enabled, Shutdown will block until all queued span
+// events have been sent to the Trace Observer or the timeout has been reached.
 func (app *Application) Shutdown(timeout time.Duration) {
 	if nil == app {
 		return
