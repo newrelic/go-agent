@@ -187,17 +187,17 @@ func createTrackUsageMetrics(metrics *metricTable) {
 	}
 }
 
-func createTraceObserverMetrics(to *traceObserver, metrics *metricTable) {
+func createTraceObserverMetrics(to traceObserver, metrics *metricTable) {
 	if to == nil {
 		return
 	}
-	for name, val := range to.dumpSupportabiityMetrics() {
+	for name, val := range to.dumpSupportabilityMetrics() {
 		metrics.addCount(name, val, forced)
 	}
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestConfig, to *traceObserver) {
+func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestConfig, to traceObserver) {
 	if nil == h {
 		return
 	}

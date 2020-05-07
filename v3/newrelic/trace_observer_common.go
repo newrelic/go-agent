@@ -3,11 +3,25 @@ package newrelic
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-type traceObserver struct {
+type traceObserver interface {
+	// restart TODO
+	restart(internal.AgentRunID)
+	// shutdown TODO
+	shutdown(time.Duration) error
+	// consumeSpan TODO
+	consumeSpan(*spanEvent)
+	// dumpSupportabilityMetrics TODO
+	dumpSupportabilityMetrics() map[string]float64
+	// connected TODO
+	connected() bool
+}
+
+type gRPCtraceObserver struct {
 	messages chan *spanEvent
 	// messagesOnce protects messages from being closed multiple times.
 	messagesOnce sync.Once
@@ -16,7 +30,7 @@ type traceObserver struct {
 	// initConnOnce protects initialConnSuccess from being closed multiple times.
 	initConnOnce sync.Once
 
-	restart          chan internal.AgentRunID
+	restartChan      chan internal.AgentRunID
 	initiateShutdown chan struct{}
 	shutdownComplete chan struct{}
 	runID            internal.AgentRunID

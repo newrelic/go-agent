@@ -330,14 +330,16 @@ func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.
 func testAppBlockOnTrObs(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) *expectApp {
 	app := testApp(replyfn, cfgfn, t)
 	app.app.connectTraceObserver(app.app.placeholderRun.Reply)
-	timeout := time.NewTicker(3 * time.Second)
-	defer timeout.Stop()
-	select {
-	case <-app.app.TraceObserver.initialConnSuccess:
-		return &app
-	case <-timeout.C:
-		t.Fatal("Error connecting to trace observer")
-		return nil
+	deadline := time.Now().Add(3 * time.Second)
+	pollPeriod := 10 * time.Millisecond
+	for {
+		if app.app.TraceObserver.connected() {
+			return &app
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Error connecting to trace observer")
+		}
+		time.Sleep(pollPeriod)
 	}
 }
 

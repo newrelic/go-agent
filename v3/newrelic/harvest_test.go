@@ -143,16 +143,6 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		t.Skip("go version does not support 8T")
 	}
 
-	standardMetrics := []internal.WantMetric{
-		{Name: instanceReporting, Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/EventHarvest/ReportPeriod", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/EventHarvest/AnalyticEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
-		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
-	}
 	replyJSON := []byte(`{"return_value":{}}`)
 	reply, err := internal.UnmarshalConnectReply(replyJSON, internal.PreconnectReply{})
 	if err != nil {
@@ -167,32 +157,20 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		},
 	)
 
-	// no activity yet
 	h := newHarvest(now, dfltHarvestCfgr)
 	h.CreateFinalMetrics(reply, dfltHarvestCfgr, to)
-	expectMetrics(t, h.Metrics, append([]internal.WantMetric{
+	expectMetrics(t, h.Metrics, []internal.WantMetric{
+		{Name: instanceReporting, Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/ReportPeriod", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/AnalyticEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/InfiniteTracing/Span/Seen", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/InfiniteTracing/Span/Sent", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
-	}, standardMetrics...))
-
-	// some metrics created
-	to.supportability.increment <- "testing"
-	to.supportability.increment <- "testing"
-	h = newHarvest(now, dfltHarvestCfgr)
-	h.CreateFinalMetrics(reply, dfltHarvestCfgr, to)
-	expectMetrics(t, h.Metrics, append([]internal.WantMetric{
-		{Name: "Supportability/InfiniteTracing/Span/Seen", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
-		{Name: "Supportability/InfiniteTracing/Span/Sent", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
-		{Name: "testing", Scope: "", Forced: true, Data: []float64{2, 0, 0, 0, 0, 0}},
-	}, standardMetrics...))
-
-	// resets as expected
-	h = newHarvest(now, dfltHarvestCfgr)
-	h.CreateFinalMetrics(reply, dfltHarvestCfgr, to)
-	expectMetrics(t, h.Metrics, append([]internal.WantMetric{
-		{Name: "Supportability/InfiniteTracing/Span/Seen", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
-		{Name: "Supportability/InfiniteTracing/Span/Sent", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
-	}, standardMetrics...))
+	})
 }
 
 func TestEmptyPayloads(t *testing.T) {

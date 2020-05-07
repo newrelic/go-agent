@@ -6,7 +6,7 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObserver, error) {
+func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObserver, error) {
 	return nil, errUnsupportedVersion
 }
 
@@ -14,15 +14,5 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 // Infinite Tracing
 const versionSupports8T = false
 
-func (to *traceObserver) consumeSpan(span *spanEvent) bool {
-	return false
-}
-
-func (to *traceObserver) getConnectedState() bool {
-	return false
-}
-
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
 }
-
-func (to *traceObserver) dumpSupportabiityMetrics() map[string]float64 { return nil }

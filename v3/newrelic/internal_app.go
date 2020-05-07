@@ -25,13 +25,13 @@ type app struct {
 	rpmControls rpmControls
 	testHarvest *harvest
 
-	TraceObserver *traceObserver
+	TraceObserver traceObserver
 
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
 
 	// initiateShutdown is used to tell the processor to shutdown.
-	initiateShutdown chan struct{}
+	initiateShutdown chan time.Duration
 
 	// shutdownStarted and shutdownComplete are closed by the processor
 	// goroutine to indicate the shutdown status.  Two channels are used so
@@ -149,7 +149,7 @@ func (app *app) connectRoutine() {
 
 func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 	if obs := app.getObserver(); obs != nil {
-		obs.restart <- reply.RunID
+		obs.restart(reply.RunID)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (app *app) process() {
 			if nil != run && run.Reply.RunID == d.id {
 				d.data.MergeIntoHarvest(h)
 			}
-		case <-app.initiateShutdown:
+		case timeout := <-app.initiateShutdown:
 			close(app.shutdownStarted)
 
 			// Remove the run before merging any final data to
@@ -246,9 +246,14 @@ func (app *app) process() {
 			}
 
 			if obs := app.getObserver(); obs != nil {
-				close(obs.initiateShutdown)
-				// Block until the observer shutdown is complete
-				<-obs.shutdownComplete
+				// TODO: This timeout is used in two places, but maybe it will
+				// never be hit here because it will be hit there first? Please
+				// investigate this.
+				if err := obs.shutdown(timeout); err != nil {
+					app.Error("trace observer shutdown timeout exceeded", map[string]interface{}{
+						"err": err.Error(),
+					})
+				}
 				app.setObserver(nil)
 			}
 
@@ -305,7 +310,7 @@ func (app *app) Shutdown(timeout time.Duration) {
 	}
 
 	select {
-	case app.initiateShutdown <- struct{}{}:
+	case app.initiateShutdown <- timeout:
 	default:
 	}
 
@@ -362,12 +367,8 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 		}
 		if run.Reply.RunID != "" {
 			if shouldUseTraceObserver(run.Config) {
-				if obs := app.getObserver(); obs != nil {
-					select {
-					case <-obs.initialConnSuccess:
-						return nil
-					default:
-					}
+				if obs := app.getObserver(); obs != nil && obs.connected() {
+					return nil
 				}
 			} else {
 				return nil
@@ -388,7 +389,7 @@ func newApp(c config) *app {
 
 		// This channel must be buffered since Shutdown makes a
 		// non-blocking send attempt.
-		initiateShutdown: make(chan struct{}, 1),
+		initiateShutdown: make(chan time.Duration, 1),
 
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
@@ -465,13 +466,13 @@ func (app *app) setState(run *appRun, err error) {
 	app.err = err
 }
 
-func (app *app) getObserver() *traceObserver {
+func (app *app) getObserver() traceObserver {
 	app.RLock()
 	defer app.RUnlock()
 	return app.TraceObserver
 }
 
-func (app *app) setObserver(observer *traceObserver) {
+func (app *app) setObserver(observer traceObserver) {
 	app.Lock()
 	defer app.Unlock()
 	app.TraceObserver = observer

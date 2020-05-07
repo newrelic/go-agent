@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"strings"
 	"time"
 
@@ -57,11 +58,11 @@ type obsResult struct {
 	withoutBackoff bool
 }
 
-func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObserver, error) {
-	to := &traceObserver{
+func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObserver, error) {
+	to := &gRPCtraceObserver{
 		messages:           make(chan *spanEvent, cfg.queueSize),
 		initialConnSuccess: make(chan struct{}),
-		restart:            make(chan internal.AgentRunID),
+		restartChan:        make(chan internal.AgentRunID),
 		initiateShutdown:   make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		runID:              runID,
@@ -84,23 +85,23 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (*traceObse
 	return to, nil
 }
 
-// closeMessages closes the traceObserver messages channel and is safe to call
+// closeMessages closes the gRPCtraceObserver messages channel and is safe to call
 // multiple times.
-func (to *traceObserver) closeMessages() {
+func (to *gRPCtraceObserver) closeMessages() {
 	to.messagesOnce.Do(func() {
 		close(to.messages)
 	})
 }
 
-// markInitialConnSuccessful closes the traceObserver initialConnSuccess channel and
+// markInitialConnSuccessful closes the gRPCtraceObserver initialConnSuccess channel and
 // is safe to call multiple times.
-func (to *traceObserver) markInitialConnSuccessful() {
+func (to *gRPCtraceObserver) markInitialConnSuccessful() {
 	to.initConnOnce.Do(func() {
 		close(to.initialConnSuccess)
 	})
 }
 
-func (to *traceObserver) connectToTraceObserver() {
+func (to *gRPCtraceObserver) connectToTraceObserver() {
 	var cred grpc.DialOption
 	if nil == to.endpoint || !to.endpoint.secure {
 		cred = grpc.WithInsecure()
@@ -159,7 +160,7 @@ func (to *traceObserver) connectToTraceObserver() {
 	}
 }
 
-func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
+func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
 	ctx := metadata.AppendToOutgoingContext(context.Background(),
 		licenseMetadataKey, to.license,
 		runIDMetadataKey, string(to.runID),
@@ -208,7 +209,7 @@ func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) o
 					shutdown: errShouldShutdown(err),
 				}
 			}
-		case runID := <-to.restart:
+		case runID := <-to.restartChan:
 			to.runID = runID
 			return obsResult{
 				withoutBackoff: true,
@@ -232,13 +233,47 @@ func (to *traceObserver) connectToStream(serviceClient v1.IngestServiceClient) o
 	}
 }
 
+// restart TODO
+func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
+	// TODO this could deadlock if the trace observer has shutdown due to an
+	// unimplemented error, and possibly other reason too, but who knows!
+	to.restartChan <- runID
+}
+
+var errTimeout = errors.New("timeout exceeded while waiting for trace observer shutdown to complete")
+
+// shutdown TODO this can only be called once! (do we want this? maybe not...)
+func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
+	close(to.initiateShutdown)
+	ticker := time.NewTicker(timeout)
+	defer ticker.Stop()
+	// Block until the observer shutdown is complete or timeout hit
+	select {
+	case <-to.shutdownComplete:
+		return nil
+	case <-ticker.C:
+		return errTimeout
+	}
+}
+
+// connected TODO this will return true if it ever connected, not if it is
+// currently connected.
+func (to *gRPCtraceObserver) connected() bool {
+	select {
+	case <-to.initialConnSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // errShouldShutdown returns true if the given error is an Unimplemented error
 // meaning the connection to the trace observer should be shutdown.
 func errShouldShutdown(err error) bool {
 	return status.Code(err) == codes.Unimplemented
 }
 
-func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
+func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
 	span := transformEvent(msg)
 	to.log.Debug("sending span to trace observer", map[string]interface{}{
 		"name": msg.Name,
@@ -254,7 +289,7 @@ func (to *traceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, 
 	return nil
 }
 
-func (to *traceObserver) handleSupportability() {
+func (to *gRPCtraceObserver) handleSupportability() {
 	metrics := newSupportMetrics()
 	for {
 		select {
@@ -289,7 +324,7 @@ func newObserverSupport() *observerSupport {
 	}
 }
 
-func (to *traceObserver) dumpSupportabiityMetrics() map[string]float64 {
+func (to *gRPCtraceObserver) dumpSupportabilityMetrics() map[string]float64 {
 	return <-to.supportability.dump
 }
 
@@ -302,7 +337,7 @@ func errToCodeString(err error) string {
 	return str
 }
 
-func (to *traceObserver) supportabilityError(err error) {
+func (to *gRPCtraceObserver) supportabilityError(err error) {
 	to.supportability.increment <- observerCodeErr + errToCodeString(err)
 	to.supportability.increment <- observerResponseErr
 }
@@ -377,22 +412,22 @@ func transformEvent(e *spanEvent) *v1.Span {
 	return span
 }
 
-func (to *traceObserver) consumeSpan(span *spanEvent) bool {
+func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	to.supportability.increment <- observerSeen
 
 	// check if shutdownComplete channel has been closed
 	select {
 	case <-to.shutdownComplete:
-		return false
+		return
 	default:
 	}
 
 	select {
 	case to.messages <- span:
-		return true
 	default:
-		return false
 	}
+
+	return
 }
 
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
