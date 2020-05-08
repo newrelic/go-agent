@@ -21,6 +21,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
+	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
 func TestValidateTraceObserverURL(t *testing.T) {
@@ -147,6 +148,143 @@ func Test8TConfig(t *testing.T) {
 			t.Errorf("Infite Tracing config validation failed: %v", test)
 		}
 	}
+}
+
+const runToken = "aRunToken"
+
+func TestTraceObserverRestart(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": runToken,
+		"license_key":     testLicenseKey,
+	})
+	newToken := "aNewRunToken"
+	to.restart(internal.AgentRunID(newToken))
+
+	// Make sure the server has received the new data
+	to.consumeSpan(&spanEvent{})
+	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout")
+	}
+
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": newToken,
+		"license_key":     testLicenseKey,
+	})
+}
+
+func TestTraceObserverShutdown(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": runToken,
+		"license_key":     testLicenseKey,
+	})
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+	to.consumeSpan(&spanEvent{})
+	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Got a span we did not expect to get")
+	}
+}
+
+func TestTraceObserverConsumeSpan(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": runToken,
+		"license_key":     testLicenseKey,
+	})
+	to.consumeSpan(&spanEvent{})
+	to.consumeSpan(&spanEvent{})
+
+	if !s.WaitForSpans(t, 2, 50*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout")
+	}
+}
+
+func TestTraceObserverDumpSupportabilityMetrics(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+	})
+
+	to.consumeSpan(&spanEvent{})
+	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout")
+	}
+
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 1,
+		"Supportability/InfiniteTracing/Span/Sent": 1,
+	})
+
+	// Ensure counts are reset
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+	})
+}
+
+func TestTraceObserverConnected(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	if to.isConnected() {
+		t.Error("Didn't expect the trace observer to be connected, but it is")
+	}
+	readyChan <- struct{}{}
+	waitForTrObs(t, to)
+
+	if !to.isConnected() {
+		t.Error("Expected the trace observer to be connected, but it isn't")
+	}
+}
+
+func expectSupportabilityMetrics(t *testing.T, to traceObserver, expected map[string]float64) {
+	actual := to.dumpSupportabilityMetrics()
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Supportability metrics do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
+	}
+}
+
+func createServerAndObserver(t *testing.T) (testObsServer, traceObserver) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      s.dialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+	return s, to
 }
 
 func TestTraceObserverRoundTrip(t *testing.T) {
@@ -307,7 +445,7 @@ func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 	}
 }
 
-func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.Duration) {
+func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.Duration) bool {
 	var rcvd int
 	timeout := time.NewTicker(secTimeout)
 	defer timeout.Stop()
@@ -316,11 +454,11 @@ func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.
 		case <-s.spansReceivedChan:
 			rcvd++
 			if rcvd >= expected {
-				return
+				return true
 			}
 		case <-timeout.C:
-			t.Errorf("Did not receive expected spans before timeout - expected %d but got %d", expected, rcvd)
-			return
+			t.Logf("INFO: Waited for %d spans but received %d\n", expected, rcvd)
+			return false
 		}
 	}
 }
@@ -330,11 +468,16 @@ func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.
 func testAppBlockOnTrObs(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) *expectApp {
 	app := testApp(replyfn, cfgfn, t)
 	app.app.connectTraceObserver(app.app.placeholderRun.Reply)
+	waitForTrObs(t, app.app.TraceObserver)
+	return &app
+}
+
+func waitForTrObs(t testing.TB, to traceObserver) {
 	deadline := time.Now().Add(3 * time.Second)
 	pollPeriod := 10 * time.Millisecond
 	for {
-		if app.app.TraceObserver.connected() {
-			return &app
+		if to.isConnected() {
+			return
 		}
 		if time.Now().After(deadline) {
 			t.Fatal("Error connecting to trace observer")

@@ -17,8 +17,8 @@ type traceObserver interface {
 	consumeSpan(*spanEvent)
 	// dumpSupportabilityMetrics TODO
 	dumpSupportabilityMetrics() map[string]float64
-	// connected TODO
-	connected() bool
+	// isConnected TODO - maybe rename to didConnect?
+	isConnected() bool
 }
 
 type gRPCtraceObserver struct {

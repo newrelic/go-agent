@@ -256,9 +256,9 @@ func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	}
 }
 
-// connected TODO this will return true if it ever connected, not if it is
+// isConnected TODO this will return true if it ever connected, not if it is
 // currently connected.
-func (to *gRPCtraceObserver) connected() bool {
+func (to *gRPCtraceObserver) isConnected() bool {
 	select {
 	case <-to.initialConnSuccess:
 		return true
