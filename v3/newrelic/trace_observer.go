@@ -62,7 +62,7 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObser
 	to := &gRPCtraceObserver{
 		messages:           make(chan *spanEvent, cfg.queueSize),
 		initialConnSuccess: make(chan struct{}),
-		restartChan:        make(chan internal.AgentRunID),
+		restartChan:        make(chan struct{}, 1),
 		initiateShutdown:   make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
 		runID:              runID,
@@ -98,6 +98,14 @@ func (to *gRPCtraceObserver) closeMessages() {
 func (to *gRPCtraceObserver) markInitialConnSuccessful() {
 	to.initConnOnce.Do(func() {
 		close(to.initialConnSuccess)
+	})
+}
+
+// startShutdown closes the gRPCtraceObserver initiateShutdown channel and
+// is safe to call multiple times.
+func (to *gRPCtraceObserver) startShutdown() {
+	to.initShutdownOnce.Do(func() {
+		close(to.initiateShutdown)
 	})
 }
 
@@ -144,7 +152,11 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		// buffered and will never be sent. Initial testing suggests this takes
 		// around 150-200ms with a full channel.
 		time.Sleep(500 * time.Millisecond)
-		conn.Close()
+		if err := conn.Close(); nil != err {
+			to.log.Info("closing trace observer connection was not successful", map[string]interface{}{
+				"err": err.Error(),
+			})
+		}
 	}()
 
 	serviceClient := v1.NewIngestServiceClient(conn)
@@ -161,9 +173,12 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 }
 
 func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
+	to.runIDLock.Lock()
+	runID := to.runID
+	to.runIDLock.Unlock()
 	ctx := metadata.AppendToOutgoingContext(context.Background(),
 		licenseMetadataKey, to.license,
-		runIDMetadataKey, string(to.runID),
+		runIDMetadataKey, string(runID),
 	)
 	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
@@ -209,8 +224,7 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 					shutdown: errShouldShutdown(err),
 				}
 			}
-		case runID := <-to.restartChan:
-			to.runID = runID
+		case <-to.restartChan:
 			return obsResult{
 				withoutBackoff: true,
 			}
@@ -235,16 +249,25 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 
 // restart TODO
 func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
-	// TODO this could deadlock if the trace observer has shutdown due to an
-	// unimplemented error, and possibly other reason too, but who knows!
-	to.restartChan <- runID
+	if to.isShutdownComplete() {
+		return
+	}
+	to.runIDLock.Lock()
+	to.runID = runID
+	to.runIDLock.Unlock()
+
+	// If there is already a restart on the channel, we don't need to add another
+	select {
+	case to.restartChan <- struct{}{}:
+	default:
+	}
 }
 
 var errTimeout = errors.New("timeout exceeded while waiting for trace observer shutdown to complete")
 
 // shutdown TODO this can only be called once! (do we want this? maybe not...)
 func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
-	close(to.initiateShutdown)
+	to.startShutdown()
 	ticker := time.NewTicker(timeout)
 	defer ticker.Stop()
 	// Block until the observer shutdown is complete or timeout hit
@@ -256,9 +279,9 @@ func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	}
 }
 
-// isConnected TODO this will return true if it ever connected, not if it is
+// initialConnCompleted TODO this will return true if it ever connected, not if it is
 // currently connected.
-func (to *gRPCtraceObserver) isConnected() bool {
+func (to *gRPCtraceObserver) initialConnCompleted() bool {
 	select {
 	case <-to.initialConnSuccess:
 		return true
@@ -415,11 +438,8 @@ func transformEvent(e *spanEvent) *v1.Span {
 func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	to.supportability.increment <- observerSeen
 
-	// check if shutdownComplete channel has been closed
-	select {
-	case <-to.shutdownComplete:
+	if to.isShutdownComplete() {
 		return
-	default:
 	}
 
 	select {
@@ -428,6 +448,15 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	}
 
 	return
+}
+
+func (to *gRPCtraceObserver) isShutdownComplete() bool {
+	select {
+	case <-to.shutdownComplete:
+		return true
+	default:
+	}
+	return false
 }
 
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {

@@ -17,8 +17,8 @@ type traceObserver interface {
 	consumeSpan(*spanEvent)
 	// dumpSupportabilityMetrics TODO
 	dumpSupportabilityMetrics() map[string]float64
-	// isConnected TODO - maybe rename to didConnect?
-	isConnected() bool
+	// initialConnCompleted TODO - does NOT indicate current state of connection
+	initialConnCompleted() bool
 }
 
 type gRPCtraceObserver struct {
@@ -30,10 +30,16 @@ type gRPCtraceObserver struct {
 	// initConnOnce protects initialConnSuccess from being closed multiple times.
 	initConnOnce sync.Once
 
-	restartChan      chan internal.AgentRunID
+	restartChan chan struct{}
+
 	initiateShutdown chan struct{}
+	// initShutdownOnce protects initiateShutdown from being closed multiple times.
+	initShutdownOnce sync.Once
+
 	shutdownComplete chan struct{}
-	runID            internal.AgentRunID
+
+	runID     internal.AgentRunID
+	runIDLock sync.Mutex
 
 	supportability *observerSupport
 
@@ -45,7 +51,7 @@ type observerConfig struct {
 	license     string
 	log         Logger
 	queueSize   int
-	appShutdown <-chan struct{}
+	appShutdown chan struct{}
 	dialer      internal.DialerFunc
 }
 

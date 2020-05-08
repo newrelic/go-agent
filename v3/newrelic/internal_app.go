@@ -367,7 +367,7 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 		}
 		if run.Reply.RunID != "" {
 			if shouldUseTraceObserver(run.Config) {
-				if obs := app.getObserver(); obs != nil && obs.isConnected() {
+				if obs := app.getObserver(); obs != nil && obs.initialConnCompleted() {
 					return nil
 				}
 			} else {

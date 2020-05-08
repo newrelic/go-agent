@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -175,8 +176,11 @@ func TestTraceObserverRestart(t *testing.T) {
 }
 
 func TestTraceObserverShutdown(t *testing.T) {
+	// Make sure other goroutines have finished before getting the count
+	d := 5 * time.Millisecond
+	time.Sleep(d)
+	grCount := runtime.NumGoroutine()
 	s, to := createServerAndObserver(t)
-	defer s.Close()
 
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
@@ -188,6 +192,22 @@ func TestTraceObserverShutdown(t *testing.T) {
 	to.consumeSpan(&spanEvent{})
 	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
+	}
+	s.Close()
+	time.Sleep(d)
+	newGrCount := runtime.NumGoroutine()
+	// There should be one extra goroutine due to supportability metrics
+	expected := grCount + 1
+	if newGrCount != expected {
+		t.Errorf("Expected %d goroutines after TrObs shutdown, but found %d", expected, newGrCount)
+	}
+
+	// Simulate the whole app shutting down
+	close(to.(*gRPCtraceObserver).appShutdown)
+	time.Sleep(d)
+	newGrCount = runtime.NumGoroutine()
+	if newGrCount != grCount {
+		t.Errorf("Expected %d goroutines after app shutdown, but found %d", grCount, newGrCount)
 	}
 }
 
@@ -252,14 +272,61 @@ func TestTraceObserverConnected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if to.isConnected() {
+	if to.initialConnCompleted() {
 		t.Error("Didn't expect the trace observer to be connected, but it is")
 	}
 	readyChan <- struct{}{}
 	waitForTrObs(t, to)
 
-	if !to.isConnected() {
+	if !to.initialConnCompleted() {
 		t.Error("Expected the trace observer to be connected, but it isn't")
+	}
+}
+
+func TestTrObsMultipleShutdowns(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+	waitForTrObs(t, to)
+
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure we don't panic
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTrObsShutdownAndRestart(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+	waitForTrObs(t, to)
+
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure we don't panic and don't send updated metadata
+	to.restart("A New Run Token")
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": runToken,
+		"license_key":     testLicenseKey,
+	})
+}
+
+func TestTrObsShutdownAndInitialConnSuccessful(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+	waitForTrObs(t, to)
+
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	if !to.initialConnCompleted() {
+		t.Error("Expected the initialConnCompleted call to return true after shutdown, " +
+			"but returned false")
 	}
 }
 
@@ -476,7 +543,7 @@ func waitForTrObs(t testing.TB, to traceObserver) {
 	deadline := time.Now().Add(3 * time.Second)
 	pollPeriod := 10 * time.Millisecond
 	for {
-		if to.isConnected() {
+		if to.initialConnCompleted() {
 			return
 		}
 		if time.Now().After(deadline) {
