@@ -202,13 +202,22 @@ func TestTraceObserverShutdown(t *testing.T) {
 		t.Errorf("Expected %d goroutines after TrObs shutdown, but found %d", expected, newGrCount)
 	}
 
-	// Simulate the whole app shutting down
-	close(to.(*gRPCtraceObserver).appShutdown)
+	shutdownApp(to)
 	time.Sleep(d)
 	newGrCount = runtime.NumGoroutine()
 	if newGrCount != grCount {
 		t.Errorf("Expected %d goroutines after app shutdown, but found %d", grCount, newGrCount)
 	}
+
+	to.consumeSpan(&spanEvent{})
+	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Got a span we did not expect to get")
+	}
+}
+
+// shutdownApp simulates the whole app shutting down
+func shutdownApp(to traceObserver) {
+	close(to.(*gRPCtraceObserver).appShutdown)
 }
 
 func TestTraceObserverConsumeSpan(t *testing.T) {
@@ -255,6 +264,7 @@ func TestTraceObserverDumpSupportabilityMetrics(t *testing.T) {
 
 func TestTraceObserverConnected(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
 	readyChan := make(chan struct{})
 	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
 		<-readyChan
@@ -294,7 +304,13 @@ func TestTrObsMultipleShutdowns(t *testing.T) {
 
 	// Make sure we don't panic
 	if err := to.shutdown(time.Second); err != nil {
-		t.Fatal(err)
+		t.Error("error shutting down the trace observer:", err)
+	}
+
+	shutdownApp(to)
+	// Make sure we don't panic
+	if err := to.shutdown(time.Second); err != nil {
+		t.Error("error shutting downt the trace observer after shutting down app:", err)
 	}
 }
 
@@ -306,6 +322,15 @@ func TestTrObsShutdownAndRestart(t *testing.T) {
 	if err := to.shutdown(time.Second); err != nil {
 		t.Fatal(err)
 	}
+
+	// Make sure we don't panic and don't send updated metadata
+	to.restart("A New Run Token")
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": runToken,
+		"license_key":     testLicenseKey,
+	})
+
+	shutdownApp(to)
 
 	// Make sure we don't panic and don't send updated metadata
 	to.restart("A New Run Token")
@@ -328,9 +353,186 @@ func TestTrObsShutdownAndInitialConnSuccessful(t *testing.T) {
 		t.Error("Expected the initialConnCompleted call to return true after shutdown, " +
 			"but returned false")
 	}
+
+	shutdownApp(to)
+
+	if !to.initialConnCompleted() {
+		t.Error("Expected the initialConnCompleted call to return true after app shutdown, " +
+			"but returned false")
+	}
+}
+
+func TestTrObsShutdownAndDumpSupportabilityMetrics(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	if err := to.shutdown(time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+		// the error metrics are from the EOF on the client.Recv
+		"Supportability/InfiniteTracing/Span/Response/Error": 1,
+		"Supportability/InfiniteTracing/Span/gRPC/UNKNOWN":   1,
+	})
+
+	shutdownApp(to)
+
+	expectSupportabilityMetrics(t, to, nil)
+}
+
+func TestTrObsSlowConnectAndRestart(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	newToken := "A New Run Token"
+	to.restart(internal.AgentRunID(newToken))
+	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Got a span we did not expect to get")
+	}
+	s.ExpectMetadata(t, nil)
+
+	close(readyChan)
+	if s.WaitForSpans(t, 1, 500*time.Millisecond) {
+		t.Error("Got a span we did not expect to get")
+	}
+	s.ExpectMetadata(t, map[string]string{
+		"agent_run_token": newToken,
+		"license_key":     testLicenseKey,
+	})
+}
+
+func TestTrObsSlowConnectAndConsumeSpan(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	to.consumeSpan(&spanEvent{})
+	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Got a span we did not expect to get")
+	}
+
+	close(readyChan)
+	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout")
+	}
+}
+
+func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+	})
+
+	to.consumeSpan(&spanEvent{})
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 1,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+	})
+
+	close(readyChan)
+	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout")
+	}
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 1,
+	})
+}
+
+func TestTrObsSlowConnectAndShutdown(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	to.consumeSpan(&spanEvent{})
+
+	if err := to.shutdown(time.Nanosecond); err == nil {
+		t.Error("trace observer was able to shutdown when it shouldn't have")
+	}
+
+	close(readyChan)
+
+	// TODO: This sleep is so long because it is waiting on the defered 500
+	// millisecond sleep for closing the grpc conn.
+	time.Sleep(550 * time.Millisecond)
+	if !to.(*gRPCtraceObserver).isShutdownComplete() {
+		t.Error("trace observer should be shutdown but it is not")
+	}
+	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+		t.Error("span was not received")
+	}
 }
 
 func expectSupportabilityMetrics(t *testing.T, to traceObserver, expected map[string]float64) {
+	t.Helper()
 	actual := to.dumpSupportabilityMetrics()
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Supportability metrics do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
@@ -407,7 +609,8 @@ func simpleRecordSpan(s *expectServer, stream v1.IngestService_RecordSpanServer)
 	}
 }
 
-func (s *expectServer) ExpectMetadata(t internal.Validator, want map[string]string) {
+func (s *expectServer) ExpectMetadata(t *testing.T, want map[string]string) {
+	t.Helper()
 	s.Lock()
 	actualMetadataLen := len(s.metadata)
 	s.Unlock()
@@ -453,8 +656,12 @@ func (s *expectServer) ExpectMetadata(t internal.Validator, want map[string]stri
 }
 
 // Add the `extraMetadata` to each of the maps in the `want` parameter.
-// The data in `want` takes precedence over the `extraMetadata`.
+// The data in `want` takes precedence over the `extraMetadata`. If `want` is
+// nil, returns nil.
 func mergeMetadata(want map[string]string, extraMetadata map[string]string) map[string]string {
+	if nil == want {
+		return nil
+	}
 	newMap := make(map[string]string)
 	for k, v := range extraMetadata {
 		newMap[k] = v
@@ -513,6 +720,7 @@ func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 }
 
 func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.Duration) bool {
+	t.Helper()
 	var rcvd int
 	timeout := time.NewTicker(secTimeout)
 	defer timeout.Stop()

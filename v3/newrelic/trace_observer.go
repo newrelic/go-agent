@@ -206,6 +206,9 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 				to.log.Error("trace observer response error", map[string]interface{}{
 					"err": err.Error(),
 				})
+				// NOTE: even when the trace observer is shutting down
+				// properly, an EOF error will be received here and a
+				// supportability metric created.
 				to.supportabilityError(err)
 				responseError <- err
 				return
@@ -348,6 +351,9 @@ func newObserverSupport() *observerSupport {
 }
 
 func (to *gRPCtraceObserver) dumpSupportabilityMetrics() map[string]float64 {
+	if to.isAppShutdownComplete() {
+		return nil
+	}
 	return <-to.supportability.dump
 }
 
@@ -436,6 +442,10 @@ func transformEvent(e *spanEvent) *v1.Span {
 }
 
 func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
+	if to.isAppShutdownComplete() {
+		return
+	}
+
 	to.supportability.increment <- observerSeen
 
 	if to.isShutdownComplete() {
@@ -450,9 +460,21 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	return
 }
 
+// isShutdownComplete returns a bool if the trace observer has been shutdown.
 func (to *gRPCtraceObserver) isShutdownComplete() bool {
 	select {
 	case <-to.shutdownComplete:
+		return true
+	default:
+	}
+	return false
+}
+
+// isAppShutdownComplete returns a bool if the trace observer's application has
+// been shutdown.
+func (to *gRPCtraceObserver) isAppShutdownComplete() bool {
+	select {
+	case <-to.appShutdown:
 		return true
 	default:
 	}
