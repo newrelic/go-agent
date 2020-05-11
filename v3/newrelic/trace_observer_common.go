@@ -2,7 +2,6 @@ package newrelic
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -19,31 +18,6 @@ type traceObserver interface {
 	dumpSupportabilityMetrics() map[string]float64
 	// initialConnCompleted TODO - does NOT indicate current state of connection
 	initialConnCompleted() bool
-}
-
-type gRPCtraceObserver struct {
-	messages chan *spanEvent
-	// messagesOnce protects messages from being closed multiple times.
-	messagesOnce sync.Once
-
-	initialConnSuccess chan struct{}
-	// initConnOnce protects initialConnSuccess from being closed multiple times.
-	initConnOnce sync.Once
-
-	restartChan chan struct{}
-
-	initiateShutdown chan struct{}
-	// initShutdownOnce protects initiateShutdown from being closed multiple times.
-	initShutdownOnce sync.Once
-
-	shutdownComplete chan struct{}
-
-	runID     internal.AgentRunID
-	runIDLock sync.Mutex
-
-	supportability *observerSupport
-
-	observerConfig
 }
 
 type observerConfig struct {

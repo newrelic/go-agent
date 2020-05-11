@@ -231,6 +231,18 @@ func (app *app) process() {
 			// ensure a bounded number of receives from dataChan.
 			app.setState(nil, errors.New("application shut down"))
 
+			if obs := app.getObserver(); obs != nil {
+				// TODO: This timeout is used in two places, but maybe it will
+				// never be hit here because it will be hit there first? Please
+				// investigate this.
+				if err := obs.shutdown(timeout); err != nil {
+					app.Error("trace observer shutdown timeout exceeded", map[string]interface{}{
+						"err": err.Error(),
+					})
+				}
+				defer app.setObserver(nil)
+			}
+
 			if nil != run {
 				for done := false; !done; {
 					select {
@@ -243,18 +255,6 @@ func (app *app) process() {
 					}
 				}
 				app.doHarvest(h, time.Now(), run)
-			}
-
-			if obs := app.getObserver(); obs != nil {
-				// TODO: This timeout is used in two places, but maybe it will
-				// never be hit here because it will be hit there first? Please
-				// investigate this.
-				if err := obs.shutdown(timeout); err != nil {
-					app.Error("trace observer shutdown timeout exceeded", map[string]interface{}{
-						"err": err.Error(),
-					})
-				}
-				app.setObserver(nil)
 			}
 
 			close(app.shutdownComplete)

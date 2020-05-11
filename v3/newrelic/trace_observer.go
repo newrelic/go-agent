@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -21,6 +22,31 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 )
+
+type gRPCtraceObserver struct {
+	messages chan *spanEvent
+	// messagesOnce protects messages from being closed multiple times.
+	messagesOnce sync.Once
+
+	initialConnSuccess chan struct{}
+	// initConnOnce protects initialConnSuccess from being closed multiple times.
+	initConnOnce sync.Once
+
+	restartChan chan struct{}
+
+	initiateShutdown chan struct{}
+	// initShutdownOnce protects initiateShutdown from being closed multiple times.
+	initShutdownOnce sync.Once
+
+	shutdownComplete chan struct{}
+
+	runID     internal.AgentRunID
+	runIDLock sync.Mutex
+
+	supportability *observerSupport
+
+	observerConfig
+}
 
 const (
 	// versionSupports8T records whether we are using a supported version of Go
