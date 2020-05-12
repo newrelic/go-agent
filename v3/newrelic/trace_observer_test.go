@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"errors"
 	"net"
 	"reflect"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/newrelic/go-agent/v3/internal"
+	v1 "github.com/newrelic/go-agent/v3/internal/com_newrelic_trace_v1"
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
@@ -506,6 +508,13 @@ func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
 	})
 }
 
+func toIsShutdown(to traceObserver) bool {
+	// TODO: This sleep is so long because it is waiting on the defered 500
+	// millisecond sleep for closing the grpc conn.
+	time.Sleep(550 * time.Millisecond)
+	return to.(*gRPCtraceObserver).isShutdownComplete()
+}
+
 // TODO: come back to this when we have more brainpower.
 // We need to figure out how to cancel the call to serviceClient.RecordSpan(ctx) if it doesn't connect
 func TestTrObsSlowConnectAndShutdown(t *testing.T) {
@@ -536,14 +545,88 @@ func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 
 	close(readyChan)
 
-	// TODO: This sleep is so long because it is waiting on the defered 500
-	// millisecond sleep for closing the grpc conn.
-	time.Sleep(550 * time.Millisecond)
-	if !to.(*gRPCtraceObserver).isShutdownComplete() {
+	if !toIsShutdown(to) {
 		t.Error("trace observer should be shutdown but it is not")
 	}
 	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
 		t.Error("span was not received")
+	}
+}
+
+var (
+	errUnimplemented    = status.Error(codes.Unimplemented, "unimplemented")
+	errPermissionDenied = status.Error(codes.PermissionDenied, "I'm so sorry")
+)
+
+func TestTrObsRecordSpanReturnsError(t *testing.T) {
+	s := newTestObsServer(t, simpleRecordSpan)
+	defer s.Close()
+	errDialer := func(str string, d time.Duration) (net.Conn, error) {
+		// It doesn't matter what error is returned here, grpc will translate
+		// this into a code 14 error. This error is returned from RecordSpan
+		// and since it is not an Unimplemented error, we will not shut down.
+		return nil, errors.New("ooooops")
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      errDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	if toIsShutdown(to) {
+		t.Error("trace observer should not be shutdown but it is")
+	}
+}
+
+func TestTrObsRecvReturnsUnimplementedError(t *testing.T) {
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		return errUnimplemented
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      s.dialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	if !toIsShutdown(to) {
+		t.Error("trace observer should be shutdown but it is not")
+	}
+}
+
+func TestTrObsRecvReturnsOtherError(t *testing.T) {
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		return errPermissionDenied
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      s.dialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	if toIsShutdown(to) {
+		t.Error("trace observer should not be shutdown but it is")
 	}
 }
 
