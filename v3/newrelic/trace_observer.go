@@ -48,6 +48,11 @@ type gRPCtraceObserver struct {
 	observerConfig
 }
 
+type observerSupport struct {
+	increment chan string
+	dump      chan map[string]float64
+}
+
 const (
 	// versionSupports8T records whether we are using a supported version of Go
 	// for Infinite Tracing
@@ -57,6 +62,9 @@ const (
 	recordSpanBackoff = 15 * time.Second
 	// numCodes is the total number of grpc.Codes
 	numCodes = 17
+
+	licenseMetadataKey = "license_key"
+	runIDMetadataKey   = "agent_run_token"
 
 	observerSeen        = "Supportability/InfiniteTracing/Span/Seen"
 	observerSent        = "Supportability/InfiniteTracing/Span/Sent"

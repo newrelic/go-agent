@@ -34,14 +34,7 @@ type observerURL struct {
 	secure bool
 }
 
-type observerSupport struct {
-	increment chan string
-	dump      chan map[string]float64
-}
-
 const (
-	licenseMetadataKey    = "license_key"
-	runIDMetadataKey      = "agent_run_token"
 	localTestingHost      = "localhost"
 	infTracingDefaultPort = 443
 )
