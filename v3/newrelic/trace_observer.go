@@ -284,7 +284,7 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 	}
 }
 
-// restart TODO
+// restart reconnects to the remote trace observer with the given runID.
 func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
 	if to.isShutdownComplete() {
 		return
@@ -302,7 +302,8 @@ func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
 
 var errTimeout = errors.New("timeout exceeded while waiting for trace observer shutdown to complete")
 
-// shutdown TODO this can only be called once! (do we want this? maybe not...)
+// shutdown initiates a shutdown of the trace observer and blocks until either
+// shutdown is complete or the given timeout is hit.
 func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	to.startShutdown()
 	ticker := time.NewTicker(timeout)
@@ -316,8 +317,9 @@ func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	}
 }
 
-// initialConnCompleted TODO this will return true if it ever connected, not if it is
-// currently connected.
+// initialConnCompleted returns true if the trace observer was ever able to
+// connect successfully. It does not indicate the current connected state of
+// the trace observer.
 func (to *gRPCtraceObserver) initialConnCompleted() bool {
 	select {
 	case <-to.initialConnSuccess:

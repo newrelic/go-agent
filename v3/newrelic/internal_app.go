@@ -232,9 +232,6 @@ func (app *app) process() {
 			app.setState(nil, errors.New("application shut down"))
 
 			if obs := app.getObserver(); obs != nil {
-				// TODO: This timeout is used in two places, but maybe it will
-				// never be hit here because it will be hit there first? Please
-				// investigate this.
 				if err := obs.shutdown(timeout); err != nil {
 					app.Error("trace observer shutdown timeout exceeded", map[string]interface{}{
 						"err": err.Error(),
