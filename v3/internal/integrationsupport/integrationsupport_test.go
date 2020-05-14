@@ -1,6 +1,7 @@
 package integrationsupport
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -21,7 +22,7 @@ func TestEmptyTransaction(t *testing.T) {
 	AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
 }
 
-func TestSuccess(t *testing.T) {
+func testApp(t *testing.T) *newrelic.Application {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("appname"),
 		newrelic.ConfigLicense("0123456789012345678901234567890123456789"),
@@ -35,7 +36,11 @@ func TestSuccess(t *testing.T) {
 		reply.SetSampleEverything()
 	}
 	internal.HarvestTesting(app.Private, replyfn)
+	return app
+}
 
+func TestSuccess(t *testing.T) {
+	app := testApp(t)
 	txn := app.StartTransaction("hello")
 	AddAgentAttribute(txn, newrelic.AttributeHostDisplayName, "hostname", nil)
 	segment := txn.StartSegment("mySegment")
@@ -70,4 +75,22 @@ func TestSuccess(t *testing.T) {
 			AgentAttributes: map[string]interface{}{},
 		},
 	})
+}
+
+func TestConcurrentCalls(t *testing.T) {
+	// This test will fail with a data race if the txn is not properly locked
+	app := testApp(t)
+	txn := app.StartTransaction("hello")
+	defer txn.End()
+	defer txn.StartSegment("mySegment").End()
+
+	var wg sync.WaitGroup
+	addAttr := func() {
+		AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
+		wg.Done()
+	}
+
+	wg.Add(1)
+	go addAttr()
+	wg.Wait()
 }

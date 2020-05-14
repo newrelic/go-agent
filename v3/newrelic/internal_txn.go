@@ -1157,6 +1157,9 @@ func (txn *txn) Application() *Application {
 }
 
 func (thd *thread) AddAgentSpanAttribute(key string, val string) {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
 	thd.thread.AddAgentSpanAttribute(spanAttribute(key), val)
 }
 
