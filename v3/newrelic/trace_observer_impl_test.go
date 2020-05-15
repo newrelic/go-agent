@@ -6,8 +6,8 @@ package newrelic
 import (
 	"fmt"
 	"io"
+	"math"
 	"net"
-	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -24,12 +24,31 @@ import (
 
 // This file contains helper functions for Trace Observer tests
 
+// anySupportabilityCount indicates that we don't know/care what the value of the metric will be;
+// it is math.Pi because that will never be an actual value of a support metric count
+const anySupportabilityCount float64 = math.Pi
+
 func expectSupportabilityMetrics(t *testing.T, to traceObserver, expected map[string]float64) {
 	t.Helper()
 	actual := to.dumpSupportabilityMetrics()
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("Supportability metrics do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
+	if len(expected) != len(actual) {
+		t.Errorf("Supportability metrics sizes do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
+		return
 	}
+	for expectKey, expectVal := range expected {
+		if actualVal, ok := actual[expectKey]; ok {
+			if !supportMetricsMatch(expectVal, actualVal) {
+				t.Errorf("Supportability metrics values do not match.\n"+
+					"Key: %s\nExpected: %f\nActual: %f", expectKey, expectVal, actualVal)
+			}
+		} else {
+			t.Errorf("Supportability metrics key not found in actual metrics: %s", expectKey)
+		}
+	}
+}
+
+func supportMetricsMatch(expectVal float64, actualVal float64) bool {
+	return expectVal == anySupportabilityCount || expectVal == actualVal
 }
 
 func createServerAndObserver(t *testing.T) (testObsServer, traceObserver) {

@@ -630,6 +630,91 @@ func TestTrObsRecvReturnsOtherError(t *testing.T) {
 	}
 }
 
+func TestTrObsUnimplementedNoMoreSpansSent(t *testing.T) {
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		stream.Recv()
+		s.spansReceivedChan <- struct{}{}
+		return errUnimplemented
+	})
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     20,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: true,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	// First span should cause a shutdown to initiate;
+	// the others should get queued but may or may not be not sent
+	to.consumeSpan(&spanEvent{})
+	to.consumeSpan(&spanEvent{})
+	to.consumeSpan(&spanEvent{})
+
+	if !s.WaitForSpans(t, 1, time.Second) {
+		t.Error("Did not receive expected span before timeout")
+	}
+
+	if !toIsShutdown(to) {
+		t.Error("trace observer should be shutdown but it is not")
+	}
+
+	// Closing the server ensures that if a span was sent that it will be
+	// received and read by the server
+	s.Close()
+
+	// Additional spans should not be delivered
+	if s.WaitForSpans(t, 1, 100*time.Millisecond) {
+		t.Error("Received 1 spans after shutdown when we should not receive any")
+	}
+}
+
+func TestTrObsPermissionDeniedMoreSpansSent(t *testing.T) {
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		stream.Recv()
+		s.spansReceivedChan <- struct{}{}
+		return errPermissionDenied
+	})
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     20,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: true,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	to.consumeSpan(&spanEvent{})
+	to.consumeSpan(&spanEvent{})
+
+	if !s.WaitForSpans(t, 1, time.Second) {
+		t.Error("Did not receive expected span before timeout")
+	}
+
+	if toIsShutdown(to) {
+		t.Error("trace observer should not be shutdown but it is")
+	}
+
+	// Closing the server ensures that if a span was sent that it will be
+	// received and read by the server
+	s.Close()
+
+	// Additional spans should be delivered
+	if !s.WaitForSpans(t, 1, time.Second) {
+		t.Error("did not receive 1 expected spans")
+	}
+}
+
 /***********************
  * Integration test(s) *
  ***********************/
@@ -647,7 +732,9 @@ func TestTraceObserverRoundTrip(t *testing.T) {
 	// Ensure no spans were sent the normal way
 	app.ExpectSpanEvents(t, nil)
 
-	s.WaitForSpans(t, 2, time.Second)
+	if !s.WaitForSpans(t, 2, time.Second) {
+		t.Error("Did not receive expected spans before timeout")
+	}
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
 		"license_key":     testLicenseKey,

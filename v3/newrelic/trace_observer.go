@@ -200,7 +200,7 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		if result.shutdown {
 			return
 		}
-		if !result.withoutBackoff {
+		if !result.withoutBackoff && !to.removeBackoff {
 			time.Sleep(recordSpanBackoff)
 		}
 	}
@@ -256,9 +256,20 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 	for {
 		select {
 		case msg := <-to.messages:
-			if err := to.sendSpan(spanClient, msg); err != nil {
+			if sendErr := to.sendSpan(spanClient, msg); sendErr != nil {
+				// When send closes so does recv. Check the error on recv
+				// because it could be a shutdown request when the error from
+				// send was not.
+				var respErr error
+				ticker := time.NewTicker(10 * time.Millisecond)
+				defer ticker.Stop()
+				select {
+				case respErr = <-responseError:
+				case <-ticker.C:
+					to.log.Debug("timeout waiting for response error from trace observer", nil)
+				}
 				return obsResult{
-					shutdown: errShouldShutdown(err),
+					shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
 				}
 			}
 		case <-to.restartChan:

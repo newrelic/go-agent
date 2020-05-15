@@ -27,6 +27,8 @@ type observerConfig struct {
 	queueSize   int
 	appShutdown chan struct{}
 	dialer      internal.DialerFunc
+	// removeBackoff sets the recordSpanBackoff to 0 and is useful for testing
+	removeBackoff bool
 }
 
 type observerURL struct {
