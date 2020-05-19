@@ -37,8 +37,7 @@ type observerURL struct {
 }
 
 const (
-	localTestingHost      = "localhost"
-	infTracingDefaultPort = 443
+	localTestingHost = "localhost"
 )
 
 var (

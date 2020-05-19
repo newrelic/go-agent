@@ -427,7 +427,7 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
-	c.InfiniteTracing.TraceObserver.Port = infTracingDefaultPort
+	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	return c

@@ -58,7 +58,8 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_HIGH_SECURITY                           sets HighSecurity using strconv.ParseBool
 //  NEW_RELIC_HOST                                    sets Host
 //  NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_URL     sets InfiniteTracing.TraceObserverURL
+//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    sets InfiniteTracing.TraceObserver.Host
 //  NEW_RELIC_LABELS                                  sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
 //  NEW_RELIC_LICENSE_KEY                             sets License
 //  NEW_RELIC_LOG                                     sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
