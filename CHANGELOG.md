@@ -1,5 +1,7 @@
 # ChangeLog
 
+### New Features
+
 * Added support for [Infinite Tracing on New Relic
   Edge](https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing).
 
@@ -15,6 +17,34 @@
 
   Infinite Tracing is currently available on a sign-up basis. If you would like to
   participate, please contact your sales representative.
+
+### Changes
+
+* [`nrgin.Middleware`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin#Middleware)
+  uses
+  [`Context.FullPath()`](https://godoc.org/github.com/gin-gonic/gin#Context.FullPath)
+  for transaction names when using Gin version 1.5.0 or greater.  Gin
+  transactions were formerly named after the
+  [`Context.HandlerName()`](https://godoc.org/github.com/gin-gonic/gin#Context.HandlerName),
+  which uses reflection.  This change improves transaction naming and reduces
+  overhead.  Please note that because your transaction names will change, you
+  may have to update any related dashboards and alerts to match the new name.
+  If you wish to continue using `Context.HandlerName()` for your transaction
+  names, use
+  [`nrgin.MiddlewareHandlerTxnNames`](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin#MiddlewareHandlerTxnNames)
+  instead.
+
+  ```go
+  // Transactions previously named
+  "GET main.handleGetUsers"
+  // will be change to something like this match the full path
+  "GET /user/:id"
+  ```
+
+  Note: As part of agent release v3.4.0, a v2.0.0 tag was added to the nrgin
+  package.  When using go modules however, it was impossible to install this
+  latest version of nrgin.  The v2.0.0 tag has been removed and replaced with
+  v1.1.0.
 
 ## 3.4.0
 
@@ -70,6 +100,17 @@
   // will be change to something like this match the full path
   "GET /user/:id"
   ```
+* If you are using any of these integrations, you must upgrade them when you
+ upgrade the agent:
+    * [nrlambda v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlambda)
+    * [nrmicro v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro)
+    * [nrnats v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrnats)
+    * [nrstan v1.1.0](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrstan)
+    
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.3.0
 
@@ -106,6 +147,11 @@
   API which allows you to pull a Transaction from a context.Context will no
   longer panic if the provided context is nil.  In this case, a nil is
   returned.
+  
+### Known Issues and Workarounds
+
+* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+  Go New Relic agents to this agent release.
 
 ## 3.2.0
 

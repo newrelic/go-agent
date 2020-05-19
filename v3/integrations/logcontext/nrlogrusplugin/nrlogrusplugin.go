@@ -27,8 +27,11 @@
 //
 // For the best linking experience be sure to enable Distributed Tracing:
 //
-//	cfg := NewConfig("Example Application", "__YOUR_NEW_RELIC_LICENSE_KEY__")
-//	cfg.DistributedTracer.Enabled = true
+//	app, err := newrelic.NewApplication(
+//		newrelic.ConfigAppName("Logs in Context"),
+//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//		newrelic.ConfigDistributedTracerEnabled(true),
+//	)
 //
 // To enable log decoration, set your log's formatter to the
 // `nrlogrusplugin.ContextFormatter`

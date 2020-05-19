@@ -347,3 +347,26 @@ func TestRouteWithParams(t *testing.T) {
 		IsWeb: true,
 	})
 }
+
+func TestMiddlewareOldNaming(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	router := gin.Default()
+	router.Use(MiddlewareHandlerTxnNames(app.Application))
+	router.GET("/hello", hello)
+
+	txnName := "GET " + pkg + ".hello"
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.ServeHTTP(response, req)
+	if respBody := response.Body.String(); respBody != "hello response" {
+		t.Error("wrong response body", respBody)
+	}
+	app.ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  txnName,
+		IsWeb: true,
+	})
+}
