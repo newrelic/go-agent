@@ -183,6 +183,59 @@ func TestTraceObserverErrToCodeString(t *testing.T) {
 	}
 }
 
+type mockClient struct {
+	sendResponse error
+	v1.IngestService_RecordSpanClient
+}
+
+func (c mockClient) Send(span *v1.Span) error {
+	return c.sendResponse
+}
+
+func TestSendSpanMetrics(t *testing.T) {
+	appShutdown := make(chan struct{})
+	to := &gRPCtraceObserver{
+		supportability: newObserverSupport(),
+		observerConfig: observerConfig{
+			log:         logger.ShimLogger{},
+			appShutdown: appShutdown,
+		},
+	}
+	go to.handleSupportability()
+	defer close(appShutdown)
+	clientWithError := mockClient{
+		sendResponse: errPermissionDenied,
+	}
+	clientWithoutError := mockClient{
+		sendResponse: nil,
+	}
+
+	// The Seen count will be 0 for each example in this test because Seen is
+	// incremented during consumeSpan which is never called here.
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 0,
+	})
+
+	if err := to.sendSpan(clientWithError, &spanEvent{}); err == nil {
+		t.Error("spendSpan should have returned an error when Send returns an error")
+	}
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Response/Error":        1,
+		"Supportability/InfiniteTracing/Span/Seen":                  0,
+		"Supportability/InfiniteTracing/Span/Sent":                  1,
+		"Supportability/InfiniteTracing/Span/gRPC/PERMISSIONDENIED": 1,
+	})
+
+	if err := to.sendSpan(clientWithoutError, &spanEvent{}); err != nil {
+		t.Error("spendSpan should not have returned an error when Send returns a nil error")
+	}
+	expectSupportabilityMetrics(t, to, map[string]float64{
+		"Supportability/InfiniteTracing/Span/Seen": 0,
+		"Supportability/InfiniteTracing/Span/Sent": 1,
+	})
+}
+
 const runToken = "aRunToken"
 
 func TestTraceObserverRestart(t *testing.T) {
@@ -715,9 +768,55 @@ func TestTrObsPermissionDeniedMoreSpansSent(t *testing.T) {
 	}
 }
 
+func TestTrObsDrainsMessagesOnShutdown(t *testing.T) {
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		return errUnimplemented
+	})
+	defer s.Close()
+	readyChan := make(chan struct{})
+	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+		<-readyChan
+		return s.dialer(str, d)
+	}
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      slowDialer,
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	numMsgs := func() int {
+		return len(to.(*gRPCtraceObserver).messages)
+	}
+
+	for i := 0; i < 20; i++ {
+		// We must consume a significant number of spans here because between
+		// 2-5 of them will be sent before the unimplemented error is received.
+		to.consumeSpan(&spanEvent{})
+	}
+	if num := numMsgs(); num != 20 {
+		t.Errorf("there should be 20 spans waiting to be sent but there were %d", num)
+	}
+
+	close(readyChan)
+
+	if !toIsShutdown(to) {
+		t.Error("trace observer should be shutdown but it is not")
+	}
+	if num := numMsgs(); num != 0 {
+		t.Errorf("there should be 0 spans waiting to be sent but there were %d", num)
+	}
+}
+
 /***********************
  * Integration test(s) *
  ***********************/
+
 func TestTraceObserverRoundTrip(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()

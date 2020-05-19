@@ -348,6 +348,7 @@ func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClie
 	to.log.Debug("sending span to trace observer", map[string]interface{}{
 		"name": msg.Name,
 	})
+	to.supportability.increment <- observerSent
 	if err := spanClient.Send(span); err != nil {
 		to.log.Error("trace observer send error", map[string]interface{}{
 			"err": err.Error(),
@@ -355,7 +356,6 @@ func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClie
 		to.supportabilityError(err)
 		return err
 	}
-	to.supportability.increment <- observerSent
 	return nil
 }
 
