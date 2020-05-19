@@ -813,6 +813,37 @@ func TestTrObsDrainsMessagesOnShutdown(t *testing.T) {
 	}
 }
 
+// Very rarely we would see a data race on shutdown; this test is to reproduce it before fixing it
+// (and ensuring we don't bring it back in the future)
+func TestTrObsDetectDataRaceOnShutdown(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	to.consumeSpan(&spanEvent{})
+	to.consumeSpan(&spanEvent{})
+	to.shutdown(15 * time.Millisecond)
+	to.consumeSpan(&spanEvent{})
+}
+
+func TestTrObsConsumingAfterShutdown(t *testing.T) {
+	s, to := createServerAndObserver(t)
+	defer s.Close()
+
+	for i := 0; i < 5; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	to.shutdown(time.Nanosecond)
+	for i := 0; i < 5; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	if !s.WaitForSpans(t, 5, time.Second) {
+		t.Error("did not receive initial 5 spans sent before shutdown")
+	}
+	if s.WaitForSpans(t, 1, time.Second) {
+		t.Error("spans sent after shutdown was called")
+	}
+}
+
 /***********************
  * Integration test(s) *
  ***********************/

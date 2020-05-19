@@ -107,24 +107,16 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObser
 	go func() {
 		to.connectToTraceObserver()
 
-		// Closing shutdownComplete must be done before closing messages.  This
-		// prevents a panic from happening if consumeSpan is called between the
-		// time when the messages and the shutdownComplete channels are closed.
+		// Closing shutdownComplete must be done before draining the messages.
+		// This prevents spans from being put onto the messages channel while
+		// we are trying to empty the channel.
 		close(to.shutdownComplete)
-		to.closeMessages()
-		for range to.messages {
+		for len(to.messages) > 0 {
 			// drain the channel
+			<-to.messages
 		}
 	}()
 	return to, nil
-}
-
-// closeMessages closes the gRPCtraceObserver messages channel and is safe to call
-// multiple times.
-func (to *gRPCtraceObserver) closeMessages() {
-	to.messagesOnce.Do(func() {
-		close(to.messages)
-	})
 }
 
 // markInitialConnSuccessful closes the gRPCtraceObserver initialConnSuccess channel and
@@ -281,8 +273,9 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 				shutdown: errShouldShutdown(err),
 			}
 		case <-to.initiateShutdown:
-			to.closeMessages()
-			for msg := range to.messages {
+			numSpans := len(to.messages)
+			for i := 0; i < numSpans; i++ {
+				msg := <-to.messages
 				if err := to.sendSpan(spanClient, msg); err != nil {
 					// if we fail to send a span, do not send the rest
 					break
@@ -492,7 +485,7 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 
 	to.supportability.increment <- observerSeen
 
-	if to.isShutdownComplete() {
+	if to.isShutdownInitiated() {
 		return
 	}
 
@@ -506,19 +499,24 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 
 // isShutdownComplete returns a bool if the trace observer has been shutdown.
 func (to *gRPCtraceObserver) isShutdownComplete() bool {
-	select {
-	case <-to.shutdownComplete:
-		return true
-	default:
-	}
-	return false
+	return isChanClosed(to.shutdownComplete)
+}
+
+// isShutdownInitiated returns a bool if the trace observer has started
+// shutting down.
+func (to *gRPCtraceObserver) isShutdownInitiated() bool {
+	return isChanClosed(to.initiateShutdown)
 }
 
 // isAppShutdownComplete returns a bool if the trace observer's application has
 // been shutdown.
 func (to *gRPCtraceObserver) isAppShutdownComplete() bool {
+	return isChanClosed(to.appShutdown)
+}
+
+func isChanClosed(c chan struct{}) bool {
 	select {
-	case <-to.appShutdown:
+	case <-c:
 		return true
 	default:
 	}
