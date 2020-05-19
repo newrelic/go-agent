@@ -297,9 +297,6 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 
 // restart reconnects to the remote trace observer with the given runID.
 func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
-	if to.isShutdownComplete() {
-		return
-	}
 	to.runIDLock.Lock()
 	to.runID = runID
 	to.runIDLock.Unlock()
