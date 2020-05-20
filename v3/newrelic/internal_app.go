@@ -25,7 +25,7 @@ type app struct {
 	rpmControls rpmControls
 	testHarvest *harvest
 
-	TraceObserver traceObserver
+	trObserver traceObserver
 
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
@@ -466,13 +466,13 @@ func (app *app) setState(run *appRun, err error) {
 func (app *app) getObserver() traceObserver {
 	app.RLock()
 	defer app.RUnlock()
-	return app.TraceObserver
+	return app.trObserver
 }
 
 func (app *app) setObserver(observer traceObserver) {
 	app.Lock()
 	defer app.Unlock()
-	app.TraceObserver = observer
+	app.trObserver = observer
 }
 
 func newTransaction(thd *thread) *Transaction {

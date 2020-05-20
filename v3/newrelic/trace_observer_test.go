@@ -188,7 +188,7 @@ type mockClient struct {
 	v1.IngestService_RecordSpanClient
 }
 
-func (c mockClient) Send(span *v1.Span) error {
+func (c mockClient) Send(*v1.Span) error {
 	return c.sendResponse
 }
 
@@ -250,7 +250,7 @@ func TestTraceObserverRestart(t *testing.T) {
 
 	// Make sure the server has received the new data
 	to.consumeSpan(&spanEvent{})
-	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 
@@ -271,7 +271,7 @@ func TestTraceObserverShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 	to.consumeSpan(&spanEvent{})
-	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
 	s.Close()
@@ -279,7 +279,7 @@ func TestTraceObserverShutdown(t *testing.T) {
 	shutdownApp(to)
 
 	to.consumeSpan(&spanEvent{})
-	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
 }
@@ -300,7 +300,7 @@ func TestTraceObserverConsumeSpan(t *testing.T) {
 	to.consumeSpan(&spanEvent{})
 	to.consumeSpan(&spanEvent{})
 
-	if !s.WaitForSpans(t, 2, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 2, 50*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 }
@@ -315,7 +315,7 @@ func TestTraceObserverDumpSupportabilityMetrics(t *testing.T) {
 	})
 
 	to.consumeSpan(&spanEvent{})
-	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 
@@ -474,13 +474,13 @@ func TestTrObsSlowConnectAndRestart(t *testing.T) {
 
 	newToken := "A New Run Token"
 	to.restart(internal.AgentRunID(newToken))
-	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
 	s.ExpectMetadata(t, nil)
 
 	close(readyChan)
-	if s.WaitForSpans(t, 1, 500*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 500*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
 	s.ExpectMetadata(t, map[string]string{
@@ -510,12 +510,12 @@ func TestTrObsSlowConnectAndConsumeSpan(t *testing.T) {
 	}
 
 	to.consumeSpan(&spanEvent{})
-	if s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
 
 	close(readyChan)
-	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 }
@@ -552,7 +552,7 @@ func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
 	})
 
 	close(readyChan)
-	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 	expectSupportabilityMetrics(t, to, map[string]float64{
@@ -562,14 +562,12 @@ func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
 }
 
 func toIsShutdown(to traceObserver) bool {
-	// TODO: This sleep is so long because it is waiting on the defered 500
+	// This sleep is so long because it is waiting on the deferred 500
 	// millisecond sleep for closing the grpc conn.
 	time.Sleep(550 * time.Millisecond)
 	return to.(*gRPCtraceObserver).isShutdownComplete()
 }
 
-// TODO: come back to this when we have more brainpower.
-// We need to figure out how to cancel the call to serviceClient.RecordSpan(ctx) if it doesn't connect
 func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
@@ -601,7 +599,7 @@ func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 	if !toIsShutdown(to) {
 		t.Error("trace observer should be shutdown but it is not")
 	}
-	if !s.WaitForSpans(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("span was not received")
 	}
 }
@@ -709,7 +707,7 @@ func TestTrObsUnimplementedNoMoreSpansSent(t *testing.T) {
 	to.consumeSpan(&spanEvent{})
 	to.consumeSpan(&spanEvent{})
 
-	if !s.WaitForSpans(t, 1, time.Second) {
+	if !s.DidSpansArrive(t, 1, time.Second) {
 		t.Error("Did not receive expected span before timeout")
 	}
 
@@ -722,7 +720,7 @@ func TestTrObsUnimplementedNoMoreSpansSent(t *testing.T) {
 	s.Close()
 
 	// Additional spans should not be delivered
-	if s.WaitForSpans(t, 1, 100*time.Millisecond) {
+	if s.DidSpansArrive(t, 1, 100*time.Millisecond) {
 		t.Error("Received 1 spans after shutdown when we should not receive any")
 	}
 }
@@ -750,7 +748,7 @@ func TestTrObsPermissionDeniedMoreSpansSent(t *testing.T) {
 	to.consumeSpan(&spanEvent{})
 	to.consumeSpan(&spanEvent{})
 
-	if !s.WaitForSpans(t, 1, time.Second) {
+	if !s.DidSpansArrive(t, 1, time.Second) {
 		t.Error("Did not receive expected span before timeout")
 	}
 
@@ -763,7 +761,7 @@ func TestTrObsPermissionDeniedMoreSpansSent(t *testing.T) {
 	s.Close()
 
 	// Additional spans should be delivered
-	if !s.WaitForSpans(t, 1, time.Second) {
+	if !s.DidSpansArrive(t, 1, time.Second) {
 		t.Error("did not receive 1 expected spans")
 	}
 }
@@ -836,17 +834,17 @@ func TestTrObsConsumingAfterShutdown(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		to.consumeSpan(&spanEvent{})
 	}
-	if !s.WaitForSpans(t, 5, time.Second) {
+	if !s.DidSpansArrive(t, 5, time.Second) {
 		t.Error("did not receive initial 5 spans sent before shutdown")
 	}
-	if s.WaitForSpans(t, 1, time.Second) {
+	if s.DidSpansArrive(t, 1, time.Second) {
 		t.Error("spans sent after shutdown was called")
 	}
 }
 
-/***********************
- * Integration test(s) *
- ***********************/
+/********************
+ * Integration test *
+ ********************/
 
 func TestTraceObserverRoundTrip(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
@@ -862,7 +860,7 @@ func TestTraceObserverRoundTrip(t *testing.T) {
 	// Ensure no spans were sent the normal way
 	app.ExpectSpanEvents(t, nil)
 
-	if !s.WaitForSpans(t, 2, time.Second) {
+	if !s.DidSpansArrive(t, 2, time.Second) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 	s.ExpectMetadata(t, map[string]string{

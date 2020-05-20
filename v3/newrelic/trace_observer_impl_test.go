@@ -6,8 +6,8 @@ package newrelic
 import (
 	"fmt"
 	"io"
-	"math"
 	"net"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -24,31 +24,12 @@ import (
 
 // This file contains helper functions for Trace Observer tests
 
-// anySupportabilityCount indicates that we don't know/care what the value of the metric will be;
-// it is math.Pi because that will never be an actual value of a support metric count
-const anySupportabilityCount float64 = math.Pi
-
 func expectSupportabilityMetrics(t *testing.T, to traceObserver, expected map[string]float64) {
 	t.Helper()
 	actual := to.dumpSupportabilityMetrics()
-	if len(expected) != len(actual) {
-		t.Errorf("Supportability metrics sizes do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
-		return
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Supportability metrics do not match.\nExpected: %#v\nActual: %#v\n", expected, actual)
 	}
-	for expectKey, expectVal := range expected {
-		if actualVal, ok := actual[expectKey]; ok {
-			if !supportMetricsMatch(expectVal, actualVal) {
-				t.Errorf("Supportability metrics values do not match.\n"+
-					"Key: %s\nExpected: %f\nActual: %f", expectKey, expectVal, actualVal)
-			}
-		} else {
-			t.Errorf("Supportability metrics key not found in actual metrics: %s", expectKey)
-		}
-	}
-}
-
-func supportMetricsMatch(expectVal float64, actualVal float64) bool {
-	return expectVal == anySupportabilityCount || expectVal == actualVal
 }
 
 func createServerAndObserver(t *testing.T) (testObsServer, traceObserver) {
@@ -103,7 +84,7 @@ func simpleRecordSpan(s *expectServer, stream v1.IngestService_RecordSpanServer)
 func (s *expectServer) ExpectMetadata(t *testing.T, want map[string]string) {
 	t.Helper()
 	s.Lock()
-	actualMetadataLen := len(s.metadata)
+	actualMetadata := s.metadata
 	s.Unlock()
 
 	extraMetadata := map[string]string{
@@ -114,16 +95,13 @@ func (s *expectServer) ExpectMetadata(t *testing.T, want map[string]string) {
 
 	want = mergeMetadata(want, extraMetadata)
 
-	if len(want) != actualMetadataLen {
-		t.Error("length of metadata is incorrect: expected/actual", len(want), actualMetadataLen)
+	if len(want) != len(actualMetadata) {
+		t.Error("length of metadata is incorrect: expected/actual", len(want), len(actualMetadata))
 		return
 	}
 
-	s.Lock()
-	actual := s.metadata
-	s.Unlock()
 	for key, expectedVal := range want {
-		found, ok := actual[key]
+		found, ok := actualMetadata[key]
 		actualVal := strings.Join(found, ",")
 		if !ok {
 			t.Error("expected metadata not found: ", key)
@@ -137,7 +115,7 @@ func (s *expectServer) ExpectMetadata(t *testing.T, want map[string]string) {
 				fmt.Sprintf("key=%s", key), expectedVal, actualVal)
 		}
 	}
-	for key, val := range actual {
+	for key, val := range actualMetadata {
 		_, ok := want[key]
 		if !ok {
 			t.Error("unexpected metadata present", key, val)
@@ -210,11 +188,13 @@ func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 	}
 }
 
-func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.Duration) bool {
+// DidSpansArrive blocks until at least the expected number of spans arrives, or the timeout is reached.
+// It returns whether or not the expected number of spans did, in fact, arrive.
+func (s *expectServer) DidSpansArrive(t *testing.T, expected int, timeout time.Duration) bool {
 	t.Helper()
 	var rcvd int
-	timeout := time.NewTicker(secTimeout)
-	defer timeout.Stop()
+	ticker := time.NewTicker(timeout)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-s.spansReceivedChan:
@@ -222,7 +202,7 @@ func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.
 			if rcvd >= expected {
 				return true
 			}
-		case <-timeout.C:
+		case <-ticker.C:
 			t.Logf("INFO: Waited for %d spans but received %d\n", expected, rcvd)
 			return false
 		}
@@ -234,7 +214,7 @@ func (s *expectServer) WaitForSpans(t *testing.T, expected int, secTimeout time.
 func testAppBlockOnTrObs(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) *expectApp {
 	app := testApp(replyfn, cfgfn, t)
 	app.app.connectTraceObserver(app.app.placeholderRun.Reply)
-	waitForTrObs(t, app.app.TraceObserver)
+	waitForTrObs(t, app.app.trObserver)
 	return &app
 }
 

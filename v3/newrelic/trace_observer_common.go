@@ -8,25 +8,38 @@ import (
 )
 
 type traceObserver interface {
-	// restart TODO
+	// restart reconnects to the remote trace observer with the given runID.
 	restart(internal.AgentRunID)
-	// shutdown TODO
+	// shutdown initiates a shutdown of the trace observer and blocks until either
+	// shutdown is complete or the given timeout is hit.
 	shutdown(time.Duration) error
-	// consumeSpan TODO
+	// consumeSpan enqueues the span to be sent to the remote trace observer
 	consumeSpan(*spanEvent)
-	// dumpSupportabilityMetrics TODO
+	// dumpSupportabilityMetrics returns a map of string to float to be turned into metrics
 	dumpSupportabilityMetrics() map[string]float64
-	// initialConnCompleted TODO - does NOT indicate current state of connection
+	// initialConnCompleted indicates that the initial connection to the remote trace
+	// observer was made, but it does NOT indicate anything about the current state of the
+	// connection
 	initialConnCompleted() bool
 }
 
 type observerConfig struct {
-	endpoint    *observerURL
-	license     string
-	log         Logger
-	queueSize   int
+	// endpoint includes data about connecting to the remote trace observer
+	endpoint *observerURL
+	// license is the New Relic License key
+	license string
+	// log will be used for logging
+	log Logger
+	// queueSize is the size of the channel used to send span events to
+	// the remote trace observer
+	queueSize int
+	// appShutdown communicates to the trace observer when the application has
+	// completed shutting down
 	appShutdown chan struct{}
-	dialer      internal.DialerFunc
+
+	// dialer is only used for testing - it allows the trace observer to connect directly
+	// to an in-memory gRPC server
+	dialer internal.DialerFunc
 	// removeBackoff sets the recordSpanBackoff to 0 and is useful for testing
 	removeBackoff bool
 }

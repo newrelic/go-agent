@@ -24,20 +24,16 @@ import (
 )
 
 type gRPCtraceObserver struct {
-	messages chan *spanEvent
-	// messagesOnce protects messages from being closed multiple times.
-	messagesOnce sync.Once
-
 	initialConnSuccess chan struct{}
 	// initConnOnce protects initialConnSuccess from being closed multiple times.
 	initConnOnce sync.Once
-
-	restartChan chan struct{}
 
 	initiateShutdown chan struct{}
 	// initShutdownOnce protects initiateShutdown from being closed multiple times.
 	initShutdownOnce sync.Once
 
+	messages         chan *spanEvent
+	restartChan      chan struct{}
 	shutdownComplete chan struct{}
 
 	runID     internal.AgentRunID
@@ -288,7 +284,7 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 	}
 }
 
-// restart reconnects to the remote trace observer with the given runID.
+// restart enqueues a request to restart with a new run ID
 func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
 	to.runIDLock.Lock()
 	to.runID = runID
@@ -304,7 +300,8 @@ func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
 var errTimeout = errors.New("timeout exceeded while waiting for trace observer shutdown to complete")
 
 // shutdown initiates a shutdown of the trace observer and blocks until either
-// shutdown is complete or the given timeout is hit.
+// shutdown is complete (including draining existing spans from the messages channel)
+// or the given timeout is hit.
 func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	to.startShutdown()
 	ticker := time.NewTicker(timeout)
@@ -318,9 +315,9 @@ func (to *gRPCtraceObserver) shutdown(timeout time.Duration) error {
 	}
 }
 
-// initialConnCompleted returns true if the trace observer was ever able to
-// connect successfully. It does not indicate the current connected state of
-// the trace observer.
+// initialConnCompleted indicates that the initial connection to the remote trace
+// observer was made, but it does NOT indicate anything about the current state of the
+// connection
 func (to *gRPCtraceObserver) initialConnCompleted() bool {
 	select {
 	case <-to.initialConnSuccess:
@@ -387,6 +384,8 @@ func newObserverSupport() *observerSupport {
 	}
 }
 
+// dumpSupportabilityMetrics reads the current supportability metrics off of
+// the channel and resets them to 0.
 func (to *gRPCtraceObserver) dumpSupportabilityMetrics() map[string]float64 {
 	if to.isAppShutdownComplete() {
 		return nil
@@ -478,6 +477,7 @@ func transformEvent(e *spanEvent) *v1.Span {
 	return span
 }
 
+// consumeSpan enqueues the span to be sent to the remote trace observer
 func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	if to.isAppShutdownComplete() {
 		return
@@ -492,6 +492,9 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	select {
 	case to.messages <- span:
 	default:
+		to.log.Debug("could not send span to trace observer because channel is full", map[string]interface{}{
+			"channel size": to.queueSize,
+		})
 	}
 
 	return
@@ -522,6 +525,9 @@ func isChanClosed(c chan struct{}) bool {
 	}
 	return false
 }
+
+// The following functions are only used in testing, but are required during compile time in
+// expect_implementation.go, so they are included here rather than in trace_observer_impl_test.go
 
 func expectObserverEvents(v internal.Validator, events *analyticsEvents, expect []internal.WantEvent, extraAttributes map[string]interface{}) {
 	for i, e := range expect {
