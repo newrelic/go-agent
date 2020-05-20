@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.5.0
+
 ### New Features
 
 * Added support for [Infinite Tracing on New Relic
