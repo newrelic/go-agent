@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -56,7 +57,10 @@ type recordedLogMessage struct {
 	context map[string]interface{}
 }
 
-type errorSaverLogger struct{ errors []recordedLogMessage }
+type errorSaverLogger struct {
+	sync.Mutex
+	errors []recordedLogMessage
+}
 
 func (lg *errorSaverLogger) expectNoLoggedErrors(tb testing.TB) {
 	if h, ok := tb.(interface {
@@ -75,12 +79,15 @@ func (lg *errorSaverLogger) expectSingleLoggedError(tb testing.TB, msg string, c
 	}); ok {
 		h.Helper()
 	}
-	if len(lg.errors) != 1 {
-		tb.Error("unexpected number of errors logged", len(lg.errors))
+	lg.Lock()
+	errs := lg.errors
+	lg.Unlock()
+	if len(errs) != 1 {
+		tb.Error("unexpected number of errors logged", len(errs))
 		return
 	}
-	if lg.errors[0].msg != msg {
-		tb.Error("incorrect logged error message", lg.errors[0].msg, msg)
+	if errs[0].msg != msg {
+		tb.Error("incorrect logged error message", errs[0].msg, msg)
 		return
 	}
 	for k, v := range context {
@@ -89,19 +96,23 @@ func (lg *errorSaverLogger) expectSingleLoggedError(tb testing.TB, msg string, c
 		case string:
 			// If the value is type string, then only assert that the actual
 			// value contains the expected value rather than them being equal.
-			fail = !strings.Contains(lg.errors[0].context[k].(string), val)
+			fail = !strings.Contains(errs[0].context[k].(string), val)
 		default:
-			fail = lg.errors[0].context[k] != val
+			fail = errs[0].context[k] != val
 		}
 		if fail {
-			tb.Error("incorrect logged error context", lg.errors[0].context, context)
+			tb.Error("incorrect logged error context", errs[0].context, context)
 		}
 	}
 	// Reset to prepare for subsequent tests.
+	lg.Lock()
 	lg.errors = nil
+	lg.Unlock()
 }
 
 func (lg *errorSaverLogger) Error(msg string, context map[string]interface{}) {
+	lg.Lock()
+	defer lg.Unlock()
 	lg.errors = append(lg.errors, recordedLogMessage{msg: msg, context: context})
 }
 func (lg *errorSaverLogger) Warn(msg string, context map[string]interface{})  {}

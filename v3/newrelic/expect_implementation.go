@@ -234,7 +234,7 @@ func expectErrorEvents(v internal.Validator, events *errorEvents, expect []inter
 
 // expectSpanEvents allows testing of span events.  It passes if events exactly matches expect.
 func expectSpanEvents(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
-	expectEvents(v, events.analyticsEvents, expect, map[string]interface{}{
+	extraAttrs := map[string]interface{}{
 		// The following intrinsics should always be present in
 		// span events:
 		"type":          "Span",
@@ -246,7 +246,9 @@ func expectSpanEvents(v internal.Validator, events *spanEvents, expect []interna
 		// All span events are currently sampled.
 		"sampled":  true,
 		"priority": internal.MatchAnything,
-	})
+	}
+	expectEvents(v, events.analyticsEvents, expect, extraAttrs)
+	expectObserverEvents(v, events.analyticsEvents, expect, extraAttrs)
 }
 
 // expectTxnEvents allows testing of txn events.

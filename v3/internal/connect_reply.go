@@ -3,12 +3,17 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 )
 
 // AgentRunID identifies the current connection with the collector.
 type AgentRunID string
+
+// DialerFunc is a shorthand that is used in tests for connecting directly
+// to a local gRPC server
+type DialerFunc func(string, time.Duration) (net.Conn, error)
 
 func (id AgentRunID) String() string {
 	return string(id)
@@ -73,6 +78,8 @@ type ConnectReply struct {
 	// DistributedTraceTimestampGenerator allows tests to fix the outbound
 	// DT header timestamp.
 	DistributedTraceTimestampGenerator func() time.Time `json:"-"`
+	// TraceObsDialer allows tests to connect to a local TraceObserver directly
+	TraceObsDialer DialerFunc
 
 	// BetterCAT/Distributed Tracing
 	AccountID                     string `json:"account_id"`

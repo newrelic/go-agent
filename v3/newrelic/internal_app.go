@@ -25,11 +25,13 @@ type app struct {
 	rpmControls rpmControls
 	testHarvest *harvest
 
+	trObserver traceObserver
+
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
 
 	// initiateShutdown is used to tell the processor to shutdown.
-	initiateShutdown chan struct{}
+	initiateShutdown chan time.Duration
 
 	// shutdownStarted and shutdownComplete are closed by the processor
 	// goroutine to indicate the shutdown status.  Two channels are used so
@@ -61,7 +63,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, run.harvestConfig)
+	h.CreateFinalMetrics(run.Reply, run.harvestConfig, app.getObserver())
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -145,6 +147,32 @@ func (app *app) connectRoutine() {
 	}
 }
 
+func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
+	if obs := app.getObserver(); obs != nil {
+		obs.restart(reply.RunID)
+		return
+	}
+
+	observer, err := newTraceObserver(reply.RunID, observerConfig{
+		endpoint:    app.config.traceObserverURL,
+		license:     app.config.License,
+		log:         app.config.Logger,
+		queueSize:   app.config.InfiniteTracing.SpanEvents.QueueSize,
+		appShutdown: app.shutdownComplete,
+		dialer:      reply.TraceObsDialer,
+	})
+	if nil != err {
+		app.Error("unable to create trace observer", map[string]interface{}{
+			"err": err.Error(),
+		})
+	} else {
+		app.Debug("trace observer connected", map[string]interface{}{
+			"url": app.config.traceObserverURL.host,
+		})
+		app.setObserver(observer)
+	}
+}
+
 // Connect backoff time follows the sequence defined at
 // https://source.datanerd.us/agents/agent-specs/blob/master/Collector-Response-Handling.md#retries-and-backoffs
 func getConnectBackoffTime(attempt int) int {
@@ -196,12 +224,21 @@ func (app *app) process() {
 			if nil != run && run.Reply.RunID == d.id {
 				d.data.MergeIntoHarvest(h)
 			}
-		case <-app.initiateShutdown:
+		case timeout := <-app.initiateShutdown:
 			close(app.shutdownStarted)
 
 			// Remove the run before merging any final data to
 			// ensure a bounded number of receives from dataChan.
 			app.setState(nil, errors.New("application shut down"))
+
+			if obs := app.getObserver(); obs != nil {
+				if err := obs.shutdown(timeout); err != nil {
+					app.Error("trace observer shutdown timeout exceeded", map[string]interface{}{
+						"err": err.Error(),
+					})
+				}
+				defer app.setObserver(nil)
+			}
 
 			if nil != run {
 				for done := false; !done; {
@@ -236,6 +273,16 @@ func (app *app) process() {
 				go app.connectRoutine()
 			}
 		case run = <-app.connectChan:
+			if shouldUseTraceObserver(run.Config) {
+				app.connectTraceObserver(run.Reply)
+			} else if shouldUseTraceObserver(app.config) {
+				app.Debug("trace observer disabled via backend", map[string]interface{}{
+					"local-DistributedTracer.Enabled":  app.config.DistributedTracer.Enabled,
+					"server-DistributedTracer.Enabled": run.Config.DistributedTracer.Enabled,
+					"local-SpanEvents.Enabled":         app.config.SpanEvents.Enabled,
+					"server-SpanEvents.Enabled":        run.Config.SpanEvents.Enabled,
+				})
+			}
 			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
 
@@ -260,7 +307,7 @@ func (app *app) Shutdown(timeout time.Duration) {
 	}
 
 	select {
-	case app.initiateShutdown <- struct{}{}:
+	case app.initiateShutdown <- timeout:
 	default:
 	}
 
@@ -316,7 +363,13 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 			return err
 		}
 		if run.Reply.RunID != "" {
-			return nil
+			if shouldUseTraceObserver(run.Config) {
+				if obs := app.getObserver(); obs != nil && obs.initialConnCompleted() {
+					return nil
+				}
+			} else {
+				return nil
+			}
 		}
 		if time.Now().After(deadline) {
 			return fmt.Errorf("timeout out after %s", timeout.String())
@@ -333,7 +386,7 @@ func newApp(c config) *app {
 
 		// This channel must be buffered since Shutdown makes a
 		// non-blocking send attempt.
-		initiateShutdown: make(chan struct{}, 1),
+		initiateShutdown: make(chan time.Duration, 1),
 
 		shutdownStarted:    make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
@@ -373,6 +426,10 @@ func newApp(c config) *app {
 	return app
 }
 
+func shouldUseTraceObserver(c config) bool {
+	return nil != c.traceObserverURL && c.SpanEvents.Enabled && c.DistributedTracer.Enabled
+}
+
 var (
 	_ internal.HarvestTestinger = &app{}
 	_ internal.Expect           = &app{}
@@ -404,6 +461,18 @@ func (app *app) setState(run *appRun, err error) {
 
 	app.run = run
 	app.err = err
+}
+
+func (app *app) getObserver() traceObserver {
+	app.RLock()
+	defer app.RUnlock()
+	return app.trObserver
+}
+
+func (app *app) setObserver(observer traceObserver) {
+	app.Lock()
+	defer app.Unlock()
+	app.trObserver = observer
 }
 
 func newTransaction(thd *thread) *Transaction {

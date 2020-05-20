@@ -187,8 +187,17 @@ func createTrackUsageMetrics(metrics *metricTable) {
 	}
 }
 
+func createTraceObserverMetrics(to traceObserver, metrics *metricTable) {
+	if to == nil {
+		return
+	}
+	for name, val := range to.dumpSupportabilityMetrics() {
+		metrics.addCount(name, val, forced)
+	}
+}
+
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestConfig) {
+func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestConfig, to traceObserver) {
 	if nil == h {
 		return
 	}
@@ -209,6 +218,7 @@ func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestCon
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(hc.MaxErrorEvents), forced)
 	h.Metrics.addValue(supportSpanEventLimit, "", float64(hc.MaxSpanEvents), forced)
 
+	createTraceObserverMetrics(to, h.Metrics)
 	createTrackUsageMetrics(h.Metrics)
 
 	h.Metrics = h.Metrics.ApplyRules(reply.MetricRules)

@@ -242,6 +242,34 @@ type Config struct {
 		Attributes AttributeDestinationConfig
 	}
 
+	// InfiniteTracing controls behavior related to Infinite Tracing tail based
+	// sampling.  InfiniteTracing requires that both DistributedTracer and
+	// SpanEvents are enabled.
+	//
+	// https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing
+	InfiniteTracing struct {
+		// TraceObserver controls behavior of connecting to the Trace Observer.
+		TraceObserver struct {
+			// Host is the Trace Observer host to connect to and tells the
+			// Application to enable Infinite Tracing support. When this field
+			// is set to an empty string, which is the default, Infinite
+			// Tracing support is disabled.
+			Host string
+			// Port is the Trace Observer port to connect to. The default is
+			// 443.
+			Port int
+		}
+		// SpanEvents controls the behavior of the span events sent to the
+		// Trace Observer.
+		SpanEvents struct {
+			// QueueSize is the maximum number of span events that may be held
+			// in memory as they wait to be serialized and sent to the Trace
+			// Observer.  Default value is 10,000. Any span event created when
+			// the QueueSize limit is reached will be discarded.
+			QueueSize int
+		}
+	}
+
 	// DatastoreTracer controls behavior relating to datastore segments.
 	DatastoreTracer struct {
 		// InstanceReporting controls whether the host and port are collected
@@ -399,6 +427,9 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
+	c.InfiniteTracing.TraceObserver.Port = 443
+	c.InfiniteTracing.SpanEvents.QueueSize = 10000
+
 	return c
 }
 
@@ -413,6 +444,7 @@ var (
 	errAppNameMissing                   = errors.New("string AppName required")
 	errAppNameLimit                     = fmt.Errorf("max of %d rollup application names", appNameLimit)
 	errHighSecurityWithSecurityPolicies = errors.New("SecurityPoliciesToken and HighSecurity are incompatible; please ensure HighSecurity is set to false if SecurityPoliciesToken is a non-empty string and a security policy has been set for your account")
+	errInfTracingServerless             = errors.New("ServerlessMode cannot be used with Infinite Tracing")
 )
 
 // validate checks the config for improper fields.  If the config is invalid,
@@ -437,7 +469,31 @@ func (c Config) validate() error {
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
+	if "" != c.InfiniteTracing.TraceObserver.Host && c.ServerlessMode.Enabled {
+		return errInfTracingServerless
+	}
+
 	return nil
+}
+
+func (c Config) validateTraceObserverConfig() (*observerURL, error) {
+	configHost := c.InfiniteTracing.TraceObserver.Host
+	if "" == configHost {
+		// This is the only instance from which we can return nil, nil.
+		// If the user requests use of a trace observer, we must either provide
+		// them with a valid observerURL _or_ alert them to the failure to do so.
+		return nil, nil
+	}
+	if !versionSupports8T {
+		return nil, errUnsupportedVersion
+	}
+	if !c.DistributedTracer.Enabled || !c.SpanEvents.Enabled {
+		return nil, errSpanOrDTDisabled
+	}
+	return &observerURL{
+		host:   fmt.Sprintf("%s:%d", configHost, c.InfiniteTracing.TraceObserver.Port),
+		secure: configHost != localTestingHost,
+	}, nil
 }
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
@@ -634,8 +690,9 @@ type config struct {
 	// NewApplication (instead of at each connect) because some customers
 	// may unset environment variables after startup:
 	// https://github.com/newrelic/go-agent/issues/127
-	metadata map[string]string
-	hostname string
+	metadata         map[string]string
+	hostname         string
+	traceObserverURL *observerURL
 }
 
 func (c Config) computeDynoHostname(getenv func(string) string) string {
@@ -665,6 +722,10 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 	if err := cfg.validate(); nil != err {
 		return config{}, err
 	}
+	obsURL, err := cfg.validateTraceObserverConfig()
+	if err != nil {
+		return config{}, err
+	}
 	// Ensure that Logger is always set to avoid nil checks.
 	if nil == cfg.Logger {
 		cfg.Logger = logger.ShimLogger{}
@@ -678,9 +739,10 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 		hostname = "unknown"
 	}
 	return config{
-		Config:   cfg,
-		metadata: gatherMetadata(environ),
-		hostname: hostname,
+		Config:           cfg,
+		metadata:         gatherMetadata(environ),
+		hostname:         hostname,
+		traceObserverURL: obsURL,
 	}, nil
 }
 

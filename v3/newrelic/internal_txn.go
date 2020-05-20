@@ -133,6 +133,9 @@ func (txn *txn) shouldCollectSpanEvents() bool {
 	if !txn.Config.SpanEvents.Enabled {
 		return false
 	}
+	if shouldUseTraceObserver(txn.Config) {
+		return true
+	}
 	return txn.lazilyCalculateSampled()
 }
 
@@ -278,7 +281,7 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.SlowSQLs.Merge(txn.SlowQueries, txn.txnEvent)
 	}
 
-	if txn.shouldCollectSpanEvents() {
+	if txn.shouldCollectSpanEvents() && !shouldUseTraceObserver(txn.Config) {
 		h.SpanEvents.MergeSpanEvents(txn.txnData.SpanEvents)
 	}
 }
@@ -433,6 +436,11 @@ func (thd *thread) End(recovered interface{}) error {
 
 	if !txn.ignore {
 		txn.app.Consume(txn.Reply.RunID, txn)
+		if observer := txn.app.getObserver(); nil != observer {
+			for _, evt := range txn.SpanEvents {
+				observer.consumeSpan(evt)
+			}
+		}
 	}
 
 	// Note that if a consumer uses `panic(nil)`, the panic will not
