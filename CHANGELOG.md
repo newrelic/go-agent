@@ -19,6 +19,13 @@
 
   Infinite Tracing is currently available on a sign-up basis. If you would like to
   participate, please contact your sales representative.
+  
+  **As part of this change, the Go Agent now has an added dependency on gRPC.** 
+  This is true whether or not you enable the Infinite Tracing feature. The gRPC dependencies include these two libraries:
+  * [github.com/golang/protobuf](https://github.com/golang/protobuf) v1.3.3
+  * [google.golang.org/grpc](https://github.com/grpc/grpc-go) v1.27.0
+
+  You can see the changes in the [go.mod file](v3/go.mod) 
 
 ### Changes
 
