@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -83,9 +84,9 @@ type obsResult struct {
 	// shutdown is if the trace observer should shutdown and stop sending
 	// spans.
 	shutdown bool
-	// withoutBackoff is true if RecordSpan should be retried immediately and
-	// without a backoff.
-	withoutBackoff bool
+	// backoff is true if a backoff should be used before reconnecting to
+	// RecordSpan.
+	backoff bool
 }
 
 func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObserver, error) {
@@ -188,7 +189,7 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		if result.shutdown {
 			return
 		}
-		if !result.withoutBackoff && !to.removeBackoff {
+		if result.backoff && !to.removeBackoff {
 			time.Sleep(recordSpanBackoff)
 		}
 	}
@@ -207,7 +208,10 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 		to.log.Error("trace observer unable to create span client", map[string]interface{}{
 			"err": err.Error(),
 		})
-		return obsResult{}
+		return obsResult{
+			shutdown: false,
+			backoff:  true,
+		}
 	}
 	defer func() {
 		to.log.Debug("closing trace observer sender", map[string]interface{}{})
@@ -258,15 +262,18 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 				}
 				return obsResult{
 					shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
+					backoff:  errShouldBackoff(sendErr) || errShouldBackoff(respErr),
 				}
 			}
 		case <-to.restartChan:
 			return obsResult{
-				withoutBackoff: true,
+				shutdown: false,
+				backoff:  false,
 			}
 		case err := <-responseError:
 			return obsResult{
 				shutdown: errShouldShutdown(err),
+				backoff:  errShouldBackoff(err),
 			}
 		case <-to.initiateShutdown:
 			numSpans := len(to.messages)
@@ -279,6 +286,7 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 			}
 			return obsResult{
 				shutdown: true,
+				backoff:  false,
 			}
 		}
 	}
@@ -331,6 +339,12 @@ func (to *gRPCtraceObserver) initialConnCompleted() bool {
 // meaning the connection to the trace observer should be shutdown.
 func errShouldShutdown(err error) bool {
 	return status.Code(err) == codes.Unimplemented
+}
+
+// errShouldBackoff returns true if the given error should cause the trace
+// observer to retry the connection after a backoff period.
+func errShouldBackoff(err error) bool {
+	return status.Code(err) != codes.OK && err != io.EOF
 }
 
 func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
