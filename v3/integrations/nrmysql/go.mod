@@ -1,14 +1,11 @@
 module github.com/newrelic/go-agent/v3/integrations/nrmysql
 
-// As of Dec 2019, 1.9 is the Go version in mysql's go.mod:
-// https://github.com/go-sql-driver/mysql/blob/master/go.mod
-go 1.9
+// 1.10 is the Go version in mysql's go.mod
+go 1.10
 
 require (
-	// As of Nov 2019, the latest go-sql-driver/mysql release (v1.4.1) does
-	// not support modules, though there is an unreleased go.mod on master.
-	// v1.3.0 is required for ParseDSN.
-	github.com/go-sql-driver/mysql v1.3.0
+	// v1.5.0 is the first mysql version to support gomod
+	github.com/go-sql-driver/mysql v1.5.0
 	// v3.3.0 includes the new location of ParseQuery
 	github.com/newrelic/go-agent/v3 v3.3.0
 )
