@@ -166,10 +166,11 @@ func TestMonitor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/txnName",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "OtherTransaction/Go/txnName",
+				"transaction.name": "OtherTransaction/Go/txnName",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

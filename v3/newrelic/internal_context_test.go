@@ -112,10 +112,11 @@ func TestNewRoundTripperNilTransaction(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/myTxn",
-				"nr.entryPoint": true,
-				"sampled":       true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/myTxn",
+				"transaction.name": "OtherTransaction/Go/myTxn",
+				"nr.entryPoint":    true,
+				"sampled":          true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

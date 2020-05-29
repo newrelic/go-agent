@@ -97,9 +97,10 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/testing",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/testing",
+				"transaction.name": "OtherTransaction/Go/testing",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

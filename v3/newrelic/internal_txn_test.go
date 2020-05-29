@@ -734,10 +734,11 @@ func TestErrorAttrsAddedToSpan(t *testing.T) {
 		{
 			AgentAttributes: map[string]interface{}{},
 			Intrinsics: map[string]interface{}{
-				"category":      internal.MatchAnything,
-				"timestamp":     internal.MatchAnything,
-				"name":          "OtherTransaction/Go/hello",
-				"nr.entryPoint": true,
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
 			},
 		},
 	})
@@ -776,10 +777,11 @@ func TestErrorAttrsAreOverwritten(t *testing.T) {
 		{
 			AgentAttributes: map[string]interface{}{},
 			Intrinsics: map[string]interface{}{
-				"category":      internal.MatchAnything,
-				"timestamp":     internal.MatchAnything,
-				"name":          "OtherTransaction/Go/hello",
-				"nr.entryPoint": true,
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
 			},
 		},
 	})
@@ -838,10 +840,11 @@ func TestErrMsgDisallowed_ErrorMsgIsNotAdded(t *testing.T) {
 				{
 					AgentAttributes: map[string]interface{}{},
 					Intrinsics: map[string]interface{}{
-						"category":      internal.MatchAnything,
-						"timestamp":     internal.MatchAnything,
-						"name":          "OtherTransaction/Go/hello",
-						"nr.entryPoint": true,
+						"category":         internal.MatchAnything,
+						"timestamp":        internal.MatchAnything,
+						"name":             "OtherTransaction/Go/hello",
+						"transaction.name": "OtherTransaction/Go/hello",
+						"nr.entryPoint":    true,
 					},
 				},
 			})
@@ -864,10 +867,11 @@ func TestErrAttrsAddedToRootSpan(t *testing.T) {
 				SpanAttributeErrorMessage: "Custom error message",
 			},
 			Intrinsics: map[string]interface{}{
-				"category":      internal.MatchAnything,
-				"timestamp":     internal.MatchAnything,
-				"name":          "OtherTransaction/Go/hello",
-				"nr.entryPoint": true,
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
 			},
 		},
 	})
@@ -897,10 +901,11 @@ func TestErrAttrsAddedWhenPanic(t *testing.T) {
 				SpanAttributeErrorMessage: "whoopsidoodle",
 			},
 			Intrinsics: map[string]interface{}{
-				"category":      internal.MatchAnything,
-				"timestamp":     internal.MatchAnything,
-				"name":          "OtherTransaction/Go/hello",
-				"nr.entryPoint": true,
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
 			},
 		},
 	})

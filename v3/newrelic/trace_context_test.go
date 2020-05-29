@@ -126,7 +126,7 @@ func runW3CTestCase(t *testing.T, tc TraceContextTestCase) {
 	}
 
 	extraSpanFields := &fieldExpect{
-		Expected: []string{"name", "category", "nr.entryPoint"},
+		Expected: []string{"name", "transaction.name", "category", "nr.entryPoint"},
 	}
 
 	// There is a single test with an error (named "exception"), so these

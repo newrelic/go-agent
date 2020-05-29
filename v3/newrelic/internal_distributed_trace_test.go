@@ -1229,7 +1229,7 @@ func runDistributedTraceCrossAgentTestcase(tst *testing.T, tc distributedTraceTe
 	}
 
 	extraSpanFields := &fieldExpectations{
-		Expected: []string{"name", "category", "nr.entryPoint"},
+		Expected: []string{"name", "transaction.name", "category", "nr.entryPoint"},
 	}
 
 	// There is a single test with an error (named "exception"), so these
@@ -1511,16 +1511,17 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"name":           "OtherTransaction/Go/hello",
-				"sampled":        true,
-				"priority":       internal.MatchAnything,
-				"category":       "generic",
-				"parentId":       "00f067aa0ba902b7",
-				"nr.entryPoint":  true,
-				"guid":           "9566c74d10d1e2c6",
-				"transactionId":  "52fdfc072182654f",
-				"traceId":        "4bf92f3577b34da6a3ce929d0e0e4736",
-				"tracingVendors": "99999@nr",
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"priority":         internal.MatchAnything,
+				"category":         "generic",
+				"parentId":         "00f067aa0ba902b7",
+				"nr.entryPoint":    true,
+				"guid":             "9566c74d10d1e2c6",
+				"transactionId":    "52fdfc072182654f",
+				"traceId":          "4bf92f3577b34da6a3ce929d0e0e4736",
+				"tracingVendors":   "99999@nr",
 			},
 		},
 	})
@@ -2063,17 +2064,18 @@ func TestW3CTraceStateMultipleHeaders(t *testing.T) {
 
 			app.ExpectSpanEvents(t, []internal.WantEvent{{
 				Intrinsics: map[string]interface{}{
-					"category":        "generic",
-					"guid":            "9566c74d10d1e2c6",
-					"name":            "OtherTransaction/Go/hello",
-					"nr.entryPoint":   true,
-					"parentId":        "560ccffb087d1906",
-					"priority":        internal.MatchAnything,
-					"sampled":         true,
-					"traceId":         "050c91b77efca9b0ef38b30c182355ce",
-					"tracingVendors":  "a,b", // ensures both headers read
-					"transactionId":   "52fdfc072182654f",
-					"trustedParentId": "1234567890123456",
+					"category":         "generic",
+					"guid":             "9566c74d10d1e2c6",
+					"name":             "OtherTransaction/Go/hello",
+					"transaction.name": "OtherTransaction/Go/hello",
+					"nr.entryPoint":    true,
+					"parentId":         "560ccffb087d1906",
+					"priority":         internal.MatchAnything,
+					"sampled":          true,
+					"traceId":          "050c91b77efca9b0ef38b30c182355ce",
+					"tracingVendors":   "a,b", // ensures both headers read
+					"transactionId":    "52fdfc072182654f",
+					"trustedParentId":  "1234567890123456",
 				},
 			}})
 		})
