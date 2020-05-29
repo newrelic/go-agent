@@ -27,6 +27,7 @@ type spanEvent struct {
 	Timestamp       time.Time
 	Duration        time.Duration
 	Name            string
+	TxnName         string
 	Category        spanCategory
 	Component       string
 	Kind            string
@@ -68,6 +69,9 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	}
 	if "" != e.TracingVendors {
 		w.stringField("tracingVendors", e.TracingVendors)
+	}
+	if "" != e.TxnName {
+		w.stringField("transaction.name", e.TxnName)
 	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
