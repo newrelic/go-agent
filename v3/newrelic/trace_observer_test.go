@@ -607,6 +607,7 @@ func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 var (
 	errUnimplemented    = status.Error(codes.Unimplemented, "unimplemented")
 	errPermissionDenied = status.Error(codes.PermissionDenied, "I'm so sorry")
+	errOK               = status.Error(codes.OK, "okay okay okay") // grpc turns this into nil
 )
 
 func TestTrObsRecordSpanReturnsError(t *testing.T) {
@@ -839,6 +840,163 @@ func TestTrObsConsumingAfterShutdown(t *testing.T) {
 	}
 	if s.DidSpansArrive(t, 1, time.Second) {
 		t.Error("spans sent after shutdown was called")
+	}
+}
+
+func TestTrObsOKSendBackoffNo(t *testing.T) {
+	// In this test, the OK response will be noticed by sendSpan
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		stream.Recv()
+		s.spansReceivedChan <- struct{}{}
+		return errOK
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     200,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: false, // ensure that the backoff remains for non-OK responses
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	// The grpc client will internally cache spans before sending them to
+	// ensure a minimum number of bytes are sent with each batch. Because of
+	// this we'll queue up more than enough spans to force at least two of them
+	// to get sent and received.
+	for i := 0; i < 200; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	// If the default backoff of 15 seconds is used, the second span will not
+	// be received in time.
+	if !s.DidSpansArrive(t, 2, time.Second) {
+		t.Error("server did not receive 2 spans")
+	}
+}
+
+func TestTrObsOKReceiveBackoffNo(t *testing.T) {
+	// In this test, the OK response will be noticed by Recv
+	var count int
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		count++
+		if count == 1 {
+			return errOK
+		}
+		for {
+			stream.Recv()
+			s.spansReceivedChan <- struct{}{}
+		}
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     200,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: false, // ensure that the backoff remains for non-OK responses
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	// The grpc client will internally cache spans before sending them to
+	// ensure a minimum number of bytes are sent with each batch. Because of
+	// this we'll queue up more than enough spans to force at least two of them
+	// to get sent and received.
+	for i := 0; i < 200; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	// If the default backoff of 15 seconds is used, the second span will not
+	// be received in time.
+	if !s.DidSpansArrive(t, 2, time.Second) {
+		t.Error("server did not receive 2 spans")
+	}
+}
+
+func TestTrObsPermissionDeniedSendBackoffYes(t *testing.T) {
+	// In this test, the Permission Denied response will be noticed by sendSpan
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		stream.Recv()
+		s.spansReceivedChan <- struct{}{}
+		return errPermissionDenied
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     200,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: false, // ensure that the backoff remains for non-OK responses
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	// The grpc client will internally cache spans before sending them to
+	// ensure a minimum number of bytes are sent with each batch. Because of
+	// this we'll queue up more than enough spans to force them to get sent.
+	for i := 0; i < 200; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	if !s.DidSpansArrive(t, 1, time.Second) {
+		t.Error("server did not receive initial span")
+	}
+	// Since the default backoff of 15 seconds is used, the second span will not
+	// be received in time.
+	if s.DidSpansArrive(t, 1, time.Second) {
+		t.Error("server received a second span when it should not have")
+	}
+}
+
+func TestTrObsPermissionDeniedReceiveBackoffYes(t *testing.T) {
+	// In this test, the Permission Denied response will be noticed by Recv
+	var count int
+	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		count++
+		if count == 1 {
+			return errPermissionDenied
+		}
+		for {
+			stream.Recv()
+			s.spansReceivedChan <- struct{}{}
+		}
+	})
+	defer s.Close()
+	cfg := observerConfig{
+		log:           logger.ShimLogger{},
+		license:       testLicenseKey,
+		queueSize:     200,
+		appShutdown:   make(chan struct{}),
+		dialer:        s.dialer,
+		removeBackoff: false, // ensure that the backoff remains for non-OK responses
+	}
+	to, err := newTraceObserver(runToken, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
+
+	// The grpc client will internally cache spans before sending them to
+	// ensure a minimum number of bytes are sent with each batch. Because of
+	// this we'll queue up more than enough spans to force them to get sent.
+	for i := 0; i < 200; i++ {
+		to.consumeSpan(&spanEvent{})
+	}
+	// Since the default backoff of 15 seconds is used, even the first span
+	// will not be received in time.
+	if s.DidSpansArrive(t, 1, time.Second) {
+		t.Error("server received a span when it should not have")
 	}
 }
 
