@@ -877,6 +877,34 @@ func TestErrAttrsAddedToRootSpan(t *testing.T) {
 	})
 }
 
+func TestErrAttrsExcludedFromRootSpan(t *testing.T) {
+	cfgFn = func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Attributes.Exclude = []string{
+			SpanAttributeErrorClass,
+			SpanAttributeErrorMessage,
+		}
+	}
+	app := testApp(replyFn, cfgFn, t)
+	txn := app.StartTransaction("hello")
+	txn.NoticeError(sampleErrorClass{})
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
 func TestErrAttrsAddedWhenPanic(t *testing.T) {
 	cfgFnRecordPanics := func(cfg *Config) {
 		cfg.DistributedTracer.Enabled = true

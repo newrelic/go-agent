@@ -618,8 +618,16 @@ func TestServerWrapperWithApp(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method":                "TestHandler.Method",
+				"request.uri":                   "micro://testing/TestHandler.Method",
+				"request.headers.accept":        "application/json",
+				"request.headers.contentType":   "application/json",
+				"request.headers.contentLength": 3,
+				"httpResponseCode":              "200",
+				"http.statusCode":               200,
+			},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -706,6 +714,13 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				newrelic.SpanAttributeErrorClass:   "401",
 				newrelic.SpanAttributeErrorMessage: "Unauthorized",
+				"request.method":                   "TestHandlerWithError.Method",
+				"request.uri":                      "micro://testing/TestHandlerWithError.Method",
+				"request.headers.accept":           "application/json",
+				"request.headers.contentType":      "application/json",
+				"request.headers.contentLength":    3,
+				"httpResponseCode":                 "401",
+				"http.statusCode":                  401,
 			},
 		},
 	})
@@ -916,8 +931,10 @@ func TestServerSubscribe(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"message.routingKey": "topic",
+			},
 		},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{
@@ -1010,6 +1027,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
 				newrelic.SpanAttributeErrorMessage: "subscriber error",
+				"message.routingKey":               "topic",
 			},
 		},
 	})

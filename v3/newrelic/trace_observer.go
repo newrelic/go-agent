@@ -480,14 +480,16 @@ func transformEvent(e *spanEvent) *v1.Span {
 	for key, val := range e.Attributes {
 		switch v := val.(type) {
 		case stringJSONWriter:
-			span.AgentAttributes[key.String()] = obsvString(string(v))
+			span.AgentAttributes[key] = obsvString(string(v))
 		case intJSONWriter:
-			span.AgentAttributes[key.String()] = obsvInt(int64(v))
+			span.AgentAttributes[key] = obsvInt(int64(v))
+		case boolJSONWriter:
+			span.AgentAttributes[key] = obsvBool(bool(v))
 		default:
 			b := bytes.Buffer{}
 			val.WriteJSON(&b)
 			s := strings.Trim(b.String(), `"`)
-			span.AgentAttributes[key.String()] = obsvString(s)
+			span.AgentAttributes[key] = obsvString(s)
 		}
 	}
 

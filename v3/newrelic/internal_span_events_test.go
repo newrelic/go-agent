@@ -390,6 +390,248 @@ func TestSpanEventAttributesExcluded(t *testing.T) {
 	})
 }
 
+func TestSpanAttributesFromTxnExcludedOnTxn(t *testing.T) {
+	// Test that attributes on the root span that come from transactions do not
+	// get excluded when excluded with TransactionEvents.Attributes.Exclude.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.TransactionEvents.Attributes.Exclude = []string{
+			AttributeRequestMethod,
+			AttributeRequestURI,
+		}
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
+	txn.SetWebRequestHTTP(req)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"sampled":          true,
+				"nr.apdexPerfZone": "S",
+				"guid":             internal.MatchAnything,
+				"traceId":          internal.MatchAnything,
+				"priority":         internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method": "GET",
+				"request.uri":    "http://example.com",
+			},
+		},
+	})
+}
+
+func TestSpanAttributesFromTxnExcludedByDefault(t *testing.T) {
+	// Test that the user-agent attribute on span events is excluded by
+	// default but can be included with SpanEvents.Attributes.Include.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+	}
+	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
+	req.Header.Add("User-Agent", "sample user agent")
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	txn.SetWebRequestHTTP(req)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"sampled":          true,
+				"nr.apdexPerfZone": "S",
+				"guid":             internal.MatchAnything,
+				"traceId":          internal.MatchAnything,
+				"priority":         internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method": "GET",
+				"request.uri":    "http://example.com",
+			},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method": "GET",
+				"request.uri":    "http://example.com",
+			},
+		},
+	})
+
+	cfgfn = func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Attributes.Include = []string{
+			AttributeRequestUserAgent,
+		}
+	}
+	app = testApp(replyfn, cfgfn, t)
+	txn = app.StartTransaction("hello")
+	txn.SetWebRequestHTTP(req)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"sampled":          true,
+				"nr.apdexPerfZone": "S",
+				"guid":             internal.MatchAnything,
+				"traceId":          internal.MatchAnything,
+				"priority":         internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method": "GET",
+				"request.uri":    "http://example.com",
+			},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method":            "GET",
+				"request.uri":               "http://example.com",
+				"request.headers.userAgent": "sample user agent",
+			},
+		},
+	})
+}
+
+func TestSpanAttributesFromTxnExcludedOnSpan(t *testing.T) {
+	// Test that attributes on transaction that are shared with the root span
+	// do not get excluded when excluded with SpanEvents.Attributes.Exclude.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Attributes.Exclude = []string{
+			AttributeRequestMethod,
+			AttributeRequestURI,
+		}
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
+	txn.SetWebRequestHTTP(req)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"sampled":          true,
+				"nr.apdexPerfZone": "S",
+				"guid":             internal.MatchAnything,
+				"traceId":          internal.MatchAnything,
+				"priority":         internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method": "GET",
+				"request.uri":    "http://example.com",
+			},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestSpanAttributesFromTxnExcludedGlobally(t *testing.T) {
+	// Test that attributes on transaction that are shared with the root span
+	// get excluded from both when excluded with Attributes.Exclude.
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.Attributes.Exclude = []string{
+			AttributeRequestMethod,
+			AttributeRequestURI,
+		}
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	req, _ := http.NewRequest("GET", "http://example.com?ignore=me", nil)
+	txn.SetWebRequestHTTP(req)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"sampled":          true,
+				"nr.apdexPerfZone": "S",
+				"guid":             internal.MatchAnything,
+				"traceId":          internal.MatchAnything,
+				"priority":         internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
 func TestSpanEventAttributesLASP(t *testing.T) {
 	// Test that security policies prevent the capture of the input query
 	// statement.

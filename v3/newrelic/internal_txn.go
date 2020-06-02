@@ -413,15 +413,17 @@ func (thd *thread) End(recovered interface{}) error {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
+		root.Attributes.addAttrs(txn.Attrs.Agent)
 		if txn.rootSpanErrData != nil {
-			root.Attributes.addString(spanAttributeErrorClass, txn.rootSpanErrData.Klass)
-			root.Attributes.addString(spanAttributeErrorMessage, txn.rootSpanErrData.Msg)
+			root.Attributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
+			root.Attributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)
 		}
 		if nil != txn.BetterCAT.Inbound {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
 			root.TracingVendors = txn.BetterCAT.Inbound.TracingVendors
 		}
+		root.Attributes = txn.Attrs.filterSpanAttributes(root.Attributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
 
 		// Add transaction tracing fields to span events at the end of
@@ -513,9 +515,9 @@ func (thd *thread) noticeErrorInternal(err errorData) error {
 	return nil
 }
 
-var errorAttrs = []spanAttribute{
-	spanAttributeErrorClass,
-	spanAttributeErrorMessage,
+var errorAttrs = []string{
+	SpanAttributeErrorClass,
+	SpanAttributeErrorMessage,
 }
 
 func addErrorAttrs(t *thread, err errorData) {
@@ -527,8 +529,8 @@ func addErrorAttrs(t *thread, err errorData) {
 	for _, attr := range errorAttrs {
 		t.thread.RemoveErrorSpanAttribute(attr)
 	}
-	t.thread.AddAgentSpanAttribute(spanAttributeErrorClass, err.Klass)
-	t.thread.AddAgentSpanAttribute(spanAttributeErrorMessage, err.Msg)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorClass, err.Klass)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, err.Msg)
 }
 
 var (
@@ -1169,7 +1171,7 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
-	thd.thread.AddAgentSpanAttribute(spanAttribute(key), val)
+	thd.thread.AddAgentSpanAttribute(key, val)
 }
 
 var (

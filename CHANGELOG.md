@@ -1,5 +1,12 @@
 # ChangeLog
 
+### Bug Fixes
+
+* Fixed an issue where it was impossible to exclude the attributes
+  `error.class` and `error.message` from the root Span Event. This issue has
+  now been fixed. These attributes can now be excluded from all Span Events
+  using `Config.Attributes.Exclude` or `Config.SpanEvents.Attributes.Exclude`.
+
 ## 3.5.0
 
 ### New Features

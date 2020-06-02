@@ -77,6 +77,24 @@ func TestColdStart(t *testing.T) {
 			"aws.lambda.coldStart": true,
 		},
 	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "OtherTransaction/Go/functionName",
+			"transaction.name": "OtherTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.requestId":        "request-id",
+			"aws.lambda.arn":       "function-arn",
+			"aws.lambda.coldStart": true,
+		},
+	}})
 	if 0 == buf.Len() {
 		t.Error("no output written")
 	}
@@ -96,6 +114,23 @@ func TestColdStart(t *testing.T) {
 			"priority": internal.MatchAnything,
 			"sampled":  internal.MatchAnything,
 			"traceId":  internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.requestId":  "request-id",
+			"aws.lambda.arn": "function-arn",
+		},
+	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "OtherTransaction/Go/functionName",
+			"transaction.name": "OtherTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
@@ -147,6 +182,24 @@ func TestErrorCapture(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"aws.lambda.coldStart": true,
+		},
+	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "OtherTransaction/Go/functionName",
+			"transaction.name": "OtherTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.lambda.coldStart": true,
+			"error.class":          "*errors.errorString",
+			"error.message":        "problem",
 		},
 	}})
 	if 0 == buf.Len() {
@@ -209,6 +262,23 @@ func TestSetWebRequest(t *testing.T) {
 			"priority":         internal.MatchAnything,
 			"sampled":          internal.MatchAnything,
 			"traceId":          internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.lambda.coldStart": true,
+			"request.uri":          "//:4000",
+		},
+	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/functionName",
+			"transaction.name": "WebTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
@@ -287,6 +357,25 @@ func TestDistributedTracing(t *testing.T) {
 			"request.uri":          "//:4000",
 		},
 	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/functionName",
+			"transaction.name": "WebTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"parentId":         internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"trustedParentId":  internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.lambda.coldStart": true,
+			"request.uri":          "//:4000",
+		},
+	}})
 	if 0 == buf.Len() {
 		t.Error("no output written")
 	}
@@ -338,6 +427,23 @@ func TestEventARN(t *testing.T) {
 			"aws.lambda.eventSource.arn": "ARN",
 		},
 	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "OtherTransaction/Go/functionName",
+			"transaction.name": "OtherTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"nr.entryPoint":    true,
+			"category":         "generic",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.lambda.coldStart":       true,
+			"aws.lambda.eventSource.arn": "ARN",
+		},
+	}})
 	if 0 == buf.Len() {
 		t.Error("no output written")
 	}
@@ -382,6 +488,25 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 			"aws.lambda.coldStart":         true,
 			"httpResponseCode":             "200",
 			"http.statusCode":              "200",
+			"response.headers.contentType": "text/html",
+		},
+	}})
+	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "OtherTransaction/Go/functionName",
+			"transaction.name": "OtherTransaction/Go/functionName",
+			"guid":             internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"category":         "generic",
+			"nr.entryPoint":    true,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.lambda.coldStart":         true,
+			"httpResponseCode":             "200",
+			"http.statusCode":              200,
 			"response.headers.contentType": "text/html",
 		},
 	}})

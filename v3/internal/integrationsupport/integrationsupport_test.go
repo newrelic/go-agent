@@ -73,7 +73,9 @@ func TestSuccess(t *testing.T) {
 				"category":         "generic",
 				"nr.entryPoint":    true,
 			},
-			AgentAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"host.displayName": "hostname",
+			},
 		},
 	})
 }

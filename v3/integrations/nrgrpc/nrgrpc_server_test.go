@@ -124,8 +124,14 @@ func TestUnaryServerInterceptor(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
+			},
 		},
 	})
 }
@@ -290,8 +296,14 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
+			},
 		},
 	})
 }
@@ -383,8 +395,14 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
+			},
 		},
 	})
 }
@@ -489,8 +507,14 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 				"parentId":         internal.MatchAnything,
 				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
+			},
 		},
 	})
 }
