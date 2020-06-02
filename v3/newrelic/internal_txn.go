@@ -409,6 +409,7 @@ func (thd *thread) End(recovered interface{}) error {
 			Timestamp:    txn.Start,
 			Duration:     txn.Duration,
 			Name:         txn.FinalName,
+			TxnName:      txn.FinalName,
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}

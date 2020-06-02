@@ -62,14 +62,15 @@ const (
 var (
 	genericSpan = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
-			"name":          "OtherTransaction/Go/" + txnName,
-			"sampled":       true,
-			"category":      "generic",
-			"priority":      internal.MatchAnything,
-			"guid":          internal.MatchAnything,
-			"transactionId": internal.MatchAnything,
-			"nr.entryPoint": true,
-			"traceId":       internal.MatchAnything,
+			"name":             "OtherTransaction/Go/" + txnName,
+			"transaction.name": "OtherTransaction/Go/" + txnName,
+			"sampled":          true,
+			"category":         "generic",
+			"priority":         internal.MatchAnything,
+			"guid":             internal.MatchAnything,
+			"transactionId":    internal.MatchAnything,
+			"nr.entryPoint":    true,
+			"traceId":          internal.MatchAnything,
 		},
 		UserAttributes:  map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{},

@@ -473,6 +473,9 @@ func transformEvent(e *spanEvent) *v1.Span {
 	if "" != e.TracingVendors {
 		span.Intrinsics["tracingVendors"] = obsvString(e.TracingVendors)
 	}
+	if "" != e.TxnName {
+		span.Intrinsics["transaction.name"] = obsvString(e.TxnName)
+	}
 
 	for key, val := range e.Attributes {
 		switch v := val.(type) {
