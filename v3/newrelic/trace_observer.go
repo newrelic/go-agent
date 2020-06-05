@@ -477,23 +477,30 @@ func transformEvent(e *spanEvent) *v1.Span {
 		span.Intrinsics["transaction.name"] = obsvString(e.TxnName)
 	}
 
-	for key, val := range e.Attributes {
+	copyAttrs(e.AgentAttributes, span.AgentAttributes)
+	copyAttrs(e.UserAttributes, span.UserAttributes)
+
+	return span
+}
+
+func copyAttrs(source spanAttributeMap, dest map[string]*v1.AttributeValue) {
+	for key, val := range source {
 		switch v := val.(type) {
 		case stringJSONWriter:
-			span.AgentAttributes[key] = obsvString(string(v))
+			dest[key] = obsvString(string(v))
 		case intJSONWriter:
-			span.AgentAttributes[key] = obsvInt(int64(v))
+			dest[key] = obsvInt(int64(v))
 		case boolJSONWriter:
-			span.AgentAttributes[key] = obsvBool(bool(v))
+			dest[key] = obsvBool(bool(v))
+		case floatJSONWriter:
+			dest[key] = obsvDouble(float64(v))
 		default:
 			b := bytes.Buffer{}
 			val.WriteJSON(&b)
 			s := strings.Trim(b.String(), `"`)
-			span.AgentAttributes[key] = obsvString(s)
+			dest[key] = obsvString(s)
 		}
 	}
-
-	return span
 }
 
 // consumeSpan enqueues the span to be sent to the remote trace observer

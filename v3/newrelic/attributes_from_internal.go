@@ -3,6 +3,7 @@ package newrelic
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -301,6 +302,16 @@ func (e userAttributeLimitErr) Error() string {
 		attributeUserLimit)
 }
 
+type invalidFloatAttrValue struct {
+	key string
+	val float64
+}
+
+func (e invalidFloatAttrValue) Error() string {
+	return fmt.Sprintf("attribute '%s' of type float contains an invalid value: %f", e.key, e.val)
+
+}
+
 func truncateStringValueIfLong(val string) string {
 	if len(val) > attributeValueLengthLimit {
 		return stringLengthByteLimit(val, attributeValueLengthLimit)
@@ -314,10 +325,18 @@ func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 		val = interface{}(truncateStringValueIfLong(str))
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case string, bool,
 		uint8, uint16, uint32, uint64, int8, int16, int32, int64,
-		float32, float64, uint, int, uintptr:
+		uint, int, uintptr:
+	case float32:
+		if err := validateFloat(float64(v), key); err != nil {
+			return nil, err
+		}
+	case float64:
+		if err := validateFloat(v, key); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, errInvalidAttributeType{
 			key: key,
@@ -332,6 +351,16 @@ func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 		return nil, invalidAttributeKeyErr{key: key}
 	}
 	return val, nil
+}
+
+func validateFloat(v float64, key string) error {
+	if math.IsInf(v, 0) || math.IsNaN(v) {
+		return invalidFloatAttrValue{
+			key: key,
+			val: v,
+		}
+	}
+	return nil
 }
 
 // addUserAttribute adds a user attribute.

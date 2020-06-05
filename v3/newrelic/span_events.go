@@ -34,7 +34,8 @@ type spanEvent struct {
 	IsEntrypoint    bool
 	TrustedParentID string
 	TracingVendors  string
-	Attributes      spanAttributeMap
+	AgentAttributes spanAttributeMap
+	UserAttributes  spanAttributeMap
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -76,18 +77,24 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
-	// user attributes section is unused
+
+	writeAttrs(buf, e.UserAttributes)
+
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
 
-	w = jsonFieldsWriter{buf: buf}
-	for key, val := range e.Attributes {
-		w.writerField(key, val)
-	}
+	writeAttrs(buf, e.AgentAttributes)
 
 	buf.WriteByte('}')
 	buf.WriteByte(']')
+}
+
+func writeAttrs(buf *bytes.Buffer, attrs spanAttributeMap) {
+	w := jsonFieldsWriter{buf: buf}
+	for key, val := range attrs {
+		w.writerField(key, val)
+	}
 }
 
 // MarshalJSON is used for testing.

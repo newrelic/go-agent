@@ -1,5 +1,20 @@
 # ChangeLog
 
+## New Features
+
+* Added support for [adding custom attributes directly to spans](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Segment.AddAttribute).
+  These attributes will be visible when looking at spans in the Distributed
+   Tracing UI. 
+ 
+   Example:
+   ```go
+	  txn := newrelic.FromContext(r.Context())
+	  sgmt := txn.StartSegment("segment1")
+	  defer sgmt.End()
+	  sgmt.AddAttribute("mySpanString", "hello")
+	  sgmt.AddAttribute("mySpanInt", 123)
+   ```
+
 ### Bug Fixes
 
 * Fixed an issue where it was impossible to exclude the attributes

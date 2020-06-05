@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +68,16 @@ func addAttribute(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	txn.AddAttribute("myString", "hello")
 	txn.AddAttribute("myInt", 123)
+}
+
+func addSpanAttribute(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "adding span attributes")
+
+	txn := newrelic.FromContext(r.Context())
+	sgmt := txn.StartSegment("segment1")
+	defer sgmt.End()
+	sgmt.AddAttribute("mySpanString", "hello")
+	sgmt.AddAttribute("mySpanInt", 123)
 }
 
 func ignore(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +261,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_attribute", addAttribute))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/add_span_attribute", addSpanAttribute))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/ignore", ignore))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/segments", segments))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/mysql", mysql))

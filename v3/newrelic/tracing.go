@@ -162,6 +162,14 @@ func (i intJSONWriter) WriteJSON(buf *bytes.Buffer) {
 	jsonx.AppendInt(buf, int64(i))
 }
 
+type floatJSONWriter float64
+
+func (f floatJSONWriter) WriteJSON(buf *bytes.Buffer) {
+	// Note: we validate the float earlier on in the stack, so we don't need
+	// to worry about checking the error here.
+	_ = jsonx.AppendFloat(buf, float64(f))
+}
+
 type boolJSONWriter bool
 
 func (b boolJSONWriter) WriteJSON(buf *bytes.Buffer) {
@@ -188,6 +196,10 @@ func (m *spanAttributeMap) addInt(key string, val int) {
 
 func (m *spanAttributeMap) addBool(key string, val bool) {
 	m.add(key, boolJSONWriter(val))
+}
+
+func (m *spanAttributeMap) addFloat(key string, val float64) {
+	m.add(key, floatJSONWriter(val))
 }
 
 func (m *spanAttributeMap) add(key string, val jsonWriter) {
@@ -247,20 +259,22 @@ func (m *spanAttributeMap) addAttrs(attrs agentAttributes) {
 
 type segmentFrame struct {
 	segmentTime
-	children   time.Duration
-	spanID     string
-	attributes spanAttributeMap
+	children        time.Duration
+	spanID          string
+	agentAttributes spanAttributeMap
+	userAttributes  spanAttributeMap
 }
 
 type segmentEnd struct {
-	start      segmentTime
-	stop       segmentTime
-	duration   time.Duration
-	exclusive  time.Duration
-	SpanID     string
-	ParentID   string
-	threadID   uint64
-	attributes spanAttributeMap
+	start           segmentTime
+	stop            segmentTime
+	duration        time.Duration
+	exclusive       time.Duration
+	SpanID          string
+	ParentID        string
+	threadID        uint64
+	agentAttributes spanAttributeMap
+	userAttributes  spanAttributeMap
 }
 
 func (end segmentEnd) spanEvent() *spanEvent {
@@ -268,12 +282,13 @@ func (end segmentEnd) spanEvent() *spanEvent {
 		return nil
 	}
 	return &spanEvent{
-		GUID:         end.SpanID,
-		ParentID:     end.ParentID,
-		Timestamp:    end.start.Time,
-		Duration:     end.duration,
-		Attributes:   end.attributes,
-		IsEntrypoint: false,
+		GUID:            end.SpanID,
+		ParentID:        end.ParentID,
+		Timestamp:       end.start.Time,
+		Duration:        end.duration,
+		AgentAttributes: end.agentAttributes,
+		UserAttributes:  end.userAttributes,
+		IsEntrypoint:    false,
 	}
 }
 
@@ -299,7 +314,46 @@ func (t *txnData) time(now time.Time) segmentTime {
 // AddAgentSpanAttribute allows attributes to be added to spans.
 func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 	if len(thread.stack) > 0 {
-		thread.stack[len(thread.stack)-1].attributes.addString(key, val)
+		thread.stack[len(thread.stack)-1].agentAttributes.addString(key, val)
+	}
+}
+
+// AddUserSpanAttribute allows custom attributes to be added to spans.
+func (thread *tracingThread) AddUserSpanAttribute(key string, val interface{}) {
+	if len(thread.stack) > 0 {
+		userAttributes := &thread.stack[len(thread.stack)-1].userAttributes
+		switch v := val.(type) {
+		case string:
+			userAttributes.addString(key, v)
+		case bool:
+			userAttributes.addBool(key, v)
+		case int8:
+			userAttributes.addInt(key, int(v))
+		case int16:
+			userAttributes.addInt(key, int(v))
+		case int32:
+			userAttributes.addInt(key, int(v))
+		case int64:
+			userAttributes.addInt(key, int(v))
+		case int:
+			userAttributes.addInt(key, v)
+		case uint8:
+			userAttributes.addInt(key, int(v))
+		case uint16:
+			userAttributes.addInt(key, int(v))
+		case uint32:
+			userAttributes.addInt(key, int(v))
+		case uint64:
+			userAttributes.addInt(key, int(v))
+		case uint:
+			userAttributes.addInt(key, int(v))
+		case uintptr:
+			userAttributes.addInt(key, int(v))
+		case float64:
+			userAttributes.addFloat(key, v)
+		case float32:
+			userAttributes.addFloat(key, float64(v))
+		}
 	}
 }
 
@@ -309,7 +363,7 @@ func (thread *tracingThread) RemoveErrorSpanAttribute(key string) {
 	if stackLen <= 0 {
 		return
 	}
-	delete(thread.stack[stackLen-1].attributes, key)
+	delete(thread.stack[stackLen-1].agentAttributes, key)
 }
 
 // startSegment begins a segment.
@@ -347,7 +401,7 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 }
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
-	e.Attributes = t.Attrs.filterSpanAttributes(e.Attributes, destSpan)
+	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
 	if len(t.SpanEvents) < maxSpanEvents {
 		t.SpanEvents = append(t.SpanEvents, e)
 	}
@@ -381,9 +435,10 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 		children += thread.stack[i].children
 	}
 	s := segmentEnd{
-		stop:       t.time(now),
-		start:      frame.segmentTime,
-		attributes: frame.attributes,
+		stop:            t.time(now),
+		start:           frame.segmentTime,
+		agentAttributes: frame.agentAttributes,
+		userAttributes:  frame.userAttributes,
 	}
 	if s.stop.Time.After(s.start.Time) {
 		s.duration = s.stop.Time.Sub(s.start.Time)
@@ -442,7 +497,7 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		attributes := end.attributes.copy()
+		attributes := end.agentAttributes.copy()
 		t.saveTraceSegment(end, customSegmentMetric(name), attributes, "")
 	}
 
@@ -536,7 +591,7 @@ func endExternalSegment(p endExternalParams) error {
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		attributes := end.attributes.copy()
+		attributes := end.agentAttributes.copy()
 		if p.Library == "http" {
 			attributes.addString(SpanAttributeHTTPURL, safeURL(p.URL))
 		}
@@ -549,13 +604,13 @@ func endExternalSegment(p endExternalParams) error {
 		evt.Kind = "client"
 		evt.Component = p.Library
 		if p.Library == "http" {
-			evt.Attributes.addString(SpanAttributeHTTPURL, safeURL(p.URL))
-			evt.Attributes.addString(SpanAttributeHTTPMethod, p.Method)
+			evt.AgentAttributes.addString(SpanAttributeHTTPURL, safeURL(p.URL))
+			evt.AgentAttributes.addString(SpanAttributeHTTPMethod, p.Method)
 		}
 		if p.StatusCode != nil {
-			evt.Attributes.addInt(SpanAttributeHTTPStatusCode, *p.StatusCode)
+			evt.AgentAttributes.addInt(SpanAttributeHTTPStatusCode, *p.StatusCode)
 		} else if p.Response != nil {
-			evt.Attributes.addInt(SpanAttributeHTTPStatusCode, p.Response.StatusCode)
+			evt.AgentAttributes.addInt(SpanAttributeHTTPStatusCode, p.Response.StatusCode)
 		}
 		t.saveSpanEvent(evt)
 	}
@@ -606,7 +661,7 @@ func endMessageSegment(p endMessageParams) error {
 	}
 
 	if t.TxnTrace.considerNode(end) {
-		attributes := end.attributes.copy()
+		attributes := end.agentAttributes.copy()
 		t.saveTraceSegment(end, key.Name(), attributes, "")
 	}
 
@@ -729,7 +784,7 @@ func endDatastoreSegment(p endDatastoreParams) error {
 	queryParams, err := vetQueryParameters(p.QueryParameters)
 
 	if p.TxnData.TxnTrace.considerNode(end) {
-		attributes := end.attributes.copy()
+		attributes := end.agentAttributes.copy()
 		attributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
 		attributes.addString(SpanAttributeDBInstance, p.Database)
 		attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
@@ -761,11 +816,11 @@ func endDatastoreSegment(p endDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.Attributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
-		evt.Attributes.addString(SpanAttributeDBInstance, p.Database)
-		evt.Attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
-		evt.Attributes.addString(SpanAttributePeerHostname, p.Host)
-		evt.Attributes.addString(SpanAttributeDBCollection, p.Collection)
+		evt.AgentAttributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
+		evt.AgentAttributes.addString(SpanAttributeDBInstance, p.Database)
+		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host)
+		evt.AgentAttributes.addString(SpanAttributeDBCollection, p.Collection)
 		p.TxnData.saveSpanEvent(evt)
 	}
 

@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"net/url"
 	"testing"
@@ -643,6 +644,388 @@ func TestMessageAttributes(t *testing.T) {
 			Intrinsics: map[string]interface{}{
 				"name": "OtherTransaction/Go/hello2",
 			},
+		},
+	})
+}
+
+func TestAddSpanAttr_BasicSegment_AllTypes(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("txn")
+	sg := txn.StartSegment("SegmentName")
+	sg.AddAttribute("attr-string", "this is a string")
+	sg.AddAttribute("attr-float-32", float32(1.5))
+	sg.AddAttribute("attr-float-64", float64(1.5))
+	sg.AddAttribute("attr-int", 2)
+	sg.AddAttribute("attr-int-8", int8(3))
+	sg.AddAttribute("attr-int-16", int16(4))
+	sg.AddAttribute("attr-int-32", int32(5))
+	sg.AddAttribute("attr-int-64", int64(6))
+	sg.AddAttribute("attr-uint", uint(7))
+	sg.AddAttribute("attr-uint-8", uint8(8))
+	sg.AddAttribute("attr-uint-16", uint16(9))
+	sg.AddAttribute("attr-uint-32", uint32(10))
+	sg.AddAttribute("attr-uint-64", uint64(11))
+	sg.AddAttribute("attr-uint-ptr", uintptr(12))
+	sg.AddAttribute("attr-bool", true)
+	sg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "Custom/SegmentName",
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+			},
+			UserAttributes: map[string]interface{}{
+				"attr-string":   "this is a string",
+				"attr-float-32": 1.5,
+				"attr-float-64": 1.5,
+				"attr-int":      2,
+				"attr-int-8":    3,
+				"attr-int-16":   4,
+				"attr-int-32":   5,
+				"attr-int-64":   6,
+				"attr-uint":     7,
+				"attr-uint-8":   8,
+				"attr-uint-16":  9,
+				"attr-uint-32":  10,
+				"attr-uint-64":  11,
+				"attr-uint-ptr": 12,
+				"attr-bool":     true,
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttr_DatastoreSegment(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("txn")
+	ds := &DatastoreSegment{
+		StartTime:  txn.StartSegmentNow(),
+		Product:    "MySQL",
+		Collection: "users_table",
+		Operation:  "SELECT",
+	}
+	ds.AddAttribute("attr-string", "this is a string")
+	ds.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "Datastore/statement/MySQL/users_table/SELECT",
+				"sampled":       true,
+				"category":      "datastore",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+				"span.kind":     "client",
+				"component":     "MySQL",
+			},
+			UserAttributes: map[string]interface{}{
+				"attr-string": "this is a string",
+			},
+			AgentAttributes: map[string]interface{}{
+				"db.statement":  "'SELECT' on 'users_table' using 'MySQL'",
+				"db.collection": "users_table",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttr_MessageProducerSegment(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("txn")
+	seg := &MessageProducerSegment{
+		StartTime:       txn.StartSegmentNow(),
+		Library:         "RabbitMQ",
+		DestinationType: "Exchange",
+		DestinationName: "myExchange",
+	}
+	seg.AddAttribute("attr-string", "this is a string")
+	seg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "MessageBroker/RabbitMQ/Exchange/Produce/Named/myExchange",
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+			},
+			UserAttributes: map[string]interface{}{
+				"attr-string": "this is a string",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttr_ExternalSegment(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("txn")
+	seg := ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		URL:       "http://www.example.com",
+	}
+	seg.AddAttribute("attr-string", "this is a string")
+	seg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "External/www.example.com/http",
+				"sampled":       true,
+				"category":      "http",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+				"component":     "http",
+				"span.kind":     "client",
+			},
+			UserAttributes: map[string]interface{}{
+				"attr-string": "this is a string",
+			},
+			AgentAttributes: map[string]interface{}{
+				"http.url": "http://www.example.com",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttr_SpanEventsDisabled_TxnTracesNoAttrs(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, func(c *Config) {
+		enableBetterCAT(c)
+		c.SpanEvents.Enabled = false
+		c.TransactionTracer.Threshold.IsApdexFailing = false
+		c.TransactionTracer.Threshold.Duration = 0
+	}, t)
+	txn := app.StartTransaction("txn")
+	sg := txn.StartSegment("SegmentName")
+	sg.AddAttribute("attr-string", "this is a string")
+	sg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, nil)
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "OtherTransaction/Go/txn",
+		NumSegments: 0,
+		// Ensure the custom attrs weren't added to the txn trace
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+	}})
+}
+
+func TestAddSpanAttr_SpanEventsEnabled_TxnTracesNoAttrs(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, func(c *Config) {
+		enableBetterCAT(c)
+		c.SpanEvents.Enabled = true
+		c.TransactionTracer.Threshold.IsApdexFailing = false
+		c.TransactionTracer.Threshold.Duration = 0
+	}, t)
+	txn := app.StartTransaction("txn")
+	sg := txn.StartSegment("SegmentName")
+	sg.AddAttribute("attr-string", "this is a string")
+	sg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "Custom/SegmentName",
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+			},
+			UserAttributes: map[string]interface{}{
+				"attr-string": "this is a string",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
+		MetricName:  "OtherTransaction/Go/txn",
+		NumSegments: 0,
+		// Ensure the custom attrs weren't added to the txn trace
+		UserAttributes:  map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{},
+	}})
+}
+
+func TestAddSpanAttr_NilSegment(t *testing.T) {
+	// Ensure no panics with a nil segment
+	var sg Segment
+	sg.AddAttribute("attr-string", "this is a string")
+	sg.End()
+}
+
+func TestAddSpanAttr_ValidatedValues(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("txn")
+	sg := txn.StartSegment("SegmentName")
+
+	sg.AddAttribute("attr-float-32-inf", float32(math.Inf(1)))
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute 'attr-float-32-inf' of type float contains an invalid value: +Inf",
+	})
+	sg.AddAttribute("attr-float-32-nan", float32(math.NaN()))
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute 'attr-float-32-nan' of type float contains an invalid value: NaN",
+	})
+	sg.AddAttribute("attr-float-64-inf", float64(math.Inf(1)))
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute 'attr-float-64-inf' of type float contains an invalid value: +Inf",
+	})
+	sg.AddAttribute("attr-float-64-nan", float64(math.NaN()))
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute 'attr-float-64-nan' of type float contains an invalid value: NaN",
+	})
+
+	longString := "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789001234567890123456789012345678900123456789012345678901234567890abcdefghijklmnopqrstuvwxyz"
+	sg.AddAttribute(longString, "some-string")
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute key '01234567890123456789012345678901...' exceeds length limit 255",
+	})
+
+	sg.AddAttribute("attr-struct", struct{ name string }{name: "invalid struct value"})
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": "attribute 'attr-struct' value of type struct { name string } is invalid",
+	})
+
+	sg.AddAttribute("attr-with-long-value", longString)
+	app.expectNoLoggedErrors(t)
+
+	sg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "Custom/SegmentName",
+				"sampled":       true,
+				"category":      "generic",
+				"priority":      internal.MatchAnything,
+				"guid":          "9566c74d10d1e2c6",
+				"transactionId": "52fdfc072182654f",
+				"traceId":       "52fdfc072182654f163f5f0f9a621d72",
+				"parentId":      "4981855ad8681d0d",
+			},
+			// Only the truncated long value should make it through validation.
+			UserAttributes: map[string]interface{}{
+				"attr-with-long-value": "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789001234567890123",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"transaction.name": "OtherTransaction/Go/txn",
+				"name":             "OtherTransaction/Go/txn",
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             "4981855ad8681d0d",
+				"transactionId":    "52fdfc072182654f",
+				"nr.entryPoint":    true,
+				"traceId":          "52fdfc072182654f163f5f0f9a621d72",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
