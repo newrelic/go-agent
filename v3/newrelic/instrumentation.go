@@ -77,14 +77,14 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 // http.RoundTripper will look for a Transaction in the request's context
 // (using FromContext).
 func NewRoundTripper(original http.RoundTripper) http.RoundTripper {
+	if nil == original {
+		original = http.DefaultTransport
+	}
 	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
 		// The specification of http.RoundTripper requires that the request is never modified.
 		request = cloneRequest(request)
 		segment := StartExternalSegment(nil, request)
 
-		if nil == original {
-			original = http.DefaultTransport
-		}
 		response, err := original.RoundTrip(request)
 
 		segment.Response = response

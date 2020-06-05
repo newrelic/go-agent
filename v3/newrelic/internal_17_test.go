@@ -240,3 +240,14 @@ func TestRoundTripperOldCAT(t *testing.T) {
 		},
 	}})
 }
+
+func TestRoundTripperRace(t *testing.T) {
+	// Test to detect a potential data race when using NewRoundTripper in
+	// multiple goroutines.
+	client := &http.Client{
+		Transport: NewRoundTripper(nil),
+	}
+	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	go client.Do(req)
+	go client.Do(req)
+}
