@@ -880,3 +880,156 @@ func TestSpanEventHTTPStatusCode(t *testing.T) {
 		},
 	})
 }
+
+func TestSpanEvent_TxnCustomAttrsAreCopied(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	s := txn.StartSegment("segment")
+	s.End()
+	key := "attr-key"
+	value := "attr-value"
+	txn.AddAttribute(key, value)
+	txn.End()
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "OtherTransaction/Go/hello",
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72",
+				"priority": internal.MatchAnything,
+				"guid":     "52fdfc072182654f",
+				"sampled":  true,
+			},
+			UserAttributes: map[string]interface{}{
+				key: value,
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			// Txn custom attrs should get copied to the root span
+			UserAttributes: map[string]interface{}{
+				key: value,
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestSpanEvent_TxnCustomAttrsAreExcluded_OnlyFromTxn(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.TransactionEvents.Attributes.Exclude = []string{AttributeRequestMethod}
+	}, t)
+	txn := app.StartTransaction("hello")
+	s := txn.StartSegment("segment")
+	s.End()
+	txn.AddAttribute(AttributeRequestMethod, "attr-value")
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "OtherTransaction/Go/hello",
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72",
+				"priority": internal.MatchAnything,
+				"guid":     "52fdfc072182654f",
+				"sampled":  true,
+			},
+			// the custom attr should be filtered out
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			UserAttributes: map[string]interface{}{
+				AttributeRequestMethod: "attr-value",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestSpanEvent_TxnCustomAttrsAreExcluded_OnlyFromSpans(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Attributes.Exclude = []string{AttributeRequestMethod}
+	}, t)
+	txn := app.StartTransaction("hello")
+	s := txn.StartSegment("segment")
+	s.End()
+	txn.AddAttribute(AttributeRequestMethod, "attr-value")
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "OtherTransaction/Go/hello",
+				"traceId":  "52fdfc072182654f163f5f0f9a621d72",
+				"priority": internal.MatchAnything,
+				"guid":     "52fdfc072182654f",
+				"sampled":  true,
+			},
+			UserAttributes: map[string]interface{}{
+				AttributeRequestMethod: "attr-value",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			// the custom attr should be filtered out
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}

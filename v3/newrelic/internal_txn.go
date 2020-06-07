@@ -413,7 +413,9 @@ func (thd *thread) End(recovered interface{}) error {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
-		root.AgentAttributes.addAttrs(txn.Attrs.Agent)
+		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
+		root.UserAttributes.addUserAttrs(txn.Attrs.user)
+
 		if txn.rootSpanErrData != nil {
 			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
 			root.AgentAttributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)

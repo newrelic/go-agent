@@ -220,40 +220,58 @@ func (m spanAttributeMap) copy() spanAttributeMap {
 	return cpy
 }
 
-func (m *spanAttributeMap) addAttrs(attrs agentAttributes) {
+func (m *spanAttributeMap) addUserAttrs(attrs map[string]userAttribute) {
+	for key, val := range attrs {
+		if val.dests&destSpan > 0 {
+			addAttr(m, key, val.value)
+		}
+	}
+}
+
+func (m *spanAttributeMap) addAgentAttrs(attrs agentAttributes) {
 	for key, val := range attrs {
 		if val.stringVal != "" {
 			m.addString(key, val.stringVal)
 		} else {
-			switch v := val.otherVal.(type) {
-			case bool:
-				m.addBool(key, v)
-			case uint8:
-				m.addInt(key, int(v))
-			case uint16:
-				m.addInt(key, int(v))
-			case uint32:
-				m.addInt(key, int(v))
-			case uint64:
-				m.addInt(key, int(v))
-			case uint:
-				m.addInt(key, int(v))
-			case uintptr:
-				m.addInt(key, int(v))
-			case int8:
-				m.addInt(key, int(v))
-			case int16:
-				m.addInt(key, int(v))
-			case int32:
-				m.addInt(key, int(v))
-			case int64:
-				m.addInt(key, int(v))
-			case int:
-				m.addInt(key, v)
-			default:
-				m.addString(key, fmt.Sprintf("%T", v))
-			}
+			addAttr(m, key, val.otherVal)
 		}
+	}
+}
+
+func addAttr(m *spanAttributeMap, key string, val interface{}) {
+	switch v := val.(type) {
+	case string:
+		m.addString(key, v)
+	case bool:
+		m.addBool(key, v)
+	case uint8:
+		m.addInt(key, int(v))
+	case uint16:
+		m.addInt(key, int(v))
+	case uint32:
+		m.addInt(key, int(v))
+	case uint64:
+		m.addInt(key, int(v))
+	case uint:
+		m.addInt(key, int(v))
+	case uintptr:
+		m.addInt(key, int(v))
+	case int8:
+		m.addInt(key, int(v))
+	case int16:
+		m.addInt(key, int(v))
+	case int32:
+		m.addInt(key, int(v))
+	case int64:
+		m.addInt(key, int(v))
+	case int:
+		m.addInt(key, v)
+	case float32:
+		m.addFloat(key, float64(v))
+	case float64:
+		m.addFloat(key, v)
+	default:
+		m.addString(key, fmt.Sprintf("%T", v))
 	}
 }
 
@@ -322,38 +340,12 @@ func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 func (thread *tracingThread) AddUserSpanAttribute(key string, val interface{}) {
 	if len(thread.stack) > 0 {
 		userAttributes := &thread.stack[len(thread.stack)-1].userAttributes
-		switch v := val.(type) {
-		case string:
-			userAttributes.addString(key, v)
-		case bool:
-			userAttributes.addBool(key, v)
-		case int8:
-			userAttributes.addInt(key, int(v))
-		case int16:
-			userAttributes.addInt(key, int(v))
-		case int32:
-			userAttributes.addInt(key, int(v))
-		case int64:
-			userAttributes.addInt(key, int(v))
-		case int:
-			userAttributes.addInt(key, v)
-		case uint8:
-			userAttributes.addInt(key, int(v))
-		case uint16:
-			userAttributes.addInt(key, int(v))
-		case uint32:
-			userAttributes.addInt(key, int(v))
-		case uint64:
-			userAttributes.addInt(key, int(v))
-		case uint:
-			userAttributes.addInt(key, int(v))
-		case uintptr:
-			userAttributes.addInt(key, int(v))
-		case float64:
-			userAttributes.addFloat(key, v)
-		case float32:
-			userAttributes.addFloat(key, float64(v))
-		}
+		userAttributes.addUserAttrs(map[string]userAttribute{
+			key: {
+				value: val,
+				dests: destAll,
+			},
+		})
 	}
 }
 
