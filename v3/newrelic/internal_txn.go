@@ -1179,6 +1179,9 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 }
 
 func (thd *thread) AddUserSpanAttribute(key string, val interface{}) {
+	if outputDests := applyAttributeConfig(thd.Attrs.config, key, destSpan); 0 == outputDests {
+		return
+	}
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()

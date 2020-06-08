@@ -1033,3 +1033,39 @@ func TestSpanEvent_TxnCustomAttrsAreExcluded_OnlyFromSpans(t *testing.T) {
 		},
 	})
 }
+
+func TestSpanEventExcludeCustomAttrs(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.SpanEvents.Attributes.Exclude = []string{"attribute"}
+	}, t)
+	txn := app.StartTransaction("hello")
+	s := txn.StartSegment("segment")
+	s.AddAttribute("attribute", "value")
+	s.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			// the custom attr should be filtered out
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
