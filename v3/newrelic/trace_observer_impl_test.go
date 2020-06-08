@@ -57,6 +57,8 @@ type expectServer struct {
 
 	spansReceivedChan chan struct{}
 	recordSpanFunc    recordSpanFunc
+
+	v1.UnimplementedIngestServiceServer
 }
 
 func (s *expectServer) RecordSpan(stream v1.IngestService_RecordSpanServer) error {
