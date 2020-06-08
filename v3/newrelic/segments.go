@@ -306,5 +306,7 @@ func addSpanAttr(start SegmentStartTime, key string, val interface{}) {
 		return
 	}
 	// This call locks the thread for us, so we don't need to.
-	start.thread.AddUserSpanAttribute(key, validatedVal)
+	if err := start.thread.AddUserSpanAttribute(key, validatedVal); err != nil {
+		start.thread.logAPIError(err, "add segment attribute", map[string]interface{}{})
+	}
 }

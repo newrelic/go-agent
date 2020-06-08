@@ -1069,3 +1069,82 @@ func TestSpanEventExcludeCustomAttrs(t *testing.T) {
 		},
 	})
 }
+
+func TestAddSpanAttributeHighSecurity(t *testing.T) {
+	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.HighSecurity = true
+	}
+	app := testApp(distributedTracingReplyFields, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	seg := txn.StartSegment("segment")
+	seg.AddAttribute("key", 1)
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": errHighSecurityEnabled.Error(),
+	})
+	seg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			// the custom attr should not be added
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+func TestAddSpanAttributeSecurityPolicyDisablesParameters(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SecurityPolicies.CustomParameters.SetEnabled(false)
+	}
+	app := testApp(replyfn, enableBetterCAT, t)
+	txn := app.StartTransaction("hello")
+	seg := txn.StartSegment("segment")
+	seg.AddAttribute("key", 1)
+	app.expectSingleLoggedError(t, "unable to add segment attribute", map[string]interface{}{
+		"reason": errSecurityPolicy.Error(),
+	})
+	seg.End()
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"parentId": internal.MatchAnything,
+				"name":     "Custom/segment",
+				"category": "generic",
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
+			},
+			// the custom attr should not be added
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}

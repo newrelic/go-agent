@@ -1178,14 +1178,25 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 	thd.thread.AddAgentSpanAttribute(key, val)
 }
 
-func (thd *thread) AddUserSpanAttribute(key string, val interface{}) {
-	if outputDests := applyAttributeConfig(thd.Attrs.config, key, destSpan); 0 == outputDests {
-		return
-	}
+func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
+
+	if outputDests := applyAttributeConfig(thd.Attrs.config, key, destSpan); 0 == outputDests {
+		return nil
+	}
+
+	if txn.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+
+	if !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
+		return errSecurityPolicy
+	}
+
 	thd.thread.AddUserSpanAttribute(key, val)
+	return nil
 }
 
 var (
