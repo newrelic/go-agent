@@ -157,8 +157,11 @@
     
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
+
+
 
 ## 3.3.0
 
@@ -198,7 +201,8 @@
   
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.2.0
@@ -243,7 +247,8 @@
 
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.1.0
@@ -282,7 +287,8 @@
   
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must update 
+  that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.0.0
