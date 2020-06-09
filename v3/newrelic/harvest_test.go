@@ -112,6 +112,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 55, 55, 55, 55, 55 * 55}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	// Test again without any metric rules or event_harvest_config.
@@ -135,6 +136,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 1000, 1000, 1000, 1000, 1000 * 1000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -168,6 +170,7 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/InfiniteTracing/Span/Seen", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/InfiniteTracing/Span/Sent", Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 	})

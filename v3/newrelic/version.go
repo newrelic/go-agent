@@ -18,4 +18,5 @@ var (
 func init() {
 	internal.TrackUsage("Go", "Version", Version)
 	internal.TrackUsage("Go", "Runtime", "Version", goVersionSimple)
+	internal.TrackUsage("Go", "gRPC", "Version", grpcVersion)
 }
