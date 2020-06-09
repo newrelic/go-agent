@@ -133,9 +133,10 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/UnaryUnary",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/UnaryUnary",
+				"transaction.name": "OtherTransaction/Go/UnaryUnary",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -226,9 +227,10 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/UnaryStream",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/UnaryStream",
+				"transaction.name": "OtherTransaction/Go/UnaryStream",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -317,9 +319,10 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/StreamUnary",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/StreamUnary",
+				"transaction.name": "OtherTransaction/Go/StreamUnary",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -421,9 +424,10 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/StreamStream",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/StreamStream",
+				"transaction.name": "OtherTransaction/Go/StreamStream",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -568,9 +572,10 @@ func TestClientStreamingError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/UnaryStream",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/UnaryStream",
+				"transaction.name": "OtherTransaction/Go/UnaryStream",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

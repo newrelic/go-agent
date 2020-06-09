@@ -1395,13 +1395,21 @@ func TestExternalSegmentCustomFieldsWithURL(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.uri":                   "/hello",
+				"request.headers.contentType":   "text/html; charset=utf-8",
+				"request.headers.host":          "my_domain.com",
+				"request.method":                "GET",
+				"request.headers.contentLength": 753,
+				"request.headers.accept":        "text/plain",
+			},
 		},
 	})
 }
@@ -1451,13 +1459,21 @@ func TestExternalSegmentCustomFieldsWithRequest(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.uri":                   "/hello",
+				"request.headers.contentType":   "text/html; charset=utf-8",
+				"request.headers.host":          "my_domain.com",
+				"request.method":                "GET",
+				"request.headers.contentLength": 753,
+				"request.headers.accept":        "text/plain",
+			},
 		},
 	})
 }
@@ -1515,13 +1531,21 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "WebTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "WebTransaction/Go/hello",
+				"transaction.name": "WebTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.uri":                   "/hello",
+				"request.headers.contentType":   "text/html; charset=utf-8",
+				"request.headers.host":          "my_domain.com",
+				"request.method":                "GET",
+				"request.headers.contentLength": 753,
+				"request.headers.accept":        "text/plain",
+			},
 		},
 	})
 }
@@ -1988,10 +2012,11 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"sampled":       true,
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"sampled":          true,
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},

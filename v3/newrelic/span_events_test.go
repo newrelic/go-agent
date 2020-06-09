@@ -64,10 +64,10 @@ func TestSpanEventDatastoreMarshal(t *testing.T) {
 	e.Category = spanCategoryDatastore
 	e.Kind = "client"
 	e.Component = "mySql"
-	e.Attributes.addString(spanAttributeDBStatement, "SELECT * from foo")
-	e.Attributes.addString(spanAttributeDBInstance, "123")
-	e.Attributes.addString(spanAttributePeerAddress, "{host}:{portPathOrId}")
-	e.Attributes.addString(spanAttributePeerHostname, "host")
+	e.AgentAttributes.addString(SpanAttributeDBStatement, "SELECT * from foo")
+	e.AgentAttributes.addString(SpanAttributeDBInstance, "123")
+	e.AgentAttributes.addString(SpanAttributePeerAddress, "{host}:{portPathOrId}")
+	e.AgentAttributes.addString(SpanAttributePeerHostname, "host")
 
 	expectEvent(t, &e, internal.WantEvent{
 		Intrinsics: map[string]interface{}{
@@ -104,8 +104,8 @@ func TestSpanEventDatastoreWithoutHostMarshal(t *testing.T) {
 	e.Category = spanCategoryDatastore
 	e.Kind = "client"
 	e.Component = "mySql"
-	e.Attributes.addString(spanAttributeDBStatement, "SELECT * from foo")
-	e.Attributes.addString(spanAttributeDBInstance, "123")
+	e.AgentAttributes.addString(SpanAttributeDBStatement, "SELECT * from foo")
+	e.AgentAttributes.addString(SpanAttributeDBInstance, "123")
 
 	// According to CHANGELOG.md, as of version 1.5, if `Host` and
 	// `PortPathOrID` are not provided in a Datastore segment, they
@@ -145,8 +145,8 @@ func TestSpanEventExternalMarshal(t *testing.T) {
 	e.Category = spanCategoryHTTP
 	e.Kind = "client"
 	e.Component = "http"
-	e.Attributes.addString(spanAttributeHTTPURL, "http://url.com")
-	e.Attributes.addString(spanAttributeHTTPMethod, "GET")
+	e.AgentAttributes.addString(SpanAttributeHTTPURL, "http://url.com")
+	e.AgentAttributes.addString(SpanAttributeHTTPMethod, "GET")
 
 	expectEvent(t, &e, internal.WantEvent{
 		Intrinsics: map[string]interface{}{

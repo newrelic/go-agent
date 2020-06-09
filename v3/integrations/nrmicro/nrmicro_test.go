@@ -206,9 +206,10 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/name",
+				"transaction.name": "OtherTransaction/Go/name",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -359,9 +360,10 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/name",
+				"transaction.name": "OtherTransaction/Go/name",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -526,9 +528,10 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/name",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/name",
+				"transaction.name": "OtherTransaction/Go/name",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes:  map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{},
@@ -608,14 +611,23 @@ func TestServerWrapperWithApp(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestHandler.Method",
+				"transaction.name": "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"request.method":                "TestHandler.Method",
+				"request.uri":                   "micro://testing/TestHandler.Method",
+				"request.headers.accept":        "application/json",
+				"request.headers.contentType":   "application/json",
+				"request.headers.contentLength": 3,
+				"httpResponseCode":              "200",
+				"http.statusCode":               200,
+			},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -693,14 +705,22 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "WebTransaction/Go/TestHandlerWithError.Method",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestHandlerWithError.Method",
+				"transaction.name": "WebTransaction/Go/TestHandlerWithError.Method",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				newrelic.SpanAttributeErrorClass:   "401",
 				newrelic.SpanAttributeErrorMessage: "Unauthorized",
+				"request.method":                   "TestHandlerWithError.Method",
+				"request.uri":                      "micro://testing/TestHandlerWithError.Method",
+				"request.headers.accept":           "application/json",
+				"request.headers.contentType":      "application/json",
+				"request.headers.contentLength":    3,
+				"httpResponseCode":                 "401",
+				"http.statusCode":                  401,
 			},
 		},
 	})
@@ -904,14 +924,17 @@ func TestServerSubscribe(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"transaction.name": "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"message.routingKey": "topic",
+			},
 		},
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{
@@ -995,14 +1018,16 @@ func TestServerSubscribeWithError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"category":      "generic",
-				"name":          "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint": true,
+				"category":         "generic",
+				"name":             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"transaction.name": "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":    true,
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
 				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
 				newrelic.SpanAttributeErrorMessage: "subscriber error",
+				"message.routingKey":               "topic",
 			},
 		},
 	})

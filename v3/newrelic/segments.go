@@ -130,6 +130,17 @@ const (
 	MessageExchange MessageDestinationType = "Exchange"
 )
 
+// AddAttribute adds a key value pair to the current segment.
+//
+// The key must contain fewer than than 255 bytes.  The value must be a
+// number, string, or boolean.
+func (s *Segment) AddAttribute(key string, val interface{}) {
+	if nil == s {
+		return
+	}
+	addSpanAttr(s.StartTime, key, val)
+}
+
 // End finishes the segment.
 func (s *Segment) End() {
 	if s == nil {
@@ -140,6 +151,17 @@ func (s *Segment) End() {
 			"name": s.Name,
 		})
 	}
+}
+
+// AddAttribute adds a key value pair to the current DatastoreSegment.
+//
+// The key must contain fewer than than 255 bytes.  The value must be a
+// number, string, or boolean.
+func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {
+	if nil == s {
+		return
+	}
+	addSpanAttr(s.StartTime, key, val)
 }
 
 // End finishes the datastore segment.
@@ -154,6 +176,17 @@ func (s *DatastoreSegment) End() {
 			"operation":  s.Operation,
 		})
 	}
+}
+
+// AddAttribute adds a key value pair to the current ExternalSegment.
+//
+// The key must contain fewer than than 255 bytes.  The value must be a
+// number, string, or boolean.
+func (s *ExternalSegment) AddAttribute(key string, val interface{}) {
+	if nil == s {
+		return
+	}
+	addSpanAttr(s.StartTime, key, val)
 }
 
 // End finishes the external segment.
@@ -172,6 +205,17 @@ func (s *ExternalSegment) End() {
 		}
 		s.StartTime.thread.logAPIError(err, "end external segment", extraDetails)
 	}
+}
+
+// AddAttribute adds a key value pair to the current MessageProducerSegment.
+//
+// The key must contain fewer than than 255 bytes.  The value must be a
+// number, string, or boolean.
+func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {
+	if nil == s {
+		return
+	}
+	addSpanAttr(s.StartTime, key, val)
 }
 
 // End finishes the message segment.
@@ -250,4 +294,19 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 	}
 
 	return s
+}
+
+func addSpanAttr(start SegmentStartTime, key string, val interface{}) {
+	if nil == start.thread {
+		return
+	}
+	validatedVal, err := validateUserAttribute(key, val)
+	if nil != err {
+		start.thread.logAPIError(err, "add segment attribute", map[string]interface{}{})
+		return
+	}
+	// This call locks the thread for us, so we don't need to.
+	if err := start.thread.AddUserSpanAttribute(key, validatedVal); err != nil {
+		start.thread.logAPIError(err, "add segment attribute", map[string]interface{}{})
+	}
 }

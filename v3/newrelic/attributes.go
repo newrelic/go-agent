@@ -2,7 +2,7 @@ package newrelic
 
 // This file contains the names of the automatically captured attributes.
 // Attributes are key value pairs attached to transaction events, error events,
-// and traced errors.  You may add your own attributes using the
+// traced errors, and spans.  You may add your own attributes using the
 // Transaction.AddAttribute method (see transaction.go).
 //
 // These attribute names are exposed here to facilitate configuration.
@@ -114,7 +114,9 @@ const (
 	AttributeMessageCorrelationID = "message.correlationId"
 )
 
-// Attributes destined for Span Events:
+// Attributes destined for Span Events. These attributes appear only on Span
+// Events and are not available to transaction events, error events, or traced
+// errors.
 //
 // To disable the capture of one of these span event attributes, "db.statement"
 // for example, modify your Config like this:
@@ -122,17 +124,22 @@ const (
 //	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 //		newrelic.SpanAttributeDBStatement)
 const (
-	SpanAttributeDBStatement    = "db.statement"
-	SpanAttributeDBInstance     = "db.instance"
-	SpanAttributeDBCollection   = "db.collection"
-	SpanAttributePeerAddress    = "peer.address"
-	SpanAttributePeerHostname   = "peer.hostname"
-	SpanAttributeHTTPURL        = "http.url"
-	SpanAttributeHTTPMethod     = "http.method"
+	SpanAttributeDBStatement  = "db.statement"
+	SpanAttributeDBInstance   = "db.instance"
+	SpanAttributeDBCollection = "db.collection"
+	SpanAttributePeerAddress  = "peer.address"
+	SpanAttributePeerHostname = "peer.hostname"
+	SpanAttributeHTTPURL      = "http.url"
+	SpanAttributeHTTPMethod   = "http.method"
+	SpanAttributeAWSOperation = "aws.operation"
+	SpanAttributeAWSRegion    = "aws.region"
+	SpanAttributeErrorClass   = "error.class"
+	SpanAttributeErrorMessage = "error.message"
+
+	// Deprecated: This attribute is a duplicate of AttributeResponseCode and
+	// will be removed in a later release.
 	SpanAttributeHTTPStatusCode = "http.statusCode"
-	SpanAttributeAWSOperation   = "aws.operation"
-	SpanAttributeAWSRequestID   = "aws.requestId"
-	SpanAttributeAWSRegion      = "aws.region"
-	SpanAttributeErrorClass     = "error.class"
-	SpanAttributeErrorMessage   = "error.message"
+	// Deprecated: This attribute is a duplicate of AttributeAWSRequestID and
+	// will be removed in a later release.
+	SpanAttributeAWSRequestID = "aws.requestId"
 )

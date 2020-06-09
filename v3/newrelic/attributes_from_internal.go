@@ -3,6 +3,7 @@ package newrelic
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -10,33 +11,12 @@ import (
 	"strings"
 )
 
-// spanAttribute is an attribute put in span events.
-type spanAttribute string
-
-// These span event string constants must match the contents of the top level
-// attributes.go file.
 const (
-	spanAttributeDBStatement    spanAttribute = "db.statement"
-	spanAttributeDBInstance     spanAttribute = "db.instance"
-	spanAttributeDBCollection   spanAttribute = "db.collection"
-	spanAttributePeerAddress    spanAttribute = "peer.address"
-	spanAttributePeerHostname   spanAttribute = "peer.hostname"
-	spanAttributeHTTPURL        spanAttribute = "http.url"
-	spanAttributeHTTPMethod     spanAttribute = "http.method"
-	spanAttributeHTTPStatusCode spanAttribute = "http.statusCode"
 	// query parameters only appear in segments, not span events, but is
-	// listed as span attributes to simplify code.
-	spanAttributeQueryParameters spanAttribute = "query_parameters"
-	// These span attributes are added by aws sdk instrumentation.
-	// https://source.datanerd.us/agents/agent-specs/blob/master/implementation_guides/aws-sdk.md#span-and-segment-attributes
-	spanAttributeAWSOperation spanAttribute = "aws.operation"
-	spanattributeAWSRequestID spanAttribute = "aws.requestId"
-	spanAttributeAWSRegion    spanAttribute = "aws.region"
-	spanAttributeErrorClass   spanAttribute = "error.class"
-	spanAttributeErrorMessage spanAttribute = "error.message"
+	// listed as span attributes to simplify code. It is not listed in the
+	// public attributes.go file for this reason to prevent confusion.
+	spanAttributeQueryParameters = "query_parameters"
 )
-
-func (sa spanAttribute) String() string { return string(sa) }
 
 var (
 	usualDests  = destAll &^ destBrowser
@@ -69,22 +49,20 @@ var (
 		AttributeMessageExchangeType:        destNone,
 		AttributeMessageReplyTo:             destNone,
 		AttributeMessageCorrelationID:       destNone,
-	}
-	spanAttributes = []spanAttribute{
-		spanAttributeDBStatement,
-		spanAttributeDBInstance,
-		spanAttributeDBCollection,
-		spanAttributePeerAddress,
-		spanAttributePeerHostname,
-		spanAttributeHTTPURL,
-		spanAttributeHTTPMethod,
-		spanAttributeHTTPStatusCode,
-		spanAttributeQueryParameters,
-		spanAttributeAWSOperation,
-		spanattributeAWSRequestID,
-		spanAttributeAWSRegion,
-		spanAttributeErrorClass,
-		spanAttributeErrorMessage,
+
+		// Span specific attributes
+		SpanAttributeDBStatement:     usualDests,
+		SpanAttributeDBInstance:      usualDests,
+		SpanAttributeDBCollection:    usualDests,
+		SpanAttributePeerAddress:     usualDests,
+		SpanAttributePeerHostname:    usualDests,
+		SpanAttributeHTTPURL:         usualDests,
+		SpanAttributeHTTPMethod:      usualDests,
+		spanAttributeQueryParameters: usualDests,
+		SpanAttributeAWSOperation:    usualDests,
+		SpanAttributeAWSRegion:       usualDests,
+		SpanAttributeErrorClass:      usualDests,
+		SpanAttributeErrorMessage:    usualDests,
 	}
 )
 
@@ -131,7 +109,6 @@ type attributeConfig struct {
 	// over modifiers appearing earlier.
 	wildcardModifiers []*attributeModifier
 	agentDests        map[string]destinationSet
-	spanDests         map[spanAttribute]destinationSet
 }
 
 type includeExclude struct {
@@ -236,10 +213,6 @@ func createAttributeConfig(input config, includeEnabled bool) *attributeConfig {
 	for name, dest := range agentAttributeDefaultDests {
 		c.agentDests[name] = applyAttributeConfig(c, name, dest)
 	}
-	c.spanDests = make(map[spanAttribute]destinationSet, len(spanAttributes))
-	for _, id := range spanAttributes {
-		c.spanDests[id] = applyAttributeConfig(c, id.String(), destSpan|destSegment)
-	}
 
 	return c
 }
@@ -256,10 +229,10 @@ type agentAttributeValue struct {
 
 type agentAttributes map[string]agentAttributeValue
 
-func (a *attributes) filterSpanAttributes(s map[spanAttribute]jsonWriter, d destinationSet) map[spanAttribute]jsonWriter {
+func (a *attributes) filterSpanAttributes(s map[string]jsonWriter, d destinationSet) map[string]jsonWriter {
 	if nil != a {
 		for key := range s {
-			if a.config.spanDests[key]&d == 0 {
+			if a.config.agentDests[key]&d == 0 {
 				delete(s, key)
 			}
 		}
@@ -329,6 +302,16 @@ func (e userAttributeLimitErr) Error() string {
 		attributeUserLimit)
 }
 
+type invalidFloatAttrValue struct {
+	key string
+	val float64
+}
+
+func (e invalidFloatAttrValue) Error() string {
+	return fmt.Sprintf("attribute '%s' of type float contains an invalid value: %f", e.key, e.val)
+
+}
+
 func truncateStringValueIfLong(val string) string {
 	if len(val) > attributeValueLengthLimit {
 		return stringLengthByteLimit(val, attributeValueLengthLimit)
@@ -342,10 +325,18 @@ func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 		val = interface{}(truncateStringValueIfLong(str))
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case string, bool,
 		uint8, uint16, uint32, uint64, int8, int16, int32, int64,
-		float32, float64, uint, int, uintptr:
+		uint, int, uintptr:
+	case float32:
+		if err := validateFloat(float64(v), key); err != nil {
+			return nil, err
+		}
+	case float64:
+		if err := validateFloat(v, key); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, errInvalidAttributeType{
 			key: key,
@@ -360,6 +351,16 @@ func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 		return nil, invalidAttributeKeyErr{key: key}
 	}
 	return val, nil
+}
+
+func validateFloat(v float64, key string) error {
+	if math.IsInf(v, 0) || math.IsNaN(v) {
+		return invalidFloatAttrValue{
+			key: key,
+			val: v,
+		}
+	}
+	return nil
 }
 
 // addUserAttribute adds a user attribute.

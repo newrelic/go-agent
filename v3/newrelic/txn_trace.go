@@ -14,7 +14,7 @@ import (
 type traceNodeHeap []traceNode
 
 type traceNodeParams struct {
-	attributes              map[spanAttribute]jsonWriter
+	attributes              map[string]jsonWriter
 	StackTrace              stackTrace
 	TransactionGUID         string
 	exclusiveDurationMillis *float64
@@ -135,7 +135,7 @@ func printNodeStart(buf *bytes.Buffer, n nodeDetails) {
 		w.stringField("transaction_guid", n.TransactionGUID)
 	}
 	for k, v := range n.attributes {
-		w.writerField(k.String(), v)
+		w.writerField(k, v)
 	}
 	buf.WriteByte('}')
 

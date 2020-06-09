@@ -27,13 +27,15 @@ type spanEvent struct {
 	Timestamp       time.Time
 	Duration        time.Duration
 	Name            string
+	TxnName         string
 	Category        spanCategory
 	Component       string
 	Kind            string
 	IsEntrypoint    bool
 	TrustedParentID string
 	TracingVendors  string
-	Attributes      spanAttributeMap
+	AgentAttributes spanAttributeMap
+	UserAttributes  spanAttributeMap
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -69,21 +71,30 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	if "" != e.TracingVendors {
 		w.stringField("tracingVendors", e.TracingVendors)
 	}
-	buf.WriteByte('}')
-	buf.WriteByte(',')
-	buf.WriteByte('{')
-	// user attributes section is unused
+	if "" != e.TxnName {
+		w.stringField("transaction.name", e.TxnName)
+	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
 
-	w = jsonFieldsWriter{buf: buf}
-	for key, val := range e.Attributes {
-		w.writerField(key.String(), val)
-	}
+	writeAttrs(buf, e.UserAttributes)
+
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+
+	writeAttrs(buf, e.AgentAttributes)
 
 	buf.WriteByte('}')
 	buf.WriteByte(']')
+}
+
+func writeAttrs(buf *bytes.Buffer, attrs spanAttributeMap) {
+	w := jsonFieldsWriter{buf: buf}
+	for key, val := range attrs {
+		w.writerField(key, val)
+	}
 }
 
 // MarshalJSON is used for testing.

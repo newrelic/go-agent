@@ -409,18 +409,23 @@ func (thd *thread) End(recovered interface{}) error {
 			Timestamp:    txn.Start,
 			Duration:     txn.Duration,
 			Name:         txn.FinalName,
+			TxnName:      txn.FinalName,
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
+		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
+		root.UserAttributes.addUserAttrs(txn.Attrs.user)
+
 		if txn.rootSpanErrData != nil {
-			root.Attributes.addString(spanAttributeErrorClass, txn.rootSpanErrData.Klass)
-			root.Attributes.addString(spanAttributeErrorMessage, txn.rootSpanErrData.Msg)
+			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
+			root.AgentAttributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)
 		}
 		if nil != txn.BetterCAT.Inbound {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
 			root.TracingVendors = txn.BetterCAT.Inbound.TracingVendors
 		}
+		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
 
 		// Add transaction tracing fields to span events at the end of
@@ -512,9 +517,9 @@ func (thd *thread) noticeErrorInternal(err errorData) error {
 	return nil
 }
 
-var errorAttrs = []spanAttribute{
-	spanAttributeErrorClass,
-	spanAttributeErrorMessage,
+var errorAttrs = []string{
+	SpanAttributeErrorClass,
+	SpanAttributeErrorMessage,
 }
 
 func addErrorAttrs(t *thread, err errorData) {
@@ -526,8 +531,8 @@ func addErrorAttrs(t *thread, err errorData) {
 	for _, attr := range errorAttrs {
 		t.thread.RemoveErrorSpanAttribute(attr)
 	}
-	t.thread.AddAgentSpanAttribute(spanAttributeErrorClass, err.Klass)
-	t.thread.AddAgentSpanAttribute(spanAttributeErrorMessage, err.Msg)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorClass, err.Klass)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, err.Msg)
 }
 
 var (
@@ -1164,11 +1169,34 @@ func (txn *txn) Application() *Application {
 	return newApplication(txn.app)
 }
 
+// Note that Agent attributes added to spans must be on the allowed list of
+// span attributes, which you can find in attributes.go
 func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
-	thd.thread.AddAgentSpanAttribute(spanAttribute(key), val)
+	thd.thread.AddAgentSpanAttribute(key, val)
+}
+
+func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	if outputDests := applyAttributeConfig(thd.Attrs.config, key, destSpan); 0 == outputDests {
+		return nil
+	}
+
+	if txn.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+
+	if !txn.Reply.SecurityPolicies.CustomParameters.Enabled() {
+		return errSecurityPolicy
+	}
+
+	thd.thread.AddUserSpanAttribute(key, val)
+	return nil
 }
 
 var (

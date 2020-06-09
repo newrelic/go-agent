@@ -117,14 +117,21 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"transaction.name": "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
+			},
 		},
 	})
 }
@@ -282,14 +289,21 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestApplication/DoUnaryStream",
+				"transaction.name": "WebTransaction/Go/TestApplication/DoUnaryStream",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
+			},
 		},
 	})
 }
@@ -374,14 +388,21 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"transaction.name": "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
+			},
 		},
 	})
 }
@@ -479,14 +500,21 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"category":        "generic",
-				"name":            "WebTransaction/Go/TestApplication/DoStreamStream",
-				"nr.entryPoint":   true,
-				"parentId":        internal.MatchAnything,
-				"trustedParentId": internal.MatchAnything,
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestApplication/DoStreamStream",
+				"transaction.name": "WebTransaction/Go/TestApplication/DoStreamStream",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
+			},
 		},
 	})
 }

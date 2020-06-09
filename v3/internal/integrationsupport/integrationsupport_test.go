@@ -68,11 +68,14 @@ func TestSuccess(t *testing.T) {
 		},
 		{
 			Intrinsics: map[string]interface{}{
-				"name":          "OtherTransaction/Go/hello",
-				"category":      "generic",
-				"nr.entryPoint": true,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"category":         "generic",
+				"nr.entryPoint":    true,
 			},
-			AgentAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"host.displayName": "hostname",
+			},
 		},
 	})
 }

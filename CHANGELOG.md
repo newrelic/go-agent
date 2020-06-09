@@ -1,5 +1,44 @@
 # ChangeLog
 
+## New Features
+
+* Added support for [adding custom attributes directly to
+  spans](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Segment.AddAttribute).
+  These attributes will be visible when looking at spans in the Distributed
+  Tracing UI.
+
+  Example:
+  ```go
+  txn := newrelic.FromContext(r.Context())
+  sgmt := txn.StartSegment("segment1")
+  defer sgmt.End()
+  sgmt.AddAttribute("mySpanString", "hello")
+  sgmt.AddAttribute("mySpanInt", 123)
+  ```
+
+* Custom attributes added to the transaction with `txn.AddAttribute` are now
+  also added to the root Span Event and will be visible when looking at the
+  span in the Distributed Tracing UI. These custom attributes can be disabled
+  from all destinations using `Config.Attributes.Exclude` or disabled from Span
+  Events specifically using `Config.SpanEvents.Attributes.Exclude`.
+
+* Agent attributes added to the transaction are now also added to the root Span
+  Event and will be visible when looking at the span in the Distributed Tracing
+  UI. These attributes include the `request.uri` and the `request.method` along
+  with all other attributes listed in the [attributes section of our
+  godocs](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#pkg-constants).
+  These agent attributes can be disabled from all destinations using
+  `Config.Attributes.Exclude` or disabled from Span Events specifically using
+  `Config.SpanEvents.Attributes.Exclude`.
+
+
+### Bug Fixes
+
+* Fixed an issue where it was impossible to exclude the attributes
+  `error.class` and `error.message` from the root Span Event. This issue has
+  now been fixed. These attributes can now be excluded from all Span Events
+  using `Config.Attributes.Exclude` or `Config.SpanEvents.Attributes.Exclude`.
+
 ## 3.5.0
 
 ### New Features
@@ -20,6 +59,13 @@
   Infinite Tracing is currently available on a sign-up basis. If you would like to
   participate, please contact your sales representative.
   
+  **As part of this change, the Go Agent now has an added dependency on gRPC.** 
+  This is true whether or not you enable the Infinite Tracing feature. The gRPC dependencies include these two libraries:
+  * [github.com/golang/protobuf](https://github.com/golang/protobuf) v1.3.3
+  * [google.golang.org/grpc](https://github.com/grpc/grpc-go) v1.27.0
+
+  You can see the changes in the [go.mod file](v3/go.mod) 
+
   **As part of this change, the Go Agent now has an added dependency on gRPC.** 
   This is true whether or not you enable the Infinite Tracing feature. The gRPC dependencies include these two libraries:
   * [github.com/golang/protobuf](https://github.com/golang/protobuf) v1.3.3
@@ -118,8 +164,11 @@
     
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
+
+
 
 ## 3.3.0
 
@@ -159,7 +208,8 @@
   
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.2.0
@@ -204,7 +254,8 @@
 
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must 
+  update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.1.0
@@ -243,7 +294,8 @@
   
 ### Known Issues and Workarounds
 
-* If a .NET agent is initiating distributed traces as the root service, do not upgrade your downstream 
+* If a .NET agent is initiating distributed traces as the root service, you must update 
+  that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
 
 ## 3.0.0
