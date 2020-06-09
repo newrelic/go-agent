@@ -404,9 +404,10 @@ func newApp(c config) *app {
 	}
 
 	app.Info("application created", map[string]interface{}{
-		"app":     app.config.AppName,
-		"version": Version,
-		"enabled": app.config.Enabled,
+		"app":          app.config.AppName,
+		"version":      Version,
+		"enabled":      app.config.Enabled,
+		"grpc-version": grpcVersion,
 	})
 
 	if app.config.Enabled {

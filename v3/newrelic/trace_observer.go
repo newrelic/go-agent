@@ -54,6 +54,7 @@ const (
 	// versionSupports8T records whether we are using a supported version of Go
 	// for Infinite Tracing
 	versionSupports8T = true
+	grpcVersion       = grpc.Version
 	// recordSpanBackoff is the time to wait after a failure on the RecordSpan
 	// endpoint before retrying
 	recordSpanBackoff = 15 * time.Second
