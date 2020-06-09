@@ -33,13 +33,17 @@
   `Config.Attributes.Exclude` or disabled from Span Events specifically using
   `Config.SpanEvents.Attributes.Exclude`.
 
-
 ### Bug Fixes
 
 * Fixed an issue where it was impossible to exclude the attributes
   `error.class` and `error.message` from the root Span Event. This issue has
   now been fixed. These attributes can now be excluded from all Span Events
   using `Config.Attributes.Exclude` or `Config.SpanEvents.Attributes.Exclude`.
+  
+* Fixed an issue that caused Go's data race warnings to trigger in certain situations 
+  when using the `newrelic.NewRoundTripper`. There were no reports of actual data corruption, 
+  but now the warnings should be resolved. Thank you to @blixt for bringing this to our 
+  attention!
 
 ## 3.5.0
 
@@ -169,8 +173,6 @@
 * If a .NET agent is initiating distributed traces as the root service, you must 
   update that .NET agent to version 8.24 or later before upgrading your downstream 
   Go New Relic agents to this agent release.
-
-
 
 ## 3.3.0
 
