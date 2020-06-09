@@ -6,7 +6,6 @@ import (
 	"net"
 	"strings"
 	"testing"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
@@ -32,11 +31,11 @@ func newTestServerAndConn(t *testing.T, app *newrelic.Application) (*grpc.Server
 		s.Serve(lis)
 	}()
 
-	bufDialer := func(string, time.Duration) (net.Conn, error) {
+	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}
 	conn, err := grpc.Dial("bufnet",
-		grpc.WithDialer(bufDialer),
+		grpc.WithContextDialer(bufDialer),
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
 		grpc.WithUnaryInterceptor(UnaryClientInterceptor),

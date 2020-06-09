@@ -157,7 +157,7 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		)
 	} else {
 		conn, err = grpc.Dial("bufnet",
-			grpc.WithDialer(to.dialer),
+			grpc.WithContextDialer(to.dialer),
 			grpc.WithInsecure(),
 			grpc.WithConnectParams(connectParams),
 		)

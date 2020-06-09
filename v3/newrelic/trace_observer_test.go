@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"errors"
 	"net"
 	"reflect"
@@ -335,9 +336,9 @@ func TestTraceObserverConnected(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},
@@ -456,9 +457,9 @@ func TestTrObsSlowConnectAndRestart(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},
@@ -493,9 +494,9 @@ func TestTrObsSlowConnectAndConsumeSpan(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},
@@ -524,9 +525,9 @@ func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},
@@ -572,9 +573,9 @@ func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},
@@ -613,7 +614,7 @@ var (
 func TestTrObsRecordSpanReturnsError(t *testing.T) {
 	s := newTestObsServer(t, simpleRecordSpan)
 	defer s.Close()
-	errDialer := func(str string, d time.Duration) (net.Conn, error) {
+	errDialer := func(context.Context, string) (net.Conn, error) {
 		// It doesn't matter what error is returned here, grpc will translate
 		// this into a code 14 error. This error is returned from RecordSpan
 		// and since it is not an Unimplemented error, we will not shut down.
@@ -773,9 +774,9 @@ func TestTrObsDrainsMessagesOnShutdown(t *testing.T) {
 	})
 	defer s.Close()
 	readyChan := make(chan struct{})
-	slowDialer := func(str string, d time.Duration) (net.Conn, error) {
+	slowDialer := func(ctx context.Context, str string) (net.Conn, error) {
 		<-readyChan
-		return s.dialer(str, d)
+		return s.dialer(ctx, str)
 	}
 	cfg := observerConfig{
 		log:         logger.ShimLogger{},

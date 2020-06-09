@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -171,11 +172,11 @@ func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 
 	go grpcServer.Serve(lis)
 
-	bufDialer := func(string, time.Duration) (net.Conn, error) {
+	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}
 	conn, err := grpc.Dial("bufnet",
-		grpc.WithDialer(bufDialer),
+		grpc.WithContextDialer(bufDialer),
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
 	)
