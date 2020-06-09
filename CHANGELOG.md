@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.6.0
+
 ## New Features
 
 * Added support for [adding custom attributes directly to
