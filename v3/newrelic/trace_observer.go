@@ -350,9 +350,6 @@ func errShouldBackoff(err error) bool {
 
 func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
 	span := transformEvent(msg)
-	to.log.Debug("sending span to trace observer", map[string]interface{}{
-		"name": msg.Name,
-	})
 	to.supportability.increment <- observerSent
 	if err := spanClient.Send(span); err != nil {
 		to.log.Error("trace observer send error", map[string]interface{}{
@@ -519,9 +516,11 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	select {
 	case to.messages <- span:
 	default:
-		to.log.Debug("could not send span to trace observer because channel is full", map[string]interface{}{
-			"channel size": to.queueSize,
-		})
+		if to.log.DebugEnabled() {
+			to.log.Debug("could not send span to trace observer because channel is full", map[string]interface{}{
+				"channel size": to.queueSize,
+			})
+		}
 	}
 
 	return
