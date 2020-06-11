@@ -71,14 +71,25 @@ const (
 )
 
 var (
-	codeStrings = func() map[codes.Code]string {
-		codeStrings := make(map[codes.Code]string, numCodes)
-		for i := 0; i < numCodes; i++ {
-			code := codes.Code(i)
-			codeStrings[code] = strings.ToUpper(code.String())
-		}
-		return codeStrings
-	}()
+	codeStrings = map[codes.Code]string{
+		codes.Code(0):  "OK",
+		codes.Code(1):  "CANCELLED",
+		codes.Code(2):  "UNKNOWN",
+		codes.Code(3):  "INVALID_ARGUMENT",
+		codes.Code(4):  "DEADLINE_EXCEEDED",
+		codes.Code(5):  "NOT_FOUND",
+		codes.Code(6):  "ALREADY_EXISTS",
+		codes.Code(7):  "PERMISSION_DENIED",
+		codes.Code(8):  "RESOURCE_EXHAUSTED",
+		codes.Code(9):  "FAILED_PRECONDITION",
+		codes.Code(10): "ABORTED",
+		codes.Code(11): "OUT_OF_RANGE",
+		codes.Code(12): "UNIMPLEMENTED",
+		codes.Code(13): "INTERNAL",
+		codes.Code(14): "UNAVAILABLE",
+		codes.Code(15): "DATA_LOSS",
+		codes.Code(16): "UNAUTHENTICATED",
+	}
 )
 
 type obsResult struct {
