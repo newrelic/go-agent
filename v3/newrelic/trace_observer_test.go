@@ -152,21 +152,21 @@ func TestTraceObserverErrToCodeString(t *testing.T) {
 		expect string
 	}{
 		{code: 0, expect: "OK"},
-		{code: 1, expect: "CANCELED"},
+		{code: 1, expect: "CANCELLED"},
 		{code: 2, expect: "UNKNOWN"},
-		{code: 3, expect: "INVALIDARGUMENT"},
-		{code: 4, expect: "DEADLINEEXCEEDED"},
-		{code: 5, expect: "NOTFOUND"},
-		{code: 6, expect: "ALREADYEXISTS"},
-		{code: 7, expect: "PERMISSIONDENIED"},
-		{code: 8, expect: "RESOURCEEXHAUSTED"},
-		{code: 9, expect: "FAILEDPRECONDITION"},
+		{code: 3, expect: "INVALID_ARGUMENT"},
+		{code: 4, expect: "DEADLINE_EXCEEDED"},
+		{code: 5, expect: "NOT_FOUND"},
+		{code: 6, expect: "ALREADY_EXISTS"},
+		{code: 7, expect: "PERMISSION_DENIED"},
+		{code: 8, expect: "RESOURCE_EXHAUSTED"},
+		{code: 9, expect: "FAILED_PRECONDITION"},
 		{code: 10, expect: "ABORTED"},
-		{code: 11, expect: "OUTOFRANGE"},
+		{code: 11, expect: "OUT_OF_RANGE"},
 		{code: 12, expect: "UNIMPLEMENTED"},
 		{code: 13, expect: "INTERNAL"},
 		{code: 14, expect: "UNAVAILABLE"},
-		{code: 15, expect: "DATALOSS"},
+		{code: 15, expect: "DATA_LOSS"},
 		{code: 16, expect: "UNAUTHENTICATED"},
 		// we should always test one more than the number of codes supported by
 		// grpc so we can detect when a new code is added
@@ -222,10 +222,10 @@ func TestSendSpanMetrics(t *testing.T) {
 		t.Error("spendSpan should have returned an error when Send returns an error")
 	}
 	expectSupportabilityMetrics(t, to, map[string]float64{
-		"Supportability/InfiniteTracing/Span/Response/Error":        1,
-		"Supportability/InfiniteTracing/Span/Seen":                  0,
-		"Supportability/InfiniteTracing/Span/Sent":                  1,
-		"Supportability/InfiniteTracing/Span/gRPC/PERMISSIONDENIED": 1,
+		"Supportability/InfiniteTracing/Span/Response/Error":         1,
+		"Supportability/InfiniteTracing/Span/Seen":                   0,
+		"Supportability/InfiniteTracing/Span/Sent":                   1,
+		"Supportability/InfiniteTracing/Span/gRPC/PERMISSION_DENIED": 1,
 	})
 
 	if err := to.sendSpan(clientWithoutError, &spanEvent{}); err != nil {
