@@ -152,7 +152,7 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 	}
 
 	to, _ := newTraceObserver(
-		internal.AgentRunID("runid"),
+		internal.AgentRunID("runid"), nil,
 		observerConfig{
 			endpoint: &observerURL{},
 			log:      logger.ShimLogger{},

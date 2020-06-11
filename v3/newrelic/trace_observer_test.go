@@ -240,14 +240,28 @@ func TestSendSpanMetrics(t *testing.T) {
 const runToken = "aRunToken"
 
 func TestTraceObserverRestart(t *testing.T) {
-	s, to := createServerAndObserver(t)
+	s := newTestObsServer(t, simpleRecordSpan)
+	cfg := observerConfig{
+		log:         logger.ShimLogger{},
+		license:     testLicenseKey,
+		queueSize:   20,
+		appShutdown: make(chan struct{}),
+		dialer:      s.dialer,
+	}
+	to, err := newTraceObserver(runToken, map[string]string{"INITIAL": "VALUE1"}, cfg)
+	if nil != err {
+		t.Fatal(err)
+	}
+	waitForTrObs(t, to)
 	defer s.Close()
+
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
 		"license_key":     testLicenseKey,
+		"initial":         "VALUE1",
 	})
 	newToken := "aNewRunToken"
-	to.restart(internal.AgentRunID(newToken))
+	to.restart(internal.AgentRunID(newToken), map[string]string{"RESTART": "VALUE2"})
 
 	// Make sure the server has received the new data
 	to.consumeSpan(&spanEvent{})
@@ -258,6 +272,7 @@ func TestTraceObserverRestart(t *testing.T) {
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": newToken,
 		"license_key":     testLicenseKey,
+		"restart":         "VALUE2",
 	})
 }
 
@@ -347,7 +362,7 @@ func TestTraceObserverConnected(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -394,7 +409,7 @@ func TestTrObsShutdownAndRestart(t *testing.T) {
 	}
 
 	// Make sure we don't panic and don't send updated metadata
-	to.restart("A New Run Token")
+	to.restart("A New Run Token", map[string]string{"hello": "world"})
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
 		"license_key":     testLicenseKey,
@@ -403,7 +418,7 @@ func TestTrObsShutdownAndRestart(t *testing.T) {
 	shutdownApp(to)
 
 	// Make sure we don't panic and don't send updated metadata
-	to.restart("A New Run Token")
+	to.restart("A New Run Token", map[string]string{"hello": "world"})
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
 		"license_key":     testLicenseKey,
@@ -468,13 +483,13 @@ func TestTrObsSlowConnectAndRestart(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, map[string]string{"INITIAL": "ONE"}, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
 
 	newToken := "A New Run Token"
-	to.restart(internal.AgentRunID(newToken))
+	to.restart(internal.AgentRunID(newToken), map[string]string{"RESTART": "TWO"})
 	if s.DidSpansArrive(t, 1, 50*time.Millisecond) {
 		t.Error("Got a span we did not expect to get")
 	}
@@ -487,6 +502,7 @@ func TestTrObsSlowConnectAndRestart(t *testing.T) {
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": newToken,
 		"license_key":     testLicenseKey,
+		"restart":         "TWO",
 	})
 }
 
@@ -505,7 +521,7 @@ func TestTrObsSlowConnectAndConsumeSpan(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -536,7 +552,7 @@ func TestTrObsSlowConnectAndDumpSupportabilityMetrics(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -584,7 +600,7 @@ func TestTrObsSlowConnectAndShutdown(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -627,7 +643,7 @@ func TestTrObsRecordSpanReturnsError(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      errDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -649,7 +665,7 @@ func TestTrObsRecvReturnsUnimplementedError(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      s.dialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -672,7 +688,7 @@ func TestTrObsRecvReturnsOtherError(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      s.dialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -697,7 +713,7 @@ func TestTrObsUnimplementedNoMoreSpansSent(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: true,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -741,7 +757,7 @@ func TestTrObsPermissionDeniedMoreSpansSent(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: true,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -785,7 +801,7 @@ func TestTrObsDrainsMessagesOnShutdown(t *testing.T) {
 		appShutdown: make(chan struct{}),
 		dialer:      slowDialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -860,7 +876,7 @@ func TestTrObsOKSendBackoffNo(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: false, // ensure that the backoff remains for non-OK responses
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -902,7 +918,7 @@ func TestTrObsOKReceiveBackoffNo(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: false, // ensure that the backoff remains for non-OK responses
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -938,7 +954,7 @@ func TestTrObsPermissionDeniedSendBackoffYes(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: false, // ensure that the backoff remains for non-OK responses
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -982,7 +998,7 @@ func TestTrObsPermissionDeniedReceiveBackoffYes(t *testing.T) {
 		dialer:        s.dialer,
 		removeBackoff: false, // ensure that the backoff remains for non-OK responses
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}

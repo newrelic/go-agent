@@ -42,7 +42,7 @@ func createServerAndObserver(t *testing.T) (testObsServer, traceObserver) {
 		appShutdown: make(chan struct{}),
 		dialer:      s.dialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}

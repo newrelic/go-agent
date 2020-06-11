@@ -37,8 +37,8 @@ type gRPCtraceObserver struct {
 	restartChan      chan struct{}
 	shutdownComplete chan struct{}
 
-	runID     internal.AgentRunID
-	runIDLock sync.Mutex
+	metadata     metadata.MD
+	metadataLock sync.Mutex
 
 	supportability *observerSupport
 
@@ -90,14 +90,14 @@ type obsResult struct {
 	backoff bool
 }
 
-func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObserver, error) {
+func newTraceObserver(runID internal.AgentRunID, requestHeadersMap map[string]string, cfg observerConfig) (traceObserver, error) {
 	to := &gRPCtraceObserver{
 		messages:           make(chan *spanEvent, cfg.queueSize),
 		initialConnSuccess: make(chan struct{}),
 		restartChan:        make(chan struct{}, 1),
 		initiateShutdown:   make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
-		runID:              runID,
+		metadata:           newMetadata(runID, cfg.license, requestHeadersMap),
 		observerConfig:     cfg,
 		supportability:     newObserverSupport(),
 	}
@@ -115,6 +115,15 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObser
 		}
 	}()
 	return to, nil
+}
+
+// newMetadata creates a grpc metadata with proper keys and values for use when
+// connecting to RecordSpan.
+func newMetadata(runID internal.AgentRunID, license string, requestHeadersMap map[string]string) metadata.MD {
+	md := metadata.New(requestHeadersMap)
+	md.Set(licenseMetadataKey, license)
+	md.Set(runIDMetadataKey, string(runID))
+	return md
 }
 
 // markInitialConnSuccessful closes the gRPCtraceObserver initialConnSuccess channel and
@@ -197,13 +206,10 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 }
 
 func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
-	to.runIDLock.Lock()
-	runID := to.runID
-	to.runIDLock.Unlock()
-	ctx := metadata.AppendToOutgoingContext(context.Background(),
-		licenseMetadataKey, to.license,
-		runIDMetadataKey, string(runID),
-	)
+	to.metadataLock.Lock()
+	md := to.metadata
+	to.metadataLock.Unlock()
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
 		to.log.Error("trace observer unable to create span client", map[string]interface{}{
@@ -294,10 +300,10 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 }
 
 // restart enqueues a request to restart with a new run ID
-func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
-	to.runIDLock.Lock()
-	to.runID = runID
-	to.runIDLock.Unlock()
+func (to *gRPCtraceObserver) restart(runID internal.AgentRunID, requestHeadersMap map[string]string) {
+	to.metadataLock.Lock()
+	to.metadata = newMetadata(runID, to.license, requestHeadersMap)
+	to.metadataLock.Unlock()
 
 	// If there is already a restart on the channel, we don't need to add another
 	select {
