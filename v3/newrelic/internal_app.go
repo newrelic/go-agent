@@ -149,11 +149,11 @@ func (app *app) connectRoutine() {
 
 func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 	if obs := app.getObserver(); obs != nil {
-		obs.restart(reply.RunID)
+		obs.restart(reply.RunID, reply.RequestHeadersMap)
 		return
 	}
 
-	observer, err := newTraceObserver(reply.RunID, observerConfig{
+	observer, err := newTraceObserver(reply.RunID, reply.RequestHeadersMap, observerConfig{
 		endpoint:    app.config.traceObserverURL,
 		license:     app.config.License,
 		log:         app.config.Logger,
