@@ -379,6 +379,10 @@ func (app *app) WaitForConnection(timeout time.Duration) error {
 }
 
 func newApp(c config) *app {
+	transport := c.Transport
+	if nil == transport {
+		transport = collectorDefaultTransport
+	}
 	app := &app{
 		Logger:         c.Logger,
 		config:         c,
@@ -396,7 +400,7 @@ func newApp(c config) *app {
 		rpmControls: rpmControls{
 			License: c.License,
 			Client: &http.Client{
-				Transport: c.Transport,
+				Transport: transport,
 				Timeout:   collectorTimeout,
 			},
 			Logger: c.Logger,
