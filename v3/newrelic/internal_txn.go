@@ -89,6 +89,7 @@ func newTxn(app *app, run *appRun, name string) *thread {
 		txn.BetterCAT.SetTraceAndTxnIDs(txn.TraceIDGenerator.GenerateTraceID())
 		txn.BetterCAT.Priority = newPriorityFromRandom(txn.TraceIDGenerator.Float32)
 		txn.ShouldCollectSpanEvents = txn.shouldCollectSpanEvents
+		txn.ShouldCreateSpanGUID = txn.shouldCreateSpanGUID
 	}
 
 	txn.Attrs.Agent.Add(AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
@@ -137,6 +138,16 @@ func (txn *txn) shouldCollectSpanEvents() bool {
 		return true
 	}
 	return txn.lazilyCalculateSampled()
+}
+
+func (txn *txn) shouldCreateSpanGUID() bool {
+	if !txn.Config.DistributedTracer.Enabled {
+		return false
+	}
+	if !txn.Config.SpanEvents.Enabled {
+		return false
+	}
+	return true
 }
 
 // lazilyCalculateSampled calculates and returns whether or not the transaction
@@ -1029,7 +1040,7 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	// Calculate sampled first since this also changes the value for the
 	// priority
 	sampled := txn.lazilyCalculateSampled()
-	if txn.shouldCollectSpanEvents() {
+	if txn.shouldCreateSpanGUID() {
 		p.ID = txn.CurrentSpanIdentifier(thd.thread)
 	}
 

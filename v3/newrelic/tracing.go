@@ -72,6 +72,7 @@ type txnData struct {
 
 	TraceIDGenerator        *internal.TraceIDGenerator
 	ShouldCollectSpanEvents func() bool
+	ShouldCreateSpanGUID    func() bool
 	rootSpanID              string
 	rootSpanErrData         *errorData
 	SpanEvents              []*spanEvent
@@ -449,11 +450,14 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 
 	thread.stack = thread.stack[0:start.Depth]
 
-	if fn := t.ShouldCollectSpanEvents; nil != fn && fn() {
+	if fn := t.ShouldCreateSpanGUID; nil != fn && fn() {
 		s.SpanID = frame.spanID
 		if "" == s.SpanID {
 			s.SpanID = t.TraceIDGenerator.GenerateSpanID()
 		}
+	}
+
+	if fn := t.ShouldCollectSpanEvents; nil != fn && fn() {
 		// Note that the current span identifier is the parent's
 		// identifier because we've already popped the segment that's
 		// ending off of the stack.
