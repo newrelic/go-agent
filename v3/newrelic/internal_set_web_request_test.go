@@ -222,6 +222,30 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 			"nr.apdexPerfZone":         internal.MatchAnything,
 		},
 	}})
+	app.ExpectSpanEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"category":         "generic",
+			"guid":             internal.MatchAnything,
+			"name":             "WebTransaction/Go/hello",
+			"nr.entryPoint":    true,
+			"parentId":         internal.MatchAnything,
+			"priority":         internal.MatchAnything,
+			"sampled":          internal.MatchAnything,
+			"traceId":          internal.MatchAnything,
+			"transaction.name": "WebTransaction/Go/hello",
+			"trustedParentId":  internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"parent.account":           "123",
+			"parent.app":               "456",
+			"parent.transportDuration": internal.MatchAnything,
+			"parent.transportType":     "HTTP",
+			"parent.type":              "App",
+			"request.method":           "GET",
+			"request.uri":              "http://www.newrelic.com",
+		},
+	}})
 }
 
 func TestSetWebRequestIncompleteRequest(t *testing.T) {
