@@ -1523,6 +1523,10 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 				"traceId":          "4bf92f3577b34da6a3ce929d0e0e4736",
 				"tracingVendors":   "99999@nr",
 			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"parent.transportType": "HTTP",
+			},
 		},
 	})
 

@@ -420,10 +420,17 @@ func (thd *thread) End(recovered interface{}) error {
 			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
 			root.AgentAttributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)
 		}
-		if nil != txn.BetterCAT.Inbound {
+		if p := txn.BetterCAT.Inbound; nil != p {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
 			root.TracingVendors = txn.BetterCAT.Inbound.TracingVendors
+			if p.HasNewRelicTraceInfo {
+				root.AgentAttributes.addString("parent.type", p.Type)
+				root.AgentAttributes.addString("parent.app", p.App)
+				root.AgentAttributes.addString("parent.account", p.Account)
+				root.AgentAttributes.addFloat("parent.transportDuration", p.TransportDuration.Seconds())
+			}
+			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType)
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
