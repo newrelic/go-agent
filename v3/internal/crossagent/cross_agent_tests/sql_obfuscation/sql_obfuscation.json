@@ -646,5 +646,33 @@
       "cassandra",
       "sqlite"
     ]
+  },
+  {
+    "name": "in_clause_digits",
+    "sql": "select * from foo where bar IN (123, 456, 789)",
+    "obfuscated": [
+      "select * from foo where bar IN (?, ?, ?)"
+    ],
+    "dialects": [
+      "mysql",
+      "postgres",
+      "oracle",
+      "cassandra",
+      "mssql"
+    ]
+  },
+  {
+    "name": "in_clause_strings",
+    "sql": "select * from foo where bar IN ('asdf', 'fdsa')",
+    "obfuscated": [
+      "select * from foo where bar IN (?, ?)"
+    ],
+    "dialects": [
+      "mysql",
+      "postgres",
+      "oracle",
+      "cassandra",
+      "mssql"
+    ]
   }
 ]

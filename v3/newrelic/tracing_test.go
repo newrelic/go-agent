@@ -14,6 +14,9 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
+func trueFunc() bool  { return true }
+func falseFunc() bool { return false }
+
 func TestStartEndSegment(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 
@@ -637,7 +640,8 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	txndata := &txnData{
 		TraceIDGenerator:        internal.NewTraceIDGenerator(12345),
-		ShouldCollectSpanEvents: func() bool { return true },
+		ShouldCollectSpanEvents: trueFunc,
+		ShouldCreateSpanGUID:    trueFunc,
 	}
 	thread := &tracingThread{}
 
@@ -659,7 +663,8 @@ func TestSpanEventNotCollected(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	txndata := &txnData{
 		TraceIDGenerator:        internal.NewTraceIDGenerator(12345),
-		ShouldCollectSpanEvents: func() bool { return false },
+		ShouldCollectSpanEvents: falseFunc,
+		ShouldCreateSpanGUID:    falseFunc,
 	}
 	thread := &tracingThread{}
 
@@ -679,7 +684,8 @@ func TestDatastoreSpanEventCreation(t *testing.T) {
 	thread := &tracingThread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	txndata.ShouldCollectSpanEvents = func() bool { return true }
+	txndata.ShouldCollectSpanEvents = trueFunc
+	txndata.ShouldCreateSpanGUID = trueFunc
 
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
 	endDatastoreSegment(endDatastoreParams{
@@ -709,7 +715,8 @@ func TestHTTPSpanEventCreation(t *testing.T) {
 	thread := &tracingThread{}
 
 	// Enable that which is necessary to generate span events when segments are ended.
-	txndata.ShouldCollectSpanEvents = func() bool { return true }
+	txndata.ShouldCollectSpanEvents = trueFunc
+	txndata.ShouldCreateSpanGUID = trueFunc
 
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
 	endExternalSegment(endExternalParams{

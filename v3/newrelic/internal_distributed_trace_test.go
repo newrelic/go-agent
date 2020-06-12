@@ -1128,6 +1128,7 @@ type distributedTraceTestcase struct {
 		Transaction      *fieldExpectations `json:"Transaction,omitempty"`
 		Span             *fieldExpectations `json:"Span,omitempty"`
 		TransactionError *fieldExpectations `json:"TransactionError,omitempty"`
+		UnexpectedEvents []string           `json:"unexpected_events,omitempty"`
 	} `json:"intrinsics"`
 
 	ExpectedMetrics [][2]interface{} `json:"expected_metrics"`
@@ -1444,6 +1445,12 @@ func TestAcceptPayloadReplyMissingTrustKey(t *testing.T) {
 	app.ExpectMetrics(t, backgroundUnknownCaller)
 }
 
+func verifyHeaders(t *testing.T, actual http.Header, expected http.Header) {
+	if !reflect.DeepEqual(actual, expected) {
+		t.Error("Headers do not match - expected/actual: ", expected, actual)
+	}
+}
+
 func TestW3CTraceHeaders(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
 	txn := app.StartTransaction("hello")
@@ -1451,12 +1458,11 @@ func TestW3CTraceHeaders(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1493,12 +1499,11 @@ func TestW3CTraceHeadersNoMatchingNREntry(t *testing.T) {
 	outgoingHdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(outgoingHdrs)
 
-	if !reflect.DeepEqual(outgoingHdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900,99999@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277"},
-	}) {
-		t.Error(outgoingHdrs)
 	}
+	verifyHeaders(t, outgoingHdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1545,12 +1550,11 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 	outgoingHdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(outgoingHdrs)
 
-	if !reflect.DeepEqual(outgoingHdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.24689-1577830891900"},
-	}) {
-		t.Error(outgoingHdrs)
 	}
+	verifyHeaders(t, outgoingHdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1566,12 +1570,11 @@ func TestW3CTraceHeadersSpansDisabledSampledTrue(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1593,12 +1596,11 @@ func TestW3CTraceHeadersSpansDisabledSampledFalse(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-0-0.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1623,12 +1625,11 @@ func TestW3CTraceHeadersSpansDisabledWithTraceState(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456--52fdfc072182654f-1-1.437714-1577830891900," + originalTraceState},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1651,12 +1652,11 @@ func TestW3CTraceHeadersTxnEventsDisabled(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6--1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1677,12 +1677,11 @@ func TestW3CTraceHeadersTxnAndSpanEventsDisabledSampledTrue(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456---1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1703,12 +1702,11 @@ func TestW3CTraceHeadersTxnAndSpanEventsDisabledSampledFalse(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456---1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1730,12 +1728,11 @@ func TestW3CTraceHeadersNoTraceState(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-12345678901234567890123456789012-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -1756,12 +1753,11 @@ func TestW3CTraceHeadersInvalidTraceID(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
@@ -1783,12 +1779,11 @@ func TestW3CTraceHeadersInvalidParentID(t *testing.T) {
 	hdrs := http.Header{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 
-	if !reflect.DeepEqual(hdrs, http.Header{
+	expected := http.Header{
 		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
 		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900"},
-	}) {
-		t.Error(hdrs)
 	}
+	verifyHeaders(t, hdrs, expected)
 
 	txn.End()
 	app.expectSingleLoggedError(t, "unable to accept trace payload", map[string]interface{}{
