@@ -40,6 +40,9 @@ type gRPCtraceObserver struct {
 	metadata     metadata.MD
 	metadataLock sync.Mutex
 
+	// dialOptions are the grpc.DialOptions to be used when calling grpc.Dial.
+	dialOptions []grpc.DialOption
+
 	supportability *observerSupport
 
 	observerConfig
@@ -111,6 +114,7 @@ func newTraceObserver(runID internal.AgentRunID, requestHeadersMap map[string]st
 		metadata:           newMetadata(runID, cfg.license, requestHeadersMap),
 		observerConfig:     cfg,
 		supportability:     newObserverSupport(),
+		dialOptions:        newDialOptions(cfg),
 	}
 	go to.handleSupportability()
 	go func() {
@@ -153,35 +157,29 @@ func (to *gRPCtraceObserver) startShutdown() {
 	})
 }
 
+func newDialOptions(cfg observerConfig) []grpc.DialOption {
+	do := []grpc.DialOption{
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  15 * time.Second,
+				Multiplier: 2,
+				MaxDelay:   300 * time.Second,
+			},
+		}),
+	}
+	if cfg.endpoint.secure {
+		do = append(do, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	} else {
+		do = append(do, grpc.WithInsecure())
+	}
+	if nil != cfg.dialer {
+		do = append(do, grpc.WithContextDialer(cfg.dialer))
+	}
+	return do
+}
+
 func (to *gRPCtraceObserver) connectToTraceObserver() {
-	var cred grpc.DialOption
-	if nil == to.endpoint || !to.endpoint.secure {
-		cred = grpc.WithInsecure()
-	} else {
-		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-	}
-	var conn *grpc.ClientConn
-	var err error
-	connectParams := grpc.ConnectParams{
-		Backoff: backoff.Config{
-			BaseDelay:  15 * time.Second,
-			Multiplier: 2,
-			MaxDelay:   300 * time.Second,
-		},
-	}
-	if nil == to.dialer {
-		conn, err = grpc.Dial(
-			to.endpoint.host,
-			cred,
-			grpc.WithConnectParams(connectParams),
-		)
-	} else {
-		conn, err = grpc.Dial("bufnet",
-			grpc.WithContextDialer(to.dialer),
-			grpc.WithInsecure(),
-			grpc.WithConnectParams(connectParams),
-		)
-	}
+	conn, err := grpc.Dial(to.endpoint.host, to.dialOptions...)
 	if nil != err {
 		// this error is unrecoverable and will not be retried
 		to.log.Error("trace observer unable to dial grpc endpoint", map[string]interface{}{
