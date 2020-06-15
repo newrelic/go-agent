@@ -190,18 +190,7 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		})
 		return
 	}
-	defer func() {
-		// Related to https://github.com/grpc/grpc-go/issues/2159
-		// If we call conn.Close() immediately, some messages may still be
-		// buffered and will never be sent. Initial testing suggests this takes
-		// around 150-200ms with a full channel.
-		time.Sleep(500 * time.Millisecond)
-		if err := conn.Close(); nil != err {
-			to.log.Info("closing trace observer connection was not successful", map[string]interface{}{
-				"err": err.Error(),
-			})
-		}
-	}()
+	defer to.closeConn(conn)
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
@@ -213,6 +202,19 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		if result.backoff && !to.removeBackoff {
 			time.Sleep(recordSpanBackoff)
 		}
+	}
+}
+
+func (to *gRPCtraceObserver) closeConn(conn *grpc.ClientConn) {
+	// Related to https://github.com/grpc/grpc-go/issues/2159
+	// If we call conn.Close() immediately, some messages may still be
+	// buffered and will never be sent. Initial testing suggests this takes
+	// around 150-200ms with a full channel.
+	time.Sleep(500 * time.Millisecond)
+	if err := conn.Close(); nil != err {
+		to.log.Info("closing trace observer connection was not successful", map[string]interface{}{
+			"err": err.Error(),
+		})
 	}
 }
 
@@ -231,57 +233,19 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 			backoff:  true,
 		}
 	}
-	defer func() {
-		to.log.Debug("closing trace observer sender", map[string]interface{}{})
-		if err := spanClient.CloseSend(); err != nil {
-			to.log.Debug("error closing trace observer sender", map[string]interface{}{
-				"err": err.Error(),
-			})
-		}
-	}()
+	defer to.closeSpanClient(spanClient)
 	to.markInitialConnSuccessful()
 
 	responseError := make(chan error, 1)
 
-	go func() {
-		for {
-			s, err := spanClient.Recv()
-			if nil != err {
-				to.log.Error("trace observer response error", map[string]interface{}{
-					"err": err.Error(),
-				})
-				// NOTE: even when the trace observer is shutting down
-				// properly, an EOF error will be received here and a
-				// supportability metric created.
-				to.supportabilityError(err)
-				responseError <- err
-				return
-			}
-			to.log.Debug("trace observer response", map[string]interface{}{
-				"messages_seen": s.GetMessagesSeen(),
-			})
-		}
-	}()
+	go to.rcvResponses(spanClient, responseError)
 
 	for {
 		select {
 		case msg := <-to.messages:
-			if sendErr := to.sendSpan(spanClient, msg); sendErr != nil {
-				// When send closes so does recv. Check the error on recv
-				// because it could be a shutdown request when the error from
-				// send was not.
-				var respErr error
-				ticker := time.NewTicker(10 * time.Millisecond)
-				defer ticker.Stop()
-				select {
-				case respErr = <-responseError:
-				case <-ticker.C:
-					to.log.Debug("timeout waiting for response error from trace observer", nil)
-				}
-				return obsResult{
-					shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
-					backoff:  errShouldBackoff(sendErr) || errShouldBackoff(respErr),
-				}
+			result, success := to.trySendSpan(spanClient, msg, responseError)
+			if !success {
+				return result
 			}
 		case <-to.restartChan:
 			return obsResult{
@@ -294,19 +258,73 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 				backoff:  errShouldBackoff(err),
 			}
 		case <-to.initiateShutdown:
-			numSpans := len(to.messages)
-			for i := 0; i < numSpans; i++ {
-				msg := <-to.messages
-				if err := to.sendSpan(spanClient, msg); err != nil {
-					// if we fail to send a span, do not send the rest
-					break
-				}
-			}
+			to.drainQueue(spanClient)
 			return obsResult{
 				shutdown: true,
 				backoff:  false,
 			}
 		}
+	}
+}
+
+func (to *gRPCtraceObserver) rcvResponses(spanClient v1.IngestService_RecordSpanClient, responseError chan error) {
+	for {
+		s, err := spanClient.Recv()
+		if nil != err {
+			to.log.Error("trace observer response error", map[string]interface{}{
+				"err": err.Error(),
+			})
+			// NOTE: even when the trace observer is shutting down
+			// properly, an EOF error will be received here and a
+			// supportability metric created.
+			to.supportabilityError(err)
+			responseError <- err
+			return
+		}
+		to.log.Debug("trace observer response", map[string]interface{}{
+			"messages_seen": s.GetMessagesSeen(),
+		})
+	}
+}
+
+func (to *gRPCtraceObserver) drainQueue(spanClient v1.IngestService_RecordSpanClient) {
+	numSpans := len(to.messages)
+	for i := 0; i < numSpans; i++ {
+		msg := <-to.messages
+		if err := to.sendSpan(spanClient, msg); err != nil {
+			// if we fail to send a span, do not send the rest
+			break
+		}
+	}
+}
+
+func (to *gRPCtraceObserver) trySendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent, responseError chan error) (obsResult, bool) {
+	if sendErr := to.sendSpan(spanClient, msg); sendErr != nil {
+		// When send closes so does recv. Check the error on recv
+		// because it could be a shutdown request when the error from
+		// send was not.
+		var respErr error
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		select {
+		case respErr = <-responseError:
+		case <-ticker.C:
+			to.log.Debug("timeout waiting for response error from trace observer", nil)
+		}
+		return obsResult{
+			shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
+			backoff:  errShouldBackoff(sendErr) || errShouldBackoff(respErr),
+		}, false
+	}
+	return obsResult{}, true
+}
+
+func (to *gRPCtraceObserver) closeSpanClient(spanClient v1.IngestService_RecordSpanClient) {
+	to.log.Debug("closing trace observer sender", map[string]interface{}{})
+	if err := spanClient.CloseSend(); err != nil {
+		to.log.Debug("error closing trace observer sender", map[string]interface{}{
+			"err": err.Error(),
+		})
 	}
 }
 
