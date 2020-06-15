@@ -26,7 +26,7 @@ type traceObserver interface {
 
 type observerConfig struct {
 	// endpoint includes data about connecting to the remote trace observer
-	endpoint *observerURL
+	endpoint observerURL
 	// license is the New Relic License key
 	license string
 	// log will be used for logging

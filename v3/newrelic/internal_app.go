@@ -153,8 +153,13 @@ func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 		return
 	}
 
+	var endpoint observerURL
+	if nil != app.config.traceObserverURL {
+		endpoint = *app.config.traceObserverURL
+	}
+
 	observer, err := newTraceObserver(reply.RunID, reply.RequestHeadersMap, observerConfig{
-		endpoint:    app.config.traceObserverURL,
+		endpoint:    endpoint,
 		license:     app.config.License,
 		log:         app.config.Logger,
 		queueSize:   app.config.InfiniteTracing.SpanEvents.QueueSize,
@@ -165,12 +170,12 @@ func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 		app.Error("unable to create trace observer", map[string]interface{}{
 			"err": err.Error(),
 		})
-	} else {
-		app.Debug("trace observer connected", map[string]interface{}{
-			"url": app.config.traceObserverURL.host,
-		})
-		app.setObserver(observer)
+		return
 	}
+	app.Debug("trace observer connected", map[string]interface{}{
+		"url": app.config.traceObserverURL.host,
+	})
+	app.setObserver(observer)
 }
 
 // Connect backoff time follows the sequence defined at
