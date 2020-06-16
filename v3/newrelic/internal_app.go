@@ -242,7 +242,6 @@ func (app *app) process() {
 						"err": err.Error(),
 					})
 				}
-				defer app.setObserver(nil)
 			}
 
 			if nil != run {
@@ -260,6 +259,7 @@ func (app *app) process() {
 			}
 
 			close(app.shutdownComplete)
+			app.setObserver(nil)
 			return
 		case resp := <-app.collectorErrorChan:
 			run = nil
