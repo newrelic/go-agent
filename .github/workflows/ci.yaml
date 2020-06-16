@@ -12,13 +12,13 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v1
       id: go
       with:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v1
 
     - name: Run tests
       run: bash build-script.sh
