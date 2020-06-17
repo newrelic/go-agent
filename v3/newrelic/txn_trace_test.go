@@ -280,7 +280,8 @@ func TestTxnTraceAsync(t *testing.T) {
 	txndata.TxnTrace.StackTraceThreshold = 1 * time.Hour
 	txndata.TxnTrace.SegmentThreshold = 0
 	txndata.BetterCAT.Sampled = true
-	txndata.ShouldCollectSpanEvents = func() bool { return true }
+	txndata.ShouldCollectSpanEvents = trueFunc
+	txndata.ShouldCreateSpanGUID = trueFunc
 
 	t1s1 := startSegment(txndata, thread1, start.Add(1*time.Second))
 	t1s2 := startSegment(txndata, thread1, start.Add(2*time.Second))
@@ -306,7 +307,7 @@ func TestTxnTraceAsync(t *testing.T) {
 	}
 
 	if len(txndata.SpanEvents) != 5 {
-		t.Fatal(txndata.SpanEvents)
+		t.Fatal("Expected 5 span events, but found: ", txndata.SpanEvents)
 	}
 	for _, e := range txndata.SpanEvents {
 		if e.GUID == "" || e.ParentID == "" {

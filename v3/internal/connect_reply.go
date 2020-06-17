@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,7 +14,7 @@ type AgentRunID string
 
 // DialerFunc is a shorthand that is used in tests for connecting directly
 // to a local gRPC server
-type DialerFunc func(string, time.Duration) (net.Conn, error)
+type DialerFunc func(context.Context, string) (net.Conn, error)
 
 func (id AgentRunID) String() string {
 	return string(id)

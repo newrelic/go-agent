@@ -8,8 +8,9 @@ import (
 )
 
 type traceObserver interface {
-	// restart reconnects to the remote trace observer with the given runID.
-	restart(internal.AgentRunID)
+	// restart reconnects to the remote trace observer with the given runID and
+	// request headers.
+	restart(runID internal.AgentRunID, requestHeadersMap map[string]string)
 	// shutdown initiates a shutdown of the trace observer and blocks until either
 	// shutdown is complete or the given timeout is hit.
 	shutdown(time.Duration) error
@@ -25,7 +26,7 @@ type traceObserver interface {
 
 type observerConfig struct {
 	// endpoint includes data about connecting to the remote trace observer
-	endpoint *observerURL
+	endpoint observerURL
 	// license is the New Relic License key
 	license string
 	// log will be used for logging

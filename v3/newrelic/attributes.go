@@ -124,17 +124,22 @@ const (
 //	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 //		newrelic.SpanAttributeDBStatement)
 const (
-	SpanAttributeDBStatement  = "db.statement"
-	SpanAttributeDBInstance   = "db.instance"
-	SpanAttributeDBCollection = "db.collection"
-	SpanAttributePeerAddress  = "peer.address"
-	SpanAttributePeerHostname = "peer.hostname"
-	SpanAttributeHTTPURL      = "http.url"
-	SpanAttributeHTTPMethod   = "http.method"
-	SpanAttributeAWSOperation = "aws.operation"
-	SpanAttributeAWSRegion    = "aws.region"
-	SpanAttributeErrorClass   = "error.class"
-	SpanAttributeErrorMessage = "error.message"
+	SpanAttributeDBStatement             = "db.statement"
+	SpanAttributeDBInstance              = "db.instance"
+	SpanAttributeDBCollection            = "db.collection"
+	SpanAttributePeerAddress             = "peer.address"
+	SpanAttributePeerHostname            = "peer.hostname"
+	SpanAttributeHTTPURL                 = "http.url"
+	SpanAttributeHTTPMethod              = "http.method"
+	SpanAttributeAWSOperation            = "aws.operation"
+	SpanAttributeAWSRegion               = "aws.region"
+	SpanAttributeErrorClass              = "error.class"
+	SpanAttributeErrorMessage            = "error.message"
+	SpanAttributeParentType              = "parent.type"
+	SpanAttributeParentApp               = "parent.app"
+	SpanAttributeParentAccount           = "parent.account"
+	SpanAttributeParentTransportDuration = "parent.transportDuration"
+	SpanAttributeParentTransportType     = "parent.transportType"
 
 	// Deprecated: This attribute is a duplicate of AttributeResponseCode and
 	// will be removed in a later release.

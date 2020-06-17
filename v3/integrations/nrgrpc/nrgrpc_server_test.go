@@ -6,7 +6,6 @@ import (
 	"net"
 	"strings"
 	"testing"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
@@ -32,11 +31,11 @@ func newTestServerAndConn(t *testing.T, app *newrelic.Application) (*grpc.Server
 		s.Serve(lis)
 	}()
 
-	bufDialer := func(string, time.Duration) (net.Conn, error) {
+	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}
 	conn, err := grpc.Dial("bufnet",
-		grpc.WithDialer(bufDialer),
+		grpc.WithContextDialer(bufDialer),
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
 		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
@@ -128,6 +127,11 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
+				"parent.account":              "123",
+				"parent.app":                  "456",
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
 				"request.headers.contentType": "application/grpc",
 				"request.method":              "TestApplication/DoUnaryUnary",
 				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
@@ -300,6 +304,11 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
+				"parent.account":              "123",
+				"parent.app":                  "456",
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
 				"request.headers.contentType": "application/grpc",
 				"request.method":              "TestApplication/DoUnaryStream",
 				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
@@ -399,6 +408,11 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
+				"parent.account":              "123",
+				"parent.app":                  "456",
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
 				"request.headers.contentType": "application/grpc",
 				"request.method":              "TestApplication/DoStreamUnary",
 				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
@@ -511,6 +525,11 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
+				"parent.account":              "123",
+				"parent.app":                  "456",
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
 				"request.headers.contentType": "application/grpc",
 				"request.method":              "TestApplication/DoStreamStream",
 				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",

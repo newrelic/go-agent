@@ -37,8 +37,11 @@ type gRPCtraceObserver struct {
 	restartChan      chan struct{}
 	shutdownComplete chan struct{}
 
-	runID     internal.AgentRunID
-	runIDLock sync.Mutex
+	metadata     metadata.MD
+	metadataLock sync.Mutex
+
+	// dialOptions are the grpc.DialOptions to be used when calling grpc.Dial.
+	dialOptions []grpc.DialOption
 
 	supportability *observerSupport
 
@@ -54,6 +57,7 @@ const (
 	// versionSupports8T records whether we are using a supported version of Go
 	// for Infinite Tracing
 	versionSupports8T = true
+	grpcVersion       = grpc.Version
 	// recordSpanBackoff is the time to wait after a failure on the RecordSpan
 	// endpoint before retrying
 	recordSpanBackoff = 15 * time.Second
@@ -70,14 +74,25 @@ const (
 )
 
 var (
-	codeStrings = func() map[codes.Code]string {
-		codeStrings := make(map[codes.Code]string, numCodes)
-		for i := 0; i < numCodes; i++ {
-			code := codes.Code(i)
-			codeStrings[code] = strings.ToUpper(code.String())
-		}
-		return codeStrings
-	}()
+	codeStrings = map[codes.Code]string{
+		codes.Code(0):  "OK",
+		codes.Code(1):  "CANCELLED",
+		codes.Code(2):  "UNKNOWN",
+		codes.Code(3):  "INVALID_ARGUMENT",
+		codes.Code(4):  "DEADLINE_EXCEEDED",
+		codes.Code(5):  "NOT_FOUND",
+		codes.Code(6):  "ALREADY_EXISTS",
+		codes.Code(7):  "PERMISSION_DENIED",
+		codes.Code(8):  "RESOURCE_EXHAUSTED",
+		codes.Code(9):  "FAILED_PRECONDITION",
+		codes.Code(10): "ABORTED",
+		codes.Code(11): "OUT_OF_RANGE",
+		codes.Code(12): "UNIMPLEMENTED",
+		codes.Code(13): "INTERNAL",
+		codes.Code(14): "UNAVAILABLE",
+		codes.Code(15): "DATA_LOSS",
+		codes.Code(16): "UNAUTHENTICATED",
+	}
 )
 
 type obsResult struct {
@@ -89,16 +104,17 @@ type obsResult struct {
 	backoff bool
 }
 
-func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObserver, error) {
+func newTraceObserver(runID internal.AgentRunID, requestHeadersMap map[string]string, cfg observerConfig) (traceObserver, error) {
 	to := &gRPCtraceObserver{
 		messages:           make(chan *spanEvent, cfg.queueSize),
 		initialConnSuccess: make(chan struct{}),
 		restartChan:        make(chan struct{}, 1),
 		initiateShutdown:   make(chan struct{}),
 		shutdownComplete:   make(chan struct{}),
-		runID:              runID,
+		metadata:           newMetadata(runID, cfg.license, requestHeadersMap),
 		observerConfig:     cfg,
 		supportability:     newObserverSupport(),
+		dialOptions:        newDialOptions(cfg),
 	}
 	go to.handleSupportability()
 	go func() {
@@ -114,6 +130,15 @@ func newTraceObserver(runID internal.AgentRunID, cfg observerConfig) (traceObser
 		}
 	}()
 	return to, nil
+}
+
+// newMetadata creates a grpc metadata with proper keys and values for use when
+// connecting to RecordSpan.
+func newMetadata(runID internal.AgentRunID, license string, requestHeadersMap map[string]string) metadata.MD {
+	md := metadata.New(requestHeadersMap)
+	md.Set(licenseMetadataKey, license)
+	md.Set(runIDMetadataKey, string(runID))
+	return md
 }
 
 // markInitialConnSuccessful closes the gRPCtraceObserver initialConnSuccess channel and
@@ -132,35 +157,29 @@ func (to *gRPCtraceObserver) startShutdown() {
 	})
 }
 
+func newDialOptions(cfg observerConfig) []grpc.DialOption {
+	do := []grpc.DialOption{
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  15 * time.Second,
+				Multiplier: 2,
+				MaxDelay:   300 * time.Second,
+			},
+		}),
+	}
+	if cfg.endpoint.secure {
+		do = append(do, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	} else {
+		do = append(do, grpc.WithInsecure())
+	}
+	if nil != cfg.dialer {
+		do = append(do, grpc.WithContextDialer(cfg.dialer))
+	}
+	return do
+}
+
 func (to *gRPCtraceObserver) connectToTraceObserver() {
-	var cred grpc.DialOption
-	if nil == to.endpoint || !to.endpoint.secure {
-		cred = grpc.WithInsecure()
-	} else {
-		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-	}
-	var conn *grpc.ClientConn
-	var err error
-	connectParams := grpc.ConnectParams{
-		Backoff: backoff.Config{
-			BaseDelay:  15 * time.Second,
-			Multiplier: 2,
-			MaxDelay:   300 * time.Second,
-		},
-	}
-	if nil == to.dialer {
-		conn, err = grpc.Dial(
-			to.endpoint.host,
-			cred,
-			grpc.WithConnectParams(connectParams),
-		)
-	} else {
-		conn, err = grpc.Dial("bufnet",
-			grpc.WithDialer(to.dialer),
-			grpc.WithInsecure(),
-			grpc.WithConnectParams(connectParams),
-		)
-	}
+	conn, err := grpc.Dial(to.endpoint.host, to.dialOptions...)
 	if nil != err {
 		// this error is unrecoverable and will not be retried
 		to.log.Error("trace observer unable to dial grpc endpoint", map[string]interface{}{
@@ -169,18 +188,7 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 		})
 		return
 	}
-	defer func() {
-		// Related to https://github.com/grpc/grpc-go/issues/2159
-		// If we call conn.Close() immediately, some messages may still be
-		// buffered and will never be sent. Initial testing suggests this takes
-		// around 150-200ms with a full channel.
-		time.Sleep(500 * time.Millisecond)
-		if err := conn.Close(); nil != err {
-			to.log.Info("closing trace observer connection was not successful", map[string]interface{}{
-				"err": err.Error(),
-			})
-		}
-	}()
+	defer to.closeConn(conn)
 
 	serviceClient := v1.NewIngestServiceClient(conn)
 
@@ -195,14 +203,24 @@ func (to *gRPCtraceObserver) connectToTraceObserver() {
 	}
 }
 
+func (to *gRPCtraceObserver) closeConn(conn *grpc.ClientConn) {
+	// Related to https://github.com/grpc/grpc-go/issues/2159
+	// If we call conn.Close() immediately, some messages may still be
+	// buffered and will never be sent. Initial testing suggests this takes
+	// around 150-200ms with a full channel.
+	time.Sleep(500 * time.Millisecond)
+	if err := conn.Close(); nil != err {
+		to.log.Info("closing trace observer connection was not successful", map[string]interface{}{
+			"err": err.Error(),
+		})
+	}
+}
+
 func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClient) obsResult {
-	to.runIDLock.Lock()
-	runID := to.runID
-	to.runIDLock.Unlock()
-	ctx := metadata.AppendToOutgoingContext(context.Background(),
-		licenseMetadataKey, to.license,
-		runIDMetadataKey, string(runID),
-	)
+	to.metadataLock.Lock()
+	md := to.metadata
+	to.metadataLock.Unlock()
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	spanClient, err := serviceClient.RecordSpan(ctx)
 	if nil != err {
 		to.log.Error("trace observer unable to create span client", map[string]interface{}{
@@ -213,57 +231,19 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 			backoff:  true,
 		}
 	}
-	defer func() {
-		to.log.Debug("closing trace observer sender", map[string]interface{}{})
-		if err := spanClient.CloseSend(); err != nil {
-			to.log.Debug("error closing trace observer sender", map[string]interface{}{
-				"err": err.Error(),
-			})
-		}
-	}()
+	defer to.closeSpanClient(spanClient)
 	to.markInitialConnSuccessful()
 
 	responseError := make(chan error, 1)
 
-	go func() {
-		for {
-			s, err := spanClient.Recv()
-			if nil != err {
-				to.log.Error("trace observer response error", map[string]interface{}{
-					"err": err.Error(),
-				})
-				// NOTE: even when the trace observer is shutting down
-				// properly, an EOF error will be received here and a
-				// supportability metric created.
-				to.supportabilityError(err)
-				responseError <- err
-				return
-			}
-			to.log.Debug("trace observer response", map[string]interface{}{
-				"messages_seen": s.GetMessagesSeen(),
-			})
-		}
-	}()
+	go to.rcvResponses(spanClient, responseError)
 
 	for {
 		select {
 		case msg := <-to.messages:
-			if sendErr := to.sendSpan(spanClient, msg); sendErr != nil {
-				// When send closes so does recv. Check the error on recv
-				// because it could be a shutdown request when the error from
-				// send was not.
-				var respErr error
-				ticker := time.NewTicker(10 * time.Millisecond)
-				defer ticker.Stop()
-				select {
-				case respErr = <-responseError:
-				case <-ticker.C:
-					to.log.Debug("timeout waiting for response error from trace observer", nil)
-				}
-				return obsResult{
-					shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
-					backoff:  errShouldBackoff(sendErr) || errShouldBackoff(respErr),
-				}
+			result, success := to.trySendSpan(spanClient, msg, responseError)
+			if !success {
+				return result
 			}
 		case <-to.restartChan:
 			return obsResult{
@@ -276,14 +256,7 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 				backoff:  errShouldBackoff(err),
 			}
 		case <-to.initiateShutdown:
-			numSpans := len(to.messages)
-			for i := 0; i < numSpans; i++ {
-				msg := <-to.messages
-				if err := to.sendSpan(spanClient, msg); err != nil {
-					// if we fail to send a span, do not send the rest
-					break
-				}
-			}
+			to.drainQueue(spanClient)
 			return obsResult{
 				shutdown: true,
 				backoff:  false,
@@ -292,11 +265,72 @@ func (to *gRPCtraceObserver) connectToStream(serviceClient v1.IngestServiceClien
 	}
 }
 
+func (to *gRPCtraceObserver) rcvResponses(spanClient v1.IngestService_RecordSpanClient, responseError chan error) {
+	for {
+		s, err := spanClient.Recv()
+		if nil != err {
+			to.log.Error("trace observer response error", map[string]interface{}{
+				"err": err.Error(),
+			})
+			// NOTE: even when the trace observer is shutting down
+			// properly, an EOF error will be received here and a
+			// supportability metric created.
+			to.supportabilityError(err)
+			responseError <- err
+			return
+		}
+		to.log.Debug("trace observer response", map[string]interface{}{
+			"messages_seen": s.GetMessagesSeen(),
+		})
+	}
+}
+
+func (to *gRPCtraceObserver) drainQueue(spanClient v1.IngestService_RecordSpanClient) {
+	numSpans := len(to.messages)
+	for i := 0; i < numSpans; i++ {
+		msg := <-to.messages
+		if err := to.sendSpan(spanClient, msg); err != nil {
+			// if we fail to send a span, do not send the rest
+			break
+		}
+	}
+}
+
+func (to *gRPCtraceObserver) trySendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent, responseError chan error) (obsResult, bool) {
+	if sendErr := to.sendSpan(spanClient, msg); sendErr != nil {
+		// When send closes so does recv. Check the error on recv
+		// because it could be a shutdown request when the error from
+		// send was not.
+		var respErr error
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		select {
+		case respErr = <-responseError:
+		case <-ticker.C:
+			to.log.Debug("timeout waiting for response error from trace observer", nil)
+		}
+		return obsResult{
+			shutdown: errShouldShutdown(sendErr) || errShouldShutdown(respErr),
+			backoff:  errShouldBackoff(sendErr) || errShouldBackoff(respErr),
+		}, false
+	}
+	return obsResult{}, true
+}
+
+func (to *gRPCtraceObserver) closeSpanClient(spanClient v1.IngestService_RecordSpanClient) {
+	to.log.Debug("closing trace observer sender", map[string]interface{}{})
+	if err := spanClient.CloseSend(); err != nil {
+		to.log.Debug("error closing trace observer sender", map[string]interface{}{
+			"err": err.Error(),
+		})
+	}
+}
+
 // restart enqueues a request to restart with a new run ID
-func (to *gRPCtraceObserver) restart(runID internal.AgentRunID) {
-	to.runIDLock.Lock()
-	to.runID = runID
-	to.runIDLock.Unlock()
+func (to *gRPCtraceObserver) restart(runID internal.AgentRunID, requestHeadersMap map[string]string) {
+	to.metadataLock.Lock()
+	to.metadata = newMetadata(runID, to.license, requestHeadersMap)
+	to.metadataLock.Unlock()
 
 	// If there is already a restart on the channel, we don't need to add another
 	select {
@@ -349,9 +383,6 @@ func errShouldBackoff(err error) bool {
 
 func (to *gRPCtraceObserver) sendSpan(spanClient v1.IngestService_RecordSpanClient, msg *spanEvent) error {
 	span := transformEvent(msg)
-	to.log.Debug("sending span to trace observer", map[string]interface{}{
-		"name": msg.Name,
-	})
 	to.supportability.increment <- observerSent
 	if err := spanClient.Send(span); err != nil {
 		to.log.Error("trace observer send error", map[string]interface{}{
@@ -518,9 +549,11 @@ func (to *gRPCtraceObserver) consumeSpan(span *spanEvent) {
 	select {
 	case to.messages <- span:
 	default:
-		to.log.Debug("could not send span to trace observer because channel is full", map[string]interface{}{
-			"channel size": to.queueSize,
-		})
+		if to.log.DebugEnabled() {
+			to.log.Debug("could not send span to trace observer because channel is full", map[string]interface{}{
+				"channel size": to.queueSize,
+			})
+		}
 	}
 
 	return

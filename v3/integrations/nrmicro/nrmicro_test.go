@@ -620,6 +620,11 @@ func TestServerWrapperWithApp(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
+				"parent.account":                "123",
+				"parent.app":                    "456",
+				"parent.transportDuration":      internal.MatchAnything,
+				"parent.transportType":          "HTTP",
+				"parent.type":                   "App",
 				"request.method":                "TestHandler.Method",
 				"request.uri":                   "micro://testing/TestHandler.Method",
 				"request.headers.accept":        "application/json",
@@ -933,7 +938,12 @@ func TestServerSubscribe(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"message.routingKey": "topic",
+				"message.routingKey":       "topic",
+				"parent.account":           "123",
+				"parent.app":               "456",
+				"parent.transportDuration": internal.MatchAnything,
+				"parent.transportType":     "HTTP",
+				"parent.type":              "App",
 			},
 		},
 	})

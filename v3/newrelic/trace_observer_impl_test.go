@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -41,7 +42,7 @@ func createServerAndObserver(t *testing.T) (testObsServer, traceObserver) {
 		appShutdown: make(chan struct{}),
 		dialer:      s.dialer,
 	}
-	to, err := newTraceObserver(runToken, cfg)
+	to, err := newTraceObserver(runToken, nil, cfg)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -57,6 +58,8 @@ type expectServer struct {
 
 	spansReceivedChan chan struct{}
 	recordSpanFunc    recordSpanFunc
+
+	v1.UnimplementedIngestServiceServer
 }
 
 func (s *expectServer) RecordSpan(stream v1.IngestService_RecordSpanServer) error {
@@ -169,11 +172,11 @@ func newTestObsServer(t *testing.T, fn recordSpanFunc) testObsServer {
 
 	go grpcServer.Serve(lis)
 
-	bufDialer := func(string, time.Duration) (net.Conn, error) {
+	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}
 	conn, err := grpc.Dial("bufnet",
-		grpc.WithDialer(bufDialer),
+		grpc.WithContextDialer(bufDialer),
 		grpc.WithInsecure(),
 		grpc.WithBlock(), // create the connection synchronously
 	)

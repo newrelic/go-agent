@@ -149,12 +149,17 @@ func (app *app) connectRoutine() {
 
 func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 	if obs := app.getObserver(); obs != nil {
-		obs.restart(reply.RunID)
+		obs.restart(reply.RunID, reply.RequestHeadersMap)
 		return
 	}
 
-	observer, err := newTraceObserver(reply.RunID, observerConfig{
-		endpoint:    app.config.traceObserverURL,
+	var endpoint observerURL
+	if nil != app.config.traceObserverURL {
+		endpoint = *app.config.traceObserverURL
+	}
+
+	observer, err := newTraceObserver(reply.RunID, reply.RequestHeadersMap, observerConfig{
+		endpoint:    endpoint,
 		license:     app.config.License,
 		log:         app.config.Logger,
 		queueSize:   app.config.InfiniteTracing.SpanEvents.QueueSize,
@@ -165,12 +170,12 @@ func (app *app) connectTraceObserver(reply *internal.ConnectReply) {
 		app.Error("unable to create trace observer", map[string]interface{}{
 			"err": err.Error(),
 		})
-	} else {
-		app.Debug("trace observer connected", map[string]interface{}{
-			"url": app.config.traceObserverURL.host,
-		})
-		app.setObserver(observer)
+		return
 	}
+	app.Debug("trace observer connected", map[string]interface{}{
+		"url": app.config.traceObserverURL.host,
+	})
+	app.setObserver(observer)
 }
 
 // Connect backoff time follows the sequence defined at
@@ -237,7 +242,6 @@ func (app *app) process() {
 						"err": err.Error(),
 					})
 				}
-				defer app.setObserver(nil)
 			}
 
 			if nil != run {
@@ -255,6 +259,7 @@ func (app *app) process() {
 			}
 
 			close(app.shutdownComplete)
+			app.setObserver(nil)
 			return
 		case resp := <-app.collectorErrorChan:
 			run = nil
@@ -408,9 +413,10 @@ func newApp(c config) *app {
 	}
 
 	app.Info("application created", map[string]interface{}{
-		"app":     app.config.AppName,
-		"version": Version,
-		"enabled": app.config.Enabled,
+		"app":          app.config.AppName,
+		"version":      Version,
+		"enabled":      app.config.Enabled,
+		"grpc-version": grpcVersion,
 	})
 
 	if app.config.Enabled {
