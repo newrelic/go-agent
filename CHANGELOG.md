@@ -1,5 +1,18 @@
 # ChangeLog
 
+
+## Changes
+
+* When `Config.Transport` is nil, no longer use the `http.DefaultTransport`
+  when communicating with the New Relic backend.  This addresses an issue with
+  shared transports as described in https://github.com/golang/go/issues/33006.
+
+* If a timeout occurs when attempting to send data to the New Relic backend,
+  instead of dropping the data, we save it and attempt to send it with the
+  next harvest.  Note data retention limits still apply and the agent will
+  still start to drop data when these limits are reached. We attempt to keep
+  the highest priority events and traces.
+
 ## 3.6.0
 
 ## New Features
