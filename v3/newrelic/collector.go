@@ -74,6 +74,8 @@ type rpmResponse struct {
 	// should be used to avoid mismatch between statusCode and Err.
 	Err                      error
 	disconnectSecurityPolicy bool
+	// forceSaveHarvestData overrides the status code and forces a save of data
+	forceSaveHarvestData bool
 }
 
 func newRPMResponse(statusCode int) rpmResponse {
@@ -98,6 +100,9 @@ func (resp rpmResponse) IsRestartException() bool {
 // ShouldSaveHarvestData indicates that the agent should save the data and try
 // to send it in the next harvest.
 func (resp rpmResponse) ShouldSaveHarvestData() bool {
+	if resp.forceSaveHarvestData {
+		return true
+	}
 	switch resp.statusCode {
 	case 408, 429, 500, 503:
 		return true
@@ -165,7 +170,10 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmRespons
 
 	resp, err := cs.Client.Do(req)
 	if err != nil {
-		return rpmResponse{Err: err}
+		return rpmResponse{
+			forceSaveHarvestData: true,
+			Err:                  err,
+		}
 	}
 
 	defer resp.Body.Close()

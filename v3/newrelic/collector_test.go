@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
@@ -133,7 +134,32 @@ func TestCollectorBadRequest(t *testing.T) {
 	if nil == resp.Err {
 		t.Error("missing expected error")
 	}
+}
 
+func TestCollectorTimeout(t *testing.T) {
+	cmd := rpmCmd{
+		Name:              "cmd_name",
+		Collector:         "collector.com",
+		RunID:             "run_id",
+		Data:              nil,
+		RequestHeadersMap: map[string]string{"zip": "zap"},
+		MaxPayloadSize:    100,
+	}
+	cs := rpmControls{
+		License: "the_license",
+		Client: &http.Client{
+			Timeout: time.Nanosecond, // force a timeout
+		},
+		Logger: logger.ShimLogger{IsDebugEnabled: true},
+	}
+	u := "https://example.com"
+	resp := collectorRequestInternal(u, cmd, cs)
+	if nil == resp.Err {
+		t.Error("missing expected error")
+	}
+	if !resp.ShouldSaveHarvestData() {
+		t.Error("harvest data should be saved when timeout occurs")
+	}
 }
 
 func TestUrl(t *testing.T) {
