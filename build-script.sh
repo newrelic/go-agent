@@ -3,6 +3,8 @@ set -e
 
 LATEST_VERSION="go1.14"
 
+# NOTE: Once we get rid of travis for good, this whole section can be removed
+# along with the .travis.yml file.
 if [[ -n "$(go version | grep $LATEST_VERSION)" ]] && [[ "$TRAVIS" == "true" ]]; then
   echo "Installing updated glibc\n"
   # can we get this from an actual repository?
@@ -59,7 +61,9 @@ for dir in $DIRS; do
     # See: https://github.com/golang/lint#installation
     # For simplicity, run it on a single Go version.
     go get -u golang.org/x/lint/golint
-    golint -set_exit_status ./...
+    # do not expect golint to be in the PATH, instead use go list to discover
+    # the path to the binary.
+    $(go list -f {{.Target}} golang.org/x/lint/golint) -set_exit_status ./...
 
     # only run gofmt on a single version as the format changed from 1.10 to
     # 1.11.
