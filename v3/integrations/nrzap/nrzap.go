@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrzap supports https://github.com/uber-go/zap
 //
 // Wrap your zap Logger using nrzap.Transform to send agent log messages to zap.

@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrlogxi supports https://github.com/mgutz/logxi.
 //
 // Wrap your logxi Logger using nrlogxi.New to send agent log messages through

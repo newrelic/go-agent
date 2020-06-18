@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrmongo instruments https://github.com/mongodb/mongo-go-driver
 //
 // Use this package to instrument your MongoDB calls without having to manually

@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrgrpc instruments https://github.com/grpc/grpc-go.
 //
 // This package can be used to instrument gRPC servers and gRPC clients.

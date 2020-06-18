@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrgorilla instruments https://github.com/gorilla/mux applications.
 //
 // Use this package to instrument inbound requests handled by a gorilla

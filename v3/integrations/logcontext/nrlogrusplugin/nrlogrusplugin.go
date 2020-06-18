@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrlogrusplugin decorates logs for sending to the New Relic backend.
 //
 // Use this package if you already send your logs to New Relic and want to

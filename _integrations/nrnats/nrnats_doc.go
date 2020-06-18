@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrnats instruments https://github.com/nats-io/nats.go.
 //
 // This package can be used to simplify instrumenting NATS publishers and subscribers. Currently due to the nature of
