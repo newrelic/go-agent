@@ -1,7 +1,8 @@
 # ChangeLog
 
+## 3.7.0
 
-## Changes
+### Changes
 
 * When `Config.Transport` is nil, no longer use the `http.DefaultTransport`
   when communicating with the New Relic backend.  This addresses an issue with
@@ -15,7 +16,7 @@
 
 ## 3.6.0
 
-## New Features
+### New Features
 
 * Added support for [adding custom attributes directly to
   spans](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Segment.AddAttribute).
