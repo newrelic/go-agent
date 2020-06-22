@@ -5,8 +5,9 @@ available in the [GUIDE.md](GUIDE.md).
 
 ## Step 0: Installation
 
-The New Relic Go agent is a Go library with no dependencies.  Install it the same way
-you would install any other Go library.  The simplest way is to run:
+The New Relic Go agent is a Go library. It has two dependencies on gRPC
+libraries - see [go.mod](v3/go.mod). Install the Go agent the same way you
+would install any other Go library. The simplest way is to run:
 
 ```
 go get github.com/newrelic/go-agent
