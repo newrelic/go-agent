@@ -23,7 +23,7 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("type", "TransactionError")
 	w.stringField("error.class", e.Klass)
 	w.stringField("error.message", e.Msg)
-	w.floatField("timestamp", timeToFloatSeconds(e.When))
+	w.intField("timestamp", timeToIntMillis(e.When))
 	w.stringField("transactionName", e.FinalName)
 	if e.SpanID != "" {
 		w.stringField("spanId", e.SpanID)

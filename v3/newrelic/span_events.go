@@ -52,7 +52,7 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("transactionId", e.TransactionID)
 	w.boolField("sampled", e.Sampled)
 	w.writerField("priority", e.Priority)
-	w.intField("timestamp", e.Timestamp.UnixNano()/(1000*1000)) // in milliseconds
+	w.intField("timestamp", timeToIntMillis(e.Timestamp))
 	w.floatField("duration", e.Duration.Seconds())
 	w.stringField("name", e.Name)
 	w.stringField("category", string(e.Category))

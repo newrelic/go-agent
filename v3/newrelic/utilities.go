@@ -31,8 +31,8 @@ func removeFirstSegment(name string) string {
 	return name[idx+1:]
 }
 
-func timeToFloatSeconds(t time.Time) float64 {
-	return float64(t.UnixNano()) / float64(1000*1000*1000)
+func timeToIntMillis(t time.Time) int64 {
+	return t.UnixNano() / (1000 * 1000)
 }
 
 func timeToFloatMilliseconds(t time.Time) float64 {

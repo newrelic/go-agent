@@ -35,7 +35,7 @@ func TestCreateCustomEventSuccess(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{"alpha":1},{}]` {
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{"alpha":1},{}]` {
 		t.Fatal(string(js))
 	}
 }
@@ -69,7 +69,7 @@ func TestNilParams(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{},{}]` {
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{},{}]` {
 		t.Fatal(string(js))
 	}
 }
@@ -93,7 +93,7 @@ func TestEmptyParams(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{},{}]` {
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{},{}]` {
 		t.Fatal(string(js))
 	}
 }
@@ -107,7 +107,7 @@ func TestTruncatedStringValue(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{"alpha":"`+strLen255+`"},{}]` {
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{"alpha":"`+strLen255+`"},{}]` {
 		t.Fatal(string(js))
 	}
 }
@@ -181,7 +181,7 @@ func TestCustomEventAttributeTypes(t *testing.T) {
 		if nil != err {
 			t.Fatal(err)
 		}
-		if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{"key":`+tc.js+`},{}]` {
+		if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{"key":`+tc.js+`},{}]` {
 			t.Fatal(string(js))
 		}
 	}
@@ -199,7 +199,7 @@ func TestCustomParamsCopied(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	if string(js) != `[{"type":"myEvent","timestamp":1.41713646e+09},{"alpha":1},{}]` {
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{"alpha":1},{}]` {
 		t.Fatal(string(js))
 	}
 }
