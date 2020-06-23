@@ -77,7 +77,7 @@ func TestTxnEventMarshal(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":false,
 		"duration":2,
 		"totalTime":3,
@@ -97,7 +97,7 @@ func TestTxnEventMarshalWithApdex(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"nr.apdexPerfZone":"F",
 		"error":false,
 		"duration":2,
@@ -122,7 +122,7 @@ func TestTxnEventMarshalWithDatastoreExternal(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":false,
 		"duration":2,
 		"externalCallCount":22,
@@ -157,7 +157,7 @@ func TestTxnEventMarshalWithInboundCaller(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":false,
 		"duration":2,
 		"totalTime":3,
@@ -192,7 +192,7 @@ func TestTxnEventMarshalWithInboundCallerOldCAT(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myOldName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":false,
 		"duration":2,
 		"totalTime":3
@@ -217,7 +217,7 @@ func TestTxnEventMarshalWithAttributes(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":false,
 		"duration":2,
 		"totalTime":3,
@@ -334,7 +334,7 @@ func TestTxnEventMarshalWithError(t *testing.T) {
 	{
 		"type":"Transaction",
 		"name":"myName",
-		"timestamp":1.488393111e+09,
+		"timestamp":1488393111000,
 		"error":true,
 		"duration":2,
 		"totalTime":3,

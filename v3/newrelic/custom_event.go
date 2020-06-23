@@ -35,7 +35,7 @@ func (e *customEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('[')
 	buf.WriteByte('{')
 	w.stringField("type", e.eventType)
-	w.floatField("timestamp", timeToFloatSeconds(e.timestamp))
+	w.intField("timestamp", timeToIntMillis(e.timestamp))
 	buf.WriteByte('}')
 
 	buf.WriteByte(',')

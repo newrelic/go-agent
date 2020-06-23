@@ -14,7 +14,7 @@ func (e *txnEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('{')
 	w.stringField("type", "Transaction")
 	w.stringField("name", e.FinalName)
-	w.floatField("timestamp", timeToFloatSeconds(e.Start))
+	w.intField("timestamp", timeToIntMillis(e.Start))
 	if apdexNone != e.Zone {
 		w.stringField("nr.apdexPerfZone", e.Zone.label())
 	}
