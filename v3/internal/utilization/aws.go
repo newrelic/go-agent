@@ -2,6 +2,7 @@ package utilization
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -40,7 +41,18 @@ func (e unexpectedAWSErr) Error() string {
 	return fmt.Sprintf("unexpected AWS error: %v", e.e)
 }
 
-func getAWS(client *http.Client) (*aws, error) {
+func getAWS(client *http.Client) (ret *aws, err error) {
+	// In some cases, 3rd party providers might block requests to metadata
+	// endpoints in such a way that causes a panic in the underlying
+	// net/http library's (*Transport).getConn() function. To mitigate that
+	// possibility, we preemptively setup a recovery deferral.
+	defer func() {
+		if r := recover(); r != nil {
+			ret = nil
+			err = unexpectedAWSErr{e: errors.New("panic contacting AWS metadata endpoint")}
+		}
+	}()
+
 	response, err := client.Get(awsEndpoint)
 	if err != nil {
 		// No unexpectedAWSErr here: A timeout is usually going to
