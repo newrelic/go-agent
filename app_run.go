@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package newrelic
 
 import (
@@ -174,8 +177,10 @@ func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.MaxTxnEvents
 func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }
-func (run *appRun) MaxErrorEvents() int { return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents) }
-func (run *appRun) MaxSpanEvents() int  { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
+func (run *appRun) MaxErrorEvents() int {
+	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+func (run *appRun) MaxSpanEvents() int { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
 	if nil != field() {

@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package newrelic
 
 // stackTracer can be implemented by errors to provide a stack trace when using

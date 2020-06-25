@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrredis instruments github.com/go-redis/redis/v7.
 //
 // Use this package to instrument your go-redis/redis/v7 calls without having to

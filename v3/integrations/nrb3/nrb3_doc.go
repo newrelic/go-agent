@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrb3 supports adding B3 headers to outgoing requests.
 //
 // When using the New Relic Go Agent, use this package if you want to add B3

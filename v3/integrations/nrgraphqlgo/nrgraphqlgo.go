@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrgraphqlgo instruments https://github.com/graphql-go/graphql
 // applications.
 //

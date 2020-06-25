@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package newrelic
 
 import (
@@ -208,7 +211,7 @@ func TestStackTraceTopFrame(t *testing.T) {
 	if stack[0].Name != "stacktracetest.TopStackFrame" {
 		t.Error(string(stackJSON))
 	}
-	if stack[0].Line != 6 {
+	if stack[0].Line != 9 {
 		t.Error(string(stackJSON))
 	}
 	if !strings.Contains(stack[0].FilePath, "go-agent/v3/internal/stacktracetest/stacktracetest.go") {

@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrlogrus sends go-agent log messages to
 // https://github.com/sirupsen/logrus.
 //

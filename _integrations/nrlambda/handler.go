@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrlambda adds support for AWS Lambda.
 //
 // Use this package to instrument your AWS Lambda handler function.  Data is

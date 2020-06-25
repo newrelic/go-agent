@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // +build go1.10
 
 // Package nrsqlite3 instruments https://github.com/mattn/go-sqlite3.

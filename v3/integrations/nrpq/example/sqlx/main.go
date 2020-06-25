@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // An application that illustrates how to instrument jmoiron/sqlx with DatastoreSegments
 //
 // To run this example, be sure the environment varible NEW_RELIC_LICENSE_KEY

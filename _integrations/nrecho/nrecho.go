@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrecho instruments https://github.com/labstack/echo applications.
 //
 // Use this package to instrument inbound requests handled by an echo.Echo

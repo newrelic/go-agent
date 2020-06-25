@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package logcontext facilitates adding New Relic context to your logs.
 //
 // Adding New Relic context to your logs will allow you to see links between

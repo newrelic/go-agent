@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrpkgerrors introduces support for https://github.com/pkg/errors.
 //
 // This package improves the class and stack-trace fields of pkg/error errors

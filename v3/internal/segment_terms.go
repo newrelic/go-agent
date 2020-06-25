@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 package internal
 
 // https://newrelic.atlassian.net/wiki/display/eng/Language+agent+transaction+segment+terms+rules

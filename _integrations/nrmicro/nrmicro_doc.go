@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrmicro instruments https://github.com/micro/go-micro.
 //
 // This package can be used to instrument Micro Servers, Clients, Producers,

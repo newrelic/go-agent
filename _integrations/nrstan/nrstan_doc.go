@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrstan instruments https://github.com/nats-io/stan.go.
 //
 // This package can be used to simplify instrumenting NATS Streaming subscribers. Currently due to the nature of

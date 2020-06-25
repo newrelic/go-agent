@@ -1,3 +1,6 @@
+# Copyright 2020 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # This Dockerfile builds a docker image which prints utilization information.
 # It is designed to be build from the top level (go-agent directory).
 #
