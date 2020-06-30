@@ -448,13 +448,16 @@ defer s.End()
 Attributes add context to errors and allow you to filter performance data
 in Insights.
 
-You may add them using the `Transaction.AddAttribute` method.
+You may add them using the `Transaction.AddAttribute` and `Segment.AddAttribute`
+methods.
 
 ```go
 txn.AddAttribute("key", "value")
 txn.AddAttribute("product", "widget")
 txn.AddAttribute("price", 19.99)
 txn.AddAttribute("importantCustomer", true)
+
+seg.AddAttribute("count", 14)
 ```
 
 * [More info on Custom Attributes](https://docs.newrelic.com/docs/insights/new-relic-insights/decorating-events/insights-custom-attributes)
@@ -510,7 +513,7 @@ app, err := newrelic.NewApplication(
 )
 ```
 
-### Cross-Application Tracing
+### Cross-Application Tracing [Deprecated]
 
 New Relic's
 [cross-application tracing](https://docs.newrelic.com/docs/apm/transactions/cross-application-traces/introduction-cross-application-traces)
