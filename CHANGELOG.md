@@ -1,5 +1,7 @@
 # ChangeLog
 
+## 3.8.0
+
 ### Changes
 * When marking a transaction as a web transaction using 
 [Transaction.SetWebRequest](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.SetWebRequest), 
