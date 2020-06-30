@@ -6,6 +6,8 @@ Contributions are always welcome. Before contributing please read the
 
 Note that our [code of conduct](./CODE_OF_CONDUCT.md) applies to all platforms and venues related to this project; please follow it in all your interactions with the project and its participants.
 
+Please note, we only accept pull request for versions 3.8.0 of this project or greater.
+
 ## Feature Requests
 
 Feature requests should be submitted in the [Issue tracker](../../issues), with a description of the expected behavior & use case, where they’ll remain closed until sufficient interest, [e.g. :+1: reactions](https://help.github.com/articles/about-discussions-in-issues-and-pull-requests/), has been [shown by the community](../../issues?q=is%3Aissue+sort%3Areactions-%2B1-desc).
