@@ -404,6 +404,7 @@ func TestSpanAttributesFromTxnExcludedOnTxn(t *testing.T) {
 		cfg.TransactionEvents.Attributes.Exclude = []string{
 			AttributeRequestMethod,
 			AttributeRequestURI,
+			AttributeRequestHost,
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)
@@ -436,8 +437,9 @@ func TestSpanAttributesFromTxnExcludedOnTxn(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"request.method": "GET",
-				"request.uri":    "http://example.com",
+				"request.method":       "GET",
+				"request.uri":          "http://example.com",
+				"request.headers.host": "example.com",
 			},
 		},
 	})
@@ -470,8 +472,9 @@ func TestSpanAttributesFromTxnExcludedByDefault(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"request.method": "GET",
-				"request.uri":    "http://example.com",
+				"request.method":       "GET",
+				"request.uri":          "http://example.com",
+				"request.headers.host": "example.com",
 			},
 		},
 	})
@@ -486,8 +489,9 @@ func TestSpanAttributesFromTxnExcludedByDefault(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"request.method": "GET",
-				"request.uri":    "http://example.com",
+				"request.method":       "GET",
+				"request.uri":          "http://example.com",
+				"request.headers.host": "example.com",
 			},
 		},
 	})
@@ -514,8 +518,9 @@ func TestSpanAttributesFromTxnExcludedByDefault(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"request.method": "GET",
-				"request.uri":    "http://example.com",
+				"request.method":       "GET",
+				"request.uri":          "http://example.com",
+				"request.headers.host": "example.com",
 			},
 		},
 	})
@@ -533,6 +538,7 @@ func TestSpanAttributesFromTxnExcludedByDefault(t *testing.T) {
 				"request.method":            "GET",
 				"request.uri":               "http://example.com",
 				"request.headers.userAgent": "sample user agent",
+				"request.headers.host":      "example.com",
 			},
 		},
 	})
@@ -549,6 +555,7 @@ func TestSpanAttributesFromTxnExcludedOnSpan(t *testing.T) {
 		cfg.SpanEvents.Attributes.Exclude = []string{
 			AttributeRequestMethod,
 			AttributeRequestURI,
+			AttributeRequestHost,
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)
@@ -568,8 +575,9 @@ func TestSpanAttributesFromTxnExcludedOnSpan(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{},
 			AgentAttributes: map[string]interface{}{
-				"request.method": "GET",
-				"request.uri":    "http://example.com",
+				"request.method":       "GET",
+				"request.uri":          "http://example.com",
+				"request.headers.host": "example.com",
 			},
 		},
 	})
@@ -599,6 +607,7 @@ func TestSpanAttributesFromTxnExcludedGlobally(t *testing.T) {
 		cfg.Attributes.Exclude = []string{
 			AttributeRequestMethod,
 			AttributeRequestURI,
+			AttributeRequestHost,
 		}
 	}
 	app := testApp(replyfn, cfgfn, t)

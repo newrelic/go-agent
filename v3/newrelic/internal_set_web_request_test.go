@@ -19,8 +19,10 @@ var (
 		}
 		req.Header.Set("Accept", "myaccept")
 		req.Header.Set("Content-Type", "mycontent")
-		req.Header.Set("Host", "myhost")
 		req.Header.Set("Content-Length", "123")
+		//we should pull the host from the request field, not the headers
+		req.Header.Set("Host", "wrongHost")
+		req.Host = "myhost"
 		return req
 	}()
 	sampleCustomRequest = func() WebRequest {
@@ -31,13 +33,15 @@ var (
 		hdr := make(http.Header)
 		hdr.Set("Accept", "myaccept")
 		hdr.Set("Content-Type", "mycontent")
-		hdr.Set("Host", "myhost")
 		hdr.Set("Content-Length", "123")
+		//we should pull the host from the request field, not the headers
+		hdr.Set("Host", "wrongHost")
 		return WebRequest{
 			Header:    hdr,
 			URL:       u,
 			Method:    "GET",
 			Transport: TransportHTTP,
+			Host:      "myhost",
 		}
 	}()
 	sampleRequestAgentAttributes = map[string]interface{}{
@@ -206,8 +210,9 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		AgentAttributes: map[string]interface{}{
-			"request.method": "GET",
-			"request.uri":    "http://www.newrelic.com",
+			"request.method":       "GET",
+			"request.uri":          "http://www.newrelic.com",
+			"request.headers.host": "myhost",
 		},
 		Intrinsics: map[string]interface{}{
 			"name":                     "WebTransaction/Go/hello",
@@ -247,6 +252,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 			"parent.type":              "App",
 			"request.method":           "GET",
 			"request.uri":              "http://www.newrelic.com",
+			"request.headers.host":     "myhost",
 		},
 	}})
 }

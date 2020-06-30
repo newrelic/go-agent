@@ -176,9 +176,12 @@ var (
 		r.Header.Add(`Accept`, `text/plain`)
 		r.Header.Add(`Content-Type`, `text/html; charset=utf-8`)
 		r.Header.Add(`Content-Length`, `753`)
-		r.Header.Add(`Host`, `my_domain.com`)
 		r.Header.Add(`User-Agent`, `Mozilla/5.0`)
 		r.Header.Add(`Referer`, `http://en.wikipedia.org/zip?secret=password`)
+		//we should pull the host from the request field, not the headers
+		r.Header.Add(`Host`, `wrongHost`)
+
+		r.Host = "my_domain.com"
 
 		return r
 	}()

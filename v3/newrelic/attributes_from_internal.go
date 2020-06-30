@@ -489,24 +489,24 @@ func userAttributesStringJSON(a *attributes, d destinationSet, extraAttributes m
 }
 
 // RequestAgentAttributes gathers agent attributes out of the request.
-func requestAgentAttributes(a *attributes, method string, h http.Header, u *url.URL) {
+func requestAgentAttributes(a *attributes, method string, hdrs http.Header, u *url.URL, host string) {
 	a.Agent.Add(AttributeRequestMethod, method, nil)
 
 	if nil != u {
 		a.Agent.Add(AttributeRequestURI, safeURL(u), nil)
 	}
 
-	if nil == h {
+	if nil == hdrs {
 		return
 	}
-	a.Agent.Add(AttributeRequestAccept, h.Get("Accept"), nil)
-	a.Agent.Add(AttributeRequestContentType, h.Get("Content-Type"), nil)
-	a.Agent.Add(AttributeRequestHost, h.Get("Host"), nil)
-	a.Agent.Add(AttributeRequestUserAgent, h.Get("User-Agent"), nil)
-	a.Agent.Add(AttributeRequestUserAgentDeprecated, h.Get("User-Agent"), nil)
-	a.Agent.Add(AttributeRequestReferer, safeURLFromString(h.Get("Referer")), nil)
+	a.Agent.Add(AttributeRequestAccept, hdrs.Get("Accept"), nil)
+	a.Agent.Add(AttributeRequestContentType, hdrs.Get("Content-Type"), nil)
+	a.Agent.Add(AttributeRequestUserAgent, hdrs.Get("User-Agent"), nil)
+	a.Agent.Add(AttributeRequestUserAgentDeprecated, hdrs.Get("User-Agent"), nil)
+	a.Agent.Add(AttributeRequestReferer, safeURLFromString(hdrs.Get("Referer")), nil)
+	a.Agent.Add(AttributeRequestHost, host, nil)
 
-	if l := getContentLengthFromHeader(h); l >= 0 {
+	if l := getContentLengthFromHeader(hdrs); l >= 0 {
 		a.Agent.Add(AttributeRequestContentLength, "", l)
 	}
 }

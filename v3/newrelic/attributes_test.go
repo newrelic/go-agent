@@ -363,7 +363,7 @@ func agentAttributesMap(attrs *attributes, d destinationSet) map[string]interfac
 func TestRequestAgentAttributesEmptyInput(t *testing.T) {
 	cfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attrs := newAttributes(cfg)
-	requestAgentAttributes(attrs, "", nil, nil)
+	requestAgentAttributes(attrs, "", nil, nil, "")
 	got := agentAttributesMap(attrs, destAll)
 	expectAttributes(t, got, map[string]interface{}{})
 }
@@ -375,15 +375,16 @@ func TestRequestAgentAttributesPresent(t *testing.T) {
 	}
 	req.Header.Set("Accept", "the-accept")
 	req.Header.Set("Content-Type", "the-content-type")
-	req.Header.Set("Host", "the-host")
 	req.Header.Set("User-Agent", "the-agent")
 	req.Header.Set("Referer", "http://www.example.com")
 	req.Header.Set("Content-Length", "123")
 
+	req.Host = "the-host"
+
 	cfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 
 	attrs := newAttributes(cfg)
-	requestAgentAttributes(attrs, req.Method, req.Header, req.URL)
+	requestAgentAttributes(attrs, req.Method, req.Header, req.URL, req.Host)
 	got := agentAttributesMap(attrs, destAll)
 	expectAttributes(t, got, map[string]interface{}{
 		"request.headers.contentType":   "the-content-type",
@@ -408,17 +409,18 @@ func BenchmarkAgentAttributes(b *testing.B) {
 
 	req.Header.Set("Accept", "zap")
 	req.Header.Set("Content-Type", "zap")
-	req.Header.Set("Host", "zap")
 	req.Header.Set("User-Agent", "zap")
 	req.Header.Set("Referer", "http://www.newrelic.com")
 	req.Header.Set("Content-Length", "123")
+
+	req.Host = "zap"
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
 		attrs := newAttributes(cfg)
-		requestAgentAttributes(attrs, req.Method, req.Header, req.URL)
+		requestAgentAttributes(attrs, req.Method, req.Header, req.URL, req.Host)
 		buf := bytes.Buffer{}
 		agentAttributesJSON(attrs, &buf, destTxnTrace)
 	}

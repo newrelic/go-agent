@@ -131,6 +131,7 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 		URL:       r.URL,
 		Method:    r.Method,
 		Transport: transport(r),
+		Host:      r.Host,
 	}
 	txn.SetWebRequest(wr)
 }
@@ -412,6 +413,9 @@ type WebRequest struct {
 	// If a distributed tracing header is found in the WebRequest.Header,
 	// this TransportType will be used in the distributed tracing metrics.
 	Transport TransportType
+	// This is the value of the `Host` header. Go does not add it to the
+	// http.Header object and so must be passed separately.
+	Host string
 }
 
 // LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains

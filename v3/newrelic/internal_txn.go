@@ -190,7 +190,7 @@ func (txn *txn) SetWebRequest(r WebRequest) error {
 		txn.CrossProcess.InboundHTTPRequest(h)
 	}
 
-	requestAgentAttributes(txn.Attrs, r.Method, h, r.URL)
+	requestAgentAttributes(txn.Attrs, r.Method, h, r.URL, r.Host)
 
 	return nil
 }

@@ -1,5 +1,18 @@
 # ChangeLog
 
+### Changes
+* When marking a transaction as a web transaction using 
+[Transaction.SetWebRequest](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.SetWebRequest), 
+it is now possible to include a `Host` field in the 
+[WebRequest](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#WebRequest)
+ struct, which defaults to the empty string.
+
+### Bug Fixes
+
+* The `Host` header is now being correctly captured and recorded in the 
+ `request.headers.host` attribute, as described 
+ [here](https://docs.newrelic.com/docs/agents/go-agent/instrumentation/go-agent-attributes#requestHeadersHost).
+
 ## 3.7.0
 
 ### Changes
