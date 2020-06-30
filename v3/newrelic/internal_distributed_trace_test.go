@@ -2245,3 +2245,39 @@ func TestDTHeadersAddedTwice(t *testing.T) {
 	txn.InsertDistributedTraceHeaders(hdrs)
 	assertHdrs(hdrs)
 }
+
+func TestW3CHeaderCases(t *testing.T) {
+	traceparent := "00-050c91b77efca9b0ef38b30c182355ce-560ccffb087d1906-01"
+	tracestate := "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0"
+
+	testcases := []struct {
+		parent string
+		state  string
+	}{
+		{parent: "traceparent", state: "Tracestate"},
+		{parent: "Traceparent", state: "Tracestate"},
+		{parent: "TraceParent", state: "Tracestate"},
+		{parent: "Traceparent", state: "tracestate"},
+		{parent: "Traceparent", state: "Tracestate"},
+		{parent: "Traceparent", state: "TraceState"},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.parent+"-"+tc.state, func(t *testing.T) {
+			app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+			txn := app.StartTransaction("hello")
+
+			hdrs := http.Header{}
+			hdrs.Set(tc.parent, traceparent)
+			hdrs.Set(tc.state, tracestate)
+
+			txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+			txn.End()
+
+			app.ExpectMetricsPresent(t, []internal.WantMetric{
+				// presence of this metric indicates that accepting succeeded
+				{Name: "DurationByCaller/App/123/456/HTTP/all"},
+			})
+		})
+	}
+}
