@@ -12,6 +12,9 @@ it is now possible to include a `Host` field in the
 * The `Host` header is now being correctly captured and recorded in the 
  `request.headers.host` attribute, as described 
  [here](https://docs.newrelic.com/docs/agents/go-agent/instrumentation/go-agent-attributes#requestHeadersHost).
+*  Previously, the timestamps on Spans and Transactions were being written
+   using different data types, which sometimes caused rounding errors that
+   could cause spans to be offset incorrectly in the UI. This has been fixed.
 
 ## 3.7.0
 
