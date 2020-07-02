@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -190,13 +191,17 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
+	return txn.startSegmentAt(time.Now())
+}
+
+func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 	if nil == txn {
 		return SegmentStartTime{}
 	}
 	if nil == txn.thread {
 		return SegmentStartTime{}
 	}
-	return txn.thread.StartSegmentNow()
+	return txn.thread.startSegmentAt(at)
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do

@@ -62,7 +62,7 @@ func (bld SQLDriverSegmentBuilder) startSegment(ctx context.Context) DatastoreSe
 
 func (bld SQLDriverSegmentBuilder) startSegmentAt(ctx context.Context, at time.Time) DatastoreSegment {
 	segment := bld.BaseSegment
-	segment.StartTime = FromContext(ctx).thread.startSegmentAt(at)
+	segment.StartTime = FromContext(ctx).startSegmentAt(at)
 	return segment
 }
 

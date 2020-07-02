@@ -700,10 +700,6 @@ func (txn *txn) Ignore() error {
 	return nil
 }
 
-func (thd *thread) StartSegmentNow() SegmentStartTime {
-	return thd.startSegmentAt(time.Now())
-}
-
 func (thd *thread) startSegmentAt(at time.Time) SegmentStartTime {
 	var s segmentStartTime
 	txn := thd.txn
