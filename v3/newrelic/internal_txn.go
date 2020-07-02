@@ -701,11 +701,15 @@ func (txn *txn) Ignore() error {
 }
 
 func (thd *thread) StartSegmentNow() SegmentStartTime {
+	return thd.startSegmentAt(time.Now())
+}
+
+func (thd *thread) startSegmentAt(at time.Time) SegmentStartTime {
 	var s segmentStartTime
 	txn := thd.txn
 	txn.Lock()
 	if !txn.finished {
-		s = startSegment(&txn.txnData, thd.thread, time.Now())
+		s = startSegment(&txn.txnData, thd.thread, at)
 	}
 	txn.Unlock()
 	return SegmentStartTime{
