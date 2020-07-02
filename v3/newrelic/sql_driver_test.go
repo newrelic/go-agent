@@ -271,3 +271,10 @@ func TestQueryContextErrSkipReturned(t *testing.T) {
 		},
 	})
 }
+
+// Ensure we don't panic if the txn is nil
+func TestSQLNoTxnNoCry(t *testing.T) {
+	connector := InstrumentSQLConnector(testConnector{}, testBuilder)
+	conn, _ := connector.Connect(nil)
+	conn.(driver.QueryerContext).QueryContext(context.Background(), "myoperation,mycollection", nil)
+}
