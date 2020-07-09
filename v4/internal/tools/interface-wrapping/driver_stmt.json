@@ -1,0 +1,14 @@
+{
+	"comment": "used in wrapping driver.Stmt",
+	"variable_name": "stmt",
+	"test_variable_name": "stmt.original",
+	"required_interfaces": [
+		"driver.Stmt"
+	],
+	"optional_interfaces": [
+		"driver.ColumnConverter",
+		"driver.NamedValueChecker",
+		"driver.StmtExecContext",
+		"driver.StmtQueryContext"
+	]
+}
