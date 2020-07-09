@@ -172,22 +172,6 @@ func (s *MessageProducerSegment) End() {}
 // set automatically when using NewRoundTripper.
 func (s *ExternalSegment) SetStatusCode(code int) {}
 
-// StartSegmentNow starts timing a segment.
-//
-// Deprecated: StartSegmentNow is deprecated and will be removed in a future
-// release. Use Transaction.StartSegmentNow instead.
-func StartSegmentNow(txn *Transaction) SegmentStartTime {
-	return SegmentStartTime{}
-}
-
-// StartSegment instruments segments.
-//
-// Deprecated: StartSegment is deprecated and will be removed in a future
-// release.  Use Transaction.StartSegment instead.
-func StartSegment(txn *Transaction, name string) *Segment {
-	return nil
-}
-
 // StartExternalSegment starts the instrumentation of an external call and adds
 // distributed tracing headers to the request.  If the Transaction parameter is
 // nil then StartExternalSegment will look for a Transaction in the request's
