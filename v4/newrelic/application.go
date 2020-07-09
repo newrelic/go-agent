@@ -4,23 +4,16 @@
 package newrelic
 
 import (
-	"os"
 	"time"
 )
 
 // Application represents your application.  All methods on Application are nil
 // safe.  Therefore, a nil Application pointer can be safely used as a mock.
-type Application struct {
-	Private interface{}
-	app     *app
-}
+type Application struct{}
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
-	if nil == app {
-		return nil
-	}
-	return app.app.StartTransaction(name)
+	return nil
 }
 
 // RecordCustomEvent adds a custom event.
@@ -35,21 +28,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 // https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 //
 // An error is logged if eventType or params is invalid.
-func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
-		return
-	}
-	err := app.app.RecordCustomEvent(eventType, params)
-	if err != nil {
-		app.app.Error("unable to record custom event", map[string]interface{}{
-			"event-type": eventType,
-			"reason":     err.Error(),
-		})
-	}
-}
+func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {}
 
 // RecordCustomMetric records a custom metric.  The metric name you
 // provide will be prefixed by "Custom/".  Custom metrics are not
@@ -58,21 +37,7 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // See
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
 // for more information on custom events.
-func (app *Application) RecordCustomMetric(name string, value float64) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
-		return
-	}
-	err := app.app.RecordCustomMetric(name, value)
-	if err != nil {
-		app.app.Error("unable to record custom metric", map[string]interface{}{
-			"metric-name": name,
-			"reason":      err.Error(),
-		})
-	}
-}
+func (app *Application) RecordCustomMetric(name string, value float64) {}
 
 // WaitForConnection blocks until the application is connected, is
 // incapable of being connected, or the timeout has been reached.  This
@@ -84,10 +49,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // connection to the Trace Observer is made, a fatal error is reached, or the
 // timeout is hit.
 func (app *Application) WaitForConnection(timeout time.Duration) error {
-	if nil == app {
-		return nil
-	}
-	return app.app.WaitForConnection(timeout)
+	return nil
 }
 
 // Shutdown flushes data to New Relic's servers and stops all
@@ -99,19 +61,7 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 //
 // If Infinite Tracing is enabled, Shutdown will block until all queued span
 // events have been sent to the Trace Observer or the timeout has been reached.
-func (app *Application) Shutdown(timeout time.Duration) {
-	if nil == app {
-		return
-	}
-	app.app.Shutdown(timeout)
-}
-
-func newApplication(app *app) *Application {
-	return &Application{
-		app:     app,
-		Private: app,
-	}
-}
+func (app *Application) Shutdown(timeout time.Duration) {}
 
 // NewApplication creates an Application and spawns goroutines to manage the
 // aggregation and harvesting of data.  On success, a non-nil Application and a
@@ -124,18 +74,5 @@ func newApplication(app *app) *Application {
 // are applied in order from first to last, i.e. latter ConfigOptions may
 // overwrite the Config fields already set.
 func NewApplication(opts ...ConfigOption) (*Application, error) {
-	c := defaultConfig()
-	for _, fn := range opts {
-		if nil != fn {
-			fn(&c)
-			if nil != c.Error {
-				return nil, c.Error
-			}
-		}
-	}
-	cfg, err := newInternalConfig(c, os.Getenv, os.Environ())
-	if nil != err {
-		return nil, err
-	}
-	return newApplication(newApp(cfg)), nil
+	return nil, nil
 }
