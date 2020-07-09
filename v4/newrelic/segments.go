@@ -10,10 +10,7 @@ import (
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
 // safely be ended.
-type SegmentStartTime struct {
-	start  segmentStartTime
-	thread *thread
-}
+type SegmentStartTime struct{}
 
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
@@ -97,10 +94,6 @@ type ExternalSegment struct {
 	// external metrics and the "component" span attribute.  It should be
 	// the framework making the external call.
 	Library string
-
-	// statusCode is the status code for the response.  This value takes
-	// precedence over the status code set on the Response.
-	statusCode *int
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -137,102 +130,37 @@ const (
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *Segment) AddAttribute(key string, val interface{}) {
-	if nil == s {
-		return
-	}
-	addSpanAttr(s.StartTime, key, val)
-}
+func (s *Segment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the segment.
-func (s *Segment) End() {
-	if s == nil {
-		return
-	}
-	if err := endBasic(s); err != nil {
-		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
-			"name": s.Name,
-		})
-	}
-}
+func (s *Segment) End() {}
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {
-	if nil == s {
-		return
-	}
-	addSpanAttr(s.StartTime, key, val)
-}
+func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the datastore segment.
-func (s *DatastoreSegment) End() {
-	if nil == s {
-		return
-	}
-	if err := endDatastore(s); err != nil {
-		s.StartTime.thread.logAPIError(err, "end datastore segment", map[string]interface{}{
-			"product":    s.Product,
-			"collection": s.Collection,
-			"operation":  s.Operation,
-		})
-	}
-}
+func (s *DatastoreSegment) End() {}
 
 // AddAttribute adds a key value pair to the current ExternalSegment.
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *ExternalSegment) AddAttribute(key string, val interface{}) {
-	if nil == s {
-		return
-	}
-	addSpanAttr(s.StartTime, key, val)
-}
+func (s *ExternalSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the external segment.
-func (s *ExternalSegment) End() {
-	if nil == s {
-		return
-	}
-	if err := endExternal(s); err != nil {
-		extraDetails := map[string]interface{}{
-			"host":      s.Host,
-			"procedure": s.Procedure,
-			"library":   s.Library,
-		}
-		if s.Request != nil {
-			extraDetails["request.url"] = safeURL(s.Request.URL)
-		}
-		s.StartTime.thread.logAPIError(err, "end external segment", extraDetails)
-	}
-}
+func (s *ExternalSegment) End() {}
 
 // AddAttribute adds a key value pair to the current MessageProducerSegment.
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {
-	if nil == s {
-		return
-	}
-	addSpanAttr(s.StartTime, key, val)
-}
+func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the message segment.
-func (s *MessageProducerSegment) End() {
-	if nil == s {
-		return
-	}
-	if err := endMessage(s); err != nil {
-		s.StartTime.thread.logAPIError(err, "end message producer segment", map[string]interface{}{
-			"library":          s.Library,
-			"destination-name": s.DestinationName,
-		})
-	}
-}
+func (s *MessageProducerSegment) End() {}
 
 // SetStatusCode sets the status code for the response of this ExternalSegment.
 // This status code will be included as an attribute on Span Events.  If status
@@ -242,22 +170,14 @@ func (s *MessageProducerSegment) End() {
 // Use this method when you are creating ExternalSegment manually using either
 // StartExternalSegment or the ExternalSegment struct directly.  Status code is
 // set automatically when using NewRoundTripper.
-func (s *ExternalSegment) SetStatusCode(code int) {
-	s.statusCode = &code
-}
-
-// outboundHeaders returns the headers that should be attached to the external
-// request.
-func (s *ExternalSegment) outboundHeaders() http.Header {
-	return outboundHeaders(s)
-}
+func (s *ExternalSegment) SetStatusCode(code int) {}
 
 // StartSegmentNow starts timing a segment.
 //
 // Deprecated: StartSegmentNow is deprecated and will be removed in a future
 // release. Use Transaction.StartSegmentNow instead.
 func StartSegmentNow(txn *Transaction) SegmentStartTime {
-	return txn.StartSegmentNow()
+	return SegmentStartTime{}
 }
 
 // StartSegment instruments segments.
@@ -265,10 +185,7 @@ func StartSegmentNow(txn *Transaction) SegmentStartTime {
 // Deprecated: StartSegment is deprecated and will be removed in a future
 // release.  Use Transaction.StartSegment instead.
 func StartSegment(txn *Transaction, name string) *Segment {
-	return &Segment{
-		StartTime: txn.StartSegmentNow(),
-		Name:      name,
-	}
+	return nil
 }
 
 // StartExternalSegment starts the instrumentation of an external call and adds
@@ -280,36 +197,5 @@ func StartSegment(txn *Transaction, name string) *Segment {
 // NewRoundTripper: You may not need to use StartExternalSegment at all!
 //
 func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegment {
-	if nil == txn {
-		txn = transactionFromRequestContext(request)
-	}
-	s := &ExternalSegment{
-		StartTime: txn.StartSegmentNow(),
-		Request:   request,
-	}
-
-	if request != nil && request.Header != nil {
-		for key, values := range s.outboundHeaders() {
-			for _, value := range values {
-				request.Header.Set(key, value)
-			}
-		}
-	}
-
-	return s
-}
-
-func addSpanAttr(start SegmentStartTime, key string, val interface{}) {
-	if nil == start.thread {
-		return
-	}
-	validatedVal, err := validateUserAttribute(key, val)
-	if nil != err {
-		start.thread.logAPIError(err, "add segment attribute", map[string]interface{}{})
-		return
-	}
-	// This call locks the thread for us, so we don't need to.
-	if err := start.thread.AddUserSpanAttribute(key, validatedVal); err != nil {
-		start.thread.logAPIError(err, "add segment attribute", map[string]interface{}{})
-	}
+	return nil
 }
