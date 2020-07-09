@@ -3,24 +3,6 @@
 
 package newrelic
 
-// stackTracer can be implemented by errors to provide a stack trace when using
-// Transaction.NoticeError.
-type stackTracer interface {
-	StackTrace() []uintptr
-}
-
-// errorClasser can be implemented by errors to provide a custom class when
-// using Transaction.NoticeError.
-type errorClasser interface {
-	ErrorClass() string
-}
-
-// errorAttributer can be implemented by errors to provide extra context when
-// using Transaction.NoticeError.
-type errorAttributer interface {
-	ErrorAttributes() map[string]interface{}
-}
-
 // Error is an error designed for use with Transaction.NoticeError.  It allows
 // direct control over the recorded error's message, class, stacktrace, and
 // attributes.
