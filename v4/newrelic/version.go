@@ -6,7 +6,7 @@ package newrelic
 import (
 	"runtime"
 
-	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v4/internal"
 )
 
 const (
@@ -21,5 +21,4 @@ var (
 func init() {
 	internal.TrackUsage("Go", "Version", Version)
 	internal.TrackUsage("Go", "Runtime", "Version", goVersionSimple)
-	internal.TrackUsage("Go", "gRPC", "Version", grpcVersion)
 }

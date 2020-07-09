@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrb3"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrb3"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func currentTxn() *newrelic.Transaction {

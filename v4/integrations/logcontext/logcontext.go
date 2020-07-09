@@ -12,7 +12,7 @@
 // for a complete specification.
 package logcontext
 
-import newrelic "github.com/newrelic/go-agent/v3/newrelic"
+import newrelic "github.com/newrelic/go-agent/v4/newrelic"
 
 // Keys used for logging context JSON.
 const (

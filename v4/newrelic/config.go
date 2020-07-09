@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v4/internal"
 )
 
 // Config contains Application and Transaction behavior settings.
