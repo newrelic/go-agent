@@ -6,8 +6,6 @@ package newrelic
 import (
 	"net/http"
 	"time"
-
-	"github.com/newrelic/go-agent/v4/internal"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -363,6 +361,12 @@ type AttributeDestinationConfig struct {
 	Exclude []string
 }
 
+const (
+	// MaxTxnEvents is the maximum number of Transaction Events that can be captured
+	// per 60-second harvest cycle
+	maxTxnEvents = 10 * 1000
+)
+
 // defaultConfig creates a Config populated with default settings.
 func defaultConfig() Config {
 	c := Config{}
@@ -372,7 +376,7 @@ func defaultConfig() Config {
 	c.CustomInsightsEvents.Enabled = true
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
-	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
+	c.TransactionEvents.MaxSamplesStored = maxTxnEvents
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
