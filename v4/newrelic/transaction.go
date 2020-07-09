@@ -6,7 +6,6 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -15,53 +14,19 @@ import (
 //
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
-type Transaction struct {
-	Private interface{}
-	thread  *thread
-}
+type Transaction struct{}
 
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
-func (txn *Transaction) End() {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-
-	var r interface{}
-	if txn.thread.Config.ErrorCollector.RecordPanics {
-		// recover must be called in the function directly being deferred,
-		// not any nested call!
-		r = recover()
-	}
-	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
-}
+func (txn *Transaction) End() {}
 
 // Ignore prevents this transaction's data from being recorded.
-func (txn *Transaction) Ignore() {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction", nil)
-}
+func (txn *Transaction) Ignore() {}
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
-func (txn *Transaction) SetName(name string) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
-}
+func (txn *Transaction) SetName(name string) {}
 
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
@@ -88,15 +53,7 @@ func (txn *Transaction) SetName(name string) {
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
-func (txn *Transaction) NoticeError(err error) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.NoticeError(err), "notice error", nil)
-}
+func (txn *Transaction) NoticeError(err error) {}
 
 // AddAttribute adds a key value pair to the transaction event, errors,
 // and traces.
@@ -106,60 +63,21 @@ func (txn *Transaction) NoticeError(err error) {
 //
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
-func (txn *Transaction) AddAttribute(key string, value interface{}) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
-}
+func (txn *Transaction) AddAttribute(key string, value interface{}) {}
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
 // the request is non-nil, SetWebRequestHTTP will additionally collect
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
-func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
-	if nil == r {
-		txn.SetWebRequest(WebRequest{})
-		return
-	}
-	wr := WebRequest{
-		Header:    r.Header,
-		URL:       r.URL,
-		Method:    r.Method,
-		Transport: transport(r),
-		Host:      r.Host,
-	}
-	txn.SetWebRequest(wr)
-}
-
-func transport(r *http.Request) TransportType {
-	if strings.HasPrefix(r.Proto, "HTTP") {
-		if r.TLS != nil {
-			return TransportHTTPS
-		}
-		return TransportHTTP
-	}
-	return TransportUnknown
-}
+func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {}
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
 // additionally collects details on request attributes, url, and method if
 // these fields are set.  If headers are present, the agent will look for
 // distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r WebRequest) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
-}
+func (txn *Transaction) SetWebRequest(r WebRequest) {}
 
 // SetWebResponse allows the Transaction to instrument response code and
 // response headers.  Use the return value of this method in place of the input
@@ -176,13 +94,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 // package middlewares.  Therefore, you probably want to use this only if you
 // are writing your own instrumentation middleware.
 func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
-	if nil == txn {
-		return w
-	}
-	if nil == txn.thread {
-		return w
-	}
-	return txn.thread.SetWebResponse(w)
+	return w
 }
 
 // StartSegmentNow starts timing a segment.  The SegmentStartTime returned can
@@ -190,13 +102,7 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
-	if nil == txn {
-		return SegmentStartTime{}
-	}
-	if nil == txn.thread {
-		return SegmentStartTime{}
-	}
-	return txn.thread.StartSegmentNow()
+	return SegmentStartTime{}
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -213,10 +119,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	return &Segment{
-		StartTime: txn.StartSegmentNow(),
-		Name:      name,
-	}
+	return nil
 }
 
 // InsertDistributedTraceHeaders adds the Distributed Trace headers used to
@@ -230,15 +133,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 //
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
-func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.CreateDistributedTracePayload(hdrs)
-}
+func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {}
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
 // trace headers from another transaction.
@@ -254,25 +149,11 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // AcceptDistributedTraceHeaders first looks for the presence of W3C trace
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
-func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
-}
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {}
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
-	if nil == txn {
-		return nil
-	}
-	if nil == txn.thread {
-		return nil
-	}
-	return txn.thread.Application()
+	return nil
 }
 
 // BrowserTimingHeader generates the JavaScript required to enable New
@@ -288,15 +169,7 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
-	if nil == txn {
-		return nil
-	}
-	if nil == txn.thread {
-		return nil
-	}
-	b, err := txn.thread.BrowserTimingHeader()
-	txn.thread.logAPIError(err, "create browser timing header", nil)
-	return b
+	return nil
 }
 
 // NewGoroutine allows you to use the Transaction in multiple
@@ -313,37 +186,19 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
-	if nil == txn {
-		return nil
-	}
-	if nil == txn.thread {
-		return nil
-	}
-	return txn.thread.NewGoroutine()
+	return nil
 }
 
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
-	if nil == txn {
-		return TraceMetadata{}
-	}
-	if nil == txn.thread {
-		return TraceMetadata{}
-	}
-	return txn.thread.GetTraceMetadata()
+	return TraceMetadata{}
 }
 
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
-	if nil == txn {
-		return LinkingMetadata{}
-	}
-	if nil == txn.thread {
-		return LinkingMetadata{}
-	}
-	return txn.thread.GetLinkingMetadata()
+	return LinkingMetadata{}
 }
 
 // IsSampled indicates if the Transaction is sampled.  A sampled
@@ -351,13 +206,7 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
-	if nil == txn {
-		return false
-	}
-	if nil == txn.thread {
-		return false
-	}
-	return txn.thread.IsSampled()
+	return false
 }
 
 const (
@@ -389,16 +238,6 @@ const (
 	TransportQueue   TransportType = "Queue"
 	TransportOther   TransportType = "Other"
 )
-
-func (tt TransportType) toString() string {
-	switch tt {
-	case TransportHTTP, TransportHTTPS, TransportKafka, TransportJMS, TransportIronMQ, TransportAMQP,
-		TransportQueue, TransportOther:
-		return string(tt)
-	default:
-		return string(TransportUnknown)
-	}
-}
 
 // WebRequest is used to provide request information to Transaction.SetWebRequest.
 type WebRequest struct {
