@@ -2,7 +2,7 @@
 
 * [Upgrading](#upgrading)
 * [Installation](#installation)
-* [Config and Application](#config-and-application)
+* [Full list of `Config` options and `Application` settings](#config-and-application)
 * [Logging](#logging)
 * [Transactions](#transactions)
 * [Segments](#segments)
@@ -37,7 +37,10 @@ version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
 ## Installation
 
-Installing the Go Agent is the same as installing any other Go library.  The
+(Also see [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md) if you are using the Go agent for the first time).
+
+In order to install the New Relic Go agent, you need a New Relic license key. 
+Then, installing the Go Agent is the same as installing any other Go library.  The
 simplest way is to run:
 
 ```
@@ -49,12 +52,7 @@ Then import the package in your application:
 import "github.com/newrelic/go-agent/v3/newrelic"
 ```
 
-## Config and Application
-
-* [Config godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config)
-* [Application godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application)
-
-In your `main` function or in an `init` block:
+Initialize the New Relic Go agent by adding the following `Config` options and `Application` settings in the `main` function or in an `init` block:
 
 ```go
 app, err := newrelic.NewApplication(
@@ -63,9 +61,23 @@ app, err := newrelic.NewApplication(
 )
 ```
 
-Find your application in the New Relic UI.  Click on it to see the Go runtime
-page that shows information about goroutine counts, garbage collection, memory,
-and CPU usage. Data should show up within 5 minutes.
+This will allow you to see Go runtime information.
+
+Now, add instrumentation to your Go application to get additional performance data:
+* Import any of our [integration packages](https://github.com/newrelic/go-agent#integrations) for out-of-the box support for many popular Go web 
+frameworks and libraries. 
+* [Instrument Transactions](#transactions)
+* [Use Distributed Tracing](#distributed-tracing)
+* [(Optional) Instrument Segments](#segments) for an extra level of timing detail
+** External segments are needed for Distributed Tracing
+* read through the rest of this GUIDE for more instrumentation
+
+Compile and deploy your application.
+
+Find your application in the New Relic UI.  Click on it to see application performance, 
+including the Go runtime page that shows information about goroutine counts, garbage 
+collection, memory, and CPU usage. Data should show up within 5 minutes.
+
 
 If you are working in a development environment or running unit tests, you may
 not want the Go Agent to spawn goroutines or report to New Relic.  You're in
@@ -78,6 +90,15 @@ app, err := newrelic.NewApplication(
     newrelic.ConfigEnabled(false),
 )
 ```
+
+
+
+## Full list of `Config` options and `Application` settings
+
+* [Config godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Config)
+* [Application godoc](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Application)
+
+
 
 ## Logging
 
