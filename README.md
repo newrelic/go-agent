@@ -1,28 +1,48 @@
-# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
-## Description
+[![Community Project header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Project.png)](https://opensource.newrelic.com/oss-category/#community-project)
+
+# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
 The New Relic Go Agent allows you to monitor your Go applications with New
 Relic.  It helps you track transactions, outbound requests, database calls, and
 other parts of your Go application's behavior and provides a running overview of
 garbage collection, goroutine activity, and memory use.
 
-All pull requests will be reviewed by the New Relic product team. Any questions or issues should be directed to our [support
-site](http://support.newrelic.com/) or our [community
-forum](https://discuss.newrelic.com).
+Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.  
 
-## Upgrading
-If you have already been using version 2.X of the agent and are upgrading to
-version 3.0, see our [Migration Guide](MIGRATION.md) for details.
 
-## Requirements
+## Compatibility and Requirements
 
 For the latest version of the agent, Go 1.7+ is required, due to the use of `context.Context`.
 (For versions 2.X and earlier of the Go agent, Go 1.3+ is required.)
 
 Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
-## Integrations
+
+## Installing and using the Go agent
+
+To install the agent, follow the instructions in our [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md) 
+document or our [GUIDE](https://github.com/newrelic/go-agent/blob/master/GUIDE.md).  
+
+We recommend instrumenting your Go code to get the maximum benefits from the 
+New Relic Go agent. But we make it easy to get great data in couple of ways:
+
+* Even without adding instrumentation, just importing the agent and creating an 
+application will provide useful runtime information about your number of goroutines, 
+garbage collection statistics, and memory and CPU usage.
+* You can use our many [INTEGRATION packages](https://github.com/newrelic/go-agent/tree/master/v3/integrations) 
+for out-of-the box support for many popular Go web frameworks and libraries. We 
+continue to add integration packages based on your feedback. You can weigh in on 
+potential integrations by opening an `Issue` here in our New Relic Go agent GitHub project.
+
+
+## Upgrading
+
+If you have already been using version 2.X of the agent and are upgrading to
+version 3.0, see our [MIGRATION guide](MIGRATION.md) for details.
+
+
+## Integration Packages
 
 The following [integration packages](https://godoc.org/github.com/newrelic/go-agent/v3/integrations)
 extend the base [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) package
@@ -103,10 +123,6 @@ These integration packages must be imported along
 with the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) package, as shown in this
 [nrgin example](https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgin/example/main.go).
 
-## Getting Started
-
-Follow the steps in [GETTING_STARTED.md](GETTING_STARTED.md) to instrument your
-application.
 
 ## Runnable Example
 
@@ -121,6 +137,7 @@ env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
 Some endpoints exposed are [http://localhost:8000/](http://localhost:8000/)
 and [http://localhost:8000/notice_error](http://localhost:8000/notice_error)
 
+
 ## Alternatives
 
 If you are already using another open source solution to gather telemetry data, you may find it easier to use one of our open source exporters to send this data to New Relic:
@@ -131,14 +148,21 @@ If you are already using another open source solution to gather telemetry data, 
 * Istio Adapter: [github.com/newrelic/newrelic-istio-adapter](https://github.com/newrelic/newrelic-istio-adapter)
 * Telemetry SDK: [github.com/newrelic/newrelic-telemetry-sdk-go](https://github.com/newrelic/newrelic-telemetry-sdk-go)
 
+
 ## Support
 
 You can find more detailed documentation [in the guide](GUIDE.md) and on
 [the New Relic Documentation site](https://docs.newrelic.com/docs/agents/go-agent).
 
-If you can't find what you're looking for there, reach out to us on our [support
-site](http://support.newrelic.com/) or our [community
-forum](https://discuss.newrelic.com) and we'll be happy to help you.
+If you can't find what you need there, New Relic hosts and moderates an online forum where customers can interact with New Relic employees as well as other customers to get help and share best practices. Like all official New Relic open source projects, there's a related Community topic in the New Relic Explorers Hub. You can find this project's topic/threads here:
+[Open-Source-Agents-SDKs](https://discuss.newrelic.com/c/build-on-new-relic/Open-Source-Agents-SDKs)
 
-Find a bug?  Contact us via [support.newrelic.com](http://support.newrelic.com/),
-or email support@newrelic.com.
+
+## Contributing
+
+We encourage contributions to improve the Go agent! Keep in mind when you submit your pull request, you'll need to sign the CLA via the click-through using CLA-Assistant. You only have to sign the CLA one time per project.
+If you have any questions, or to execute our corporate CLA, required if your contribution is on behalf of a company,  please drop us an email at opensource@newrelic.com.
+
+
+## License
+[Project name] is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
