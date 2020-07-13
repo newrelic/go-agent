@@ -6,6 +6,8 @@ package newrelic
 import (
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -333,6 +335,12 @@ type Config struct {
 	// to indicate that setup has failed.  NewApplication will return this
 	// error if it is set.
 	Error error
+
+	// OpenTelemetry TODO
+	OpenTelemetry struct {
+		// Tracer TODO
+		Tracer trace.Tracer
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.

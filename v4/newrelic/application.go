@@ -5,11 +5,16 @@ package newrelic
 
 import (
 	"time"
+
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Application represents your application.  All methods on Application are nil
 // safe.  Therefore, a nil Application pointer can be safely used as a mock.
-type Application struct{}
+type Application struct {
+	tracer trace.Tracer
+}
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
@@ -74,5 +79,18 @@ func (app *Application) Shutdown(timeout time.Duration) {}
 // are applied in order from first to last, i.e. latter ConfigOptions may
 // overwrite the Config fields already set.
 func NewApplication(opts ...ConfigOption) (*Application, error) {
-	return nil, nil
+	c := defaultConfig()
+	for _, fn := range opts {
+		if nil != fn {
+			fn(&c)
+			if nil != c.Error {
+				return nil, c.Error
+			}
+		}
+	}
+	tracer := c.OpenTelemetry.Tracer
+	if nil == tracer {
+		tracer = global.Tracer("traceName")
+	}
+	return &Application{tracer: tracer}, nil
 }
