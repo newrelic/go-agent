@@ -165,4 +165,4 @@ If you have any questions, or to execute our corporate CLA, required if your con
 
 
 ## License
-[Project name] is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
+The New Relic Go agent is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
