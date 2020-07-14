@@ -6,6 +6,8 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
+
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -14,12 +16,16 @@ import (
 //
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
-type Transaction struct{}
+type Transaction struct{
+	rootSpan trace.Span
+}
 
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
-func (txn *Transaction) End() {}
+func (txn *Transaction) End() {
+	txn.rootSpan.End()
+}
 
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {}

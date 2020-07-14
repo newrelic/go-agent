@@ -29,7 +29,20 @@ import (
 //
 // The WrapHandle function is safe to call if app is nil.
 func WrapHandle(app *Application, pattern string, handler http.Handler) (string, http.Handler) {
-	return pattern, handler
+	if app == nil {
+		return pattern, handler
+	}
+	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		txn := app.StartTransaction(r.Method + " " + pattern)
+		defer txn.End()
+
+		w = txn.SetWebResponse(w)
+		txn.SetWebRequestHTTP(r)
+
+		r = RequestWithTransactionContext(r, txn)
+
+		handler.ServeHTTP(w, r)
+	})
 }
 
 // WrapHandleFunc instruments handler functions using Transactions.  To
@@ -56,7 +69,8 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 //
 // The WrapHandleFunc function is safe to call if app is nil.
 func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
-	return pattern, handler
+	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
+	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
 // NewRoundTripper creates an http.RoundTripper to instrument external requests

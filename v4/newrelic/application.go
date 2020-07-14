@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"time"
 
 	"go.opentelemetry.io/otel/api/global"
@@ -18,7 +19,10 @@ type Application struct {
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
-	return nil
+	_, span := app.tracer.Start(context.Background(), name)
+	return &Transaction{
+		rootSpan: span,
+	}
 }
 
 // RecordCustomEvent adds a custom event.
