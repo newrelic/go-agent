@@ -2,7 +2,7 @@
 
 * [Upgrading](#upgrading)
 * [Installation](#installation)
-* [Full list of `Config` options and `Application` settings](#config-and-application)
+* [Full list of `Config` options and `Application` settings](#full-list-of-config-options-and-application-settings)
 * [Logging](#logging)
 * [Transactions](#transactions)
 * [Segments](#segments)
