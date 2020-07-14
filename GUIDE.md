@@ -70,7 +70,7 @@ frameworks and libraries.
 * [Use Distributed Tracing](#distributed-tracing)
 * [(Optional) Instrument Segments](#segments) for an extra level of timing detail
   * External segments are needed for Distributed Tracing
-* read through the rest of this GUIDE for more instrumentation
+* Read through the rest of this GUIDE for more instrumentation
 
 Compile and deploy your application.
 
