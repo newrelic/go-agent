@@ -1566,6 +1566,32 @@ func TestW3CTraceHeadersRoundTrip(t *testing.T) {
 
 }
 
+func TestW3CTraceHeadersDuplicateTraceState(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableW3COnly, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	hdrs.Set(DistributedTraceW3CTraceParentHeader,
+		"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+	hdrs.Set(DistributedTraceW3CTraceStateHeader,
+		"123@nr=0-0-1349956-41346604-27ddd2d8890283b4-b28be285632bbc0a-1-0.246890-1569367663277,congo=congosSecondPosition,rojo=rojosFirstPosition,123@nr=0-0-1349956-41346604-aaaaaaaaaaaaaaaa-b28be285632bbc0a-1-0.246890-1569367663277")
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, hdrs)
+	outgoingHdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(outgoingHdrs)
+
+	expected := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-0.24689-1577830891900,congo=congosSecondPosition,rojo=rojosFirstPosition"},
+	}
+	verifyHeaders(t, outgoingHdrs, expected)
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, acceptAndSendDT)
+
+}
+
 func TestW3CTraceHeadersSpansDisabledSampledTrue(t *testing.T) {
 	app := testApp(distributedTracingReplyFieldsSpansDisabled, enableW3COnly, t)
 	txn := app.StartTransaction("hello")

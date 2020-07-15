@@ -185,3 +185,96 @@ func TestConnectorToDriver(t *testing.T) {
 	txn.End()
 	app.ExpectMetrics(t, driverTestMetrics)
 }
+
+type testConnectorErr struct {
+	testConnector
+}
+
+func (c testConnectorErr) Connect(context.Context) (driver.Conn, error) { return testConnErr{}, nil }
+
+type testConnErr struct {
+	testConn
+}
+
+func (c testConnErr) QueryContext(context.Context, string, []driver.NamedValue) (driver.Rows, error) {
+	return nil, driver.ErrSkip
+}
+
+func (c testConnErr) ExecContext(context.Context, string, []driver.NamedValue) (driver.Result, error) {
+	return nil, driver.ErrSkip
+}
+
+// Ensure that if the driver used returns driver.ErrSkip that spans still have correct parentage
+func TestExecContextErrSkipReturned(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	connector := InstrumentSQLConnector(testConnectorErr{}, testBuilder)
+	txn := app.StartTransaction("hello")
+	conn, _ := connector.Connect(nil)
+	ctx := NewContext(context.Background(), txn)
+
+	conn.(driver.ExecerContext).ExecContext(ctx, "myoperation,mycollection", nil)
+	txn.StartSegment("second").End()
+	txn.End()
+
+	parentGUID := "4981855ad8681d0d"
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "Custom/second",
+				"parentId": parentGUID,
+				"category": "generic",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"guid":             parentGUID,
+				"nr.entryPoint":    true,
+				"category":         "generic",
+				"transaction.name": "OtherTransaction/Go/hello",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+// Ensure that if the driver used returns driver.ErrSkip that spans still have correct parentage
+func TestQueryContextErrSkipReturned(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableBetterCAT, t)
+	connector := InstrumentSQLConnector(testConnectorErr{}, testBuilder)
+	txn := app.StartTransaction("hello")
+	conn, _ := connector.Connect(nil)
+	ctx := NewContext(context.Background(), txn)
+	conn.(driver.QueryerContext).QueryContext(ctx, "myoperation,mycollection", nil)
+	txn.StartSegment("second").End()
+	txn.End()
+	parentGUID := "4981855ad8681d0d"
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"name":     "Custom/second",
+				"parentId": parentGUID,
+				"category": "generic",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/hello",
+				"guid":             parentGUID,
+				"nr.entryPoint":    true,
+				"category":         "generic",
+				"transaction.name": "OtherTransaction/Go/hello",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+}
+
+// Ensure we don't panic if the txn is nil
+func TestSQLNoTxnNoCry(t *testing.T) {
+	connector := InstrumentSQLConnector(testConnector{}, testBuilder)
+	conn, _ := connector.Connect(nil)
+	conn.(driver.QueryerContext).QueryContext(context.Background(), "myoperation,mycollection", nil)
+}

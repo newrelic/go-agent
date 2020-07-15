@@ -8,6 +8,7 @@ package newrelic
 import (
 	"context"
 	"database/sql/driver"
+	"time"
 )
 
 // SQLDriverSegmentBuilder populates DatastoreSegments for sql.Driver
@@ -56,8 +57,12 @@ func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilde
 }
 
 func (bld SQLDriverSegmentBuilder) startSegment(ctx context.Context) DatastoreSegment {
+	return bld.startSegmentAt(ctx, time.Now())
+}
+
+func (bld SQLDriverSegmentBuilder) startSegmentAt(ctx context.Context, at time.Time) DatastoreSegment {
 	segment := bld.BaseSegment
-	segment.StartTime = FromContext(ctx).StartSegmentNow()
+	segment.StartTime = FromContext(ctx).startSegmentAt(at)
 	return segment
 }
 
@@ -163,10 +168,11 @@ func (w *wrapConn) Exec(query string, args []driver.Value) (driver.Result, error
 
 // ExecContext implements ExecerContext.
 func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	segment := w.bld.useQuery(query).startSegment(ctx)
+	startTime := time.Now()
 	result, err := w.original.(driver.ExecerContext).ExecContext(ctx, query, args)
 	if err != driver.ErrSkip {
-		segment.End()
+		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
+		seg.End()
 	}
 	return result, err
 }
@@ -187,10 +193,11 @@ func (w *wrapConn) Query(query string, args []driver.Value) (driver.Rows, error)
 
 // QueryContext implements QueryerContext.
 func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	segment := w.bld.useQuery(query).startSegment(ctx)
+	startTime := time.Now()
 	rows, err := w.original.(driver.QueryerContext).QueryContext(ctx, query, args)
 	if err != driver.ErrSkip {
-		segment.End()
+		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
+		seg.End()
 	}
 	return rows, err
 }

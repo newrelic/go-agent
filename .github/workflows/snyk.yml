@@ -1,7 +1,11 @@
 name: Snyk
 
 on:
-  pull_request:
+  schedule:
+    # Run once a day at 9AM PDT (16 UTC) on week days (1-5).
+    # Last commit on default branch.
+    # https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule
+    - cron:  '0 16 * * 1-5'
 
 jobs:
   security:
@@ -13,4 +17,4 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with: 
-          args: --all-projects
+          args: --all-projects --exclude=integrations
