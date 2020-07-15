@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 3.8.1
+
+### Bug Fixes
+
+* Fixed an issue that could cause orphaned Distributed Trace spans when using
+  SQL instrumentation like `nrmysql`.
+
 ## 3.8.0
 
 ### Changes
