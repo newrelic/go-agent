@@ -8,6 +8,14 @@ Note that our [code of conduct](./CODE_OF_CONDUCT.md) applies to all platforms a
 
 Please note, we only accept pull request for versions 3.8.0 of this project or greater.
 
+## Version Support
+
+When contributing, keep in mind that New Relic customers are running many different versions of Go, some of them pretty old.  For changes that depend on the newest version of Go, the tests will fail and the PR will be rejected.
+
+Be aware that the instrumentation needs to work with a wide range of versions of the instrumented modules, and that code that looks nonsensical or overcomplicated may be that way for compatibility-related reasons.  Read all the comments and check the related tests before deciding whether existing code is incorrect.
+
+If you’re planning on contributing a new feature or an otherwise complex contribution, we kindly ask you to start a conversation with the maintainer team by opening up a GitHub issue first. 
+
 ## Feature Requests
 
 Feature requests should be submitted in the [Issue tracker](../../issues), with a description of the expected behavior & use case, where they’ll remain closed until sufficient interest, [e.g. :+1: reactions](https://help.github.com/articles/about-discussions-in-issues-and-pull-requests/), has been [shown by the community](../../issues?q=is%3Aissue+sort%3Areactions-%2B1-desc).
@@ -16,9 +24,9 @@ Before submitting an Issue, please search for similar ones in the
 
 ## Pull Requests
 
-1. Ensure any install or build dependencies are removed before the end of the layer when doing a build.
-2. Increase the version numbers in any examples files and the README.md to the new version that this Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/).
-3. You may merge the Pull Request in once you have the sign-off of two other developers, or if you do not have permission to do that, you may request the second reviewer to merge it for you.
+Pull requests must pass all automated tests and must be reviewed by at least one maintaining engineer before being merged.
+
+When contributing a new integration package, please follow the [Writing a New Integration Package](https://github.com/newrelic/go-agent/wiki/Writing-a-New-Integration-Package) wiki page.
 
 ## Contributor License Agreement
 
