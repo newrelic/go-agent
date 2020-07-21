@@ -148,7 +148,7 @@ func (s *span) end() {
 		parent := s.parent
 		for parent != nil {
 			if !parent.ended {
-				s.txn.setCurrentSpan(s.parent)
+				s.txn.setCurrentSpan(parent)
 				return
 			}
 			parent = parent.parent

@@ -17,6 +17,7 @@ import (
 type Transaction struct {
 	rootSpan    *span
 	currentSpan *span
+	ended       bool
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -24,6 +25,7 @@ type Transaction struct {
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
 	txn.rootSpan.end()
+	txn.ended = true
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -107,6 +109,12 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
+	if txn == nil {
+		return SegmentStartTime{}
+	}
+	if txn.ended {
+		return SegmentStartTime{}
+	}
 	parent := txn.currentSpan
 	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "")
 	span := &span{
