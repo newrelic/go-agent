@@ -25,8 +25,10 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		ctx:  ctx,
 	}
 	return &Transaction{
-		rootSpan:    s,
-		currentSpan: s,
+		rootSpan: s,
+		thread: &thread{
+			currentSpan: s,
+		},
 	}
 }
 

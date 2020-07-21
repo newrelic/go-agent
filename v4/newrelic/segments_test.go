@@ -138,3 +138,37 @@ func TestParentingSegmentSiblings(t *testing.T) {
 			seg2ParentID, txnID)
 	}
 }
+
+func TestParentingNewGoroutine(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	txn1 := txn.NewGoroutine()
+	seg1 := txn1.StartSegment("seg1")
+	txn2 := txn.NewGoroutine()
+	seg2 := txn2.StartSegment("seg2")
+	seg3 := txn.StartSegment("seg3")
+	seg1.End()
+	seg2.End()
+	seg3.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	seg1ParentID := getParentID(seg1.StartTime.Span)
+	seg2ParentID := getParentID(seg2.StartTime.Span)
+	seg3ParentID := getParentID(seg3.StartTime.Span)
+
+	if seg1ParentID != txnID {
+		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
+			seg1ParentID, txnID)
+	}
+	if seg2ParentID != txnID {
+		t.Errorf("seg2 is not a child of txn: seg2ParentID=%s, txnID=%s",
+			seg2ParentID, txnID)
+	}
+	if seg3ParentID != txnID {
+		t.Errorf("seg3 is not a child of txn: seg3ParentID=%s, txnID=%s",
+			seg3ParentID, txnID)
+	}
+
+	txn.End()
+}

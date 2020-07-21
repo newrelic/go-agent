@@ -6,6 +6,7 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -15,9 +16,14 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	rootSpan    *span
+	rootSpan *span
+	thread   *thread
+	ended    bool
+}
+
+type thread struct {
+	sync.Mutex
 	currentSpan *span
-	ended       bool
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -25,7 +31,15 @@ type Transaction struct {
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
 	txn.rootSpan.end()
+	txn.thread.Lock()
 	txn.ended = true
+	txn.thread.Unlock()
+}
+
+func (txn *Transaction) isEnded() bool {
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+	return txn.ended
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -112,10 +126,10 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	if txn == nil {
 		return SegmentStartTime{}
 	}
-	if txn.ended {
+	if txn.isEnded() {
 		return SegmentStartTime{}
 	}
-	parent := txn.currentSpan
+	parent := txn.thread.getCurrentSpan()
 	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "")
 	span := &span{
 		Span:   sp,
@@ -123,14 +137,22 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 		parent: parent,
 		txn:    txn,
 	}
-	txn.setCurrentSpan(span)
+	txn.thread.setCurrentSpan(span)
 	return SegmentStartTime{
 		span: span,
 	}
 }
 
-func (txn *Transaction) setCurrentSpan(s *span) {
-	txn.currentSpan = s
+func (thd *thread) setCurrentSpan(s *span) {
+	thd.Lock()
+	thd.currentSpan = s
+	thd.Unlock()
+}
+
+func (thd *thread) getCurrentSpan() *span {
+	thd.Lock()
+	defer thd.Unlock()
+	return thd.currentSpan
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -217,7 +239,11 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
-	return nil
+	newTxn := *txn
+	newTxn.thread = &thread{
+		currentSpan: txn.thread.currentSpan,
+	}
+	return &newTxn
 }
 
 // GetTraceMetadata returns distributed tracing identifiers.  Empty

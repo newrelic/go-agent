@@ -6,11 +6,13 @@ package newrelic
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"go.opentelemetry.io/otel/api/trace"
 )
 
 type span struct {
+	sync.Mutex
 	Span trace.Span
 	ctx  context.Context
 	// TODO: linked list and ballooning memory?
@@ -143,17 +145,25 @@ const (
 
 func (s *span) end() {
 	s.Span.End()
+	s.Lock()
 	s.ended = true
+	s.Unlock()
 	if s.txn != nil {
 		parent := s.parent
 		for parent != nil {
-			if !parent.ended {
-				s.txn.setCurrentSpan(parent)
+			if !parent.isEnded() {
+				s.txn.thread.setCurrentSpan(parent)
 				return
 			}
 			parent = parent.parent
 		}
 	}
+}
+
+func (s *span) isEnded() bool {
+	s.Lock()
+	defer s.Unlock()
+	return s.ended
 }
 
 // AddAttribute adds a key value pair to the current segment.
