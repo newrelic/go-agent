@@ -6,8 +6,6 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
-
-	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -17,14 +15,15 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	rootSpan trace.Span
+	rootSpan    *span
+	currentSpan *span
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
-	txn.rootSpan.End()
+	txn.rootSpan.end()
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -108,7 +107,22 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
-	return SegmentStartTime{}
+	parent := txn.currentSpan
+	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "")
+	span := &span{
+		Span:   sp,
+		ctx:    ctx,
+		parent: parent,
+		txn:    txn,
+	}
+	txn.setCurrentSpan(span)
+	return SegmentStartTime{
+		span: span,
+	}
+}
+
+func (txn *Transaction) setCurrentSpan(s *span) {
+	txn.currentSpan = s
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -125,7 +139,10 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	return nil
+	return &Segment{
+		StartTime: txn.StartSegmentNow(),
+		Name:      name,
+	}
 }
 
 // InsertDistributedTraceHeaders adds the Distributed Trace headers used to

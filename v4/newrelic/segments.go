@@ -4,13 +4,28 @@
 package newrelic
 
 import (
+	"context"
 	"net/http"
+
+	"go.opentelemetry.io/otel/api/trace"
 )
+
+type span struct {
+	Span trace.Span
+	ctx  context.Context
+	// TODO: linked list and ballooning memory?
+	parent *span
+	ended  bool
+	// TODO: reference cycles?
+	txn *Transaction
+}
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
 // safely be ended.
-type SegmentStartTime struct{}
+type SegmentStartTime struct {
+	*span
+}
 
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
@@ -126,6 +141,21 @@ const (
 	MessageExchange MessageDestinationType = "Exchange"
 )
 
+func (s *span) end() {
+	s.Span.End()
+	s.ended = true
+	if s.txn != nil {
+		parent := s.parent
+		for parent != nil {
+			if !parent.ended {
+				s.txn.setCurrentSpan(s.parent)
+				return
+			}
+			parent = parent.parent
+		}
+	}
+}
+
 // AddAttribute adds a key value pair to the current segment.
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
@@ -133,7 +163,16 @@ const (
 func (s *Segment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the segment.
-func (s *Segment) End() {}
+func (s *Segment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	s.StartTime.Span.SetName(s.Name)
+	s.StartTime.end()
+}
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.
 //
