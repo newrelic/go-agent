@@ -32,9 +32,10 @@ for dir in $DIRS; do
   if [[ $dir =~ "_integrations" ]]; then
     go get -t ./...
   fi
-  # avoid testing v3 code when testing v2 newrelic package
+  # avoid testing v3 and v4 code when testing v2 newrelic package
   if [ $dir == "." ]; then
     rm -rf v3/
+    rm -rf v4/
   else
     # Only v3 code version 1.9+ needs GRPC dependencies
     VERSION=$(go version)
