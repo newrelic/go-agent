@@ -253,7 +253,7 @@ func TestSetWebRequestWithDistributedTracing(t *testing.T) {
 			"request.method":           "GET",
 			"request.uri":              "http://www.newrelic.com",
 			"request.headers.host":     "myhost",
-		},
+    },
 	}})
 }
 
