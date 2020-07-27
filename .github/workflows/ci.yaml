@@ -208,18 +208,6 @@ jobs:
             extratesting: go get -u github.com/graphql-go/graphql@master
 
           # v4 agent
-          - go-version: 1.7.x
-            dirs: v4/newrelic,v4/internal,v4/examples
-          - go-version: 1.8.x
-            dirs: v4/newrelic,v4/internal,v4/examples
-          - go-version: 1.9.x
-            dirs: v4/newrelic,v4/internal,v4/examples
-          - go-version: 1.10.x
-            dirs: v4/newrelic,v4/internal,v4/examples
-          - go-version: 1.11.x
-            dirs: v4/newrelic,v4/internal,v4/examples
-          - go-version: 1.12.x
-            dirs: v4/newrelic,v4/internal,v4/examples
           - go-version: 1.13.x
             dirs: v4/newrelic,v4/internal,v4/examples
           - go-version: 1.14.x
