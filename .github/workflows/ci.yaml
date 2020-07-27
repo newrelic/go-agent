@@ -207,6 +207,12 @@ jobs:
             dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
             extratesting: go get -u github.com/graphql-go/graphql@master
 
+          # v4 agent
+          - go-version: 1.13.x
+            dirs: v4/newrelic,v4/internal,v4/examples
+          - go-version: 1.14.x
+            dirs: v4/newrelic,v4/internal,v4/examples,v4/integrations/logcontext
+
     steps:
     - name: Install Go
       uses: actions/setup-go@v1

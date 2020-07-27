@@ -16,7 +16,7 @@ import (
 //
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
-type Transaction struct{
+type Transaction struct {
 	rootSpan trace.Span
 }
 

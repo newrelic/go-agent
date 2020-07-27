@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v4
 
-go 1.7
+go 1.13
 
 require (
 	github.com/newrelic/opentelemetry-exporter-go v0.1.0
