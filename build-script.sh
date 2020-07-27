@@ -36,7 +36,7 @@ for dir in $DIRS; do
   if [ $dir == "." ]; then
     rm -rf v3/
     rm -rf v4/
-  else
+  elif [ $dir = v3* ]; then
     # Only v3 code version 1.9+ needs GRPC dependencies
     VERSION=$(go version)
     V17="1.7"
@@ -44,9 +44,13 @@ for dir in $DIRS; do
     if [[ "$VERSION" =~ .*"$V17".* || "$VERSION" =~ .*"$V18".* ]]; then
       echo "Not installing GRPC for old versions"
     else
+      # install v3 dependencies
       go get -u github.com/golang/protobuf/protoc-gen-go
       go get -u google.golang.org/grpc
     fi
+  else
+    # install v4 dependencies
+    go get ./...
   fi
 
   go test -race -benchtime=1ms -bench=. ./...
