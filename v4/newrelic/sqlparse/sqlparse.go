@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func extractTable(s string) string {
