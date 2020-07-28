@@ -135,7 +135,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 		Span:   sp,
 		ctx:    ctx,
 		parent: parent,
-		txn:    txn,
+		thread: txn.thread,
 	}
 	txn.thread.setCurrentSpan(span)
 	return SegmentStartTime{

@@ -13,13 +13,11 @@ import (
 
 type span struct {
 	sync.Mutex
-	Span trace.Span
-	ctx  context.Context
-	// TODO: linked list and ballooning memory?
+	Span   trace.Span
+	ctx    context.Context
 	parent *span
 	ended  bool
-	// TODO: reference cycles?
-	txn *Transaction
+	thread *thread
 }
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -148,15 +146,13 @@ func (s *span) end() {
 	s.Lock()
 	s.ended = true
 	s.Unlock()
-	if s.txn != nil {
-		parent := s.parent
-		for parent != nil {
-			if !parent.isEnded() {
-				s.txn.thread.setCurrentSpan(parent)
-				return
-			}
-			parent = parent.parent
+	parent := s.parent
+	for parent != nil {
+		if !parent.isEnded() {
+			s.thread.setCurrentSpan(parent)
+			return
 		}
+		parent = parent.parent
 	}
 }
 
