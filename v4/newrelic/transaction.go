@@ -30,6 +30,15 @@ type thread struct {
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
+	if txn == nil {
+		return
+	}
+	if txn.thread == nil {
+		return
+	}
+	if txn.isEnded() {
+		return
+	}
 	txn.rootSpan.end()
 	txn.thread.Lock()
 	txn.ended = true
@@ -124,6 +133,9 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	if txn == nil {
+		return SegmentStartTime{}
+	}
+	if txn.thread == nil {
 		return SegmentStartTime{}
 	}
 	if txn.isEnded() {

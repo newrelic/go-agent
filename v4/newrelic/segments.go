@@ -176,6 +176,9 @@ func (s *Segment) End() {
 	if s.StartTime.span == nil {
 		return
 	}
+	if s.StartTime.isEnded() {
+		return
+	}
 	s.StartTime.Span.SetName(s.Name)
 	s.StartTime.end()
 }
