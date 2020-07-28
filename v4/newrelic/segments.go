@@ -190,7 +190,31 @@ func (s *Segment) End() {
 func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the datastore segment.
-func (s *DatastoreSegment) End() {}
+func (s *DatastoreSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *DatastoreSegment) name() string {
+	pq := s.ParameterizedQuery
+	if pq == "" {
+		coll := s.Collection
+		if "" == coll {
+			coll = "unknown"
+		}
+		pq = "'" + s.Operation + "' on '" + coll + "' using '" + string(s.Product) + "'"
+	}
+	return pq
+}
 
 // AddAttribute adds a key value pair to the current ExternalSegment.
 //

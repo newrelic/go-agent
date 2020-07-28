@@ -23,6 +23,10 @@ func spanHasEnded(s trace.Span) bool {
 	return s.(*testtrace.Span).Ended()
 }
 
+func getSpanName(s trace.Span) string {
+	return s.(*testtrace.Span).Name()
+}
+
 func newTestApp(t *testing.T) *Application {
 	app, err := NewApplication(func(cfg *Config) {
 		cfg.OpenTelemetry.Tracer = testtrace.NewTracer()
@@ -373,4 +377,89 @@ func TestSegmentsOnEmptyTransaction(t *testing.T) {
 	seg := txn.StartSegment("seg")
 	seg.End()
 	txn.End()
+}
+
+func TestParentingDatastoreSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	seg := &DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	seg.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	segParentID := getParentID(seg.StartTime.Span)
+
+	if segParentID != txnID {
+		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
+			segParentID, txnID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg.StartTime.Span) {
+		t.Error("seg wasn't ended")
+	}
+}
+
+func TestDatastoreSegmentNaming(t *testing.T) {
+	testcases := []struct {
+		seg  *DatastoreSegment
+		name string
+	}{
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "collection",
+				Operation:          "operation",
+				ParameterizedQuery: "parametrized query",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "parametrized query",
+		},
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "collection",
+				Operation:          "operation",
+				ParameterizedQuery: "",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "'operation' on 'collection' using 'Postgres'",
+		},
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "",
+				Operation:          "operation",
+				ParameterizedQuery: "",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "'operation' on 'unknown' using 'Postgres'",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if name := tc.seg.name(); name != tc.name {
+				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
+			}
+		})
+	}
 }
