@@ -6,8 +6,7 @@ package newrelic
 import (
 	"net/http"
 	"net/url"
-
-	"go.opentelemetry.io/otel/api/trace"
+	"sync"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -17,14 +16,39 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	rootSpan trace.Span
+	rootSpan *span
+	thread   *thread
+	ended    bool
+}
+
+type thread struct {
+	sync.Mutex
+	currentSpan *span
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
-	txn.rootSpan.End()
+	if txn == nil {
+		return
+	}
+	if txn.thread == nil {
+		return
+	}
+	if txn.isEnded() {
+		return
+	}
+	txn.rootSpan.end()
+	txn.thread.Lock()
+	txn.ended = true
+	txn.thread.Unlock()
+}
+
+func (txn *Transaction) isEnded() bool {
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+	return txn.ended
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -108,7 +132,39 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
-	return SegmentStartTime{}
+	if txn == nil {
+		return SegmentStartTime{}
+	}
+	if txn.thread == nil {
+		return SegmentStartTime{}
+	}
+	if txn.isEnded() {
+		return SegmentStartTime{}
+	}
+	parent := txn.thread.getCurrentSpan()
+	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "")
+	span := &span{
+		Span:   sp,
+		ctx:    ctx,
+		parent: parent,
+		thread: txn.thread,
+	}
+	txn.thread.setCurrentSpan(span)
+	return SegmentStartTime{
+		span: span,
+	}
+}
+
+func (thd *thread) setCurrentSpan(s *span) {
+	thd.Lock()
+	thd.currentSpan = s
+	thd.Unlock()
+}
+
+func (thd *thread) getCurrentSpan() *span {
+	thd.Lock()
+	defer thd.Unlock()
+	return thd.currentSpan
 }
 
 // StartSegment makes it easy to instrument segments.  To time a function, do
@@ -125,7 +181,10 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	return nil
+	return &Segment{
+		StartTime: txn.StartSegmentNow(),
+		Name:      name,
+	}
 }
 
 // InsertDistributedTraceHeaders adds the Distributed Trace headers used to
@@ -192,7 +251,11 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
-	return nil
+	newTxn := *txn
+	newTxn.thread = &thread{
+		currentSpan: txn.thread.currentSpan,
+	}
+	return &newTxn
 }
 
 // GetTraceMetadata returns distributed tracing identifiers.  Empty

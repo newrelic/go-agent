@@ -19,9 +19,16 @@ type Application struct {
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
-	_, span := app.tracer.Start(context.Background(), name)
+	ctx, sp := app.tracer.Start(context.Background(), name)
+	s := &span{
+		Span: sp,
+		ctx:  ctx,
+	}
 	return &Transaction{
-		rootSpan: span,
+		rootSpan: s,
+		thread: &thread{
+			currentSpan: s,
+		},
 	}
 }
 
