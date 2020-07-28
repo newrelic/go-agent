@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"testing"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -295,6 +296,59 @@ func TestParentingDoubleEndingSegments(t *testing.T) {
 	}
 	if !spanHasEnded(seg4.StartTime.Span) {
 		t.Error("seg4 wasn't ended")
+	}
+}
+
+func TestParentingWithOTelAPI(t *testing.T) {
+	app := newTestApp(t)
+	tracer := app.tracer
+	txn := app.StartTransaction("transaction")
+	seg1 := txn.StartSegment("seg1")
+	ctx := NewContext(context.Background(), txn)
+	_, span := tracer.Start(ctx, "span")
+	seg2 := txn.StartSegment("seg2")
+	seg2.End()
+	span.End()
+	seg1.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
+	seg1ParentID := getParentID(seg1.StartTime.Span)
+	seg2ParentID := getParentID(seg2.StartTime.Span)
+	spanParentID := getParentID(span)
+
+	if seg1ParentID != txnID {
+		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
+			seg1ParentID, txnID)
+	}
+	// XXX: Once NewContext has been implemented, the following test should
+	// fail.  span should be a child of seg1, but currently it has no parent.
+	//
+	//if spanParentID != segID {
+	//	t.Errorf("span is not a child of seg1: spanParentID=%s, segID=%s",
+	//		spanParentID, segID)
+	//}
+	if spanParentID != "0000000000000000" {
+		t.Errorf("span now has a parent: spanParentID=%s", spanParentID)
+	}
+	// NOTE: There is currently no way for a newrelic segment to be childed to
+	// an opentelemetry span.
+	if seg2ParentID != seg1ID {
+		t.Errorf("seg2 is not a child of txn: seg2ParentID=%s, seg1ID=%s",
+			seg2ParentID, seg1ID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg1.StartTime.Span) {
+		t.Error("seg1 wasn't ended")
+	}
+	if !spanHasEnded(span) {
+		t.Error("span wasn't ended")
+	}
+	if !spanHasEnded(seg2.StartTime.Span) {
+		t.Error("seg2 wasn't ended")
 	}
 }
 
