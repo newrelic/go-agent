@@ -6,6 +6,7 @@ package newrelic
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"sync"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -223,7 +224,58 @@ func (s *DatastoreSegment) name() string {
 func (s *ExternalSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the external segment.
-func (s *ExternalSegment) End() {}
+func (s *ExternalSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *ExternalSegment) name() string {
+	return s.method() + ": " + s.host()
+}
+
+func (s *ExternalSegment) host() string {
+	host := s.Host
+	if host == "" && s.URL != "" {
+		url, err := url.Parse(s.URL)
+		if err == nil {
+			host = url.Host
+		}
+	}
+	if host == "" {
+		host = "unknown"
+	}
+	return host
+}
+
+func (s *ExternalSegment) method() string {
+	if "" != s.Procedure {
+		return s.Procedure
+	}
+	r := s.Request
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+	}
+
+	if nil != r {
+		if "" != r.Method {
+			return r.Method
+		}
+		// Golang's http package states that when a client's Request has
+		// an empty string for Method, the method is GET.
+		return "GET"
+	}
+
+	return "unknown"
+}
 
 // AddAttribute adds a key value pair to the current MessageProducerSegment.
 //
