@@ -231,7 +231,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 
 	// Here we create an OpenTelemetry context that is detached from the
 	// current trace. All segments (spans) subsequently started with this
-	// context will be detached from the transaction trace, but rather will
+	// context will be detached from the distributed trace, but rather will
 	// have the remote trace id as trace id and the remote span id as the
 	// parent span id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), props, hdrs)
