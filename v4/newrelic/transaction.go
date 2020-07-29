@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -142,7 +144,8 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 		return SegmentStartTime{}
 	}
 	parent := txn.thread.getCurrentSpan()
-	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "")
+	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "",
+		trace.WithSpanKind(trace.SpanKindInternal))
 	span := &span{
 		Span:   sp,
 		ctx:    ctx,

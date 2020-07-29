@@ -36,7 +36,7 @@ for dir in $DIRS; do
   if [ $dir == "." ]; then
     rm -rf v3/
     rm -rf v4/
-  elif [ $dir = v3* ]; then
+  elif [[ $dir =~ v3 ]]; then
     # Only v3 code version 1.9+ needs GRPC dependencies
     VERSION=$(go version)
     V17="1.7"
@@ -50,7 +50,7 @@ for dir in $DIRS; do
     fi
   else
     # install v4 dependencies
-    go get ./...
+    go get -u go.opentelemetry.io/otel
   fi
 
   go test -race -benchtime=1ms -bench=. ./...

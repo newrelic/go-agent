@@ -28,9 +28,14 @@ func getSpanName(s trace.Span) string {
 	return s.(*testtrace.Span).Name()
 }
 
+func getSpanKind(s trace.Span) trace.SpanKind {
+	return s.(*testtrace.Span).SpanKind()
+}
+
 func newTestApp(t *testing.T) *Application {
 	app, err := NewApplication(func(cfg *Config) {
-		cfg.OpenTelemetry.Tracer = testtrace.NewTracer()
+		tp := testtrace.NewProvider()
+		cfg.OpenTelemetry.Tracer = tp.Tracer("go-agent-test")
 	})
 	if err != nil {
 		t.Fatal("unable to create app:", err)
@@ -626,5 +631,41 @@ func TestMessageProducerSegmentNaming(t *testing.T) {
 				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
 			}
 		})
+	}
+}
+
+func TestSpanKind(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	segBasic := txn.StartSegment("basic")
+	segBasic.End()
+	segDatastore := &DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	segDatastore.End()
+	segExternal := &ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	segExternal.End()
+	segMessage := &MessageProducerSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	segMessage.End()
+	txn.End()
+
+	if kind := getSpanKind(txn.rootSpan.Span); kind != trace.SpanKindInternal {
+		t.Errorf("txn has incorrect SpanKind: %s", kind)
+	}
+	if kind := getSpanKind(segBasic.StartTime.Span); kind != trace.SpanKindInternal {
+		t.Errorf("segBasic has incorrect SpanKind: %s", kind)
+	}
+	if kind := getSpanKind(segDatastore.StartTime.Span); kind != trace.SpanKindInternal {
+		t.Errorf("segDatastore has incorrect SpanKind: %s", kind)
+	}
+	if kind := getSpanKind(segExternal.StartTime.Span); kind != trace.SpanKindInternal {
+		t.Errorf("segExternal has incorrect SpanKind: %s", kind)
+	}
+	if kind := getSpanKind(segMessage.StartTime.Span); kind != trace.SpanKindInternal {
+		t.Errorf("segMessage has incorrect SpanKind: %s", kind)
 	}
 }
