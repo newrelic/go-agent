@@ -22,7 +22,6 @@ import (
 type Transaction struct {
 	rootSpan *span
 	thread   *thread
-	name     string
 	ended    bool
 }
 

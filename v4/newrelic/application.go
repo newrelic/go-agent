@@ -30,7 +30,6 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		thread: &thread{
 			currentSpan: s,
 		},
-		name: name,
 	}
 }
 
