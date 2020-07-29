@@ -53,10 +53,15 @@ func TestAcceptDistributedTraceHeadersTracestate(t *testing.T) {
 	seg1.End()
 	txn.End()
 
+	seg1ParentID := getParentID(seg1.StartTime.Span)
 	seg1TraceID := getTraceID(seg1.StartTime.Span)
 
 	if seg1TraceID != remoteTraceID {
 		t.Errorf("seg1 is does not have remote trace id: seg1TracdID=%s, remoteTraceID=%s",
 			seg1TraceID, remoteTraceID)
+	}
+	if seg1ParentID != remoteSpanID {
+		t.Errorf("seg1 is not a child of remote segment: seg1ParentID=%s, remoteSpanID=%s",
+			seg1ParentID, remoteSpanID)
 	}
 }
