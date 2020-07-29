@@ -4,10 +4,12 @@
 package newrelic
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"sync"
 
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -20,6 +22,7 @@ import (
 type Transaction struct {
 	rootSpan *span
 	thread   *thread
+	name     string
 	ended    bool
 }
 
@@ -204,7 +207,11 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 //
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
-func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {}
+func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
+	props := propagation.New(propagation.WithInjectors(trace.TraceContext{}))
+
+	propagation.InjectHTTP(txn.thread.currentSpan.ctx, props, hdrs)
+}
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
 // trace headers from another transaction.
@@ -220,7 +227,17 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {}
 // AcceptDistributedTraceHeaders first looks for the presence of W3C trace
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
-func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {}
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
+	props := propagation.New(propagation.WithExtractors(trace.TraceContext{}))
+
+	// Here we create a OpenTelemetry context that is detached from the
+	// current trace. All segments (spans) subsequently started with this
+	// context will be detached from the transaction trace, but rather will
+	// have the remote trace id as trace id and the remote span id as the
+	// parent span id.
+	remoteCtx := propagation.ExtractHTTP(context.Background(), props, hdrs)
+	txn.thread.getCurrentSpan().ctx = remoteCtx
+}
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
