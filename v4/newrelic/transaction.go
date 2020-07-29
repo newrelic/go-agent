@@ -207,6 +207,13 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
+	if txn == nil {
+		return
+	}
+
+	txn.thread.currentSpan.Lock()
+	defer txn.thread.currentSpan.Unlock()
+
 	propagation.InjectHTTP(txn.thread.currentSpan.ctx, txn.app.propagators, hdrs)
 }
 
@@ -225,13 +232,20 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	// Here we create an OpenTelemetry context that is detached from the
+	if txn == nil {
+		return
+	}
+
+	txn.thread.currentSpan.Lock()
+	defer txn.thread.currentSpan.Unlock()
+
+	// Here we create a OpenTelemetry context that is detached from the
 	// current trace. All segments (spans) subsequently started with this
-	// context will be detached from the distributed trace, but rather will
+	// context will be detached from the transaction trace, but rather will
 	// have the remote trace id as trace id and the remote span id as the
 	// parent span id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
-	txn.thread.getCurrentSpan().ctx = remoteCtx
+	txn.thread.currentSpan.ctx = remoteCtx
 }
 
 // Application returns the Application which started the transaction.

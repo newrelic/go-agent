@@ -15,6 +15,13 @@ func getTraceID(s trace.Span) string {
 	return s.SpanContext().TraceID.String()
 }
 
+func TestInsertDistributedTraceHeadersNil(t *testing.T) {
+	hdrs := http.Header{}
+
+	var txn *Transaction
+	txn.InsertDistributedTraceHeaders(hdrs)
+}
+
 func TestInsertDistributedTraceHeadersTracestate(t *testing.T) {
 	app := newTestApp(t)
 	txn := app.StartTransaction("transaction")
@@ -35,6 +42,13 @@ func TestInsertDistributedTraceHeadersTracestate(t *testing.T) {
 	if traceparent != expectedTraceparent {
 		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
+}
+
+func TestAcceptDistributedTraceHeadersNil(t *testing.T) {
+	hdrs := http.Header{}
+
+	var txn *Transaction
+	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
 }
 
 func TestAcceptDistributedTraceHeadersTracestate(t *testing.T) {
