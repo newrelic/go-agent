@@ -568,3 +568,57 @@ func TestExternalSegmentNaming(t *testing.T) {
 		})
 	}
 }
+
+func TestParentingMessageProducerSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	seg := &MessageProducerSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	seg.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	segParentID := getParentID(seg.StartTime.Span)
+
+	if segParentID != txnID {
+		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
+			segParentID, txnID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg.StartTime.Span) {
+		t.Error("seg wasn't ended")
+	}
+}
+
+func TestMessageProducerSegmentNaming(t *testing.T) {
+	testcases := []struct {
+		seg  *MessageProducerSegment
+		name string
+	}{
+		{
+			seg: &MessageProducerSegment{
+				DestinationName:      "destination",
+				DestinationTemporary: false,
+			},
+			name: "destination send",
+		},
+		{
+			seg: &MessageProducerSegment{
+				DestinationName:      "destination",
+				DestinationTemporary: true,
+			},
+			name: "(temporary) send",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if name := tc.seg.name(); name != tc.name {
+				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
+			}
+		})
+	}
+}

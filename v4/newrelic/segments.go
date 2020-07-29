@@ -284,7 +284,27 @@ func (s *ExternalSegment) method() string {
 func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the message segment.
-func (s *MessageProducerSegment) End() {}
+func (s *MessageProducerSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *MessageProducerSegment) name() string {
+	dest := s.DestinationName
+	if s.DestinationTemporary {
+		dest = "(temporary)"
+	}
+	return dest + " send"
+}
 
 // SetStatusCode sets the status code for the response of this ExternalSegment.
 // This status code will be included as an attribute on Span Events.  If status
