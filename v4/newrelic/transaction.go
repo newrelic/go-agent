@@ -229,7 +229,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
 	props := propagation.New(propagation.WithExtractors(trace.TraceContext{}))
 
-	// Here we create a OpenTelemetry context that is detached from the
+	// Here we create an OpenTelemetry context that is detached from the
 	// current trace. All segments (spans) subsequently started with this
 	// context will be detached from the transaction trace, but rather will
 	// have the remote trace id as trace id and the remote span id as the
