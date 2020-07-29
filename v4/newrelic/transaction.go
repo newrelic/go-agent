@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel/api/propagation"
-	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -20,6 +19,7 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
+	app      *Application
 	rootSpan *span
 	thread   *thread
 	ended    bool
@@ -207,9 +207,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	props := propagation.New(propagation.WithInjectors(trace.TraceContext{}))
-
-	propagation.InjectHTTP(txn.thread.currentSpan.ctx, props, hdrs)
+	propagation.InjectHTTP(txn.thread.currentSpan.ctx, txn.app.propagators, hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
@@ -227,14 +225,12 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	props := propagation.New(propagation.WithExtractors(trace.TraceContext{}))
-
 	// Here we create an OpenTelemetry context that is detached from the
 	// current trace. All segments (spans) subsequently started with this
 	// context will be detached from the distributed trace, but rather will
 	// have the remote trace id as trace id and the remote span id as the
 	// parent span id.
-	remoteCtx := propagation.ExtractHTTP(context.Background(), props, hdrs)
+	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
 	txn.thread.getCurrentSpan().ctx = remoteCtx
 }
 
