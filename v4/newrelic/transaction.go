@@ -165,6 +165,9 @@ func (thd *thread) setCurrentSpan(s *span) {
 }
 
 func (thd *thread) getCurrentSpan() *span {
+	if thd == nil {
+		return nil
+	}
 	thd.Lock()
 	defer thd.Unlock()
 	return thd.currentSpan
