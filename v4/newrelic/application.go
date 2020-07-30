@@ -31,8 +31,10 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		rootSpan: s,
 		thread: &thread{
 			currentSpan: s,
+			spanCount:   1,
 		},
-		app: app,
+		app:  app,
+		name: name,
 	}
 }
 

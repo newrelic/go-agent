@@ -57,26 +57,60 @@ func TestAcceptDistributedTraceHeadersTraceparent(t *testing.T) {
 
 	app := newTestApp(t)
 	txn := app.StartTransaction("transaction")
+	seg1 := txn.StartSegment("seg1")
+	seg1.End()
 
 	hdrs := http.Header{}
 	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
 
 	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
 
-	seg1 := txn.StartSegment("seg1")
-	seg1.End()
+	seg2 := txn.StartSegment("seg2")
+	seg2.End()
 	txn.End()
 
-	seg1ParentID := getParentID(seg1.StartTime.Span)
+	seg2ParentID := getParentID(seg2.StartTime.Span)
+	seg2TraceID := getTraceID(seg2.StartTime.Span)
 	seg1TraceID := getTraceID(seg1.StartTime.Span)
 
-	if seg1TraceID != remoteTraceID {
-		t.Errorf("seg1 is does not have remote trace id: seg1TracdID=%s, remoteTraceID=%s",
+	if seg2TraceID != remoteTraceID {
+		t.Errorf("seg2 does not have remote trace id: seg2TracdID=%s, remoteTraceID=%s",
+			seg2TraceID, remoteTraceID)
+	}
+	if seg2ParentID != remoteSpanID {
+		t.Errorf("seg2 is not a child of remote segment: seg2ParentID=%s, remoteSpanID=%s",
+			seg2ParentID, remoteSpanID)
+	}
+	if seg1TraceID == remoteTraceID {
+		t.Errorf("seg1 does have remote trace id: seg1TracdID=%s, remoteTraceID=%s",
 			seg1TraceID, remoteTraceID)
 	}
-	if seg1ParentID != remoteSpanID {
-		t.Errorf("seg1 is not a child of remote segment: seg1ParentID=%s, remoteSpanID=%s",
-			seg1ParentID, remoteSpanID)
+}
+
+func TestAcceptDistributedTraceHeadersSwitchRoot(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	hdrs := http.Header{}
+	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+
+	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
+
+	txn.End()
+
+	rootParentID := getParentID(txn.rootSpan.Span)
+	rootTraceID := getTraceID(txn.rootSpan.Span)
+
+	if rootTraceID != remoteTraceID {
+		t.Errorf("root does not have remote trace id: rootTracdID=%s, remoteTraceID=%s",
+			rootTraceID, remoteTraceID)
+	}
+	if rootParentID != remoteSpanID {
+		t.Errorf("root is not a child of remote segment: rootParentID=%s, remoteSpanID=%s",
+			rootParentID, remoteSpanID)
 	}
 }
 

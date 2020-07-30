@@ -23,11 +23,13 @@ type Transaction struct {
 	rootSpan *span
 	thread   *thread
 	ended    bool
+	name     string
 }
 
 type thread struct {
 	sync.Mutex
 	currentSpan *span
+	spanCount   uint
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -163,6 +165,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 func (thd *thread) setCurrentSpan(s *span) {
 	thd.Lock()
 	thd.currentSpan = s
+	thd.spanCount += 1
 	thd.Unlock()
 }
 
@@ -244,8 +247,22 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// context will be detached from the transaction trace, but rather will
 	// have the remote trace id as trace id and the remote span id as the
 	// parent span id.
+	//
+	// If no more than the root segment where yet created for this
+	// transaction, we discard the root segment and replace it with a new
+	// root segment that has the proper remote parent and trace id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
-	txn.thread.currentSpan.ctx = remoteCtx
+
+	if txn.thread.spanCount == 1 {
+		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
+		txn.rootSpan = &span{
+			Span: sp,
+			ctx:  ctx,
+		}
+		txn.thread.currentSpan = txn.rootSpan
+	} else {
+		txn.thread.currentSpan.ctx = remoteCtx
+	}
 }
 
 // Application returns the Application which started the transaction.
