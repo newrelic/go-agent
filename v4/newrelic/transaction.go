@@ -248,7 +248,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// have the remote trace id as trace id and the remote span id as the
 	// parent span id.
 	//
-	// If no more than the root segment where yet created for this
+	// If no more than the root segment were yet created for this
 	// transaction, we discard the root segment and replace it with a new
 	// root segment that has the proper remote parent and trace id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
