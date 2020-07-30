@@ -250,7 +250,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
-	return nil
+	return txn.app
 }
 
 // BrowserTimingHeader generates the JavaScript required to enable New

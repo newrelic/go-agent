@@ -80,5 +80,37 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 // http.RoundTripper will look for a Transaction in the request's context
 // (using FromContext).
 func NewRoundTripper(original http.RoundTripper) http.RoundTripper {
-	return original
+	if nil == original {
+		original = http.DefaultTransport
+	}
+	return roundTripperFunc(func(request *http.Request) (*http.Response, error) {
+		// The specification of http.RoundTripper requires that the request is never modified.
+		request = cloneRequest(request)
+		segment := StartExternalSegment(nil, request)
+
+		response, err := original.RoundTrip(request)
+
+		segment.Response = response
+		segment.End()
+
+		return response, err
+	})
 }
+
+// cloneRequest mimics implementation of
+// https://godoc.org/github.com/google/go-github/github#BasicAuthTransport.RoundTrip
+func cloneRequest(r *http.Request) *http.Request {
+	// shallow copy of the struct
+	r2 := new(http.Request)
+	*r2 = *r
+	// deep copy of the Header
+	r2.Header = make(http.Header, len(r.Header))
+	for k, s := range r.Header {
+		r2.Header[k] = append([]string(nil), s...)
+	}
+	return r2
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }

@@ -22,7 +22,7 @@ func TestInsertDistributedTraceHeadersNil(t *testing.T) {
 	txn.InsertDistributedTraceHeaders(hdrs)
 }
 
-func TestInsertDistributedTraceHeadersTracestate(t *testing.T) {
+func TestInsertDistributedTraceHeadersTraceparent(t *testing.T) {
 	app := newTestApp(t)
 	txn := app.StartTransaction("transaction")
 	seg1 := txn.StartSegment("seg1")
@@ -51,7 +51,7 @@ func TestAcceptDistributedTraceHeadersNil(t *testing.T) {
 	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
 }
 
-func TestAcceptDistributedTraceHeadersTracestate(t *testing.T) {
+func TestAcceptDistributedTraceHeadersTraceparent(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
 
@@ -77,5 +77,39 @@ func TestAcceptDistributedTraceHeadersTracestate(t *testing.T) {
 	if seg1ParentID != remoteSpanID {
 		t.Errorf("seg1 is not a child of remote segment: seg1ParentID=%s, remoteSpanID=%s",
 			seg1ParentID, remoteSpanID)
+	}
+}
+
+func TestPropagateTracestate(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+	remoteTracestate := "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	inboundHdrs := http.Header{}
+	inboundHdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+	inboundHdrs.Set("tracestate", remoteTracestate)
+	txn.AcceptDistributedTraceHeaders("HTTP", inboundHdrs)
+
+	seg1 := txn.StartSegment("seg1")
+	outboundHdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(outboundHdrs)
+	seg1.End()
+
+	txn.End()
+
+	seg1ID := getSpanID(seg1.StartTime.Span)
+
+	traceparent := outboundHdrs.Get("traceparent")
+	tracestate := outboundHdrs.Get("tracestate")
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", remoteTraceID, seg1ID)
+
+	if traceparent != expectedTraceparent {
+		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
+	}
+	if tracestate != remoteTracestate {
+		t.Errorf("expected traceparent '%s', got '%s'", remoteTracestate, tracestate)
 	}
 }

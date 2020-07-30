@@ -323,5 +323,15 @@ func (s *ExternalSegment) SetStatusCode(code int) {}
 // NewRoundTripper: You may not need to use StartExternalSegment at all!
 //
 func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegment {
-	return nil
+	if nil == txn && nil != request {
+		txn = FromContext(request.Context())
+	}
+	s := &ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		Request:   request,
+	}
+
+	txn.InsertDistributedTraceHeaders(request.Header)
+
+	return s
 }

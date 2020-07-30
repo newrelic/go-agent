@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -661,5 +662,26 @@ func TestSpanKind(t *testing.T) {
 	}
 	if kind := getSpanKind(segMessage.StartTime.Span); kind != trace.SpanKindInternal {
 		t.Errorf("segMessage has incorrect SpanKind: %s", kind)
+	}
+}
+
+func TestStartExternalSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+	seg1 := StartExternalSegment(txn, req)
+	seg1.End()
+
+	txn.End()
+
+	traceID := getTraceID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
+
+	traceparent := req.Header.Get("traceparent")
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
+
+	if traceparent != expectedTraceparent {
+		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 }
