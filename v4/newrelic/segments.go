@@ -239,7 +239,14 @@ func (s *ExternalSegment) End() {
 }
 
 func (s *ExternalSegment) name() string {
-	return s.method() + ": " + s.host()
+	return s.library() + " " + s.method() + " " + s.host()
+}
+
+func (s *ExternalSegment) library() string {
+	if s.Library == "" {
+		return "http"
+	}
+	return s.Library
 }
 
 func (s *ExternalSegment) host() string {

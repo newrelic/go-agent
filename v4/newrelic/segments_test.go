@@ -496,37 +496,43 @@ func TestExternalSegmentNaming(t *testing.T) {
 	}{
 		{
 			seg:  &ExternalSegment{},
-			name: "unknown: unknown",
+			name: "http unknown unknown",
 		},
 		{
 			seg: &ExternalSegment{
 				Host: "myhost:1234",
 			},
-			name: "unknown: myhost:1234",
+			name: "http unknown myhost:1234",
 		},
 		{
 			seg: &ExternalSegment{
 				URL: "http://myhost:1234/path",
 			},
-			name: "unknown: myhost:1234",
+			name: "http unknown myhost:1234",
 		},
 		{
 			seg: &ExternalSegment{
 				URL: "this is not a url",
 			},
-			name: "unknown: unknown",
+			name: "http unknown unknown",
 		},
 		{
 			seg: &ExternalSegment{
 				Procedure: "procedure",
 			},
-			name: "procedure: unknown",
+			name: "http procedure unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Library: "gRPC",
+			},
+			name: "gRPC unknown unknown",
 		},
 		{
 			seg: &ExternalSegment{
 				Request: &http.Request{},
 			},
-			name: "GET: unknown",
+			name: "http GET unknown",
 		},
 		{
 			seg: &ExternalSegment{
@@ -534,7 +540,7 @@ func TestExternalSegmentNaming(t *testing.T) {
 					Method: "POST",
 				},
 			},
-			name: "POST: unknown",
+			name: "http POST unknown",
 		},
 		{
 			seg: &ExternalSegment{
@@ -543,7 +549,7 @@ func TestExternalSegmentNaming(t *testing.T) {
 				},
 				Response: &http.Response{},
 			},
-			name: "POST: unknown",
+			name: "http POST unknown",
 		},
 		{
 			seg: &ExternalSegment{
@@ -556,7 +562,7 @@ func TestExternalSegmentNaming(t *testing.T) {
 					},
 				},
 			},
-			name: "PUT: unknown",
+			name: "http PUT unknown",
 		},
 	}
 
