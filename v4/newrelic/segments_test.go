@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -21,6 +22,10 @@ func getParentID(s trace.Span) string {
 
 func spanHasEnded(s trace.Span) bool {
 	return s.(*testtrace.Span).Ended()
+}
+
+func getSpanName(s trace.Span) string {
+	return s.(*testtrace.Span).Name()
 }
 
 func newTestApp(t *testing.T) *Application {
@@ -373,4 +378,253 @@ func TestSegmentsOnEmptyTransaction(t *testing.T) {
 	seg := txn.StartSegment("seg")
 	seg.End()
 	txn.End()
+}
+
+func TestParentingDatastoreSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	seg := &DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	seg.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	segParentID := getParentID(seg.StartTime.Span)
+
+	if segParentID != txnID {
+		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
+			segParentID, txnID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg.StartTime.Span) {
+		t.Error("seg wasn't ended")
+	}
+}
+
+func TestDatastoreSegmentNaming(t *testing.T) {
+	testcases := []struct {
+		seg  *DatastoreSegment
+		name string
+	}{
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "collection",
+				Operation:          "operation",
+				ParameterizedQuery: "parametrized query",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "parametrized query",
+		},
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "collection",
+				Operation:          "operation",
+				ParameterizedQuery: "",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "'operation' on 'collection' using 'Postgres'",
+		},
+		{
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "",
+				Operation:          "operation",
+				ParameterizedQuery: "",
+				QueryParameters: map[string]interface{}{
+					"query": "param",
+				},
+				Host:         "host",
+				PortPathOrID: "port",
+				DatabaseName: "dbname",
+			},
+			name: "'operation' on 'unknown' using 'Postgres'",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if name := tc.seg.name(); name != tc.name {
+				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
+			}
+		})
+	}
+}
+
+func TestParentingExternalSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	seg := &ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	seg.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	segParentID := getParentID(seg.StartTime.Span)
+
+	if segParentID != txnID {
+		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
+			segParentID, txnID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg.StartTime.Span) {
+		t.Error("seg wasn't ended")
+	}
+}
+
+func TestExternalSegmentNaming(t *testing.T) {
+	testcases := []struct {
+		seg  *ExternalSegment
+		name string
+	}{
+		{
+			seg:  &ExternalSegment{},
+			name: "http unknown unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Host: "myhost:1234",
+			},
+			name: "http unknown myhost:1234",
+		},
+		{
+			seg: &ExternalSegment{
+				URL: "http://myhost:1234/path",
+			},
+			name: "http unknown myhost:1234",
+		},
+		{
+			seg: &ExternalSegment{
+				URL: "this is not a url",
+			},
+			name: "http unknown unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Procedure: "procedure",
+			},
+			name: "http procedure unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Library: "gRPC",
+			},
+			name: "gRPC unknown unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Request: &http.Request{},
+			},
+			name: "http GET unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "POST",
+				},
+			},
+			name: "http POST unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "POST",
+				},
+				Response: &http.Response{},
+			},
+			name: "http POST unknown",
+		},
+		{
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "POST",
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: "PUT",
+					},
+				},
+			},
+			name: "http PUT unknown",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if name := tc.seg.name(); name != tc.name {
+				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
+			}
+		})
+	}
+}
+
+func TestParentingMessageProducerSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	seg := &MessageProducerSegment{
+		StartTime: txn.StartSegmentNow(),
+	}
+	seg.End()
+	txn.End()
+
+	txnID := getSpanID(txn.rootSpan.Span)
+	segParentID := getParentID(seg.StartTime.Span)
+
+	if segParentID != txnID {
+		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
+			segParentID, txnID)
+	}
+	if !spanHasEnded(txn.rootSpan.Span) {
+		t.Error("txn root span wasn't ended")
+	}
+	if !spanHasEnded(seg.StartTime.Span) {
+		t.Error("seg wasn't ended")
+	}
+}
+
+func TestMessageProducerSegmentNaming(t *testing.T) {
+	testcases := []struct {
+		seg  *MessageProducerSegment
+		name string
+	}{
+		{
+			seg: &MessageProducerSegment{
+				DestinationName:      "destination",
+				DestinationTemporary: false,
+			},
+			name: "destination send",
+		},
+		{
+			seg: &MessageProducerSegment{
+				DestinationName:      "destination",
+				DestinationTemporary: true,
+			},
+			name: "(temporary) send",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			if name := tc.seg.name(); name != tc.name {
+				t.Errorf(`incorrect name: actual="%s" expected="%s"`, name, tc.name)
+			}
+		})
+	}
 }

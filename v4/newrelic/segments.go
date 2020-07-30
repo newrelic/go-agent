@@ -6,6 +6,7 @@ package newrelic
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"sync"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -157,6 +158,9 @@ func (s *span) end() {
 }
 
 func (s *span) isEnded() bool {
+	if s == nil {
+		return true
+	}
 	s.Lock()
 	defer s.Unlock()
 	return s.ended
@@ -173,9 +177,6 @@ func (s *Segment) End() {
 	if s == nil {
 		return
 	}
-	if s.StartTime.span == nil {
-		return
-	}
 	if s.StartTime.isEnded() {
 		return
 	}
@@ -190,7 +191,28 @@ func (s *Segment) End() {
 func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the datastore segment.
-func (s *DatastoreSegment) End() {}
+func (s *DatastoreSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *DatastoreSegment) name() string {
+	pq := s.ParameterizedQuery
+	if pq == "" {
+		coll := s.Collection
+		if "" == coll {
+			coll = "unknown"
+		}
+		pq = "'" + s.Operation + "' on '" + coll + "' using '" + string(s.Product) + "'"
+	}
+	return pq
+}
 
 // AddAttribute adds a key value pair to the current ExternalSegment.
 //
@@ -199,7 +221,62 @@ func (s *DatastoreSegment) End() {}
 func (s *ExternalSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the external segment.
-func (s *ExternalSegment) End() {}
+func (s *ExternalSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *ExternalSegment) name() string {
+	return s.library() + " " + s.method() + " " + s.host()
+}
+
+func (s *ExternalSegment) library() string {
+	if s.Library == "" {
+		return "http"
+	}
+	return s.Library
+}
+
+func (s *ExternalSegment) host() string {
+	host := s.Host
+	if host == "" && s.URL != "" {
+		url, err := url.Parse(s.URL)
+		if err == nil {
+			host = url.Host
+		}
+	}
+	if host == "" {
+		host = "unknown"
+	}
+	return host
+}
+
+func (s *ExternalSegment) method() string {
+	if "" != s.Procedure {
+		return s.Procedure
+	}
+	r := s.Request
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+	}
+
+	if nil != r {
+		if "" != r.Method {
+			return r.Method
+		}
+		// Golang's http package states that when a client's Request has
+		// an empty string for Method, the method is GET.
+		return "GET"
+	}
+
+	return "unknown"
+}
 
 // AddAttribute adds a key value pair to the current MessageProducerSegment.
 //
@@ -208,7 +285,24 @@ func (s *ExternalSegment) End() {}
 func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {}
 
 // End finishes the message segment.
-func (s *MessageProducerSegment) End() {}
+func (s *MessageProducerSegment) End() {
+	if s == nil {
+		return
+	}
+	if s.StartTime.isEnded() {
+		return
+	}
+	s.StartTime.Span.SetName(s.name())
+	s.StartTime.end()
+}
+
+func (s *MessageProducerSegment) name() string {
+	dest := s.DestinationName
+	if s.DestinationTemporary {
+		dest = "(temporary)"
+	}
+	return dest + " send"
+}
 
 // SetStatusCode sets the status code for the response of this ExternalSegment.
 // This status code will be included as an attribute on Span Events.  If status
