@@ -158,6 +158,9 @@ func (s *span) end() {
 }
 
 func (s *span) isEnded() bool {
+	if s == nil {
+		return true
+	}
 	s.Lock()
 	defer s.Unlock()
 	return s.ended
@@ -172,9 +175,6 @@ func (s *Segment) AddAttribute(key string, val interface{}) {}
 // End finishes the segment.
 func (s *Segment) End() {
 	if s == nil {
-		return
-	}
-	if s.StartTime.span == nil {
 		return
 	}
 	if s.StartTime.isEnded() {
@@ -193,9 +193,6 @@ func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {}
 // End finishes the datastore segment.
 func (s *DatastoreSegment) End() {
 	if s == nil {
-		return
-	}
-	if s.StartTime.span == nil {
 		return
 	}
 	if s.StartTime.isEnded() {
@@ -226,9 +223,6 @@ func (s *ExternalSegment) AddAttribute(key string, val interface{}) {}
 // End finishes the external segment.
 func (s *ExternalSegment) End() {
 	if s == nil {
-		return
-	}
-	if s.StartTime.span == nil {
 		return
 	}
 	if s.StartTime.isEnded() {
@@ -293,9 +287,6 @@ func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {}
 // End finishes the message segment.
 func (s *MessageProducerSegment) End() {
 	if s == nil {
-		return
-	}
-	if s.StartTime.span == nil {
 		return
 	}
 	if s.StartTime.isEnded() {
