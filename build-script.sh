@@ -50,7 +50,7 @@ for dir in $DIRS; do
     fi
   else
     # install v4 dependencies
-    go get -u go.opentelemetry.io/otel
+    go get ./...
   fi
 
   go test -race -benchtime=1ms -bench=. ./...
