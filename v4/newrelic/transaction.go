@@ -166,7 +166,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 func (thd *thread) setCurrentSpan(s *span) {
 	thd.Lock()
 	thd.currentSpan = s
-	thd.spanCount += 1
+	thd.spanCount++
 	thd.Unlock()
 }
 
