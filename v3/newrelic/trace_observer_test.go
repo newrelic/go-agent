@@ -865,9 +865,10 @@ func TestTrObsConsumingAfterShutdown(t *testing.T) {
 
 func TestTrObsOKSendBackoffNo(t *testing.T) {
 	// In this test, the OK response will be noticed by sendSpan
+	connected := make(chan struct{})
 	s := newTestObsServer(t, func(s *expectServer, stream v1.IngestService_RecordSpanServer) error {
+		connected <- struct{}{}
 		stream.Recv()
-		s.spansReceivedChan <- struct{}{}
 		return errOK
 	})
 	defer s.Close()
@@ -888,14 +889,24 @@ func TestTrObsOKSendBackoffNo(t *testing.T) {
 	// The grpc client will internally cache spans before sending them to
 	// ensure a minimum number of bytes are sent with each batch. Because of
 	// this we'll queue up more than enough spans to force at least two of them
-	// to get sent and received.
+	// to get sent.
+	sp := &spanEvent{}
 	for i := 0; i < 200; i++ {
-		to.consumeSpan(&spanEvent{})
+		to.consumeSpan(sp)
 	}
-	// If the default backoff of 15 seconds is used, the second span will not
-	// be received in time.
-	if !s.DidSpansArrive(t, 2, time.Second) {
-		t.Error("server did not receive 2 spans")
+	// If the default backoff of 15 seconds is used, the second connect to the
+	// trace observer server will not happen in time.
+	timeout := time.NewTicker(time.Second)
+	defer timeout.Stop()
+	select {
+	case <-connected:
+	case <-timeout.C:
+		t.Error("server did not receive first span")
+	}
+	select {
+	case <-connected:
+	case <-timeout.C:
+		t.Error("server did not receive second span")
 	}
 }
 
