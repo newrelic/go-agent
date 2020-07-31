@@ -87,6 +87,38 @@ func TestAcceptDistributedTraceHeadersTraceparent(t *testing.T) {
 	}
 }
 
+func TestAcceptDistributedTraceHeadersNewGoroutine(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	txnNew := txn.NewGoroutine()
+	hdrs := http.Header{}
+	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+
+	txnNew.AcceptDistributedTraceHeaders("HTTP", hdrs)
+
+	seg1 := txnNew.StartSegment("seg1")
+	seg1.End()
+
+	txnNew.End()
+	txn.End()
+
+	txnRootTraceID := getTraceID(txn.rootSpan.Span)
+	txnNewRootTraceID := getTraceID(txnNew.rootSpan.Span)
+
+	if txnRootTraceID == remoteTraceID {
+		t.Errorf("txn root does have remote trace id: rootTraceID=%s, remoteTraceID=%s",
+			txnRootTraceID, remoteTraceID)
+	}
+	if txnNewRootTraceID != remoteTraceID {
+		t.Errorf("txn root does not have remote trace id: rootTraceID=%s, remoteTraceID=%s",
+			txnNewRootTraceID, remoteTraceID)
+	}
+}
+
 func TestAcceptDistributedTraceHeadersSwitchRoot(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
@@ -138,7 +170,7 @@ func TestPropagateTracestate(t *testing.T) {
 
 	traceparent := outboundHdrs.Get("traceparent")
 	tracestate := outboundHdrs.Get("tracestate")
-	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", remoteTraceID, seg1ID)
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-01", remoteTraceID, seg1ID)
 
 	if traceparent != expectedTraceparent {
 		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)

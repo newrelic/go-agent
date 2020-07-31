@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -303,6 +304,7 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 	newTxn := *txn
 	newTxn.thread = &thread{
 		currentSpan: txn.thread.currentSpan,
+		spanCount:   1,
 	}
 	return &newTxn
 }

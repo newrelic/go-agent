@@ -698,17 +698,13 @@ func TestStartExternalSegmentWithTxnContext(t *testing.T) {
 
 	txn.End()
 
-	// This will currently fail, as seg1.StartTime is nil. It can be
-	// activated context support is implemented.
-	if false {
-		traceID := getTraceID(txn.rootSpan.Span)
-		seg1ID := getSpanID(seg1.StartTime.Span)
+	traceID := getTraceID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
 
-		traceparent := req.Header.Get("traceparent")
-		expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
+	traceparent := req.Header.Get("traceparent")
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
 
-		if traceparent != expectedTraceparent {
-			t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
-		}
+	if traceparent != expectedTraceparent {
+		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 }
