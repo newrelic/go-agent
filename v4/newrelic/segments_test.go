@@ -332,15 +332,9 @@ func TestParentingWithOTelAPI(t *testing.T) {
 		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
 			seg1ParentID, txnID)
 	}
-	// XXX: Once NewContext has been implemented, the following test should
-	// fail.  span should be a child of seg1, but currently it has no parent.
-	//
-	//if spanParentID != segID {
-	//	t.Errorf("span is not a child of seg1: spanParentID=%s, segID=%s",
-	//		spanParentID, segID)
-	//}
-	if spanParentID != "0000000000000000" {
-		t.Errorf("span now has a parent: spanParentID=%s", spanParentID)
+	if spanParentID != seg1ID {
+		t.Errorf("span is not a child of seg1: spanParentID=%s, seg1ID=%s",
+			spanParentID, seg1ID)
 	}
 	// NOTE: There is currently no way for a newrelic segment to be childed to
 	// an opentelemetry span.
