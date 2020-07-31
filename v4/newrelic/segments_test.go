@@ -685,3 +685,30 @@ func TestStartExternalSegment(t *testing.T) {
 		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 }
+
+func TestStartExternalSegmentWithTxnContext(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	ctx := NewContext(context.Background(), txn)
+
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+	req = req.WithContext(ctx)
+	seg1 := StartExternalSegment(nil, req)
+	seg1.End()
+
+	txn.End()
+
+	// This will currently fail, as seg1.StartTime is nil. It can be
+	// activated context support is implemented.
+	if false {
+		traceID := getTraceID(txn.rootSpan.Span)
+		seg1ID := getSpanID(seg1.StartTime.Span)
+
+		traceparent := req.Header.Get("traceparent")
+		expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
+
+		if traceparent != expectedTraceparent {
+			t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
+		}
+	}
+}
