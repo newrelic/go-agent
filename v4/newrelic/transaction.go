@@ -111,6 +111,12 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {}
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {}
 
+type dummyResponseWriter struct{}
+
+func (rw dummyResponseWriter) Header() http.Header         { return nil }
+func (rw dummyResponseWriter) Write(b []byte) (int, error) { return 0, nil }
+func (rw dummyResponseWriter) WriteHeader(code int)        {}
+
 // SetWebResponse allows the Transaction to instrument response code and
 // response headers.  Use the return value of this method in place of the input
 // parameter http.ResponseWriter in your instrumentation.
@@ -126,6 +132,15 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {}
 // package middlewares.  Therefore, you probably want to use this only if you
 // are writing your own instrumentation middleware.
 func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
+	if w == nil {
+		// Accepting a nil parameter makes it easy for consumers to add
+		// a response code to the transaction without a response
+		// writer:
+		//
+		//    txn.SetWebResponse(nil).WriteHeader(500)
+		//
+		w = dummyResponseWriter{}
+	}
 	return w
 }
 
