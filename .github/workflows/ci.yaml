@@ -214,9 +214,11 @@ jobs:
             dirs: v4/newrelic,v4/internal,v4/examples,v4/integrations/logcontext
 
           # v4 integrations
-          - go-version: 1.14.x
-            dirs: v4/integrations/logcontext/nrlogrusplugin
-            extratesting: go get -u github.com/sirupsen/logrus@master
+          # The logcontext tests should be disabled until txn.GetTraceMetadata
+          # and txn.GetLinkingMetadata are implemented.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/logcontext/nrlogrusplugin
+          #   extratesting: go get -u github.com/sirupsen/logrus@master
           - go-version: 1.14.x
             dirs: v4/integrations/nrawssdk-v1
             extratesting: go get -u github.com/aws/aws-sdk-go@master
