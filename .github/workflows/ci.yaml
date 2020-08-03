@@ -253,9 +253,11 @@ jobs:
           - go-version: 1.14.x
             dirs: v4/integrations/nrpkgerrors
             extratesting: go get -u github.com/pkg/errors@master
-          - go-version: 1.14.x
-            dirs: v4/integrations/nrlambda
-            extratesting: go get -u github.com/aws/aws-lambda-go@master
+          # Skip v4 lambda tests until the lambda integration can be properly
+          # implemented considering the change to OpenTelemetry.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrlambda
+          #   extratesting: go get -u github.com/aws/aws-lambda-go@master
           - go-version: 1.14.x
             dirs: v4/integrations/nrmysql
             extratesting: go get -u github.com/go-sql-driver/mysql@master
