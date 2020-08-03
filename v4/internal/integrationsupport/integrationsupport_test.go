@@ -25,25 +25,8 @@ func TestEmptyTransaction(t *testing.T) {
 	AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, "operation")
 }
 
-func testApp(t *testing.T) *newrelic.Application {
-	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("appname"),
-		newrelic.ConfigLicense("0123456789012345678901234567890123456789"),
-		newrelic.ConfigEnabled(false),
-		newrelic.ConfigDistributedTracerEnabled(true),
-	)
-	if nil != err {
-		t.Fatal(err)
-	}
-	replyfn := func(reply *internal.ConnectReply) {
-		reply.SetSampleEverything()
-	}
-	internal.HarvestTesting(app.Private, replyfn)
-	return app
-}
-
 func TestSuccess(t *testing.T) {
-	app := testApp(t)
+	app := NewTestApp(nil)
 	txn := app.StartTransaction("hello")
 	AddAgentAttribute(txn, newrelic.AttributeHostDisplayName, "hostname", nil)
 	segment := txn.StartSegment("mySegment")
@@ -51,14 +34,14 @@ func TestSuccess(t *testing.T) {
 	segment.End()
 	txn.End()
 
-	app.Private.(internal.Expect).ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
 			AgentAttributes: map[string]interface{}{
 				newrelic.AttributeHostDisplayName: "hostname",
 			},
 		},
 	})
-	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":     "Custom/mySegment",
@@ -85,7 +68,7 @@ func TestSuccess(t *testing.T) {
 
 func TestConcurrentCalls(t *testing.T) {
 	// This test will fail with a data race if the txn is not properly locked
-	app := testApp(t)
+	app := NewTestApp(nil)
 	txn := app.StartTransaction("hello")
 	defer txn.End()
 	defer txn.StartSegment("mySegment").End()

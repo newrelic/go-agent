@@ -18,6 +18,7 @@ func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, o
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
 func AddAgentSpanAttribute(txn *newrelic.Transaction, key string, val string) {}
 
+// SampleAppName is a sample application name.
 const SampleAppName = "my app"
 
 // ExpectApp combines Application and Expect, for use in validating data in test apps
@@ -48,7 +49,9 @@ func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
 	}
 
 	return ExpectApp{
-		Expect:      &internal.TraceExpecter{tr.(*testtrace.Tracer)},
+		Expect: &internal.TraceExpecter{
+			Tracer: tr.(*testtrace.Tracer),
+		},
 		Application: app,
 	}
 }
