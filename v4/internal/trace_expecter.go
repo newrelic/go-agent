@@ -4,37 +4,37 @@ import (
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
-// TraceExpecter implements internal.Expect for use in testing.
-type TraceExpecter struct {
+// OpenTelemetryExpect implements internal.Expect for use in testing.
+type OpenTelemetryExpect struct {
 	*testtrace.Tracer
 }
 
 // ExpectTxnEvents TODO
-func (te *TraceExpecter) ExpectTxnEvents(t Validator, want []WantEvent) {}
+func (e *OpenTelemetryExpect) ExpectTxnEvents(t Validator, want []WantEvent) {}
 
 // ExpectSpanEvents TODO
-func (te *TraceExpecter) ExpectSpanEvents(t Validator, want []WantEvent) {}
+func (e *OpenTelemetryExpect) ExpectSpanEvents(t Validator, want []WantEvent) {}
 
 // ExpectCustomEvents TODO
-func (te *TraceExpecter) ExpectCustomEvents(t Validator, want []WantEvent) {}
+func (e *OpenTelemetryExpect) ExpectCustomEvents(t Validator, want []WantEvent) {}
 
 // ExpectErrors TODO
-func (te *TraceExpecter) ExpectErrors(t Validator, want []WantError) {}
+func (e *OpenTelemetryExpect) ExpectErrors(t Validator, want []WantError) {}
 
 // ExpectErrorEvents TODO
-func (te *TraceExpecter) ExpectErrorEvents(t Validator, want []WantEvent) {}
+func (e *OpenTelemetryExpect) ExpectErrorEvents(t Validator, want []WantEvent) {}
 
 // ExpectMetrics TODO
-func (te *TraceExpecter) ExpectMetrics(t Validator, want []WantMetric) {}
+func (e *OpenTelemetryExpect) ExpectMetrics(t Validator, want []WantMetric) {}
 
 // ExpectMetricsPresent TODO
-func (te *TraceExpecter) ExpectMetricsPresent(t Validator, want []WantMetric) {}
+func (e *OpenTelemetryExpect) ExpectMetricsPresent(t Validator, want []WantMetric) {}
 
 // ExpectTxnMetrics TODO
-func (te *TraceExpecter) ExpectTxnMetrics(t Validator, want WantTxn) {}
+func (e *OpenTelemetryExpect) ExpectTxnMetrics(t Validator, want WantTxn) {}
 
 // ExpectTxnTraces TODO
-func (te *TraceExpecter) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
+func (e *OpenTelemetryExpect) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
 
 // ExpectSlowQueries TODO
-func (te *TraceExpecter) ExpectSlowQueries(t Validator, want []WantSlowQuery) {}
+func (e *OpenTelemetryExpect) ExpectSlowQueries(t Validator, want []WantSlowQuery) {}

@@ -49,7 +49,7 @@ func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
 	}
 
 	return ExpectApp{
-		Expect: &internal.TraceExpecter{
+		Expect: &internal.OpenTelemetryExpect{
 			Tracer: tr.(*testtrace.Tracer),
 		},
 		Application: app,
