@@ -15,10 +15,13 @@ func getTraceID(s trace.Span) string {
 	return s.SpanContext().TraceID.String()
 }
 
-func TestInsertDistributedTraceHeadersNil(t *testing.T) {
+func TestInsertDistributedTraceHeadersInvalid(t *testing.T) {
 	hdrs := http.Header{}
 
 	var txn *Transaction
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	txn = &Transaction{}
 	txn.InsertDistributedTraceHeaders(hdrs)
 }
 
@@ -44,10 +47,13 @@ func TestInsertDistributedTraceHeadersTraceparent(t *testing.T) {
 	}
 }
 
-func TestAcceptDistributedTraceHeadersNil(t *testing.T) {
+func TestAcceptDistributedTraceHeadersInvalid(t *testing.T) {
 	hdrs := http.Header{}
 
 	var txn *Transaction
+	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
+
+	txn = &Transaction{}
 	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
 }
 
@@ -88,6 +94,41 @@ func TestAcceptDistributedTraceHeadersTraceparent(t *testing.T) {
 }
 
 func TestAcceptDistributedTraceHeadersNewGoroutine(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	seg1 := txn.StartSegment("seg1")
+	seg1.End()
+
+	txnNew := txn.NewGoroutine()
+	hdrs := http.Header{}
+	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+
+	txnNew.AcceptDistributedTraceHeaders("HTTP", hdrs)
+
+	seg2 := txnNew.StartSegment("seg1")
+	seg2.End()
+
+	txnNew.End()
+	txn.End()
+
+	txnRootTraceID := getTraceID(txn.rootSpan.Span)
+	txnNewRootTraceID := getTraceID(txnNew.rootSpan.Span)
+
+	if txnRootTraceID == remoteTraceID {
+		t.Errorf("txn root does have remote trace id: txnRootTraceID=%s, remoteTraceID=%s",
+			txnRootTraceID, remoteTraceID)
+	}
+	if txnNewRootTraceID != txnRootTraceID {
+		t.Errorf("txn root does not have same trace id as goroutine root : txnNewRootTraceID=%s, txnRootTraceID=%s",
+			txnNewRootTraceID, txnRootTraceID)
+	}
+}
+
+func TestAcceptDistributedTraceHeadersNewGoroutineSwitchRoot(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
 

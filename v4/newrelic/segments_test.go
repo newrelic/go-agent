@@ -665,6 +665,23 @@ func TestSpanKind(t *testing.T) {
 	}
 }
 
+func TestStartExternalSegmentInvalid(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+
+	var txn *Transaction
+	StartExternalSegment(txn, req)
+
+	txn = &Transaction{}
+	StartExternalSegment(txn, req)
+
+	app := newTestApp(t)
+	txn = app.StartTransaction("transaction")
+	defer txn.End()
+
+	StartExternalSegment(txn, nil)
+	StartExternalSegment(txn, &http.Request{})
+}
+
 func TestStartExternalSegment(t *testing.T) {
 	app := newTestApp(t)
 	txn := app.StartTransaction("transaction")

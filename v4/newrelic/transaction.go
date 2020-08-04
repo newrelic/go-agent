@@ -29,8 +29,8 @@ type Transaction struct {
 
 type thread struct {
 	sync.Mutex
-	currentSpan *span
-	spanCount   uint
+	currentSpan  *span
+	isSingleSpan bool
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -166,7 +166,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 func (thd *thread) setCurrentSpan(s *span) {
 	thd.Lock()
 	thd.currentSpan = s
-	thd.spanCount++
+	thd.isSingleSpan = false
 	thd.Unlock()
 }
 
@@ -211,14 +211,17 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	if txn == nil {
+	if nil == txn || nil == txn.thread || nil == txn.app {
 		return
 	}
 
-	txn.thread.currentSpan.Lock()
-	defer txn.thread.currentSpan.Unlock()
+	currentSpan := txn.thread.getCurrentSpan()
 
-	propagation.InjectHTTP(txn.thread.currentSpan.ctx, txn.app.propagators, hdrs)
+	if nil == currentSpan {
+		return
+	}
+
+	propagation.InjectHTTP(currentSpan.ctx, txn.app.propagators, hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
@@ -236,7 +239,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	if txn == nil {
+	if nil == txn || nil == txn.thread || nil == txn.thread.currentSpan {
 		return
 	}
 
@@ -254,7 +257,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// root segment that has the proper remote parent and trace id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
 
-	if txn.thread.spanCount == 1 {
+	if txn.thread.isSingleSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
 		txn.rootSpan = &span{
 			Span: sp,
@@ -301,10 +304,13 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+
 	newTxn := *txn
 	newTxn.thread = &thread{
-		currentSpan: txn.thread.currentSpan,
-		spanCount:   1,
+		currentSpan:  txn.thread.currentSpan,
+		isSingleSpan: txn.thread.isSingleSpan,
 	}
 	return &newTxn
 }

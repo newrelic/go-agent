@@ -30,8 +30,8 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	return &Transaction{
 		rootSpan: s,
 		thread: &thread{
-			currentSpan: s,
-			spanCount:   1,
+			currentSpan:  s,
+			isSingleSpan: true,
 		},
 		app:  app,
 		name: name,

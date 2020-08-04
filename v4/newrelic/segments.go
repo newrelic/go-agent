@@ -331,7 +331,9 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 		Request:   request,
 	}
 
-	txn.InsertDistributedTraceHeaders(request.Header)
+	if nil != request && nil != request.Header {
+		txn.InsertDistributedTraceHeaders(request.Header)
+	}
 
 	return s
 }
