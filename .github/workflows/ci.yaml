@@ -316,8 +316,10 @@ jobs:
           - go-version: 1.14.x
             dirs: v4/integrations/nrhttprouter
             extratesting: go get -u github.com/julienschmidt/httprouter@master
-          - go-version: 1.14.x
-            dirs: v4/integrations/nrb3
+          # Skip nrb3 tests.  OpenTelemetry contains support for B3 headers and
+          # we should rework this integration package with that in mind.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrb3
           - go-version: 1.14.x
             dirs: v4/integrations/nrmongo
             extratesting: go get -u go.mongodb.org/mongo-driver@master
