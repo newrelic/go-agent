@@ -58,7 +58,7 @@ func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
 
 // NewBasicTestApp creates an ExpectApp with the standard testing connect reply function and config
 func NewBasicTestApp() ExpectApp {
-	return NewTestApp(nil, BasicConfigFn)
+	return NewTestApp(BasicConfigFn)
 }
 
 // BasicConfigFn is a default config function to be used when no special settings are needed for a test app
