@@ -341,7 +341,7 @@ type Config struct {
 	OpenTelemetry struct {
 		// Tracer TODO
 		Tracer trace.Tracer
-		// Propagator TODO
+		// Propagators TODO
 		Propagators propagation.Propagators
 	}
 }
