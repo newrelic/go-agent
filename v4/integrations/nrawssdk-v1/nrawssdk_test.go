@@ -25,7 +25,7 @@ import (
 )
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.DTEnabledCfgFn)
+	return integrationsupport.NewTestApp(integrationsupport.DTEnabledCfgFn)
 }
 
 type fakeTransport struct{}

@@ -23,20 +23,22 @@ IFS=","
 for dir in $DIRS; do
   cd "$pwd/$dir"
 
-  if [ -f "go.mod" ]; then
-    go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
-  fi
-
   # go get is necessary for testing v2 integrations since they do not have
   # a go.mod file.
   if [[ $dir =~ "_integrations" ]]; then
     go get -t ./...
   fi
+
   # avoid testing v3 and v4 code when testing v2 newrelic package
   if [ $dir == "." ]; then
     rm -rf v3/
     rm -rf v4/
   elif [[ $dir =~ "v3" ]]; then
+    # for integrations test with the local agent instead of downloading
+    if [ -f "go.mod" ]; then
+      go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
+    fi
+
     # Only v3 code version 1.9+ needs GRPC dependencies
     VERSION=$(go version)
     V17="1.7"
@@ -60,6 +62,11 @@ for dir in $DIRS; do
       go get -u google.golang.org/grpc
     fi
   else
+    # for integrations test with the local agent instead of downloading
+    if [ -f "go.mod" ]; then
+      go mod edit -replace github.com/newrelic/go-agent/v4=$pwd/v4
+    fi
+
     # install v4 dependencies
     go get ./...
   fi

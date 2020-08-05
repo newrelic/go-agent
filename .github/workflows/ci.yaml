@@ -213,6 +213,120 @@ jobs:
           - go-version: 1.14.x
             dirs: v4/newrelic,v4/internal,v4/examples,v4/integrations/logcontext
 
+          # v4 integrations
+          # The logcontext tests should be disabled until txn.GetTraceMetadata
+          # and txn.GetLinkingMetadata are implemented.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/logcontext/nrlogrusplugin
+          #   extratesting: go get -u github.com/sirupsen/logrus@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrawssdk-v1
+            extratesting: go get -u github.com/aws/aws-sdk-go@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrawssdk-v2
+            extratesting: go get -u github.com/aws/aws-sdk-go-v2@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrecho-v3
+            # Test against the latest v3 Echo:
+            extratesting: go get -u github.com/labstack/echo@v3
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrecho-v4
+            extratesting: go get -u github.com/labstack/echo/v4@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrelasticsearch-v7
+            extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrgin
+            extratesting: go get -u github.com/gin-gonic/gin@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrgorilla
+            extratesting: go get -u github.com/gorilla/mux@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrgraphgophers
+            extratesting: go get -u github.com/graph-gophers/graphql-go@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrlogrus
+            extratesting: go get -u github.com/sirupsen/logrus@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrlogxi
+            extratesting: go get -u github.com/mgutz/logxi@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrpkgerrors
+            extratesting: go get -u github.com/pkg/errors@master
+          # Skip v4 lambda tests until the lambda integration can be properly
+          # implemented considering the change to OpenTelemetry.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrlambda
+          #   extratesting: go get -u github.com/aws/aws-lambda-go@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrmysql
+            extratesting: go get -u github.com/go-sql-driver/mysql@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrpq
+            extratesting: go get -u github.com/lib/pq@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrpq/example/sqlx
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrredis-v7
+            extratesting: go get -u github.com/go-redis/redis/v7@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrsqlite3
+            extratesting: go get -u github.com/mattn/go-sqlite3@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrsnowflake
+            extratesting: go get -u github.com/snowflakedb/gosnowflake@master
+          # gRPC tests should be skipped until Distributed Tracing has been
+          # implemented.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrgrpc
+          #   extratesting: go get -u google.golang.org/grpc@master
+          # Micro tests should be skipped until Distributed Tracing has been
+          # implemented.
+          #- go-version: 1.14.x
+          #  dirs: v4/integrations/nrmicro
+            # As of Dec 2019, there is a race condition in when using go-micro@master
+            # in their logging system.  Instead, we'll test against the latest
+            # released version.
+            # As of Jan 2019, it is impossible to go get the latest micro version.
+            # As of June 2020, confirmed errors still result
+            # extratesting: go get -u github.com/micro/go-micro@latest
+          # Nats/Stan tests should be skipped until Distributed Tracing has
+          # been implemented.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrnats
+          #   extratesting: go get -u github.com/nats-io/nats.go/@master
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrnats/test
+          #   extratesting: go get -u github.com/nats-io/nats.go/@master
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrstan
+          #   extratesting: go get -u github.com/nats-io/stan.go/@master
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrstan/test
+          #   extratesting: go get -u github.com/nats-io/stan.go/@master
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrstan/examples
+          #   extratesting: go get -u github.com/nats-io/stan.go/@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/logcontext
+            extratesting: go get -u github.com/sirupsen/logrus@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrzap
+            extratesting: go get -u go.uber.org/zap@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrhttprouter
+            extratesting: go get -u github.com/julienschmidt/httprouter@master
+          # Skip nrb3 tests.  OpenTelemetry contains support for B3 headers and
+          # we should rework this integration package with that in mind.
+          # - go-version: 1.14.x
+          #   dirs: v4/integrations/nrb3
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrmongo
+            extratesting: go get -u go.mongodb.org/mongo-driver@master
+          - go-version: 1.14.x
+            dirs: v4/integrations/nrgraphqlgo,v4/integrations/nrgraphqlgo/example
+            extratesting: go get -u github.com/graphql-go/graphql@master
+
     steps:
     - name: Install Go
       uses: actions/setup-go@v1

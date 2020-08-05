@@ -11,7 +11,7 @@
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrecho-v4/example/main.go
+// Example: https://github.com/newrelic/go-agent/tree/master/v4/integrations/nrecho-v4/example/main.go
 package nrecho
 
 import (
@@ -19,8 +19,8 @@ import (
 	"reflect"
 
 	"github.com/labstack/echo/v4"
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "echo") }

@@ -7,10 +7,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	"github.com/newrelic/go-agent/v3/internal/sysinfo"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v4/internal/sysinfo"
+	"github.com/newrelic/go-agent/v4/newrelic"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
@@ -235,9 +235,5 @@ func TestCollName(t *testing.T) {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces)
-}
-
-var replyFn = func(reply *internal.ConnectReply) {
-	reply.SetSampleEverything()
+	return integrationsupport.NewTestApp(integrationsupport.ConfigFullTraces)
 }

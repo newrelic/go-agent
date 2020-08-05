@@ -6,7 +6,7 @@ package nrpq
 import (
 	"testing"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func TestParseDSN(t *testing.T) {
