@@ -30,8 +30,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	return &Transaction{
 		rootSpan: s,
 		thread: &thread{
-			currentSpan:  s,
-			isSingleSpan: true,
+			currentSpan: s,
 		},
 		app:  app,
 		name: name,
@@ -109,9 +108,11 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	if nil == tracer {
 		tracer = global.Tracer("traceName")
 	}
-	propagators := propagation.New(
-		propagation.WithInjectors(trace.TraceContext{}),
-		propagation.WithExtractors(trace.TraceContext{}))
-
+	propagators := c.OpenTelemetry.Propagators
+	if nil == propagators {
+		propagators = propagation.New(
+			propagation.WithInjectors(trace.TraceContext{}),
+			propagation.WithExtractors(trace.TraceContext{}))
+	}
 	return &Application{tracer: tracer, propagators: propagators}, nil
 }

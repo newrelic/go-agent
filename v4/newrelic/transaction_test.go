@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"testing"
 
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
 func getTraceID(s trace.Span) string {
@@ -218,5 +220,39 @@ func TestPropagateTracestate(t *testing.T) {
 	}
 	if tracestate != remoteTracestate {
 		t.Errorf("expected traceparent '%s', got '%s'", remoteTracestate, tracestate)
+	}
+}
+
+func TestInsertDistributedTraceHeadersB3(t *testing.T) {
+	app, err := NewApplication(func(cfg *Config) {
+		tp := testtrace.NewProvider()
+		cfg.OpenTelemetry.Tracer = tp.Tracer("go-agent-test")
+		cfg.OpenTelemetry.Propagators = propagation.New(
+			propagation.WithInjectors(trace.B3{}),
+			propagation.WithExtractors(trace.B3{}))
+	})
+	if err != nil {
+		t.Fatal("unable to create app:", err)
+	}
+	txn := app.StartTransaction("transaction")
+	seg1 := txn.StartSegment("seg1")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	seg1.End()
+	txn.End()
+
+	traceID := getTraceID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
+
+	b3TraceId := hdrs.Get("X-B3-Traceid")
+	b3SpanId := hdrs.Get("X-B3-Spanid")
+
+	if b3TraceId != traceID {
+		t.Errorf("expected X-B3-Traceid '%s', got '%s'", traceID, b3TraceId)
+	}
+	if b3SpanId != seg1ID {
+		t.Errorf("expected X-B3-Spanid '%s', got '%s'", seg1ID, b3SpanId)
 	}
 }

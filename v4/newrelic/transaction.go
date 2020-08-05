@@ -29,8 +29,10 @@ type Transaction struct {
 
 type thread struct {
 	sync.Mutex
-	currentSpan  *span
-	isSingleSpan bool
+	currentSpan *span
+	// isMultiSpan is set to true of the associated transaction has more
+	// than one span.
+	isMultiSpan bool
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -166,7 +168,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 func (thd *thread) setCurrentSpan(s *span) {
 	thd.Lock()
 	thd.currentSpan = s
-	thd.isSingleSpan = false
+	thd.isMultiSpan = true
 	thd.Unlock()
 }
 
@@ -257,7 +259,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// root segment that has the proper remote parent and trace id.
 	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
 
-	if txn.thread.isSingleSpan {
+	if !txn.thread.isMultiSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
 		txn.rootSpan = &span{
 			Span: sp,
@@ -309,8 +311,8 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 
 	newTxn := *txn
 	newTxn.thread = &thread{
-		currentSpan:  txn.thread.currentSpan,
-		isSingleSpan: txn.thread.isSingleSpan,
+		currentSpan: txn.thread.currentSpan,
+		isMultiSpan: txn.thread.isMultiSpan,
 	}
 	return &newTxn
 }

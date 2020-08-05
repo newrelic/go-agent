@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -340,6 +341,8 @@ type Config struct {
 	OpenTelemetry struct {
 		// Tracer TODO
 		Tracer trace.Tracer
+		// Propagator TODO
+		Propagators propagation.Propagators
 	}
 }
 
