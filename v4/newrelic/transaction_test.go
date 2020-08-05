@@ -247,13 +247,13 @@ func TestInsertDistributedTraceHeadersB3(t *testing.T) {
 	traceID := getTraceID(txn.rootSpan.Span)
 	seg1ID := getSpanID(seg1.StartTime.Span)
 
-	b3TraceId := hdrs.Get("X-B3-Traceid")
-	b3SpanId := hdrs.Get("X-B3-Spanid")
+	b3TraceID := hdrs.Get("X-B3-Traceid")
+	b3SpanID := hdrs.Get("X-B3-Spanid")
 
-	if b3TraceId != traceID {
-		t.Errorf("expected X-B3-Traceid '%s', got '%s'", traceID, b3TraceId)
+	if b3TraceID != traceID {
+		t.Errorf("expected X-B3-Traceid '%s', got '%s'", traceID, b3TraceID)
 	}
-	if b3SpanId != seg1ID {
-		t.Errorf("expected X-B3-Spanid '%s', got '%s'", seg1ID, b3SpanId)
+	if b3SpanID != seg1ID {
+		t.Errorf("expected X-B3-Spanid '%s', got '%s'", seg1ID, b3SpanID)
 	}
 }
