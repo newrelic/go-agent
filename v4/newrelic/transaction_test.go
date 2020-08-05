@@ -142,6 +142,7 @@ func TestAcceptDistributedTraceHeadersNewGoroutineNoSwitchRoot(t *testing.T) {
 	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
 
 	txnNew.AcceptDistributedTraceHeaders("HTTP", hdrs)
+	txn.AcceptDistributedTraceHeaders("HTTP", hdrs)
 
 	seg1 := txnNew.StartSegment("seg1")
 	seg1.End()

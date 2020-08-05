@@ -309,6 +309,8 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 	txn.thread.Lock()
 	defer txn.thread.Unlock()
 
+	txn.thread.isMultiSpan = true
+
 	newTxn := *txn
 	newTxn.thread = &thread{
 		currentSpan: txn.thread.currentSpan,
