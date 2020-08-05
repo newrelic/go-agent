@@ -21,6 +21,12 @@ type Application struct {
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string) *Transaction {
+	if app == nil {
+		return nil
+	}
+	if app.tracer == nil {
+		return nil
+	}
 	ctx, sp := app.tracer.Start(context.Background(), name,
 		trace.WithSpanKind(trace.SpanKindInternal))
 	s := &span{
