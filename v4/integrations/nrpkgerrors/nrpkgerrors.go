@@ -11,8 +11,8 @@ package nrpkgerrors
 import (
 	"fmt"
 
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 	"github.com/pkg/errors"
 )
 

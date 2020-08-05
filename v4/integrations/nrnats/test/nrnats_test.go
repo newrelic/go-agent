@@ -11,10 +11,10 @@ import (
 
 	"github.com/nats-io/nats-server/test"
 	nats "github.com/nats-io/nats.go"
-	"github.com/newrelic/go-agent/v3/integrations/nrnats"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrnats"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func TestMain(m *testing.M) {

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/newrelic/go-agent/v3/integrations/nrnats"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrnats"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func currentTransaction() *newrelic.Transaction { return nil }

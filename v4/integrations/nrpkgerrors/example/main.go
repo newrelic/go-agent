@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrpkgerrors"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrpkgerrors"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 	"github.com/pkg/errors"
 )
 

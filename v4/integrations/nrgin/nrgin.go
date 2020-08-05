@@ -11,15 +11,15 @@
 //	// Add the nrgin middleware before other middlewares or routes:
 //	router.Use(nrgin.Middleware(app))
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrgin/example/main.go
+// Example: https://github.com/newrelic/go-agent/tree/master/v4/integrations/nrgin/example/main.go
 package nrgin
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "gin", "v1") }

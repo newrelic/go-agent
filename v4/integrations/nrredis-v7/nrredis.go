@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	redis "github.com/go-redis/redis/v7"
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "datastore", "redis") }

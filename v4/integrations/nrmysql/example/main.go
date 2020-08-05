@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/newrelic/go-agent/v3/integrations/nrmysql"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	_ "github.com/newrelic/go-agent/v4/integrations/nrmysql"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func main() {

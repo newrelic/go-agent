@@ -38,7 +38,7 @@
 // 	}
 //
 // Full server example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrgrpc/example/server/server.go
 //
 // Client
 //
@@ -62,9 +62,9 @@
 //	msg, err := client.handler(ctx, &pb.Message{"Hello World"})
 //
 // Full client example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/client/client.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrgrpc/example/client/client.go
 package nrgrpc
 
-import "github.com/newrelic/go-agent/v3/internal"
+import "github.com/newrelic/go-agent/v4/internal"
 
 func init() { internal.TrackUsage("integration", "framework", "grpc") }

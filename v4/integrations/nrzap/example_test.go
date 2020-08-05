@@ -4,8 +4,8 @@
 package nrzap_test
 
 import (
-	"github.com/newrelic/go-agent/v3/integrations/nrzap"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrzap"
+	"github.com/newrelic/go-agent/v4/newrelic"
 	"go.uber.org/zap"
 )
 

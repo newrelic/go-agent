@@ -23,7 +23,7 @@
 // Then change the side-effect import to this package, and open "nrsqlite3" instead:
 //
 //	import (
-//		_ "github.com/newrelic/go-agent/v3/integrations/nrsqlite3"
+//		_ "github.com/newrelic/go-agent/v4/integrations/nrsqlite3"
 //	)
 //
 //	func main() {
@@ -68,7 +68,7 @@
 //	row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
 //
 // A working example is shown here:
-// https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsqlite3/example/main.go
+// https://github.com/newrelic/go-agent/tree/master/v4/integrations/nrsqlite3/example/main.go
 package nrsqlite3
 
 import (
@@ -78,9 +78,9 @@ import (
 	"strings"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/newrelic/go-agent/v3/newrelic/sqlparse"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/newrelic"
+	"github.com/newrelic/go-agent/v4/newrelic/sqlparse"
 )
 
 var (
