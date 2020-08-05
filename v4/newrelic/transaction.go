@@ -31,7 +31,7 @@ type thread struct {
 	sync.Mutex
 	currentSpan *span
 	// isMultiSpan is set to true of the associated transaction has more
-	// than one span.
+	// than one span or crosses multiple goroutines.
 	isMultiSpan bool
 }
 
