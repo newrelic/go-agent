@@ -4,10 +4,12 @@
 package newrelic
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"sync"
 
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -18,14 +20,19 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
+	app      *Application
 	rootSpan *span
 	thread   *thread
 	ended    bool
+	name     string
 }
 
 type thread struct {
 	sync.Mutex
 	currentSpan *span
+	// isMultiSpan is set to true of the associated transaction has more
+	// than one span or crosses multiple goroutines.
+	isMultiSpan bool
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -161,6 +168,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 func (thd *thread) setCurrentSpan(s *span) {
 	thd.Lock()
 	thd.currentSpan = s
+	thd.isMultiSpan = true
 	thd.Unlock()
 }
 
@@ -204,7 +212,19 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 //
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
-func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {}
+func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
+	if nil == txn || nil == txn.thread || nil == txn.app {
+		return
+	}
+
+	currentSpan := txn.thread.getCurrentSpan()
+
+	if nil == currentSpan {
+		return
+	}
+
+	propagation.InjectHTTP(currentSpan.ctx, txn.app.propagators, hdrs)
+}
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
 // trace headers from another transaction.
@@ -220,11 +240,40 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {}
 // AcceptDistributedTraceHeaders first looks for the presence of W3C trace
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
-func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {}
+func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
+	if nil == txn || nil == txn.thread || nil == txn.thread.currentSpan {
+		return
+	}
+
+	txn.thread.currentSpan.Lock()
+	defer txn.thread.currentSpan.Unlock()
+
+	// Here we create a OpenTelemetry context that is detached from the
+	// current trace. All segments (spans) subsequently started with this
+	// context will be detached from the transaction trace, but rather will
+	// have the remote trace id as trace id and the remote span id as the
+	// parent span id.
+	//
+	// If no more than the root segment were yet created for this
+	// transaction, we discard the root segment and replace it with a new
+	// root segment that has the proper remote parent and trace id.
+	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
+
+	if !txn.thread.isMultiSpan {
+		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
+		txn.rootSpan = &span{
+			Span: sp,
+			ctx:  ctx,
+		}
+		txn.thread.currentSpan = txn.rootSpan
+	} else {
+		txn.thread.currentSpan.ctx = remoteCtx
+	}
+}
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
-	return nil
+	return txn.app
 }
 
 // BrowserTimingHeader generates the JavaScript required to enable New
@@ -257,9 +306,15 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+
+	txn.thread.isMultiSpan = true
+
 	newTxn := *txn
 	newTxn.thread = &thread{
 		currentSpan: txn.thread.currentSpan,
+		isMultiSpan: true,
 	}
 	return &newTxn
 }

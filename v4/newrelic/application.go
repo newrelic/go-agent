@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
 // Application represents your application.  All methods on Application are nil
 // safe.  Therefore, a nil Application pointer can be safely used as a mock.
 type Application struct {
-	tracer trace.Tracer
+	tracer      trace.Tracer
+	propagators propagation.Propagators
 }
 
 // StartTransaction begins a Transaction with the given name.
@@ -30,6 +32,8 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		thread: &thread{
 			currentSpan: s,
 		},
+		app:  app,
+		name: name,
 	}
 }
 
@@ -104,5 +108,11 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	if nil == tracer {
 		tracer = global.Tracer("traceName")
 	}
-	return &Application{tracer: tracer}, nil
+	propagators := c.OpenTelemetry.Propagators
+	if nil == propagators {
+		propagators = propagation.New(
+			propagation.WithInjectors(trace.TraceContext{}),
+			propagation.WithExtractors(trace.TraceContext{}))
+	}
+	return &Application{tracer: tracer, propagators: propagators}, nil
 }

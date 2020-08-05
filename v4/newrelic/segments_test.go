@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -661,5 +662,66 @@ func TestSpanKind(t *testing.T) {
 	}
 	if kind := getSpanKind(segMessage.StartTime.Span); kind != trace.SpanKindInternal {
 		t.Errorf("segMessage has incorrect SpanKind: %s", kind)
+	}
+}
+
+func TestStartExternalSegmentInvalid(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+
+	var txn *Transaction
+	StartExternalSegment(txn, req)
+
+	txn = &Transaction{}
+	StartExternalSegment(txn, req)
+
+	app := newTestApp(t)
+	txn = app.StartTransaction("transaction")
+	defer txn.End()
+
+	StartExternalSegment(txn, nil)
+	StartExternalSegment(txn, &http.Request{})
+}
+
+func TestStartExternalSegment(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+	seg1 := StartExternalSegment(txn, req)
+	seg1.End()
+
+	txn.End()
+
+	traceID := getTraceID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
+
+	traceparent := req.Header.Get("traceparent")
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
+
+	if traceparent != expectedTraceparent {
+		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
+	}
+}
+
+func TestStartExternalSegmentWithTxnContext(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	ctx := NewContext(context.Background(), txn)
+
+	req, _ := http.NewRequest("GET", "http://request.com/", nil)
+	req = req.WithContext(ctx)
+	seg1 := StartExternalSegment(nil, req)
+	seg1.End()
+
+	txn.End()
+
+	traceID := getTraceID(txn.rootSpan.Span)
+	seg1ID := getSpanID(seg1.StartTime.Span)
+
+	traceparent := req.Header.Get("traceparent")
+	expectedTraceparent := fmt.Sprintf("00-%s-%s-00", traceID, seg1ID)
+
+	if traceparent != expectedTraceparent {
+		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 }
