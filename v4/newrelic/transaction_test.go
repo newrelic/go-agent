@@ -130,7 +130,7 @@ func TestAcceptDistributedTraceHeadersNewGoroutine(t *testing.T) {
 	}
 }
 
-func TestAcceptDistributedTraceHeadersNewGoroutineSwitchRoot(t *testing.T) {
+func TestAcceptDistributedTraceHeadersNewGoroutineNoSwitchRoot(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
 
@@ -156,8 +156,8 @@ func TestAcceptDistributedTraceHeadersNewGoroutineSwitchRoot(t *testing.T) {
 		t.Errorf("txn root does have remote trace id: rootTraceID=%s, remoteTraceID=%s",
 			txnRootTraceID, remoteTraceID)
 	}
-	if txnNewRootTraceID != remoteTraceID {
-		t.Errorf("txn root does not have remote trace id: rootTraceID=%s, remoteTraceID=%s",
+	if txnNewRootTraceID == remoteTraceID {
+		t.Errorf("txn root does have remote trace id: rootTraceID=%s, remoteTraceID=%s",
 			txnNewRootTraceID, remoteTraceID)
 	}
 }

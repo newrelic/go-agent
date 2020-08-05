@@ -312,7 +312,7 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 	newTxn := *txn
 	newTxn.thread = &thread{
 		currentSpan: txn.thread.currentSpan,
-		isMultiSpan: txn.thread.isMultiSpan,
+		isMultiSpan: true,
 	}
 	return &newTxn
 }
