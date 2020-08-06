@@ -15,7 +15,6 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 
-	"github.com/newrelic/go-agent/v4/internal"
 	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v4/newrelic"
 )
@@ -199,13 +198,8 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 			return fn
 		}
 		return func(ctx context.Context, m server.Message) (err error) {
-			namer := internal.MessageMetricKey{
-				Library:         "Micro",
-				DestinationType: string(newrelic.MessageTopic),
-				DestinationName: m.Topic(),
-				Consumer:        true,
-			}
-			txn := app.StartTransaction(namer.Name())
+			name := m.Topic() + " receive"
+			txn := app.StartTransaction(name)
 			defer txn.End()
 			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, m.Topic(), nil)
 			if md, ok := metadata.FromContext(ctx); ok {

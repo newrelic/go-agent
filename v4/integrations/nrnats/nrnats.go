@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	nats "github.com/nats-io/nats.go"
-	"github.com/newrelic/go-agent/v4/internal"
 	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
@@ -48,13 +47,8 @@ func SubWrapper(app *newrelic.Application, f func(msg *nats.Msg)) func(msg *nats
 		return f
 	}
 	return func(msg *nats.Msg) {
-		namer := internal.MessageMetricKey{
-			Library:         "NATS",
-			DestinationType: string(newrelic.MessageTopic),
-			DestinationName: msg.Subject,
-			Consumer:        true,
-		}
-		txn := app.StartTransaction(namer.Name())
+		name := msg.Subject + " receive"
+		txn := app.StartTransaction(name)
 		defer txn.End()
 
 		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
