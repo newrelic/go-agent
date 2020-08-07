@@ -569,7 +569,7 @@ func TestCustomEvent(t *testing.T) {
 
 func TestDefaultWriterProvider(t *testing.T) {
 	dwp := defaultWriterProvider{}
-	dwp.borrowWriter(func (writer io.Writer) {
+	dwp.borrowWriter(func(writer io.Writer) {
 		if writer != os.Stdout {
 			t.Error("Expected stdout")
 		}
@@ -587,7 +587,7 @@ func TestDefaultWriterProvider(t *testing.T) {
 		t.Error("Error closing telemetry file", err)
 	}
 
-	dwp.borrowWriter(func (writer io.Writer) {
+	dwp.borrowWriter(func(writer io.Writer) {
 		if writer == os.Stdout {
 			t.Error("Expected telemetry file, got stdout")
 		}

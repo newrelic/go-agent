@@ -95,8 +95,8 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 	}
 
 	defer h.hasWriter.borrowWriter(func(writer io.Writer) {
-			internal.ServerlessWrite(h.app.Private, arn, writer)
-		})
+		internal.ServerlessWrite(h.app.Private, arn, writer)
+	})
 
 	txn := h.app.StartTransaction(h.functionName)
 	defer txn.End()
