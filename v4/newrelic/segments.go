@@ -259,9 +259,10 @@ func (s *ExternalSegment) url() (*url.URL, error) {
 
 func (s *ExternalSegment) host() string {
 	host := s.Host
-	url, _ := s.url()
-	if url != nil && host == "" && url.Host != "" {
-		host = url.Host
+	if host == "" {
+		if url, _ := s.url(); url != nil {
+			host = url.Host
+		}
 	}
 	if host == "" {
 		host = "unknown"
