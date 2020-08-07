@@ -8,7 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -45,6 +47,15 @@ func distributedTracingEnabled(key string) string {
 	}
 }
 
+// bufWriterProvider is a testing implementation of writerProvider
+type bufWriterProvider struct {
+	buf io.Writer
+}
+
+func (bw bufWriterProvider) borrowWriter(needsWriter func(writer io.Writer)) {
+	needsWriter(bw.buf)
+}
+
 func TestColdStart(t *testing.T) {
 	originalHandler := func(c context.Context) {}
 	app := testApp(nil, t)
@@ -52,7 +63,7 @@ func TestColdStart(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	ctx := context.Background()
 	lctx := &lambdacontext.LambdaContext{
@@ -104,7 +115,7 @@ func TestColdStart(t *testing.T) {
 
 	// Invoke the handler again to test the cold-start attribute absence.
 	buf = &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 	internal.HarvestTesting(app.Private, nil)
 	resp, err = wrapped.Invoke(ctx, nil)
 	if nil != err || string(resp) != "null" {
@@ -154,7 +165,7 @@ func TestErrorCapture(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	resp, err := wrapped.Invoke(context.Background(), nil)
 	if err != returnError || string(resp) != "" {
@@ -229,7 +240,7 @@ func TestSetWebRequest(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	req := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
@@ -301,7 +312,7 @@ func TestDistributedTracing(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	dtHdr := http.Header{}
 	app.StartTransaction("hello").InsertDistributedTraceHeaders(dtHdr)
@@ -396,7 +407,7 @@ func TestEventARN(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	req := events.DynamoDBEvent{
 		Records: []events.DynamoDBEventRecord{{
@@ -473,7 +484,7 @@ func TestAPIGatewayProxyResponse(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	resp, err := wrapped.Invoke(context.Background(), nil)
 	if nil != err {
@@ -535,7 +546,7 @@ func TestCustomEvent(t *testing.T) {
 	w := wrapped.(*wrappedHandler)
 	w.functionName = "functionName"
 	buf := &bytes.Buffer{}
-	w.writer = buf
+	w.hasWriter = bufWriterProvider{buf}
 
 	resp, err := wrapped.Invoke(context.Background(), nil)
 	if nil != err || string(resp) != "null" {
@@ -554,4 +565,31 @@ func TestCustomEvent(t *testing.T) {
 	if 0 == buf.Len() {
 		t.Error("no output written")
 	}
+}
+
+func TestDefaultWriterProvider(t *testing.T) {
+	dwp := defaultWriterProvider{}
+	dwp.borrowWriter(func (writer io.Writer) {
+		if writer != os.Stdout {
+			t.Error("Expected stdout")
+		}
+	})
+
+	const telemetryFile = "/tmp/newrelic-telemetry"
+	defer os.Remove(telemetryFile)
+	file, err := os.Create(telemetryFile)
+	if err != nil {
+		t.Error("Unexpected error creating telemetry file", err)
+	}
+
+	err = file.Close()
+	if err != nil {
+		t.Error("Error closing telemetry file", err)
+	}
+
+	dwp.borrowWriter(func (writer io.Writer) {
+		if writer == os.Stdout {
+			t.Error("Expected telemetry file, got stdout")
+		}
+	})
 }

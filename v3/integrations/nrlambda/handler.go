@@ -67,6 +67,26 @@ func responseEvent(ctx context.Context, event interface{}) {
 	}
 }
 
+type writerProvider interface {
+	borrowWriter(needsWriter func(writer io.Writer))
+}
+
+type defaultWriterProvider struct {
+}
+
+func (wp *defaultWriterProvider) borrowWriter(needsWriter func(io.Writer)) {
+	// If the telemetry named pipe exists and is writable, use it instead of stdout
+	const telemetryNamedPipe = "/tmp/newrelic-telemetry"
+	pipeFile, err := os.OpenFile(telemetryNamedPipe, os.O_WRONLY, 0)
+	if err != nil {
+		needsWriter(os.Stdout)
+		return
+	}
+	//We need to close the pipe; of course we don't close stdout
+	defer pipeFile.Close()
+	needsWriter(pipeFile)
+}
+
 func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	var arn, requestID string
 	if lctx, ok := lambdacontext.FromContext(ctx); ok {
@@ -74,7 +94,9 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 		requestID = lctx.AwsRequestID
 	}
 
-	defer internal.ServerlessWrite(h.app.Private, arn, h.writer)
+	defer h.hasWriter.borrowWriter(func(writer io.Writer) {
+			internal.ServerlessWrite(h.app.Private, arn, writer)
+		})
 
 	txn := h.app.StartTransaction(h.functionName)
 	defer txn.End()
@@ -112,7 +134,7 @@ type wrappedHandler struct {
 	firstTransaction sync.Once
 	// writer is used to log the data JSON at the end of each transaction.
 	// This field exists (rather than hardcoded os.Stdout) for testing.
-	writer io.Writer
+	hasWriter writerProvider
 }
 
 // WrapHandler wraps the provided handler and returns a new handler with
@@ -127,7 +149,7 @@ func WrapHandler(handler lambda.Handler, app *newrelic.Application) lambda.Handl
 		original:     handler,
 		app:          app,
 		functionName: lambdacontext.FunctionName,
-		writer:       os.Stdout,
+		hasWriter:    &defaultWriterProvider{},
 	}
 }
 
