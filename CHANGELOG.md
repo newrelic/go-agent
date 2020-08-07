@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 3.8.2
+
+### Changes
+* When sending Serverless telemetry, support an externally-managed named pipe.
+
 ## 3.8.1
 
 ### Bug Fixes
