@@ -600,7 +600,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 		},
 		{
 			Name:     "TestHandler.Method",
-			ParentID: internal.MatchNoParent,
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
 				"category":                      "generic",
 				"transaction.name":              "WebTransaction/Go/TestHandler.Method",

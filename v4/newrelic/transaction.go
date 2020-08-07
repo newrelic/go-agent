@@ -116,7 +116,9 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {}
 // these fields are set.  If headers are present, the agent will look for
 // distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r WebRequest) {}
+func (txn *Transaction) SetWebRequest(r WebRequest) {
+	txn.AcceptDistributedTraceHeaders(TransportHTTP, r.Header)
+}
 
 type dummyResponseWriter struct{}
 

@@ -78,7 +78,7 @@ var (
 		},
 	}
 	externalSpan = internal.WantSpan{
-		Name:     "http POST unknown",
+		Name:     "http POST lambda.us-west-2.amazonaws.com",
 		ParentID: internal.MatchAnyParent,
 		Attributes: map[string]interface{}{
 			"sampled":       true,
@@ -98,7 +98,7 @@ var (
 		},
 	}
 	externalSpanNoRequestID = internal.WantSpan{
-		Name:     "http POST unknown",
+		Name:     "http POST lambda.us-west-2.amazonaws.com",
 		ParentID: internal.MatchAnyParent,
 		Attributes: map[string]interface{}{
 			"sampled":       true,
