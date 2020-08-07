@@ -79,7 +79,18 @@ func (e *OpenTelemetryExpect) ExpectMetrics(t Validator, want []WantMetric) {}
 func (e *OpenTelemetryExpect) ExpectMetricsPresent(t Validator, want []WantMetric) {}
 
 // ExpectTxnMetrics TODO
-func (e *OpenTelemetryExpect) ExpectTxnMetrics(t Validator, want WantTxn) {}
+func (e *OpenTelemetryExpect) ExpectTxnMetrics(t Validator, want WantTxn) {
+	t.Helper()
+	spans := e.spans()
+	if len(spans) == 0 {
+		t.Error("No spans recorded")
+		return
+	}
+	expectSpan(t, WantSpan{
+		Name:     want.Name,
+		ParentID: MatchNoParent,
+	}, spans[0])
+}
 
 // ExpectTxnTraces TODO
 func (e *OpenTelemetryExpect) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
