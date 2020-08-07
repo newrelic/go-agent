@@ -115,27 +115,25 @@ func TestUnaryClientInterceptor(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "UnaryUnary",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/UnaryUnary",
 				"transaction.name": "OtherTransaction/Go/UnaryUnary",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -209,27 +207,25 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoUnaryStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "UnaryStream",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/UnaryStream",
 				"transaction.name": "OtherTransaction/Go/UnaryStream",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -301,27 +297,25 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoStreamUnary",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "StreamUnary",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/StreamUnary",
 				"transaction.name": "OtherTransaction/Go/StreamUnary",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -406,27 +400,25 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoStreamStream bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
-				"name":      "External/bufnet/gRPC/TestApplication/DoStreamStream",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "StreamStream",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/StreamStream",
 				"transaction.name": "OtherTransaction/Go/StreamStream",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -565,16 +557,15 @@ func TestClientStreamingError(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "UnaryStream",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/UnaryStream",
 				"transaction.name": "OtherTransaction/Go/UnaryStream",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{

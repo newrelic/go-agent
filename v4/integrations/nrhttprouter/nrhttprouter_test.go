@@ -97,16 +97,13 @@ func TestHandle(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":             "WebTransaction/Go/GET /hello/:name",
+			Name:     "GET /hello/:name",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"color": "purple",
-			},
-			AgentAttributes: map[string]interface{}{
+				"color":            "purple",
 				"httpResponseCode": 500,
 				"http.statusCode":  500,
 				"request.method":   "GET",
@@ -141,16 +138,13 @@ func TestHandler(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":             "WebTransaction/Go/GET /hello/",
+			Name:     "GET /hello/",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"color": "purple",
-			},
-			AgentAttributes: map[string]interface{}{
+				"color":            "purple",
 				"httpResponseCode": 500,
 				"http.statusCode":  500,
 				"request.method":   "GET",
@@ -228,16 +222,13 @@ func TestNotFound(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":             "WebTransaction/Go/NotFound",
+			Name:     "NotFound",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"color": "purple",
-			},
-			AgentAttributes: map[string]interface{}{
+				"color":            "purple",
 				"httpResponseCode": 500,
 				"http.statusCode":  500,
 				"request.method":   "GET",

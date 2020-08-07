@@ -148,18 +148,16 @@ func TestMonitor(t *testing.T) {
 		{Name: "Datastore/statement/MongoDB/collName/commName", Scope: "", Forced: false, Data: []float64{1.0}},
 		{Name: "Datastore/statement/MongoDB/collName/commName", Scope: "OtherTransaction/Go/txnName", Forced: false, Data: []float64{1.0}},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":      "Datastore/statement/MongoDB/collName/commName",
-				"sampled":   true,
-				"category":  "datastore",
-				"component": "MongoDB",
-				"span.kind": "client",
-				"parentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "'commName' on 'collName' using 'MongoDB'",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"sampled":       true,
+				"category":      "datastore",
+				"component":     "MongoDB",
+				"span.kind":     "client",
+				"parentId":      internal.MatchAnything,
 				"peer.address":  thisHost + ":27017",
 				"peer.hostname": thisHost,
 				"db.statement":  "'commName' on 'collName' using 'MongoDB'",
@@ -168,15 +166,14 @@ func TestMonitor(t *testing.T) {
 			},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"name":             "OtherTransaction/Go/txnName",
+			Name:     "txnName",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"transaction.name": "OtherTransaction/Go/txnName",
 				"sampled":          true,
 				"category":         "generic",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 

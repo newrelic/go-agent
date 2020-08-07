@@ -243,9 +243,9 @@ func TestStatusCodes(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/err", errorStatus)
 
-	txnName := "WebTransaction/Go/GET " + pkg + ".errorStatus"
+	txnName := "GET " + pkg + ".errorStatus"
 	if useFullPathVersion(gin.Version) {
-		txnName = "WebTransaction/Go/GET /err"
+		txnName = "GET /err"
 	}
 
 	response := httptest.NewRecorder()
@@ -260,13 +260,11 @@ func TestStatusCodes(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             txnName,
-			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     txnName,
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"nr.apdexPerfZone":             internal.MatchAnything,
 			"httpResponseCode":             expectCode,
 			"http.statusCode":              expectCode,
 			"request.method":               "GET",
@@ -292,9 +290,9 @@ func TestNoResponseBody(t *testing.T) {
 	router.Use(Middleware(app.Application))
 	router.GET("/nobody", noBody)
 
-	txnName := "WebTransaction/Go/GET " + pkg + ".noBody"
+	txnName := "GET " + pkg + ".noBody"
 	if useFullPathVersion(gin.Version) {
-		txnName = "WebTransaction/Go/GET /nobody"
+		txnName = "GET /nobody"
 	}
 
 	response := httptest.NewRecorder()
@@ -309,13 +307,11 @@ func TestNoResponseBody(t *testing.T) {
 	if response.Code != 500 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             txnName,
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     txnName,
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": expectCode,
 			"http.statusCode":  expectCode,
 			"request.method":   "GET",

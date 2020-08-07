@@ -6,6 +6,8 @@ package internal
 // Validator is used for testing.
 type Validator interface {
 	Error(...interface{})
+	Errorf(string, ...interface{})
+	Helper()
 }
 
 // WantMetric is a metric expectation.  If Data is nil, then any data values are
@@ -34,8 +36,12 @@ func uniquePointer() *struct{} {
 var (
 	// MatchAnything is for use when matching attributes.
 	MatchAnything = uniquePointer()
-	// MatchAnyString is a placeholder for matching any string
-	MatchAnyString = "xxANY-STRINGxx"
+	// MatchNoParent is for use when matching ParentID on spans.  It only
+	// matches for spans with no parent.
+	MatchNoParent = "0000000000000000"
+	// MatchAnyParent is for use when matching ParentID on spans.  It matches
+	// any ParentID value except for the no parent value.
+	MatchAnyParent = "💜💜xxANY-PARENTxx💜💜"
 )
 
 // WantEvent is a transaction or error event expectation.
@@ -91,21 +97,25 @@ type WantTxn struct {
 	NumErrors int
 }
 
+// WantSpan is a span or transaction expectation.
+type WantSpan struct {
+	Name       string
+	SpanID     string
+	TraceID    string
+	ParentID   string
+	Attributes map[string]interface{}
+}
+
 // Expect exposes methods that allow for testing whether the correct data was
 // captured.
 type Expect interface {
 	ExpectCustomEvents(t Validator, want []WantEvent)
 	ExpectErrors(t Validator, want []WantError)
 	ExpectErrorEvents(t Validator, want []WantEvent)
-
-	ExpectTxnEvents(t Validator, want []WantEvent)
-
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectMetricsPresent(t Validator, want []WantMetric)
 	ExpectTxnMetrics(t Validator, want WantTxn)
-
 	ExpectTxnTraces(t Validator, want []WantTxnTrace)
 	ExpectSlowQueries(t Validator, want []WantSlowQuery)
-
-	ExpectSpanEvents(t Validator, want []WantEvent)
+	ExpectSpanEvents(t Validator, want []WantSpan)
 }

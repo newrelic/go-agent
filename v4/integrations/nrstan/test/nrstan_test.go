@@ -85,19 +85,17 @@ func TestSubWrapper(t *testing.T) {
 		{Name: "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/Message/STAN/Topic/Named/sample.subject2", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":     "OtherTransaction/Go/Message/STAN/Topic/Named/sample.subject2",
-				"guid":     internal.MatchAnything,
-				"priority": internal.MatchAnything,
-				"sampled":  internal.MatchAnything,
-				"traceId":  internal.MatchAnything,
-			},
-			AgentAttributes: map[string]interface{}{
+			Name:     "sample.subject2 receive",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"guid":               internal.MatchAnything,
+				"priority":           internal.MatchAnything,
+				"sampled":            internal.MatchAnything,
+				"traceId":            internal.MatchAnything,
 				"message.routingKey": "sample.subject2",
 			},
-			UserAttributes: map[string]interface{}{},
 		},
 	})
 }

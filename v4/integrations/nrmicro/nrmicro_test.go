@@ -188,27 +188,25 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "Micro TestHandler.Method testing",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "Micro",
-				"name":      "External/testing/Micro/TestHandler.Method",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "name",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/name",
 				"transaction.name": "OtherTransaction/Go/name",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -344,25 +342,23 @@ func TestClientPublishWithTransaction(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "topic send",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "MessageBroker/Micro/Topic/Produce/Named/topic",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "name",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/name",
 				"transaction.name": "OtherTransaction/Go/name",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -510,27 +506,25 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "Micro TestHandler.StreamingMethod testing",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "Micro",
-				"name":      "External/testing/Micro/TestHandler.StreamingMethod",
 				"parentId":  internal.MatchAnything,
 				"span.kind": "client",
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "name",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/name",
 				"transaction.name": "OtherTransaction/Go/name",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -595,27 +589,24 @@ func TestServerWrapperWithApp(t *testing.T) {
 		{Name: "Custom/Method", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/Method", Scope: "WebTransaction/Go/TestHandler.Method", Forced: false, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "Method",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "Custom/Method",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestHandler.Method",
-				"transaction.name": "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "TestHandler.Method",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"category":                      "generic",
+				"transaction.name":              "WebTransaction/Go/TestHandler.Method",
+				"nr.entryPoint":                 true,
+				"parentId":                      internal.MatchAnything,
+				"trustedParentId":               internal.MatchAnything,
 				"parent.account":                "123",
 				"parent.app":                    "456",
 				"parent.transportDuration":      internal.MatchAnything,
@@ -627,6 +618,31 @@ func TestServerWrapperWithApp(t *testing.T) {
 				"request.headers.contentType":   "application/json",
 				"request.headers.contentLength": 3,
 				"httpResponseCode":              "200",
+				"http.statusCode":               200,
+			},
+		},
+		{
+			Name:     "Micro TestHandler.Method testing",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"guid":                          internal.MatchAnything,
+				"priority":                      internal.MatchAnything,
+				"sampled":                       internal.MatchAnything,
+				"traceId":                       internal.MatchAnything,
+				"nr.apdexPerfZone":              "S",
+				"parent.account":                123,
+				"parent.transportType":          "HTTP",
+				"parent.app":                    456,
+				"parentId":                      internal.MatchAnything,
+				"parent.type":                   "App",
+				"parent.transportDuration":      internal.MatchAnything,
+				"parentSpanId":                  internal.MatchAnything,
+				"request.method":                "TestHandler.Method",
+				"request.uri":                   "micro://testing/TestHandler.Method",
+				"request.headers.accept":        "application/json",
+				"request.headers.contentType":   "application/json",
+				"request.headers.contentLength": 3,
+				"httpResponseCode":              200,
 				"http.statusCode":               200,
 			},
 		},
@@ -646,33 +662,6 @@ func TestServerWrapperWithApp(t *testing.T) {
 					},
 				},
 			}},
-		},
-	}})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":                     "WebTransaction/Go/TestHandler.Method",
-			"guid":                     internal.MatchAnything,
-			"priority":                 internal.MatchAnything,
-			"sampled":                  internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
-			"nr.apdexPerfZone":         "S",
-			"parent.account":           123,
-			"parent.transportType":     "HTTP",
-			"parent.app":               456,
-			"parentId":                 internal.MatchAnything,
-			"parent.type":              "App",
-			"parent.transportDuration": internal.MatchAnything,
-			"parentSpanId":             internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"request.method":                "TestHandler.Method",
-			"request.uri":                   "micro://testing/TestHandler.Method",
-			"request.headers.accept":        "application/json",
-			"request.headers.contentType":   "application/json",
-			"request.headers.contentLength": 3,
-			"httpResponseCode":              200,
-			"http.statusCode":               200,
 		},
 	}})
 }
@@ -703,16 +692,14 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestHandlerWithError.Method",
-				"transaction.name": "WebTransaction/Go/TestHandlerWithError.Method",
-				"nr.entryPoint":    true,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "TestHandlerWithError.Method",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"category":                         "generic",
+				"transaction.name":                 "WebTransaction/Go/TestHandlerWithError.Method",
+				"nr.entryPoint":                    true,
 				newrelic.SpanAttributeErrorClass:   "401",
 				newrelic.SpanAttributeErrorMessage: "Unauthorized",
 				"request.method":                   "TestHandlerWithError.Method",
@@ -737,17 +724,15 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 			}},
 		},
 	}})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/TestHandlerWithError.Method",
-			"guid":             internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "TestHandlerWithError.Method",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"guid":                          internal.MatchAnything,
+			"priority":                      internal.MatchAnything,
+			"sampled":                       internal.MatchAnything,
+			"traceId":                       internal.MatchAnything,
+			"nr.apdexPerfZone":              internal.MatchAnything,
 			"request.method":                "TestHandlerWithError.Method",
 			"request.uri":                   "micro://testing/TestHandlerWithError.Method",
 			"request.headers.accept":        "application/json",
@@ -802,17 +787,15 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/TestHandlerWithNonMicroError.Method",
-			"guid":             internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-			"nr.apdexPerfZone": internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "TestHandlerWithNonMicroError.Method",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"guid":                          internal.MatchAnything,
+			"priority":                      internal.MatchAnything,
+			"sampled":                       internal.MatchAnything,
+			"traceId":                       internal.MatchAnything,
+			"nr.apdexPerfZone":              internal.MatchAnything,
 			"request.method":                "TestHandlerWithNonMicroError.Method",
 			"request.uri":                   "micro://testing/TestHandlerWithNonMicroError.Method",
 			"request.headers.accept":        "application/json",
@@ -913,27 +896,25 @@ func TestServerSubscribe(t *testing.T) {
 		{Name: "DurationByCaller/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "segment",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
 				"name":     "Custom/segment",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"transaction.name": "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "topic receive",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"category":                 "generic",
+				"transaction.name":         "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":            true,
+				"parentId":                 internal.MatchAnything,
+				"trustedParentId":          internal.MatchAnything,
 				"message.routingKey":       "topic",
 				"parent.account":           "123",
 				"parent.app":               "456",
@@ -942,12 +923,11 @@ func TestServerSubscribe(t *testing.T) {
 				"parent.type":              "App",
 			},
 		},
-	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "topic send",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"guid":                     internal.MatchAnything,
-				"name":                     "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
 				"parent.account":           123,
 				"parent.app":               456,
 				"parent.transportDuration": internal.MatchAnything,
@@ -958,11 +938,8 @@ func TestServerSubscribe(t *testing.T) {
 				"priority":                 internal.MatchAnything,
 				"sampled":                  internal.MatchAnything,
 				"traceId":                  internal.MatchAnything,
+				"message.routingKey":       "topic",
 			},
-			AgentAttributes: map[string]interface{}{
-				"message.routingKey": "topic",
-			},
-			UserAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -1021,16 +998,15 @@ func TestServerSubscribeWithError(t *testing.T) {
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Errors/OtherTransaction/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"transaction.name": "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"nr.entryPoint":    true,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "topic receive",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"category":                         "generic",
+				"name":                             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"transaction.name":                 "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"nr.entryPoint":                    true,
 				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
 				newrelic.SpanAttributeErrorMessage: "subscriber error",
 				"message.routingKey":               "topic",

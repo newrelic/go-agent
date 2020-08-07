@@ -63,9 +63,10 @@ const (
 )
 
 var (
-	genericSpan = internal.WantEvent{
-		Intrinsics: map[string]interface{}{
-			"name":             "OtherTransaction/Go/" + txnName,
+	genericSpan = internal.WantSpan{
+		Name:     txnName,
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
 			"transaction.name": "OtherTransaction/Go/" + txnName,
 			"sampled":          true,
 			"category":         "generic",
@@ -75,12 +76,11 @@ var (
 			"nr.entryPoint":    true,
 			"traceId":          internal.MatchAnything,
 		},
-		UserAttributes:  map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{},
 	}
-	externalSpan = internal.WantEvent{
-		Intrinsics: map[string]interface{}{
-			"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+	externalSpan = internal.WantSpan{
+		Name:     "http POST unknown",
+		ParentID: internal.MatchAnyParent,
+		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "http",
 			"priority":      internal.MatchAnything,
@@ -90,9 +90,6 @@ var (
 			"parentId":      internal.MatchAnything,
 			"component":     "http",
 			"span.kind":     "client",
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
 			"aws.operation": "Invoke",
 			"aws.region":    "us-west-2",
 			"aws.requestId": requestID,
@@ -100,9 +97,10 @@ var (
 			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
 		},
 	}
-	externalSpanNoRequestID = internal.WantEvent{
-		Intrinsics: map[string]interface{}{
-			"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+	externalSpanNoRequestID = internal.WantSpan{
+		Name:     "http POST unknown",
+		ParentID: internal.MatchAnyParent,
+		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "http",
 			"priority":      internal.MatchAnything,
@@ -112,18 +110,16 @@ var (
 			"parentId":      internal.MatchAnything,
 			"component":     "http",
 			"span.kind":     "client",
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
 			"aws.operation": "Invoke",
 			"aws.region":    "us-west-2",
 			"http.method":   "POST",
 			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
 		},
 	}
-	datastoreSpan = internal.WantEvent{
-		Intrinsics: map[string]interface{}{
-			"name":          "Datastore/statement/DynamoDB/thebesttable/DescribeTable",
+	datastoreSpan = internal.WantSpan{
+		Name:     "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
+		ParentID: internal.MatchAnyParent,
+		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "datastore",
 			"priority":      internal.MatchAnything,
@@ -133,9 +129,6 @@ var (
 			"parentId":      internal.MatchAnything,
 			"component":     "DynamoDB",
 			"span.kind":     "client",
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
 			"aws.operation": "DescribeTable",
 			"aws.region":    "us-west-2",
 			"aws.requestId": requestID,
@@ -200,7 +193,7 @@ func TestInstrumentRequestExternal(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		externalSpan, genericSpan})
 }
 
@@ -225,7 +218,7 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, datastoreMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		datastoreSpan, genericSpan})
 }
 
@@ -296,7 +289,7 @@ func TestInstrumentSessionExternal(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		externalSpan, genericSpan})
 }
 
@@ -323,7 +316,7 @@ func TestInstrumentSessionDatastore(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, datastoreMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		datastoreSpan, genericSpan})
 }
 
@@ -492,7 +485,7 @@ func TestRetrySend(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		externalSpanNoRequestID, externalSpan, genericSpan})
 }
 
@@ -543,7 +536,7 @@ func TestRequestSentTwice(t *testing.T) {
 		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		externalSpan, externalSpan, genericSpan})
 }
 
@@ -588,7 +581,7 @@ func TestNoRequestIDFound(t *testing.T) {
 	txn.End()
 
 	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		externalSpanNoRequestID, genericSpan})
 }
 
