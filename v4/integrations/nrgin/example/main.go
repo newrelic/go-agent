@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	nrgin "github.com/newrelic/go-agent/v3/integrations/nrgin"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	nrgin "github.com/newrelic/go-agent/v4/integrations/nrgin"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func makeGinEndpoint(s string) func(*gin.Context) {

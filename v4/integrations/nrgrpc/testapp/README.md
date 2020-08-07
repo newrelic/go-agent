@@ -2,7 +2,7 @@
 
 This directory contains a testing application for validating the New Relic gRPC
 integration.  The code in `testapp.pb.go` is generated using the following
-command (to be run from the `v3/integrations/nrgrpc` directory).  This command
+command (to be run from the `v4/integrations/nrgrpc` directory).  This command
 should be rerun every time the `testapp.proto` file has changed for any reason.
 
 ```bash

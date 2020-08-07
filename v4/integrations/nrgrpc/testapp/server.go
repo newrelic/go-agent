@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"io"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 	codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	status "google.golang.org/grpc/status"

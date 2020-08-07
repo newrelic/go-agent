@@ -49,7 +49,7 @@ var (
 // ParseQuery parses table and operation from the SQL query string.  It is
 // a helper meant to be used when writing database/sql driver instrumentation.
 // Check out full example usage here:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmysql/nrmysql.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrmysql/nrmysql.go
 //
 // ParseQuery is designed to work with MySQL, Postgres, and SQLite drivers.
 // Ability to correctly parse queries for other SQL databases is not

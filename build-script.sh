@@ -33,7 +33,7 @@ for dir in $DIRS; do
   if [ $dir == "." ]; then
     rm -rf v3/
     rm -rf v4/
-  elif [[ $dir =~ "v3" ]]; then
+  elif [[ $dir =~ "v3/" ]]; then
     # for integrations test with the local agent instead of downloading
     if [ -f "go.mod" ]; then
       go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3

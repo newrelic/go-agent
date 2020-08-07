@@ -20,11 +20,11 @@ import (
 	rmemory "github.com/micro/go-micro/registry/memory"
 	"github.com/micro/go-micro/server"
 
-	proto "github.com/newrelic/go-agent/v3/integrations/nrmicro/example/proto"
+	proto "github.com/newrelic/go-agent/v4/integrations/nrmicro/example/proto"
 
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 const (

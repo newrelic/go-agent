@@ -15,8 +15,8 @@ import (
 	"github.com/graph-gophers/graphql-go/errors"
 	"github.com/graph-gophers/graphql-go/introspection"
 	"github.com/graph-gophers/graphql-go/trace"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "graph-gophers") }

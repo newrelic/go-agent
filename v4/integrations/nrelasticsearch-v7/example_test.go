@@ -7,8 +7,8 @@ import (
 	"context"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
-	nrelasticsearch "github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	nrelasticsearch "github.com/newrelic/go-agent/v4/integrations/nrelasticsearch-v7"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func getTransaction() *newrelic.Transaction { return nil }

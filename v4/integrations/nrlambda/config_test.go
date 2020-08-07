@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func TestNewConfig(t *testing.T) {

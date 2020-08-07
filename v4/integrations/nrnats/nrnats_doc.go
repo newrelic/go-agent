@@ -58,9 +58,9 @@
 //	nc.Subscribe(subject, nrnats.SubWrapper(app, myMessageHandler))
 //
 // Full Publisher/Subscriber example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrnats/examples/main.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrnats/examples/main.go
 package nrnats
 
-import "github.com/newrelic/go-agent/v3/internal"
+import "github.com/newrelic/go-agent/v4/internal"
 
 func init() { internal.TrackUsage("integration", "framework", "nats") }

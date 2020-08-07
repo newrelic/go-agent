@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	redis "github.com/go-redis/redis/v7"
-	nrredis "github.com/newrelic/go-agent/v3/integrations/nrredis-v7"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	nrredis "github.com/newrelic/go-agent/v4/integrations/nrredis-v7"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func getTransaction() *newrelic.Transaction { return nil }

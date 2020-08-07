@@ -16,8 +16,8 @@
 //   	"os"
 //
 //   	"github.com/julienschmidt/httprouter"
-//   	newrelic "github.com/newrelic/go-agent/v3/newrelic"
-//   	"github.com/newrelic/go-agent/v3/integrations/nrhttprouter"
+//   	newrelic "github.com/newrelic/go-agent/v4/newrelic"
+//   	"github.com/newrelic/go-agent/v4/integrations/nrhttprouter"
 //   )
 //
 //   func main() {
@@ -36,15 +36,15 @@
 //   	http.ListenAndServe(":8000", router)
 //   }
 //
-// Runnable example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrhttprouter/example/main.go
+// Runnable example: https://github.com/newrelic/go-agent/tree/master/v4/integrations/nrhttprouter/example/main.go
 package nrhttprouter
 
 import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "httprouter") }

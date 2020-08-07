@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/integrations/nrgrpc/testapp"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
 // newTestServerAndConn creates a new *grpc.Server and *grpc.ClientConn for use

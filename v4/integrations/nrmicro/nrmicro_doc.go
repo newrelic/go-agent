@@ -49,7 +49,7 @@
 // recorded if no error is returned.
 //
 // Full server example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/server/server.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrmicro/example/server/server.go
 //
 // Micro Clients
 //
@@ -118,7 +118,7 @@
 //	cli = nrmicro.ClientWrapper()(cli)
 //
 // Full client example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/client/client.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrmicro/example/client/client.go
 //
 // Micro Producers
 //
@@ -139,7 +139,7 @@
 //	err := cli.Publish(ctx, msg)
 //
 // Full Publisher/Subscriber example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/pubsub/main.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrmicro/example/pubsub/main.go
 //
 // Micro Subscribers
 //
@@ -176,9 +176,9 @@
 // If a Subscriber returns an error, it will be recorded and reported.
 //
 // Full Publisher/Subscriber example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/pubsub/main.go
+// https://github.com/newrelic/go-agent/blob/master/v4/integrations/nrmicro/example/pubsub/main.go
 package nrmicro
 
-import "github.com/newrelic/go-agent/v3/internal"
+import "github.com/newrelic/go-agent/v4/internal"
 
 func init() { internal.TrackUsage("integration", "framework", "micro") }

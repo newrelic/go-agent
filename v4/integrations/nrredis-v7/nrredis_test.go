@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	redis "github.com/go-redis/redis/v7"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v4/internal"
+	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
 func emptyDialer(context.Context, string, string) (net.Conn, error) {

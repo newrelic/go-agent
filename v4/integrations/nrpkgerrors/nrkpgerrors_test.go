@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 	"github.com/pkg/errors"
 )
 
