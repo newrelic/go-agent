@@ -74,14 +74,7 @@ func TestGetURL(t *testing.T) {
 }
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces)
-}
-
-var replyFn = func(reply *internal.ConnectReply) {
-	reply.SetSampleEverything()
-	reply.AccountID = "123"
-	reply.TrustedAccountKey = "123"
-	reply.PrimaryAppID = "456"
+	return integrationsupport.NewTestApp(integrationsupport.ConfigFullTraces)
 }
 
 func TestUnaryClientInterceptor(t *testing.T) {
@@ -103,7 +96,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	if nil != err {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+	if hdr, ok := hdrs["traceparent"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 		t.Error("distributed trace header not sent", hdrs)
 	}
 	txn.End()
@@ -192,7 +185,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		if nil != err {
 			t.Fatal("cannot unmarshall client response", err)
 		}
-		if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+		if hdr, ok := hdrs["traceparent"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 			t.Error("distributed trace header not sent", hdrs)
 		}
 		recved++
@@ -289,7 +282,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	if nil != err {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+	if hdr, ok := hdrs["traceparent"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 		t.Error("distributed trace header not sent", hdrs)
 	}
 	txn.End()
@@ -381,7 +374,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			if nil != err {
 				t.Fatal("cannot unmarshall client response", err)
 			}
-			if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+			if hdr, ok := hdrs["traceparent"]; !ok || len(hdr) != 1 || "" == hdr[0] {
 				t.Error("distributed trace header not sent", hdrs)
 			}
 			recved++
@@ -462,8 +455,8 @@ func TestClientUnaryMetadata(t *testing.T) {
 	ctx := newrelic.NewContext(context.Background(), txn)
 
 	md := metadata.New(map[string]string{
-		"testing":  "hello world",
-		"newrelic": "payload",
+		"testing":     "hello world",
+		"traceparent": "payload",
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
@@ -481,7 +474,7 @@ func TestClientUnaryMetadata(t *testing.T) {
 	if nil != err {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] || "payload" == hdr[0] {
+	if hdr, ok := hdrs["traceparent"]; !ok || len(hdr) != 1 || "" == hdr[0] || "payload" == hdr[0] {
 		t.Error("distributed trace header not sent", hdrs)
 	}
 	if hdr, ok := hdrs["testing"]; !ok || len(hdr) != 1 || "hello world" != hdr[0] {
@@ -504,7 +497,7 @@ func TestNilTxnClientUnary(t *testing.T) {
 	if nil != err {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if _, ok := hdrs["newrelic"]; ok {
+	if _, ok := hdrs["traceparent"]; ok {
 		t.Error("distributed trace header sent", hdrs)
 	}
 }
@@ -536,7 +529,7 @@ func TestNilTxnClientStreaming(t *testing.T) {
 	if nil != err {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if _, ok := hdrs["newrelic"]; ok {
+	if _, ok := hdrs["traceparent"]; ok {
 		t.Error("distributed trace header sent", hdrs)
 	}
 }

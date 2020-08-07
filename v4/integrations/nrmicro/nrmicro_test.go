@@ -78,7 +78,7 @@ func (t *TestHandlerWithNonMicroError) Method(ctx context.Context, req *TestRequ
 
 func getDTRequestHeaderVal(ctx context.Context) string {
 	if md, ok := metadata.FromContext(ctx); ok {
-		if dtHeader, ok := md[newrelic.DistributedTraceNewRelicHeader]; ok {
+		if dtHeader, ok := md[newrelic.DistributedTraceW3CTraceParentHeader]; ok {
 			return dtHeader
 		}
 		return missingHeaders
@@ -87,14 +87,7 @@ func getDTRequestHeaderVal(ctx context.Context) string {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, cfgFn, integrationsupport.ConfigFullTraces)
-}
-
-var replyFn = func(reply *internal.ConnectReply) {
-	reply.SetSampleEverything()
-	reply.AccountID = "123"
-	reply.TrustedAccountKey = "123"
-	reply.PrimaryAppID = "456"
+	return integrationsupport.NewTestApp(cfgFn, integrationsupport.ConfigFullTraces)
 }
 
 var cfgFn = func(cfg *newrelic.Config) {
@@ -292,7 +285,7 @@ func TestClientPublishWithNoTransaction(t *testing.T) {
 	if _, err := b.Subscribe(topic, func(e broker.Event) error {
 		defer wg.Done()
 		h := e.Message().Header
-		if _, ok := h[newrelic.DistributedTraceNewRelicHeader]; ok {
+		if _, ok := h[newrelic.DistributedTraceW3CTraceParentHeader]; ok {
 			t.Error("Distributed tracing headers found", h)
 		}
 		return nil
@@ -320,7 +313,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	if _, err := b.Subscribe(topic, func(e broker.Event) error {
 		defer wg.Done()
 		h := e.Message().Header
-		if _, ok := h[newrelic.DistributedTraceNewRelicHeader]; !ok {
+		if _, ok := h[newrelic.DistributedTraceW3CTraceParentHeader]; !ok {
 			t.Error("Distributed tracing headers not found", h)
 		}
 		return nil

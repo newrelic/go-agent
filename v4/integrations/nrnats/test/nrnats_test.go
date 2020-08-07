@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 }
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.ConfigFullTraces, cfgFn)
+	return integrationsupport.NewTestApp(integrationsupport.ConfigFullTraces, cfgFn)
 }
 
 var cfgFn = func(cfg *newrelic.Config) {
