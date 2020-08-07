@@ -82,52 +82,47 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":                     internal.MatchAnything,
-			"name":                     "WebTransaction/Go/TestApplication/DoUnaryUnary",
-			"nr.apdexPerfZone":         internal.MatchAnything,
-			"parent.account":           123,
-			"parent.app":               456,
-			"parent.transportDuration": internal.MatchAnything,
-			"parent.transportType":     "HTTP",
-			"parent.type":              "App",
-			"parentId":                 internal.MatchAnything,
-			"parentSpanId":             internal.MatchAnything,
-			"priority":                 internal.MatchAnything,
-			"sampled":                  internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            0,
-			"http.statusCode":             0,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryUnary",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
-		},
-	}})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "DoUnaryUnary",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"guid":                        internal.MatchAnything,
+				"nr.apdexPerfZone":            internal.MatchAnything,
+				"parent.account":              123,
+				"parent.app":                  456,
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
+				"parentId":                    internal.MatchAnything,
+				"parentSpanId":                internal.MatchAnything,
+				"priority":                    internal.MatchAnything,
+				"sampled":                     internal.MatchAnything,
+				"traceId":                     internal.MatchAnything,
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
+			},
+		},
+		{
+			Name:     "TestApplication/DoUnaryUnary",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "Custom/DoUnaryUnary",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestApplication/DoUnaryUnary",
-				"transaction.name": "WebTransaction/Go/TestApplication/DoUnaryUnary",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"category":                    "generic",
+				"transaction.name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"nr.entryPoint":               true,
+				"parentId":                    internal.MatchAnything,
+				"trustedParentId":             internal.MatchAnything,
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
 				"parent.account":              "123",
@@ -172,17 +167,15 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":             internal.MatchAnything,
-			"name":             "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
-			"nr.apdexPerfZone": internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "TestApplication/DoUnaryUnaryError",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"guid":                        internal.MatchAnything,
+			"nr.apdexPerfZone":            internal.MatchAnything,
+			"priority":                    internal.MatchAnything,
+			"sampled":                     internal.MatchAnything,
+			"traceId":                     internal.MatchAnything,
 			"httpResponseCode":            15,
 			"http.statusCode":             15,
 			"request.headers.contentType": "application/grpc",
@@ -259,52 +252,47 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStream", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":                     internal.MatchAnything,
-			"name":                     "WebTransaction/Go/TestApplication/DoUnaryStream",
-			"nr.apdexPerfZone":         internal.MatchAnything,
-			"parent.account":           123,
-			"parent.app":               456,
-			"parent.transportDuration": internal.MatchAnything,
-			"parent.transportType":     "HTTP",
-			"parent.type":              "App",
-			"parentId":                 internal.MatchAnything,
-			"parentSpanId":             internal.MatchAnything,
-			"priority":                 internal.MatchAnything,
-			"sampled":                  internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            0,
-			"http.statusCode":             0,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryStream",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
-		},
-	}})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "DoUnaryStream",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"guid":                        internal.MatchAnything,
+				"nr.apdexPerfZone":            internal.MatchAnything,
+				"parent.account":              123,
+				"parent.app":                  456,
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
+				"parentId":                    internal.MatchAnything,
+				"parentSpanId":                internal.MatchAnything,
+				"priority":                    internal.MatchAnything,
+				"sampled":                     internal.MatchAnything,
+				"traceId":                     internal.MatchAnything,
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStream",
+			},
+		},
+		{
+			Name:     "TestApplication/DoUnaryStream",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "Custom/DoUnaryStream",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestApplication/DoUnaryStream",
-				"transaction.name": "WebTransaction/Go/TestApplication/DoUnaryStream",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"category":                    "generic",
+				"transaction.name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
+				"nr.entryPoint":               true,
+				"parentId":                    internal.MatchAnything,
+				"trustedParentId":             internal.MatchAnything,
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
 				"parent.account":              "123",
@@ -363,52 +351,47 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamUnary", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":                     internal.MatchAnything,
-			"name":                     "WebTransaction/Go/TestApplication/DoStreamUnary",
-			"nr.apdexPerfZone":         internal.MatchAnything,
-			"parent.account":           123,
-			"parent.app":               456,
-			"parent.transportDuration": internal.MatchAnything,
-			"parent.transportType":     "HTTP",
-			"parent.type":              "App",
-			"parentId":                 internal.MatchAnything,
-			"parentSpanId":             internal.MatchAnything,
-			"priority":                 internal.MatchAnything,
-			"sampled":                  internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            0,
-			"http.statusCode":             0,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoStreamUnary",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
-		},
-	}})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "DoStreamUnary",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"guid":                        internal.MatchAnything,
+				"nr.apdexPerfZone":            internal.MatchAnything,
+				"parent.account":              123,
+				"parent.app":                  456,
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
+				"parentId":                    internal.MatchAnything,
+				"parentSpanId":                internal.MatchAnything,
+				"priority":                    internal.MatchAnything,
+				"sampled":                     internal.MatchAnything,
+				"traceId":                     internal.MatchAnything,
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamUnary",
+			},
+		},
+		{
+			Name:     "TestApplication/DoStreamUnary",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "Custom/DoStreamUnary",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestApplication/DoStreamUnary",
-				"transaction.name": "WebTransaction/Go/TestApplication/DoStreamUnary",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"category":                    "generic",
+				"transaction.name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
+				"nr.entryPoint":               true,
+				"parentId":                    internal.MatchAnything,
+				"trustedParentId":             internal.MatchAnything,
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
 				"parent.account":              "123",
@@ -480,52 +463,47 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoStreamStream", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":                     internal.MatchAnything,
-			"name":                     "WebTransaction/Go/TestApplication/DoStreamStream",
-			"nr.apdexPerfZone":         internal.MatchAnything,
-			"parent.account":           123,
-			"parent.app":               456,
-			"parent.transportDuration": internal.MatchAnything,
-			"parent.transportType":     "HTTP",
-			"parent.type":              "App",
-			"parentId":                 internal.MatchAnything,
-			"parentSpanId":             internal.MatchAnything,
-			"priority":                 internal.MatchAnything,
-			"sampled":                  internal.MatchAnything,
-			"traceId":                  internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            0,
-			"http.statusCode":             0,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoStreamStream",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
-		},
-	}})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "DoStreamStream",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"guid":                        internal.MatchAnything,
+				"nr.apdexPerfZone":            internal.MatchAnything,
+				"parent.account":              123,
+				"parent.app":                  456,
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
+				"parentId":                    internal.MatchAnything,
+				"parentSpanId":                internal.MatchAnything,
+				"priority":                    internal.MatchAnything,
+				"sampled":                     internal.MatchAnything,
+				"traceId":                     internal.MatchAnything,
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoStreamStream",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoStreamStream",
+			},
+		},
+		{
+			Name:     "TestApplication/DoStreamStream",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "Custom/DoStreamStream",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"category":         "generic",
-				"name":             "WebTransaction/Go/TestApplication/DoStreamStream",
-				"transaction.name": "WebTransaction/Go/TestApplication/DoStreamStream",
-				"nr.entryPoint":    true,
-				"parentId":         internal.MatchAnything,
-				"trustedParentId":  internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
+			Name:     "gRPC TestApplication/DoStreamStream bufnet",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"category":                    "generic",
+				"transaction.name":            "WebTransaction/Go/TestApplication/DoStreamStream",
+				"nr.entryPoint":               true,
+				"parentId":                    internal.MatchAnything,
+				"trustedParentId":             internal.MatchAnything,
 				"httpResponseCode":            0,
 				"http.statusCode":             0,
 				"parent.account":              "123",
@@ -574,17 +552,15 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"guid":             internal.MatchAnything,
-			"name":             "WebTransaction/Go/TestApplication/DoUnaryStreamError",
-			"nr.apdexPerfZone": internal.MatchAnything,
-			"priority":         internal.MatchAnything,
-			"sampled":          internal.MatchAnything,
-			"traceId":          internal.MatchAnything,
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "TestApplication/DoUnaryStreamError",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"guid":                        internal.MatchAnything,
+			"nr.apdexPerfZone":            internal.MatchAnything,
+			"priority":                    internal.MatchAnything,
+			"sampled":                     internal.MatchAnything,
+			"traceId":                     internal.MatchAnything,
 			"httpResponseCode":            15,
 			"http.statusCode":             15,
 			"request.headers.contentType": "application/grpc",

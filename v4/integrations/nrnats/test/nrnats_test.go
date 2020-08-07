@@ -88,25 +88,23 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/testing", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "mysubject send",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
 				"category": "generic",
-				"name":     "MessageBroker/NATS/Topic/Produce/Named/mysubject",
 				"parentId": internal.MatchAnything,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 		{
-			Intrinsics: map[string]interface{}{
+			Name:     "testing",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"category":         "generic",
-				"name":             "OtherTransaction/Go/testing",
 				"transaction.name": "OtherTransaction/Go/testing",
 				"nr.entryPoint":    true,
 			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -163,21 +161,19 @@ func TestSubWrapper(t *testing.T) {
 		{Name: "OtherTransaction/Go/Message/NATS/Topic/Named/subject2", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/Message/NATS/Topic/Named/subject2", Scope: "", Forced: false, Data: nil},
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Intrinsics: map[string]interface{}{
-				"name":     "OtherTransaction/Go/Message/NATS/Topic/Named/subject2",
-				"guid":     internal.MatchAnything,
-				"priority": internal.MatchAnything,
-				"sampled":  internal.MatchAnything,
-				"traceId":  internal.MatchAnything,
-			},
-			AgentAttributes: map[string]interface{}{
+			Name:     "subject2 receive",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"guid":               internal.MatchAnything,
+				"priority":           internal.MatchAnything,
+				"sampled":            internal.MatchAnything,
+				"traceId":            internal.MatchAnything,
 				"message.replyTo":    internal.MatchAnything, // starts with _INBOX
 				"message.routingKey": "subject2",
 				"message.queueName":  "queue1",
 			},
-			UserAttributes: map[string]interface{}{},
 		},
 	})
 }

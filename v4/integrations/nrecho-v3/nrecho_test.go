@@ -37,19 +37,17 @@ func TestBasicRoute(t *testing.T) {
 		Name:  "GET /hello",
 		IsWeb: true,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET /hello",
-			"nr.apdexPerfZone": "S",
-		},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "GET /hello",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"nr.apdexPerfZone":             "S",
 			"httpResponseCode":             "200",
 			"http.statusCode":              "200",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
 			"request.uri":                  "/hello",
 		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -163,18 +161,16 @@ func TestReturnsHTTPError(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET /hello",
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "GET /hello",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
-		},
-		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "418",
 			"http.statusCode":  "418",
 			"request.method":   "GET",
 			"request.uri":      "/hello",
 		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -199,18 +195,16 @@ func TestReturnsError(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET /hello",
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "GET /hello",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
-		},
-		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "500",
 			"http.statusCode":  "500",
 			"request.method":   "GET",
 			"request.uri":      "/hello",
 		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -235,18 +229,16 @@ func TestResponseCode(t *testing.T) {
 		IsWeb:     true,
 		NumErrors: 1,
 	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"name":             "WebTransaction/Go/GET /hello",
-			"nr.apdexPerfZone": "F",
-		},
-		AgentAttributes: map[string]interface{}{
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "GET /hello",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"nr.apdexPerfZone":             "F",
 			"httpResponseCode":             "418",
 			"http.statusCode":              "418",
 			"request.method":               "GET",
 			"response.headers.contentType": "text/html",
 			"request.uri":                  "/hello",
 		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }

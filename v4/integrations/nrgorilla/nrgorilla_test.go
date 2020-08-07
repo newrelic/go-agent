@@ -191,9 +191,10 @@ func TestMiddlewareAndInstrumentRoutes(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.ExpectTxnEvents(t, []internal.WantEvent{
-		{},
-	})
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "GET /alpha",
+		ParentID: internal.MatchNoParent,
+	}})
 }
 
 func TestMiddlewareNotFoundHandler(t *testing.T) {
@@ -219,7 +220,7 @@ func TestMiddlewareNotFoundHandler(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	// make sure no txn events were created
-	app.ExpectTxnEvents(t, []internal.WantEvent{})
+	app.ExpectSpanEvents(t, []internal.WantSpan{})
 }
 
 func TestMiddlewareMethodNotAllowedHandler(t *testing.T) {
@@ -246,5 +247,5 @@ func TestMiddlewareMethodNotAllowedHandler(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	// make sure no txn events were created
-	app.ExpectTxnEvents(t, []internal.WantEvent{})
+	app.ExpectSpanEvents(t, []internal.WantSpan{})
 }
