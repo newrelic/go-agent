@@ -34,32 +34,23 @@ func TestSuccess(t *testing.T) {
 	segment.End()
 	txn.End()
 
-	app.ExpectTxnEvents(t, []internal.WantEvent{
+	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			AgentAttributes: map[string]interface{}{
-				newrelic.AttributeHostDisplayName: "hostname",
-			},
-		},
-	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"name":     "Custom/mySegment",
-				"parentId": internal.MatchAnything,
-				"category": "generic",
-			},
-			AgentAttributes: map[string]interface{}{
+			Name:     "mySegment",
+			ParentID: internal.MatchAnyParent,
+			Attributes: map[string]interface{}{
+				"parentId":                         internal.MatchAnything,
+				"category":                         "generic",
 				newrelic.SpanAttributeAWSOperation: "operation",
 			},
 		},
 		{
-			Intrinsics: map[string]interface{}{
-				"name":             "OtherTransaction/Go/hello",
+			Name:     "hello",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
 				"transaction.name": "OtherTransaction/Go/hello",
 				"category":         "generic",
 				"nr.entryPoint":    true,
-			},
-			AgentAttributes: map[string]interface{}{
 				"host.displayName": "hostname",
 			},
 		},

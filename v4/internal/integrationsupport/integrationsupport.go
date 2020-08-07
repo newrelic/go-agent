@@ -38,8 +38,9 @@ func ConfigFullTraces(cfg *newrelic.Config) {
 
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
 func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
-	tr := testtrace.NewProvider().Tracer("go-agent-test")
+	sr := new(testtrace.StandardSpanRecorder)
 	cfgFn = append(cfgFn, func(cfg *newrelic.Config) {
+		tr := testtrace.NewProvider(testtrace.WithSpanRecorder(sr)).Tracer("go-agent-test")
 		cfg.OpenTelemetry.Tracer = tr
 	})
 
@@ -50,7 +51,7 @@ func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
 
 	return ExpectApp{
 		Expect: &internal.OpenTelemetryExpect{
-			Tracer: tr.(*testtrace.Tracer),
+			Spans: sr,
 		},
 		Application: app,
 	}
