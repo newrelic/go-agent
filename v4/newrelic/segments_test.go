@@ -646,6 +646,12 @@ func TestMessageProducerSegmentNaming(t *testing.T) {
 			},
 			name: "(temporary) send",
 		},
+		{
+			seg: &MessageProducerSegment{
+				DestinationName: "",
+			},
+			name: "Unknown send",
+		},
 	}
 
 	for _, tc := range testcases {
