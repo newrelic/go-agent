@@ -192,7 +192,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 		return SegmentStartTime{}
 	}
 	parent := txn.thread.getCurrentSpan()
-	ctx, sp := txn.rootSpan.Span.Tracer().Start(parent.ctx, "",
+	ctx, sp := txn.app.tracer.Start(parent.ctx, "",
 		trace.WithSpanKind(trace.SpanKindInternal))
 	span := &span{
 		Span:   sp,
