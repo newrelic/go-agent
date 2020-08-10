@@ -108,7 +108,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		},
 		{
 			Name:     "TestApplication/DoUnaryUnary",
-			ParentID: internal.MatchNoParent,
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
@@ -278,7 +278,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		},
 		{
 			Name:     "TestApplication/DoUnaryStream",
-			ParentID: internal.MatchNoParent,
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
@@ -377,7 +377,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		},
 		{
 			Name:     "TestApplication/DoStreamUnary",
-			ParentID: internal.MatchNoParent,
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
@@ -489,7 +489,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		},
 		{
 			Name:     "TestApplication/DoStreamStream",
-			ParentID: internal.MatchNoParent,
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,

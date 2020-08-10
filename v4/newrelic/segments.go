@@ -243,11 +243,24 @@ func (s *ExternalSegment) library() string {
 	return s.Library
 }
 
+func (s *ExternalSegment) url() (*url.URL, error) {
+	if "" != s.URL {
+		return url.Parse(s.URL)
+	}
+	r := s.Request
+	if nil != s.Response && nil != s.Response.Request {
+		r = s.Response.Request
+	}
+	if r != nil {
+		return r.URL, nil
+	}
+	return nil, nil
+}
+
 func (s *ExternalSegment) host() string {
 	host := s.Host
-	if host == "" && s.URL != "" {
-		url, err := url.Parse(s.URL)
-		if err == nil {
+	if host == "" {
+		if url, _ := s.url(); url != nil {
 			host = url.Host
 		}
 	}
@@ -300,6 +313,9 @@ func (s *MessageProducerSegment) name() string {
 	dest := s.DestinationName
 	if s.DestinationTemporary {
 		dest = "(temporary)"
+	}
+	if dest == "" {
+		dest = "Unknown"
 	}
 	return dest + " send"
 }

@@ -257,3 +257,56 @@ func TestInsertDistributedTraceHeadersB3(t *testing.T) {
 		t.Errorf("expected X-B3-Spanid '%s', got '%s'", seg1ID, b3SpanID)
 	}
 }
+
+func TestSetWebRequestAcceptDTHeaders(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	hdrs := http.Header{}
+	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+	txn.SetWebRequest(WebRequest{
+		Header:    hdrs,
+		Transport: TransportHTTPS,
+	})
+	txn.End()
+
+	txnTraceID := getTraceID(txn.rootSpan.Span)
+	txnParentID := getParentID(txn.rootSpan.Span)
+
+	if txnTraceID != remoteTraceID {
+		t.Errorf("txn does not have remote trace id: txnTraceID=%s, remoteTraceID=%s",
+			txnTraceID, remoteTraceID)
+	}
+	if txnParentID != remoteSpanID {
+		t.Errorf("txn is not a child of remote segment: txnParentID=%s, remoteSpanID=%s",
+			txnParentID, remoteSpanID)
+	}
+}
+
+func TestSetWebRequestHTTPAcceptDTHeaders(t *testing.T) {
+	remoteTraceID := "aaaa0000000000000000000000000001"
+	remoteSpanID := "bbbb000000000002"
+
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	hdrs := http.Header{}
+	hdrs.Set("traceparent", fmt.Sprintf("00-%s-%s-01", remoteTraceID, remoteSpanID))
+	txn.SetWebRequestHTTP(&http.Request{
+		Header: hdrs,
+	})
+	txn.End()
+
+	txnTraceID := getTraceID(txn.rootSpan.Span)
+	txnParentID := getParentID(txn.rootSpan.Span)
+
+	if txnTraceID != remoteTraceID {
+		t.Errorf("txn does not have remote trace id: txnTraceID=%s, remoteTraceID=%s",
+			txnTraceID, remoteTraceID)
+	}
+	if txnParentID != remoteSpanID {
+		t.Errorf("txn is not a child of remote segment: txnParentID=%s, remoteSpanID=%s",
+			txnParentID, remoteSpanID)
+	}
+}

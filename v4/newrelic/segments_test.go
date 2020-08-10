@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -512,6 +513,33 @@ func TestExternalSegmentNaming(t *testing.T) {
 		},
 		{
 			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Host: "myhost",
+					},
+				},
+			},
+			name: "http GET myhost",
+		},
+		{
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Host: "requestHost",
+					},
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						URL: &url.URL{
+							Host: "responseHost",
+						},
+					},
+				},
+			},
+			name: "http GET responseHost",
+		},
+		{
+			seg: &ExternalSegment{
 				URL: "this is not a url",
 			},
 			name: "http unknown unknown",
@@ -617,6 +645,12 @@ func TestMessageProducerSegmentNaming(t *testing.T) {
 				DestinationTemporary: true,
 			},
 			name: "(temporary) send",
+		},
+		{
+			seg: &MessageProducerSegment{
+				DestinationName: "",
+			},
+			name: "Unknown send",
 		},
 	}
 

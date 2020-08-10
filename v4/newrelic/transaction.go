@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"go.opentelemetry.io/otel/api/propagation"
@@ -109,14 +110,39 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {}
 // details on request attributes, url, and method.  If headers are
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
-func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {}
+func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
+	if r == nil {
+		txn.SetWebRequest(WebRequest{})
+		return
+	}
+	wr := WebRequest{
+		Header:    r.Header,
+		URL:       r.URL,
+		Method:    r.Method,
+		Transport: transport(r),
+		Host:      r.Host,
+	}
+	txn.SetWebRequest(wr)
+}
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
 // additionally collects details on request attributes, url, and method if
 // these fields are set.  If headers are present, the agent will look for
 // distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
-func (txn *Transaction) SetWebRequest(r WebRequest) {}
+func (txn *Transaction) SetWebRequest(r WebRequest) {
+	txn.AcceptDistributedTraceHeaders(r.Transport, r.Header)
+}
+
+func transport(r *http.Request) TransportType {
+	if strings.HasPrefix(r.Proto, "HTTP") {
+		if r.TLS != nil {
+			return TransportHTTPS
+		}
+		return TransportHTTP
+	}
+	return TransportUnknown
+}
 
 type dummyResponseWriter struct{}
 
