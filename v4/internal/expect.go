@@ -103,6 +103,7 @@ type WantSpan struct {
 	SpanID     string
 	TraceID    string
 	ParentID   string
+	Kind       string
 	Attributes map[string]interface{}
 }
 

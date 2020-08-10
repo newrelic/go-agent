@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/newrelic/go-agent/v4/internal"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
@@ -22,27 +23,27 @@ func getParentID(s trace.Span) string {
 	return s.(*testtrace.Span).ParentSpanID().String()
 }
 
-func spanHasEnded(s trace.Span) bool {
-	return s.(*testtrace.Span).Ended()
+type expectApp struct {
+	internal.Expect
+	*Application
 }
 
-func getSpanName(s trace.Span) string {
-	return s.(*testtrace.Span).Name()
-}
-
-func getSpanKind(s trace.Span) trace.SpanKind {
-	return s.(*testtrace.Span).SpanKind()
-}
-
-func newTestApp(t *testing.T) *Application {
+func newTestApp(t *testing.T) expectApp {
+	sr := new(testtrace.StandardSpanRecorder)
 	app, err := NewApplication(func(cfg *Config) {
-		tp := testtrace.NewProvider()
-		cfg.OpenTelemetry.Tracer = tp.Tracer("go-agent-test")
+		tr := testtrace.NewProvider(testtrace.WithSpanRecorder(sr)).Tracer("go-agent-test")
+		cfg.OpenTelemetry.Tracer = tr
 	})
 	if err != nil {
 		t.Fatal("unable to create app:", err)
 	}
-	return app
+
+	return expectApp{
+		Expect: &internal.OpenTelemetryExpect{
+			Spans: sr,
+		},
+		Application: app,
+	}
 }
 
 func TestParentingSimple(t *testing.T) {
@@ -58,44 +59,38 @@ func TestParentingSimple(t *testing.T) {
 	seg4.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ID := getSpanID(seg1.StartTime.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	seg3ParentID := getParentID(seg3.StartTime.Span)
-	seg4ParentID := getParentID(seg4.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2ParentID != seg1ID {
-		t.Errorf("seg2 is not a child of seg1: seg2ParentID=%s, seg1ID=%s",
-			seg2ParentID, seg1ID)
-	}
-	if seg3ParentID != seg1ID {
-		t.Errorf("seg3 is not a child of seg1: seg3ParentID=%s, seg1ID=%s",
-			seg3ParentID, seg1ID)
-	}
-	if seg4ParentID != txnID {
-		t.Errorf("seg4 is not a child of txn: seg4ParentID=%s, txnID=%s",
-			seg4ParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
-	if !spanHasEnded(seg3.StartTime.Span) {
-		t.Error("seg3 wasn't ended")
-	}
-	if !spanHasEnded(seg4.StartTime.Span) {
-		t.Error("seg4 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "seg3",
+			SpanID:   "0000000000000005",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg4",
+			SpanID:   "0000000000000006",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestParentingSegmentEndOrder(t *testing.T) {
@@ -111,44 +106,38 @@ func TestParentingSegmentEndOrder(t *testing.T) {
 	seg4.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ID := getSpanID(seg1.StartTime.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	seg3ParentID := getParentID(seg3.StartTime.Span)
-	seg4ParentID := getParentID(seg4.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2ParentID != seg1ID {
-		t.Errorf("seg2 is not a child of seg1: seg2ParentID=%s, seg1ID=%s",
-			seg2ParentID, seg1ID)
-	}
-	if seg3ParentID != txnID {
-		t.Errorf("seg3 is not a child of txn: seg3ParentID=%s, txnID=%s",
-			seg3ParentID, txnID)
-	}
-	if seg4ParentID != txnID {
-		t.Errorf("seg4 is not a child of txn: seg4ParentID=%s, txnID=%s",
-			seg4ParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
-	if !spanHasEnded(seg3.StartTime.Span) {
-		t.Error("seg3 wasn't ended")
-	}
-	if !spanHasEnded(seg4.StartTime.Span) {
-		t.Error("seg4 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg3",
+			SpanID:   "0000000000000005",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "seg4",
+			SpanID:   "0000000000000006",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestParentingEarlyEndingTxn(t *testing.T) {
@@ -160,22 +149,20 @@ func TestParentingEarlyEndingTxn(t *testing.T) {
 	seg2 := txn.StartSegment("seg2")
 	seg2.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2.StartTime.span != nil {
-		t.Error("seg2 incorrectly created a span:", seg2.StartTime.span)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+	})
 }
 
 func TestParentingSegmentSiblings(t *testing.T) {
@@ -187,27 +174,26 @@ func TestParentingSegmentSiblings(t *testing.T) {
 	seg2.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2ParentID != txnID {
-		t.Errorf("seg2 is not a child of txn: seg2ParentID=%s, txnID=%s",
-			seg2ParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestParentingNewGoroutine(t *testing.T) {
@@ -224,35 +210,32 @@ func TestParentingNewGoroutine(t *testing.T) {
 	seg3.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	seg3ParentID := getParentID(seg3.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2ParentID != txnID {
-		t.Errorf("seg2 is not a child of txn: seg2ParentID=%s, txnID=%s",
-			seg2ParentID, txnID)
-	}
-	if seg3ParentID != txnID {
-		t.Errorf("seg3 is not a child of txn: seg3ParentID=%s, txnID=%s",
-			seg3ParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
-	if !spanHasEnded(seg3.StartTime.Span) {
-		t.Error("seg3 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg3",
+			SpanID:   "0000000000000005",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestParentingDoubleEndingSegments(t *testing.T) {
@@ -270,45 +253,38 @@ func TestParentingDoubleEndingSegments(t *testing.T) {
 	txn.End()
 	txn.End() // End txn a second time
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ID := getSpanID(seg1.StartTime.Span)
-	seg3ID := getSpanID(seg3.StartTime.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	seg3ParentID := getParentID(seg3.StartTime.Span)
-	seg4ParentID := getParentID(seg4.StartTime.Span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if seg2ParentID != seg1ID {
-		t.Errorf("seg2 is not a child of seg1: seg2ParentID=%s, seg1ID=%s",
-			seg2ParentID, seg1ID)
-	}
-	if seg3ParentID != txnID {
-		t.Errorf("seg3 is not a child of txn: seg3ParentID=%s, txnID=%s",
-			seg3ParentID, txnID)
-	}
-	if seg4ParentID != seg3ID {
-		t.Errorf("seg4 is not a child of seg3: seg4ParentID=%s, seg3ID=%s",
-			seg4ParentID, seg3ID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
-	if !spanHasEnded(seg3.StartTime.Span) {
-		t.Error("seg3 wasn't ended")
-	}
-	if !spanHasEnded(seg4.StartTime.Span) {
-		t.Error("seg4 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg4",
+			SpanID:   "0000000000000006",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000005",
+		},
+		{
+			Name:     "seg3",
+			SpanID:   "0000000000000005",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestParentingWithOTelAPI(t *testing.T) {
@@ -324,38 +300,34 @@ func TestParentingWithOTelAPI(t *testing.T) {
 	seg1.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	seg1ID := getSpanID(seg1.StartTime.Span)
-	seg1ParentID := getParentID(seg1.StartTime.Span)
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	spanParentID := getParentID(span)
-
-	if seg1ParentID != txnID {
-		t.Errorf("seg1 is not a child of txn: seg1ParentID=%s, txnID=%s",
-			seg1ParentID, txnID)
-	}
-	if spanParentID != seg1ID {
-		t.Errorf("span is not a child of seg1: spanParentID=%s, seg1ID=%s",
-			spanParentID, seg1ID)
-	}
-	// NOTE: There is currently no way for a newrelic segment to be childed to
-	// an opentelemetry span.
-	if seg2ParentID != seg1ID {
-		t.Errorf("seg2 is not a child of txn: seg2ParentID=%s, seg1ID=%s",
-			seg2ParentID, seg1ID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg1.StartTime.Span) {
-		t.Error("seg1 wasn't ended")
-	}
-	if !spanHasEnded(span) {
-		t.Error("span wasn't ended")
-	}
-	if !spanHasEnded(seg2.StartTime.Span) {
-		t.Error("seg2 wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:    "seg2",
+			SpanID:  "0000000000000005",
+			TraceID: "00000000000000020000000000000000",
+			// NOTE: There is currently no way for a newrelic segment to be
+			// childed to an opentelemetry span.
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "span",
+			SpanID:   "0000000000000004",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000003",
+		},
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestNilSegment(t *testing.T) {
@@ -390,19 +362,19 @@ func TestParentingDatastoreSegment(t *testing.T) {
 	seg.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	segParentID := getParentID(seg.StartTime.Span)
-
-	if segParentID != txnID {
-		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
-			segParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg.StartTime.Span) {
-		t.Error("seg wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestDatastoreSegmentNaming(t *testing.T) {
@@ -475,19 +447,19 @@ func TestParentingExternalSegment(t *testing.T) {
 	seg.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	segParentID := getParentID(seg.StartTime.Span)
-
-	if segParentID != txnID {
-		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
-			segParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg.StartTime.Span) {
-		t.Error("seg wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestExternalSegmentNaming(t *testing.T) {
@@ -612,19 +584,19 @@ func TestParentingMessageProducerSegment(t *testing.T) {
 	seg.End()
 	txn.End()
 
-	txnID := getSpanID(txn.rootSpan.Span)
-	segParentID := getParentID(seg.StartTime.Span)
-
-	if segParentID != txnID {
-		t.Errorf("seg is not a child of txn: segParentID=%s, txnID=%s",
-			segParentID, txnID)
-	}
-	if !spanHasEnded(txn.rootSpan.Span) {
-		t.Error("txn root span wasn't ended")
-	}
-	if !spanHasEnded(seg.StartTime.Span) {
-		t.Error("seg wasn't ended")
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestMessageProducerSegmentNaming(t *testing.T) {
@@ -682,21 +654,23 @@ func TestSpanKind(t *testing.T) {
 	segMessage.End()
 	txn.End()
 
-	if kind := getSpanKind(txn.rootSpan.Span); kind != trace.SpanKindInternal {
-		t.Errorf("txn has incorrect SpanKind: %s", kind)
-	}
-	if kind := getSpanKind(segBasic.StartTime.Span); kind != trace.SpanKindInternal {
-		t.Errorf("segBasic has incorrect SpanKind: %s", kind)
-	}
-	if kind := getSpanKind(segDatastore.StartTime.Span); kind != trace.SpanKindInternal {
-		t.Errorf("segDatastore has incorrect SpanKind: %s", kind)
-	}
-	if kind := getSpanKind(segExternal.StartTime.Span); kind != trace.SpanKindInternal {
-		t.Errorf("segExternal has incorrect SpanKind: %s", kind)
-	}
-	if kind := getSpanKind(segMessage.StartTime.Span); kind != trace.SpanKindInternal {
-		t.Errorf("segMessage has incorrect SpanKind: %s", kind)
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Kind: "internal",
+		},
+		{
+			Kind: "internal",
+		},
+		{
+			Kind: "internal",
+		},
+		{
+			Kind: "internal",
+		},
+		{
+			Kind: "internal",
+		},
+	})
 }
 
 func TestStartExternalSegmentInvalid(t *testing.T) {

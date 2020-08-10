@@ -45,6 +45,12 @@ func spansMatch(want WantSpan, span *testtrace.Span) error {
 				name, want.ParentID, id)
 		}
 	}
+	if want.Kind != "" {
+		if kind := span.SpanKind().String(); kind != want.Kind {
+			return fmt.Errorf("Incorrect kind for span '%s':\n\texpect=%s actual=%s",
+				name, want.Kind, kind)
+		}
+	}
 	return nil
 }
 
