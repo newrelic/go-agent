@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/newrelic/go-agent/v4/internal"
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
@@ -77,22 +78,26 @@ func TestAcceptDistributedTraceHeadersTraceparent(t *testing.T) {
 	seg2.End()
 	txn.End()
 
-	seg2ParentID := getParentID(seg2.StartTime.Span)
-	seg2TraceID := getTraceID(seg2.StartTime.Span)
-	seg1TraceID := getTraceID(seg1.StartTime.Span)
-
-	if seg2TraceID != remoteTraceID {
-		t.Errorf("seg2 does not have remote trace id: seg2TracdID=%s, remoteTraceID=%s",
-			seg2TraceID, remoteTraceID)
-	}
-	if seg2ParentID != remoteSpanID {
-		t.Errorf("seg2 is not a child of remote segment: seg2ParentID=%s, remoteSpanID=%s",
-			seg2ParentID, remoteSpanID)
-	}
-	if seg1TraceID == remoteTraceID {
-		t.Errorf("seg1 does have remote trace id: seg1TracdID=%s, remoteTraceID=%s",
-			seg1TraceID, remoteTraceID)
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  remoteTraceID,
+			ParentID: remoteSpanID,
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestAcceptDistributedTraceHeadersNewGoroutine(t *testing.T) {
@@ -111,23 +116,32 @@ func TestAcceptDistributedTraceHeadersNewGoroutine(t *testing.T) {
 
 	txnNew.AcceptDistributedTraceHeaders("HTTP", hdrs)
 
-	seg2 := txnNew.StartSegment("seg1")
+	seg2 := txnNew.StartSegment("seg2")
 	seg2.End()
 
 	txnNew.End()
 	txn.End()
 
-	txnRootTraceID := getTraceID(txn.rootSpan.Span)
-	txnNewRootTraceID := getTraceID(txnNew.rootSpan.Span)
-
-	if txnRootTraceID == remoteTraceID {
-		t.Errorf("txn root does have remote trace id: txnRootTraceID=%s, remoteTraceID=%s",
-			txnRootTraceID, remoteTraceID)
-	}
-	if txnNewRootTraceID != txnRootTraceID {
-		t.Errorf("txn root does not have same trace id as goroutine root : txnNewRootTraceID=%s, txnRootTraceID=%s",
-			txnNewRootTraceID, txnRootTraceID)
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000002",
+		},
+		{
+			Name:     "seg2",
+			SpanID:   "0000000000000004",
+			TraceID:  remoteTraceID,
+			ParentID: remoteSpanID,
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestAcceptDistributedTraceHeadersNewGoroutineNoSwitchRoot(t *testing.T) {
@@ -150,17 +164,20 @@ func TestAcceptDistributedTraceHeadersNewGoroutineNoSwitchRoot(t *testing.T) {
 	txnNew.End()
 	txn.End()
 
-	txnRootTraceID := getTraceID(txn.rootSpan.Span)
-	txnNewRootTraceID := getTraceID(txnNew.rootSpan.Span)
-
-	if txnRootTraceID == remoteTraceID {
-		t.Errorf("txn root does have remote trace id: rootTraceID=%s, remoteTraceID=%s",
-			txnRootTraceID, remoteTraceID)
-	}
-	if txnNewRootTraceID == remoteTraceID {
-		t.Errorf("txn root does have remote trace id: rootTraceID=%s, remoteTraceID=%s",
-			txnNewRootTraceID, remoteTraceID)
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "seg1",
+			SpanID:   "0000000000000003",
+			TraceID:  remoteTraceID,
+			ParentID: remoteSpanID,
+		},
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000002",
+			TraceID:  "00000000000000020000000000000000",
+			ParentID: "0000000000000000",
+		},
+	})
 }
 
 func TestAcceptDistributedTraceHeadersSwitchRoot(t *testing.T) {
@@ -177,17 +194,14 @@ func TestAcceptDistributedTraceHeadersSwitchRoot(t *testing.T) {
 
 	txn.End()
 
-	rootParentID := getParentID(txn.rootSpan.Span)
-	rootTraceID := getTraceID(txn.rootSpan.Span)
-
-	if rootTraceID != remoteTraceID {
-		t.Errorf("root does not have remote trace id: rootTracdID=%s, remoteTraceID=%s",
-			rootTraceID, remoteTraceID)
-	}
-	if rootParentID != remoteSpanID {
-		t.Errorf("root is not a child of remote segment: rootParentID=%s, remoteSpanID=%s",
-			rootParentID, remoteSpanID)
-	}
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:     "transaction",
+			SpanID:   "0000000000000003",
+			TraceID:  remoteTraceID,
+			ParentID: remoteSpanID,
+		},
+	})
 }
 
 func TestPropagateTracestate(t *testing.T) {
