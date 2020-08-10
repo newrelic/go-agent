@@ -34,7 +34,10 @@ var (
 			TraceID:  "00000000000000020000000000000000",
 			ParentID: "0000000000000002",
 			Attributes: map[string]interface{}{
+<<<<<<< HEAD
 				"db.collection": "mycollection",
+=======
+>>>>>>> Add default attributes to DatastoreSegments.
 				"db.name":       "mydatabase",
 				"db.operation":  "myoperation",
 				"db.statement":  "'myoperation' on 'mycollection' using 'mysql'",
