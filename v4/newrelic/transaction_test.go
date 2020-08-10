@@ -324,3 +324,55 @@ func TestSetWebRequestHTTPAcceptDTHeaders(t *testing.T) {
 			txnParentID, remoteSpanID)
 	}
 }
+
+func TestTransactionAddAttribute(t *testing.T) {
+	app := newTestApp(t)
+	txn := app.StartTransaction("transaction")
+	txn.AddAttribute("attr-string", "this is a string")
+	txn.AddAttribute("attr-float-32", float32(1.5))
+	txn.AddAttribute("attr-float-64", float64(2.5))
+	txn.AddAttribute("attr-int", int(2))
+	txn.AddAttribute("attr-int-8", int8(3))
+	txn.AddAttribute("attr-int-16", int16(4))
+	txn.AddAttribute("attr-int-32", int32(5))
+	txn.AddAttribute("attr-int-64", int64(6))
+	txn.AddAttribute("attr-uint", uint(7))
+	txn.AddAttribute("attr-uint-8", uint8(8))
+	txn.AddAttribute("attr-uint-16", uint16(9))
+	txn.AddAttribute("attr-uint-32", uint32(10))
+	txn.AddAttribute("attr-uint-64", uint64(11))
+	txn.AddAttribute("attr-uint-ptr", uintptr(12))
+	txn.AddAttribute("attr-bool", true)
+	txn.End()
+
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name: "transaction",
+			Attributes: map[string]interface{}{
+				"attr-string":   "this is a string",
+				"attr-float-32": float32(1.5),
+				"attr-float-64": float64(2.5),
+				"attr-int":      int64(2),
+				"attr-int-8":    int64(3),
+				"attr-int-16":   int64(4),
+				"attr-int-32":   int32(5),
+				"attr-int-64":   int64(6),
+				"attr-uint":     uint64(7),
+				"attr-uint-8":   uint64(8),
+				"attr-uint-16":  uint64(9),
+				"attr-uint-32":  uint32(10),
+				"attr-uint-64":  uint64(11),
+				"attr-uint-ptr": uint64(12),
+				"attr-bool":     true,
+			},
+		},
+	})
+}
+
+func TestNilTransactionAddAttribute(t *testing.T) {
+	// AddAttribute APIs don't panic when used on nil txn
+	var txn *Transaction
+	txn.AddAttribute("color", "purple")
+	txn = new(Transaction)
+	txn.AddAttribute("color", "purple")
+}

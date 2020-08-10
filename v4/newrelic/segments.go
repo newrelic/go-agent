@@ -170,7 +170,15 @@ func (s *span) isEnded() bool {
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *Segment) AddAttribute(key string, val interface{}) {}
+func (s *Segment) AddAttribute(key string, val interface{}) {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	s.StartTime.Span.SetAttribute(key, val)
+}
 
 // End finishes the segment.
 func (s *Segment) End() {
@@ -188,7 +196,15 @@ func (s *Segment) End() {
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {}
+func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	s.StartTime.Span.SetAttribute(key, val)
+}
 
 // End finishes the datastore segment.
 func (s *DatastoreSegment) End() {
@@ -218,7 +234,15 @@ func (s *DatastoreSegment) name() string {
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *ExternalSegment) AddAttribute(key string, val interface{}) {}
+func (s *ExternalSegment) AddAttribute(key string, val interface{}) {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	s.StartTime.Span.SetAttribute(key, val)
+}
 
 // End finishes the external segment.
 func (s *ExternalSegment) End() {
@@ -295,7 +319,15 @@ func (s *ExternalSegment) method() string {
 //
 // The key must contain fewer than than 255 bytes.  The value must be a
 // number, string, or boolean.
-func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {}
+func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {
+	if s == nil {
+		return
+	}
+	if s.StartTime.span == nil {
+		return
+	}
+	s.StartTime.Span.SetAttribute(key, val)
+}
 
 // End finishes the message segment.
 func (s *MessageProducerSegment) End() {
