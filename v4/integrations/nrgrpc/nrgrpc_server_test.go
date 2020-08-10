@@ -84,8 +84,9 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "DoUnaryUnary",
-			ParentID: internal.MatchAnyParent,
+			Name:          "DoUnaryUnary",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                        internal.MatchAnything,
 				"nr.apdexPerfZone":            internal.MatchAnything,
@@ -107,16 +108,18 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "TestApplication/DoUnaryUnary",
-			ParentID: internal.MatchAnyParent,
+			Name:          "TestApplication/DoUnaryUnary",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoUnaryUnary bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                    "generic",
 				"transaction.name":            "WebTransaction/Go/TestApplication/DoUnaryUnary",
@@ -168,8 +171,9 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnaryError", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "TestApplication/DoUnaryUnaryError",
-		ParentID: internal.MatchNoParent,
+		Name:          "TestApplication/DoUnaryUnaryError",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                        internal.MatchAnything,
 			"nr.apdexPerfZone":            internal.MatchAnything,
@@ -254,8 +258,9 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "DoUnaryStream",
-			ParentID: internal.MatchAnyParent,
+			Name:          "DoUnaryStream",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                        internal.MatchAnything,
 				"nr.apdexPerfZone":            internal.MatchAnything,
@@ -277,16 +282,18 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "TestApplication/DoUnaryStream",
-			ParentID: internal.MatchAnyParent,
+			Name:          "TestApplication/DoUnaryStream",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoUnaryStream bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                    "generic",
 				"transaction.name":            "WebTransaction/Go/TestApplication/DoUnaryStream",
@@ -353,8 +360,9 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "DoStreamUnary",
-			ParentID: internal.MatchAnyParent,
+			Name:          "DoStreamUnary",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                        internal.MatchAnything,
 				"nr.apdexPerfZone":            internal.MatchAnything,
@@ -376,16 +384,18 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "TestApplication/DoStreamUnary",
-			ParentID: internal.MatchAnyParent,
+			Name:          "TestApplication/DoStreamUnary",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoStreamUnary bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                    "generic",
 				"transaction.name":            "WebTransaction/Go/TestApplication/DoStreamUnary",
@@ -465,8 +475,9 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "DoStreamStream",
-			ParentID: internal.MatchAnyParent,
+			Name:          "DoStreamStream",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                        internal.MatchAnything,
 				"nr.apdexPerfZone":            internal.MatchAnything,
@@ -488,16 +499,18 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "TestApplication/DoStreamStream",
-			ParentID: internal.MatchAnyParent,
+			Name:          "TestApplication/DoStreamStream",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoStreamStream bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoStreamStream bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                    "generic",
 				"transaction.name":            "WebTransaction/Go/TestApplication/DoStreamStream",
@@ -553,8 +566,9 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryStreamError", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "TestApplication/DoUnaryStreamError",
-		ParentID: internal.MatchNoParent,
+		Name:          "TestApplication/DoUnaryStreamError",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                        internal.MatchAnything,
 			"nr.apdexPerfZone":            internal.MatchAnything,

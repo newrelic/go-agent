@@ -261,8 +261,9 @@ func TestStatusCodes(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     txnName,
-		ParentID: internal.MatchNoParent,
+		Name:          txnName,
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone":             internal.MatchAnything,
 			"httpResponseCode":             expectCode,
@@ -308,8 +309,9 @@ func TestNoResponseBody(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     txnName,
-		ParentID: internal.MatchNoParent,
+		Name:          txnName,
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": internal.MatchAnything,
 			"httpResponseCode": expectCode,

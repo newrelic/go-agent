@@ -90,16 +90,18 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "mysubject send",
-			ParentID: internal.MatchAnyParent,
+			Name:          "mysubject send",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "testing",
-			ParentID: internal.MatchNoParent,
+			Name:          "testing",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/testing",
@@ -163,8 +165,9 @@ func TestSubWrapper(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "subject2 receive",
-			ParentID: internal.MatchNoParent,
+			Name:          "subject2 receive",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":               internal.MatchAnything,
 				"priority":           internal.MatchAnything,

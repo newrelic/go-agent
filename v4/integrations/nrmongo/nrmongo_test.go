@@ -150,8 +150,9 @@ func TestMonitor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "'commName' on 'collName' using 'MongoDB'",
-			ParentID: internal.MatchAnyParent,
+			Name:          "'commName' on 'collName' using 'MongoDB'",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"sampled":       true,
 				"category":      "datastore",
@@ -166,8 +167,9 @@ func TestMonitor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "txnName",
-			ParentID: internal.MatchNoParent,
+			Name:          "txnName",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"transaction.name": "OtherTransaction/Go/txnName",
 				"sampled":          true,

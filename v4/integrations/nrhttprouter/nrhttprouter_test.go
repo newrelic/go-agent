@@ -99,8 +99,9 @@ func TestHandle(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "GET /hello/:name",
-			ParentID: internal.MatchNoParent,
+			Name:          "GET /hello/:name",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",
@@ -140,8 +141,9 @@ func TestHandler(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "GET /hello/",
-			ParentID: internal.MatchNoParent,
+			Name:          "GET /hello/",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",
@@ -224,8 +226,9 @@ func TestNotFound(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "NotFound",
-			ParentID: internal.MatchNoParent,
+			Name:          "NotFound",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",

@@ -117,8 +117,9 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoUnaryUnary bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
@@ -127,8 +128,9 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "UnaryUnary",
-			ParentID: internal.MatchNoParent,
+			Name:          "UnaryUnary",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/UnaryUnary",
@@ -209,8 +211,9 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoUnaryStream bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
@@ -219,8 +222,9 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "UnaryStream",
-			ParentID: internal.MatchNoParent,
+			Name:          "UnaryStream",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/UnaryStream",
@@ -299,8 +303,9 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoStreamUnary bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
@@ -309,8 +314,9 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "StreamUnary",
-			ParentID: internal.MatchNoParent,
+			Name:          "StreamUnary",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/StreamUnary",
@@ -402,8 +408,9 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "gRPC TestApplication/DoStreamStream bufnet",
-			ParentID: internal.MatchAnyParent,
+			Name:          "gRPC TestApplication/DoStreamStream bufnet",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "gRPC",
@@ -412,8 +419,9 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "StreamStream",
-			ParentID: internal.MatchNoParent,
+			Name:          "StreamStream",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/StreamStream",
@@ -559,8 +567,9 @@ func TestClientStreamingError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "UnaryStream",
-			ParentID: internal.MatchNoParent,
+			Name:          "UnaryStream",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/UnaryStream",
