@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
@@ -190,6 +191,10 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 // ExternalSegment.  The returned SegmentStartTime is safe to use even  when the
 // Transaction receiver is nil.  In this case, the segment will have no effect.
 func (txn *Transaction) StartSegmentNow() SegmentStartTime {
+	return txn.startSegmentAt(time.Now())
+}
+
+func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 	if txn == nil {
 		return SegmentStartTime{}
 	}
@@ -201,7 +206,9 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 	}
 	parent := txn.thread.getCurrentSpan()
 	ctx, sp := txn.app.tracer.Start(parent.ctx, "",
-		trace.WithSpanKind(trace.SpanKindInternal))
+		trace.WithSpanKind(trace.SpanKindInternal),
+		trace.WithStartTime(at),
+	)
 	span := &span{
 		Span:   sp,
 		ctx:    ctx,

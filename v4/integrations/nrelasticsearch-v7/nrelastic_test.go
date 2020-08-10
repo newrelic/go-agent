@@ -418,10 +418,10 @@ func TestInfo(t *testing.T) {
 		{Name: "OtherTransactionTotalTime"},
 		{Name: "Datastore/all", Scope: "", Forced: nil, Data: nil},
 		{Name: "Datastore/allOther", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/Elasticsearch/all", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/Elasticsearch/allOther", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/operation/Elasticsearch/info", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/operation/Elasticsearch/info", Scope: "OtherTransaction/Go/txnName", Forced: nil, Data: nil},
+		{Name: "Datastore/elasticsearch/all", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/elasticsearch/allOther", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/elasticsearch/info", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/elasticsearch/info", Scope: "OtherTransaction/Go/txnName", Forced: nil, Data: nil},
 	})
 }
 
@@ -457,11 +457,11 @@ func TestSearch(t *testing.T) {
 		{Name: "OtherTransactionTotalTime"},
 		{Name: "Datastore/all"},
 		{Name: "Datastore/allOther"},
-		{Name: "Datastore/Elasticsearch/all"},
-		{Name: "Datastore/Elasticsearch/allOther"},
-		{Name: "Datastore/operation/Elasticsearch/search"},
-		{Name: "Datastore/statement/Elasticsearch/myindex/search"},
-		{Name: "Datastore/statement/Elasticsearch/myindex/search", Scope: "OtherTransaction/Go/txnName"},
+		{Name: "Datastore/elasticsearch/all"},
+		{Name: "Datastore/elasticsearch/allOther"},
+		{Name: "Datastore/operation/elasticsearch/search"},
+		{Name: "Datastore/statement/elasticsearch/myindex/search"},
+		{Name: "Datastore/statement/elasticsearch/myindex/search", Scope: "OtherTransaction/Go/txnName"},
 	})
 }
 
@@ -495,10 +495,10 @@ func TestInfoRequest(t *testing.T) {
 		{Name: "OtherTransactionTotalTime"},
 		{Name: "Datastore/all", Scope: "", Forced: nil, Data: nil},
 		{Name: "Datastore/allOther", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/Elasticsearch/all", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/Elasticsearch/allOther", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/operation/Elasticsearch/info", Scope: "", Forced: nil, Data: nil},
-		{Name: "Datastore/operation/Elasticsearch/info", Scope: "OtherTransaction/Go/txnName", Forced: nil, Data: nil},
+		{Name: "Datastore/elasticsearch/all", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/elasticsearch/allOther", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/elasticsearch/info", Scope: "", Forced: nil, Data: nil},
+		{Name: "Datastore/operation/elasticsearch/info", Scope: "OtherTransaction/Go/txnName", Forced: nil, Data: nil},
 	})
 
 }

@@ -186,7 +186,7 @@ func TestStartPublishSegmentNaming(t *testing.T) {
 		subject string
 		metric  string
 	}{
-		{subject: "", metric: "MessageBroker/NATS/Topic/Produce/Named/Unknown"},
+		{subject: "", metric: "MessageBroker/NATS/Topic/Produce/Named/unknown"},
 		{subject: "mysubject", metric: "MessageBroker/NATS/Topic/Produce/Named/mysubject"},
 		{subject: "_INBOX.asldfkjsldfjskd.ldskfjls", metric: "MessageBroker/NATS/Topic/Produce/Temp"},
 	}
