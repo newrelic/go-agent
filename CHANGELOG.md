@@ -1,6 +1,6 @@
 # ChangeLog
 
-## 3.8.2
+## Next
 
 ### Changes
 * When sending Serverless telemetry using the `nrlambda` integration, support an externally-managed named pipe.

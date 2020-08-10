@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 type response struct {
@@ -74,9 +74,10 @@ type writerProvider interface {
 type defaultWriterProvider struct {
 }
 
+const telemetryNamedPipe = "/tmp/newrelic-telemetry"
+
 func (wp *defaultWriterProvider) borrowWriter(needsWriter func(io.Writer)) {
 	// If the telemetry named pipe exists and is writable, use it instead of stdout
-	const telemetryNamedPipe = "/tmp/newrelic-telemetry"
 	pipeFile, err := os.OpenFile(telemetryNamedPipe, os.O_WRONLY, 0)
 	if err != nil {
 		needsWriter(os.Stdout)
@@ -132,8 +133,9 @@ type wrappedHandler struct {
 	// a time, we use a synchronization primitive to determine if this is
 	// the first transaction for defensiveness in case of future changes.
 	firstTransaction sync.Once
-	// writer is used to log the data JSON at the end of each transaction.
-	// This field exists (rather than hardcoded os.Stdout) for testing.
+	// hasWriter is used to log the data JSON at the end of each transaction.
+	// The writerProvider manages the lifecycle of the file handle being written
+	// to, similar to the Loan pattern. This field exists mostly for testing.
 	hasWriter writerProvider
 }
 
