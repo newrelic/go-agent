@@ -774,6 +774,11 @@ func TestSegmentsAddAttribute(t *testing.T) {
 					StartTime: txn.StartSegmentNow(),
 				}
 			},
+			extraAttrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "unknown",
+				"http.url":       "unknown",
+			},
 		},
 		{
 			start: func(txn *Transaction) segment {
@@ -985,6 +990,235 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
 				"db.system":     "unknown",
 				"net.peer.name": "unknown",
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			test.seg.addAttributes(func(k string, v interface{}) {
+				attrs[k] = v
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
+			}
+		})
+	}
+}
+
+func TestExternalSegmentAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		seg   *ExternalSegment
+		attrs map[string]interface{}
+	}{
+		{
+			name: "empty segment",
+			seg:  &ExternalSegment{},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "unknown",
+				"http.url":       "unknown",
+			},
+		},
+		{
+			name: "method from procedure",
+			seg: &ExternalSegment{
+				Procedure: "myprocedure",
+				Request: &http.Request{
+					Method: "GET",
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "myprocedure",
+				"http.url":       "unknown",
+			},
+		},
+		{
+			name: "method from request",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "GET",
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "GET",
+				"http.url":       "unknown",
+			},
+		},
+		{
+			name: "method from response",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "GET",
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: "PUT",
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "PUT",
+				"http.status_code": 0,
+				"http.url":         "unknown",
+			},
+		},
+		{
+			name: "url from URL field",
+			seg: &ExternalSegment{
+				URL: "http://example.com",
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "GET",
+				"http.url":       "http://example.com",
+			},
+		},
+		{
+			name: "empty request url",
+			seg: &ExternalSegment{
+				Request: &http.Request{},
+			},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "GET",
+				"http.url":       "unknown",
+			},
+		},
+		{
+			name: "url from request",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component": "http",
+				"http.method":    "GET",
+				"http.url":       "http://newrelic.com/hello/world",
+			},
+		},
+		{
+			name: "empty response url",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+				Response: &http.Response{
+					Request: &http.Request{},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.status_code": 0,
+				"http.url":         "unknown",
+			},
+		},
+		{
+			name: "url from response",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "example.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						URL: &url.URL{
+							Scheme:   "http",
+							Host:     "newrelic.com",
+							Path:     "/goodbye/world",
+							RawQuery: "goodbye=world",
+						},
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.status_code": 0,
+				"http.url":         "http://newrelic.com/goodbye/world",
+			},
+		},
+		{
+			name: "honors component",
+			seg: &ExternalSegment{
+				Library: "gRPC",
+			},
+			attrs: map[string]interface{}{
+				"http.component": "gRPC",
+				"http.method":    "unknown",
+				"http.url":       "unknown",
+			},
+		},
+		{
+			name: "status code from API call",
+			seg: &ExternalSegment{
+				statusCode: func() *int {
+					n := 42
+					return &n
+				}(),
+				Response: &http.Response{
+					StatusCode: 18,
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "unknown",
+				"http.status_code": 42,
+				"http.url":         "unknown",
+			},
+		},
+		{
+			name: "status code from response",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 42,
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "unknown",
+				"http.status_code": 42,
+				"http.url":         "unknown",
 			},
 		},
 	}

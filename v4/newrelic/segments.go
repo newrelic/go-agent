@@ -112,6 +112,10 @@ type ExternalSegment struct {
 	// external metrics and the "component" span attribute.  It should be
 	// the framework making the external call.
 	Library string
+
+	// statusCode is the status code for the response.  This value takes
+	// precedence over the status code set on the Response.
+	statusCode *int
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -295,8 +299,41 @@ func (s *ExternalSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
+	s.addAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
+}
+
+func (s *ExternalSegment) addAttributes(set func(k string, v interface{})) {
+	set("http.method", s.method())
+	set("http.url", s.cleanURL())
+
+	lib := s.Library
+	if lib == "" {
+		lib = "http"
+	}
+	set("http.component", lib)
+
+	code := s.statusCode
+	if code != nil {
+		set("http.status_code", *code)
+	} else if s.Response != nil {
+		set("http.status_code", s.Response.StatusCode)
+	}
+}
+
+func (s *ExternalSegment) cleanURL() string {
+	url := s.URL
+	if url == "" {
+		r := s.Request
+		if nil != s.Response && nil != s.Response.Request {
+			r = s.Response.Request
+		}
+		if r != nil && r.URL != nil {
+			url = r.URL.Scheme + "://" + r.URL.Host + r.URL.Path
+		}
+	}
+	return valOrUnknown(url)
 }
 
 func (s *ExternalSegment) name() string {
@@ -399,7 +436,11 @@ func (s *MessageProducerSegment) name() string {
 // Use this method when you are creating ExternalSegment manually using either
 // StartExternalSegment or the ExternalSegment struct directly.  Status code is
 // set automatically when using NewRoundTripper.
-func (s *ExternalSegment) SetStatusCode(code int) {}
+func (s *ExternalSegment) SetStatusCode(code int) {
+	s.StartTime.Lock()
+	s.statusCode = &code
+	s.StartTime.Unlock()
+}
 
 // StartExternalSegment starts the instrumentation of an external call and adds
 // distributed tracing headers to the request.  If the Transaction parameter is
