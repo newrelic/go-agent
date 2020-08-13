@@ -308,7 +308,7 @@ func (s *ExternalSegment) End() {
 	s.StartTime.end()
 }
 
-func (s *ExternalSegment) setSpanStatus(set func(codes.Code, string)) {
+func (s *ExternalSegment) setSpanStatus(setter func(codes.Code, string)) {
 	var code int
 	if s.statusCode != nil {
 		code = *s.statusCode
@@ -318,34 +318,34 @@ func (s *ExternalSegment) setSpanStatus(set func(codes.Code, string)) {
 	if code < 17 {
 		// Assume the code is already a grpc status code
 		c := codes.Code(code)
-		set(c, c.String())
+		setter(c, c.String())
 		return
 	}
-	set(standard.SpanStatusFromHTTPStatusCode(code))
+	setter(standard.SpanStatusFromHTTPStatusCode(code))
 }
 
-func (s *ExternalSegment) addAttributes(set func(...kv.KeyValue)) {
+func (s *ExternalSegment) addAttributes(setter func(...kv.KeyValue)) {
 	req := s.Request
 	if s.Response != nil && s.Response.Request != nil {
 		req = s.Response.Request
 	}
 	if req != nil {
-		set(standard.EndUserAttributesFromHTTPRequest(req)...)
+		setter(standard.EndUserAttributesFromHTTPRequest(req)...)
 		if req.URL != nil {
-			set(standard.HTTPClientAttributesFromHTTPRequest(req)...)
+			setter(standard.HTTPClientAttributesFromHTTPRequest(req)...)
 		}
 	}
 
 	if s.Procedure != "" {
-		set(standard.HTTPMethodKey.String(s.Procedure))
+		setter(standard.HTTPMethodKey.String(s.Procedure))
 	}
-	set(standard.HTTPUrlKey.String(s.cleanURL()))
+	setter(standard.HTTPUrlKey.String(s.cleanURL()))
 
 	lib := s.Library
 	if lib == "" {
 		lib = "http"
 	}
-	set(kv.Key("http.component").String(lib))
+	setter(kv.Key("http.component").String(lib))
 
 	var code int
 	if s.statusCode != nil {
@@ -353,7 +353,7 @@ func (s *ExternalSegment) addAttributes(set func(...kv.KeyValue)) {
 	} else if s.Response != nil {
 		code = s.Response.StatusCode
 	}
-	set(standard.HTTPAttributesFromHTTPStatusCode(code)...)
+	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
 }
 
 func (s *ExternalSegment) cleanURL() string {
