@@ -116,8 +116,9 @@ type ExternalSegment struct {
 	// the framework making the external call.
 	Library string
 
-	// statusCode is the status code for the response.  This value takes
-	// precedence over the status code set on the Response.
+	// statusCode represents the status code that will be reported as the
+	// response to this external call. This value takes precedence over the
+	// status code set on the Response field.
 	statusCode *int
 }
 
@@ -319,9 +320,9 @@ func (s *ExternalSegment) setSpanStatus(setter func(codes.Code, string)) {
 		// Assume the code is already a grpc status code
 		c := codes.Code(code)
 		setter(c, c.String())
-		return
+	} else {
+		setter(standard.SpanStatusFromHTTPStatusCode(code))
 	}
-	setter(standard.SpanStatusFromHTTPStatusCode(code))
 }
 
 func (s *ExternalSegment) addAttributes(setter func(...kv.KeyValue)) {
