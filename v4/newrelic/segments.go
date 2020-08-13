@@ -5,8 +5,10 @@ package newrelic
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -214,18 +216,59 @@ func (s *DatastoreSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
+
+	s.addAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
 }
 
+func (s *DatastoreSegment) addAttributes(setter func(string, interface{})) {
+	setter("db.system", valOrUnknown(string(s.Product)))
+	setter("db.statement", valOrUnknown(s.statement()))
+	setter("db.operation", valOrUnknown(s.Operation))
+	setter("db.collection", valOrUnknown(s.Collection))
+
+	if net.ParseIP(s.Host) != nil {
+		setter("net.peer.ip", s.Host)
+	} else {
+		setter("net.peer.name", valOrUnknown(s.Host))
+	}
+	if s.PortPathOrID != "" {
+		if port, err := strconv.Atoi(s.PortPathOrID); err == nil {
+			setter("net.peer.port", port)
+		}
+	}
+
+	switch s.Product {
+	case DatastoreCassandra:
+		setter("db.cassandra.keyspace", valOrUnknown(s.DatabaseName))
+	case DatastoreRedis:
+		setter("db.redis.database_index", valOrUnknown(s.DatabaseName))
+	case DatastoreMongoDB:
+		setter("db.mongodb.collection", valOrUnknown(s.DatabaseName))
+	default:
+		setter("db.name", valOrUnknown(s.DatabaseName))
+	}
+}
+
 func (s *DatastoreSegment) name() string {
+	return s.statement()
+}
+
+func valOrUnknown(v string) string {
+	if v == "" {
+		return "unknown"
+	}
+	return v
+}
+
+func (s *DatastoreSegment) statement() string {
 	pq := s.ParameterizedQuery
 	if pq == "" {
-		coll := s.Collection
-		if "" == coll {
-			coll = "unknown"
-		}
-		pq = "'" + s.Operation + "' on '" + coll + "' using '" + string(s.Product) + "'"
+		op := valOrUnknown(s.Operation)
+		coll := valOrUnknown(s.Collection)
+		prod := valOrUnknown(string(s.Product))
+		pq = "'" + op + "' on '" + coll + "' using '" + prod + "'"
 	}
 	return pq
 }
@@ -288,9 +331,7 @@ func (s *ExternalSegment) host() string {
 			host = url.Host
 		}
 	}
-	if host == "" {
-		host = "unknown"
-	}
+	host = valOrUnknown(host)
 	return host
 }
 
@@ -346,9 +387,7 @@ func (s *MessageProducerSegment) name() string {
 	if s.DestinationTemporary {
 		dest = "(temporary)"
 	}
-	if dest == "" {
-		dest = "Unknown"
-	}
+	dest = valOrUnknown(dest)
 	return dest + " send"
 }
 

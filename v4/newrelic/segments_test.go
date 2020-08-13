@@ -410,7 +410,7 @@ func TestDatastoreSegmentNaming(t *testing.T) {
 				PortPathOrID: "port",
 				DatabaseName: "dbname",
 			},
-			name: "'operation' on 'collection' using 'Postgres'",
+			name: "'operation' on 'collection' using 'postgresql'",
 		},
 		{
 			seg: &DatastoreSegment{
@@ -425,7 +425,11 @@ func TestDatastoreSegmentNaming(t *testing.T) {
 				PortPathOrID: "port",
 				DatabaseName: "dbname",
 			},
-			name: "'operation' on 'unknown' using 'Postgres'",
+			name: "'operation' on 'unknown' using 'postgresql'",
+		},
+		{
+			seg:  &DatastoreSegment{},
+			name: "'unknown' on 'unknown' using 'unknown'",
 		},
 	}
 
@@ -622,7 +626,7 @@ func TestMessageProducerSegmentNaming(t *testing.T) {
 			seg: &MessageProducerSegment{
 				DestinationName: "",
 			},
-			name: "Unknown send",
+			name: "unknown send",
 		},
 	}
 
@@ -740,31 +744,50 @@ func TestSegmentsAddAttribute(t *testing.T) {
 		End()
 	}
 
-	testFns := []func(*Transaction) segment{
-		func(txn *Transaction) segment {
-			return txn.StartSegment("basic")
+	testcases := []struct {
+		start      func(*Transaction) segment
+		extraAttrs map[string]interface{}
+	}{
+		{
+			start: func(txn *Transaction) segment {
+				return txn.StartSegment("basic")
+			},
 		},
-		func(txn *Transaction) segment {
-			return &DatastoreSegment{
-				StartTime: txn.StartSegmentNow(),
-			}
+		{
+			start: func(txn *Transaction) segment {
+				return &DatastoreSegment{
+					StartTime: txn.StartSegmentNow(),
+				}
+			},
+			extraAttrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.name": "unknown",
+			},
 		},
-		func(txn *Transaction) segment {
-			return &ExternalSegment{
-				StartTime: txn.StartSegmentNow(),
-			}
+		{
+			start: func(txn *Transaction) segment {
+				return &ExternalSegment{
+					StartTime: txn.StartSegmentNow(),
+				}
+			},
 		},
-		func(txn *Transaction) segment {
-			return &MessageProducerSegment{
-				StartTime: txn.StartSegmentNow(),
-			}
+		{
+			start: func(txn *Transaction) segment {
+				return &MessageProducerSegment{
+					StartTime: txn.StartSegmentNow(),
+				}
+			},
 		},
 	}
 
-	for _, fn := range testFns {
+	for _, test := range testcases {
 		app := newTestApp(t)
 		txn := app.StartTransaction("transaction")
-		seg := fn(txn)
+		seg := test.start(txn)
 		seg.AddAttribute("attr-string", "this is a string")
 		seg.AddAttribute("attr-float-32", float32(1.5))
 		seg.AddAttribute("attr-float-64", float64(2.5))
@@ -783,25 +806,29 @@ func TestSegmentsAddAttribute(t *testing.T) {
 		seg.End()
 		txn.End()
 
+		attrs := map[string]interface{}{
+			"attr-string":   "this is a string",
+			"attr-float-32": float32(1.5),
+			"attr-float-64": float64(2.5),
+			"attr-int":      int64(2),
+			"attr-int-8":    int64(3),
+			"attr-int-16":   int64(4),
+			"attr-int-32":   int32(5),
+			"attr-int-64":   int64(6),
+			"attr-uint":     uint64(7),
+			"attr-uint-8":   uint64(8),
+			"attr-uint-16":  uint64(9),
+			"attr-uint-32":  uint32(10),
+			"attr-uint-64":  uint64(11),
+			"attr-uint-ptr": uint64(12),
+			"attr-bool":     true,
+		}
+		for k, v := range test.extraAttrs {
+			attrs[k] = v
+		}
 		app.ExpectSpanEvents(t, []internal.WantSpan{
 			{
-				Attributes: map[string]interface{}{
-					"attr-string":   "this is a string",
-					"attr-float-32": float32(1.5),
-					"attr-float-64": float64(2.5),
-					"attr-int":      int64(2),
-					"attr-int-8":    int64(3),
-					"attr-int-16":   int64(4),
-					"attr-int-32":   int32(5),
-					"attr-int-64":   int64(6),
-					"attr-uint":     uint64(7),
-					"attr-uint-8":   uint64(8),
-					"attr-uint-16":  uint64(9),
-					"attr-uint-32":  uint32(10),
-					"attr-uint-64":  uint64(11),
-					"attr-uint-ptr": uint64(12),
-					"attr-bool":     true,
-				},
+				Attributes: attrs,
 			},
 			{Name: "transaction"},
 		})
@@ -829,4 +856,159 @@ func TestNilSegmentAddAttribute(t *testing.T) {
 	message.AddAttribute("color", "purple")
 	message = new(MessageProducerSegment)
 	message.AddAttribute("color", "purple")
+}
+
+func TestDatastoreSegmentAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		seg   *DatastoreSegment
+		attrs map[string]interface{}
+	}{
+		{
+			name: "empty segment",
+			seg:  &DatastoreSegment{},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.name": "unknown",
+			},
+		},
+		{
+			name: "complete segment",
+			seg: &DatastoreSegment{
+				Product:            DatastorePostgres,
+				Collection:         "mycollection",
+				Operation:          "myoperation",
+				ParameterizedQuery: "myparameterizedquery",
+				QueryParameters: map[string]interface{}{
+					"query": "params",
+				},
+				Host:         "newrelic.com",
+				PortPathOrID: "1234",
+				DatabaseName: "mydbname",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "mycollection",
+				"db.name":       "mydbname",
+				"db.operation":  "myoperation",
+				"db.statement":  "myparameterizedquery",
+				"db.system":     "postgresql",
+				"net.peer.name": "newrelic.com",
+				"net.peer.port": 1234,
+			},
+		},
+		{
+			name: "cassandra product",
+			seg: &DatastoreSegment{
+				Product:      DatastoreCassandra,
+				DatabaseName: "mydbname",
+			},
+			attrs: map[string]interface{}{
+				"db.collection":         "unknown",
+				"db.cassandra.keyspace": "mydbname",
+				"db.operation":          "unknown",
+				"db.statement":          "'unknown' on 'unknown' using 'cassandra'",
+				"db.system":             "cassandra",
+				"net.peer.name":         "unknown",
+			},
+		},
+		{
+			name: "redis product",
+			seg: &DatastoreSegment{
+				Product:      DatastoreRedis,
+				DatabaseName: "mydbname",
+			},
+			attrs: map[string]interface{}{
+				"db.collection":           "unknown",
+				"db.operation":            "unknown",
+				"db.redis.database_index": "mydbname",
+				"db.statement":            "'unknown' on 'unknown' using 'redis'",
+				"db.system":               "redis",
+				"net.peer.name":           "unknown",
+			},
+		},
+		{
+			name: "mongodb product",
+			seg: &DatastoreSegment{
+				Product:      DatastoreMongoDB,
+				DatabaseName: "mydbname",
+			},
+			attrs: map[string]interface{}{
+				"db.collection":         "unknown",
+				"db.mongodb.collection": "mydbname",
+				"db.operation":          "unknown",
+				"db.statement":          "'unknown' on 'unknown' using 'mongodb'",
+				"db.system":             "mongodb",
+				"net.peer.name":         "unknown",
+			},
+		},
+		{
+			name: "ipv4 host",
+			seg: &DatastoreSegment{
+				Host: "1.2.3.4",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.ip":   "1.2.3.4",
+			},
+		},
+		{
+			name: "ipv6 host",
+			seg: &DatastoreSegment{
+				Host: "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.ip":   "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+			},
+		},
+		{
+			name: "port is a path",
+			seg: &DatastoreSegment{
+				PortPathOrID: "/this/is/a/path/to/a/socket.sock",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.name": "unknown",
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			test.seg.addAttributes(func(k string, v interface{}) {
+				attrs[k] = v
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
+			}
+		})
+	}
 }

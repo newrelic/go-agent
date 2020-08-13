@@ -137,7 +137,7 @@ var (
 		},
 	}
 	datastoreSpan = internal.WantSpan{
-		Name:          "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
+		Name:          "'DescribeTable' on 'thebesttable' using 'dynamodb'",
 		ParentID:      internal.MatchAnyParent,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
@@ -148,13 +148,13 @@ var (
 			"transactionId": internal.MatchAnything,
 			"traceId":       internal.MatchAnything,
 			"parentId":      internal.MatchAnything,
-			"component":     "DynamoDB",
+			"component":     "dynamodb",
 			"span.kind":     "client",
 			"aws.operation": "DescribeTable",
 			"aws.region":    "us-west-2",
 			"aws.requestId": requestID,
 			"db.collection": "thebesttable",
-			"db.statement":  "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
+			"db.statement":  "'DescribeTable' on 'thebesttable' using 'dynamodb'",
 			"peer.address":  "dynamodb.us-west-2.amazonaws.com:unknown",
 			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
 		},
@@ -175,14 +175,14 @@ var (
 		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
 	}...)
 	datastoreMetrics = append(txnMetrics, []internal.WantMetric{
-		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/dynamodb/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/dynamodb/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
+		{Name: "Datastore/instance/dynamodb/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/dynamodb/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/dynamodb/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/dynamodb/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
 	}...)
 )
 
