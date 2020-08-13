@@ -147,9 +147,9 @@ type MessageDestinationType string
 // These message destination type constants are used in for the
 // MessageSegment.DestinationType field.
 const (
-	MessageQueue    MessageDestinationType = "Queue"
-	MessageTopic    MessageDestinationType = "Topic"
-	MessageExchange MessageDestinationType = "Exchange"
+	MessageQueue    MessageDestinationType = "queue"
+	MessageTopic    MessageDestinationType = "topic"
+	MessageExchange MessageDestinationType = "exchange"
 )
 
 func (s *span) end() {
@@ -450,8 +450,20 @@ func (s *MessageProducerSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
+	s.addAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
+}
+
+func (s *MessageProducerSegment) addAttributes(setter func(string, interface{})) {
+	setter("messaging.system", valOrUnknown(s.Library))
+	setter("messaging.destination", valOrUnknown(s.DestinationName))
+	if s.DestinationType != "" {
+		setter("messaging.destination_kind", string(s.DestinationType))
+	}
+	if s.DestinationTemporary {
+		setter("messaging.temp_destination", true)
+	}
 }
 
 func (s *MessageProducerSegment) name() string {
