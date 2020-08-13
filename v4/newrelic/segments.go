@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"sync"
 
+	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
+	"google.golang.org/grpc/codes"
 )
 
 type span struct {
@@ -301,7 +303,24 @@ func (s *ExternalSegment) End() {
 	}
 	s.addAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
+	s.setSpanStatus(s.StartTime.Span.SetStatus)
 	s.StartTime.end()
+}
+
+func (s *ExternalSegment) setSpanStatus(set func(codes.Code, string)) {
+	var code int
+	if s.statusCode != nil {
+		code = *s.statusCode
+	} else if s.Response != nil {
+		code = s.Response.StatusCode
+	}
+	if code < 17 {
+		// Assume the code is already a grpc status code
+		c := codes.Code(code)
+		set(c, c.String())
+		return
+	}
+	set(standard.SpanStatusFromHTTPStatusCode(code))
 }
 
 func (s *ExternalSegment) addAttributes(set func(k string, v interface{})) {

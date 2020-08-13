@@ -13,6 +13,7 @@ import (
 	"github.com/newrelic/go-agent/v4/internal"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"google.golang.org/grpc/codes"
 )
 
 func getSpanID(s trace.Span) string {
@@ -1242,6 +1243,95 @@ func TestExternalSegmentAttributes(t *testing.T) {
 					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
 						expK, expV, actV)
 				}
+			}
+		})
+	}
+}
+
+func TestExternalSegmentSpanStatus(t *testing.T) {
+	intptr := func(i int) *int { return &i }
+
+	testcases := []struct {
+		name string
+		seg  *ExternalSegment
+		code codes.Code
+		str  string
+	}{
+		{
+			name: "empty segment",
+			seg:  &ExternalSegment{},
+			code: codes.Code(0),
+			str:  "OK",
+		},
+		{
+			name: "grpc range code",
+			seg: &ExternalSegment{
+				statusCode: intptr(8),
+			},
+			code: codes.Code(8),
+			str:  "ResourceExhausted",
+		},
+		{
+			name: "unknown range code",
+			seg: &ExternalSegment{
+				statusCode: intptr(42),
+			},
+			code: codes.Code(2),
+			str:  "Invalid HTTP status code 42",
+		},
+		{
+			name: "http range code 418",
+			seg: &ExternalSegment{
+				statusCode: intptr(418),
+			},
+			code: codes.Code(3),
+			str:  "HTTP status code: 418",
+		},
+		{
+			name: "http range code 200",
+			seg: &ExternalSegment{
+				statusCode: intptr(200),
+			},
+			code: codes.Code(0),
+			str:  "HTTP status code: 200",
+		},
+		{
+			name: "response status code 418",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 418,
+				},
+			},
+			code: codes.Code(3),
+			str:  "HTTP status code: 418",
+		},
+		{
+			name: "response status code 200",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 200,
+				},
+			},
+			code: codes.Code(0),
+			str:  "HTTP status code: 200",
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			var actCode codes.Code
+			var actStr string
+			test.seg.setSpanStatus(func(c codes.Code, s string) {
+				actCode = c
+				actStr = s
+			})
+			if actCode != test.code {
+				t.Errorf("Incorrect code recorded:\n\texpect=%d actual=%d",
+					test.code, actCode)
+			}
+			if actStr != test.str {
+				t.Errorf("Incorrect string recorded:\n\texpect=%s actual=%s",
+					test.str, actStr)
 			}
 		})
 	}

@@ -3,6 +3,8 @@
 
 package internal
 
+import "google.golang.org/grpc/codes"
+
 // Validator is used for testing.
 type Validator interface {
 	Error(...interface{})
@@ -99,11 +101,12 @@ type WantTxn struct {
 
 // WantSpan is a span or transaction expectation.
 type WantSpan struct {
-	Name     string
-	SpanID   string
-	TraceID  string
-	ParentID string
-	Kind     string
+	Name       string
+	SpanID     string
+	TraceID    string
+	ParentID   string
+	Kind       string
+	StatusCode codes.Code
 	// SkipAttrsTest indicates whether checks for attributes should be skipped.
 	// TODO: This allows us to skip testing attributes in integrations for now.
 	// The field should be removed once all segment and transaction level attributes
