@@ -50,8 +50,8 @@ func (txn *Transaction) End() {
 	if txn.isEnded() {
 		return
 	}
-	txn.thread.Lock()
 	txn.rootSpan.end()
+	txn.thread.Lock()
 	txn.ended = true
 	txn.thread.Unlock()
 }
