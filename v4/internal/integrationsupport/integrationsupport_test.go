@@ -36,8 +36,9 @@ func TestSuccess(t *testing.T) {
 
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "mySegment",
-			ParentID: internal.MatchAnyParent,
+			Name:          "mySegment",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"parentId":                         internal.MatchAnything,
 				"category":                         "generic",
@@ -45,8 +46,9 @@ func TestSuccess(t *testing.T) {
 			},
 		},
 		{
-			Name:     "hello",
-			ParentID: internal.MatchNoParent,
+			Name:          "hello",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"transaction.name": "OtherTransaction/Go/hello",
 				"category":         "generic",

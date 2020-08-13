@@ -38,8 +38,9 @@ func TestBasicRoute(t *testing.T) {
 		IsWeb: true,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "GET /hello",
-		ParentID: internal.MatchNoParent,
+		Name:          "GET /hello",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone":             "S",
 			"httpResponseCode":             "200",
@@ -162,8 +163,9 @@ func TestReturnsHTTPError(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "GET /hello",
-		ParentID: internal.MatchNoParent,
+		Name:          "GET /hello",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
 			"httpResponseCode": "418",
@@ -196,8 +198,9 @@ func TestReturnsError(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "GET /hello",
-		ParentID: internal.MatchNoParent,
+		Name:          "GET /hello",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
 			"httpResponseCode": "500",
@@ -230,8 +233,9 @@ func TestResponseCode(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "GET /hello",
-		ParentID: internal.MatchNoParent,
+		Name:          "GET /hello",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone":             "F",
 			"httpResponseCode":             "418",

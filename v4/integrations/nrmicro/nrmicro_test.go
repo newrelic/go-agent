@@ -190,8 +190,9 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "Micro TestHandler.Method testing",
-			ParentID: internal.MatchAnyParent,
+			Name:          "Micro TestHandler.Method testing",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "Micro",
@@ -200,8 +201,9 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 			},
 		},
 		{
-			Name:     "name",
-			ParentID: internal.MatchNoParent,
+			Name:          "name",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/name",
@@ -344,16 +346,18 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "topic send",
-			ParentID: internal.MatchAnyParent,
+			Name:          "topic send",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "name",
-			ParentID: internal.MatchNoParent,
+			Name:          "name",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/name",
@@ -508,8 +512,9 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "Micro TestHandler.StreamingMethod testing",
-			ParentID: internal.MatchAnyParent,
+			Name:          "Micro TestHandler.StreamingMethod testing",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":  "http",
 				"component": "Micro",
@@ -518,8 +523,9 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 			},
 		},
 		{
-			Name:     "name",
-			ParentID: internal.MatchNoParent,
+			Name:          "name",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":         "generic",
 				"transaction.name": "OtherTransaction/Go/name",
@@ -591,16 +597,18 @@ func TestServerWrapperWithApp(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "Method",
-			ParentID: internal.MatchAnyParent,
+			Name:          "Method",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"parentId": internal.MatchAnything,
 			},
 		},
 		{
-			Name:     "TestHandler.Method",
-			ParentID: internal.MatchAnyParent,
+			Name:          "TestHandler.Method",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                      "generic",
 				"transaction.name":              "WebTransaction/Go/TestHandler.Method",
@@ -622,8 +630,9 @@ func TestServerWrapperWithApp(t *testing.T) {
 			},
 		},
 		{
-			Name:     "Micro TestHandler.Method testing",
-			ParentID: internal.MatchAnyParent,
+			Name:          "Micro TestHandler.Method testing",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                          internal.MatchAnything,
 				"priority":                      internal.MatchAnything,
@@ -694,8 +703,9 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "TestHandlerWithError.Method",
-			ParentID: internal.MatchNoParent,
+			Name:          "TestHandlerWithError.Method",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                         "generic",
 				"transaction.name":                 "WebTransaction/Go/TestHandlerWithError.Method",
@@ -725,8 +735,9 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 		},
 	}})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "TestHandlerWithError.Method",
-		ParentID: internal.MatchNoParent,
+		Name:          "TestHandlerWithError.Method",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                          internal.MatchAnything,
 			"priority":                      internal.MatchAnything,
@@ -788,8 +799,9 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:     "TestHandlerWithNonMicroError.Method",
-		ParentID: internal.MatchNoParent,
+		Name:          "TestHandlerWithNonMicroError.Method",
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                          internal.MatchAnything,
 			"priority":                      internal.MatchAnything,
@@ -898,8 +910,9 @@ func TestServerSubscribe(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "segment",
-			ParentID: internal.MatchAnyParent,
+			Name:          "segment",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
 				"name":     "Custom/segment",
@@ -907,8 +920,9 @@ func TestServerSubscribe(t *testing.T) {
 			},
 		},
 		{
-			Name:     "topic receive",
-			ParentID: internal.MatchAnyParent,
+			Name:          "topic receive",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                 "generic",
 				"transaction.name":         "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
@@ -924,8 +938,9 @@ func TestServerSubscribe(t *testing.T) {
 			},
 		},
 		{
-			Name:     "topic send",
-			ParentID: internal.MatchAnyParent,
+			Name:          "topic send",
+			ParentID:      internal.MatchAnyParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"guid":                     internal.MatchAnything,
 				"parent.account":           123,
@@ -1000,8 +1015,9 @@ func TestServerSubscribeWithError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:     "topic receive",
-			ParentID: internal.MatchNoParent,
+			Name:          "topic receive",
+			ParentID:      internal.MatchNoParent,
+			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                         "generic",
 				"name":                             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",

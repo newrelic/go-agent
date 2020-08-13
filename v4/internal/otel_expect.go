@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
@@ -49,6 +50,23 @@ func spansMatch(want WantSpan, span *testtrace.Span) error {
 		if kind := span.SpanKind().String(); kind != want.Kind {
 			return fmt.Errorf("Incorrect kind for span '%s':\n\texpect=%s actual=%s",
 				name, want.Kind, kind)
+		}
+	}
+	if !want.SkipAttrsTest && want.Attributes != nil {
+		foundAttrs := span.Attributes()
+		if len(foundAttrs) != len(want.Attributes) {
+			return fmt.Errorf("Incorrect number of attributes for span '%s':\n\texpect=%d actual=%d",
+				name, len(want.Attributes), len(foundAttrs))
+		}
+		for k, v := range want.Attributes {
+			if foundVal, ok := foundAttrs[kv.Key(k)]; ok {
+				if f := foundVal.AsInterface(); f != v {
+					return fmt.Errorf("Incorrect value for attr '%s' on span '%s':\n\texpect=%s actual=%s",
+						k, name, v, f)
+				}
+			} else {
+				return fmt.Errorf("Attr '%s' not found on span '%s'", k, name)
+			}
 		}
 	}
 	return nil

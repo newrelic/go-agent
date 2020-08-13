@@ -733,3 +733,100 @@ func TestStartExternalSegmentWithTxnContext(t *testing.T) {
 		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 }
+
+func TestSegmentsAddAttribute(t *testing.T) {
+	type segment interface {
+		AddAttribute(string, interface{})
+		End()
+	}
+
+	testFns := []func(*Transaction) segment{
+		func(txn *Transaction) segment {
+			return txn.StartSegment("basic")
+		},
+		func(txn *Transaction) segment {
+			return &DatastoreSegment{
+				StartTime: txn.StartSegmentNow(),
+			}
+		},
+		func(txn *Transaction) segment {
+			return &ExternalSegment{
+				StartTime: txn.StartSegmentNow(),
+			}
+		},
+		func(txn *Transaction) segment {
+			return &MessageProducerSegment{
+				StartTime: txn.StartSegmentNow(),
+			}
+		},
+	}
+
+	for _, fn := range testFns {
+		app := newTestApp(t)
+		txn := app.StartTransaction("transaction")
+		seg := fn(txn)
+		seg.AddAttribute("attr-string", "this is a string")
+		seg.AddAttribute("attr-float-32", float32(1.5))
+		seg.AddAttribute("attr-float-64", float64(2.5))
+		seg.AddAttribute("attr-int", int(2))
+		seg.AddAttribute("attr-int-8", int8(3))
+		seg.AddAttribute("attr-int-16", int16(4))
+		seg.AddAttribute("attr-int-32", int32(5))
+		seg.AddAttribute("attr-int-64", int64(6))
+		seg.AddAttribute("attr-uint", uint(7))
+		seg.AddAttribute("attr-uint-8", uint8(8))
+		seg.AddAttribute("attr-uint-16", uint16(9))
+		seg.AddAttribute("attr-uint-32", uint32(10))
+		seg.AddAttribute("attr-uint-64", uint64(11))
+		seg.AddAttribute("attr-uint-ptr", uintptr(12))
+		seg.AddAttribute("attr-bool", true)
+		seg.End()
+		txn.End()
+
+		app.ExpectSpanEvents(t, []internal.WantSpan{
+			{
+				Attributes: map[string]interface{}{
+					"attr-string":   "this is a string",
+					"attr-float-32": float32(1.5),
+					"attr-float-64": float64(2.5),
+					"attr-int":      int64(2),
+					"attr-int-8":    int64(3),
+					"attr-int-16":   int64(4),
+					"attr-int-32":   int32(5),
+					"attr-int-64":   int64(6),
+					"attr-uint":     uint64(7),
+					"attr-uint-8":   uint64(8),
+					"attr-uint-16":  uint64(9),
+					"attr-uint-32":  uint32(10),
+					"attr-uint-64":  uint64(11),
+					"attr-uint-ptr": uint64(12),
+					"attr-bool":     true,
+				},
+			},
+			{Name: "transaction"},
+		})
+	}
+}
+
+func TestNilSegmentAddAttribute(t *testing.T) {
+	// AddAttribute APIs don't panic when used on nil seg
+	var basic *Segment
+	basic.AddAttribute("color", "purple")
+	basic = new(Segment)
+	basic.AddAttribute("color", "purple")
+
+	var external *ExternalSegment
+	external.AddAttribute("color", "purple")
+	external = new(ExternalSegment)
+	external.AddAttribute("color", "purple")
+
+	var datastore *DatastoreSegment
+	datastore.AddAttribute("color", "purple")
+	datastore = new(DatastoreSegment)
+	datastore.AddAttribute("color", "purple")
+
+	var message *MessageProducerSegment
+	message.AddAttribute("color", "purple")
+	message = new(MessageProducerSegment)
+	message.AddAttribute("color", "purple")
+}

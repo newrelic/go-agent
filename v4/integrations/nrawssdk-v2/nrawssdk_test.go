@@ -81,8 +81,9 @@ const (
 
 var (
 	genericSpan = internal.WantSpan{
-		Name:     txnName,
-		ParentID: internal.MatchNoParent,
+		Name:          txnName,
+		ParentID:      internal.MatchNoParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"transaction.name": "OtherTransaction/Go/" + txnName,
 			"sampled":          true,
@@ -95,8 +96,9 @@ var (
 		},
 	}
 	externalSpan = internal.WantSpan{
-		Name:     "http POST lambda.us-west-2.amazonaws.com",
-		ParentID: internal.MatchAnyParent,
+		Name:          "http POST lambda.us-west-2.amazonaws.com",
+		ParentID:      internal.MatchAnyParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "http",
@@ -115,8 +117,9 @@ var (
 		},
 	}
 	externalSpanNoRequestID = internal.WantSpan{
-		Name:     "http POST lambda.us-west-2.amazonaws.com",
-		ParentID: internal.MatchAnyParent,
+		Name:          "http POST lambda.us-west-2.amazonaws.com",
+		ParentID:      internal.MatchAnyParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "http",
@@ -134,8 +137,9 @@ var (
 		},
 	}
 	datastoreSpan = internal.WantSpan{
-		Name:     "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
-		ParentID: internal.MatchAnyParent,
+		Name:          "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
+		ParentID:      internal.MatchAnyParent,
+		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"sampled":       true,
 			"category":      "datastore",

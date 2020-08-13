@@ -103,7 +103,15 @@ func (txn *Transaction) NoticeError(err error) {}
 //
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
-func (txn *Transaction) AddAttribute(key string, value interface{}) {}
+func (txn *Transaction) AddAttribute(key string, value interface{}) {
+	if txn == nil {
+		return
+	}
+	if txn.rootSpan == nil {
+		return
+	}
+	txn.rootSpan.Span.SetAttribute(key, value)
+}
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
 // the request is non-nil, SetWebRequestHTTP will additionally collect
