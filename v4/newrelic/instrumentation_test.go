@@ -48,10 +48,14 @@ func TestNewRoundTripper(t *testing.T) {
 			ParentID:   "0000000000000002",
 			StatusCode: codes.InvalidArgument,
 			Attributes: map[string]interface{}{
-				"http.method":      "POST",
-				"http.url":         "http://example.com",
 				"http.component":   "http",
+				"http.flavor":      "1.1",
+				"http.host":        "example.com",
+				"http.method":      "POST",
+				"http.scheme":      "http",
 				"http.status_code": int64(418),
+				"http.status_text": "I'm a teapot",
+				"http.url":         "http://example.com",
 			},
 		},
 		{

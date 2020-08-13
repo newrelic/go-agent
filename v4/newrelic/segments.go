@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
 	"google.golang.org/grpc/codes"
@@ -301,7 +302,7 @@ func (s *ExternalSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
-	s.addAttributes(s.StartTime.Span.SetAttribute)
+	s.addAttributes(s.StartTime.Span.SetAttributes)
 	s.StartTime.Span.SetName(s.name())
 	s.setSpanStatus(s.StartTime.Span.SetStatus)
 	s.StartTime.end()
@@ -323,22 +324,36 @@ func (s *ExternalSegment) setSpanStatus(set func(codes.Code, string)) {
 	set(standard.SpanStatusFromHTTPStatusCode(code))
 }
 
-func (s *ExternalSegment) addAttributes(set func(k string, v interface{})) {
-	set("http.method", s.method())
-	set("http.url", s.cleanURL())
+func (s *ExternalSegment) addAttributes(set func(...kv.KeyValue)) {
+	req := s.Request
+	if s.Response != nil && s.Response.Request != nil {
+		req = s.Response.Request
+	}
+	if req != nil {
+		set(standard.EndUserAttributesFromHTTPRequest(req)...)
+		if req.URL != nil {
+			set(standard.HTTPClientAttributesFromHTTPRequest(req)...)
+		}
+	}
+
+	if s.Procedure != "" {
+		set(standard.HTTPMethodKey.String(s.Procedure))
+	}
+	set(standard.HTTPUrlKey.String(s.cleanURL()))
 
 	lib := s.Library
 	if lib == "" {
 		lib = "http"
 	}
-	set("http.component", lib)
+	set(kv.Key("http.component").String(lib))
 
-	code := s.statusCode
-	if code != nil {
-		set("http.status_code", *code)
+	var code int
+	if s.statusCode != nil {
+		code = *s.statusCode
 	} else if s.Response != nil {
-		set("http.status_code", s.Response.StatusCode)
+		code = s.Response.StatusCode
 	}
+	set(standard.HTTPAttributesFromHTTPStatusCode(code)...)
 }
 
 func (s *ExternalSegment) cleanURL() string {
@@ -348,7 +363,7 @@ func (s *ExternalSegment) cleanURL() string {
 		if nil != s.Response && nil != s.Response.Request {
 			r = s.Response.Request
 		}
-		if r != nil && r.URL != nil {
+		if r != nil && r.URL != nil && r.URL.Scheme != "" {
 			url = r.URL.Scheme + "://" + r.URL.Host + r.URL.Path
 		}
 	}

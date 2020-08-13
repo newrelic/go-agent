@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v4/internal"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 	"google.golang.org/grpc/codes"
@@ -776,9 +777,9 @@ func TestSegmentsAddAttribute(t *testing.T) {
 				}
 			},
 			extraAttrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "unknown",
-				"http.url":       "unknown",
+				"http.component":   "http",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
 			},
 		},
 		{
@@ -1029,9 +1030,9 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			name: "empty segment",
 			seg:  &ExternalSegment{},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "unknown",
-				"http.url":       "unknown",
+				"http.component":   "http",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
 			},
 		},
 		{
@@ -1040,12 +1041,15 @@ func TestExternalSegmentAttributes(t *testing.T) {
 				Procedure: "myprocedure",
 				Request: &http.Request{
 					Method: "GET",
+					URL:    &url.URL{},
 				},
 			},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "myprocedure",
-				"http.url":       "unknown",
+				"http.component":   "http",
+				"http.method":      "myprocedure",
+				"http.scheme":      "http",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -1053,12 +1057,15 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			seg: &ExternalSegment{
 				Request: &http.Request{
 					Method: "GET",
+					URL:    &url.URL{},
 				},
 			},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "GET",
-				"http.url":       "unknown",
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1066,18 +1073,21 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			seg: &ExternalSegment{
 				Request: &http.Request{
 					Method: "GET",
+					URL:    &url.URL{},
 				},
 				Response: &http.Response{
 					Request: &http.Request{
 						Method: "PUT",
+						URL:    &url.URL{},
 					},
 				},
 			},
 			attrs: map[string]interface{}{
 				"http.component":   "http",
 				"http.method":      "PUT",
-				"http.status_code": 0,
+				"http.status_code": int64(0),
 				"http.url":         "unknown",
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1094,20 +1104,26 @@ func TestExternalSegmentAttributes(t *testing.T) {
 				},
 			},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "GET",
-				"http.url":       "http://example.com",
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "http://example.com",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
 			},
 		},
 		{
 			name: "empty request url",
 			seg: &ExternalSegment{
-				Request: &http.Request{},
+				Request: &http.Request{
+					URL: &url.URL{},
+				},
 			},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "GET",
-				"http.url":       "unknown",
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1123,9 +1139,11 @@ func TestExternalSegmentAttributes(t *testing.T) {
 				},
 			},
 			attrs: map[string]interface{}{
-				"http.component": "http",
-				"http.method":    "GET",
-				"http.url":       "http://newrelic.com/hello/world",
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "http://newrelic.com/hello/world",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1140,14 +1158,17 @@ func TestExternalSegmentAttributes(t *testing.T) {
 					},
 				},
 				Response: &http.Response{
-					Request: &http.Request{},
+					Request: &http.Request{
+						URL: &url.URL{},
+					},
 				},
 			},
 			attrs: map[string]interface{}{
 				"http.component":   "http",
 				"http.method":      "GET",
-				"http.status_code": 0,
+				"http.status_code": int64(0),
 				"http.url":         "unknown",
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1175,8 +1196,9 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			attrs: map[string]interface{}{
 				"http.component":   "http",
 				"http.method":      "GET",
-				"http.status_code": 0,
+				"http.status_code": int64(0),
 				"http.url":         "http://newrelic.com/goodbye/world",
+				"http.scheme":      "http",
 			},
 		},
 		{
@@ -1185,9 +1207,9 @@ func TestExternalSegmentAttributes(t *testing.T) {
 				Library: "gRPC",
 			},
 			attrs: map[string]interface{}{
-				"http.component": "gRPC",
-				"http.method":    "unknown",
-				"http.url":       "unknown",
+				"http.component":   "gRPC",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
 			},
 		},
 		{
@@ -1203,8 +1225,7 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			},
 			attrs: map[string]interface{}{
 				"http.component":   "http",
-				"http.method":      "unknown",
-				"http.status_code": 42,
+				"http.status_code": int64(42),
 				"http.url":         "unknown",
 			},
 		},
@@ -1217,8 +1238,7 @@ func TestExternalSegmentAttributes(t *testing.T) {
 			},
 			attrs: map[string]interface{}{
 				"http.component":   "http",
-				"http.method":      "unknown",
-				"http.status_code": 42,
+				"http.status_code": int64(42),
 				"http.url":         "unknown",
 			},
 		},
@@ -1227,8 +1247,10 @@ func TestExternalSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(k string, v interface{}) {
-				attrs[k] = v
+			test.seg.addAttributes(func(keyValues ...kv.KeyValue) {
+				for _, keyValue := range keyValues {
+					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
+				}
 			})
 
 			if len(attrs) != len(test.attrs) {
