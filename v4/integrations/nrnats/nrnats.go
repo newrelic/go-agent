@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	nats "github.com/nats-io/nats.go"
-	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
@@ -51,9 +50,9 @@ func SubWrapper(app *newrelic.Application, f func(msg *nats.Msg)) func(msg *nats
 		txn := app.StartTransaction(name)
 		defer txn.End()
 
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, msg.Sub.Subject, nil)
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageQueueName, msg.Sub.Queue, nil)
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageReplyTo, msg.Reply, nil)
+		txn.AddAttribute(newrelic.AttributeMessageRoutingKey, msg.Sub.Subject)
+		txn.AddAttribute(newrelic.AttributeMessageQueueName, msg.Sub.Queue)
+		txn.AddAttribute(newrelic.AttributeMessageReplyTo, msg.Reply)
 
 		f(msg)
 	}

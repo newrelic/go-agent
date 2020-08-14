@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v4/newrelic"
 )
 
@@ -18,7 +17,10 @@ type contextKeyType struct{}
 
 var segmentContextKey = contextKeyType(struct{}{})
 
-type endable interface{ End() }
+type segmenter interface {
+	End()
+	AddAttribute(string, interface{})
+}
 
 func getTableName(params interface{}) string {
 	var tableName string
@@ -68,7 +70,7 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 	httpCtx := input.HTTPRequest.Context()
 	txn := newrelic.FromContext(httpCtx)
 
-	var segment endable
+	var segment segmenter
 	// Service name capitalization is different for v1 and v2.
 	if input.ServiceName == "dynamodb" || input.ServiceName == "DynamoDB" {
 		segment = &newrelic.DatastoreSegment{
@@ -86,8 +88,8 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 		segment = newrelic.StartExternalSegment(txn, input.HTTPRequest)
 	}
 
-	integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSOperation, input.Operation)
-	integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRegion, input.Region)
+	segment.AddAttribute(newrelic.SpanAttributeAWSOperation, input.Operation)
+	segment.AddAttribute(newrelic.SpanAttributeAWSRegion, input.Region)
 
 	ctx := context.WithValue(httpCtx, segmentContextKey, segment)
 	return input.HTTPRequest.WithContext(ctx)
@@ -95,10 +97,9 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 
 // EndSegment will end any segment found in the given context.
 func EndSegment(ctx context.Context, hdr http.Header) {
-	if segment, ok := ctx.Value(segmentContextKey).(endable); ok {
+	if segment, ok := ctx.Value(segmentContextKey).(segmenter); ok {
 		if id := GetRequestID(hdr); "" != id {
-			txn := newrelic.FromContext(ctx)
-			integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeAWSRequestID, id)
+			segment.AddAttribute(newrelic.SpanAttributeAWSRequestID, id)
 		}
 		segment.End()
 	}
