@@ -788,6 +788,10 @@ func TestSegmentsAddAttribute(t *testing.T) {
 					StartTime: txn.StartSegmentNow(),
 				}
 			},
+			extraAttrs: map[string]interface{}{
+				"messaging.system":      "unknown",
+				"messaging.destination": "unknown",
+			},
 		},
 	}
 
@@ -999,7 +1003,7 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(k string, v interface{}) {
+			test.seg.addRequiredAttributes(func(k string, v interface{}) {
 				attrs[k] = v
 			})
 
@@ -1247,7 +1251,7 @@ func TestExternalSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(keyValues ...kv.KeyValue) {
+			test.seg.addRequiredAttributes(func(keyValues ...kv.KeyValue) {
 				for _, keyValue := range keyValues {
 					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
 				}
@@ -1354,6 +1358,61 @@ func TestExternalSegmentSpanStatus(t *testing.T) {
 			if actStr != test.str {
 				t.Errorf("Incorrect string recorded:\n\texpect=%s actual=%s",
 					test.str, actStr)
+			}
+		})
+	}
+}
+
+func TestMessageProducerSegmentAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		seg   *MessageProducerSegment
+		attrs map[string]interface{}
+	}{
+		{
+			name: "empty segment",
+			seg:  &MessageProducerSegment{},
+			attrs: map[string]interface{}{
+				"messaging.system":      "unknown",
+				"messaging.destination": "unknown",
+			},
+		},
+		{
+			name: "complete segment",
+			seg: &MessageProducerSegment{
+				Library:              "kafka",
+				DestinationType:      MessageQueue,
+				DestinationName:      "mydestination",
+				DestinationTemporary: true,
+			},
+			attrs: map[string]interface{}{
+				"messaging.system":           "kafka",
+				"messaging.destination":      "mydestination",
+				"messaging.destination_kind": "queue",
+				"messaging.temp_destination": true,
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			test.seg.addRequiredAttributes(func(k string, v interface{}) {
+				attrs[k] = v
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
 			}
 		})
 	}

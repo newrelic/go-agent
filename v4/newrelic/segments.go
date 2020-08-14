@@ -147,9 +147,9 @@ type MessageDestinationType string
 // These message destination type constants are used in for the
 // MessageSegment.DestinationType field.
 const (
-	MessageQueue    MessageDestinationType = "Queue"
-	MessageTopic    MessageDestinationType = "Topic"
-	MessageExchange MessageDestinationType = "Exchange"
+	MessageQueue    MessageDestinationType = "queue"
+	MessageTopic    MessageDestinationType = "topic"
+	MessageExchange MessageDestinationType = "exchange"
 )
 
 func (s *span) end() {
@@ -225,12 +225,12 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 
-	s.addAttributes(s.StartTime.Span.SetAttribute)
+	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
 }
 
-func (s *DatastoreSegment) addAttributes(setter func(string, interface{})) {
+func (s *DatastoreSegment) addRequiredAttributes(setter func(string, interface{})) {
 	setter("db.system", valOrUnknown(string(s.Product)))
 	setter("db.statement", valOrUnknown(s.statement()))
 	setter("db.operation", valOrUnknown(s.Operation))
@@ -303,7 +303,7 @@ func (s *ExternalSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
-	s.addAttributes(s.StartTime.Span.SetAttributes)
+	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
 	s.StartTime.Span.SetName(s.name())
 	s.setSpanStatus(s.StartTime.Span.SetStatus)
 	s.StartTime.end()
@@ -325,7 +325,7 @@ func (s *ExternalSegment) setSpanStatus(setter func(codes.Code, string)) {
 	}
 }
 
-func (s *ExternalSegment) addAttributes(setter func(...kv.KeyValue)) {
+func (s *ExternalSegment) addRequiredAttributes(setter func(...kv.KeyValue)) {
 	req := s.Request
 	if s.Response != nil && s.Response.Request != nil {
 		req = s.Response.Request
@@ -450,8 +450,20 @@ func (s *MessageProducerSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
+	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
+}
+
+func (s *MessageProducerSegment) addRequiredAttributes(setter func(string, interface{})) {
+	setter("messaging.system", valOrUnknown(s.Library))
+	setter("messaging.destination", valOrUnknown(s.DestinationName))
+	if s.DestinationType != "" {
+		setter("messaging.destination_kind", string(s.DestinationType))
+	}
+	if s.DestinationTemporary {
+		setter("messaging.temp_destination", true)
+	}
 }
 
 func (s *MessageProducerSegment) name() string {
