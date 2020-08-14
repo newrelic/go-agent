@@ -11,8 +11,10 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v4/internal"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"google.golang.org/grpc/codes"
 )
 
 func getSpanID(s trace.Span) string {
@@ -774,6 +776,11 @@ func TestSegmentsAddAttribute(t *testing.T) {
 					StartTime: txn.StartSegmentNow(),
 				}
 			},
+			extraAttrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+			},
 		},
 		{
 			start: func(txn *Transaction) segment {
@@ -1008,6 +1015,345 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
 						expK, expV, actV)
 				}
+			}
+		})
+	}
+}
+
+func TestExternalSegmentAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		seg   *ExternalSegment
+		attrs map[string]interface{}
+	}{
+		{
+			name: "empty segment",
+			seg:  &ExternalSegment{},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+			},
+		},
+		{
+			name: "method from procedure",
+			seg: &ExternalSegment{
+				Procedure: "myprocedure",
+				Request: &http.Request{
+					Method: "GET",
+					URL:    &url.URL{},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "myprocedure",
+				"http.scheme":      "http",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
+			},
+		},
+		{
+			name: "method from request",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "GET",
+					URL:    &url.URL{},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "method from response",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					Method: "GET",
+					URL:    &url.URL{},
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: "PUT",
+						URL:    &url.URL{},
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "PUT",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "url from URL field",
+			seg: &ExternalSegment{
+				URL: "http://example.com",
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "http://example.com",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "empty request url",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "url from request",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.url":         "http://newrelic.com/hello/world",
+				"http.status_code": int64(0),
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "empty response url",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "newrelic.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						URL: &url.URL{},
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "url from response",
+			seg: &ExternalSegment{
+				Request: &http.Request{
+					URL: &url.URL{
+						Scheme:   "http",
+						Host:     "example.com",
+						Path:     "/hello/world",
+						RawQuery: "hello=world",
+					},
+				},
+				Response: &http.Response{
+					Request: &http.Request{
+						URL: &url.URL{
+							Scheme:   "http",
+							Host:     "newrelic.com",
+							Path:     "/goodbye/world",
+							RawQuery: "goodbye=world",
+						},
+					},
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.method":      "GET",
+				"http.status_code": int64(0),
+				"http.url":         "http://newrelic.com/goodbye/world",
+				"http.scheme":      "http",
+			},
+		},
+		{
+			name: "honors component",
+			seg: &ExternalSegment{
+				Library: "gRPC",
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "gRPC",
+				"http.url":         "unknown",
+				"http.status_code": int64(0),
+			},
+		},
+		{
+			name: "status code from API call",
+			seg: &ExternalSegment{
+				statusCode: func() *int {
+					n := 42
+					return &n
+				}(),
+				Response: &http.Response{
+					StatusCode: 18,
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.status_code": int64(42),
+				"http.url":         "unknown",
+			},
+		},
+		{
+			name: "status code from response",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 42,
+				},
+			},
+			attrs: map[string]interface{}{
+				"http.component":   "http",
+				"http.status_code": int64(42),
+				"http.url":         "unknown",
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			test.seg.addAttributes(func(keyValues ...kv.KeyValue) {
+				for _, keyValue := range keyValues {
+					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
+				}
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
+			}
+		})
+	}
+}
+
+func TestExternalSegmentSpanStatus(t *testing.T) {
+	intptr := func(i int) *int { return &i }
+
+	testcases := []struct {
+		name string
+		seg  *ExternalSegment
+		code codes.Code
+		str  string
+	}{
+		{
+			name: "empty segment",
+			seg:  &ExternalSegment{},
+			code: codes.Code(0),
+			str:  "OK",
+		},
+		{
+			name: "grpc range code",
+			seg: &ExternalSegment{
+				statusCode: intptr(8),
+			},
+			code: codes.Code(8),
+			str:  "ResourceExhausted",
+		},
+		{
+			name: "unknown range code",
+			seg: &ExternalSegment{
+				statusCode: intptr(42),
+			},
+			code: codes.Code(2),
+			str:  "Invalid HTTP status code 42",
+		},
+		{
+			name: "http range code 418",
+			seg: &ExternalSegment{
+				statusCode: intptr(418),
+			},
+			code: codes.Code(3),
+			str:  "HTTP status code: 418",
+		},
+		{
+			name: "http range code 200",
+			seg: &ExternalSegment{
+				statusCode: intptr(200),
+			},
+			code: codes.Code(0),
+			str:  "HTTP status code: 200",
+		},
+		{
+			name: "response status code 418",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 418,
+				},
+			},
+			code: codes.Code(3),
+			str:  "HTTP status code: 418",
+		},
+		{
+			name: "response status code 200",
+			seg: &ExternalSegment{
+				Response: &http.Response{
+					StatusCode: 200,
+				},
+			},
+			code: codes.Code(0),
+			str:  "HTTP status code: 200",
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			var actCode codes.Code
+			var actStr string
+			test.seg.setSpanStatus(func(c codes.Code, s string) {
+				actCode = c
+				actStr = s
+			})
+			if actCode != test.code {
+				t.Errorf("Incorrect code recorded:\n\texpect=%d actual=%d",
+					test.code, actCode)
+			}
+			if actStr != test.str {
+				t.Errorf("Incorrect string recorded:\n\texpect=%s actual=%s",
+					test.str, actStr)
 			}
 		})
 	}

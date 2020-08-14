@@ -69,6 +69,10 @@ func spansMatch(want WantSpan, span *testtrace.Span) error {
 			}
 		}
 	}
+	if code := span.StatusCode(); want.StatusCode != code {
+		return fmt.Errorf("Incorrect status code for span '%s':\n\texpect=%d actual=%d",
+			name, want.StatusCode, code)
+	}
 	return nil
 }
 

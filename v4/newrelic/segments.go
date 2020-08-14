@@ -11,7 +11,10 @@ import (
 	"strconv"
 	"sync"
 
+	"go.opentelemetry.io/otel/api/kv"
+	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
+	"google.golang.org/grpc/codes"
 )
 
 type span struct {
@@ -112,6 +115,11 @@ type ExternalSegment struct {
 	// external metrics and the "component" span attribute.  It should be
 	// the framework making the external call.
 	Library string
+
+	// statusCode represents the status code that will be reported as the
+	// response to this external call. This value takes precedence over the
+	// status code set on the Response field.
+	statusCode *int
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -295,8 +303,72 @@ func (s *ExternalSegment) End() {
 	if s.StartTime.isEnded() {
 		return
 	}
+	s.addAttributes(s.StartTime.Span.SetAttributes)
 	s.StartTime.Span.SetName(s.name())
+	s.setSpanStatus(s.StartTime.Span.SetStatus)
 	s.StartTime.end()
+}
+
+func (s *ExternalSegment) setSpanStatus(setter func(codes.Code, string)) {
+	var code int
+	if s.statusCode != nil {
+		code = *s.statusCode
+	} else if s.Response != nil {
+		code = s.Response.StatusCode
+	}
+	if code < 17 {
+		// Assume the code is already a grpc status code
+		c := codes.Code(code)
+		setter(c, c.String())
+	} else {
+		setter(standard.SpanStatusFromHTTPStatusCode(code))
+	}
+}
+
+func (s *ExternalSegment) addAttributes(setter func(...kv.KeyValue)) {
+	req := s.Request
+	if s.Response != nil && s.Response.Request != nil {
+		req = s.Response.Request
+	}
+	if req != nil {
+		setter(standard.EndUserAttributesFromHTTPRequest(req)...)
+		if req.URL != nil {
+			setter(standard.HTTPClientAttributesFromHTTPRequest(req)...)
+		}
+	}
+
+	if s.Procedure != "" {
+		setter(standard.HTTPMethodKey.String(s.Procedure))
+	}
+	setter(standard.HTTPUrlKey.String(s.cleanURL()))
+
+	lib := s.Library
+	if lib == "" {
+		lib = "http"
+	}
+	setter(kv.Key("http.component").String(lib))
+
+	var code int
+	if s.statusCode != nil {
+		code = *s.statusCode
+	} else if s.Response != nil {
+		code = s.Response.StatusCode
+	}
+	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
+}
+
+func (s *ExternalSegment) cleanURL() string {
+	url := s.URL
+	if url == "" {
+		r := s.Request
+		if nil != s.Response && nil != s.Response.Request {
+			r = s.Response.Request
+		}
+		if r != nil && r.URL != nil && r.URL.Scheme != "" {
+			url = r.URL.Scheme + "://" + r.URL.Host + r.URL.Path
+		}
+	}
+	return valOrUnknown(url)
 }
 
 func (s *ExternalSegment) name() string {
@@ -399,7 +471,11 @@ func (s *MessageProducerSegment) name() string {
 // Use this method when you are creating ExternalSegment manually using either
 // StartExternalSegment or the ExternalSegment struct directly.  Status code is
 // set automatically when using NewRoundTripper.
-func (s *ExternalSegment) SetStatusCode(code int) {}
+func (s *ExternalSegment) SetStatusCode(code int) {
+	s.StartTime.Lock()
+	s.statusCode = &code
+	s.StartTime.Unlock()
+}
 
 // StartExternalSegment starts the instrumentation of an external call and adds
 // distributed tracing headers to the request.  If the Transaction parameter is
