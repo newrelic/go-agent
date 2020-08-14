@@ -35,6 +35,7 @@ type thread struct {
 	// isMultiSpan is set to true of the associated transaction has more
 	// than one span or crosses multiple goroutines.
 	isMultiSpan bool
+	logger      Logger
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -63,11 +64,15 @@ func (txn *Transaction) isEnded() bool {
 }
 
 // Ignore prevents this transaction's data from being recorded.
-func (txn *Transaction) Ignore() {}
+func (txn *Transaction) Ignore() {
+	logUnimplemented(txn.thread.logger, "Transaction.Ignore")
+}
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
-func (txn *Transaction) SetName(name string) {}
+func (txn *Transaction) SetName(name string) {
+	logUnimplemented(txn.thread.logger, "Transaction.SetName")
+}
 
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
@@ -94,7 +99,9 @@ func (txn *Transaction) SetName(name string) {}
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
-func (txn *Transaction) NoticeError(err error) {}
+func (txn *Transaction) NoticeError(err error) {
+	logUnimplemented(txn.thread.logger, "Transaction.NoticeError")
+}
 
 // AddAttribute adds a key value pair to the transaction event, errors,
 // and traces.
@@ -345,6 +352,7 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
+	logUnimplemented(txn.thread.logger, "Transaction.BrowserTimingHeader")
 	return nil
 }
 
@@ -378,12 +386,14 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
+	logUnimplemented(txn.thread.logger, "Transaction.GetTraceMetadata")
 	return TraceMetadata{}
 }
 
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
+	logUnimplemented(txn.thread.logger, "Transaction.GetLinkingMetadata")
 	return LinkingMetadata{}
 }
 
@@ -392,6 +402,7 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
+	logUnimplemented(txn.thread.logger, "Transaction.IsSampled")
 	return false
 }
 

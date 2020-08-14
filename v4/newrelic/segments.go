@@ -196,10 +196,17 @@ func (s *Segment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.Name)
 		return
 	}
 	s.StartTime.Span.SetName(s.Name)
 	s.StartTime.end()
+}
+
+func logSgmtAlreadyEnded(logger Logger, name string) {
+	logger.Debug("trying to end a segment that has already ended", map[string]interface{}{
+		"segmentName": name,
+	})
 }
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.
@@ -222,6 +229,7 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
 		return
 	}
 
@@ -301,6 +309,7 @@ func (s *ExternalSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
@@ -448,6 +457,7 @@ func (s *MessageProducerSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
@@ -507,7 +517,7 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 	}
 
 	if nil != request && nil != request.Header {
-		txn.InsertDistributedTraceHeaders(request.Header)
+		txn.InsertDistributedTraceHeaders(request.Header) //TODO: could be nil here
 	}
 
 	return s
