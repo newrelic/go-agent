@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/newrelic/go-agent/v4/internal/sysinfo"
 	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
@@ -230,16 +231,38 @@ func (s *DatastoreSegment) End() {
 	s.StartTime.end()
 }
 
+var (
+	hostsToReplace = map[string]struct{}{
+		"localhost":       {},
+		"127.0.0.1":       {},
+		"0.0.0.0":         {},
+		"0:0:0:0:0:0:0:1": {},
+		"::1":             {},
+		"0:0:0:0:0:0:0:0": {},
+		"::":              {},
+	}
+	thisHost, _ = sysinfo.Hostname()
+)
+
+func replaceLocalhosts(host string) string {
+	if _, ok := hostsToReplace[host]; ok {
+		if thisHost != "" {
+			return thisHost
+		}
+	}
+	return host
+}
+
 func (s *DatastoreSegment) addRequiredAttributes(setter func(string, interface{})) {
 	setter("db.system", valOrUnknown(string(s.Product)))
 	setter("db.statement", valOrUnknown(s.statement()))
 	setter("db.operation", valOrUnknown(s.Operation))
 	setter("db.collection", valOrUnknown(s.Collection))
 
-	if net.ParseIP(s.Host) != nil {
-		setter("net.peer.ip", s.Host)
+	if host := replaceLocalhosts(s.Host); net.ParseIP(host) != nil {
+		setter("net.peer.ip", host)
 	} else {
-		setter("net.peer.name", valOrUnknown(s.Host))
+		setter("net.peer.name", valOrUnknown(host))
 	}
 	if s.PortPathOrID != "" {
 		if port, err := strconv.Atoi(s.PortPathOrID); err == nil {
