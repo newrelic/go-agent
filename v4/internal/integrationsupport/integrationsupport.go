@@ -11,13 +11,6 @@ import (
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
-// AddAgentAttribute allows instrumentation packages to add agent attributes.
-func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, otherVal interface{}) {
-}
-
-// AddAgentSpanAttribute allows instrumentation packages to add span attributes.
-func AddAgentSpanAttribute(txn *newrelic.Transaction, key string, val string) {}
-
 // SampleAppName is a sample application name.
 const SampleAppName = "my app"
 

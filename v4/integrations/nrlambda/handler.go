@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda/handlertrace"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/newrelic/go-agent/v4/internal"
-	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
@@ -48,7 +47,7 @@ func requestEvent(ctx context.Context, event interface{}) {
 	}
 
 	if sourceARN := getEventSourceARN(event); "" != sourceARN {
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
+		txn.AddAttribute(newrelic.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
 	}
 
 	if request := eventWebRequest(event); nil != request {
@@ -79,10 +78,10 @@ func (h *wrappedHandler) Invoke(ctx context.Context, payload []byte) ([]byte, er
 	txn := h.app.StartTransaction(h.functionName)
 	defer txn.End()
 
-	integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSRequestID, requestID, nil)
-	integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaARN, arn, nil)
+	txn.AddAttribute(newrelic.AttributeAWSRequestID, requestID)
+	txn.AddAttribute(newrelic.AttributeAWSLambdaARN, arn)
 	h.firstTransaction.Do(func() {
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaColdStart, "", true)
+		txn.AddAttribute(newrelic.AttributeAWSLambdaColdStart, true)
 	})
 
 	ctx = newrelic.NewContext(ctx, txn)

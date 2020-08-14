@@ -5,7 +5,6 @@ package nrstan
 
 import (
 	stan "github.com/nats-io/stan.go"
-	"github.com/newrelic/go-agent/v4/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v4/newrelic"
 )
 
@@ -22,8 +21,8 @@ func StreamingSubWrapper(app *newrelic.Application, f func(msg *stan.Msg)) func(
 		txn := app.StartTransaction(name)
 		defer txn.End()
 
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, msg.MsgProto.Subject, nil)
-		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageReplyTo, msg.MsgProto.Reply, nil)
+		txn.AddAttribute(newrelic.AttributeMessageRoutingKey, msg.MsgProto.Subject)
+		txn.AddAttribute(newrelic.AttributeMessageReplyTo, msg.MsgProto.Reply)
 
 		f(msg)
 	}
