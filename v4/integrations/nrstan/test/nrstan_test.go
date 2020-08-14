@@ -87,14 +87,10 @@ func TestSubWrapper(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "sample.subject2 receive",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
+			Name:     "sample.subject2 receive",
+			ParentID: internal.MatchNoParent,
 			Attributes: map[string]interface{}{
-				"guid":               internal.MatchAnything,
-				"priority":           internal.MatchAnything,
-				"sampled":            internal.MatchAnything,
-				"traceId":            internal.MatchAnything,
+				"message.replyTo":    "",
 				"message.routingKey": "sample.subject2",
 			},
 		},

@@ -184,20 +184,19 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/testing/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/testing/Micro/TestHandler.Method", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
+		{Name: "External/testing/micro/TestHandler.Method", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "Micro TestHandler.Method testing",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "micro TestHandler.Method testing",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "Micro",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "micro",
+				"http.method":      "TestHandler.Method",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -221,7 +220,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/testing/Micro/TestHandler.Method",
+						SegmentName: "External/testing/micro/TestHandler.Method",
 						Attributes:  map[string]interface{}{},
 					},
 				},
@@ -335,8 +334,8 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/Micro/Topic/Produce/Named/topic", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/Micro/Topic/Produce/Named/topic", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
+		{Name: "MessageBroker/micro/Topic/Produce/Named/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/micro/Topic/Produce/Named/topic", Scope: "OtherTransaction/Go/name", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/name", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -346,12 +345,12 @@ func TestClientPublishWithTransaction(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "topic send",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "topic send",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category": "generic",
-				"parentId": internal.MatchAnything,
+				"messaging.destination":      "topic",
+				"messaging.destination_kind": "topic",
+				"messaging.system":           "micro",
 			},
 		},
 		{
@@ -375,7 +374,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "MessageBroker/Micro/Topic/Produce/Named/topic",
+						SegmentName: "MessageBroker/micro/Topic/Produce/Named/topic",
 						Attributes:  map[string]interface{}{},
 					},
 				},
@@ -506,20 +505,19 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 		{Name: "External/all", Scope: "", Forced: true, Data: nil},
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/testing/all", Scope: "", Forced: false, Data: nil},
-		{Name: "External/testing/Micro/TestHandler.StreamingMethod", Scope: "OtherTransaction/Go/name", Forced: false, Data: []float64{1}},
+		{Name: "External/testing/micro/TestHandler.StreamingMethod", Scope: "OtherTransaction/Go/name", Forced: false, Data: []float64{1}},
 		{Name: "Supportability/DistributedTrace/CreatePayload/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "Micro TestHandler.StreamingMethod testing",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "micro TestHandler.StreamingMethod testing",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "Micro",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "micro",
+				"http.method":      "TestHandler.StreamingMethod",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -543,7 +541,7 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "External/testing/Micro/TestHandler.StreamingMethod",
+						SegmentName: "External/testing/micro/TestHandler.StreamingMethod",
 						Attributes:  map[string]interface{}{},
 					},
 				},
@@ -630,29 +628,13 @@ func TestServerWrapperWithApp(t *testing.T) {
 			},
 		},
 		{
-			Name:          "Micro TestHandler.Method testing",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "micro TestHandler.Method testing",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"guid":                          internal.MatchAnything,
-				"priority":                      internal.MatchAnything,
-				"sampled":                       internal.MatchAnything,
-				"traceId":                       internal.MatchAnything,
-				"nr.apdexPerfZone":              "S",
-				"parent.account":                123,
-				"parent.transportType":          "HTTP",
-				"parent.app":                    456,
-				"parentId":                      internal.MatchAnything,
-				"parent.type":                   "App",
-				"parent.transportDuration":      internal.MatchAnything,
-				"parentSpanId":                  internal.MatchAnything,
-				"request.method":                "TestHandler.Method",
-				"request.uri":                   "micro://testing/TestHandler.Method",
-				"request.headers.accept":        "application/json",
-				"request.headers.contentType":   "application/json",
-				"request.headers.contentLength": 3,
-				"httpResponseCode":              200,
-				"http.statusCode":               200,
+				"http.component":   "micro",
+				"http.method":      "TestHandler.Method",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 	})
@@ -896,12 +878,12 @@ func TestServerSubscribe(t *testing.T) {
 	s.Stop()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/Message/micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/micro/Topic/Named/topic", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/segment", Scope: "", Forced: false, Data: nil},
-		{Name: "Custom/segment", Scope: "OtherTransaction/Go/Message/Micro/Topic/Named/topic", Forced: false, Data: nil},
+		{Name: "Custom/segment", Scope: "OtherTransaction/Go/Message/micro/Topic/Named/topic", Forced: false, Data: nil},
 		{Name: "TransportDuration/App/123/456/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
@@ -910,14 +892,9 @@ func TestServerSubscribe(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "segment",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category": "generic",
-				"name":     "Custom/segment",
-				"parentId": internal.MatchAnything,
-			},
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
 		},
 		{
 			Name:          "topic receive",
@@ -925,7 +902,7 @@ func TestServerSubscribe(t *testing.T) {
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                 "generic",
-				"transaction.name":         "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"transaction.name":         "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 				"nr.entryPoint":            true,
 				"parentId":                 internal.MatchAnything,
 				"trustedParentId":          internal.MatchAnything,
@@ -938,32 +915,22 @@ func TestServerSubscribe(t *testing.T) {
 			},
 		},
 		{
-			Name:          "topic send",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "topic send",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"guid":                     internal.MatchAnything,
-				"parent.account":           123,
-				"parent.app":               456,
-				"parent.transportDuration": internal.MatchAnything,
-				"parent.transportType":     "HTTP",
-				"parent.type":              "App",
-				"parentId":                 internal.MatchAnything,
-				"parentSpanId":             internal.MatchAnything,
-				"priority":                 internal.MatchAnything,
-				"sampled":                  internal.MatchAnything,
-				"traceId":                  internal.MatchAnything,
-				"message.routingKey":       "topic",
+				"messaging.destination":      "topic",
+				"messaging.destination_kind": "topic",
+				"messaging.system":           "micro",
 			},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+		MetricName: "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				SegmentName: "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{{
 					SegmentName: "Custom/segment",
@@ -1001,17 +968,17 @@ func TestServerSubscribeWithError(t *testing.T) {
 	s.Stop()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransaction/Go/Message/micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/micro/Topic/Named/topic", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Errors/all", Scope: "", Forced: true, Data: nil},
 		{Name: "Errors/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/HTTP/all", Scope: "", Forced: false, Data: nil},
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/HTTP/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/OtherTransaction/Go/Message/Micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
+		{Name: "Errors/OtherTransaction/Go/Message/micro/Topic/Named/topic", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
@@ -1020,8 +987,8 @@ func TestServerSubscribeWithError(t *testing.T) {
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                         "generic",
-				"name":                             "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				"transaction.name":                 "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				"name":                             "OtherTransaction/Go/Message/micro/Topic/Named/topic",
+				"transaction.name":                 "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 				"nr.entryPoint":                    true,
 				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
 				newrelic.SpanAttributeErrorMessage: "subscriber error",
@@ -1030,19 +997,19 @@ func TestServerSubscribeWithError(t *testing.T) {
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
-		MetricName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+		MetricName: "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 		Root: internal.WantTraceSegment{
 			SegmentName: "ROOT",
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
-				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+				SegmentName: "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children:    []internal.WantTraceSegment{},
 			}},
 		},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+		TxnName: "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 		Msg:     "subscriber error",
 		Klass:   "*errors.errorString",
 	}})
@@ -1050,7 +1017,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.message":   "subscriber error",
 			"error.class":     "*errors.errorString",
-			"transactionName": "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
+			"transactionName": "OtherTransaction/Go/Message/micro/Topic/Named/topic",
 			"traceId":         internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"guid":            internal.MatchAnything,

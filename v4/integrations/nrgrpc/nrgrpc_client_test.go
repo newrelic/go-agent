@@ -117,14 +117,13 @@ func TestUnaryClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "gRPC TestApplication/DoUnaryUnary bufnet",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "gRPC",
+				"http.method":      "TestApplication/DoUnaryUnary",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -211,14 +210,13 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "gRPC TestApplication/DoUnaryStream bufnet",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "gRPC",
+				"http.method":      "TestApplication/DoUnaryStream",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -303,14 +301,13 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "gRPC TestApplication/DoStreamUnary bufnet",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "gRPC",
+				"http.method":      "TestApplication/DoStreamUnary",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{
@@ -408,14 +405,13 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "gRPC TestApplication/DoStreamStream bufnet",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "gRPC TestApplication/DoStreamStream bufnet",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":  "http",
-				"component": "gRPC",
-				"parentId":  internal.MatchAnything,
-				"span.kind": "client",
+				"http.component":   "gRPC",
+				"http.method":      "TestApplication/DoStreamStream",
+				"http.status_code": int64(0),
+				"http.url":         "unknown",
 			},
 		},
 		{

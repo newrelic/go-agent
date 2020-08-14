@@ -81,8 +81,8 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/NATS/Topic/Produce/Named/mysubject", Scope: "", Forced: false, Data: nil},
-		{Name: "MessageBroker/NATS/Topic/Produce/Named/mysubject", Scope: "OtherTransaction/Go/testing", Forced: false, Data: nil},
+		{Name: "MessageBroker/nats/Topic/Produce/Named/mysubject", Scope: "", Forced: false, Data: nil},
+		{Name: "MessageBroker/nats/Topic/Produce/Named/mysubject", Scope: "OtherTransaction/Go/testing", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/testing", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
@@ -90,23 +90,18 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "mysubject send",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "mysubject send",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category": "generic",
-				"parentId": internal.MatchAnything,
+				"messaging.destination":      "mysubject",
+				"messaging.destination_kind": "topic",
+				"messaging.system":           "nats",
 			},
 		},
 		{
-			Name:          "testing",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/testing",
-				"nr.entryPoint":    true,
-			},
+			Name:       "testing",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -119,7 +114,7 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
-						SegmentName: "MessageBroker/NATS/Topic/Produce/Named/mysubject",
+						SegmentName: "MessageBroker/nats/Topic/Produce/Named/mysubject",
 						Attributes:  map[string]interface{}{},
 					},
 				},
@@ -160,19 +155,14 @@ func TestSubWrapper(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransaction/Go/Message/NATS/Topic/Named/subject2", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/Message/NATS/Topic/Named/subject2", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/Message/nats/Topic/Named/subject2", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime/Go/Message/nats/Topic/Named/subject2", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "subject2 receive",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
+			Name:     "subject2 receive",
+			ParentID: internal.MatchNoParent,
 			Attributes: map[string]interface{}{
-				"guid":               internal.MatchAnything,
-				"priority":           internal.MatchAnything,
-				"sampled":            internal.MatchAnything,
-				"traceId":            internal.MatchAnything,
 				"message.replyTo":    internal.MatchAnything, // starts with _INBOX
 				"message.routingKey": "subject2",
 				"message.queueName":  "queue1",
@@ -186,9 +176,9 @@ func TestStartPublishSegmentNaming(t *testing.T) {
 		subject string
 		metric  string
 	}{
-		{subject: "", metric: "MessageBroker/NATS/Topic/Produce/Named/unknown"},
-		{subject: "mysubject", metric: "MessageBroker/NATS/Topic/Produce/Named/mysubject"},
-		{subject: "_INBOX.asldfkjsldfjskd.ldskfjls", metric: "MessageBroker/NATS/Topic/Produce/Temp"},
+		{subject: "", metric: "MessageBroker/nats/Topic/Produce/Named/unknown"},
+		{subject: "mysubject", metric: "MessageBroker/nats/Topic/Produce/Named/mysubject"},
+		{subject: "_INBOX.asldfkjsldfjskd.ldskfjls", metric: "MessageBroker/nats/Topic/Produce/Temp"},
 	}
 
 	nc, err := nats.Connect(nats.DefaultURL)

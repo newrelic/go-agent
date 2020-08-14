@@ -60,7 +60,7 @@ func spansMatch(want WantSpan, span *testtrace.Span) error {
 		}
 		for k, v := range want.Attributes {
 			if foundVal, ok := foundAttrs[kv.Key(k)]; ok {
-				if f := foundVal.AsInterface(); f != v {
+				if f := foundVal.AsInterface(); v != MatchAnything && f != v {
 					return fmt.Errorf("Incorrect value for attr '%s' on span '%s':\n\texpect=%s actual=%s",
 						k, name, v, f)
 				}
