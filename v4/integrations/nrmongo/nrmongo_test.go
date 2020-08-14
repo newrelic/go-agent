@@ -158,7 +158,7 @@ func TestMonitor(t *testing.T) {
 				"db.operation":          "commName",
 				"db.statement":          "'commName' on 'collName' using 'mongodb'",
 				"db.system":             "mongodb",
-				"net.peer.name":         "localhost",
+				"net.peer.name":         thisHost,
 				"net.peer.port":         int64(27017),
 			},
 		},
