@@ -1003,7 +1003,7 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(k string, v interface{}) {
+			test.seg.addRequiredAttributes(func(k string, v interface{}) {
 				attrs[k] = v
 			})
 
@@ -1251,7 +1251,7 @@ func TestExternalSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(keyValues ...kv.KeyValue) {
+			test.seg.addRequiredAttributes(func(keyValues ...kv.KeyValue) {
 				for _, keyValue := range keyValues {
 					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
 				}
@@ -1397,7 +1397,7 @@ func TestMessageProducerSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addAttributes(func(k string, v interface{}) {
+			test.seg.addRequiredAttributes(func(k string, v interface{}) {
 				attrs[k] = v
 			})
 
