@@ -41,7 +41,7 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 
 		method = strings.TrimPrefix(method, "/")
 		seg.Host = getURL(method, target).Host
-		seg.Library = "gRPC"
+		seg.Library = "grpc"
 		seg.Procedure = method
 
 		hdrs := http.Header{}

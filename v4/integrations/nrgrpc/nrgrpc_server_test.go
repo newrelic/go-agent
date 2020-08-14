@@ -117,10 +117,10 @@ func TestUnaryServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoUnaryUnary bufnet",
+			Name:     "grpc TestApplication/DoUnaryUnary bufnet",
 			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"http.component":   "gRPC",
+				"http.component":   "grpc",
 				"http.method":      "TestApplication/DoUnaryUnary",
 				"http.status_code": int64(0),
 				"http.url":         "unknown",
@@ -279,10 +279,10 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoUnaryStream bufnet",
+			Name:     "grpc TestApplication/DoUnaryStream bufnet",
 			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"http.component":   "gRPC",
+				"http.component":   "grpc",
 				"http.method":      "TestApplication/DoUnaryStream",
 				"http.status_code": int64(0),
 				"http.url":         "unknown",
@@ -369,10 +369,10 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoStreamUnary bufnet",
+			Name:     "grpc TestApplication/DoStreamUnary bufnet",
 			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"http.component":   "gRPC",
+				"http.component":   "grpc",
 				"http.method":      "TestApplication/DoStreamUnary",
 				"http.status_code": int64(0),
 				"http.url":         "unknown",
@@ -472,10 +472,10 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:     "gRPC TestApplication/DoStreamStream bufnet",
+			Name:     "grpc TestApplication/DoStreamStream bufnet",
 			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"http.component":   "gRPC",
+				"http.component":   "grpc",
 				"http.method":      "TestApplication/DoStreamStream",
 				"http.status_code": int64(0),
 				"http.url":         "unknown",
