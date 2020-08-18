@@ -4,7 +4,7 @@
 set -x
 set -e
 
-LATEST_VERSION="go1.14"
+LATEST_VERSION="go1.15"
 
 # NOTE: Once we get rid of travis for good, this whole section can be removed
 # along with the .travis.yml file.
