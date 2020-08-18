@@ -513,13 +513,16 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 	if nil == txn && nil != request {
 		txn = FromContext(request.Context())
 	}
+	if nil == txn {
+		return nil
+	}
 	s := &ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		Request:   request,
 	}
 
 	if nil != request && nil != request.Header {
-		txn.InsertDistributedTraceHeaders(request.Header) //TODO: could be nil here
+		txn.InsertDistributedTraceHeaders(request.Header)
 	}
 
 	return s
