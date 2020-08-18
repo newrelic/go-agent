@@ -28,9 +28,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	if app == nil {
 		return nil
 	}
-	if app.logger == nil {
-		app.logger = logger.ShimLogger{}
-	}
+	app.initLogger()
 	if app.tracer == nil {
 		app.logger.Debug(
 			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
@@ -56,6 +54,13 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	}
 }
 
+// initLogger ensures that there is a logger available, even if it is a no-op.
+func (app *Application) initLogger() {
+	if app.logger == nil {
+		app.logger = logger.ShimLogger{}
+	}
+}
+
 // RecordCustomEvent adds a custom event.
 //
 // eventType must consist of alphanumeric characters, underscores, and
@@ -72,6 +77,7 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	if app == nil {
 		return
 	}
+	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomEvent")
 }
 
@@ -86,6 +92,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 	if app == nil {
 		return
 	}
+	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomMetric")
 }
 
@@ -102,9 +109,7 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if app == nil {
 		return nil
 	}
-	if app.logger == nil {
-		app.logger = logger.ShimLogger{}
-	}
+	app.initLogger()
 	app.logger.Debug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	return nil
 }
