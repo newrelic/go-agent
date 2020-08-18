@@ -102,6 +102,9 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if app == nil {
 		return nil
 	}
+	if app.logger == nil {
+		app.logger = logger.ShimLogger{}
+	}
 	app.logger.Debug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	return nil
 }
