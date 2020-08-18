@@ -11,6 +11,8 @@ import (
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
+
+	"github.com/newrelic/go-agent/v4/internal/logger"
 )
 
 // Application represents your application.  All methods on Application are nil
@@ -26,13 +28,15 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	if app == nil {
 		return nil
 	}
+	if app.logger == nil {
+		app.logger = logger.ShimLogger{}
+	}
 	if app.tracer == nil {
-		if app.logger != nil {
-			app.logger.Debug(
-				"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
-				nil,
-			)
-		}
+		app.logger.Debug(
+			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
+			nil,
+		)
+
 		return nil
 	}
 	ctx, sp := app.tracer.Start(context.Background(), name,
@@ -98,9 +102,7 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if app == nil {
 		return nil
 	}
-	if app.logger != nil {
-		app.logger.Debug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
-	}
+	app.logger.Debug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	return nil
 }
 
@@ -150,12 +152,14 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 			propagation.WithInjectors(trace.TraceContext{}),
 			propagation.WithExtractors(trace.TraceContext{}))
 	}
-	if c.Logger != nil {
-		msg := fmt.Sprintf("Starting New Relic Shim Agent. If everything is configured properly, you should be able"+
-			" to see your data in a few minutes by visiting https://one.newrelic.com/launcher/nr1-core.explorer and"+
-			" searching for '%s'.", c.AppName)
-		c.Logger.Info(msg, nil)
+
+	if c.Logger == nil {
+		c.Logger = logger.ShimLogger{}
 	}
+	msg := fmt.Sprintf("Starting New Relic Shim Agent. If everything is configured properly, you should be able"+
+		" to see your data in a few minutes by visiting https://one.newrelic.com/launcher/nr1-core.explorer and"+
+		" searching for '%s'.", c.AppName)
+	c.Logger.Info(msg, nil)
 
 	return &Application{
 		tracer:      tracer,

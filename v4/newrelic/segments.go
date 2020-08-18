@@ -196,17 +196,19 @@ func (s *Segment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.Name)
+		logSgmtAlreadyEnded(s.StartTime, s.Name)
 		return
 	}
 	s.StartTime.Span.SetName(s.Name)
 	s.StartTime.end()
 }
 
-func logSgmtAlreadyEnded(logger Logger, name string) {
-	logger.Debug("trying to end a segment that has already ended", map[string]interface{}{
-		"segmentName": name,
-	})
+func logSgmtAlreadyEnded(s SegmentStartTime, name string) {
+	if s.span != nil && s.thread != nil {
+		s.thread.logger.Debug("trying to end a segment that has already ended", map[string]interface{}{
+			"segmentName": name,
+		})
+	}
 }
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.
@@ -229,7 +231,7 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
+		logSgmtAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 
@@ -309,7 +311,7 @@ func (s *ExternalSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
+		logSgmtAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
@@ -457,7 +459,7 @@ func (s *MessageProducerSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime.thread.logger, s.name())
+		logSgmtAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
