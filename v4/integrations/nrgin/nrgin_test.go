@@ -247,7 +247,7 @@ func checkVersionIsAtLeast(checkV string, checkAgainst [2]string) bool {
 
 func TestStatusCodes(t *testing.T) {
 	// Test that we are correctly able to collect status code.
-	expectCode := 200
+	var expectCode int64 = 200
 	if useStatusFixVersion(gin.Version) {
 		expectCode = 500
 	}
@@ -274,17 +274,17 @@ func TestStatusCodes(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          txnName,
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    13,
-		SkipAttrsTest: true,
+		Name:       txnName,
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 13,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone":             internal.MatchAnything,
-			"httpResponseCode":             expectCode,
-			"http.statusCode":              expectCode,
-			"request.method":               "GET",
-			"request.uri":                  "/err",
-			"response.headers.contentType": "text/plain; charset=utf-8",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": expectCode,
+			"http.status_text": internal.MatchAnything,
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }
@@ -296,7 +296,7 @@ func noBody(c *gin.Context) {
 func TestNoResponseBody(t *testing.T) {
 	// Test that when no response body is sent (i.e. c.Writer.Write is never
 	// called) that we still capture status code.
-	expectCode := 200
+	var expectCode int64 = 200
 	if useFullPathVersion(gin.Version) {
 		expectCode = 500
 	}
@@ -323,16 +323,17 @@ func TestNoResponseBody(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          txnName,
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    13,
-		SkipAttrsTest: true,
+		Name:       txnName,
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 13,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone": internal.MatchAnything,
-			"httpResponseCode": expectCode,
-			"http.statusCode":  expectCode,
-			"request.method":   "GET",
-			"request.uri":      "/nobody",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": expectCode,
+			"http.status_text": internal.MatchAnything,
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }
