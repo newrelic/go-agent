@@ -110,6 +110,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		{
 			Name:          "TestApplication/DoUnaryUnary",
 			ParentID:      internal.MatchAnyParent,
+			StatusCode:    2,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
@@ -161,6 +162,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "TestApplication/DoUnaryUnaryError",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    2,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                        internal.MatchAnything,
@@ -272,6 +274,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		{
 			Name:          "TestApplication/DoUnaryStream",
 			ParentID:      internal.MatchAnyParent,
+			StatusCode:    2,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
@@ -362,6 +365,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		{
 			Name:          "TestApplication/DoStreamUnary",
 			ParentID:      internal.MatchAnyParent,
+			StatusCode:    2,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
@@ -465,6 +469,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		{
 			Name:          "TestApplication/DoStreamStream",
 			ParentID:      internal.MatchAnyParent,
+			StatusCode:    2,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category": "generic",
@@ -520,6 +525,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "TestApplication/DoUnaryStreamError",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    2,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                        internal.MatchAnything,

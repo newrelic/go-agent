@@ -7,12 +7,15 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"strings"
+	"strconv"
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
+	"google.golang.org/grpc/codes"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -22,11 +25,12 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	app      *Application
-	rootSpan *span
-	thread   *thread
-	ended    bool
-	name     string
+	app         *Application
+	rootSpan    *span
+	thread      *thread
+	ended       bool
+	name        string
+	wroteHeader bool
 }
 
 type thread struct {
@@ -50,7 +54,7 @@ func (txn *Transaction) End() {
 	if txn.isEnded() {
 		return
 	}
-	txn.rootSpan.end()
+	txn.getRootSpan().end()
 	txn.thread.Lock()
 	txn.ended = true
 	txn.thread.Unlock()
@@ -60,6 +64,30 @@ func (txn *Transaction) isEnded() bool {
 	txn.thread.Lock()
 	defer txn.thread.Unlock()
 	return txn.ended
+}
+
+func (txn *Transaction) hdrWritten() bool {
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+	return txn.wroteHeader
+}
+
+func (txn *Transaction) getRootSpan() *span {
+	if txn == nil {
+		return nil
+	}
+	if txn.thread == nil {
+		return nil
+	}
+	txn.thread.Lock()
+	defer txn.thread.Unlock()
+	return txn.rootSpan
+}
+
+func (txn *Transaction) setRootSpan(span *span) {
+	txn.thread.Lock()
+	txn.rootSpan = span
+	defer txn.thread.Unlock()
 }
 
 // Ignore prevents this transaction's data from being recorded.
@@ -105,13 +133,11 @@ func (txn *Transaction) NoticeError(err error) {}
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 func (txn *Transaction) AddAttribute(key string, value interface{}) {
-	if txn == nil {
+	root := txn.getRootSpan()
+	if root == nil {
 		return
 	}
-	if txn.rootSpan == nil {
-		return
-	}
-	txn.rootSpan.Span.SetAttribute(key, value)
+	root.Span.SetAttribute(key, value)
 }
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
@@ -120,18 +146,26 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
+	// TODO: test all these nil checks, here and the other set methods
 	if r == nil {
-		txn.SetWebRequest(WebRequest{})
 		return
 	}
-	wr := WebRequest{
-		Header:    r.Header,
-		URL:       r.URL,
-		Method:    r.Method,
-		Transport: transport(r),
-		Host:      r.Host,
+	txn.AcceptDistributedTraceHeaders(TransportUnknown, r.Header)
+
+	root := txn.getRootSpan()
+	if root == nil {
+		return
 	}
-	txn.SetWebRequest(wr)
+	addTxnHTTPRequestAttributes(r, root.Span.SetAttributes)
+}
+
+func addTxnHTTPRequestAttributes(req *http.Request, setter func(...kv.KeyValue)) {
+	if req.URL == nil {
+		req.URL = new(url.URL)
+	}
+	setter(standard.EndUserAttributesFromHTTPRequest(req)...)
+	setter(standard.HTTPServerAttributesFromHTTPRequest("", "", req)...)
+	setter(standard.NetAttributesFromHTTPRequest("tcp", req)...)
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -141,16 +175,43 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {
 	txn.AcceptDistributedTraceHeaders(r.Transport, r.Header)
+
+	root := txn.getRootSpan()
+	if root == nil {
+		return
+	}
+	addTxnWebRequestAttributes(r, root.Span.SetAttributes)
 }
 
-func transport(r *http.Request) TransportType {
-	if strings.HasPrefix(r.Proto, "HTTP") {
-		if r.TLS != nil {
-			return TransportHTTPS
-		}
-		return TransportHTTP
+func addTxnWebRequestAttributes(req WebRequest, setter func(...kv.KeyValue)) {
+	if req.URL != nil {
+		url := req.URL.Scheme + "://" + req.URL.Host + "/" + req.URL.Path
+		setter(standard.HTTPUrlKey.String(url))
+	} else if req.Host != "" {
+		setter(standard.HTTPHostKey.String(req.Host))
+	} else {
+		setter(standard.HTTPUrlKey.String("unknown"))
 	}
-	return TransportUnknown
+
+	setter(standard.HTTPMethodKey.String(req.Method))
+
+	if h := req.Header; req.Header != nil {
+		if userAgent := h.Get("User-Agent"); userAgent != "" {
+			setter(standard.HTTPUserAgentKey.String(userAgent))
+		}
+		lenStr := h.Get("Content-Length")
+		if lenInt, err := strconv.Atoi(lenStr); err == nil {
+			setter(standard.HTTPRequestContentLengthKey.Int(lenInt))
+		}
+	}
+}
+
+func addTxnStatusCodeAttributes(code int, setter func(...kv.KeyValue)) {
+	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
+}
+
+func setTxnSpanStatus(code int, setter func(codes.Code, string)) {
+	setter(standard.SpanStatusFromHTTPStatusCode(code))
 }
 
 type dummyResponseWriter struct{}
@@ -158,6 +219,23 @@ type dummyResponseWriter struct{}
 func (rw dummyResponseWriter) Header() http.Header         { return nil }
 func (rw dummyResponseWriter) Write(b []byte) (int, error) { return 0, nil }
 func (rw dummyResponseWriter) WriteHeader(code int)        {}
+
+func (txn *Transaction) headersJustWritten(code int) {
+	if txn.isEnded() {
+		return
+	}
+	if txn.hdrWritten() {
+		return
+	}
+
+	txn.thread.Lock()
+	txn.wroteHeader = true
+	txn.thread.Unlock()
+
+	root := txn.getRootSpan()
+	addTxnStatusCodeAttributes(code, root.Span.SetAttributes)
+	setTxnSpanStatus(code, root.Span.SetStatus)
+}
 
 // SetWebResponse allows the Transaction to instrument response code and
 // response headers.  Use the return value of this method in place of the input
@@ -183,7 +261,13 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 		//
 		w = dummyResponseWriter{}
 	}
-	return w
+	if txn == nil || txn.thread == nil {
+		return w
+	}
+	return upgradeResponseWriter(&replacementResponseWriter{
+		txn:  txn,
+		orig: w,
+	})
 }
 
 // StartSegmentNow starts timing a segment.  The SegmentStartTime returned can
@@ -317,11 +401,12 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 
 	if !txn.thread.isMultiSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
-		txn.rootSpan = &span{
+		s := &span{
 			Span: sp,
 			ctx:  ctx,
 		}
-		txn.thread.currentSpan = txn.rootSpan
+		txn.setRootSpan(s)
+		txn.thread.currentSpan = s
 	} else {
 		txn.thread.currentSpan.ctx = remoteCtx
 	}

@@ -3,8 +3,6 @@
 
 package internal
 
-import "google.golang.org/grpc/codes"
-
 // Validator is used for testing.
 type Validator interface {
 	Error(...interface{})
@@ -44,6 +42,10 @@ var (
 	// MatchAnyParent is for use when matching ParentID on spans.  It matches
 	// any ParentID value except for the no parent value.
 	MatchAnyParent = "💜💜xxANY-PARENTxx💜💜"
+	// MatchAnyErrorStatusCode TODO
+	MatchAnyErrorStatusCode uint32 = 42
+	// MatchAnyStatusCode TODO
+	MatchAnyStatusCode uint32 = 99
 )
 
 // WantEvent is a transaction or error event expectation.
@@ -106,7 +108,7 @@ type WantSpan struct {
 	TraceID    string
 	ParentID   string
 	Kind       string
-	StatusCode codes.Code
+	StatusCode uint32
 	// SkipAttrsTest indicates whether checks for attributes should be skipped.
 	// TODO: This allows us to skip testing attributes in integrations for now.
 	// The field should be removed once all segment and transaction level attributes

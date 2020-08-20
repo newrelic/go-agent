@@ -687,6 +687,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 		{
 			Name:          "TestHandlerWithError.Method",
 			ParentID:      internal.MatchNoParent,
+			StatusCode:    16,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"category":                         "generic",
@@ -719,6 +720,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "TestHandlerWithError.Method",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    16,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                          internal.MatchAnything,
@@ -783,6 +785,7 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "TestHandlerWithNonMicroError.Method",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    13,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"guid":                          internal.MatchAnything,

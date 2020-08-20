@@ -101,6 +101,7 @@ func TestHandle(t *testing.T) {
 		{
 			Name:          "GET /hello/:name",
 			ParentID:      internal.MatchNoParent,
+			StatusCode:    13,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
@@ -143,6 +144,7 @@ func TestHandler(t *testing.T) {
 		{
 			Name:          "GET /hello/",
 			ParentID:      internal.MatchNoParent,
+			StatusCode:    13,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
@@ -228,6 +230,7 @@ func TestNotFound(t *testing.T) {
 		{
 			Name:          "NotFound",
 			ParentID:      internal.MatchNoParent,
+			StatusCode:    13,
 			SkipAttrsTest: true,
 			Attributes: map[string]interface{}{
 				"nr.apdexPerfZone": internal.MatchAnything,
@@ -274,7 +277,8 @@ func TestNotFoundNotSet(t *testing.T) {
 		t.Error(response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "NotFound",
-		IsWeb: true,
+		Name:      "NotFound",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }

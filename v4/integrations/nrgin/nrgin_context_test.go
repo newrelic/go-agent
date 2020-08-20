@@ -5,7 +5,6 @@ package nrgin
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,8 +19,7 @@ func accessTransactionContextContext(c *gin.Context) {
 	var ctx context.Context = c
 	// Transaction is designed to take both a context.Context and a
 	// *gin.Context.
-	txn := Transaction(ctx)
-	txn.NoticeError(errors.New("problem"))
+	defer Transaction(ctx).StartSegment("segment").End()
 	c.Writer.WriteString("accessTransactionContextContext")
 }
 
@@ -48,18 +46,32 @@ func TestContextContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
+		},
+		{
+			Name:     txnName,
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
+			},
+		},
 	})
 }
 
 func accessTransactionFromContext(c *gin.Context) {
 	// This tests that FromContext will find the transaction added to a
 	// *gin.Context and by nrgin.Middleware.
-	txn := newrelic.FromContext(c)
-	txn.NoticeError(errors.New("problem"))
+	defer newrelic.FromContext(c).StartSegment("segment").End()
 	c.Writer.WriteString("accessTransactionFromContext")
 }
 
@@ -86,10 +98,25 @@ func TestFromContext(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
+		},
+		{
+			Name:     txnName,
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
+			},
+		},
 	})
 }
 
@@ -111,14 +138,14 @@ func TestNewContextTransaction(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	txn := app.StartTransaction("name")
 	ctx := newrelic.NewContext(context.Background(), txn)
-	if tx := Transaction(ctx); nil != tx {
-		tx.NoticeError(errors.New("problem"))
-	}
+	Transaction(ctx).AddAttribute("color", "purple")
 	txn.End()
 
-	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "name",
-		IsWeb:     false,
-		NumErrors: 1,
-	})
+	app.ExpectSpanEvents(t, []internal.WantSpan{{
+		Name:     "name",
+		ParentID: internal.MatchNoParent,
+		Attributes: map[string]interface{}{
+			"color": "purple",
+		},
+	}})
 }
