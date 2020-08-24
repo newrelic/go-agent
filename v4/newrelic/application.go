@@ -28,6 +28,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	if app == nil {
 		return nil
 	}
+	app.initLogger()
 	if app.tracer == nil {
 		app.LogDebug(
 			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
@@ -69,6 +70,7 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	if app == nil {
 		return
 	}
+	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomEvent")
 }
 
@@ -83,6 +85,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 	if app == nil {
 		return
 	}
+	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomMetric")
 }
 
@@ -164,6 +167,7 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	}, nil
 }
 
+// LogInfo logs the given information at INFO level
 func (app *Application) LogInfo(msg string, context map[string]interface{}) {
 	if app == nil {
 		return
@@ -172,6 +176,7 @@ func (app *Application) LogInfo(msg string, context map[string]interface{}) {
 	app.logger.Info(msg, context)
 }
 
+// LogDebug logs the given information at DEBUG level
 func (app *Application) LogDebug(msg string, context map[string]interface{}) {
 	if app == nil {
 		return
