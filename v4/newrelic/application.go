@@ -28,9 +28,8 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	if app == nil {
 		return nil
 	}
-	app.initLogger()
 	if app.tracer == nil {
-		app.logger.Debug(
+		app.LogDebug(
 			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
 			nil,
 		)
@@ -54,13 +53,6 @@ func (app *Application) StartTransaction(name string) *Transaction {
 	}
 }
 
-// initLogger ensures that there is a logger available, even if it is a no-op.
-func (app *Application) initLogger() {
-	if app.logger == nil {
-		app.logger = logger.ShimLogger{}
-	}
-}
-
 // RecordCustomEvent adds a custom event.
 //
 // eventType must consist of alphanumeric characters, underscores, and
@@ -77,7 +69,6 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	if app == nil {
 		return
 	}
-	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomEvent")
 }
 
@@ -92,7 +83,6 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 	if app == nil {
 		return
 	}
-	app.initLogger()
 	logUnimplemented(app.logger, "Application.RecordCustomMetric")
 }
 
@@ -106,11 +96,9 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // connection to the Trace Observer is made, a fatal error is reached, or the
 // timeout is hit.
 func (app *Application) WaitForConnection(timeout time.Duration) error {
-	if app == nil {
-		return nil
+	if app != nil {
+		app.LogDebug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	}
-	app.initLogger()
-	app.logger.Debug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	return nil
 }
 
@@ -174,6 +162,28 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 		propagators: propagators,
 		logger:      c.Logger,
 	}, nil
+}
+
+func (app *Application) LogInfo(msg string, context map[string]interface{}) {
+	if app == nil {
+		return
+	}
+	app.initLogger()
+	app.logger.Info(msg, context)
+}
+
+func (app *Application) LogDebug(msg string, context map[string]interface{}) {
+	if app == nil {
+		return
+	}
+	app.initLogger()
+	app.logger.Debug(msg, context)
+}
+
+func (app *Application) initLogger() {
+	if app.logger == nil {
+		app.logger = logger.ShimLogger{}
+	}
 }
 
 func logUnimplemented(logger Logger, methodName string) {
