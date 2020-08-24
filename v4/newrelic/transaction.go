@@ -65,13 +65,13 @@ func (txn *Transaction) isEnded() bool {
 
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {
-	logUnimplemented(txn.thread.logger, "Transaction.Ignore")
+	txn.LogDebug(unimplementedMessage("Transaction.Ignore"), nil)
 }
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
 func (txn *Transaction) SetName(name string) {
-	logUnimplemented(txn.thread.logger, "Transaction.SetName")
+	txn.LogDebug(unimplementedMessage("Transaction.SetName"), nil)
 }
 
 // NoticeError records an error.  The Transaction saves the first five
@@ -100,7 +100,7 @@ func (txn *Transaction) SetName(name string) {
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeError(err error) {
-	logUnimplemented(txn.thread.logger, "Transaction.NoticeError")
+	txn.LogDebug(unimplementedMessage("Transaction.NoticeError"), nil)
 }
 
 // AddAttribute adds a key value pair to the transaction event, errors,
@@ -352,7 +352,7 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
-	logUnimplemented(txn.thread.logger, "Transaction.BrowserTimingHeader")
+	txn.LogDebug(unimplementedMessage("Transaction.BrowserTimingHeader"), nil)
 	return nil
 }
 
@@ -386,14 +386,14 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
-	logUnimplemented(txn.thread.logger, "Transaction.GetTraceMetadata")
+	txn.LogDebug(unimplementedMessage("Transaction.GetTraceMetadata"), nil)
 	return TraceMetadata{}
 }
 
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
-	logUnimplemented(txn.thread.logger, "Transaction.GetLinkingMetadata")
+	txn.LogDebug(unimplementedMessage("Transaction.GetLinkingMetadata"), nil)
 	return LinkingMetadata{}
 }
 
@@ -402,8 +402,22 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
-	logUnimplemented(txn.thread.logger, "Transaction.IsSampled")
+	txn.LogDebug(unimplementedMessage("Transaction.IsSampled"), nil)
 	return false
+}
+
+func (txn *Transaction) LogDebug(msg string, context map[string]interface{}) {
+	if txn == nil || txn.thread == nil || txn.thread.logger == nil {
+		return
+	}
+	txn.thread.logger.Debug(msg, context)
+}
+
+func (txn *Transaction) LogInfo(msg string, context map[string]interface{}) {
+	if txn == nil || txn.thread == nil || txn.thread.logger == nil {
+		return
+	}
+	txn.thread.logger.Info(msg, context)
 }
 
 const (

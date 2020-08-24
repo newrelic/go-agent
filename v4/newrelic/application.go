@@ -70,8 +70,8 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	if app == nil {
 		return
 	}
-	app.initLogger()
-	logUnimplemented(app.logger, "Application.RecordCustomEvent")
+	app.LogDebug(unimplementedMessage("Application.RecordCustomEvent"), nil)
+
 }
 
 // RecordCustomMetric records a custom metric.  The metric name you
@@ -85,8 +85,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 	if app == nil {
 		return
 	}
-	app.initLogger()
-	logUnimplemented(app.logger, "Application.RecordCustomMetric")
+	app.LogDebug(unimplementedMessage("Application.RecordCustomMetric"), nil)
 }
 
 // WaitForConnection blocks until the application is connected, is
@@ -118,7 +117,7 @@ func (app *Application) Shutdown(timeout time.Duration) {
 	if app == nil {
 		return
 	}
-	logUnimplemented(app.logger, "Application.Shutdown")
+	app.LogDebug(unimplementedMessage("Application.Shutdown"), nil)
 }
 
 // NewApplication creates an Application and spawns goroutines to manage the
@@ -191,9 +190,6 @@ func (app *Application) initLogger() {
 	}
 }
 
-func logUnimplemented(logger Logger, methodName string) {
-	if logger == nil {
-		return
-	}
-	logger.Debug(methodName+" is currently a no-op for this New Relic agent (it may be implemented in a future version)", nil)
+func unimplementedMessage(methodName string) string {
+	return methodName + " is currently a no-op for this New Relic agent (it may be implemented in a future version)"
 }
