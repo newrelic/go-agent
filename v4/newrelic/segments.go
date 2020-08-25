@@ -201,11 +201,7 @@ func (s *Segment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		if s.StartTime.span != nil {
-			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
-				segNameKey: s.Name,
-			})
-		}
+		logAlreadyEnded(s.StartTime, s.Name)
 		return
 	}
 	s.StartTime.Span.SetName(s.Name)
@@ -232,11 +228,7 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		if s.StartTime.span != nil {
-			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
-				segNameKey: s.name(),
-			})
-		}
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 
@@ -316,11 +308,7 @@ func (s *ExternalSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		if s.StartTime.span != nil {
-			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
-				segNameKey: s.name(),
-			})
-		}
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
@@ -468,16 +456,20 @@ func (s *MessageProducerSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		if s.StartTime.span != nil {
-			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
-				segNameKey: s.name(),
-			})
-		}
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
+}
+
+func logAlreadyEnded(st SegmentStartTime, name string) {
+	if st.span != nil {
+		st.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+			segNameKey: name,
+		})
+	}
 }
 
 func (s *MessageProducerSegment) addRequiredAttributes(setter func(string, interface{})) {
