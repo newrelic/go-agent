@@ -29,7 +29,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		return nil
 	}
 	if app.tracer == nil {
-		app.LogDebug(
+		app.logDebug(
 			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
 			nil,
 		)
@@ -67,7 +67,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 // An error is logged if eventType or params is invalid.
 func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
 	if app != nil {
-		app.LogDebug(unimplementedMessage("Application.RecordCustomEvent"), nil)
+		app.logDebug(unimplementedMessage("Application.RecordCustomEvent"), nil)
 	}
 }
 
@@ -80,7 +80,7 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // for more information on custom events.
 func (app *Application) RecordCustomMetric(name string, value float64) {
 	if app != nil {
-		app.LogDebug(unimplementedMessage("Application.RecordCustomMetric"), nil)
+		app.logDebug(unimplementedMessage("Application.RecordCustomMetric"), nil)
 	}
 }
 
@@ -95,7 +95,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // timeout is hit.
 func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if app != nil {
-		app.LogDebug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
+		app.logDebug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
 	}
 	return nil
 }
@@ -111,7 +111,7 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 // events have been sent to the Trace Observer or the timeout has been reached.
 func (app *Application) Shutdown(timeout time.Duration) {
 	if app != nil {
-		app.LogDebug(unimplementedMessage("Application.Shutdown"), nil)
+		app.logDebug(unimplementedMessage("Application.Shutdown"), nil)
 	}
 }
 
@@ -161,16 +161,14 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	}, nil
 }
 
-// LogInfo logs the given information at INFO level
-func (app *Application) LogInfo(msg string, context map[string]interface{}) {
+func (app *Application) logInfo(msg string, context map[string]interface{}) {
 	if app != nil {
 		app.initLogger()
 		app.logger.Info(msg, context)
 	}
 }
 
-// LogDebug logs the given information at DEBUG level
-func (app *Application) LogDebug(msg string, context map[string]interface{}) {
+func (app *Application) logDebug(msg string, context map[string]interface{}) {
 	if app != nil {
 		app.initLogger()
 		app.logger.Debug(msg, context)

@@ -38,6 +38,22 @@ type thread struct {
 	logger      Logger
 }
 
+func (thd *thread) logDebug(msg string, context map[string]interface{}) {
+	if canLog(thd) {
+		thd.logger.Debug(msg, context)
+	}
+}
+
+func (thd *thread) logError(msg string, context map[string]interface{}) {
+	if canLog(thd) {
+		thd.logger.Error(msg, context)
+	}
+}
+
+func canLog(thd *thread) bool {
+	return thd != nil && thd.logger != nil
+}
+
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
@@ -65,16 +81,16 @@ func (txn *Transaction) isEnded() bool {
 
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.Ignore"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.thread.logDebug(unimplementedMessage("Transaction.Ignore"), nil)
 	}
 }
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
 func (txn *Transaction) SetName(name string) {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.SetName"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.thread.logDebug(unimplementedMessage("Transaction.SetName"), nil)
 	}
 }
 
@@ -104,8 +120,8 @@ func (txn *Transaction) SetName(name string) {
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeError(err error) {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.NoticeError"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.logDebug(unimplementedMessage("Transaction.NoticeError"), nil)
 	}
 }
 
@@ -358,8 +374,8 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.BrowserTimingHeader"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.logDebug(unimplementedMessage("Transaction.BrowserTimingHeader"), nil)
 	}
 	return nil
 }
@@ -394,8 +410,8 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.GetTraceMetadata"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.logDebug(unimplementedMessage("Transaction.GetTraceMetadata"), nil)
 	}
 	return TraceMetadata{}
 }
@@ -403,8 +419,8 @@ func (txn *Transaction) GetTraceMetadata() TraceMetadata {
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.GetLinkingMetadata"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.logDebug(unimplementedMessage("Transaction.GetLinkingMetadata"), nil)
 	}
 	return LinkingMetadata{}
 }
@@ -414,28 +430,16 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
-	if txn != nil {
-		txn.LogDebug(unimplementedMessage("Transaction.IsSampled"), nil)
+	if txn != nil && txn.thread != nil {
+		txn.logDebug(unimplementedMessage("Transaction.IsSampled"), nil)
 	}
 	return false
 }
 
-// LogDebug logs the given information at DEBUG level
-func (txn *Transaction) LogDebug(msg string, context map[string]interface{}) {
-	if canLog(txn) {
-		txn.thread.logger.Debug(msg, context)
+func (txn *Transaction) logDebug(msg string, context map[string]interface{}) {
+	if txn != nil && txn.thread != nil {
+		txn.thread.logDebug(msg, context)
 	}
-}
-
-// LogInfo logs the given information at INFO level
-func (txn *Transaction) LogInfo(msg string, context map[string]interface{}) {
-	if canLog(txn) {
-		txn.thread.logger.Info(msg, context)
-	}
-}
-
-func canLog(txn *Transaction) bool {
-	return txn != nil && txn.thread != nil && txn.thread.logger != nil
 }
 
 const (

@@ -40,6 +40,11 @@ type Segment struct {
 	Name      string
 }
 
+const (
+	segAlreadyEnded = "trying to end a segment that has already ended"
+	segNameKey      = "segmentName"
+)
+
 // DatastoreSegment is used to instrument calls to databases and object stores.
 type DatastoreSegment struct {
 	// StartTime should be assigned using Transaction.StartSegmentNow before
@@ -196,19 +201,15 @@ func (s *Segment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime, s.Name)
+		if s.StartTime.span != nil {
+			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+				segNameKey: s.Name,
+			})
+		}
 		return
 	}
 	s.StartTime.Span.SetName(s.Name)
 	s.StartTime.end()
-}
-
-func logSgmtAlreadyEnded(s SegmentStartTime, name string) {
-	if s.span != nil && s.thread != nil {
-		s.thread.logger.Debug("trying to end a segment that has already ended", map[string]interface{}{
-			"segmentName": name,
-		})
-	}
 }
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.
@@ -231,7 +232,11 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime, s.name())
+		if s.StartTime.span != nil {
+			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+				segNameKey: s.name(),
+			})
+		}
 		return
 	}
 
@@ -311,7 +316,11 @@ func (s *ExternalSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime, s.name())
+		if s.StartTime.span != nil {
+			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+				segNameKey: s.name(),
+			})
+		}
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
@@ -459,7 +468,11 @@ func (s *MessageProducerSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
-		logSgmtAlreadyEnded(s.StartTime, s.name())
+		if s.StartTime.span != nil {
+			s.StartTime.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+				segNameKey: s.name(),
+			})
+		}
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
