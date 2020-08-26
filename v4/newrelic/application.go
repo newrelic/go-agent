@@ -5,11 +5,14 @@ package newrelic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
+
+	"github.com/newrelic/go-agent/v4/internal/logger"
 )
 
 // Application represents your application.  All methods on Application are nil
@@ -17,6 +20,7 @@ import (
 type Application struct {
 	tracer      trace.Tracer
 	propagators propagation.Propagators
+	logger      Logger
 }
 
 // StartTransaction begins a Transaction with the given name.
@@ -25,6 +29,11 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		return nil
 	}
 	if app.tracer == nil {
+		app.logDebug(
+			"trying to start a transaction, but the OpenTelemetry.Tracer is not set in the config; aborting",
+			nil,
+		)
+
 		return nil
 	}
 	ctx, sp := app.tracer.Start(context.Background(), name,
@@ -37,6 +46,7 @@ func (app *Application) StartTransaction(name string) *Transaction {
 		rootSpan: s,
 		thread: &thread{
 			currentSpan: s,
+			logger:      app.logger,
 		},
 		app:  app,
 		name: name,
@@ -55,7 +65,11 @@ func (app *Application) StartTransaction(name string) *Transaction {
 // https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 //
 // An error is logged if eventType or params is invalid.
-func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {}
+func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
+	if app != nil {
+		app.logDebug(unimplementedMessage("Application.RecordCustomEvent"), nil)
+	}
+}
 
 // RecordCustomMetric records a custom metric.  The metric name you
 // provide will be prefixed by "Custom/".  Custom metrics are not
@@ -64,7 +78,11 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // See
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
 // for more information on custom events.
-func (app *Application) RecordCustomMetric(name string, value float64) {}
+func (app *Application) RecordCustomMetric(name string, value float64) {
+	if app != nil {
+		app.logDebug(unimplementedMessage("Application.RecordCustomMetric"), nil)
+	}
+}
 
 // WaitForConnection blocks until the application is connected, is
 // incapable of being connected, or the timeout has been reached.  This
@@ -76,6 +94,9 @@ func (app *Application) RecordCustomMetric(name string, value float64) {}
 // connection to the Trace Observer is made, a fatal error is reached, or the
 // timeout is hit.
 func (app *Application) WaitForConnection(timeout time.Duration) error {
+	if app != nil {
+		app.logDebug("WaitForConnection is a no-op for this New Relic agent and can be removed", nil)
+	}
 	return nil
 }
 
@@ -88,7 +109,11 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 //
 // If Infinite Tracing is enabled, Shutdown will block until all queued span
 // events have been sent to the Trace Observer or the timeout has been reached.
-func (app *Application) Shutdown(timeout time.Duration) {}
+func (app *Application) Shutdown(timeout time.Duration) {
+	if app != nil {
+		app.logDebug(unimplementedMessage("Application.Shutdown"), nil)
+	}
+}
 
 // NewApplication creates an Application and spawns goroutines to manage the
 // aggregation and harvesting of data.  On success, a non-nil Application and a
@@ -120,5 +145,42 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 			propagation.WithInjectors(trace.TraceContext{}),
 			propagation.WithExtractors(trace.TraceContext{}))
 	}
-	return &Application{tracer: tracer, propagators: propagators}, nil
+
+	if c.Logger == nil {
+		c.Logger = logger.ShimLogger{}
+	}
+	msg := fmt.Sprintf("Starting New Relic Shim Agent. If everything is configured properly, you should be able"+
+		" to see your data in a few minutes by visiting https://one.newrelic.com/launcher/nr1-core.explorer and"+
+		" searching for '%s'.", c.AppName)
+	c.Logger.Info(msg, nil)
+
+	return &Application{
+		tracer:      tracer,
+		propagators: propagators,
+		logger:      c.Logger,
+	}, nil
+}
+
+func (app *Application) logInfo(msg string, context map[string]interface{}) {
+	if app != nil {
+		app.initLogger()
+		app.logger.Info(msg, context)
+	}
+}
+
+func (app *Application) logDebug(msg string, context map[string]interface{}) {
+	if app != nil {
+		app.initLogger()
+		app.logger.Debug(msg, context)
+	}
+}
+
+func (app *Application) initLogger() {
+	if app.logger == nil {
+		app.logger = logger.ShimLogger{}
+	}
+}
+
+func unimplementedMessage(methodName string) string {
+	return methodName + " is currently a no-op for this New Relic agent (it may be implemented in a future version)"
 }

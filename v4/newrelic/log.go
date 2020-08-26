@@ -11,9 +11,8 @@ import (
 
 // Logger is the interface that is used for logging in the Go Agent.  Assign
 // the Config.Logger field to the Logger you wish to use.  Loggers must be safe
-// for use in multiple goroutines.  Two Logger implementations are included:
-// NewLogger, which logs at info level, and NewDebugLogger which logs at debug
-// level.  logrus, logxi, and zap are supported by the integration packages
+// for use in multiple goroutines.  logrus, logxi, and zap are supported by the
+// integration packages
 // https://godoc.org/github.com/newrelic/go-agent/v4/integrations/nrlogrus,
 // https://godoc.org/github.com/newrelic/go-agent/v4/integrations/nrlogxi,
 // and https://godoc.org/github.com/newrelic/go-agent/v4/integrations/nrzap
@@ -26,18 +25,12 @@ type Logger interface {
 	DebugEnabled() bool
 }
 
-// NewLogger creates a basic Logger at info level.
-//
-// Deprecated: NewLogger is deprecated and will be removed in a future release.
-// Use the ConfigInfoLogger ConfigOption instead.
-func NewLogger(w io.Writer) Logger {
+// newLogger creates a basic Logger at info level.
+func newLogger(w io.Writer) Logger {
 	return logger.New(w, false)
 }
 
-// NewDebugLogger creates a basic Logger at debug level.
-//
-// Deprecated: NewDebugLogger is deprecated and will be removed in a future
-// release.  Use the ConfigDebugLogger ConfigOption instead.
-func NewDebugLogger(w io.Writer) Logger {
+// newDebugLogger creates a basic Logger at debug level.
+func newDebugLogger(w io.Writer) Logger {
 	return logger.New(w, true)
 }

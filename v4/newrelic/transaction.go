@@ -35,6 +35,23 @@ type thread struct {
 	// isMultiSpan is set to true of the associated transaction has more
 	// than one span or crosses multiple goroutines.
 	isMultiSpan bool
+	logger      Logger
+}
+
+func (thd *thread) logDebug(msg string, context map[string]interface{}) {
+	if thd.canLog() {
+		thd.logger.Debug(msg, context)
+	}
+}
+
+func (thd *thread) logError(msg string, context map[string]interface{}) {
+	if thd.canLog() {
+		thd.logger.Error(msg, context)
+	}
+}
+
+func (thd *thread) canLog() bool {
+	return thd != nil && thd.logger != nil
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -62,12 +79,24 @@ func (txn *Transaction) isEnded() bool {
 	return txn.ended
 }
 
+func (txn *Transaction) canLog() bool {
+	return txn != nil && txn.thread != nil
+}
+
 // Ignore prevents this transaction's data from being recorded.
-func (txn *Transaction) Ignore() {}
+func (txn *Transaction) Ignore() {
+	if txn.canLog() {
+		txn.thread.logDebug(unimplementedMessage("Transaction.Ignore"), nil)
+	}
+}
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
-func (txn *Transaction) SetName(name string) {}
+func (txn *Transaction) SetName(name string) {
+	if txn.canLog() {
+		txn.thread.logDebug(unimplementedMessage("Transaction.SetName"), nil)
+	}
+}
 
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
@@ -94,7 +123,11 @@ func (txn *Transaction) SetName(name string) {}
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
-func (txn *Transaction) NoticeError(err error) {}
+func (txn *Transaction) NoticeError(err error) {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.NoticeError"), nil)
+	}
+}
 
 // AddAttribute adds a key value pair to the transaction event, errors,
 // and traces.
@@ -345,6 +378,9 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.BrowserTimingHeader"), nil)
+	}
 	return nil
 }
 
@@ -378,12 +414,18 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.GetTraceMetadata"), nil)
+	}
 	return TraceMetadata{}
 }
 
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.GetLinkingMetadata"), nil)
+	}
 	return LinkingMetadata{}
 }
 
@@ -392,7 +434,16 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.IsSampled"), nil)
+	}
 	return false
+}
+
+func (txn *Transaction) logDebug(msg string, context map[string]interface{}) {
+	if txn.canLog() {
+		txn.thread.logDebug(msg, context)
+	}
 }
 
 const (
