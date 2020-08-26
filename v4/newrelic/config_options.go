@@ -43,12 +43,12 @@ func ConfigLogger(l Logger) ConfigOption {
 
 // ConfigInfoLogger populates the config with basic Logger at info level.
 func ConfigInfoLogger(w io.Writer) ConfigOption {
-	return ConfigLogger(NewLogger(w))
+	return ConfigLogger(newLogger(w))
 }
 
 // ConfigDebugLogger populates the config with a Logger at debug level.
 func ConfigDebugLogger(w io.Writer) ConfigOption {
-	return ConfigLogger(NewDebugLogger(w))
+	return ConfigLogger(newDebugLogger(w))
 }
 
 // ConfigFromEnvironment populates the config based on environment variables:
@@ -142,9 +142,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		if env := getenv("NEW_RELIC_LOG"); env != "" {
 			if dest := getLogDest(env); dest != nil {
 				if isDebugEnv(getenv("NEW_RELIC_LOG_LEVEL")) {
-					cfg.Logger = NewDebugLogger(dest)
+					cfg.Logger = newDebugLogger(dest)
 				} else {
-					cfg.Logger = NewLogger(dest)
+					cfg.Logger = newLogger(dest)
 				}
 			} else {
 				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LOG value %s", env)
