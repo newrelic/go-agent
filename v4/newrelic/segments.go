@@ -41,6 +41,11 @@ type Segment struct {
 	Name      string
 }
 
+const (
+	segAlreadyEnded = "trying to end a segment that has already ended"
+	segNameKey      = "segmentName"
+)
+
 // DatastoreSegment is used to instrument calls to databases and object stores.
 type DatastoreSegment struct {
 	// StartTime should be assigned using Transaction.StartSegmentNow before
@@ -197,6 +202,7 @@ func (s *Segment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logAlreadyEnded(s.StartTime, s.Name)
 		return
 	}
 	s.StartTime.Span.SetName(s.Name)
@@ -223,6 +229,7 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 
@@ -324,6 +331,7 @@ func (s *ExternalSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
@@ -471,11 +479,20 @@ func (s *MessageProducerSegment) End() {
 		return
 	}
 	if s.StartTime.isEnded() {
+		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
 	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
+}
+
+func logAlreadyEnded(st SegmentStartTime, name string) {
+	if st.span != nil {
+		st.thread.logDebug(segAlreadyEnded, map[string]interface{}{
+			segNameKey: name,
+		})
+	}
 }
 
 func (s *MessageProducerSegment) addRequiredAttributes(setter func(string, interface{})) {
@@ -523,6 +540,9 @@ func (s *ExternalSegment) SetStatusCode(code int) {
 func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegment {
 	if nil == txn && nil != request {
 		txn = FromContext(request.Context())
+	}
+	if nil == txn {
+		return nil
 	}
 	s := &ExternalSegment{
 		StartTime: txn.StartSegmentNow(),

@@ -7,15 +7,12 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/propagation"
-	"go.opentelemetry.io/otel/api/standard"
 	"go.opentelemetry.io/otel/api/trace"
-	"google.golang.org/grpc/codes"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -25,12 +22,11 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	app         *Application
-	rootSpan    *span
-	thread      *thread
-	ended       bool
-	name        string
-	wroteHeader bool
+	app      *Application
+	rootSpan *span
+	thread   *thread
+	ended    bool
+	name     string
 }
 
 type thread struct {
@@ -39,6 +35,23 @@ type thread struct {
 	// isMultiSpan is set to true of the associated transaction has more
 	// than one span or crosses multiple goroutines.
 	isMultiSpan bool
+	logger      Logger
+}
+
+func (thd *thread) logDebug(msg string, context map[string]interface{}) {
+	if thd.canLog() {
+		thd.logger.Debug(msg, context)
+	}
+}
+
+func (thd *thread) logError(msg string, context map[string]interface{}) {
+	if thd.canLog() {
+		thd.logger.Error(msg, context)
+	}
+}
+
+func (thd *thread) canLog() bool {
+	return thd != nil && thd.logger != nil
 }
 
 // End finishes the Transaction.  After that, subsequent calls to End or
@@ -54,7 +67,7 @@ func (txn *Transaction) End() {
 	if txn.isEnded() {
 		return
 	}
-	txn.getRootSpan().end()
+	txn.rootSpan.end()
 	txn.thread.Lock()
 	txn.ended = true
 	txn.thread.Unlock()
@@ -66,36 +79,24 @@ func (txn *Transaction) isEnded() bool {
 	return txn.ended
 }
 
-func (txn *Transaction) hdrWritten() bool {
-	txn.thread.Lock()
-	defer txn.thread.Unlock()
-	return txn.wroteHeader
-}
-
-func (txn *Transaction) getRootSpan() *span {
-	if txn == nil {
-		return nil
-	}
-	if txn.thread == nil {
-		return nil
-	}
-	txn.thread.Lock()
-	defer txn.thread.Unlock()
-	return txn.rootSpan
-}
-
-func (txn *Transaction) setRootSpan(span *span) {
-	txn.thread.Lock()
-	txn.rootSpan = span
-	defer txn.thread.Unlock()
+func (txn *Transaction) canLog() bool {
+	return txn != nil && txn.thread != nil
 }
 
 // Ignore prevents this transaction's data from being recorded.
-func (txn *Transaction) Ignore() {}
+func (txn *Transaction) Ignore() {
+	if txn.canLog() {
+		txn.thread.logDebug(unimplementedMessage("Transaction.Ignore"), nil)
+	}
+}
 
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
-func (txn *Transaction) SetName(name string) {}
+func (txn *Transaction) SetName(name string) {
+	if txn.canLog() {
+		txn.thread.logDebug(unimplementedMessage("Transaction.SetName"), nil)
+	}
+}
 
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
@@ -122,7 +123,11 @@ func (txn *Transaction) SetName(name string) {}
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
-func (txn *Transaction) NoticeError(err error) {}
+func (txn *Transaction) NoticeError(err error) {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.NoticeError"), nil)
+	}
+}
 
 // AddAttribute adds a key value pair to the transaction event, errors,
 // and traces.
@@ -133,11 +138,13 @@ func (txn *Transaction) NoticeError(err error) {}
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 func (txn *Transaction) AddAttribute(key string, value interface{}) {
-	root := txn.getRootSpan()
-	if root == nil {
+	if txn == nil {
 		return
 	}
-	root.Span.SetAttribute(key, value)
+	if txn.rootSpan == nil {
+		return
+	}
+	txn.rootSpan.Span.SetAttribute(key, value)
 }
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
@@ -146,26 +153,18 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
-	// TODO: test all these nil checks, here and the other set methods
 	if r == nil {
+		txn.SetWebRequest(WebRequest{})
 		return
 	}
-	txn.AcceptDistributedTraceHeaders(TransportUnknown, r.Header)
-
-	root := txn.getRootSpan()
-	if root == nil {
-		return
+	wr := WebRequest{
+		Header:    r.Header,
+		URL:       r.URL,
+		Method:    r.Method,
+		Transport: transport(r),
+		Host:      r.Host,
 	}
-	addTxnHTTPRequestAttributes(r, root.Span.SetAttributes)
-}
-
-func addTxnHTTPRequestAttributes(req *http.Request, setter func(...kv.KeyValue)) {
-	if req.URL == nil {
-		req.URL = new(url.URL)
-	}
-	setter(standard.EndUserAttributesFromHTTPRequest(req)...)
-	setter(standard.HTTPServerAttributesFromHTTPRequest("", "", req)...)
-	setter(standard.NetAttributesFromHTTPRequest("tcp", req)...)
+	txn.SetWebRequest(wr)
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -175,43 +174,16 @@ func addTxnHTTPRequestAttributes(req *http.Request, setter func(...kv.KeyValue))
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {
 	txn.AcceptDistributedTraceHeaders(r.Transport, r.Header)
-
-	root := txn.getRootSpan()
-	if root == nil {
-		return
-	}
-	addTxnWebRequestAttributes(r, root.Span.SetAttributes)
 }
 
-func addTxnWebRequestAttributes(req WebRequest, setter func(...kv.KeyValue)) {
-	if req.URL != nil {
-		url := req.URL.Scheme + "://" + req.URL.Host + "/" + req.URL.Path
-		setter(standard.HTTPUrlKey.String(url))
-	} else if req.Host != "" {
-		setter(standard.HTTPHostKey.String(req.Host))
-	} else {
-		setter(standard.HTTPUrlKey.String("unknown"))
-	}
-
-	setter(standard.HTTPMethodKey.String(req.Method))
-
-	if h := req.Header; req.Header != nil {
-		if userAgent := h.Get("User-Agent"); userAgent != "" {
-			setter(standard.HTTPUserAgentKey.String(userAgent))
+func transport(r *http.Request) TransportType {
+	if strings.HasPrefix(r.Proto, "HTTP") {
+		if r.TLS != nil {
+			return TransportHTTPS
 		}
-		lenStr := h.Get("Content-Length")
-		if lenInt, err := strconv.Atoi(lenStr); err == nil {
-			setter(standard.HTTPRequestContentLengthKey.Int(lenInt))
-		}
+		return TransportHTTP
 	}
-}
-
-func addTxnStatusCodeAttributes(code int, setter func(...kv.KeyValue)) {
-	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
-}
-
-func setTxnSpanStatus(code int, setter func(codes.Code, string)) {
-	setter(standard.SpanStatusFromHTTPStatusCode(code))
+	return TransportUnknown
 }
 
 type dummyResponseWriter struct{}
@@ -219,23 +191,6 @@ type dummyResponseWriter struct{}
 func (rw dummyResponseWriter) Header() http.Header         { return nil }
 func (rw dummyResponseWriter) Write(b []byte) (int, error) { return 0, nil }
 func (rw dummyResponseWriter) WriteHeader(code int)        {}
-
-func (txn *Transaction) headersJustWritten(code int) {
-	if txn.isEnded() {
-		return
-	}
-	if txn.hdrWritten() {
-		return
-	}
-
-	txn.thread.Lock()
-	txn.wroteHeader = true
-	txn.thread.Unlock()
-
-	root := txn.getRootSpan()
-	addTxnStatusCodeAttributes(code, root.Span.SetAttributes)
-	setTxnSpanStatus(code, root.Span.SetStatus)
-}
 
 // SetWebResponse allows the Transaction to instrument response code and
 // response headers.  Use the return value of this method in place of the input
@@ -261,13 +216,7 @@ func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWrite
 		//
 		w = dummyResponseWriter{}
 	}
-	if txn == nil || txn.thread == nil {
-		return w
-	}
-	return upgradeResponseWriter(&replacementResponseWriter{
-		txn:  txn,
-		orig: w,
-	})
+	return w
 }
 
 // StartSegmentNow starts timing a segment.  The SegmentStartTime returned can
@@ -401,12 +350,11 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 
 	if !txn.thread.isMultiSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)
-		s := &span{
+		txn.rootSpan = &span{
 			Span: sp,
 			ctx:  ctx,
 		}
-		txn.setRootSpan(s)
-		txn.thread.currentSpan = s
+		txn.thread.currentSpan = txn.rootSpan
 	} else {
 		txn.thread.currentSpan.ctx = remoteCtx
 	}
@@ -430,6 +378,9 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.BrowserTimingHeader"), nil)
+	}
 	return nil
 }
 
@@ -463,12 +414,18 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.GetTraceMetadata"), nil)
+	}
 	return TraceMetadata{}
 }
 
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.GetLinkingMetadata"), nil)
+	}
 	return LinkingMetadata{}
 }
 
@@ -477,7 +434,16 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
+	if txn.canLog() {
+		txn.logDebug(unimplementedMessage("Transaction.IsSampled"), nil)
+	}
 	return false
+}
+
+func (txn *Transaction) logDebug(msg string, context map[string]interface{}) {
+	if txn.canLog() {
+		txn.thread.logDebug(msg, context)
+	}
 }
 
 const (

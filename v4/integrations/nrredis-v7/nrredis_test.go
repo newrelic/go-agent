@@ -40,10 +40,10 @@ func TestPing(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Forced: nil},
 		{Name: "Datastore/all", Forced: nil},
 		{Name: "Datastore/allOther", Forced: nil},
-		{Name: "Datastore/Redis/all", Forced: nil},
-		{Name: "Datastore/Redis/allOther", Forced: nil},
-		{Name: "Datastore/operation/Redis/ping", Forced: nil},
-		{Name: "Datastore/operation/Redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
+		{Name: "Datastore/redis/all", Forced: nil},
+		{Name: "Datastore/redis/allOther", Forced: nil},
+		{Name: "Datastore/operation/redis/ping", Forced: nil},
+		{Name: "Datastore/operation/redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
 	})
 }
 
@@ -69,11 +69,11 @@ func TestPingWithOptionsAndAddress(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Forced: nil},
 		{Name: "Datastore/all", Forced: nil},
 		{Name: "Datastore/allOther", Forced: nil},
-		{Name: "Datastore/Redis/all", Forced: nil},
-		{Name: "Datastore/Redis/allOther", Forced: nil},
-		{Name: "Datastore/instance/Redis/myhost/myport", Forced: nil},
-		{Name: "Datastore/operation/Redis/ping", Forced: nil},
-		{Name: "Datastore/operation/Redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
+		{Name: "Datastore/redis/all", Forced: nil},
+		{Name: "Datastore/redis/allOther", Forced: nil},
+		{Name: "Datastore/instance/redis/myhost/myport", Forced: nil},
+		{Name: "Datastore/operation/redis/ping", Forced: nil},
+		{Name: "Datastore/operation/redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
 	})
 }
 
