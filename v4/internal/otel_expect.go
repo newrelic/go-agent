@@ -137,7 +137,7 @@ func (e *OpenTelemetryExpect) ExpectErrorEvents(t Validator, want []WantEvent) {
 // ExpectTxnTraces TODO
 func (e *OpenTelemetryExpect) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
 
-// ExpectTxnTraces TODO
+// ExpectSlowQueries TODO
 func (e *OpenTelemetryExpect) ExpectSlowQueries(t Validator, want []WantSlowQuery) {}
 
 // ExpectMetrics TODO
