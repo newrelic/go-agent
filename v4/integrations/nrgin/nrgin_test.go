@@ -4,7 +4,6 @@
 package nrgin
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -146,8 +145,7 @@ func TestMultipleWriteHeader(t *testing.T) {
 }
 
 func accessTransactionGinContext(c *gin.Context) {
-	txn := Transaction(c)
-	txn.NoticeError(errors.New("problem"))
+	defer Transaction(c).StartSegment("segment").End()
 	c.Writer.WriteString("accessTransactionGinContext")
 }
 
@@ -174,10 +172,25 @@ func TestContextTransaction(t *testing.T) {
 	if response.Code != 200 {
 		t.Error("wrong response code", response.Code)
 	}
-	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
+		},
+		{
+			Name:     txnName,
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
+			},
+		},
 	})
 }
 
@@ -263,6 +276,7 @@ func TestStatusCodes(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          txnName,
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    13,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone":             internal.MatchAnything,
@@ -311,6 +325,7 @@ func TestNoResponseBody(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          txnName,
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    13,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": internal.MatchAnything,

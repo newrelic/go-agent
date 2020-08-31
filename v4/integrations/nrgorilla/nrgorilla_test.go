@@ -4,7 +4,6 @@
 package nrgorilla
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -139,7 +138,7 @@ func TestMiddlewareBasicRoute(t *testing.T) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// ensure that the txn is added to the context and accessible by
 			// middlewares
-			newrelic.FromContext(r.Context()).NoticeError(errors.New("oops"))
+			defer newrelic.FromContext(r.Context()).StartSegment("segment").End()
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -152,10 +151,25 @@ func TestMiddlewareBasicRoute(t *testing.T) {
 	if respBody := response.Body.String(); respBody != "alpha response" {
 		t.Error("wrong response body", respBody)
 	}
-	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /alpha",
-		IsWeb:     true,
-		NumErrors: 1,
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
+		},
+		{
+			Name:     "GET /alpha",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
+			},
+		},
 	})
 }
 
