@@ -985,6 +985,34 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 			},
 		},
 		{
+			name: "host is localhost",
+			seg: &DatastoreSegment{
+				Host: "localhost",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.name": thisHost,
+			},
+		},
+		{
+			name: "host is 127.0.0.1",
+			seg: &DatastoreSegment{
+				Host: "127.0.0.1",
+			},
+			attrs: map[string]interface{}{
+				"db.collection": "unknown",
+				"db.name":       "unknown",
+				"db.operation":  "unknown",
+				"db.statement":  "'unknown' on 'unknown' using 'unknown'",
+				"db.system":     "unknown",
+				"net.peer.name": thisHost,
+			},
+		},
+		{
 			name: "port is a path",
 			seg: &DatastoreSegment{
 				PortPathOrID: "/this/is/a/path/to/a/socket.sock",
