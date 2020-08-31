@@ -530,9 +530,9 @@ func TestExternalSegmentNaming(t *testing.T) {
 		},
 		{
 			seg: &ExternalSegment{
-				Library: "gRPC",
+				Library: "grpc",
 			},
-			name: "gRPC unknown unknown",
+			name: "grpc unknown unknown",
 		},
 		{
 			seg: &ExternalSegment{
@@ -1236,10 +1236,10 @@ func TestExternalSegmentAttributes(t *testing.T) {
 		{
 			name: "honors component",
 			seg: &ExternalSegment{
-				Library: "gRPC",
+				Library: "grpc",
 			},
 			attrs: map[string]interface{}{
-				"http.component":   "gRPC",
+				"http.component":   "grpc",
 				"http.url":         "unknown",
 				"http.status_code": int64(0),
 			},

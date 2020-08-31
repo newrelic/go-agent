@@ -150,20 +150,16 @@ func TestMonitor(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "'commName' on 'collName' using 'mongodb'",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "'commName' on 'collName' using 'mongodb'",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"sampled":       true,
-				"category":      "datastore",
-				"component":     "mongodb",
-				"span.kind":     "client",
-				"parentId":      internal.MatchAnything,
-				"peer.address":  thisHost + ":27017",
-				"peer.hostname": thisHost,
-				"db.statement":  "'commName' on 'collName' using 'mongodb'",
-				"db.instance":   "testdb",
-				"db.collection": "collName",
+				"db.collection":         "collName",
+				"db.mongodb.collection": "testdb",
+				"db.operation":          "commName",
+				"db.statement":          "'commName' on 'collName' using 'mongodb'",
+				"db.system":             "mongodb",
+				"net.peer.name":         thisHost,
+				"net.peer.port":         int64(27017),
 			},
 		},
 		{
