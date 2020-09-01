@@ -99,17 +99,18 @@ func TestHandle(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "GET /hello/:name",
-			ParentID:      internal.MatchNoParent,
-			StatusCode:    13,
-			SkipAttrsTest: true,
+			Name:       "GET /hello/:name",
+			ParentID:   internal.MatchNoParent,
+			StatusCode: 13,
 			Attributes: map[string]interface{}{
-				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",
-				"httpResponseCode": 500,
-				"http.statusCode":  500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/person",
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(500),
+				"http.status_text": "Internal Server Error",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
 			},
 		},
 	})
@@ -142,17 +143,18 @@ func TestHandler(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "GET /hello/",
-			ParentID:      internal.MatchNoParent,
-			StatusCode:    13,
-			SkipAttrsTest: true,
+			Name:       "GET /hello/",
+			ParentID:   internal.MatchNoParent,
+			StatusCode: 13,
 			Attributes: map[string]interface{}{
-				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",
-				"httpResponseCode": 500,
-				"http.statusCode":  500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/",
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(500),
+				"http.status_text": "Internal Server Error",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
 			},
 		},
 	})
@@ -228,17 +230,18 @@ func TestNotFound(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "NotFound",
-			ParentID:      internal.MatchNoParent,
-			StatusCode:    13,
-			SkipAttrsTest: true,
+			Name:       "NotFound",
+			ParentID:   internal.MatchNoParent,
+			StatusCode: 13,
 			Attributes: map[string]interface{}{
-				"nr.apdexPerfZone": internal.MatchAnything,
 				"color":            "purple",
-				"httpResponseCode": 500,
-				"http.statusCode":  500,
-				"request.method":   "GET",
-				"request.uri":      "/hello/",
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(500),
+				"http.status_text": "Internal Server Error",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
 			},
 		},
 	})

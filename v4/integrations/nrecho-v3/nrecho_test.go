@@ -38,16 +38,16 @@ func TestBasicRoute(t *testing.T) {
 		IsWeb: true,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "GET /hello",
-		ParentID:      internal.MatchNoParent,
-		SkipAttrsTest: true,
+		Name:     "GET /hello",
+		ParentID: internal.MatchNoParent,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone":             "S",
-			"httpResponseCode":             "200",
-			"http.statusCode":              "200",
-			"request.method":               "GET",
-			"response.headers.contentType": "text/html",
-			"request.uri":                  "/hello",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": int64(200),
+			"http.status_text": "OK",
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }
@@ -182,16 +182,17 @@ func TestReturnsHTTPError(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "GET /hello",
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    3,
-		SkipAttrsTest: true,
+		Name:       "GET /hello",
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 3,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone": "F",
-			"httpResponseCode": "418",
-			"http.statusCode":  "418",
-			"request.method":   "GET",
-			"request.uri":      "/hello",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": int64(418),
+			"http.status_text": "I'm a teapot",
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }
@@ -218,16 +219,17 @@ func TestReturnsError(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "GET /hello",
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    13,
-		SkipAttrsTest: true,
+		Name:       "GET /hello",
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 13,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone": "F",
-			"httpResponseCode": "500",
-			"http.statusCode":  "500",
-			"request.method":   "GET",
-			"request.uri":      "/hello",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": int64(500),
+			"http.status_text": "Internal Server Error",
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }
@@ -254,17 +256,17 @@ func TestResponseCode(t *testing.T) {
 		NumErrors: 1,
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "GET /hello",
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    3,
-		SkipAttrsTest: true,
+		Name:       "GET /hello",
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 3,
 		Attributes: map[string]interface{}{
-			"nr.apdexPerfZone":             "F",
-			"httpResponseCode":             "418",
-			"http.statusCode":              "418",
-			"request.method":               "GET",
-			"response.headers.contentType": "text/html",
-			"request.uri":                  "/hello",
+			"http.flavor":      "1.1",
+			"http.method":      "GET",
+			"http.scheme":      "http",
+			"http.status_code": int64(418),
+			"http.status_text": "I'm a teapot",
+			"http.target":      "",
+			"net.transport":    "IP.TCP",
 		},
 	}})
 }

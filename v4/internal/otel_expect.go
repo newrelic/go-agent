@@ -66,7 +66,7 @@ func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
 				name, want.StatusCode, code)
 		}
 	}
-	if !want.SkipAttrsTest && want.Attributes != nil {
+	if want.Attributes != nil {
 		foundAttrs := span.Attributes()
 		if exactAttrs && len(foundAttrs) != len(want.Attributes) {
 			return fmt.Errorf("Incorrect number of attributes for span '%s':\n\texpect=%d actual=%d",

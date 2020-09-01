@@ -127,14 +127,9 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:          "UnaryUnary",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/UnaryUnary",
-				"nr.entryPoint":    true,
-			},
+			Name:       "UnaryUnary",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -220,14 +215,9 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:          "UnaryStream",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/UnaryStream",
-				"nr.entryPoint":    true,
-			},
+			Name:       "UnaryStream",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -311,14 +301,9 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:          "StreamUnary",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/StreamUnary",
-				"nr.entryPoint":    true,
-			},
+			Name:       "StreamUnary",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -415,14 +400,9 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			},
 		},
 		{
-			Name:          "StreamStream",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/StreamStream",
-				"nr.entryPoint":    true,
-			},
+			Name:       "StreamStream",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -563,14 +543,9 @@ func TestClientStreamingError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "UnaryStream",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/UnaryStream",
-				"nr.entryPoint":    true,
-			},
+			Name:       "UnaryStream",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{

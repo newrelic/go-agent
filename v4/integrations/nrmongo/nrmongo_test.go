@@ -163,15 +163,9 @@ func TestMonitor(t *testing.T) {
 			},
 		},
 		{
-			Name:          "txnName",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"transaction.name": "OtherTransaction/Go/txnName",
-				"sampled":          true,
-				"category":         "generic",
-				"nr.entryPoint":    true,
-			},
+			Name:       "txnName",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 

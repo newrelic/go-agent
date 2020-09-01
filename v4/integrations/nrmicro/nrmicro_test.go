@@ -200,14 +200,9 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 			},
 		},
 		{
-			Name:          "name",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/name",
-				"nr.entryPoint":    true,
-			},
+			Name:       "name",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -354,14 +349,9 @@ func TestClientPublishWithTransaction(t *testing.T) {
 			},
 		},
 		{
-			Name:          "name",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/name",
-				"nr.entryPoint":    true,
-			},
+			Name:       "name",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -521,14 +511,9 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 			},
 		},
 		{
-			Name:          "name",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category":         "generic",
-				"transaction.name": "OtherTransaction/Go/name",
-				"nr.entryPoint":    true,
-			},
+			Name:       "name",
+			ParentID:   internal.MatchNoParent,
+			Attributes: map[string]interface{}{},
 		},
 	})
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{{
@@ -595,36 +580,20 @@ func TestServerWrapperWithApp(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "Method",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
-			Attributes: map[string]interface{}{
-				"category": "generic",
-				"parentId": internal.MatchAnything,
-			},
+			Name:       "Method",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
 		},
 		{
-			Name:          "TestHandler.Method",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "TestHandler.Method",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":                      "generic",
-				"transaction.name":              "WebTransaction/Go/TestHandler.Method",
-				"nr.entryPoint":                 true,
-				"parentId":                      internal.MatchAnything,
-				"trustedParentId":               internal.MatchAnything,
-				"parent.account":                "123",
-				"parent.app":                    "456",
-				"parent.transportDuration":      internal.MatchAnything,
-				"parent.transportType":          "HTTP",
-				"parent.type":                   "App",
-				"request.method":                "TestHandler.Method",
-				"request.uri":                   "micro://testing/TestHandler.Method",
-				"request.headers.accept":        "application/json",
-				"request.headers.contentType":   "application/json",
-				"request.headers.contentLength": 3,
-				"httpResponseCode":              "200",
-				"http.statusCode":               200,
+				"http.method":                 "TestHandler.Method",
+				"http.request_content_length": int64(3),
+				"http.status_code":            int64(200),
+				"http.status_text":            "OK",
+				"http.url":                    "micro://testing/TestHandler.Method",
+				"http.user_agent":             internal.MatchAnything,
 			},
 		},
 		{
@@ -685,23 +654,16 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "TestHandlerWithError.Method",
-			ParentID:      internal.MatchNoParent,
-			StatusCode:    16,
-			SkipAttrsTest: true,
+			Name:       "TestHandlerWithError.Method",
+			ParentID:   internal.MatchNoParent,
+			StatusCode: 16,
 			Attributes: map[string]interface{}{
-				"category":                         "generic",
-				"transaction.name":                 "WebTransaction/Go/TestHandlerWithError.Method",
-				"nr.entryPoint":                    true,
-				newrelic.SpanAttributeErrorClass:   "401",
-				newrelic.SpanAttributeErrorMessage: "Unauthorized",
-				"request.method":                   "TestHandlerWithError.Method",
-				"request.uri":                      "micro://testing/TestHandlerWithError.Method",
-				"request.headers.accept":           "application/json",
-				"request.headers.contentType":      "application/json",
-				"request.headers.contentLength":    3,
-				"httpResponseCode":                 "401",
-				"http.statusCode":                  401,
+				"http.method":                 "TestHandlerWithError.Method",
+				"http.request_content_length": int64(3),
+				"http.status_code":            int64(401),
+				"http.status_text":            "Unauthorized",
+				"http.url":                    "micro://testing/TestHandlerWithError.Method",
+				"http.user_agent":             internal.MatchAnything,
 			},
 		},
 	})
@@ -718,23 +680,16 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 		},
 	}})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "TestHandlerWithError.Method",
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    16,
-		SkipAttrsTest: true,
+		Name:       "TestHandlerWithError.Method",
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 16,
 		Attributes: map[string]interface{}{
-			"guid":                          internal.MatchAnything,
-			"priority":                      internal.MatchAnything,
-			"sampled":                       internal.MatchAnything,
-			"traceId":                       internal.MatchAnything,
-			"nr.apdexPerfZone":              internal.MatchAnything,
-			"request.method":                "TestHandlerWithError.Method",
-			"request.uri":                   "micro://testing/TestHandlerWithError.Method",
-			"request.headers.accept":        "application/json",
-			"request.headers.contentType":   "application/json",
-			"request.headers.contentLength": 3,
-			"httpResponseCode":              401,
-			"http.statusCode":               401,
+			"http.method":                 "TestHandlerWithError.Method",
+			"http.request_content_length": int64(3),
+			"http.status_code":            int64(401),
+			"http.status_text":            "Unauthorized",
+			"http.url":                    "micro://testing/TestHandlerWithError.Method",
+			"http.user_agent":             internal.MatchAnything,
 		},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
@@ -783,23 +738,16 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
-		Name:          "TestHandlerWithNonMicroError.Method",
-		ParentID:      internal.MatchNoParent,
-		StatusCode:    13,
-		SkipAttrsTest: true,
+		Name:       "TestHandlerWithNonMicroError.Method",
+		ParentID:   internal.MatchNoParent,
+		StatusCode: 13,
 		Attributes: map[string]interface{}{
-			"guid":                          internal.MatchAnything,
-			"priority":                      internal.MatchAnything,
-			"sampled":                       internal.MatchAnything,
-			"traceId":                       internal.MatchAnything,
-			"nr.apdexPerfZone":              internal.MatchAnything,
-			"request.method":                "TestHandlerWithNonMicroError.Method",
-			"request.uri":                   "micro://testing/TestHandlerWithNonMicroError.Method",
-			"request.headers.accept":        "application/json",
-			"request.headers.contentType":   "application/json",
-			"request.headers.contentLength": 3,
-			"httpResponseCode":              500,
-			"http.statusCode":               500,
+			"http.method":                 "TestHandlerWithNonMicroError.Method",
+			"http.request_content_length": int64(3),
+			"http.status_code":            int64(500),
+			"http.status_text":            "Internal Server Error",
+			"http.url":                    "micro://testing/TestHandlerWithNonMicroError.Method",
+			"http.user_agent":             internal.MatchAnything,
 		},
 	}})
 	app.ExpectErrors(t, []internal.WantError{{
@@ -900,21 +848,10 @@ func TestServerSubscribe(t *testing.T) {
 			Attributes: map[string]interface{}{},
 		},
 		{
-			Name:          "topic receive",
-			ParentID:      internal.MatchAnyParent,
-			SkipAttrsTest: true,
+			Name:     "topic receive",
+			ParentID: internal.MatchAnyParent,
 			Attributes: map[string]interface{}{
-				"category":                 "generic",
-				"transaction.name":         "OtherTransaction/Go/Message/micro/Topic/Named/topic",
-				"nr.entryPoint":            true,
-				"parentId":                 internal.MatchAnything,
-				"trustedParentId":          internal.MatchAnything,
-				"message.routingKey":       "topic",
-				"parent.account":           "123",
-				"parent.app":               "456",
-				"parent.transportDuration": internal.MatchAnything,
-				"parent.transportType":     "HTTP",
-				"parent.type":              "App",
+				"message.routingKey": "topic",
 			},
 		},
 		{
@@ -985,17 +922,10 @@ func TestServerSubscribeWithError(t *testing.T) {
 	})
 	app.ExpectSpanEvents(t, []internal.WantSpan{
 		{
-			Name:          "topic receive",
-			ParentID:      internal.MatchNoParent,
-			SkipAttrsTest: true,
+			Name:     "topic receive",
+			ParentID: internal.MatchNoParent,
 			Attributes: map[string]interface{}{
-				"category":                         "generic",
-				"name":                             "OtherTransaction/Go/Message/micro/Topic/Named/topic",
-				"transaction.name":                 "OtherTransaction/Go/Message/micro/Topic/Named/topic",
-				"nr.entryPoint":                    true,
-				newrelic.SpanAttributeErrorClass:   "*errors.errorString",
-				newrelic.SpanAttributeErrorMessage: "subscriber error",
-				"message.routingKey":               "topic",
+				"message.routingKey": "topic",
 			},
 		},
 	})

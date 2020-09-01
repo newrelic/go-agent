@@ -109,12 +109,7 @@ type WantSpan struct {
 	ParentID   string
 	Kind       string
 	StatusCode uint32
-	// SkipAttrsTest indicates whether checks for attributes should be skipped.
-	// TODO: This allows us to skip testing attributes in integrations for now.
-	// The field should be removed once all segment and transaction level attributes
-	// have been added.
-	SkipAttrsTest bool
-	Attributes    map[string]interface{}
+	Attributes map[string]interface{}
 }
 
 // Expect exposes methods that allow for testing whether the correct data was

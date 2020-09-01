@@ -81,19 +81,9 @@ const (
 
 var (
 	genericSpan = internal.WantSpan{
-		Name:          txnName,
-		ParentID:      internal.MatchNoParent,
-		SkipAttrsTest: true,
-		Attributes: map[string]interface{}{
-			"transaction.name": "OtherTransaction/Go/" + txnName,
-			"sampled":          true,
-			"category":         "generic",
-			"priority":         internal.MatchAnything,
-			"guid":             internal.MatchAnything,
-			"transactionId":    internal.MatchAnything,
-			"nr.entryPoint":    true,
-			"traceId":          internal.MatchAnything,
-		},
+		Name:       txnName,
+		ParentID:   internal.MatchNoParent,
+		Attributes: map[string]interface{}{},
 	}
 	externalSpan = internal.WantSpan{
 		Name:     "http POST lambda.us-west-2.amazonaws.com",
