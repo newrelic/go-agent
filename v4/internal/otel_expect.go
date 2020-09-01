@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"google.golang.org/grpc/codes"
 )
 
 // OpenTelemetryExpect implements internal.Expect for use in testing.
@@ -54,6 +55,17 @@ func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
 				name, want.Kind, kind)
 		}
 	}
+	if want.StatusCode != MatchAnyStatusCode {
+		code := span.StatusCode()
+		if want.StatusCode == MatchAnyErrorStatusCode {
+			if code == 0 {
+				return fmt.Errorf("Status code for span '%s' should have been >0", name)
+			}
+		} else if codes.Code(want.StatusCode) != code {
+			return fmt.Errorf("Incorrect status code for span '%s':\n\texpect=%d actual=%d",
+				name, want.StatusCode, code)
+		}
+	}
 	if !want.SkipAttrsTest && want.Attributes != nil {
 		foundAttrs := span.Attributes()
 		if exactAttrs && len(foundAttrs) != len(want.Attributes) {
@@ -70,10 +82,6 @@ func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
 				return fmt.Errorf("Attr '%s' not found on span '%s'", k, name)
 			}
 		}
-	}
-	if code := span.StatusCode(); want.StatusCode != code {
-		return fmt.Errorf("Incorrect status code for span '%s':\n\texpect=%d actual=%d",
-			name, want.StatusCode, code)
 	}
 	return nil
 }
@@ -126,6 +134,12 @@ func (e *OpenTelemetryExpect) ExpectErrors(t Validator, want []WantError) {}
 // ExpectErrorEvents TODO
 func (e *OpenTelemetryExpect) ExpectErrorEvents(t Validator, want []WantEvent) {}
 
+// ExpectTxnTraces TODO
+func (e *OpenTelemetryExpect) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
+
+// ExpectSlowQueries TODO
+func (e *OpenTelemetryExpect) ExpectSlowQueries(t Validator, want []WantSlowQuery) {}
+
 // ExpectMetrics TODO
 func (e *OpenTelemetryExpect) ExpectMetrics(t Validator, want []WantMetric) {
 	t.Helper()
@@ -149,7 +163,8 @@ func (e *OpenTelemetryExpect) ExpectMetrics(t Validator, want []WantMetric) {
 				}
 			}
 			span := WantSpan{
-				Name: name,
+				Name:       name,
+				StatusCode: MatchAnyStatusCode,
 			}
 			e.expectSpanPresent(t, span, true)
 		} else if strings.HasPrefix(metric.Name, "OtherTransaction/Go/") {
@@ -160,7 +175,8 @@ func (e *OpenTelemetryExpect) ExpectMetrics(t Validator, want []WantMetric) {
 				}
 			}
 			span := WantSpan{
-				Name: name,
+				Name:       name,
+				StatusCode: MatchAnyStatusCode,
 			}
 			e.expectSpanPresent(t, span, true)
 		} else if strings.HasPrefix(metric.Name, "External/") {
@@ -267,12 +283,11 @@ func (e *OpenTelemetryExpect) ExpectTxnMetrics(t Validator, want WantTxn) {
 		ParentID: MatchNoParent,
 	}
 	if err := spansMatch(exp, spans[0], true); err != nil {
-		t.Error(err)
+		if want.NumErrors > 0 {
+			exp.StatusCode = MatchAnyErrorStatusCode
+		}
+		if err := spansMatch(exp, spans[len(spans)-1], true); err != nil {
+			t.Error(err)
+		}
 	}
 }
-
-// ExpectTxnTraces TODO
-func (e *OpenTelemetryExpect) ExpectTxnTraces(t Validator, want []WantTxnTrace) {}
-
-// ExpectSlowQueries TODO
-func (e *OpenTelemetryExpect) ExpectSlowQueries(t Validator, want []WantSlowQuery) {}

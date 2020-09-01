@@ -4,14 +4,17 @@
 package newrelic
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/newrelic/go-agent/v4/internal"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"google.golang.org/grpc/codes"
 )
 
 func getTraceID(s trace.Span) string {
@@ -375,4 +378,157 @@ func TestNilTransactionAddAttribute(t *testing.T) {
 	txn.AddAttribute("color", "purple")
 	txn = new(Transaction)
 	txn.AddAttribute("color", "purple")
+}
+
+func TestAddTxnRequestAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		req   *http.Request
+		attrs map[string]interface{}
+	}{
+		{
+			name: "empty request",
+			req:  &http.Request{},
+			attrs: map[string]interface{}{
+				"http.method":   "",
+				"http.scheme":   "http",
+				"http.target":   "",
+				"net.transport": "IP.TCP",
+			},
+		},
+		{
+			name: "complete request",
+			req: func() *http.Request {
+				req, err := http.NewRequest("POST", "http://example.com:80/the/path?the=query",
+					bytes.NewBufferString("hello world"))
+				if err != nil {
+					panic(err)
+				}
+				req.SetBasicAuth("Harry Potter", "Caput Draconis")
+				req.RequestURI = "/what/path"
+				req.Header.Add("User-Agent", "curl/7.64.1")
+				return req
+			}(),
+			attrs: map[string]interface{}{
+				"enduser.id":                  "Harry Potter",
+				"http.flavor":                 "1.1",
+				"http.host":                   "example.com:80",
+				"http.method":                 "POST",
+				"http.request_content_length": int64(11),
+				"http.scheme":                 "http",
+				"http.target":                 "/what/path",
+				"http.user_agent":             "curl/7.64.1",
+				"net.host.name":               "example.com",
+				"net.host.port":               int64(80),
+				"net.transport":               "IP.TCP",
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			addTxnHTTPRequestAttributes(test.req, func(keyValues ...kv.KeyValue) {
+				for _, keyValue := range keyValues {
+					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
+				}
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
+			}
+		})
+	}
+}
+
+func TestAddTxnStatusCodeAttributes(t *testing.T) {
+	testcases := []struct {
+		name  string
+		code  int
+		attrs map[string]interface{}
+	}{
+		{
+			name: "non-error code",
+			code: 0,
+			attrs: map[string]interface{}{
+				"http.status_code": int64(0),
+			},
+		},
+		{
+			name: "OK code",
+			code: 200,
+			attrs: map[string]interface{}{
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+			},
+		},
+		{
+			name: "error level code",
+			code: 500,
+			attrs: map[string]interface{}{
+				"http.status_code": int64(500),
+				"http.status_text": "Internal Server Error",
+			},
+		},
+		{
+			name: "absurd code",
+			code: 999,
+			attrs: map[string]interface{}{
+				"http.status_code": int64(999),
+			},
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			attrs := make(map[string]interface{})
+			addTxnStatusCodeAttributes(test.code, func(keyValues ...kv.KeyValue) {
+				for _, keyValue := range keyValues {
+					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
+				}
+			})
+
+			if len(attrs) != len(test.attrs) {
+				t.Errorf("Incorrect number of attrs created:\n\texpect=%d actual=%d",
+					len(test.attrs), len(attrs))
+			}
+			for expK, expV := range test.attrs {
+				actV, ok := attrs[expK]
+				if !ok {
+					t.Errorf("Attribute '%s' not found", expK)
+				} else if actV != expV {
+					t.Errorf("Incorrect value for attribute '%s':\n\texpect=%s actual=%s",
+						expK, expV, actV)
+				}
+			}
+		})
+	}
+}
+
+func TestSetTxnSpanStatus(t *testing.T) {
+	var actCode codes.Code
+	var actStr string
+	setTxnSpanStatus(500, func(c codes.Code, s string) {
+		actCode = c
+		actStr = s
+	})
+
+	if expCode := codes.Code(13); actCode != expCode {
+		t.Errorf("Incorrect code recorded:\n\texpect=%d actual=%d",
+			expCode, actCode)
+	}
+	if expStr := "HTTP status code: 500"; actStr != expStr {
+		t.Errorf("Incorrect string recorded:\n\texpect=%s actual=%s",
+			expStr, actStr)
+	}
 }

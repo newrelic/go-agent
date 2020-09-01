@@ -200,7 +200,6 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 			name := m.Topic() + " receive"
 			txn := app.StartTransaction(name)
 			defer txn.End()
-			txn.AddAttribute(newrelic.AttributeMessageRoutingKey, m.Topic())
 			if md, ok := metadata.FromContext(ctx); ok {
 				hdrs := http.Header{}
 				for k, v := range md {
@@ -208,6 +207,7 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 				}
 				txn.AcceptDistributedTraceHeaders(newrelic.TransportHTTP, hdrs)
 			}
+			txn.AddAttribute(newrelic.AttributeMessageRoutingKey, m.Topic())
 			ctx = newrelic.NewContext(ctx, txn)
 			err = fn(ctx, m)
 			if err != nil {

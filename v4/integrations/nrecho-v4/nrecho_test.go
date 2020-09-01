@@ -77,8 +77,7 @@ func TestTransactionContext(t *testing.T) {
 	e := echo.New()
 	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
-		txn := FromContext(c)
-		txn.NoticeError(errors.New("ooops"))
+		defer FromContext(c).StartSegment("segment").End()
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
@@ -93,9 +92,28 @@ func TestTransactionContext(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:  "GET /hello",
+		IsWeb: true,
+	})
+	app.ExpectSpanEvents(t, []internal.WantSpan{
+		{
+			Name:       "segment",
+			ParentID:   internal.MatchAnyParent,
+			Attributes: map[string]interface{}{},
+		},
+		{
+			Name:     "GET /hello",
+			ParentID: internal.MatchNoParent,
+			Attributes: map[string]interface{}{
+				"http.flavor":      "1.1",
+				"http.method":      "GET",
+				"http.scheme":      "http",
+				"http.status_code": int64(200),
+				"http.status_text": "OK",
+				"http.target":      "",
+				"net.transport":    "IP.TCP",
+			},
+		},
 	})
 }
 
@@ -113,8 +131,9 @@ func TestNotFoundHandler(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "NotFoundHandler",
-		IsWeb: true,
+		Name:      "NotFoundHandler",
+		IsWeb:     true,
+		NumErrors: 1,
 	})
 }
 
@@ -165,6 +184,7 @@ func TestReturnsHTTPError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "GET /hello",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    3,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
@@ -200,6 +220,7 @@ func TestReturnsError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "GET /hello",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    13,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone": "F",
@@ -235,6 +256,7 @@ func TestResponseCode(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:          "GET /hello",
 		ParentID:      internal.MatchNoParent,
+		StatusCode:    3,
 		SkipAttrsTest: true,
 		Attributes: map[string]interface{}{
 			"nr.apdexPerfZone":             "F",

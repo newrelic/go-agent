@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v4/internal"
-	"google.golang.org/grpc/codes"
 )
 
 func TestNewRoundTripper(t *testing.T) {
@@ -46,7 +45,7 @@ func TestNewRoundTripper(t *testing.T) {
 			SpanID:     "0000000000000003",
 			TraceID:    "00000000000000020000000000000000",
 			ParentID:   "0000000000000002",
-			StatusCode: codes.InvalidArgument,
+			StatusCode: 3,
 			Attributes: map[string]interface{}{
 				"http.component":   "http",
 				"http.flavor":      "1.1",
