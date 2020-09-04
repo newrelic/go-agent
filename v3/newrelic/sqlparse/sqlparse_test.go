@@ -192,3 +192,20 @@ func TestExtractTable(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSqlParsing(b *testing.B) {
+	var segment newrelic.DatastoreSegment
+	query := `SELECT DISTINCT account_id, envdata->>'Ruby version' as "Ruby version", count(envdata->>'Ruby version')
+	FROM env_data_by_month
+	WHERE language='ruby'
+	AND envdata->>'Ruby version' IS NOT NULL
+	GROUP BY account_id, envdata->>'Ruby version'
+	ORDER BY account_id;`
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		ParseQuery(&segment, query)
+	}
+}
