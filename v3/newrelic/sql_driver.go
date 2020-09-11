@@ -8,6 +8,7 @@ package newrelic
 import (
 	"context"
 	"database/sql/driver"
+	"sync"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type SQLDriverSegmentBuilder struct {
 	BaseSegment DatastoreSegment
 	ParseQuery  func(segment *DatastoreSegment, query string)
 	ParseDSN    func(segment *DatastoreSegment, dataSourceName string)
+	wg          sync.WaitGroup
 }
 
 // InstrumentSQLDriver wraps a driver.Driver, adding instrumentation for exec
@@ -51,7 +53,13 @@ func (bld SQLDriverSegmentBuilder) useDSN(dsn string) SQLDriverSegmentBuilder {
 
 func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilder {
 	if f := bld.ParseQuery; nil != f {
-		f(&bld.BaseSegment, query)
+		// Complex statements can take significant time to parse, so we do it in a separate goroutine.
+		go func() {
+			bld.wg.Add(1)
+			defer bld.wg.Done()
+			f(&bld.BaseSegment, query)
+		}()
+
 	}
 	return bld
 }
@@ -131,10 +139,12 @@ func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query
 	if nil != err {
 		return nil, err
 	}
-	return optionalMethodsStmt(&wrapStmt{
+	r := optionalMethodsStmt(&wrapStmt{
 		bld:      bld.useQuery(query),
 		original: original,
-	}), nil
+	})
+	bld.wg.Wait()
+	return r, nil
 }
 
 func (w *wrapConn) Prepare(query string) (driver.Stmt, error) {
@@ -174,6 +184,7 @@ func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
+	w.bld.wg.Wait()
 	return result, err
 }
 
@@ -199,6 +210,7 @@ func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
+	w.bld.wg.Wait()
 	return rows, err
 }
 
