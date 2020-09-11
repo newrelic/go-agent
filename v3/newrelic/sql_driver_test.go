@@ -8,6 +8,7 @@ package newrelic
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -86,9 +87,11 @@ var (
 			segment.DatabaseName = fields[2]
 		},
 		ParseQuery: func(segment *DatastoreSegment, query string) {
+			fmt.Println("%%%%% Parsing query")
 			fields := strings.Split(query, ",")
 			segment.Operation = fields[0]
 			segment.Collection = fields[1]
+			fmt.Println("%%%%% Query parsed")
 		},
 	}
 )

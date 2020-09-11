@@ -8,7 +8,7 @@ package newrelic
 import (
 	"context"
 	"database/sql/driver"
-	"sync"
+	"fmt"
 	"time"
 )
 
@@ -21,7 +21,6 @@ type SQLDriverSegmentBuilder struct {
 	BaseSegment DatastoreSegment
 	ParseQuery  func(segment *DatastoreSegment, query string)
 	ParseDSN    func(segment *DatastoreSegment, dataSourceName string)
-	wg          sync.WaitGroup
 }
 
 // InstrumentSQLDriver wraps a driver.Driver, adding instrumentation for exec
@@ -54,10 +53,15 @@ func (bld SQLDriverSegmentBuilder) useDSN(dsn string) SQLDriverSegmentBuilder {
 func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilder {
 	if f := bld.ParseQuery; nil != f {
 		// Complex statements can take significant time to parse, so we do it in a separate goroutine.
+		bld.BaseSegment.initWG()
 		go func() {
-			bld.wg.Add(1)
-			defer bld.wg.Done()
+			defer func() {
+				fmt.Println("##### WaitGroup done")
+				bld.BaseSegment.wg.Done()
+				fmt.Println("##### WaitGroup done FOR REAL")
+			}()
 			f(&bld.BaseSegment, query)
+			fmt.Printf("##### Segment: %v\n", bld.BaseSegment)
 		}()
 
 	}
@@ -139,11 +143,17 @@ func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query
 	if nil != err {
 		return nil, err
 	}
+	fmt.Println("@@@@@ preparing query, adding to WG")
+	// TODO make sure this is nil safe
+	bld.BaseSegment.initWG()
+	bld.BaseSegment.wg.Add(1)
 	r := optionalMethodsStmt(&wrapStmt{
 		bld:      bld.useQuery(query),
 		original: original,
 	})
-	bld.wg.Wait()
+	fmt.Println("@@@@@ Waiting for query parsing")
+	bld.BaseSegment.wg.Wait()
+	fmt.Printf("@@@@@ Query parsing done: %v\n", bld)
 	return r, nil
 }
 
@@ -184,7 +194,9 @@ func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	w.bld.wg.Wait()
+	// TODO make sure this is nil safe
+	w.bld.BaseSegment.initWG()
+	w.bld.BaseSegment.wg.Wait()
 	return result, err
 }
 
@@ -210,7 +222,10 @@ func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	w.bld.wg.Wait()
+	// TODO make sure this is nil safe
+	fmt.Println("&&&&& Waiting for query parsing")
+	w.bld.BaseSegment.wg.Wait()
+	fmt.Println("&&&&& Query parsing done")
 	return rows, err
 }
 
@@ -256,8 +271,10 @@ func (w *wrapStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (d
 // QueryContext implements StmtQueryContext.
 func (w *wrapStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	segment := w.bld.startSegment(ctx)
+	fmt.Println(" ***** Starting segment")
 	rows, err := w.original.(driver.StmtQueryContext).QueryContext(ctx, args)
 	segment.End()
+	fmt.Printf(" ***** Ending segment: %v\n", segment)
 	return rows, err
 }
 

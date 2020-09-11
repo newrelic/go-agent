@@ -4,6 +4,7 @@
 package sqlparse
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 

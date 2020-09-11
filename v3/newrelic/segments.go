@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"net/http"
+	"sync"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -67,6 +68,10 @@ type DatastoreSegment struct {
 	// being executed.  This becomes the db.instance attribute on Span events
 	// and Transaction Trace segments.
 	DatabaseName string
+
+	// This WaitGroup is used to ensure that the parsing of any SQL queries in a separate goroutine
+	// are complete.
+	wg *sync.WaitGroup
 }
 
 // ExternalSegment instruments external calls.  StartExternalSegment is the
@@ -178,6 +183,13 @@ func (s *DatastoreSegment) End() {
 			"collection": s.Collection,
 			"operation":  s.Operation,
 		})
+	}
+}
+
+// initWG ensures that the pointer to the WaitGroup is not nil
+func (s *DatastoreSegment) initWG() {
+	if s.wg == nil {
+		s.wg = &sync.WaitGroup{}
 	}
 }
 
