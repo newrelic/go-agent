@@ -3,7 +3,7 @@
 ## Product Vision
 The goal of the Go agent is to provide complete visibility into the health of your service. The agent provides metrics about the runtime health of your service and the process it runs in, and traces that show how specific requests are performing. It also provides information about the environment in which it is running, so you can identify issues with specific hosts, regions, deployments, and other facets. 
 
-New Relic is moving toward OpenTelemetry. OpenTelemetry is a unified standard for service instrumentation. You will soon see an updated version of the Go Agent SDK that uses the Go OpenTelemetry SDK as its foundation. OpenTelemetry will include a broad set of high-quality community-contributed instrumentation and a powerful vendor-neutral API for adding your own instrumentation.
+New Relic is moving toward OpenTelemetry. OpenTelemetry is a unified standard for service instrumentation. You can use our [OpenTelemetry Exporter](https://github.com/newrelic/opentelemetry-exporter-go) today, and will soon see a shim will convert New Relic Go Agent data to OpenTelemetry. OpenTelemetry will include a broad set of high-quality community-contributed instrumentation and a powerful vendor-neutral API for adding your own instrumentation.
 
 
 ## Roadmap
