@@ -77,15 +77,13 @@ func skipComment(query string) string {
 	if strings.HasPrefix(query, "/*") {
 		if commentEnd := strings.Index(query[2:], "*/"); commentEnd != -1 {
 			return skipComment(query[commentEnd+4:])
-		} else {
-			return ""
 		}
+		return ""
 	} else if strings.HasPrefix(query, "--") {
 		if commentEnd := strings.Index(query[2:], "\n"); commentEnd != -1 {
 			return skipComment(query[commentEnd+3:])
-		} else {
-			return ""
 		}
+		return ""
 	} else if strings.HasPrefix(query, ";") || strings.HasPrefix(query, "#") {
 		return skipComment(query[1:])
 	}
