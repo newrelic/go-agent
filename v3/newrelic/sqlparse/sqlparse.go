@@ -60,23 +60,6 @@ func extractTable(s string) string {
 	return buffer.String()
 }
 
-// Returns a new string with trailing comments removed.
-func cutComment(query string) string {
-	query = skipSpace(query)
-	for i, c := range query {
-		if strings.HasPrefix(query[i:], "/*") || strings.HasPrefix(query[i:], "--") || c == ';' || c == '#' {
-			query = fmt.Sprintf("%s%s", query[:i], skipComment(query[i:]))
-			return cutComment(query)
-		}
-	}
-	return query
-}
-
-type sqlQuery struct {
-	q string
-	p uint64
-}
-
 // Returns a string slice of query without trailing spaces.
 func skipSpace(query string) string {
 	for i, c := range query {
@@ -84,37 +67,47 @@ func skipSpace(query string) string {
 			return query[i:]
 		}
 	}
-	return ""
+	return query
 }
 
 // Returns a string slice of query with trailing comments removed.
 func skipComment(query string) string {
 	query = skipSpace(query)
 
-	for {
-		if strings.HasPrefix(query, "/*") {
-			if commentEnd := strings.Index(query[2:], "*/"); commentEnd != -1 {
-				query = query[commentEnd+4:]
-				query = skipSpace(query)
-			} else {
-				return ""
-			}
-		} else if strings.HasPrefix(query, "--") {
-			if commentEnd := strings.Index(query[2:], "\n"); commentEnd != -1 {
-				query = query[commentEnd+3:]
-				query = skipSpace(query)
-			} else {
-				return ""
-			}
-		} else if strings.HasPrefix(query, ";") || strings.HasPrefix(query, "#") {
-			query = query[1:]
-			query = skipSpace(query)
+	if strings.HasPrefix(query, "/*") {
+		if commentEnd := strings.Index(query[2:], "*/"); commentEnd != -1 {
+			return skipComment(query[commentEnd+4:])
 		} else {
-			break
+			return ""
 		}
+	} else if strings.HasPrefix(query, "--") {
+		if commentEnd := strings.Index(query[2:], "\n"); commentEnd != -1 {
+			return skipComment(query[commentEnd+3:])
+		} else {
+			return ""
+		}
+	} else if strings.HasPrefix(query, ";") || strings.HasPrefix(query, "#") {
+		return skipComment(query[1:])
 	}
 
 	return query
+}
+
+// Returns a new string with all comments removed.
+func removeAllComments(query string) string {
+	query = skipComment(query)
+	for i, c := range query {
+		if strings.HasPrefix(query[i:], "/*") || strings.HasPrefix(query[i:], "--") || c == ';' || c == '#' {
+			query = fmt.Sprintf("%s%s", query[:i], skipComment(query[i:]))
+			return removeAllComments(query)
+		}
+	}
+	return query
+}
+
+// A SQL tokenizer that extracts tokens from an SQL string.
+type sqlTokenizer struct {
+	query string
 }
 
 // Returns the first word and the remainder of the given string (with trailing
@@ -122,18 +115,27 @@ func skipComment(query string) string {
 //
 // A word is either sequence of letters and digits, or a single special
 // character.
-func firstWord(query string) (string, string) {
-	query = skipSpace(query)
-	for i, c := range query {
+func (q *sqlTokenizer) nextWord() string {
+	q.query = skipComment(q.query)
+
+	for i, c := range q.query {
 		if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+			var word string
 			if unicode.IsSpace(c) || i != 0 {
-				return query[0:i], skipComment(query[i+1:])
+				word = q.query[0:i]
+				q.query = q.query[i+1:]
 			} else {
-				return query[0 : i+1], skipComment(query[i+1:])
+				word = q.query[0 : i+1]
+				q.query = q.query[i+1:]
 			}
+			q.query = skipComment(q.query)
+			return word
 		}
 	}
-	return query, ""
+
+	word := q.query
+	q.query = ""
+	return word
 }
 
 // Returns the first token and the remainder of the given string (with trailing
@@ -141,23 +143,30 @@ func firstWord(query string) (string, string) {
 //
 // A token is either an expression surrounded by [], or the charater sequence
 // before the first space, '(', or '{'.
-func firstToken(query string) (string, string) {
-	query = skipSpace(query)
+func (q *sqlTokenizer) nextToken() string {
+	q.query = skipComment(q.query)
 
-	if strings.HasPrefix(query, "[") {
-		for i, c := range query {
+	if strings.HasPrefix(q.query, "[") {
+		for i, c := range q.query {
 			if c == ']' {
-				return query[0 : i+1], skipComment(query[i+1:])
+				token := q.query[0 : i+1]
+				q.query = q.query[i+1:]
+				return token
 			}
 		}
 	}
 
-	for i, c := range query {
+	for i, c := range q.query {
 		if unicode.IsSpace(c) || (i != 0 && strings.ContainsRune("({,", c)) {
-			return query[0:i], skipComment(query[i+1:])
+			token := q.query[0:i]
+			q.query = q.query[i+1:]
+			return token
 		}
 	}
-	return query, ""
+
+	token := q.query
+	q.query = ""
+	return token
 }
 
 // ParseQuery parses table and operation from the SQL query string.  It is
@@ -169,34 +178,30 @@ func firstToken(query string) (string, string) {
 // Ability to correctly parse queries for other SQL databases is not
 // guaranteed.
 func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
-	s := skipComment(query)
-	op, s := firstWord(s)
-	op = strings.ToLower(cutComment(op))
+	sql := sqlTokenizer{query: query}
+	op := strings.ToLower(removeAllComments(sql.nextWord()))
 	if tablePrefix, ok := operations[op]; ok {
 		segment.Operation = op
 		if tablePrefix != "" {
 			for {
-				var token string
-				token, s = firstWord(s)
-				if token == "" {
+				word := sql.nextWord()
+				if word == "" {
 					break
 				}
-				if strings.ToLower(token) == tablePrefix {
-					var table string
-					table, s = firstToken(s)
-					segment.Collection = extractTable(cutComment(table))
+				if strings.ToLower(word) == tablePrefix {
+					table := sql.nextToken()
+					segment.Collection = extractTable(removeAllComments(table))
 				}
 			}
 		}
 		if op == "update" {
 			for {
-				var token string
-				token, s = firstToken(s)
+				token := sql.nextToken()
 				if token == "" {
 					break
 				}
 				if _, ok := updateModifiers[strings.ToLower(token)]; !ok {
-					segment.Collection = extractTable(cutComment(token))
+					segment.Collection = extractTable(removeAllComments(token))
 					break
 				}
 			}
