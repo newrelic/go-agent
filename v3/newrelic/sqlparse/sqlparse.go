@@ -60,7 +60,7 @@ func extractTable(s string) string {
 	return buffer.String()
 }
 
-// Returns a string slice of query without trailing spaces.
+// Returns a string slice of query without leading spaces.
 func skipSpace(query string) string {
 	for i, c := range query {
 		if !unicode.IsSpace(c) {
@@ -70,7 +70,7 @@ func skipSpace(query string) string {
 	return query
 }
 
-// Returns a string slice of query with trailing comments removed.
+// Returns a string slice of query with leading comments removed.
 func skipComment(query string) string {
 	query = skipSpace(query)
 
@@ -177,7 +177,7 @@ func (q *sqlTokenizer) nextToken() string {
 // guaranteed.
 func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	sql := sqlTokenizer{query: query}
-	op := strings.ToLower(removeAllComments(sql.nextWord()))
+	op := strings.ToLower(sql.nextWord())
 	if tablePrefix, ok := operations[op]; ok {
 		segment.Operation = op
 		if tablePrefix != "" {
