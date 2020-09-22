@@ -192,3 +192,91 @@ func TestExtractTable(t *testing.T) {
 		}
 	}
 }
+
+func TestSqlTokenizerNextWord(t *testing.T) {
+	for input, words := range map[string][]string{
+		"SELECT * FROM table":            []string{"SELECT", "*", "FROM", "table"},
+		"SELECT * FROM [ table ]":        []string{"SELECT", "*", "FROM", "[", "table", "]"},
+		"SELECT a,b FROM table":          []string{"SELECT", "a", ",", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": []string{"SELECT", "*", "FROM", "(", "SELECT", "COUNT", "(", ")", ")"},
+		"UPDATE rollback{foo}":           []string{"UPDATE", "rollback", "{", "foo", "}"},
+	} {
+		tokenizer := sqlTokenizer{input}
+
+		for i, word := range words {
+			if next := tokenizer.nextWord(); word != next {
+				t.Errorf("%d query '%s': expected %s, got %s", i, input, word, next)
+			}
+		}
+
+		if next := tokenizer.nextWord(); next != "" {
+			t.Errorf("Expected empty word, got %s", next)
+		}
+	}
+}
+
+func TestSqlTokenizerNextToken(t *testing.T) {
+	for input, tokens := range map[string][]string{
+		"SELECT * FROM [ table ]":        []string{"SELECT", "*", "FROM", "[ table ]"},
+		"SELECT a,b FROM table":          []string{"SELECT", "a", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": []string{"SELECT", "*", "FROM", "(SELECT", "COUNT", "))"},
+		"UPDATE rollback{foo}":           []string{"UPDATE", "rollback", "foo}"},
+	} {
+		tokenizer := sqlTokenizer{input}
+
+		for _, token := range tokens {
+			if next := tokenizer.nextToken(); token != next {
+				t.Errorf("Expected %s, got %s", token, next)
+			}
+		}
+
+		if next := tokenizer.nextToken(); next != "" {
+			t.Errorf("Expected empty token , got %s", next)
+		}
+	}
+}
+
+func TestRemoveAllComments(t *testing.T) {
+	for input, expected := range map[string]string{
+		"query -- comment":                                  "query  ",
+		"query -- comment\nother":                           "query  other",
+		"query /* comment */":                               "query  ",
+		"query /* comment */ other":                         "query  other",
+		"query /* comment */ other /* other comment */ end": "query  other  end",
+		"query # comment":                                   "query  ",
+		"query# comment\nother":                             "query other",
+	} {
+		if result := removeAllComments(input); result != expected {
+			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+		}
+	}
+}
+
+func TestSkipComment(t *testing.T) {
+	for input, expected := range map[string]string{
+		" -- comment\nquery":   "query",
+		"/* comment */ query":  "query",
+		"/* comment */query":   "query",
+		"\t/* comment */query": "query",
+		"# comment\nquery":     "query",
+		"# comment\nquery ":    "query ",
+		" query":               "query",
+	} {
+		if result := skipComment(input); result != expected {
+			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+		}
+	}
+}
+
+func TestSkipSpace(t *testing.T) {
+	for input, expected := range map[string]string{
+		"query":    "query",
+		"  query":  "query",
+		"\t query": "query",
+		"\n query": "query",
+	} {
+		if result := skipSpace(input); result != expected {
+			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+		}
+	}
+}

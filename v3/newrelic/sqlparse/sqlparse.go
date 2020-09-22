@@ -79,12 +79,12 @@ func skipComment(query string) string {
 			return skipComment(query[commentEnd+4:])
 		}
 		return ""
-	} else if strings.HasPrefix(query, "--") {
-		if commentEnd := strings.Index(query[2:], "\n"); commentEnd != -1 {
-			return skipComment(query[commentEnd+3:])
+	} else if strings.HasPrefix(query, "--") || strings.HasPrefix(query, "#") {
+		if commentEnd := strings.Index(query[1:], "\n"); commentEnd != -1 {
+			return skipComment(query[commentEnd+2:])
 		}
 		return ""
-	} else if strings.HasPrefix(query, ";") || strings.HasPrefix(query, "#") {
+	} else if strings.HasPrefix(query, ";") {
 		return skipComment(query[1:])
 	}
 
@@ -95,8 +95,8 @@ func skipComment(query string) string {
 func removeAllComments(query string) string {
 	query = skipComment(query)
 	for i, c := range query {
-		if strings.HasPrefix(query[i:], "/*") || strings.HasPrefix(query[i:], "--") || c == ';' || c == '#' {
-			query = fmt.Sprintf("%s%s", query[:i], skipComment(query[i:]))
+		if strings.HasPrefix(query[i:], "/*") || strings.HasPrefix(query[i:], "--") || c == '#' {
+			query = fmt.Sprintf("%s %s", query[:i], skipComment(query[i:]))
 			return removeAllComments(query)
 		}
 	}
@@ -121,7 +121,7 @@ func (q *sqlTokenizer) nextWord() string {
 			var word string
 			if unicode.IsSpace(c) || i != 0 {
 				word = q.query[0:i]
-				q.query = q.query[i+1:]
+				q.query = q.query[i:]
 			} else {
 				word = q.query[0 : i+1]
 				q.query = q.query[i+1:]
