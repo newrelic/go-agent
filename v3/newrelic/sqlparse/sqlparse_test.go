@@ -203,14 +203,14 @@ func TestSqlTokenizerNextWord(t *testing.T) {
 	} {
 		tokenizer := sqlTokenizer{input}
 
-		for i, word := range words {
+		for _, word := range words {
 			if next := tokenizer.nextWord(); word != next {
-				t.Errorf("%d query '%s': expected %s, got %s", i, input, word, next)
+				t.Errorf("query '%s': expected %s, got %s", input, word, next)
 			}
 		}
 
 		if next := tokenizer.nextWord(); next != "" {
-			t.Errorf("Expected empty word, got %s", next)
+			t.Errorf("query '%s': expected empty word, got %s", input, next)
 		}
 	}
 }
@@ -226,12 +226,12 @@ func TestSqlTokenizerNextToken(t *testing.T) {
 
 		for _, token := range tokens {
 			if next := tokenizer.nextToken(); token != next {
-				t.Errorf("Expected %s, got %s", token, next)
+				t.Errorf("query '%s': expected %s, got %s", input, token, next)
 			}
 		}
 
 		if next := tokenizer.nextToken(); next != "" {
-			t.Errorf("Expected empty token , got %s", next)
+			t.Errorf("query '%s': expected empty token , got %s", input, next)
 		}
 	}
 }
@@ -247,7 +247,7 @@ func TestRemoveAllComments(t *testing.T) {
 		"query# comment\nother":                             "query other",
 	} {
 		if result := removeAllComments(input); result != expected {
-			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+			t.Errorf("query '%s': expected %s, got %s (for input %s)", input, expected, result)
 		}
 	}
 }
@@ -263,7 +263,7 @@ func TestSkipComment(t *testing.T) {
 		" query":               "query",
 	} {
 		if result := skipComment(input); result != expected {
-			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+			t.Errorf("query '%s': expected %s, got %s (for input %s)", input, expected, result)
 		}
 	}
 }
@@ -276,7 +276,7 @@ func TestSkipSpace(t *testing.T) {
 		"\n query": "query",
 	} {
 		if result := skipSpace(input); result != expected {
-			t.Errorf("Expected %s, got %s (for input %s)", expected, result, input)
+			t.Errorf("query: '%s': expected %s, got %s", input, expected, result)
 		}
 	}
 }
