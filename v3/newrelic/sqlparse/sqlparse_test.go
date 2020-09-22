@@ -195,11 +195,11 @@ func TestExtractTable(t *testing.T) {
 
 func TestSqlTokenizerNextWord(t *testing.T) {
 	for input, words := range map[string][]string{
-		"SELECT * FROM table":            []string{"SELECT", "*", "FROM", "table"},
-		"SELECT * FROM [ table ]":        []string{"SELECT", "*", "FROM", "[", "table", "]"},
-		"SELECT a,b FROM table":          []string{"SELECT", "a", ",", "b", "FROM", "table"},
-		"SELECT * FROM (SELECT COUNT())": []string{"SELECT", "*", "FROM", "(", "SELECT", "COUNT", "(", ")", ")"},
-		"UPDATE rollback{foo}":           []string{"UPDATE", "rollback", "{", "foo", "}"},
+		"SELECT * FROM table":            {"SELECT", "*", "FROM", "table"},
+		"SELECT * FROM [ table ]":        {"SELECT", "*", "FROM", "[", "table", "]"},
+		"SELECT a,b FROM table":          {"SELECT", "a", ",", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": {"SELECT", "*", "FROM", "(", "SELECT", "COUNT", "(", ")", ")"},
+		"UPDATE rollback{foo}":           {"UPDATE", "rollback", "{", "foo", "}"},
 	} {
 		tokenizer := sqlTokenizer{input}
 
@@ -217,10 +217,10 @@ func TestSqlTokenizerNextWord(t *testing.T) {
 
 func TestSqlTokenizerNextToken(t *testing.T) {
 	for input, tokens := range map[string][]string{
-		"SELECT * FROM [ table ]":        []string{"SELECT", "*", "FROM", "[ table ]"},
-		"SELECT a,b FROM table":          []string{"SELECT", "a", "b", "FROM", "table"},
-		"SELECT * FROM (SELECT COUNT())": []string{"SELECT", "*", "FROM", "(SELECT", "COUNT", "))"},
-		"UPDATE rollback{foo}":           []string{"UPDATE", "rollback", "foo}"},
+		"SELECT * FROM [ table ]":        {"SELECT", "*", "FROM", "[ table ]"},
+		"SELECT a,b FROM table":          {"SELECT", "a", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": {"SELECT", "*", "FROM", "(SELECT", "COUNT", "))"},
+		"UPDATE rollback{foo}":           {"UPDATE", "rollback", "foo}"},
 	} {
 		tokenizer := sqlTokenizer{input}
 
