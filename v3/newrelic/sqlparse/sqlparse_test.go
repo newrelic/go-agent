@@ -247,7 +247,7 @@ func TestRemoveAllComments(t *testing.T) {
 		"query# comment\nother":                             "query other",
 	} {
 		if result := removeAllComments(input); result != expected {
-			t.Errorf("query '%s': expected %s, got %s (for input %s)", input, expected, result)
+			t.Errorf("query '%s': expected %s, got %s", input, expected, result)
 		}
 	}
 }
@@ -263,7 +263,7 @@ func TestSkipComment(t *testing.T) {
 		" query":               "query",
 	} {
 		if result := skipComment(input); result != expected {
-			t.Errorf("query '%s': expected %s, got %s (for input %s)", input, expected, result)
+			t.Errorf("query '%s': expected %s, got %s", input, expected, result)
 		}
 	}
 }
