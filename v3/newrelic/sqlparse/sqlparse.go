@@ -191,8 +191,7 @@ func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 					segment.Collection = extractTable(removeAllComments(table))
 				}
 			}
-		}
-		if op == "update" {
+		} else if op == "update" {
 			for {
 				token := sql.nextToken()
 				if token == "" {
