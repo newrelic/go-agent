@@ -243,8 +243,9 @@ func TestRemoveAllComments(t *testing.T) {
 		"query /* comment */":                               "query  ",
 		"query /* comment */ other":                         "query  other",
 		"query /* comment */ other /* other comment */ end": "query  other  end",
-		"query # comment":                                   "query  ",
-		"query# comment\nother":                             "query other",
+		"/* leading */ query /* comment */ other /* other comment */ end /* trailing */": "query  other  end  ",
+		"query # comment":       "query  ",
+		"query# comment\nother": "query other",
 	} {
 		if result := removeAllComments(input); result != expected {
 			t.Errorf("query '%s': expected %s, got %s", input, expected, result)
