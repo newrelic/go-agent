@@ -120,7 +120,7 @@ func getName(c handlerNamer, useNewNames bool) string {
 // continue using the old transaction names, use
 // nrgin.MiddlewareHandlerTxnNames.
 func Middleware(app *newrelic.Application) gin.HandlerFunc {
-	return middleware(app, true)
+	return middleware(app, true, getTransactionNew)
 }
 
 // MiddlewareHandlerTxnNames creates a Gin middleware that instruments
@@ -135,17 +135,44 @@ func Middleware(app *newrelic.Application) gin.HandlerFunc {
 // gin.Context.FullPath method which allows for much improved transaction
 // names.  Use nrgin.Middleware to take full advantage of this new naming!
 func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
-	return middleware(app, false)
+	return middleware(app, false, getTransactionNew)
 }
 
-func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
+func MiddlewareWithTransaction(app *newrelic.Application, key string) gin.HandlerFunc {
+	return middleware(app, true, getTransactionFromContext(app, key))
+}
+
+type getTransaction func(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction
+
+func getTransactionNew(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction {
+	txn := app.StartTransaction(name)
+	txn.SetWebRequestHTTP(r)
+	return txn
+}
+
+func getTransactionFromContext(app *newrelic.Application, key string) getTransaction {
+	return func(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction {
+		var txn *newrelic.Transaction
+		v := r.Context().Value(key)
+		if v == nil {
+			return getTransactionNew(app, r,  name)
+		} else {
+			txn = v.(*newrelic.Transaction)
+			txn.SetName(name)
+		}
+		return txn
+	}
+}
+
+func middleware(app *newrelic.Application, useNewNames bool, getTxn getTransaction) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
+			//var txn *newrelic.Transaction
 			name := c.Request.Method + " " + getName(c, useNewNames)
 
 			w := &headerResponseWriter{w: c.Writer}
-			txn := app.StartTransaction(name)
-			txn.SetWebRequestHTTP(c.Request)
+
+			txn := getTxn(app, c.Request, name)
 			defer txn.End()
 
 			repl := &replacementResponseWriter{
