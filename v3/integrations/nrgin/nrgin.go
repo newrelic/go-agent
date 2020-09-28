@@ -123,6 +123,28 @@ func Middleware(app *newrelic.Application) gin.HandlerFunc {
 	return middleware(app, true, getTransactionNew)
 }
 
+// MiddlewareWithTransaction creates a Gin middleware that instruments
+// requests allowing the client to optionally start the Transaction before
+// this middleware. This functionally is particularly useful if you want
+// to instrument middleware that executes before Gin.
+//
+//
+//
+//  router := gin.Default()
+//  // Add the nrgin middleware before other middlewares or routes:
+//	router.Use(nrgin.MiddlewareWithTransaction(app, "context-key-associated-with-your-transaction"))
+//
+// Gin v1.5.0 introduced the gin.Context.FullPath method which allows for much
+// improved transaction naming.  This Middleware will use that
+// gin.Context.FullPath if available and fall back to the original
+// gin.Context.HandlerName if not.  If you are using Gin v1.5.0 and wish to
+// continue using the old transaction names, use
+// nrgin.MiddlewareHandlerTxnNames.
+func MiddlewareWithTransaction(app *newrelic.Application, key string) gin.HandlerFunc {
+	return middleware(app, true, getTransactionFromContext(app, key))
+}
+
+
 // MiddlewareHandlerTxnNames creates a Gin middleware that instruments
 // requests.
 //
@@ -138,18 +160,19 @@ func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
 	return middleware(app, false, getTransactionNew)
 }
 
-func MiddlewareWithTransaction(app *newrelic.Application, key string) gin.HandlerFunc {
-	return middleware(app, true, getTransactionFromContext(app, key))
-}
 
+// getTransaction defines a contract to retrieve a newrelic Transaction from an http.Request
 type getTransaction func(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction
 
+// getTransactionNew simply creates a new transaction with the given name
 func getTransactionNew(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction {
 	txn := app.StartTransaction(name)
 	txn.SetWebRequestHTTP(r)
 	return txn
 }
 
+// getTransactionFromContext attempts to retrieve the transaction from http.Request context
+// and fallback to the original behavior in case of errors.
 func getTransactionFromContext(app *newrelic.Application, key string) getTransaction {
 	return func(app *newrelic.Application, r *http.Request, name string) *newrelic.Transaction {
 		var txn *newrelic.Transaction
@@ -157,8 +180,12 @@ func getTransactionFromContext(app *newrelic.Application, key string) getTransac
 		if v == nil {
 			return getTransactionNew(app, r,  name)
 		} else {
-			txn = v.(*newrelic.Transaction)
-			txn.SetName(name)
+			if val, ok := v.(*newrelic.Transaction); ok {
+				txn = val
+				txn.SetName(name)
+			} else {
+				return getTransactionNew(app, r,  name)
+			}
 		}
 		return txn
 	}
@@ -167,7 +194,6 @@ func getTransactionFromContext(app *newrelic.Application, key string) getTransac
 func middleware(app *newrelic.Application, useNewNames bool, getTxn getTransaction) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
-			//var txn *newrelic.Transaction
 			name := c.Request.Method + " " + getName(c, useNewNames)
 
 			w := &headerResponseWriter{w: c.Writer}
