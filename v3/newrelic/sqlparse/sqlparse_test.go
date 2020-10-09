@@ -281,3 +281,20 @@ func TestSkipSpace(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSqlParsing(b *testing.B) {
+	var segment newrelic.DatastoreSegment
+	query := `SELECT DISTINCT id, envdata->>'Go version' as "Go version", count(envdata->>'Go version')
+		FROM env_data_by_month
+		    WHERE language='go'
+			AND envdata->>'Go version' IS NOT NULL
+			    GROUP BY id, envdata->>'Go version'
+				ORDER BY id;`
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		ParseQuery(&segment, query)
+	}
+}
