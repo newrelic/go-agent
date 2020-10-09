@@ -123,7 +123,7 @@ func TestLineComment(t *testing.T) {
 	}
 }
 
-func TestSemicolonPrefix(t *testing.T) {
+func TestSemicolon(t *testing.T) {
 	for _, tc := range []sqlTestcase{
 		{
 			Input:     `;select * from foo`,
@@ -138,6 +138,11 @@ func TestSemicolonPrefix(t *testing.T) {
 		{
 			Input: ` ;
 			SELECT * FROM foo`,
+			Operation: "select",
+			Table:     "foo",
+		},
+		{
+			Input:     `SELECT * FROM foo;`,
 			Operation: "select",
 			Table:     "foo",
 		},
