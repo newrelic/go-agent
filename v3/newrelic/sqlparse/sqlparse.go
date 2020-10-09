@@ -50,7 +50,7 @@ func extractTable(s string) string {
 	var buffer bytes.Buffer
 
 	for _, c := range s {
-		if unicode.IsSpace(c) || strings.ContainsRune("`'(){}[]\"", c) {
+		if unicode.IsSpace(c) || strings.ContainsRune("`'(){}[]\";", c) {
 			continue
 		} else {
 			buffer.WriteRune(c)
