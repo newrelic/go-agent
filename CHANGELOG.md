@@ -1,5 +1,10 @@
 # ChangeLog
 
+## Unreleased
+
+* To keep up with the latest security protocols implemented by Amazon Web
+  Services, the agent now uses AWS IMDSv2 to find utilization data.
+
 ## 3.9.0
 
 ### Changes

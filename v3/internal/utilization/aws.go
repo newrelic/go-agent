@@ -12,9 +12,11 @@ import (
 )
 
 const (
-	awsHostname     = "169.254.169.254"
-	awsEndpointPath = "/2016-09-02/dynamic/instance-identity/document"
-	awsEndpoint     = "http://" + awsHostname + awsEndpointPath
+	awsHostname          = "169.254.169.254"
+	awsEndpointPath      = "/2016-09-02/dynamic/instance-identity/document"
+	awsTokenEndpointPath = "/latest/api/token"
+	awsEndpoint          = "http://" + awsHostname + awsEndpointPath
+	awsTokenEndpoint     = "http://" + awsHostname + awsTokenEndpointPath
 )
 
 type aws struct {
@@ -44,6 +46,27 @@ func (e unexpectedAWSErr) Error() string {
 	return fmt.Sprintf("unexpected AWS error: %v", e.e)
 }
 
+// getAWSToken attempts to get the IMDSv2 token within the providerTimeout set
+// provider.go.
+func getAWSToken() (token string, err error) {
+	client := http.Client{
+		Timeout: providerTimeout,
+	}
+	request, err := http.NewRequest("PUT", awsTokenEndpoint, nil)
+	request.Header.Add("X-aws-ec2-metadata-token-ttl-seconds", "60")
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
+}
+
 func getAWS(client *http.Client) (ret *aws, err error) {
 	// In some cases, 3rd party providers might block requests to metadata
 	// endpoints in such a way that causes a panic in the underlying
@@ -56,7 +79,18 @@ func getAWS(client *http.Client) (ret *aws, err error) {
 		}
 	}()
 
-	response, err := client.Get(awsEndpoint)
+	// AWS' IMDSv2 requires us to get a token before requesting metadata.
+	awsToken, err := getAWSToken()
+	if err != nil {
+		ret = nil
+		err = unexpectedAWSErr{e: fmt.Errorf("error contacting AWS IMDSv2 token endpoint, %v", err)}
+	}
+
+	//Add the header to the outbound request.
+	request, err := http.NewRequest("GET", awsEndpoint, nil)
+	request.Header.Add("X-aws-ec2-metadata-token", awsToken)
+
+	response, err := client.Do(request)
 	if err != nil {
 		// No unexpectedAWSErr here: A timeout is usually going to
 		// happen.
