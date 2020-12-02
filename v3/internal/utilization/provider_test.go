@@ -54,7 +54,13 @@ func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 	}
 
-	m.t.Errorf("Unknown request URI: %s", r.URL.String())
+	// Since this cross-agent test hacks the transport to check responses to
+	// the IMDS endpoint, this UN-hacks it for IMDSv2, where half the requests
+	// are going to the token-granting endpoint, not the information-gathering
+	// endpoint that's meant to be tested.
+	if r.URL.String() != "http://169.254.169.254/latest/api/token" {
+		m.t.Errorf("Unknown request URI: %s", r.URL.String())
+	}
 	return nil, nil
 }
 
