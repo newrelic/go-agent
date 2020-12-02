@@ -17,7 +17,7 @@ const (
 	awsTokenEndpointPath = "/latest/api/token"
 	awsEndpoint          = "http://" + awsHostname + awsEndpointPath
 	awsTokenEndpoint     = "http://" + awsHostname + awsTokenEndpointPath
-	awsTokenTTL          = "60" // seconds this AWS utiliation session will last
+	awsTokenTTL          = "60" // seconds this AWS utilization session will last
 )
 
 type aws struct {
@@ -80,8 +80,9 @@ func getAWS(client *http.Client) (ret *aws, err error) {
 	// AWS' IMDSv2 requires us to get a token before requesting metadata.
 	awsToken, err := getAWSToken(client)
 	if err != nil {
-		ret = nil
-		err = unexpectedAWSErr{e: fmt.Errorf("error contacting AWS IMDSv2 token endpoint, %v", err)}
+		// No unexpectedAWSErr here: A timeout is usually going to
+		// happen.
+		return nil, err
 	}
 
 	//Add the header to the outbound request.

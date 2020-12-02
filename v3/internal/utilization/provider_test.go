@@ -48,19 +48,17 @@ type mockBody struct {
 }
 
 func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+
+	// Half the requests are going to the test's endpoint, while the other half
+	// are going to the AWS IMDSv2 token endpoint. Accept both.
 	for match, response := range m.responses {
-		if r.URL.String() == match {
+		if (r.URL.String() == match) ||
+			(r.URL.String() == awsTokenEndpoint) {
 			return m.respond(response)
 		}
 	}
 
-	// Since this cross-agent test hacks the transport to check responses to
-	// the IMDS endpoint, this UN-hacks it for IMDSv2, where half the requests
-	// are going to the token-granting endpoint, not the information-gathering
-	// endpoint that's meant to be tested.
-	if r.URL.String() != "http://169.254.169.254/latest/api/token" {
-		m.t.Errorf("Unknown request URI: %s", r.URL.String())
-	}
+	m.t.Errorf("Unknown request URI: %s", r.URL.String())
 	return nil, nil
 }
 
