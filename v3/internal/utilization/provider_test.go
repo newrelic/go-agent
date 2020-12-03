@@ -48,8 +48,12 @@ type mockBody struct {
 }
 
 func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+
+	// Half the requests are going to the test's endpoint, while the other half
+	// are going to the AWS IMDSv2 token endpoint. Accept both.
 	for match, response := range m.responses {
-		if r.URL.String() == match {
+		if (r.URL.String() == match) ||
+			(r.URL.String() == awsTokenEndpoint) {
 			return m.respond(response)
 		}
 	}
