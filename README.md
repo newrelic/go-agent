@@ -1,5 +1,5 @@
 
-[![Community Project header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Project.png)](https://opensource.newrelic.com/oss-category/#community-project)
+[![Community Plus header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Plus.png)](https://opensource.newrelic.com/oss-category/#community-plus)
 
 # New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
@@ -8,7 +8,7 @@ Relic.  It helps you track transactions, outbound requests, database calls, and
 other parts of your Go application's behavior and provides a running overview of
 garbage collection, goroutine activity, and memory use.
 
-Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.  
+Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.
 
 
 ## Compatibility and Requirements
@@ -21,18 +21,18 @@ Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
 ## Installing and using the Go agent
 
-To install the agent, follow the instructions in our [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md) 
-document or our [GUIDE](https://github.com/newrelic/go-agent/blob/master/GUIDE.md).  
+To install the agent, follow the instructions in our [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md)
+document or our [GUIDE](https://github.com/newrelic/go-agent/blob/master/GUIDE.md).
 
-We recommend instrumenting your Go code to get the maximum benefits from the 
+We recommend instrumenting your Go code to get the maximum benefits from the
 New Relic Go agent. But we make it easy to get great data in couple of ways:
 
-* Even without adding instrumentation, just importing the agent and creating an 
-application will provide useful runtime information about your number of goroutines, 
+* Even without adding instrumentation, just importing the agent and creating an
+application will provide useful runtime information about your number of goroutines,
 garbage collection statistics, and memory and CPU usage.
-* You can use our many [INTEGRATION packages](https://github.com/newrelic/go-agent/tree/master/v3/integrations) 
-for out-of-the box support for many popular Go web frameworks and libraries. We 
-continue to add integration packages based on your feedback. You can weigh in on 
+* You can use our many [INTEGRATION packages](https://github.com/newrelic/go-agent/tree/master/v3/integrations)
+for out-of-the box support for many popular Go web frameworks and libraries. We
+continue to add integration packages based on your feedback. You can weigh in on
 potential integrations by opening an `Issue` here in our New Relic Go agent GitHub project.
 
 
@@ -180,7 +180,7 @@ If you believe you have found a security vulnerability in this project or any of
 
 If you would like to contribute to this project, please review [these guidelines](./CONTRIBUTING.md).
 
-To all contributors, we thank you!  Without your contribution, this project would not be what it is today.  We also host a community project page dedicated to 
+To all contributors, we thank you!  Without your contribution, this project would not be what it is today.  We also host a community project page dedicated to
 the [Go Agent](https://opensource.newrelic.com/projects/newrelic/go-agent).
 
 ## License
