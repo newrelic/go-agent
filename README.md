@@ -4,11 +4,11 @@
 # New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
 The New Relic Go Agent allows you to monitor your Go applications with New
-Relic.  It helps you track transactions, outbound requests, database calls, and
+Relic. It helps you track transactions, outbound requests, database calls, and
 other parts of your Go application's behavior and provides a running overview of
 garbage collection, goroutine activity, and memory use.
 
-Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.  
+Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.
 
 
 ## Compatibility and Requirements
@@ -21,18 +21,18 @@ Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
 ## Installing and using the Go agent
 
-To install the agent, follow the instructions in our [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md) 
-document or our [GUIDE](https://github.com/newrelic/go-agent/blob/master/GUIDE.md).  
+To install the agent, follow the instructions in our [GETTING_STARTED](https://github.com/newrelic/go-agent/blob/master/GETTING_STARTED.md)
+document or our [GUIDE](https://github.com/newrelic/go-agent/blob/master/GUIDE.md).
 
-We recommend instrumenting your Go code to get the maximum benefits from the 
+We recommend instrumenting your Go code to get the maximum benefits from the
 New Relic Go agent. But we make it easy to get great data in couple of ways:
 
-* Even without adding instrumentation, just importing the agent and creating an 
-application will provide useful runtime information about your number of goroutines, 
+* Even without adding instrumentation, just importing the agent and creating an
+application will provide useful runtime information about your number of goroutines,
 garbage collection statistics, and memory and CPU usage.
-* You can use our many [INTEGRATION packages](https://github.com/newrelic/go-agent/tree/master/v3/integrations) 
-for out-of-the box support for many popular Go web frameworks and libraries. We 
-continue to add integration packages based on your feedback. You can weigh in on 
+* You can use our many [INTEGRATION packages](https://github.com/newrelic/go-agent/tree/master/v3/integrations)
+for out-of-the box support for many popular Go web frameworks and libraries. We
+continue to add integration packages based on your feedback. You can weigh in on
 potential integrations by opening an `Issue` here in our New Relic Go agent GitHub project.
 
 
@@ -52,13 +52,13 @@ instrumented using the [newrelic](https://godoc.org/github.com/newrelic/go-agent
 package primitives.
 
 <!---
-NOTE!  When updating the tables below, be sure to update the docs site version too:
+NOTE! When updating the tables below, be sure to update the docs site version too:
 https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements
 -->
 
 ### Service Frameworks
 
-| Project | Integration Package |  |
+| Project | Integration Package | |
 | ------------- | ------------- | - |
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla) | Instrument inbound requests through the Gorilla framework |
@@ -74,7 +74,7 @@ More information about instrumenting databases without an integration package
 using [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
 package primitives can be found [here](GUIDE.md#datastore-segments).
 
-| Project | Integration Package |  |
+| Project | Integration Package | |
 | ------------- | ------------- | - |
 | [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
 | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql) | Instrument MySQL driver |
@@ -88,7 +88,7 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 
 ### Logging
 
-| Project | Integration Package |  |
+| Project | Integration Package | |
 | ------------- | ------------- | - |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
@@ -127,7 +127,7 @@ with the [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
 ## Runnable Example
 
 [v3/examples/server/main.go](v3/examples/server/main.go) is an example that
-will appear as "Example App" in your New Relic applications list.  To run it:
+will appear as "Example App" in your New Relic applications list. To run it:
 
 ```
 env NEW_RELIC_LICENSE_KEY=__YOUR_NEW_RELIC_LICENSE_KEY__LICENSE__ \
@@ -151,7 +151,7 @@ If you are already using another open source solution to gather telemetry data, 
 
 ## Support
 
-Should you need assistance with New Relic products, you are in good hands with several support channels.  If the issue has been confirmed as a bug or is a Feature request, please file a Github issue.
+Should you need assistance with New Relic products, you are in good hands with several support channels. If the issue has been confirmed as a bug or is a Feature request, please file a Github issue.
 
 * [Go Agent GUIDE](GUIDE.md): Step by step how-to for key agent features
 * [New Relic Documentation](https://docs.newrelic.com/docs/agents/go-agent): Comprehensive guidance for using our platform
@@ -162,7 +162,7 @@ Should you need assistance with New Relic products, you are in good hands with s
 
 ## Privacy
 
-At New Relic we take your privacy and the security of your information seriously, and are committed to protecting your information.  We must emphasize the importance of not sharing personal data in public forums, and ask all users to scrub logs and diagnostic information for sensitive information, whether personal, proprietary, or otherwise.
+At New Relic we take your privacy and the security of your information seriously, and are committed to protecting your information. We must emphasize the importance of not sharing personal data in public forums, and ask all users to scrub logs and diagnostic information for sensitive information, whether personal, proprietary, or otherwise.
 
 We define "Personal Data" as any information relating to an identified or identifiable individual, including, for example, your name, phone number, post code or zip code, Device ID, IP address and email address.
 
@@ -170,17 +170,17 @@ Please review [New Relic’s General Data Privacy Notice](https://newrelic.com/t
 
 ## Contributing
 
-We encourage your contributions to improve the Go Agent!  Keep in mind when you submit your pull request, you'll need to sign the CLA via the click-through using CLA-Assistant.  You only have to sign the CLA one time per project.  If you have any questions, or to execute our corporate CLA, required if your contribution is on behalf of a company, please drop us an email at opensource@newrelic.com.
+We encourage your contributions to improve the Go Agent! Keep in mind when you submit your pull request, you'll need to sign the CLA via the click-through using CLA-Assistant. You only have to sign the CLA one time per project. If you have any questions, or to execute our corporate CLA, required if your contribution is on behalf of a company, please drop us an email at opensource@newrelic.com.
 
 **A note about vulnerabilities**
 
-As noted in our [security policy](https://github.com/newrelic/.github/blob/master/security.md), New Relic is committed to the privacy and security of our customers and their data.  We believe that providing coordinated disclosure by security researchers and engaging with the security community are important means to achieve our security goals.
+As noted in our [security policy](https://github.com/newrelic/.github/blob/master/security.md), New Relic is committed to the privacy and security of our customers and their data. We believe that providing coordinated disclosure by security researchers and engaging with the security community are important means to achieve our security goals.
 
 If you believe you have found a security vulnerability in this project or any of New Relic's products or websites, we welcome and greatly appreciate you reporting it to New Relic through [HackerOne](https://hackerone.com/newrelic).
 
 If you would like to contribute to this project, please review [these guidelines](./CONTRIBUTING.md).
 
-To all contributors, we thank you!  Without your contribution, this project would not be what it is today.  We also host a community project page dedicated to 
+To all contributors, we thank you! Without your contribution, this project would not be what it is today. We also host a community project page dedicated to
 the [Go Agent](https://opensource.newrelic.com/projects/newrelic/go-agent).
 
 ## License
