@@ -58,7 +58,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 
 ### Service Frameworks
 
-| Project | Integration Package | |
+| Project | Integration Package |  |
 | ------------- | ------------- | - |
 | [gin-gonic/gin](https://github.com/gin-gonic/gin) | [v3/integrations/nrgin](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgin) | Instrument inbound requests through the Gin framework |
 | [gorilla/mux](https://github.com/gorilla/mux) | [v3/integrations/nrgorilla](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrgorilla) | Instrument inbound requests through the Gorilla framework |
@@ -74,7 +74,7 @@ More information about instrumenting databases without an integration package
 using [newrelic](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/)
 package primitives can be found [here](GUIDE.md#datastore-segments).
 
-| Project | Integration Package | |
+| Project | Integration Package |  |
 | ------------- | ------------- | - |
 | [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
 | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql) | Instrument MySQL driver |
@@ -88,7 +88,7 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 
 ### Logging
 
-| Project | Integration Package | |
+| Project | Integration Package |  |
 | ------------- | ------------- | - |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
