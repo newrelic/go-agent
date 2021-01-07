@@ -1,5 +1,5 @@
 
-[![Community Project header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Project.png)](https://opensource.newrelic.com/oss-category/#community-project)
+[![Community Plus header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Plus.png)](https://opensource.newrelic.com/oss-category/#community-plus)
 
 # New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
 
@@ -185,7 +185,6 @@ If you believe you have found a security vulnerability in this project or any of
 If you would like to contribute to this project, please review [these guidelines](./CONTRIBUTING.md).
 
 To [all contributors](https://github.com/newrelic/go-agent/graphs/contributors), we thank you!  Without your contribution, this project would not be what it is today.  We also host a community project page dedicated to 
-
 the [Go Agent](https://opensource.newrelic.com/projects/newrelic/go-agent).
 
 ## License
