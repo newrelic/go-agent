@@ -2,8 +2,20 @@
 
 ## Unreleased
 
+## 3.10.0
+
+### New Features
 * To keep up with the latest security protocols implemented by Amazon Web
-  Services, the agent now uses AWS IMDSv2 to find utilization data.
+  Services, the agent now uses [AWS
+  IMDSv2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html)
+  to find utilization data. (#249)
+
+### Changes
+* https://pkg.go.dev was ignoring our agent due to the lack of license files in
+  the proper locations. Thanks, @tydavis, for your PR to fix this! (#254)
+* There's an Open Source repo linter GitHub action that runs on push. (#262)
+* The README.md file now correctly shows the support level from New Relic.
+  (#255)
 
 ## 3.9.0
 
