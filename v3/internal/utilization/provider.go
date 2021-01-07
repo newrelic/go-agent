@@ -14,8 +14,8 @@ import (
 
 // Constants from the spec.
 const (
-	maxFieldValueSize = 255             // The maximum value size, in bytes.
-	providerTimeout   = 1 * time.Second // The maximum time a HTTP provider may block.
+	maxFieldValueSize = 255                    // The maximum value size, in bytes.
+	providerTimeout   = 500 * time.Millisecond // The maximum time a HTTP provider may block.
 	lookupAddrTimeout = 500 * time.Millisecond
 )
 
