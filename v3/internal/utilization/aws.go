@@ -12,9 +12,12 @@ import (
 )
 
 const (
-	awsHostname     = "169.254.169.254"
-	awsEndpointPath = "/2016-09-02/dynamic/instance-identity/document"
-	awsEndpoint     = "http://" + awsHostname + awsEndpointPath
+	awsHostname          = "169.254.169.254"
+	awsEndpointPath      = "/2016-09-02/dynamic/instance-identity/document"
+	awsTokenEndpointPath = "/latest/api/token"
+	awsEndpoint          = "http://" + awsHostname + awsEndpointPath
+	awsTokenEndpoint     = "http://" + awsHostname + awsTokenEndpointPath
+	awsTokenTTL          = "60" // seconds this AWS utilization session will last
 )
 
 type aws struct {
@@ -44,6 +47,24 @@ func (e unexpectedAWSErr) Error() string {
 	return fmt.Sprintf("unexpected AWS error: %v", e.e)
 }
 
+// getAWSToken attempts to get the IMDSv2 token within the providerTimeout set
+// provider.go.
+func getAWSToken(client *http.Client) (token string, err error) {
+	request, err := http.NewRequest("PUT", awsTokenEndpoint, nil)
+	request.Header.Add("X-aws-ec2-metadata-token-ttl-seconds", awsTokenTTL)
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
+}
+
 func getAWS(client *http.Client) (ret *aws, err error) {
 	// In some cases, 3rd party providers might block requests to metadata
 	// endpoints in such a way that causes a panic in the underlying
@@ -56,7 +77,19 @@ func getAWS(client *http.Client) (ret *aws, err error) {
 		}
 	}()
 
-	response, err := client.Get(awsEndpoint)
+	// AWS' IMDSv2 requires us to get a token before requesting metadata.
+	awsToken, err := getAWSToken(client)
+	if err != nil {
+		// No unexpectedAWSErr here: A timeout is usually going to
+		// happen.
+		return nil, err
+	}
+
+	//Add the header to the outbound request.
+	request, err := http.NewRequest("GET", awsEndpoint, nil)
+	request.Header.Add("X-aws-ec2-metadata-token", awsToken)
+
+	response, err := client.Do(request)
 	if err != nil {
 		// No unexpectedAWSErr here: A timeout is usually going to
 		// happen.
