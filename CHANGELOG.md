@@ -13,7 +13,7 @@
 ### Changes
 * Updated the locations of our license files so that Go docs https://pkg.go.dev 
   will display our agent. Thanks @tydavis for your PR to fix this! [#254](https://github.com/newrelic/go-agent/pull/254)
-* Added an Open Source repo linter GitHub action that runs on push. [#262](https://github.com/newrelic/go-agent/pull/2462)
+* Added an Open Source repo linter GitHub action that runs on push. [#262](https://github.com/newrelic/go-agent/pull/262)
 * Updated the README.md file to correctly show the support resources from New Relic. [#255](https://github.com/newrelic/go-agent/pull/255)
 
 ### Support statement
