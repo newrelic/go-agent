@@ -11,10 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/propagation"
-	"go.opentelemetry.io/otel/api/standard"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/semconv"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 )
 
@@ -192,13 +191,13 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 	addTxnHTTPRequestAttributes(r, root.Span.SetAttributes)
 }
 
-func addTxnHTTPRequestAttributes(req *http.Request, setter func(...kv.KeyValue)) {
+func addTxnHTTPRequestAttributes(req *http.Request, setter func(...label.KeyValue)) {
 	if req.URL == nil {
 		req.URL = new(url.URL)
 	}
-	setter(standard.EndUserAttributesFromHTTPRequest(req)...)
-	setter(standard.HTTPServerAttributesFromHTTPRequest("", "", req)...)
-	setter(standard.NetAttributesFromHTTPRequest("tcp", req)...)
+	setter(semconv.EndUserAttributesFromHTTPRequest(req)...)
+	setter(semconv.HTTPServerAttributesFromHTTPRequest("", "", req)...)
+	setter(semconv.NetAttributesFromHTTPRequest("tcp", req)...)
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -216,35 +215,35 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 	addTxnWebRequestAttributes(r, root.Span.SetAttributes)
 }
 
-func addTxnWebRequestAttributes(req WebRequest, setter func(...kv.KeyValue)) {
+func addTxnWebRequestAttributes(req WebRequest, setter func(...label.KeyValue)) {
 	if req.URL != nil {
 		url := req.URL.Scheme + "://" + req.URL.Host + "/" + req.URL.Path
-		setter(standard.HTTPUrlKey.String(url))
+		setter(semconv.HTTPUrlKey.String(url))
 	} else if req.Host != "" {
-		setter(standard.HTTPHostKey.String(req.Host))
+		setter(semconv.HTTPHostKey.String(req.Host))
 	} else {
-		setter(standard.HTTPUrlKey.String("unknown"))
+		setter(semconv.HTTPUrlKey.String("unknown"))
 	}
 
-	setter(standard.HTTPMethodKey.String(req.Method))
+	setter(semconv.HTTPMethodKey.String(req.Method))
 
 	if h := req.Header; req.Header != nil {
 		if userAgent := h.Get("User-Agent"); userAgent != "" {
-			setter(standard.HTTPUserAgentKey.String(userAgent))
+			setter(semconv.HTTPUserAgentKey.String(userAgent))
 		}
 		lenStr := h.Get("Content-Length")
 		if lenInt, err := strconv.Atoi(lenStr); err == nil {
-			setter(standard.HTTPRequestContentLengthKey.Int(lenInt))
+			setter(semconv.HTTPRequestContentLengthKey.Int(lenInt))
 		}
 	}
 }
 
-func addTxnStatusCodeAttributes(code int, setter func(...kv.KeyValue)) {
-	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
+func addTxnStatusCodeAttributes(code int, setter func(...label.KeyValue)) {
+	setter(semconv.HTTPAttributesFromHTTPStatusCode(code)...)
 }
 
 func setTxnSpanStatus(code int, setter func(codes.Code, string)) {
-	setter(standard.SpanStatusFromHTTPStatusCode(code))
+	setter(semconv.SpanStatusFromHTTPStatusCode(code))
 }
 
 type dummyResponseWriter struct{}
@@ -396,7 +395,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 		return
 	}
 
-	propagation.InjectHTTP(currentSpan.ctx, txn.app.propagators, hdrs)
+	propagation.Inject(currentSpan.ctx, txn.app.propagators, hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
@@ -430,7 +429,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// If no more than the root segment were yet created for this
 	// transaction, we discard the root segment and replace it with a new
 	// root segment that has the proper remote parent and trace id.
-	remoteCtx := propagation.ExtractHTTP(context.Background(), txn.app.propagators, hdrs)
+	remoteCtx := propagation.Extract(context.Background(), txn.app.propagators, hdrs)
 
 	if !txn.thread.isMultiSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)

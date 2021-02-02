@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v4/internal/sysinfo"
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/standard"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/semconv"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 )
 
@@ -193,7 +193,7 @@ func (s *Segment) AddAttribute(key string, val interface{}) {
 	if s.StartTime.span == nil {
 		return
 	}
-	s.StartTime.Span.SetAttribute(key, val)
+	s.StartTime.Span.SetAttributes(label.Any(key, val))
 }
 
 // End finishes the segment.
@@ -220,7 +220,7 @@ func (s *DatastoreSegment) AddAttribute(key string, val interface{}) {
 	if s.StartTime.span == nil {
 		return
 	}
-	s.StartTime.Span.SetAttribute(key, val)
+	s.StartTime.Span.SetAttributes(label.Any(key, val))
 }
 
 // End finishes the datastore segment.
@@ -233,7 +233,7 @@ func (s *DatastoreSegment) End() {
 		return
 	}
 
-	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
+	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
 }
@@ -260,32 +260,42 @@ func replaceLocalhosts(host string) string {
 	return host
 }
 
-func (s *DatastoreSegment) addRequiredAttributes(setter func(string, interface{})) {
-	setter("db.system", valOrUnknown(string(s.Product)))
-	setter("db.statement", valOrUnknown(s.statement()))
-	setter("db.operation", valOrUnknown(s.Operation))
-	setter("db.collection", valOrUnknown(s.Collection))
+// Utility function for addRequiredAttributes
+func prepper(key string, value interface{}) label.KeyValue {
+	return label.Any(key, value)
+}
+
+// addRequiredAttributes used to accept span.SetAttribute. Since that function was
+// removed from the OpenTelemetry for Go library, we have to use SetAttributes instead,
+// which uses a variadic function parameter. This requires us to convert those paramters
+// with the "prepper" function above.
+// TODO: This is terrible, and needs to be reworked without that "prepper" function.
+func (s *DatastoreSegment) addRequiredAttributes(setter func(...label.KeyValue)) {
+	setter(prepper("db.system", valOrUnknown(string(s.Product))))
+	setter(prepper("db.statement", valOrUnknown(s.statement())))
+	setter(prepper("db.operation", valOrUnknown(s.Operation)))
+	setter(prepper("db.collection", valOrUnknown(s.Collection)))
 
 	if host := replaceLocalhosts(s.Host); net.ParseIP(host) != nil {
-		setter("net.peer.ip", host)
+		setter(prepper("net.peer.ip", host))
 	} else {
-		setter("net.peer.name", valOrUnknown(host))
+		setter(prepper("net.peer.name", valOrUnknown(host)))
 	}
 	if s.PortPathOrID != "" {
 		if port, err := strconv.Atoi(s.PortPathOrID); err == nil {
-			setter("net.peer.port", port)
+			setter(prepper("net.peer.port", port))
 		}
 	}
 
 	switch s.Product {
 	case DatastoreCassandra:
-		setter("db.cassandra.keyspace", valOrUnknown(s.DatabaseName))
+		setter(prepper("db.cassandra.keyspace", valOrUnknown(s.DatabaseName)))
 	case DatastoreRedis:
-		setter("db.redis.database_index", valOrUnknown(s.DatabaseName))
+		setter(prepper("db.redis.database_index", valOrUnknown(s.DatabaseName)))
 	case DatastoreMongoDB:
-		setter("db.mongodb.collection", valOrUnknown(s.DatabaseName))
+		setter(prepper("db.mongodb.collection", valOrUnknown(s.DatabaseName)))
 	default:
-		setter("db.name", valOrUnknown(s.DatabaseName))
+		setter(prepper("db.name", valOrUnknown(s.DatabaseName)))
 	}
 }
 
@@ -322,7 +332,7 @@ func (s *ExternalSegment) AddAttribute(key string, val interface{}) {
 	if s.StartTime.span == nil {
 		return
 	}
-	s.StartTime.Span.SetAttribute(key, val)
+	s.StartTime.Span.SetAttributes(label.Any(key, val))
 }
 
 // End finishes the external segment.
@@ -352,32 +362,32 @@ func (s *ExternalSegment) setSpanStatus(setter func(codes.Code, string)) {
 		c := codes.Code(code)
 		setter(c, c.String())
 	} else {
-		setter(standard.SpanStatusFromHTTPStatusCode(code))
+		setter(semconv.SpanStatusFromHTTPStatusCode(code))
 	}
 }
 
-func (s *ExternalSegment) addRequiredAttributes(setter func(...kv.KeyValue)) {
+func (s *ExternalSegment) addRequiredAttributes(setter func(...label.KeyValue)) {
 	req := s.Request
 	if s.Response != nil && s.Response.Request != nil {
 		req = s.Response.Request
 	}
 	if req != nil {
-		setter(standard.EndUserAttributesFromHTTPRequest(req)...)
+		setter(semconv.EndUserAttributesFromHTTPRequest(req)...)
 		if req.URL != nil {
-			setter(standard.HTTPClientAttributesFromHTTPRequest(req)...)
+			setter(semconv.HTTPClientAttributesFromHTTPRequest(req)...)
 		}
 	}
 
 	if s.Procedure != "" {
-		setter(standard.HTTPMethodKey.String(s.Procedure))
+		setter(semconv.HTTPMethodKey.String(s.Procedure))
 	}
-	setter(standard.HTTPUrlKey.String(s.cleanURL()))
+	setter(semconv.HTTPUrlKey.String(s.cleanURL()))
 
 	lib := s.Library
 	if lib == "" {
 		lib = "http"
 	}
-	setter(kv.Key("http.component").String(lib))
+	setter(label.Key("http.component").String(lib))
 
 	var code int
 	if s.statusCode != nil {
@@ -385,7 +395,7 @@ func (s *ExternalSegment) addRequiredAttributes(setter func(...kv.KeyValue)) {
 	} else if s.Response != nil {
 		code = s.Response.StatusCode
 	}
-	setter(standard.HTTPAttributesFromHTTPStatusCode(code)...)
+	setter(semconv.HTTPAttributesFromHTTPStatusCode(code)...)
 }
 
 func (s *ExternalSegment) cleanURL() string {
@@ -495,14 +505,14 @@ func logAlreadyEnded(st SegmentStartTime, name string) {
 	}
 }
 
-func (s *MessageProducerSegment) addRequiredAttributes(setter func(string, interface{})) {
-	setter("messaging.system", valOrUnknown(s.Library))
-	setter("messaging.destination", valOrUnknown(s.DestinationName))
+func (s *MessageProducerSegment) addRequiredAttributes(setter func(...label.KeyValue)) {
+	setter(prepper("messaging.system", valOrUnknown(s.Library)))
+	setter(prepper("messaging.destination", valOrUnknown(s.DestinationName)))
 	if s.DestinationType != "" {
-		setter("messaging.destination_kind", string(s.DestinationType))
+		setter(prepper("messaging.destination_kind", string(s.DestinationType)))
 	}
 	if s.DestinationTemporary {
-		setter("messaging.temp_destination", true)
+		setter(prepper("messaging.temp_destination", true))
 	}
 }
 

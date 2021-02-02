@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/newrelic/go-agent/v4/internal"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // NewContext returns a new context.Context that carries the provided

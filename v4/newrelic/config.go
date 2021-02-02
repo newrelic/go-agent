@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"go.opentelemetry.io/otel/api/propagation"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Config contains Application and Transaction behavior settings.
@@ -342,7 +342,7 @@ type Config struct {
 		// Tracer TODO
 		Tracer trace.Tracer
 		// Propagators TODO
-		Propagators propagation.Propagators
+		Propagators propagation.TextMapPropagator
 	}
 }
 

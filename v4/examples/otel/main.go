@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace"
 
 	nrotel "github.com/newrelic/opentelemetry-exporter-go/newrelic"
@@ -260,7 +260,7 @@ func main() {
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		func(cfg *newrelic.Config) {
-			cfg.OpenTelemetry.Tracer = global.Tracer("MyConfiguredName")
+			cfg.OpenTelemetry.Tracer = otel.Tracer("MyConfiguredName")
 		},
 	)
 	if nil != err {
@@ -308,5 +308,5 @@ func initTracer() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	global.SetTraceProvider(tp)
+	otel.SetTraceProvider(tp)
 }

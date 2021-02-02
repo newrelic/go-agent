@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v4/internal"
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 )
 
@@ -22,7 +22,7 @@ func getSpanID(s trace.Span) string {
 }
 
 func getParentID(s trace.Span) string {
-	return s.(*testtrace.Span).ParentSpanID().String()
+	return s.(*oteltest.Span).ParentSpanID().String()
 }
 
 type expectApp struct {
@@ -31,9 +31,9 @@ type expectApp struct {
 }
 
 func newTestApp(t *testing.T) expectApp {
-	sr := new(testtrace.StandardSpanRecorder)
+	sr := new(oteltest.StandardSpanRecorder)
 	app, err := NewApplication(func(cfg *Config) {
-		tr := testtrace.NewProvider(testtrace.WithSpanRecorder(sr)).Tracer("go-agent-test")
+		tr := oteltest.NewTracerProvider(oteltest.WithSpanRecorder(sr)).Tracer("go-agent-test")
 		cfg.OpenTelemetry.Tracer = tr
 	})
 	if err != nil {
@@ -1031,7 +1031,9 @@ func TestDatastoreSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addRequiredAttributes(func(k string, v interface{}) {
+			test.seg.addRequiredAttributes(func(attributes ...label.KeyValue) {
+				k := string(attributes[0].Key)
+				v := attributes[0].Value
 				attrs[k] = v
 			})
 
@@ -1279,7 +1281,7 @@ func TestExternalSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addRequiredAttributes(func(keyValues ...kv.KeyValue) {
+			test.seg.addRequiredAttributes(func(keyValues ...label.KeyValue) {
 				for _, keyValue := range keyValues {
 					attrs[string(keyValue.Key)] = keyValue.Value.AsInterface()
 				}
@@ -1425,7 +1427,9 @@ func TestMessageProducerSegmentAttributes(t *testing.T) {
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			attrs := make(map[string]interface{})
-			test.seg.addRequiredAttributes(func(k string, v interface{}) {
+			test.seg.addRequiredAttributes(func(keyValues ...label.KeyValue) {
+				k := string(keyValues[0].Key)
+				v := keyValues[0].Value
 				attrs[k] = v
 			})
 

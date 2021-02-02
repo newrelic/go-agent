@@ -6,17 +6,17 @@ import (
 	"strconv"
 	"strings"
 
-	"go.opentelemetry.io/otel/api/kv"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/oteltest"
 )
 
 // OpenTelemetryExpect implements internal.Expect for use in testing.
 type OpenTelemetryExpect struct {
-	Spans *testtrace.StandardSpanRecorder
+	Spans *oteltest.StandardSpanRecorder
 }
 
-func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
+func spansMatch(want WantSpan, span *oteltest.Span, exactAttrs bool) error {
 	name := span.Name()
 	if want.Name != "" {
 		if name != want.Name {
@@ -73,7 +73,7 @@ func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
 				name, len(want.Attributes), len(foundAttrs))
 		}
 		for k, v := range want.Attributes {
-			if foundVal, ok := foundAttrs[kv.Key(k)]; ok {
+			if foundVal, ok := foundAttrs[label.Key(k)]; ok {
 				if f := foundVal.AsInterface(); v != MatchAnything && f != v {
 					return fmt.Errorf("Incorrect value for attr '%s' on span '%s':\n\texpect=%s actual=%s",
 						k, name, v, f)
@@ -86,7 +86,7 @@ func spansMatch(want WantSpan, span *testtrace.Span, exactAttrs bool) error {
 	return nil
 }
 
-func (e *OpenTelemetryExpect) spans() []*testtrace.Span {
+func (e *OpenTelemetryExpect) spans() []*oteltest.Span {
 	return e.Spans.Completed()
 }
 
