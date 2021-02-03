@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/semconv"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
 )
 
 // Transaction instruments one logical unit of work: either an inbound web
@@ -169,7 +169,7 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 	if root == nil {
 		return
 	}
-	root.Span.SetAttribute(key, value)
+	root.Span.SetAttributes(label.Any(key, value))
 }
 
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
@@ -218,11 +218,11 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 func addTxnWebRequestAttributes(req WebRequest, setter func(...label.KeyValue)) {
 	if req.URL != nil {
 		url := req.URL.Scheme + "://" + req.URL.Host + "/" + req.URL.Path
-		setter(semconv.HTTPUrlKey.String(url))
+		setter(semconv.HTTPURLKey.String(url))
 	} else if req.Host != "" {
 		setter(semconv.HTTPHostKey.String(req.Host))
 	} else {
-		setter(semconv.HTTPUrlKey.String("unknown"))
+		setter(semconv.HTTPURLKey.String("unknown"))
 	}
 
 	setter(semconv.HTTPMethodKey.String(req.Method))
@@ -323,7 +323,7 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 	parent := txn.thread.getCurrentSpan()
 	ctx, sp := txn.app.tracer.Start(parent.ctx, "",
 		trace.WithSpanKind(trace.SpanKindInternal),
-		trace.WithStartTime(at),
+		trace.WithTimestamp(at),
 	)
 	span := &span{
 		Span:   sp,
@@ -395,7 +395,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 		return
 	}
 
-	propagation.Inject(currentSpan.ctx, txn.app.propagators, hdrs)
+	txn.app.propagators.Inject(currentSpan.ctx, hdrs)
 }
 
 // AcceptDistributedTraceHeaders links transactions by accepting distributed
@@ -429,7 +429,7 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	// If no more than the root segment were yet created for this
 	// transaction, we discard the root segment and replace it with a new
 	// root segment that has the proper remote parent and trace id.
-	remoteCtx := propagation.Extract(context.Background(), txn.app.propagators, hdrs)
+	remoteCtx := txn.app.propagators.Extract(context.Background(), hdrs)
 
 	if !txn.thread.isMultiSpan {
 		ctx, sp := txn.app.tracer.Start(remoteCtx, txn.name)

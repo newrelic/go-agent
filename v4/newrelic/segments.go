@@ -12,10 +12,10 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v4/internal/sysinfo"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/semconv"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
 )
 
 type span struct {
@@ -381,7 +381,7 @@ func (s *ExternalSegment) addRequiredAttributes(setter func(...label.KeyValue)) 
 	if s.Procedure != "" {
 		setter(semconv.HTTPMethodKey.String(s.Procedure))
 	}
-	setter(semconv.HTTPUrlKey.String(s.cleanURL()))
+	setter(semconv.HTTPURLKey.String(s.cleanURL()))
 
 	lib := s.Library
 	if lib == "" {
@@ -480,7 +480,7 @@ func (s *MessageProducerSegment) AddAttribute(key string, val interface{}) {
 	if s.StartTime.span == nil {
 		return
 	}
-	s.StartTime.Span.SetAttribute(key, val)
+	s.StartTime.Span.SetAttributes(label.Any(key, val))
 }
 
 // End finishes the message segment.
@@ -492,7 +492,7 @@ func (s *MessageProducerSegment) End() {
 		logAlreadyEnded(s.StartTime, s.name())
 		return
 	}
-	s.addRequiredAttributes(s.StartTime.Span.SetAttribute)
+	s.addRequiredAttributes(s.StartTime.Span.SetAttributes)
 	s.StartTime.Span.SetName(s.name())
 	s.StartTime.end()
 }

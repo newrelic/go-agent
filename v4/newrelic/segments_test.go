@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/oteltest"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/codes"
 )
 
 func getSpanID(s trace.Span) string {

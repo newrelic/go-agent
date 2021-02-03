@@ -4,20 +4,21 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/sdk/trace"
-
 	nrotel "github.com/newrelic/opentelemetry-exporter-go/newrelic"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"github.com/newrelic/newrelic-telemetry-sdk-go/telemetry"
 
 	"github.com/newrelic/go-agent/v4/newrelic"
 )
@@ -300,13 +301,32 @@ func main() {
 }
 
 func initTracer() {
-	exporter, err := nrotel.NewExporter("My Service", os.Getenv("NEW_RELIC_API_KEY"))
-	if err != nil {
-		log.Fatal(err)
+	// Create a New Relic OpenTelemetry Exporter
+	apiKey, ok := os.LookupEnv("NEW_RELIC_API_KEY")
+	if !ok {
+		fmt.Println("Missing NEW_RELIC_API_KEY required for New Relic OpenTelemetry Exporter")
+		os.Exit(1)
 	}
-	tp, err := trace.NewProvider(trace.WithSyncer(exporter))
+
+	exporter, err := nrotel.NewExporter(
+		"New Relic OpenTelemetry Shim Service",
+		apiKey,
+		telemetry.ConfigBasicErrorLogger(os.Stderr),
+		telemetry.ConfigBasicDebugLogger(os.Stderr),
+		telemetry.ConfigBasicAuditLogger(os.Stderr),
+	)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Failed to instantiate New Relic OpenTelemetry exporter: %v\n", err)
+		os.Exit(1)
 	}
-	otel.SetTraceProvider(tp)
+
+	ctx := context.Background()
+	defer exporter.Shutdown(ctx)
+
+	// Create a tracer provider
+	bsp := sdktrace.NewBatchSpanProcessor(exporter)
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(bsp))
+	defer func() { _ = tp.Shutdown(ctx) }()
+
+	otel.SetTracerProvider(tp)
 }

@@ -9,7 +9,7 @@ import (
 	"io"
 
 	newrelic "github.com/newrelic/go-agent/v4/newrelic"
-	codes "google.golang.org/grpc/codes"
+	codes "go.opentelemetry.io/otel/codes"
 	"google.golang.org/grpc/metadata"
 	status "google.golang.org/grpc/status"
 )

@@ -142,9 +142,6 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	propagators := c.OpenTelemetry.Propagators
 	if nil == propagators {
 		otel.SetTextMapPropagator(propagation.TraceContext{})
-		// propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{})
-		// otel.SetTextMapPropagator(propagator)
-		// propagators = otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}))
 		propagators = otel.GetTextMapPropagator()
 	}
 

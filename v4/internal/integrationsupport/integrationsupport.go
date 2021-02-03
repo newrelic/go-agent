@@ -8,7 +8,7 @@ package integrationsupport
 import (
 	"github.com/newrelic/go-agent/v4/internal"
 	"github.com/newrelic/go-agent/v4/newrelic"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/oteltest"
 )
 
 // SampleAppName is a sample application name.
@@ -31,9 +31,9 @@ func ConfigFullTraces(cfg *newrelic.Config) {
 
 // NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
 func NewTestApp(cfgFn ...newrelic.ConfigOption) ExpectApp {
-	sr := new(testtrace.StandardSpanRecorder)
+	sr := new(oteltest.StandardSpanRecorder)
 	cfgFn = append(cfgFn, func(cfg *newrelic.Config) {
-		tr := testtrace.NewProvider(testtrace.WithSpanRecorder(sr)).Tracer("go-agent-test")
+		tr := oteltest.NewTracerProvider(oteltest.WithSpanRecorder(sr)).Tracer("go-agent-test")
 		cfg.OpenTelemetry.Tracer = tr
 	})
 
