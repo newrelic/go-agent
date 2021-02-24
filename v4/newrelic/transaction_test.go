@@ -208,7 +208,7 @@ func TestAcceptDistributedTraceHeadersSwitchRoot(t *testing.T) {
 func TestPropagateTracestate(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
-	remoteTracestate := "123@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0"
+	remoteTracestate := "a23@nr=0-0-123-456-1234567890123456-6543210987654321-0-0.24689-0"
 
 	app := newTestApp(t)
 	txn := app.StartTransaction("transaction")
@@ -235,7 +235,7 @@ func TestPropagateTracestate(t *testing.T) {
 		t.Errorf("expected traceparent '%s', got '%s'", expectedTraceparent, traceparent)
 	}
 	if tracestate != remoteTracestate {
-		t.Errorf("expected traceparent '%s', got '%s'", remoteTracestate, tracestate)
+		t.Errorf("expected tracestate '%s', got '%s'", remoteTracestate, tracestate)
 	}
 }
 
@@ -469,7 +469,6 @@ func TestAddTxnStatusCodeAttributes(t *testing.T) {
 			code: 200,
 			attrs: map[string]interface{}{
 				"http.status_code": int64(200),
-				"http.status_text": "OK",
 			},
 		},
 		{
@@ -477,7 +476,6 @@ func TestAddTxnStatusCodeAttributes(t *testing.T) {
 			code: 500,
 			attrs: map[string]interface{}{
 				"http.status_code": int64(500),
-				"http.status_text": "Internal Server Error",
 			},
 		},
 		{
@@ -523,7 +521,7 @@ func TestSetTxnSpanStatus(t *testing.T) {
 		actStr = s
 	})
 
-	if expCode := codes.Code(13); actCode != expCode {
+	if expCode := codes.Code(1); actCode != expCode {
 		t.Errorf("Incorrect code recorded:\n\texpect=%d actual=%d",
 			expCode, actCode)
 	}
