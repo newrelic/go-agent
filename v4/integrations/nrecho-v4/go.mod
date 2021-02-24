@@ -4,6 +4,8 @@ module github.com/newrelic/go-agent/v4/integrations/nrecho-v4
 // https://github.com/labstack/echo/blob/master/go.mod
 go 1.12
 
+replace github.com/newrelic/go-agent/v4 => ../../
+
 require (
 	github.com/labstack/echo/v4 v4.0.0
 	github.com/newrelic/go-agent/v4 v4.0.0

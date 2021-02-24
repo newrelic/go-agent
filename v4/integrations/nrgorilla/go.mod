@@ -4,6 +4,8 @@ module github.com/newrelic/go-agent/v4/integrations/nrgorilla
 // https://github.com/gorilla/mux/blob/master/go.mod
 go 1.12
 
+replace github.com/newrelic/go-agent/v4 => ../../
+
 require (
 	// v1.7.0 is the earliest version of Gorilla using modules.
 	github.com/gorilla/mux v1.7.0

@@ -101,14 +101,13 @@ func TestHandle(t *testing.T) {
 		{
 			Name:       "GET /hello/:name",
 			ParentID:   internal.MatchNoParent,
-			StatusCode: 13,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"color":            "purple",
 				"http.flavor":      "1.1",
 				"http.method":      "GET",
 				"http.scheme":      "http",
 				"http.status_code": int64(500),
-				"http.status_text": "Internal Server Error",
 				"http.target":      "",
 				"net.transport":    "IP.TCP",
 			},
@@ -145,14 +144,13 @@ func TestHandler(t *testing.T) {
 		{
 			Name:       "GET /hello/",
 			ParentID:   internal.MatchNoParent,
-			StatusCode: 13,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"color":            "purple",
 				"http.flavor":      "1.1",
 				"http.method":      "GET",
 				"http.scheme":      "http",
 				"http.status_code": int64(500),
-				"http.status_text": "Internal Server Error",
 				"http.target":      "",
 				"net.transport":    "IP.TCP",
 			},
@@ -232,14 +230,13 @@ func TestNotFound(t *testing.T) {
 		{
 			Name:       "NotFound",
 			ParentID:   internal.MatchNoParent,
-			StatusCode: 13,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"color":            "purple",
 				"http.flavor":      "1.1",
 				"http.method":      "GET",
 				"http.scheme":      "http",
 				"http.status_code": int64(500),
-				"http.status_text": "Internal Server Error",
 				"http.target":      "",
 				"net.transport":    "IP.TCP",
 			},

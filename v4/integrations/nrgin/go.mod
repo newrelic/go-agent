@@ -4,6 +4,8 @@ module github.com/newrelic/go-agent/v4/integrations/nrgin
 // https://github.com/gin-gonic/gin/blob/master/go.mod
 go 1.12
 
+replace github.com/newrelic/go-agent/v4 => ../../
+
 require (
 	github.com/gin-gonic/gin v1.5.0
 	github.com/newrelic/go-agent/v4 v4.0.0

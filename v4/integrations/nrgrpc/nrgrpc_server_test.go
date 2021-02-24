@@ -91,7 +91,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 		{
 			Name:       "TestApplication/DoUnaryUnary",
 			ParentID:   internal.MatchAnyParent,
-			StatusCode: 2,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"http.url":         "grpc://bufnet/TestApplication/DoUnaryUnary",
 				"http.method":      "TestApplication/DoUnaryUnary",
@@ -144,7 +144,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       "TestApplication/DoUnaryUnaryError",
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 2,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.url":         "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 			"http.method":      "TestApplication/DoUnaryUnaryError",
@@ -230,7 +230,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		{
 			Name:       "TestApplication/DoUnaryStream",
 			ParentID:   internal.MatchAnyParent,
-			StatusCode: 2,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"http.url":         "grpc://bufnet/TestApplication/DoUnaryStream",
 				"http.method":      "TestApplication/DoUnaryStream",
@@ -303,7 +303,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		{
 			Name:       "TestApplication/DoStreamUnary",
 			ParentID:   internal.MatchAnyParent,
-			StatusCode: 2,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"http.url":         "grpc://bufnet/TestApplication/DoStreamUnary",
 				"http.method":      "TestApplication/DoStreamUnary",
@@ -389,7 +389,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 		{
 			Name:       "TestApplication/DoStreamStream",
 			ParentID:   internal.MatchAnyParent,
-			StatusCode: 2,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"http.url":         "grpc://bufnet/TestApplication/DoStreamStream",
 				"http.method":      "TestApplication/DoStreamStream",
@@ -446,7 +446,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       "TestApplication/DoUnaryStreamError",
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 2,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.method":      "TestApplication/DoUnaryStreamError",
 			"http.url":         "grpc://bufnet/TestApplication/DoUnaryStreamError",

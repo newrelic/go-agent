@@ -186,7 +186,6 @@ func TestContextTransaction(t *testing.T) {
 				"http.method":      "GET",
 				"http.scheme":      "http",
 				"http.status_code": int64(200),
-				"http.status_text": "OK",
 				"http.target":      "",
 				"net.transport":    "IP.TCP",
 			},
@@ -276,13 +275,12 @@ func TestStatusCodes(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       txnName,
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 13,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.flavor":      "1.1",
 			"http.method":      "GET",
 			"http.scheme":      "http",
 			"http.status_code": expectCode,
-			"http.status_text": internal.MatchAnything,
 			"http.target":      "",
 			"net.transport":    "IP.TCP",
 		},
@@ -325,13 +323,12 @@ func TestNoResponseBody(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       txnName,
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 13,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.flavor":      "1.1",
 			"http.method":      "GET",
 			"http.scheme":      "http",
 			"http.status_code": expectCode,
-			"http.status_text": internal.MatchAnything,
 			"http.target":      "",
 			"net.transport":    "IP.TCP",
 		},

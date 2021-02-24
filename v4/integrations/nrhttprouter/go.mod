@@ -4,6 +4,8 @@ module github.com/newrelic/go-agent/v4/integrations/nrhttprouter
 // https://github.com/julienschmidt/httprouter/blob/master/go.mod
 go 1.7
 
+replace github.com/newrelic/go-agent/v4 => ../../
+
 require (
 	// v1.3.0 is the earliest version of httprouter using modules.
 	github.com/julienschmidt/httprouter v1.3.0

@@ -591,7 +591,6 @@ func TestServerWrapperWithApp(t *testing.T) {
 				"http.method":                 "TestHandler.Method",
 				"http.request_content_length": int64(3),
 				"http.status_code":            int64(200),
-				"http.status_text":            "OK",
 				"http.url":                    "micro://testing/TestHandler.Method",
 				"http.user_agent":             internal.MatchAnything,
 			},
@@ -656,12 +655,11 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 		{
 			Name:       "TestHandlerWithError.Method",
 			ParentID:   internal.MatchNoParent,
-			StatusCode: 16,
+			StatusCode: 1,
 			Attributes: map[string]interface{}{
 				"http.method":                 "TestHandlerWithError.Method",
 				"http.request_content_length": int64(3),
 				"http.status_code":            int64(401),
-				"http.status_text":            "Unauthorized",
 				"http.url":                    "micro://testing/TestHandlerWithError.Method",
 				"http.user_agent":             internal.MatchAnything,
 			},
@@ -682,12 +680,11 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       "TestHandlerWithError.Method",
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 16,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.method":                 "TestHandlerWithError.Method",
 			"http.request_content_length": int64(3),
 			"http.status_code":            int64(401),
-			"http.status_text":            "Unauthorized",
 			"http.url":                    "micro://testing/TestHandlerWithError.Method",
 			"http.user_agent":             internal.MatchAnything,
 		},
@@ -740,12 +737,11 @@ func TestServerWrapperWithAppReturnsNonMicroError(t *testing.T) {
 	app.ExpectSpanEvents(t, []internal.WantSpan{{
 		Name:       "TestHandlerWithNonMicroError.Method",
 		ParentID:   internal.MatchNoParent,
-		StatusCode: 13,
+		StatusCode: 1,
 		Attributes: map[string]interface{}{
 			"http.method":                 "TestHandlerWithNonMicroError.Method",
 			"http.request_content_length": int64(3),
 			"http.status_code":            int64(500),
-			"http.status_text":            "Internal Server Error",
 			"http.url":                    "micro://testing/TestHandlerWithNonMicroError.Method",
 			"http.user_agent":             internal.MatchAnything,
 		},

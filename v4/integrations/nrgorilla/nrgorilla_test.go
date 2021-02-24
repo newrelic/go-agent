@@ -165,7 +165,6 @@ func TestMiddlewareBasicRoute(t *testing.T) {
 				"http.method":      "GET",
 				"http.scheme":      "http",
 				"http.status_code": int64(200),
-				"http.status_text": "OK",
 				"http.target":      "",
 				"net.transport":    "IP.TCP",
 			},

@@ -9,11 +9,14 @@ package sampleapp
 import (
 	context "context"
 	fmt "fmt"
+
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "go.opentelemetry.io/otel/codes"
-	status "google.golang.org/grpc/status"
+
 	math "math"
+
+	"google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
