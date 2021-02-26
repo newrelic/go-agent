@@ -12,4 +12,3 @@ require (
 )
 
 replace github.com/newrelic/go-agent/v4 v4.0.0 => ../../
-replace go.opentelemetry.io/otel/sdk/trace v0.16.0 => ../../../../opentelemetry-go/trace
