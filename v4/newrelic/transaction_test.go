@@ -239,42 +239,6 @@ func TestPropagateTracestate(t *testing.T) {
 	}
 }
 
-// TODO: Get B3 testing working again
-//
-// func TestInsertDistributedTraceHeadersB3(t *testing.T) {
-// 	app, err := NewApplication(func(cfg *Config) {
-// 		tp := oteltest.NewProvider()
-// 		cfg.OpenTelemetry.Tracer = tp.Tracer("go-agent-test")
-// 		cfg.OpenTelemetry.Propagators = propagation.New(
-// 			propagation.WithInjectors(trace.B3{}),
-// 			propagation.WithExtractors(trace.B3{}))
-// 	})
-// 	if err != nil {
-// 		t.Fatal("unable to create app:", err)
-// 	}
-// 	txn := app.StartTransaction("transaction")
-// 	seg1 := txn.StartSegment("seg1")
-
-// 	hdrs := http.Header{}
-// 	txn.InsertDistributedTraceHeaders(hdrs)
-
-// 	seg1.End()
-// 	txn.End()
-
-// 	traceID := getTraceID(txn.rootSpan.Span)
-// 	seg1ID := getSpanID(seg1.StartTime.Span)
-
-// 	b3TraceID := hdrs.Get("X-B3-Traceid")
-// 	b3SpanID := hdrs.Get("X-B3-Spanid")
-
-// 	if b3TraceID != traceID {
-// 		t.Errorf("expected X-B3-Traceid '%s', got '%s'", traceID, b3TraceID)
-// 	}
-// 	if b3SpanID != seg1ID {
-// 		t.Errorf("expected X-B3-Spanid '%s', got '%s'", seg1ID, b3SpanID)
-// 	}
-// }
-
 func TestSetWebRequestAcceptDTHeaders(t *testing.T) {
 	remoteTraceID := "aaaa0000000000000000000000000001"
 	remoteSpanID := "bbbb000000000002"
