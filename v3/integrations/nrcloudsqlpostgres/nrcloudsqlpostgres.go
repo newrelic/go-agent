@@ -1,9 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// +build go1.10
+// +build go1.13
 
-// Package nrpq instruments https://github.com/lib/pq.
+// Package nrcloudsqlpostgres instruments https://github.com/GoogleCloudPlatform/cloudsql-proxy.
 //
 // Use this package to instrument your PostgreSQL calls without having to manually
 // create DatastoreSegments.  This is done in a two step process:
@@ -13,25 +13,22 @@
 // If your code is using sql.Open like this:
 //
 //	import (
-//		_ "github.com/lib/pq"
+//		_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 //	)
 //
 //	func main() {
-//		db, err := sql.Open("postgres", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+//		db, err := sql.Open("cloudsqlpostgres", "host=project:region:instance user=postgres dbname=postgres password=password sslmode=disable")
 //	}
 //
-// Then change the side-effect import to this package, and open "nrpostgres" instead:
+// Then change the side-effect import to this package, and open "nrcloudsqlpostgres" instead:
 //
 //	import (
 //		_ "salesloft.com/costello/core/newrelic/driver/nrcloudsqlproxy"
 //	)
 //
 //	func main() {
-//		db, err := sql.Open("nrcloudsqlproxy", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+//		db, err := sql.Open("nrcloudsqlpostgres", "host=project:region:instance user=postgres dbname=postgres password=password sslmode=disable")
 //	}
-//
-// If your code is using pq.NewConnector, simply use nrpq.NewConnector
-// instead.
 //
 // 2. Provide a context containing a newrelic.Transaction to all exec and query
 // methods on sql.DB, sql.Conn, and sql.Tx.  This requires using the
@@ -55,7 +52,6 @@ package nrcloudsqlpostgres
 import (
 	"database/sql"
 	"os"
-	"path"
 	"regexp"
 	"strings"
 
@@ -122,11 +118,6 @@ func parseDSN(getenv func(string) string) func(*newrelic.DatastoreSegment, strin
 		}
 		if "" == ppoid {
 			ppoid = "5432"
-		}
-		if strings.HasPrefix(host, "/") {
-			// this is a unix socket
-			ppoid = path.Join(host, ".s.PGSQL."+ppoid)
-			host = "localhost"
 		}
 
 		s.Host = host
