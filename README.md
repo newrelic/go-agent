@@ -98,6 +98,7 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3) | Instrument SQLite driver |
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
+| [cloudsqlproxy/proxy/dialers/postgres](https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/proxy/dialers/postgres) | [v3/integrations/nrcloudsqlpostgres](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrcloudsqlpostgres) | Instrument Cloud SQL Postgres calls |
 
 #### Logging
 
