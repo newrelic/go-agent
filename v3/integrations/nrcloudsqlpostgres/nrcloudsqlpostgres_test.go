@@ -83,21 +83,6 @@ func TestParseDSN(t *testing.T) {
 			expHost:         "localhost",
 			expPortPathOrID: "80",
 		},
-		{
-			dsn:             "host=/path/to/socket",
-			expHost:         "localhost",
-			expPortPathOrID: "/path/to/socket/.s.PGSQL.5432",
-		},
-		{
-			dsn:             "port=1234 host=/path/to/socket",
-			expHost:         "localhost",
-			expPortPathOrID: "/path/to/socket/.s.PGSQL.1234",
-		},
-		{
-			dsn:             "host=/path/to/socket port=1234",
-			expHost:         "localhost",
-			expPortPathOrID: "/path/to/socket/.s.PGSQL.1234",
-		},
 
 		// env vars
 		{
