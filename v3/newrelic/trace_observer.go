@@ -272,9 +272,22 @@ func (to *gRPCtraceObserver) rcvResponses(spanClient v1.IngestService_RecordSpan
 	for {
 		s, err := spanClient.Recv()
 		if nil != err {
-			to.log.Error("trace observer response error", map[string]interface{}{
-				"err": err.Error(),
-			})
+			// (issue 213) These two specific errors were reported as nuisance
+			// but are really harmless so we'll report them as DEBUG level events
+			// instead of ERROR.
+			// This error comes from our Infinite Tracing load balancers.
+			// We believe the EOF error comes from the gRPC getting reset every 30 seconds
+			// from the same cause (rebalancing 8T)
+			if err.Error() == "rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: NO_ERROR" || err.Error() == "EOF" {
+				to.log.Debug("trace observer response error", map[string]interface{}{
+					"err": err.Error(),
+				})
+			} else {
+				to.log.Error("trace observer response error", map[string]interface{}{
+					"err": err.Error(),
+				})
+			}
+
 			// NOTE: even when the trace observer is shutting down
 			// properly, an EOF error will be received here and a
 			// supportability metric created.

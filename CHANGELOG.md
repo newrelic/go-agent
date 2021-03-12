@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changes
+* Changed logging level for messages resulting from Infinite Tracing load balancing operations which were previously logged as errors; now they are debugging messages. [#213](https://github.com/newrelic/go-agent/issues/213)
+
 ## 3.10.0
 
 ### New Features
