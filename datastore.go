@@ -31,4 +31,5 @@ const (
 	DatastoreRiak          DatastoreProduct = "Riak"
 	DatastoreVoltDB        DatastoreProduct = "VoltDB"
 	DatastoreDynamoDB      DatastoreProduct = "DynamoDB"
+	DatastoreAerospike     DatastoreProduct = "Aerospike"
 )
