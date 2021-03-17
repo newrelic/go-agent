@@ -6,9 +6,11 @@ package newrelic
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"reflect"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -379,6 +381,7 @@ func (thd *thread) End(recovered interface{}) error {
 		e := txnErrorFromPanic(time.Now(), recovered)
 		e.Stack = getStackTrace()
 		thd.noticeErrorInternal(e)
+		log.Println(string(debug.Stack()))
 	}
 
 	txn.markEnd(time.Now(), thd.thread)
