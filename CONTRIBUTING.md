@@ -1,10 +1,10 @@
 # Contributing
 
 Contributions are always welcome. Before contributing please read the
-[code of conduct](./CODE_OF_CONDUCT.md) and [search the issue tracker](../../issues); your issue may have already been discussed or fixed in `master`. To contribute,
+[code of conduct](https://opensource.newrelic.com/code-of-conduct/) and [search the issue tracker](../../issues); your issue may have already been discussed or fixed in `master`. To contribute,
 [fork](https://help.github.com/articles/fork-a-repo/) this repository, commit your changes, and [send a Pull Request](https://help.github.com/articles/using-pull-requests/).
 
-Note that our [code of conduct](./CODE_OF_CONDUCT.md) applies to all platforms and venues related to this project; please follow it in all your interactions with the project and its participants.
+Note that our [code of conduct](https://opensource.newrelic.com/code-of-conduct/) applies to all platforms and venues related to this project; please follow it in all your interactions with the project and its participants.
 
 Please note, we only accept pull request for versions 3.8.0 of this project or greater.
 
