@@ -12,7 +12,7 @@
 * Added support for Verison 8 of go-redisl. Thanks, @ilmimris, for adding this instrumentation! [#251](https://github.com/newrelic/go-agent/pull/251)
 
 ### Fixed
-* When the agent is configred with `cfg.ErrorCollector.RecordPanics` set to `true`, panics would be recorded by New Relic, but stack traces would not be logged as the Go Runtime usually does. The agent now logs stack traces from within its panic handler, providing similar functionality. [#278](https://github.com/newrelic/go-agent/pull/278)
+* When the agent is configured with `cfg.ErrorCollector.RecordPanics` set to `true`, panics would be recorded by New Relic, but stack traces would not be logged as the Go Runtime usually does. The agent now logs stack traces from within its panic handler, providing similar functionality. [#278](https://github.com/newrelic/go-agent/pull/278)
 
 ### Support statement
 * New Relic recommends that you upgrade the agent regularly and at a minimum every 3 months. 
