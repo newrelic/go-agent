@@ -13,6 +13,7 @@
 
 ### Fixed
 * When the agent is configured with `cfg.ErrorCollector.RecordPanics` set to `true`, panics would be recorded by New Relic, but stack traces would not be logged as the Go Runtime usually does. The agent now logs stack traces from within its panic handler, providing similar functionality. [#278](https://github.com/newrelic/go-agent/pull/278)
+* Added license files to some integrations packages to ensure compatibility with package.go.dev. Now the documentation for our integrations show up again on go.docs.
 
 ### Support statement
 * New Relic recommends that you upgrade the agent regularly to ensure that you're getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach [end-of-life](https://docs.newrelic.com/docs/using-new-relic/cross-product-functions/install-configure/notification-changes-new-relic-saas-features-distributed-software).
