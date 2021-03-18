@@ -2,8 +2,21 @@
 
 ## Unreleased
 
+## 3.11.0
+
 ### Changes
-* Changed logging level for messages resulting from Infinite Tracing load balancing operations which were previously logged as errors; now they are debugging messages. [#213](https://github.com/newrelic/go-agent/issues/213)
+* Changed logging level for messages resulting from Infinite Tracing load balancing operations which were previously logged as errors; now they are debugging messages. [#276](https://github.com/newrelic/go-agent/pull/276)
+
+### New Features
+* Aerospike databases are now a possible datastore. Thanks, @vkartik97, for your PR! [#276](https://github.com/newrelic/go-agent/pull/276)
+* Added support for Verison 8 of go-redisl. Thanks, @ilmimris, for adding this instrumentation! [#251](https://github.com/newrelic/go-agent/pull/251)
+
+### Fixed
+* When the agent is configred with `cfg.ErrorCollector.RecordPanics` set to `true`, panics would be recorded by New Relic, but stack traces would not be logged as the Go Runtime usually does. The agent now logs stack traces from within its panic handler, providing similar functionality. [#278](https://github.com/newrelic/go-agent/pull/278)
+
+### Support statement
+* New Relic recommends that you upgrade the agent regularly and at a minimum every 3 months. 
+As of this release, the oldest supported version is [2.2.0](https://docs.newrelic.com/docs/release-notes/agent-release-notes/go-release-notes/go-agent-22).
 
 ## 3.10.0
 
