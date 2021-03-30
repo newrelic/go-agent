@@ -620,6 +620,8 @@ func TestGetRequestID(t *testing.T) {
 			primary:   []string{"hello"},
 			secondary: []string{"world"},
 		}, expected: "hello"},
+
+		{hdr: http.Header{}, expected: ""},
 	}
 
 	// Make sure our assumptions still hold against aws-sdk-go

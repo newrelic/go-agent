@@ -70,7 +70,7 @@ func StartSegment(input StartSegmentInputs) *http.Request {
 
 	var segment endable
 	// Service name capitalization is different for v1 and v2.
-	if input.ServiceName == "dynamodb" || input.ServiceName == "DynamoDB" {
+	if input.ServiceName == "dynamodb" || input.ServiceName == "DynamoDB" || input.ServiceName == "dax" {
 		segment = &newrelic.DatastoreSegment{
 			Product:            newrelic.DatastoreDynamoDB,
 			Collection:         getTableName(input.Params),
