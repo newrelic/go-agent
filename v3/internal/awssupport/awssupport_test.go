@@ -73,6 +73,8 @@ func TestGetRequestID(t *testing.T) {
 			primary:   []string{"hello"},
 			secondary: []string{"world"},
 		}, expected: "hello"},
+
+		{hdr: http.Header{}, expected: ""},
 	}
 
 	for i, test := range testcases {
