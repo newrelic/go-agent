@@ -9,18 +9,17 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
-	"github.com/aws/aws-sdk-go-v2/private/protocol/rest"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/awssupport"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func testApp() integrationsupport.ExpectApp {
@@ -60,23 +59,23 @@ var fakeCreds = func() interface{} {
 	return fakeCredsWithContext{}
 }()
 
-func newConfig(instrument bool) aws.Config {
-	cfg, _ := external.LoadDefaultAWSConfig()
+func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+	cfg, _ := config.LoadDefaultConfig(ctx)
 	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
-	cfg.Region = "us-west-2"
+	cfg.Region = awsRegion
 	cfg.HTTPClient = &http.Client{
 		Transport: &fakeTransport{},
 	}
 
-	if instrument {
-		InstrumentHandlers(&cfg.Handlers)
-	}
+	AppendMiddlewares(&cfg.APIOptions, txn)
+
 	return cfg
 }
 
 const (
 	requestID = "testing request id"
 	txnName   = "aws-txn"
+	awsRegion = "us-west-2"
 )
 
 var (
@@ -110,11 +109,12 @@ var (
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.operation": "Invoke",
-			"aws.region":    "us-west-2",
-			"aws.requestId": requestID,
-			"http.method":   "POST",
-			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"aws.operation":   "Invoke",
+			"aws.region":      awsRegion,
+			"aws.requestId":   requestID,
+			"http.method":     "POST",
+			"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"http.statusCode": "200",
 		},
 	}
 	externalSpanNoRequestID = internal.WantEvent{
@@ -132,15 +132,16 @@ var (
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.operation": "Invoke",
-			"aws.region":    "us-west-2",
-			"http.method":   "POST",
-			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"aws.operation":   "Invoke",
+			"aws.region":      awsRegion,
+			"http.method":     "POST",
+			"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"http.statusCode": "200",
 		},
 	}
 	datastoreSpan = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
-			"name":          "Datastore/statement/DynamoDB/thebesttable/DescribeTable",
+			"name":          "Datastore/operation/DynamoDB/DescribeTable",
 			"sampled":       true,
 			"category":      "datastore",
 			"priority":      internal.MatchAnything,
@@ -153,16 +154,15 @@ var (
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.operation": "DescribeTable",
-			"aws.region":    "us-west-2",
-			"aws.requestId": requestID,
-			"db.collection": "thebesttable",
-			"db.statement":  "'DescribeTable' on 'thebesttable' using 'DynamoDB'",
-			"peer.address":  "dynamodb.us-west-2.amazonaws.com:unknown",
-			"peer.hostname": "dynamodb.us-west-2.amazonaws.com",
+			"aws.operation":   "DescribeTable",
+			"aws.region":      awsRegion,
+			"aws.requestId":   requestID,
+			"db.statement":    "'DescribeTable' on 'unknown' using 'DynamoDB'",
+			"peer.address":    "dynamodb.us-west-2.amazonaws.com:unknown",
+			"peer.hostname":   "dynamodb.us-west-2.amazonaws.com",
+			"http.statusCode": "200",
 		},
 	}
-
 	txnMetrics = []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
@@ -184,29 +184,27 @@ var (
 		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/DynamoDB/thebesttable/DescribeTable", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
+		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "OtherTransaction/Go/aws-txn", Forced: false, Data: nil},
 	}...)
 )
 
 func TestInstrumentRequestExternal(t *testing.T) {
 	app := testApp()
 	txn := app.StartTransaction(txnName)
+	ctx := context.TODO()
 
-	client := lambda.New(newConfig(false))
+	client := lambda.NewFromConfig(newConfig(ctx, txn))
+
 	input := &lambda.InvokeInput{
 		ClientContext:  aws.String("MyApp"),
 		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
+		InvocationType: types.InvocationTypeRequestResponse,
+		LogType:        types.LogTypeTail,
 		Payload:        []byte("{}"),
 	}
-	req := client.InvokeRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send(ctx)
-	if nil != err {
+	_, err := client.Invoke(ctx, input)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -220,18 +218,16 @@ func TestInstrumentRequestExternal(t *testing.T) {
 func TestInstrumentRequestDatastore(t *testing.T) {
 	app := testApp()
 	txn := app.StartTransaction(txnName)
+	ctx := context.TODO()
 
-	client := dynamodb.New(newConfig(false))
+	client := dynamodb.NewFromConfig(newConfig(ctx, txn))
+
 	input := &dynamodb.DescribeTableInput{
 		TableName: aws.String("thebesttable"),
 	}
 
-	req := client.DescribeTableRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := newrelic.NewContext(req.Context(), txn)
-
-	_, err := req.Send(ctx)
-	if nil != err {
+	_, err := client.DescribeTable(ctx, input)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -240,199 +236,6 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 	app.ExpectMetrics(t, datastoreMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		datastoreSpan, genericSpan})
-}
-
-func TestInstrumentRequestExternalNoTxn(t *testing.T) {
-	client := lambda.New(newConfig(false))
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-
-	req := client.InvokeRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-}
-
-func TestInstrumentRequestDatastoreNoTxn(t *testing.T) {
-	client := dynamodb.New(newConfig(false))
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String("thebesttable"),
-	}
-
-	req := client.DescribeTableRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-}
-
-func TestInstrumentConfigExternal(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-
-	client := lambda.New(newConfig(true))
-
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-
-	req := client.InvokeRequest(input)
-	ctx := newrelic.NewContext(req.Context(), txn)
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-
-	txn.End()
-
-	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpan, genericSpan})
-}
-
-func TestInstrumentConfigDatastore(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-
-	client := dynamodb.New(newConfig(true))
-
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String("thebesttable"),
-	}
-
-	req := client.DescribeTableRequest(input)
-	ctx := newrelic.NewContext(req.Context(), txn)
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-
-	txn.End()
-
-	app.ExpectMetrics(t, datastoreMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		datastoreSpan, genericSpan})
-}
-
-func TestInstrumentConfigExternalNoTxn(t *testing.T) {
-	client := lambda.New(newConfig(true))
-
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-
-	req := client.InvokeRequest(input)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-}
-
-func TestInstrumentConfigDatastoreNoTxn(t *testing.T) {
-	client := dynamodb.New(newConfig(true))
-
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String("thebesttable"),
-	}
-
-	req := client.DescribeTableRequest(input)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-}
-
-func TestInstrumentConfigExternalTxnNotInCtx(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-
-	client := lambda.New(newConfig(true))
-
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-
-	req := client.InvokeRequest(input)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-
-	txn.End()
-
-	app.ExpectMetrics(t, txnMetrics)
-}
-
-func TestInstrumentConfigDatastoreTxnNotInCtx(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-
-	client := dynamodb.New(newConfig(true))
-
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String("thebesttable"),
-	}
-
-	req := client.DescribeTableRequest(input)
-	ctx := req.Context()
-
-	_, err := req.Send(ctx)
-	if nil != err {
-		t.Error(err)
-	}
-
-	txn.End()
-
-	app.ExpectMetrics(t, txnMetrics)
-}
-
-func TestDoublyInstrumented(t *testing.T) {
-	hs := &aws.Handlers{}
-	if found := hs.Send.Len(); 0 != found {
-		t.Error("unexpected number of Send handlers found:", found)
-	}
-
-	InstrumentHandlers(hs)
-	if found := hs.Send.Len(); 2 != found {
-		t.Error("unexpected number of Send handlers found:", found)
-	}
-
-	InstrumentHandlers(hs)
-	if found := hs.Send.Len(); 2 != found {
-		t.Error("unexpected number of Send handlers found:", found)
-	}
 }
 
 type firstFailingTransport struct {
@@ -444,6 +247,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 		t.failing = false
 		return nil, errors.New("Oops this failed")
 	}
+
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
@@ -457,70 +261,121 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 func TestRetrySend(t *testing.T) {
 	app := testApp()
 	txn := app.StartTransaction(txnName)
+	ctx := context.TODO()
 
-	cfg := newConfig(false)
+	cfg := newConfig(ctx, txn)
+
 	cfg.HTTPClient = &http.Client{
 		Transport: &firstFailingTransport{failing: true},
 	}
 
-	client := lambda.New(cfg)
+	customRetry := retry.NewStandard(func(o *retry.StandardOptions) {
+		o.MaxAttempts = 2
+	})
+	client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
+		o.Retryer = customRetry
+	})
+
 	input := &lambda.InvokeInput{
 		ClientContext:  aws.String("MyApp"),
 		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
+		InvocationType: types.InvocationTypeRequestResponse,
+		LogType:        types.LogTypeTail,
 		Payload:        []byte("{}"),
 	}
-	req := client.InvokeRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, err := req.Send(ctx)
-	if nil != err {
+	_, err := client.Invoke(ctx, input)
+	if err != nil {
 		t.Error(err)
 	}
 
 	txn.End()
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
-		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-	})
+	app.ExpectMetrics(t, externalMetrics)
+
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpanNoRequestID, externalSpan, genericSpan})
+		{
+			Intrinsics: map[string]interface{}{
+				"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+				"sampled":       true,
+				"category":      "http",
+				"priority":      internal.MatchAnything,
+				"guid":          internal.MatchAnything,
+				"transactionId": internal.MatchAnything,
+				"traceId":       internal.MatchAnything,
+				"parentId":      internal.MatchAnything,
+				"component":     "http",
+				"span.kind":     "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"aws.operation":   "Invoke",
+				"aws.region":      awsRegion,
+				"http.method":     "POST",
+				"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+				"http.statusCode": "0",
+			},
+		}, {
+			Intrinsics: map[string]interface{}{
+				"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+				"sampled":       true,
+				"category":      "http",
+				"priority":      internal.MatchAnything,
+				"guid":          internal.MatchAnything,
+				"transactionId": internal.MatchAnything,
+				"traceId":       internal.MatchAnything,
+				"parentId":      internal.MatchAnything,
+				"component":     "http",
+				"span.kind":     "client",
+			},
+			UserAttributes: map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{
+				"aws.operation":   "Invoke",
+				"aws.region":      awsRegion,
+				"aws.requestId":   requestID,
+				"http.method":     "POST",
+				"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+				"http.statusCode": "200",
+			},
+		}, {
+			Intrinsics: map[string]interface{}{
+				"name":             "OtherTransaction/Go/" + txnName,
+				"transaction.name": "OtherTransaction/Go/" + txnName,
+				"sampled":          true,
+				"category":         "generic",
+				"priority":         internal.MatchAnything,
+				"guid":             internal.MatchAnything,
+				"transactionId":    internal.MatchAnything,
+				"nr.entryPoint":    true,
+				"traceId":          internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		}})
 }
 
 func TestRequestSentTwice(t *testing.T) {
 	app := testApp()
 	txn := app.StartTransaction(txnName)
+	ctx := context.TODO()
 
-	client := lambda.New(newConfig(false))
+	client := lambda.NewFromConfig(newConfig(ctx, txn))
+
 	input := &lambda.InvokeInput{
 		ClientContext:  aws.String("MyApp"),
 		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
+		InvocationType: types.InvocationTypeRequestResponse,
+		LogType:        types.LogTypeTail,
 		Payload:        []byte("{}"),
 	}
-	req := client.InvokeRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := newrelic.NewContext(req.Context(), txn)
 
-	_, firstErr := req.Send(ctx)
-	if nil != firstErr {
+	_, firstErr := client.Invoke(ctx, input)
+	if firstErr != nil {
 		t.Error(firstErr)
 	}
 
-	_, secondErr := req.Send(ctx)
-	if nil != secondErr {
+	_, secondErr := client.Invoke(ctx, input)
+	if secondErr != nil {
 		t.Error(secondErr)
 	}
 
@@ -555,26 +410,23 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 func TestNoRequestIDFound(t *testing.T) {
 	app := testApp()
 	txn := app.StartTransaction(txnName)
+	ctx := context.TODO()
 
-	cfg := newConfig(false)
+	cfg := newConfig(ctx, txn)
 	cfg.HTTPClient = &http.Client{
 		Transport: &noRequestIDTransport{},
 	}
+	client := lambda.NewFromConfig(cfg)
 
-	client := lambda.New(cfg)
 	input := &lambda.InvokeInput{
 		ClientContext:  aws.String("MyApp"),
 		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: lambda.InvocationTypeEvent,
-		LogType:        lambda.LogTypeTail,
+		InvocationType: types.InvocationTypeRequestResponse,
+		LogType:        types.LogTypeTail,
 		Payload:        []byte("{}"),
 	}
-	req := client.InvokeRequest(input)
-	InstrumentHandlers(&req.Handlers)
-	ctx := newrelic.NewContext(req.Context(), txn)
-
-	_, err := req.Send(ctx)
-	if nil != err {
+	_, err := client.Invoke(ctx, input)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -583,50 +435,4 @@ func TestNoRequestIDFound(t *testing.T) {
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		externalSpanNoRequestID, genericSpan})
-}
-
-func TestGetRequestID(t *testing.T) {
-	primary := "X-Amzn-Requestid"
-	secondary := "X-Amz-Request-Id"
-
-	testcases := []struct {
-		hdr      http.Header
-		expected string
-	}{
-		{hdr: http.Header{
-			"hello": []string{"world"},
-		}, expected: ""},
-
-		{hdr: http.Header{
-			strings.ToUpper(primary): []string{"hello"},
-		}, expected: ""},
-
-		{hdr: http.Header{
-			primary: []string{"hello"},
-		}, expected: "hello"},
-
-		{hdr: http.Header{
-			secondary: []string{"hello"},
-		}, expected: "hello"},
-
-		{hdr: http.Header{
-			primary:   []string{"hello"},
-			secondary: []string{"world"},
-		}, expected: "hello"},
-	}
-
-	// Make sure our assumptions still hold against aws-sdk-go-v2
-	for _, test := range testcases {
-		req := &aws.Request{
-			HTTPResponse: &http.Response{
-				Header: test.hdr,
-			},
-			Data: &lambda.InvokeOutput{},
-		}
-		rest.UnmarshalMeta(req)
-		if out := awssupport.GetRequestID(test.hdr); req.RequestID != out {
-			t.Error("requestId assumptions incorrect", out, req.RequestID,
-				test.hdr, test.expected)
-		}
-	}
 }
