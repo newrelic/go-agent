@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Fixed
+* Replaced the NR AWS SDK V2 integration for the v3 agent with a new version that works. See the v3/integrations/nrawssdk-v2/example/main.go file for an example of how to use it.
+
 ## 3.12.0
 
 ### Changes
