@@ -69,7 +69,7 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
 //
 func UnaryServerInterceptor(app *newrelic.Application) grpc.UnaryServerInterceptor {
-	if nil == app {
+	if app == nil {
 		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 			return handler(ctx, req)
 		}
@@ -82,6 +82,9 @@ func UnaryServerInterceptor(app *newrelic.Application) grpc.UnaryServerIntercept
 		ctx = newrelic.NewContext(ctx, txn)
 		resp, err = handler(ctx, req)
 		txn.SetWebResponse(nil).WriteHeader(int(status.Code(err)))
+		if err != nil {
+			txn.NoticeError(err)
+		}
 		return
 	}
 }
@@ -130,7 +133,7 @@ func newWrappedServerStream(stream grpc.ServerStream, txn *newrelic.Transaction)
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
 //
 func StreamServerInterceptor(app *newrelic.Application) grpc.StreamServerInterceptor {
-	if nil == app {
+	if app == nil {
 		return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 			return handler(srv, ss)
 		}
@@ -142,6 +145,9 @@ func StreamServerInterceptor(app *newrelic.Application) grpc.StreamServerInterce
 
 		err := handler(srv, newWrappedServerStream(ss, txn))
 		txn.SetWebResponse(nil).WriteHeader(int(status.Code(err)))
+		if err != nil {
+			txn.NoticeError(err)
+		}
 		return err
 	}
 }
