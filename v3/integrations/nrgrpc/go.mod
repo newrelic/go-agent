@@ -10,7 +10,7 @@ require (
 	// because all dependencies were removed in this version.
 	github.com/golang/protobuf v1.3.3
 	github.com/kisielk/gotool v1.0.0 // indirect
-	github.com/newrelic/go-agent/v3 v3.0.0
+	github.com/newrelic/go-agent/v3 v3.12.0
 	// v1.15.0 is the earliest version of grpc using modules.
 	google.golang.org/grpc v1.27.0
 )
