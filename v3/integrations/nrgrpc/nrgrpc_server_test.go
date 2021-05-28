@@ -213,7 +213,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 	}, {
 		Intrinsics: map[string]interface{}{
-			"error.class":     "*status.statusError",
+			"error.class":     internal.MatchAnything,
 			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
@@ -636,7 +636,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		UserAttributes: map[string]interface{}{},
 	}, {
 		Intrinsics: map[string]interface{}{
-			"error.class":     "*status.statusError",
+			"error.class":     internal.MatchAnything,
 			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
