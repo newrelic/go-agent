@@ -249,7 +249,7 @@ func browser(w http.ResponseWriter, r *http.Request) {
 func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example App"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
 	if nil != err {

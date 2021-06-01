@@ -5,6 +5,9 @@
 ### Fixed
 * Replaced the NR AWS SDK V2 integration for the v3 agent with a new version that works. See the v3/integrations/nrawssdk-v2/example/main.go file for an example of how to use it.
 
+### Changes
+* The v3/examples/server/main.go example now uses `newrelic.ConfigFromEnvironment()`, rather than explicitly pulling in the license key with `newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY"))`. The team is starting to use this as a general systems integration testing script, and this facilitates testing with different settings enabled.
+
 ## 3.12.0
 
 ### Changes
