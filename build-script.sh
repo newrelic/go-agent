@@ -38,18 +38,28 @@ for dir in $DIRS; do
   else
     # Only v3 code version 1.9+ needs GRPC dependencies
     VERSION=$(go version)
-    V17="1.7"
-    V18="1.8"
-    V19="1.9"
-    if [[ "$VERSION" =~ .*"$V17".* || "$VERSION" =~ .*"$V18".* ]]; then
+    V1_7="1.7"
+    V1_8="1.8"
+    V1_9="1.9"
+    V1_10="1.10"
+    V1_11="1.11"
+    V1_12="1.12"
+    if [[ "$VERSION" =~ .*"$V1_7".* || "$VERSION" =~ .*"$V1_8".* ]]; then
       echo "Not installing GRPC for old versions"
-    elif [[ "$VERSION" =~ .*"$V19" ]]; then
+    elif [[ "$VERSION" =~ .*"$V1_9" || "$VERSION" =~ .*"$V1_10" || "$VERSION" =~ .*"$V1_11" || "$VERSION" =~ .*"$V1_12" ]]; then
       # install v3 dependencies that support this go version
       set +e
       go get -u google.golang.org/grpc # this go get will fail to build
       set -e
       cd $GOPATH/src/google.golang.org/grpc
       git checkout v1.31.0
+      cd -
+
+      set +e
+      go get -u golang.org/x/net/http2 # this go get will fail to build
+      set -e
+      cd $GOPATH/src/golang.org/x/net/http2
+      git checkout 7fd8e65b642006927f6cec5cb4241df7f98a2210
       cd -
 
       go get -u github.com/golang/protobuf/protoc-gen-go

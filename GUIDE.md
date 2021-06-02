@@ -369,8 +369,8 @@ ways to use this functionality:
    For example:
 
     ```go
-    func external(txn newrelic.Transaction, req *http.Request) (*http.Response, error) {
-      s := txn.StartExternalSegment(req)
+    func external(txn *newrelic.Transaction, req *http.Request) (*http.Response, error) {
+      s := newrelic.StartExternalSegment(txn, req)
       response, err := http.DefaultClient.Do(req)
       s.Response = response
       s.End()

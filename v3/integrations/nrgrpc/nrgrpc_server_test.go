@@ -211,6 +211,27 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 		UserAttributes: map[string]interface{}{},
+	}, {
+		Intrinsics: map[string]interface{}{
+			"error.class":     internal.MatchAnything,
+			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
+			"guid":            internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"sampled":         internal.MatchAnything,
+			"spanId":          internal.MatchAnything,
+			"traceId":         internal.MatchAnything,
+			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            15,
+			"http.statusCode":             15,
+			"request.headers.User-Agent":  internal.MatchAnything,
+			"request.headers.userAgent":   internal.MatchAnything,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoUnaryUnaryError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
+		},
+		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -596,6 +617,27 @@ func TestStreamServerInterceptorError(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"error.class":     "15",
 			"error.message":   "response code 15",
+			"guid":            internal.MatchAnything,
+			"priority":        internal.MatchAnything,
+			"sampled":         internal.MatchAnything,
+			"spanId":          internal.MatchAnything,
+			"traceId":         internal.MatchAnything,
+			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            15,
+			"http.statusCode":             15,
+			"request.headers.User-Agent":  internal.MatchAnything,
+			"request.headers.userAgent":   internal.MatchAnything,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoUnaryStreamError",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
+		},
+		UserAttributes: map[string]interface{}{},
+	}, {
+		Intrinsics: map[string]interface{}{
+			"error.class":     internal.MatchAnything,
+			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
