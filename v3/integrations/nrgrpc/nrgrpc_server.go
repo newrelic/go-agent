@@ -1,6 +1,35 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//
+// This integration instruments grpc service calls via
+// `UnaryServerInterceptor()` and `StreamServerInterceptor()` functions.
+//
+// The results of these calls are reported as errors or as informational
+// messages (of levels OK, Info, Warning, or Error) based on the gRPC status
+// code they return.
+//
+// In the simplest case, simply add interceptors as in the following example:
+//
+//  app, _ := newrelic.NewApplication(
+//     newrelic.ConfigAppName("gRPC Server"),
+//     newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//     newrelic.ConfigDebugLogger(os.Stdout),
+//  )
+//  server := grpc.NewServer(
+//     grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//     grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//  )
+//
+// The disposition of each, in terms of how to report each of the various
+// gRPC status codes, is determined by a built-in set of defaults. These
+// may be overridden on a case-by-case basis using `WithStatusHandler()`
+// options to each `UnaryServerInterceptor()` or `StreamServerInterceptor()`
+// call, or globally via the `Configure()` function.
+//
+// Full example:
+// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
+//
 package nrgrpc
 
 import (
@@ -43,82 +72,25 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 	return txn
 }
 
-// UnaryServerInterceptor instruments server unary RPCs.
 //
-// Use this function with grpc.UnaryInterceptor and a newrelic.Application to
-// sreate a grpc.ServerOption to pass to grpc.NewServer.  This interceptor
-// records each unary call with a transaction.  You must use both
-// UnaryServerInterceptor and StreamServerInterceptor to instrument unary and
-// streaming calls.
+// `ErrorHandler` is the type of a gRPC status handler function.
+// Normally the supplied set of `ErrorHandler` functions will suffice, but
+// a custom handler may be crafted by the user and installed as a handler
+// if needed.
 //
-// Example:
-//
-//	app, _ := newrelic.NewApplication(
-//		newrelic.ConfigAppName("gRPC Server"),
-//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-//		newrelic.ConfigDebugLogger(os.Stdout),
-//	)
-//	server := grpc.NewServer(
-//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//	)
-//
-// The nrgrpc integration has a built-in set of handlers for each gRPC status
-// code encountered. Serious errors are reported as error traces ala the
-// `newrelic.NoticeError()` function, while the others are reported but not
-// counted as errors.
-//
-// If you wish to change this behavior, you may do so at a global level for
-// all intercepted functions by calling the `Configure()` function, passing
-// any number of `WithStatusHandler(code, handler)` functions as parameters.
-// In each of these, `code` represents a gRPC code such as `codes.Unknown`,
-// and `handler` is a function with the calling signature
-//   func myHandler(c context.Context, t *newrelic.Transaction, s *status.Status)
-// If the given gRPC code is produced by the intercepted function, then `myHandler()`
-// will be called to report that out in the current transaction, in whatever way
-// is appropriate. To assist with this, `myHandler()` is provided with the corresponding
-// context and transaction along with the actual gRPC `Status` value captured.
-//
-// We provide a set of standard handlers which should suffice in most cases to report
-// non-error, info-level, warning-level, and error-level statuses:
-//   ErrorInterceptorStatusHandler     // report as error
-//   IgnoreInterceptorStatusHandler    // no report AT ALL
-//   InfoInterceptorStatusHandler      // report as informational message
-//   OKInterceptorStatusHandler        // report as successful
-//   WarningInterceptorStatusHandler   // report as warning
-//
-// Thus, to specify that all codes with status `OutOfRange` should be logged as warnings
-// and all `Unimplemented` ones should be informational, then make this call:
-//   Config(
-//     WithStatusHandler(codes.OutOfRange, WarningInterceptorStatusHandler),
-//     WithStatusHandler(codes.Unimplemented, InfoInterceptorStatusHandler))
-//
-// This will affect the behavior of calls to `UnaryInterceptor()` and `StreamInterceptor()`
-// which occur after this. You may call `Config()` again to change the handling of errors
-// from that point forward (but note that once an interceptor is created, it will use whatever
-// handlers were defined at that point, even if the intercepted service call happens later.
-//
-// You can also specify a custom set of handlers with each interceptor creation by adding
-// `WithStatusHandler()` calls at the end of the `<type>StreamInterceptor()` call's parameter list,
-// like so:
-//   grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app,
-//     nrgrpc.WithStatusHandler(codes.OutOfRange, nrgrpc.WarningInterceptorStatusHandler),
-//     nrgrpc.WithStatusHandler(codes.Unimplemented, nrgrpc.InfoInterceptorStatusHandler)))
-// In this case, those two handlers are used (along with the current defaults for the other status
-// codes) only for that interceptor.
-//
-//
-// These interceptors add the transaction to the call context so it may be
-// accessed in your method handlers using newrelic.FromContext.
-//
-// Full example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
-//
-
 type ErrorHandler func(context.Context, *newrelic.Transaction, *status.Status)
-type StatusHandlerMap map[codes.Code]ErrorHandler
 
-var interceptorStatusHandlerRegistry = StatusHandlerMap{
+//
+// Internal registry of handlers associated with various
+// status codes.
+//
+type statusHandlerMap map[codes.Code]ErrorHandler
+
+//
+// interceptorStatusHandlerRegistry is the current default set of handlers
+// used by each interceptor.
+//
+var interceptorStatusHandlerRegistry = statusHandlerMap{
 	codes.OK:                 OKInterceptorStatusHandler,
 	codes.Canceled:           InfoInterceptorStatusHandler,
 	codes.Unknown:            ErrorInterceptorStatusHandler,
@@ -138,26 +110,78 @@ var interceptorStatusHandlerRegistry = StatusHandlerMap{
 	codes.Unauthenticated:    InfoInterceptorStatusHandler,
 }
 
-type handlerOption func(StatusHandlerMap)
+type handlerOption func(statusHandlerMap)
 
+//
+// `WithStatusHandler()` indicates a handler function to be used to
+// report the indicated gRPC status. Zero or more of these may be
+// given to the `Configure()`, `StreamServiceInterceptor()`, or
+// `UnaryServiceInterceptor()` functions.
+//
+// The `ErrorHandler` parameter is generally one of the provided standard
+// reporting functions:
+//  `OKInterceptorStatusHandler`      // report the operation as successful
+//  `ErrorInterceptorStatusHandler`   // report the operation as an error
+//  `WarningInterceptorStatusHandler` // report the operation as a warning
+//  `InfoInterceptorStatusHandler`    // report the operation as an informational message
+//
+// The following reporting function should only be used if you know for sure
+// you want this. It does not report the error in any way at all, but completely
+// ignores it.
+//  `IgnoreInterceptorStatusHandler`  // report the operation as successful
+//
+// Finally, if you have a custom reporting need that isn't covered by the standard
+// handler functions, you can create your own handler function as
+//   func myHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
+//      ...
+//   }
+// Within the function, do whatever you need to do with the `txn` parameter to report the
+// gRPC status passed as `s`. If needed, the context is also passed to your function.
+//
+// If you wish to use your custom handler for a code such as `codes.NotFound`, you would
+// include the parameter
+//   WithStatusHandler(codes.NotFound, myHandler)
+// to your `Configure()`, `StreamServiceInterceptor()`, or `UnaryServiceInterceptor()` function.
+//
 func WithStatusHandler(c codes.Code, h ErrorHandler) handlerOption {
-	return func(m StatusHandlerMap) {
+	return func(m statusHandlerMap) {
 		m[c] = h
 	}
 }
 
+//
+// `Configure()` takes a list of `WithStatusHandler()` options and sets them
+// as the new default handlers for the specified gRPC status codes, in the same
+// way as if `WithStatusHandler()` were given to the `StreamServiceInterceptor()`
+// or `UnaryServiceInterceptor()` functions (q.v.); however, in this case the new handlers
+// become the default for any subsequent interceptors created by the above functions.
+//
 func Configure(options ...handlerOption) {
 	for _, option := range options {
 		option(interceptorStatusHandlerRegistry)
 	}
 }
 
+//
+// Standard handler: IGNORE
+// This does not report anything at all in the context.
+//
 func IgnoreInterceptorStatusHandler(_ context.Context, _ *newrelic.Transaction, _ *status.Status) {}
 
+//
+// Standard handler: OK
+// Reports only that the RPC call was successful by setting the web response header
+// value.
+//
 func OKInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 }
 
+//
+// Standard handler: ERROR
+// Reports the transaction as an error, with the relevant error messages and
+// contextual information gleaned from the error value received from the RPC call.
+//
 func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
 	//
@@ -172,19 +196,37 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 	})
 }
 
+//
+// Standard handler: WARNING
+// Reports the transaction's status with attributes containing information gleaned
+// from the error value returned, but does not count this as an error.
+//
 func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
 	// TODO: just add some attributes about this (treat as WARN, not NoticeError())
 }
 
+//
+// Standard handler: INFO
+// Reports the transaction's status with attributes containing information gleaned
+// from the error value returned, but does not count this as an error.
+//
 func InfoInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
 	// TODO: just add some attributes about this (treat as INFO, not NoticeError())
 }
 
+//
+// Standard handler: DEFAULT
+// The `DefaultInterceptorStatusHander` is used for any status code which is not
+// explicitly assigned a handler.
+//
 var DefaultInterceptorStatusHandler = InfoInterceptorStatusHandler
 
-func reportInterceptorStatus(ctx context.Context, txn *newrelic.Transaction, handlers StatusHandlerMap, err error) {
+//
+// Common routine for reporting any kind of interceptor.
+//
+func reportInterceptorStatus(ctx context.Context, txn *newrelic.Transaction, handlers statusHandlerMap, err error) {
 	grpcStatus := status.Convert(err)
 	handler, ok := handlers[grpcStatus.Code()]
 	if !ok {
@@ -193,6 +235,47 @@ func reportInterceptorStatus(ctx context.Context, txn *newrelic.Transaction, han
 	handler(ctx, txn, grpcStatus)
 }
 
+// UnaryServerInterceptor instruments server unary RPCs.
+//
+// Use this function with grpc.UnaryInterceptor and a newrelic.Application to
+// create a grpc.ServerOption to pass to grpc.NewServer.  This interceptor
+// records each unary call with a transaction.  You must use both
+// UnaryServerInterceptor and StreamServerInterceptor to instrument unary and
+// streaming calls.
+//
+// Example:
+//
+//	app, _ := newrelic.NewApplication(
+//		newrelic.ConfigAppName("gRPC Server"),
+//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//		newrelic.ConfigDebugLogger(os.Stdout),
+//	)
+//	server := grpc.NewServer(
+//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
+//
+// These interceptors add the transaction to the call context so it may be
+// accessed in your method handlers using newrelic.FromContext.
+//
+// The nrgrpc integration has a built-in set of handlers for each gRPC status
+// code encountered. Serious errors are reported as error traces à la the
+// `newrelic.NoticeError()` function, while the others are reported but not
+// counted as errors.
+//
+// If you wish to change this behavior, you may do so at a global level for
+// all intercepted functions by calling the `Configure()` function, passing
+// any number of `WithStatusHandler(code, handler)` functions as parameters.
+//
+// You can specify a custom set of handlers with each interceptor creation by adding
+// `WithStatusHandler()` calls at the end of the `<type>StreamInterceptor()` call's parameter list,
+// like so:
+//   grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app,
+//     nrgrpc.WithStatusHandler(codes.OutOfRange, nrgrpc.WarningInterceptorStatusHandler),
+//     nrgrpc.WithStatusHandler(codes.Unimplemented, nrgrpc.InfoInterceptorStatusHandler)))
+// In this case, those two handlers are used (along with the current defaults for the other status
+// codes) only for that interceptor.
+//
 func UnaryServerInterceptor(app *newrelic.Application, options ...handlerOption) grpc.UnaryServerInterceptor {
 	if app == nil {
 		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -200,7 +283,7 @@ func UnaryServerInterceptor(app *newrelic.Application, options ...handlerOption)
 		}
 	}
 
-	localHandlerMap := make(StatusHandlerMap)
+	localHandlerMap := make(statusHandlerMap)
 	for code, handler := range interceptorStatusHandlerRegistry {
 		localHandlerMap[code] = handler
 	}
@@ -244,23 +327,7 @@ func newWrappedServerStream(stream grpc.ServerStream, txn *newrelic.Transaction)
 // UnaryServerInterceptor and StreamServerInterceptor to instrument unary and
 // streaming calls.
 //
-// Example:
-//
-//	app, _ := newrelic.NewApplication(
-//		newrelic.ConfigAppName("gRPC Server"),
-//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-//		newrelic.ConfigDebugLogger(os.Stdout),
-//	)
-//	server := grpc.NewServer(
-//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//	)
-//
-// These interceptors add the transaction to the call context so it may be
-// accessed in your method handlers using newrelic.FromContext.
-//
-// Full example:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
+// See the notes and examples for the `UnaryServerInterceptor()` function.
 //
 func StreamServerInterceptor(app *newrelic.Application, options ...handlerOption) grpc.StreamServerInterceptor {
 	if app == nil {
@@ -269,7 +336,7 @@ func StreamServerInterceptor(app *newrelic.Application, options ...handlerOption
 		}
 	}
 
-	localHandlerMap := make(StatusHandlerMap)
+	localHandlerMap := make(statusHandlerMap)
 	for code, handler := range interceptorStatusHandlerRegistry {
 		localHandlerMap[code] = handler
 	}
