@@ -62,7 +62,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	_, err := client.DoUnaryUnary(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("unable to call client DoUnaryUnary", err)
 	}
 
@@ -152,7 +152,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	_, err := client.DoUnaryUnaryError(context.Background(), &testapp.Message{})
-	if nil == err {
+	if err == nil {
 		t.Fatal("DoUnaryUnaryError should have returned an error")
 	}
 
@@ -246,7 +246,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
 	var recved int
@@ -255,7 +255,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		if err == io.EOF {
 			break
 		}
-		if nil != err {
+		if err != nil {
 			t.Fatal("error receiving message", err)
 		}
 		recved++
@@ -352,11 +352,11 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamUnary(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -364,7 +364,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		}
 	}
 	_, err = stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 
@@ -456,7 +456,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamStream(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamStream failed", err)
 	}
 	waitc := make(chan struct{})
@@ -571,11 +571,11 @@ func TestStreamServerInterceptorError(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoUnaryStreamError(context.Background(), &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
 	_, err = stream.Recv()
-	if nil == err {
+	if err == nil {
 		t.Fatal("DoUnaryStreamError should have returned an error")
 	}
 
@@ -665,7 +665,7 @@ func TestUnaryServerInterceptorNilApp(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	msg, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("unable to call client DoUnaryUnary", err)
 	}
 	if !strings.Contains(msg.Text, "content-type") {
@@ -680,11 +680,11 @@ func TestStreamServerInterceptorNilApp(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(context.Background())
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -692,7 +692,7 @@ func TestStreamServerInterceptorNilApp(t *testing.T) {
 		}
 	}
 	msg, err := stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 	if !strings.Contains(msg.Text, "content-type") {
