@@ -189,12 +189,17 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 	//       (it was txn.NoticeError(s.Err()))
 	txn.NoticeError(&newrelic.Error{
 		Message: s.Err().Error(),
-		Class:   "...",
+		Class:   "GrpcStatus",
 		Attributes: map[string]interface{}{
-			"...": "...",
+			"GrpcStatusLevel":   "error",
+			"GrpcStatusMessage": s.Message(),
+			"GrpcStatusCode":    s.Code(),
 		},
 	})
 }
+
+// examples
+// Class "LoginError", Attr: "username": username
 
 //
 // Standard handler: WARNING
@@ -203,6 +208,9 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 //
 func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
+	txn.AddAttribute("GrpcStatusLevel", "warning")
+	txn.AddAttribute("GrpcStatusMessage", s.Message())
+	txn.AddAttribute("GrpcStatusCode", s.Code())
 	// TODO: just add some attributes about this (treat as WARN, not NoticeError())
 }
 
@@ -213,6 +221,9 @@ func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transact
 //
 func InfoInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
+	txn.AddAttribute("GrpcStatusLevel", "info")
+	txn.AddAttribute("GrpcStatusMessage", s.Message())
+	txn.AddAttribute("GrpcStatusCode", s.Code())
 	// TODO: just add some attributes about this (treat as INFO, not NoticeError())
 }
 
