@@ -292,7 +292,9 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, j
 // and emits a http.Header value suitable for passing on to the
 // txn.AcceptDistributedTraceHeaders() function.
 //
-// This helps facilitate headers passed to your Go application from components written in other
+// This is a convenience function provided for cases where you receive the trace header data
+// already as a JSON string and want to avoid manually converting that to an http.Header.
+// It helps facilitate handling of headers passed to your Go application from components written in other
 // languages which may natively handle these header values as JSON strings.
 //
 // For example, given the input string
@@ -304,9 +306,6 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, j
 //     "Tracestate": {"blorfl"},
 //     "Newrelic": {"xyzzy"},
 //   }
-//
-// This is a convenience function provided for cases where you receive the trace header data
-// already as a JSON string and want to avoid manually converting that to an http.Header.
 //
 // The JSON string must be a single object whose values may be strings or arrays of strings.
 // These are translated directly to http headers with singleton or multiple values.
