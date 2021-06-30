@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -44,6 +45,47 @@ type TraceContextTestCase struct {
 		Span             *fieldExpect `json:"Span,omitempty"`
 		TransactionError *fieldExpect `json:"TransactionError,omitempty"`
 	} `json:"intrinsics"`
+}
+
+func TestJsonDTHeaders(t *testing.T) {
+	type testcase struct {
+		in  string
+		out http.Header
+		err bool
+	}
+
+	for i, test := range []testcase{
+		{"", http.Header{}, false},
+		{"{}", http.Header{}, false},
+		{" invalid ", http.Header{}, true},
+		{`"foo"`, http.Header{}, true},
+		{`{"foo": "bar"}`, map[string][]string{
+			"Foo": {"bar"},
+		}, false},
+		{`{
+			"foo": "bar",
+			"baz": "quux",
+			"multiple": [
+				"alpha",
+				"beta",
+				"gamma"
+			]
+		}`, map[string][]string{
+			"Foo":      {"bar"},
+			"Baz":      {"quux"},
+			"Multiple": {"alpha", "beta", "gamma"},
+		}, false},
+	} {
+		h, err := DistributedTraceHeadersFromJson(test.in)
+
+		if err != nil {
+			if !test.err {
+				t.Errorf("case %d: %v: error expected but not generated", i, test.in)
+			}
+		} else if !reflect.DeepEqual(test.out, h) {
+			t.Errorf("case %d, %v -> %v but expected %v", i, test.in, h, test.out)
+		}
+	}
 }
 
 func TestCrossAgentW3CTraceContext(t *testing.T) {
