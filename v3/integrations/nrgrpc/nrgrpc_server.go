@@ -34,6 +34,7 @@ package nrgrpc
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -187,6 +188,7 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 	//
 	// TODO: Figure out specifically how we want to set up the custom attributes for this
 	//       (it was txn.NoticeError(s.Err()))
+	fmt.Printf("**NoticeError %v %v %v**\n", s.Err().Error(), s.Message(), s.Code())
 	txn.NoticeError(&newrelic.Error{
 		Message: s.Err().Error(),
 		Class:   "GrpcStatus",
