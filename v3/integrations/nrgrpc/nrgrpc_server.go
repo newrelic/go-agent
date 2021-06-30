@@ -34,7 +34,6 @@ package nrgrpc
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -185,19 +184,7 @@ func OKInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, 
 //
 func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
 	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
-	//
-	// TODO: Figure out specifically how we want to set up the custom attributes for this
-	//       (it was txn.NoticeError(s.Err()))
-	fmt.Printf("**NoticeError %v %v %v**\n", s.Err().Error(), s.Message(), s.Code())
-	txn.NoticeError(&newrelic.Error{
-		Message: s.Err().Error(),
-		Class:   "GrpcStatus",
-		Attributes: map[string]interface{}{
-			"GrpcStatusLevel":   "error",
-			"GrpcStatusMessage": s.Message(),
-			"GrpcStatusCode":    s.Code(),
-		},
-	})
+	txn.NoticeError(s.Err())
 }
 
 // examples
@@ -213,7 +200,6 @@ func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transact
 	txn.AddAttribute("GrpcStatusLevel", "warning")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
 	txn.AddAttribute("GrpcStatusCode", s.Code())
-	// TODO: just add some attributes about this (treat as WARN, not NoticeError())
 }
 
 //
@@ -226,7 +212,6 @@ func InfoInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction
 	txn.AddAttribute("GrpcStatusLevel", "info")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
 	txn.AddAttribute("GrpcStatusCode", s.Code())
-	// TODO: just add some attributes about this (treat as INFO, not NoticeError())
 }
 
 //
