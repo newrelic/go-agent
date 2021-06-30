@@ -47,7 +47,7 @@ type TraceContextTestCase struct {
 	} `json:"intrinsics"`
 }
 
-func TestJsonDTHeaders(t *testing.T) {
+func TestJSONDTHeaders(t *testing.T) {
 	type testcase struct {
 		in  string
 		out http.Header
@@ -59,7 +59,7 @@ func TestJsonDTHeaders(t *testing.T) {
 		{"{}", http.Header{}, false},
 		{" invalid ", http.Header{}, true},
 		{`"foo"`, http.Header{}, true},
-		{`{"foo": "bar"}`, map[string][]string{
+		{`{"foo": "bar"}`, http.Header{
 			"Foo": {"bar"},
 		}, false},
 		{`{
@@ -70,13 +70,13 @@ func TestJsonDTHeaders(t *testing.T) {
 				"beta",
 				"gamma"
 			]
-		}`, map[string][]string{
+		}`, http.Header{
 			"Foo":      {"bar"},
 			"Baz":      {"quux"},
 			"Multiple": {"alpha", "beta", "gamma"},
 		}, false},
 	} {
-		h, err := DistributedTraceHeadersFromJson(test.in)
+		h, err := DistributedTraceHeadersFromJSON(test.in)
 
 		if err != nil {
 			if !test.err {

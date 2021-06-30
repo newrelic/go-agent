@@ -272,14 +272,14 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 }
 
 //
-// AcceptDistributedTraceHeadersFromJson() works just like AcceptDistributedTraceHeaders(), except
-// that it takes the header data as a JSON string à la DistributedTraceHeadersFromJson(). Additionally
+// AcceptDistributedTraceHeadersFromJSON works just like AcceptDistributedTraceHeaders(), except
+// that it takes the header data as a JSON string à la DistributedTraceHeadersFromJSON(). Additionally
 // (unlike AcceptDistributedTraceHeaders()) it returns an error if it was unable to successfully
 // convert the JSON string to http headers. There is no guarantee that the header data found in JSON
 // is correct beyond conforming to the expected types and syntax.
 //
-func (txn *Transaction) AcceptDistributedTraceHeadersFromJson(t TransportType, jsondata string) error {
-	hdrs, err := DistributedTraceHeadersFromJson(jsondata)
+func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, jsondata string) error {
+	hdrs, err := DistributedTraceHeadersFromJSON(jsondata)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJson(t TransportType, j
 }
 
 //
-// DistributedTraceHeadersFromJson() takes a set of distributed trace headers as a JSON-encoded string
+// DistributedTraceHeadersFromJSON takes a set of distributed trace headers as a JSON-encoded string
 // and emits a http.Header value suitable for passing on to the
 // txn.AcceptDistributedTraceHeaders() function.
 //
@@ -302,7 +302,7 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJson(t TransportType, j
 // The JSON string must be a single object whose values may be strings or arrays of strings.
 // These are translated directly to http headers with singleton or multiple values.
 //
-func DistributedTraceHeadersFromJson(jsondata string) (hdrs http.Header, err error) {
+func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err error) {
 	var raw interface{}
 	hdrs = http.Header{}
 	if jsondata == "" {
@@ -325,17 +325,17 @@ func DistributedTraceHeadersFromJson(jsondata string) (hdrs http.Header, err err
 					case string:
 						hdrs.Add(k, sval)
 					default:
-						err = fmt.Errorf("JSON object must have only strings or arrays of strings.")
+						err = fmt.Errorf("the JSON object must have only strings or arrays of strings")
 						return
 					}
 				}
 			default:
-				err = fmt.Errorf("JSON object must have only strings or arrays of strings.")
+				err = fmt.Errorf("the JSON object must have only strings or arrays of strings")
 				return
 			}
 		}
 	default:
-		err = fmt.Errorf("JSON string must be a single object.")
+		err = fmt.Errorf("the JSON string must consist of only a single object")
 		return
 	}
 	return
