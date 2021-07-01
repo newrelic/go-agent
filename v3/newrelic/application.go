@@ -85,9 +85,9 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // timeout is hit.
 //
 // Note that in most cases, it is not necesary nor recommended to call
-// WaitForConnection() at all, particularly for any but the most short-lived
+// WaitForConnection() at all, particularly for any but the most trivial, short-lived
 // processes. It is better to simply start the application and allow the
-// instrumentation code handle connections on its own, which it will do
+// instrumentation code to handle its connections on its own, which it will do
 // as needed in the background (and will continue attempting to connect
 // if it wasn't immediately successful, all while allowing your application
 // to proceed with its primary function).
