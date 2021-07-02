@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+* Improved the NR AWS SDK V2 integration to use the current transaction rather than the one passed in during middleware creation, if `nil` is passed into nrawssdk-v2.AppendMiddlewares. Thanks to @HenriBeck for noticing and suggesting improvement, and thanks to @nc-wittj for the fantastic PR! [#328](https://github.com/newrelic/go-agent/pull/328)
+
 ## 3.13.0
 
 ### Fixed
