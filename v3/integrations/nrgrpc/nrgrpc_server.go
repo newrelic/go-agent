@@ -196,7 +196,7 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 // from the error value returned, but does not count this as an error.
 //
 func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
-	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
+	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 	txn.AddAttribute("GrpcStatusLevel", "warning")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
 	txn.AddAttribute("GrpcStatusCode", s.Code())
@@ -208,7 +208,7 @@ func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transact
 // from the error value returned, but does not count this as an error.
 //
 func InfoInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
-	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
+	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 	txn.AddAttribute("GrpcStatusLevel", "info")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
 	txn.AddAttribute("GrpcStatusCode", s.Code())
