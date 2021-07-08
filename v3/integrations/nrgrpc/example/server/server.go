@@ -14,8 +14,6 @@ import (
 	sampleapp "github.com/newrelic/go-agent/v3/integrations/nrgrpc/example/sampleapp"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // Server is a gRPC server.
@@ -30,8 +28,7 @@ func processMessage(ctx context.Context, msg *sampleapp.Message) {
 // DoUnaryUnary is a unary request, unary response method.
 func (s *Server) DoUnaryUnary(ctx context.Context, msg *sampleapp.Message) (*sampleapp.Message, error) {
 	processMessage(ctx, msg)
-	//	return &sampleapp.Message{Text: "Hello from DoUnaryUnary"}, nil
-	return &sampleapp.Message{}, status.New(codes.DataLoss, "oooooops!").Err()
+	return &sampleapp.Message{Text: "Hello from DoUnaryUnary"}, nil
 }
 
 // DoUnaryStream is a unary request, stream response method.

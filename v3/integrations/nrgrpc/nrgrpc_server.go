@@ -187,7 +187,7 @@ func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transactio
 	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 	txn.NoticeError(&newrelic.Error{
 		Message: s.Message(),
-		Class:   "gRPC Error: " + s.Code().String(),
+		Class:   "gRPC Status: " + s.Code().String(),
 	})
 	txn.AddAttribute("GrpcStatusLevel", "error")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
