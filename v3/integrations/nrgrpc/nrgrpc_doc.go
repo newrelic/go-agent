@@ -1,6 +1,7 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//
 // Package nrgrpc instruments https://github.com/grpc/grpc-go.
 //
 // This package can be used to instrument gRPC servers and gRPC clients.
@@ -9,18 +10,58 @@
 //
 // To instrument a gRPC server, use UnaryServerInterceptor and
 // StreamServerInterceptor with your newrelic.Application to create server
-// interceptors to pass to grpc.NewServer.  Example:
+// interceptors to pass to grpc.NewServer.
 //
+// The results of these calls are reported as errors or as informational
+// messages (of levels OK, Info, Warning, or Error) based on the gRPC status
+// code they return.
 //
-//	app, _ := newrelic.NewApplication(
-//		newrelic.ConfigAppName("gRPC Server"),
-//		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-//		newrelic.ConfigDebugLogger(os.Stdout),
-//	)
-//	server := grpc.NewServer(
-//		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-//		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//	)
+// In the simplest case, simply add interceptors as in the following example:
+//
+//  app, _ := newrelic.NewApplication(
+//     newrelic.ConfigAppName("gRPC Server"),
+//     newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//     newrelic.ConfigDebugLogger(os.Stdout),
+//  )
+//  server := grpc.NewServer(
+//     grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//     grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//  )
+//
+// The disposition of each, in terms of how to report each of the various
+// gRPC status codes, is determined by a built-in set of defaults:
+//   OK       OK
+//   Info     AlreadyExists, Canceled, InvalidArgument, NotFound,
+//            Unauthenticated
+//   Warning  Aborted, DeadlineExceeded, FailedPrecondition, OutOfRange,
+//            PermissionDenied, ResourceExhausted, Unavailable
+//   Error    DataLoss, Internal, Unknown, Unimplemented
+//
+// These
+// may be overridden on a case-by-case basis using `WithStatusHandler()`
+// options to each `UnaryServerInterceptor()` or `StreamServerInterceptor()`
+// call, or globally via the `Configure()` function.
+//
+// For example, to report DeadlineExceeded as an error and NotFound
+// as a warning, for the UnaryInterceptor only:
+//   server := grpc.NewServer(
+//      grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app,
+//       nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
+//       nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler)),
+//      grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//   )
+//
+// If you wanted to make those two changes to the overall default behavior, so they
+// apply to all subsequently declared interceptors:
+//   nrgrpc.Configure(
+//     nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
+//     nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler),
+//   )
+//   server := grpc.NewServer(
+//      grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//      grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//   )
+// In this case the new behavior for those two status codes applies to both interceptors.
 //
 // These interceptors create transactions for inbound calls.  The transaction is
 // added to the call context and can be accessed in your method handlers
