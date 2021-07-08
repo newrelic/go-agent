@@ -183,8 +183,14 @@ func OKInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, 
 // contextual information gleaned from the error value received from the RPC call.
 //
 func ErrorInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction, s *status.Status) {
-	txn.SetWebResponse(nil).WriteHeader(int(s.Code()))
-	txn.NoticeError(s.Err())
+	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
+	txn.NoticeError(&newrelic.Error{
+		Message: s.Message(),
+		Class:   "gRPC Error: " + s.Code().String(),
+	})
+	txn.AddAttribute("GrpcStatusLevel", "error")
+	txn.AddAttribute("GrpcStatusMessage", s.Message())
+	txn.AddAttribute("GrpcStatusCode", s.Code().String())
 }
 
 // examples
@@ -199,7 +205,7 @@ func WarningInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transact
 	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 	txn.AddAttribute("GrpcStatusLevel", "warning")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
-	txn.AddAttribute("GrpcStatusCode", s.Code())
+	txn.AddAttribute("GrpcStatusCode", s.Code().String())
 }
 
 //
@@ -211,7 +217,7 @@ func InfoInterceptorStatusHandler(ctx context.Context, txn *newrelic.Transaction
 	txn.SetWebResponse(nil).WriteHeader(int(codes.OK))
 	txn.AddAttribute("GrpcStatusLevel", "info")
 	txn.AddAttribute("GrpcStatusMessage", s.Message())
-	txn.AddAttribute("GrpcStatusCode", s.Code())
+	txn.AddAttribute("GrpcStatusCode", s.Code().String())
 }
 
 //

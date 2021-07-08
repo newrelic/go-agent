@@ -181,10 +181,14 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"sampled":          internal.MatchAnything,
 			"traceId":          internal.MatchAnything,
 		},
-		UserAttributes: map[string]interface{}{},
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+			"GrpcStatusLevel":   "error",
+		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
@@ -192,8 +196,8 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "15",
-			"error.message":   "response code 15",
+			"error.class":     "gRPC Error: DataLoss",
+			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -202,36 +206,19 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
-		UserAttributes: map[string]interface{}{},
-	}, {
-		Intrinsics: map[string]interface{}{
-			"error.class":     internal.MatchAnything,
-			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
-			"guid":            internal.MatchAnything,
-			"priority":        internal.MatchAnything,
-			"sampled":         internal.MatchAnything,
-			"spanId":          internal.MatchAnything,
-			"traceId":         internal.MatchAnything,
-			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+			"GrpcStatusLevel":   "error",
 		},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
-			"request.headers.User-Agent":  internal.MatchAnything,
-			"request.headers.userAgent":   internal.MatchAnything,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryUnaryError",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
-		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -604,10 +591,14 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"sampled":          internal.MatchAnything,
 			"traceId":          internal.MatchAnything,
 		},
-		UserAttributes: map[string]interface{}{},
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusLevel":   "error",
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
@@ -615,8 +606,8 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "15",
-			"error.message":   "response code 15",
+			"error.class":     "gRPC Error: DataLoss",
+			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -625,36 +616,19 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
 		},
-		UserAttributes: map[string]interface{}{},
-	}, {
-		Intrinsics: map[string]interface{}{
-			"error.class":     internal.MatchAnything,
-			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
-			"guid":            internal.MatchAnything,
-			"priority":        internal.MatchAnything,
-			"sampled":         internal.MatchAnything,
-			"spanId":          internal.MatchAnything,
-			"traceId":         internal.MatchAnything,
-			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusLevel":   "error",
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
 		},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
-			"request.headers.User-Agent":  internal.MatchAnything,
-			"request.headers.userAgent":   internal.MatchAnything,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryStreamError",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
-		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
