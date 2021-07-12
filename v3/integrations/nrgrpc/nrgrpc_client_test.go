@@ -95,15 +95,15 @@ func TestUnaryClientInterceptor(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryUnary failed", err)
 	}
 	var hdrs map[string][]string
 	err = json.Unmarshal([]byte(resp.Text), &hdrs)
-	if nil != err {
+	if err != nil {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" {
 		t.Error("distributed trace header not sent", hdrs)
 	}
 	txn.End()
@@ -175,7 +175,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
 	var recved int
@@ -184,15 +184,15 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 		if err == io.EOF {
 			break
 		}
-		if nil != err {
+		if err != nil {
 			t.Fatal("error receiving message", err)
 		}
 		var hdrs map[string][]string
 		err = json.Unmarshal([]byte(msg.Text), &hdrs)
-		if nil != err {
+		if err != nil {
 			t.Fatal("cannot unmarshall client response", err)
 		}
-		if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+		if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" {
 			t.Error("distributed trace header not sent", hdrs)
 		}
 		recved++
@@ -269,11 +269,11 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -281,15 +281,15 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 		}
 	}
 	msg, err := stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 	var hdrs map[string][]string
 	err = json.Unmarshal([]byte(msg.Text), &hdrs)
-	if nil != err {
+	if err != nil {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" {
 		t.Error("distributed trace header not sent", hdrs)
 	}
 	txn.End()
@@ -361,7 +361,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamStream(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamStream failed", err)
 	}
 	waitc := make(chan struct{})
@@ -378,10 +378,10 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			}
 			var hdrs map[string][]string
 			err = json.Unmarshal([]byte(msg.Text), &hdrs)
-			if nil != err {
+			if err != nil {
 				t.Fatal("cannot unmarshall client response", err)
 			}
-			if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] {
+			if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" {
 				t.Error("distributed trace header not sent", hdrs)
 			}
 			recved++
@@ -473,18 +473,18 @@ func TestClientUnaryMetadata(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryUnary failed", err)
 	}
 	var hdrs map[string][]string
 	err = json.Unmarshal([]byte(resp.Text), &hdrs)
-	if nil != err {
+	if err != nil {
 		t.Fatal("cannot unmarshall client response", err)
 	}
-	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || "" == hdr[0] || "payload" == hdr[0] {
+	if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" || hdr[0] == "payload" {
 		t.Error("distributed trace header not sent", hdrs)
 	}
-	if hdr, ok := hdrs["testing"]; !ok || len(hdr) != 1 || "hello world" != hdr[0] {
+	if hdr, ok := hdrs["testing"]; !ok || len(hdr) != 1 || hdr[0] != "hello world" {
 		t.Error("testing header not sent", hdrs)
 	}
 }
@@ -496,12 +496,12 @@ func TestNilTxnClientUnary(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	resp, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryUnary failed", err)
 	}
 	var hdrs map[string][]string
 	err = json.Unmarshal([]byte(resp.Text), &hdrs)
-	if nil != err {
+	if err != nil {
 		t.Fatal("cannot unmarshall client response", err)
 	}
 	if _, ok := hdrs["newrelic"]; ok {
@@ -516,11 +516,11 @@ func TestNilTxnClientStreaming(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(context.Background())
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -528,12 +528,12 @@ func TestNilTxnClientStreaming(t *testing.T) {
 		}
 	}
 	msg, err := stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 	var hdrs map[string][]string
 	err = json.Unmarshal([]byte(msg.Text), &hdrs)
-	if nil != err {
+	if err != nil {
 		t.Fatal("cannot unmarshall client response", err)
 	}
 	if _, ok := hdrs["newrelic"]; ok {
@@ -557,7 +557,7 @@ func TestClientStreamingError(t *testing.T) {
 	defer cancel()
 	ctx = newrelic.NewContext(ctx, txn)
 	_, err := client.DoUnaryStream(ctx, &testapp.Message{})
-	if nil == err {
+	if err == nil {
 		t.Fatal("client call to DoUnaryStream did not return error")
 	}
 	txn.End()
