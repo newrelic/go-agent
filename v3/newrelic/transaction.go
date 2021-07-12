@@ -4,6 +4,8 @@
 package newrelic
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -267,6 +269,93 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
+}
+
+//
+// AcceptDistributedTraceHeadersFromJSON works just like AcceptDistributedTraceHeaders(), except
+// that it takes the header data as a JSON string à la DistributedTraceHeadersFromJSON(). Additionally
+// (unlike AcceptDistributedTraceHeaders()) it returns an error if it was unable to successfully
+// convert the JSON string to http headers. There is no guarantee that the header data found in JSON
+// is correct beyond conforming to the expected types and syntax.
+//
+func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, jsondata string) error {
+	hdrs, err := DistributedTraceHeadersFromJSON(jsondata)
+	if err != nil {
+		return err
+	}
+	txn.AcceptDistributedTraceHeaders(t, hdrs)
+	return nil
+}
+
+//
+// DistributedTraceHeadersFromJSON takes a set of distributed trace headers as a JSON-encoded string
+// and emits a http.Header value suitable for passing on to the
+// txn.AcceptDistributedTraceHeaders() function.
+//
+// This is a convenience function provided for cases where you receive the trace header data
+// already as a JSON string and want to avoid manually converting that to an http.Header.
+// It helps facilitate handling of headers passed to your Go application from components written in other
+// languages which may natively handle these header values as JSON strings.
+//
+// For example, given the input string
+//   `{"traceparent": "frob", "tracestate": "blorfl", "newrelic": "xyzzy"}`
+// This will emit an http.Header value with headers "traceparent", "tracestate", and "newrelic".
+// Specifically:
+//   http.Header{
+//     "Traceparent": {"frob"},
+//     "Tracestate": {"blorfl"},
+//     "Newrelic": {"xyzzy"},
+//   }
+//
+// The JSON string must be a single object whose values may be strings or arrays of strings.
+// These are translated directly to http headers with singleton or multiple values.
+// In the case of multiple string values, these are translated to a multi-value HTTP
+// header. For example:
+//   `{"traceparent": "12345", "colors": ["red", "green", "blue"]}`
+// which produces
+//   http.Header{
+//     "Traceparent": {"12345"},
+//     "Colors": {"red", "green", "blue"},
+//   }
+// (Note that the HTTP headers are capitalized.)
+//
+func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err error) {
+	var raw interface{}
+	hdrs = http.Header{}
+	if jsondata == "" {
+		return
+	}
+	err = json.Unmarshal([]byte(jsondata), &raw)
+	if err != nil {
+		return
+	}
+
+	switch d := raw.(type) {
+	case map[string]interface{}:
+		for k, v := range d {
+			switch hval := v.(type) {
+			case string:
+				hdrs.Set(k, hval)
+			case []interface{}:
+				for _, subval := range hval {
+					switch sval := subval.(type) {
+					case string:
+						hdrs.Add(k, sval)
+					default:
+						err = fmt.Errorf("the JSON object must have only strings or arrays of strings")
+						return
+					}
+				}
+			default:
+				err = fmt.Errorf("the JSON object must have only strings or arrays of strings")
+				return
+			}
+		}
+	default:
+		err = fmt.Errorf("the JSON string must consist of only a single object")
+		return
+	}
+	return
 }
 
 // Application returns the Application which started the transaction.

@@ -50,6 +50,11 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		ctx context.Context, in smithymiddle.DeserializeInput, next smithymiddle.DeserializeHandler) (
 		out smithymiddle.DeserializeOutput, metadata smithymiddle.Metadata, err error) {
 
+		txn := m.txn
+		if txn == nil {
+			txn = newrelic.FromContext(ctx)
+		}
+
 		smithyRequest := in.Request.(*smithyhttp.Request)
 
 		// The actual http.Request is inside the smithyhttp.Request
@@ -70,10 +75,10 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 				Host:               httpRequest.URL.Host,
 				PortPathOrID:       httpRequest.URL.Port(),
 				DatabaseName:       "",
-				StartTime:          m.txn.StartSegmentNow(),
+				StartTime:          txn.StartSegmentNow(),
 			}
 		} else {
-			segment = newrelic.StartExternalSegment(m.txn, httpRequest)
+			segment = newrelic.StartExternalSegment(txn, httpRequest)
 		}
 
 		// Hand off execution to other middlewares and then perform the request
@@ -84,15 +89,15 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 
 		if ok {
 			// Set additional span attributes
-			integrationsupport.AddAgentSpanAttribute(m.txn,
+			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.AttributeResponseCode, strconv.Itoa(response.StatusCode))
-			integrationsupport.AddAgentSpanAttribute(m.txn,
+			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.SpanAttributeAWSOperation, operation)
-			integrationsupport.AddAgentSpanAttribute(m.txn,
+			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.SpanAttributeAWSRegion, region)
 			requestID, ok := awsmiddle.GetRequestIDMetadata(metadata)
 			if ok {
-				integrationsupport.AddAgentSpanAttribute(m.txn,
+				integrationsupport.AddAgentSpanAttribute(txn,
 					newrelic.AttributeAWSRequestID, requestID)
 			}
 		}
@@ -105,19 +110,34 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 // AppendMiddlewares inserts New Relic middleware in the given `apiOptions` for
 // the AWS SDK V2 for Go. It must be called only once per AWS configuration.
 //
+// If `txn` is provided as nil, the New Relic transaction will be retrieved
+// using `newrelic.FromContext`.
+//
 // Additional attributes will be added to transaction trace segments and span
 // events: aws.region, aws.requestId, and aws.operation. In addition,
 // http.statusCode will be added to span events.
 //
-// To see segments and spans for each AWS invocation, call AppendMiddlewares
-// with the AWS Config `apiOptions` and pass in your current New Relic
-// transaction. For example:
+// To see segments and spans for all AWS invocations, call AppendMiddlewares
+// with the AWS Config `apiOptions` and provide nil for `txn`. For example:
 //
-//     awsConfig, err := config.LoadDefaultConfig(ctx)
-//     if err != nil {
-//         log.Fatal(err)
-//     }
-//     nraws.AppendMiddlewares(ctx, &awsConfig.APIOptions, txn)
+//  awsConfig, err := config.LoadDefaultConfig(ctx)
+//  if err != nil {
+//      log.Fatal(err)
+//  }
+//  nraws.AppendMiddlewares(&awsConfig.APIOptions, nil)
+//
+// If do not want the transaction to be retrived from the context, you can
+// explicitly set `txn`. For example:
+//
+//  awsConfig, err := config.LoadDefaultConfig(ctx)
+//  if err != nil {
+//      log.Fatal(err)
+//  }
+//
+//  ...
+//
+//  txn := loadNewRelicTransaction()
+//  nraws.AppendMiddlewares(&awsConfig.APIOptions, txn)
 func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
 	m := nrMiddleware{txn: txn}
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)

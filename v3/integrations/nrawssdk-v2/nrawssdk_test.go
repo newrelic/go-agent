@@ -188,54 +188,121 @@ var (
 	}...)
 )
 
+type testTableEntry struct {
+	Name string
+
+	BuildContext func(txn *newrelic.Transaction) context.Context
+	BuildConfig  func(ctx context.Context, txn *newrelic.Transaction) aws.Config
+}
+
+func runTestTable(t *testing.T, table []*testTableEntry, executeEntry func(t *testing.T, entry *testTableEntry)) {
+	for _, entry := range table {
+		entry := entry // Pin range variable
+
+		t.Run(entry.Name, func(t *testing.T) {
+			executeEntry(t, entry)
+		})
+	}
+}
+
 func TestInstrumentRequestExternal(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-	ctx := context.TODO()
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
 
-	client := lambda.NewFromConfig(newConfig(ctx, txn))
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
 
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: types.InvocationTypeRequestResponse,
-		LogType:        types.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
 
-	_, err := client.Invoke(ctx, input)
-	if err != nil {
-		t.Error(err)
-	}
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
 
-	txn.End()
+			client := lambda.NewFromConfig(entry.BuildConfig(ctx, txn))
 
-	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpan, genericSpan})
+			input := &lambda.InvokeInput{
+				ClientContext:  aws.String("MyApp"),
+				FunctionName:   aws.String("non-existent-function"),
+				InvocationType: types.InvocationTypeRequestResponse,
+				LogType:        types.LogTypeTail,
+				Payload:        []byte("{}"),
+			}
+
+			_, err := client.Invoke(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			app.ExpectMetrics(t, externalMetrics)
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				externalSpan, genericSpan})
+		},
+	)
 }
 
 func TestInstrumentRequestDatastore(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-	ctx := context.TODO()
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
 
-	client := dynamodb.NewFromConfig(newConfig(ctx, txn))
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
 
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String("thebesttable"),
-	}
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
 
-	_, err := client.DescribeTable(ctx, input)
-	if err != nil {
-		t.Error(err)
-	}
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
 
-	txn.End()
+			client := dynamodb.NewFromConfig(entry.BuildConfig(ctx, txn))
 
-	app.ExpectMetrics(t, datastoreMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		datastoreSpan, genericSpan})
+			input := &dynamodb.DescribeTableInput{
+				TableName: aws.String("thebesttable"),
+			}
+
+			_, err := client.DescribeTable(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			app.ExpectMetrics(t, datastoreMetrics)
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				datastoreSpan, genericSpan})
+		},
+	)
 }
 
 type firstFailingTransport struct {
@@ -259,142 +326,192 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 }
 
 func TestRetrySend(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-	ctx := context.TODO()
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
 
-	cfg := newConfig(ctx, txn)
-
-	cfg.HTTPClient = &http.Client{
-		Transport: &firstFailingTransport{failing: true},
-	}
-
-	customRetry := retry.NewStandard(func(o *retry.StandardOptions) {
-		o.MaxAttempts = 2
-	})
-	client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
-		o.Retryer = customRetry
-	})
-
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: types.InvocationTypeRequestResponse,
-		LogType:        types.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-
-	_, err := client.Invoke(ctx, input)
-	if err != nil {
-		t.Error(err)
-	}
-
-	txn.End()
-
-	app.ExpectMetrics(t, externalMetrics)
-
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
-				"sampled":       true,
-				"category":      "http",
-				"priority":      internal.MatchAnything,
-				"guid":          internal.MatchAnything,
-				"transactionId": internal.MatchAnything,
-				"traceId":       internal.MatchAnything,
-				"parentId":      internal.MatchAnything,
-				"component":     "http",
-				"span.kind":     "client",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
 			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"aws.operation":   "Invoke",
-				"aws.region":      awsRegion,
-				"http.method":     "POST",
-				"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
-				"http.statusCode": "0",
+			{
+				Name: "with transaction set in context",
+
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
 			},
-		}, {
-			Intrinsics: map[string]interface{}{
-				"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
-				"sampled":       true,
-				"category":      "http",
-				"priority":      internal.MatchAnything,
-				"guid":          internal.MatchAnything,
-				"transactionId": internal.MatchAnything,
-				"traceId":       internal.MatchAnything,
-				"parentId":      internal.MatchAnything,
-				"component":     "http",
-				"span.kind":     "client",
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"aws.operation":   "Invoke",
-				"aws.region":      awsRegion,
-				"aws.requestId":   requestID,
-				"http.method":     "POST",
-				"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
-				"http.statusCode": "200",
-			},
-		}, {
-			Intrinsics: map[string]interface{}{
-				"name":             "OtherTransaction/Go/" + txnName,
-				"transaction.name": "OtherTransaction/Go/" + txnName,
-				"sampled":          true,
-				"category":         "generic",
-				"priority":         internal.MatchAnything,
-				"guid":             internal.MatchAnything,
-				"transactionId":    internal.MatchAnything,
-				"nr.entryPoint":    true,
-				"traceId":          internal.MatchAnything,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{},
-		}})
+		},
+
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
+
+			cfg := entry.BuildConfig(ctx, txn)
+
+			cfg.HTTPClient = &http.Client{
+				Transport: &firstFailingTransport{failing: true},
+			}
+
+			customRetry := retry.NewStandard(func(o *retry.StandardOptions) {
+				o.MaxAttempts = 2
+			})
+			client := lambda.NewFromConfig(cfg, func(o *lambda.Options) {
+				o.Retryer = customRetry
+			})
+
+			input := &lambda.InvokeInput{
+				ClientContext:  aws.String("MyApp"),
+				FunctionName:   aws.String("non-existent-function"),
+				InvocationType: types.InvocationTypeRequestResponse,
+				LogType:        types.LogTypeTail,
+				Payload:        []byte("{}"),
+			}
+
+			_, err := client.Invoke(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			app.ExpectMetrics(t, externalMetrics)
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				{
+					Intrinsics: map[string]interface{}{
+						"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+						"sampled":       true,
+						"category":      "http",
+						"priority":      internal.MatchAnything,
+						"guid":          internal.MatchAnything,
+						"transactionId": internal.MatchAnything,
+						"traceId":       internal.MatchAnything,
+						"parentId":      internal.MatchAnything,
+						"component":     "http",
+						"span.kind":     "client",
+					},
+					UserAttributes: map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{
+						"aws.operation":   "Invoke",
+						"aws.region":      awsRegion,
+						"http.method":     "POST",
+						"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+						"http.statusCode": "0",
+					},
+				}, {
+					Intrinsics: map[string]interface{}{
+						"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+						"sampled":       true,
+						"category":      "http",
+						"priority":      internal.MatchAnything,
+						"guid":          internal.MatchAnything,
+						"transactionId": internal.MatchAnything,
+						"traceId":       internal.MatchAnything,
+						"parentId":      internal.MatchAnything,
+						"component":     "http",
+						"span.kind":     "client",
+					},
+					UserAttributes: map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{
+						"aws.operation":   "Invoke",
+						"aws.region":      awsRegion,
+						"aws.requestId":   requestID,
+						"http.method":     "POST",
+						"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+						"http.statusCode": "200",
+					},
+				}, {
+					Intrinsics: map[string]interface{}{
+						"name":             "OtherTransaction/Go/" + txnName,
+						"transaction.name": "OtherTransaction/Go/" + txnName,
+						"sampled":          true,
+						"category":         "generic",
+						"priority":         internal.MatchAnything,
+						"guid":             internal.MatchAnything,
+						"transactionId":    internal.MatchAnything,
+						"nr.entryPoint":    true,
+						"traceId":          internal.MatchAnything,
+					},
+					UserAttributes:  map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{},
+				}})
+		},
+	)
 }
 
 func TestRequestSentTwice(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-	ctx := context.TODO()
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
 
-	client := lambda.NewFromConfig(newConfig(ctx, txn))
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
 
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: types.InvocationTypeRequestResponse,
-		LogType:        types.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
 
-	_, firstErr := client.Invoke(ctx, input)
-	if firstErr != nil {
-		t.Error(firstErr)
-	}
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
 
-	_, secondErr := client.Invoke(ctx, input)
-	if secondErr != nil {
-		t.Error(secondErr)
-	}
+			client := lambda.NewFromConfig(entry.BuildConfig(ctx, txn))
 
-	txn.End()
+			input := &lambda.InvokeInput{
+				ClientContext:  aws.String("MyApp"),
+				FunctionName:   aws.String("non-existent-function"),
+				InvocationType: types.InvocationTypeRequestResponse,
+				LogType:        types.LogTypeTail,
+				Payload:        []byte("{}"),
+			}
 
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
-		{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
-		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
-		{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-	})
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpan, externalSpan, genericSpan})
+			_, firstErr := client.Invoke(ctx, input)
+			if firstErr != nil {
+				t.Error(firstErr)
+			}
+
+			_, secondErr := client.Invoke(ctx, input)
+			if secondErr != nil {
+				t.Error(secondErr)
+			}
+
+			txn.End()
+
+			app.ExpectMetrics(t, []internal.WantMetric{
+				{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+				{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+				{Name: "External/all", Scope: "", Forced: true, Data: []float64{2}},
+				{Name: "External/allOther", Scope: "", Forced: true, Data: []float64{2}},
+				{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: []float64{2}},
+				{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: []float64{2}},
+				{Name: "OtherTransaction/Go/" + txnName, Scope: "", Forced: true, Data: nil},
+				{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+				{Name: "OtherTransactionTotalTime/Go/" + txnName, Scope: "", Forced: false, Data: nil},
+				{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+			})
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				externalSpan, externalSpan, genericSpan})
+		},
+	)
 }
 
 type noRequestIDTransport struct{}
@@ -408,31 +525,56 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 }
 
 func TestNoRequestIDFound(t *testing.T) {
-	app := testApp()
-	txn := app.StartTransaction(txnName)
-	ctx := context.TODO()
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
 
-	cfg := newConfig(ctx, txn)
-	cfg.HTTPClient = &http.Client{
-		Transport: &noRequestIDTransport{},
-	}
-	client := lambda.NewFromConfig(cfg)
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
 
-	input := &lambda.InvokeInput{
-		ClientContext:  aws.String("MyApp"),
-		FunctionName:   aws.String("non-existent-function"),
-		InvocationType: types.InvocationTypeRequestResponse,
-		LogType:        types.LogTypeTail,
-		Payload:        []byte("{}"),
-	}
-	_, err := client.Invoke(ctx, input)
-	if err != nil {
-		t.Error(err)
-	}
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
 
-	txn.End()
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
 
-	app.ExpectMetrics(t, externalMetrics)
-	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpanNoRequestID, genericSpan})
+			cfg := entry.BuildConfig(ctx, txn)
+			cfg.HTTPClient = &http.Client{
+				Transport: &noRequestIDTransport{},
+			}
+			client := lambda.NewFromConfig(cfg)
+
+			input := &lambda.InvokeInput{
+				ClientContext:  aws.String("MyApp"),
+				FunctionName:   aws.String("non-existent-function"),
+				InvocationType: types.InvocationTypeRequestResponse,
+				LogType:        types.LogTypeTail,
+				Payload:        []byte("{}"),
+			}
+			_, err := client.Invoke(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			app.ExpectMetrics(t, externalMetrics)
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				externalSpanNoRequestID, genericSpan})
+		},
+	)
 }

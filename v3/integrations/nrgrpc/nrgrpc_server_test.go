@@ -62,7 +62,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	_, err := client.DoUnaryUnary(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("unable to call client DoUnaryUnary", err)
 	}
 
@@ -152,7 +152,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	_, err := client.DoUnaryUnaryError(context.Background(), &testapp.Message{})
-	if nil == err {
+	if err == nil {
 		t.Fatal("DoUnaryUnaryError should have returned an error")
 	}
 
@@ -181,10 +181,14 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"sampled":          internal.MatchAnything,
 			"traceId":          internal.MatchAnything,
 		},
-		UserAttributes: map[string]interface{}{},
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+			"GrpcStatusLevel":   "error",
+		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
@@ -192,8 +196,8 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "15",
-			"error.message":   "response code 15",
+			"error.class":     "gRPC Error: DataLoss",
+			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -202,36 +206,19 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryUnaryError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
-		UserAttributes: map[string]interface{}{},
-	}, {
-		Intrinsics: map[string]interface{}{
-			"error.class":     internal.MatchAnything,
-			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
-			"guid":            internal.MatchAnything,
-			"priority":        internal.MatchAnything,
-			"sampled":         internal.MatchAnything,
-			"spanId":          internal.MatchAnything,
-			"traceId":         internal.MatchAnything,
-			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryUnaryError",
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+			"GrpcStatusLevel":   "error",
 		},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
-			"request.headers.User-Agent":  internal.MatchAnything,
-			"request.headers.userAgent":   internal.MatchAnything,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryUnaryError",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
-		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -246,7 +233,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoUnaryStream(ctx, &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
 	var recved int
@@ -255,7 +242,7 @@ func TestUnaryStreamServerInterceptor(t *testing.T) {
 		if err == io.EOF {
 			break
 		}
-		if nil != err {
+		if err != nil {
 			t.Fatal("error receiving message", err)
 		}
 		recved++
@@ -352,11 +339,11 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamUnary(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -364,7 +351,7 @@ func TestStreamUnaryServerInterceptor(t *testing.T) {
 		}
 	}
 	_, err = stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 
@@ -456,7 +443,7 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	txn := app.StartTransaction("client")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	stream, err := client.DoStreamStream(ctx)
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamStream failed", err)
 	}
 	waitc := make(chan struct{})
@@ -571,11 +558,11 @@ func TestStreamServerInterceptorError(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoUnaryStreamError(context.Background(), &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoUnaryStream failed", err)
 	}
 	_, err = stream.Recv()
-	if nil == err {
+	if err == nil {
 		t.Fatal("DoUnaryStreamError should have returned an error")
 	}
 
@@ -604,10 +591,14 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"sampled":          internal.MatchAnything,
 			"traceId":          internal.MatchAnything,
 		},
-		UserAttributes: map[string]interface{}{},
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusLevel":   "error",
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
+		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
@@ -615,8 +606,8 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "15",
-			"error.message":   "response code 15",
+			"error.class":     "gRPC Error: DataLoss",
+			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
 			"sampled":         internal.MatchAnything,
@@ -625,36 +616,19 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
 		},
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
 			"request.headers.User-Agent":  internal.MatchAnything,
 			"request.headers.userAgent":   internal.MatchAnything,
 			"request.headers.contentType": "application/grpc",
 			"request.method":              "TestApplication/DoUnaryStreamError",
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
 		},
-		UserAttributes: map[string]interface{}{},
-	}, {
-		Intrinsics: map[string]interface{}{
-			"error.class":     internal.MatchAnything,
-			"error.message":   "rpc error: code = DataLoss desc = oooooops!",
-			"guid":            internal.MatchAnything,
-			"priority":        internal.MatchAnything,
-			"sampled":         internal.MatchAnything,
-			"spanId":          internal.MatchAnything,
-			"traceId":         internal.MatchAnything,
-			"transactionName": "WebTransaction/Go/TestApplication/DoUnaryStreamError",
+		UserAttributes: map[string]interface{}{
+			"GrpcStatusLevel":   "error",
+			"GrpcStatusMessage": "oooooops!",
+			"GrpcStatusCode":    "DataLoss",
 		},
-		AgentAttributes: map[string]interface{}{
-			"httpResponseCode":            15,
-			"http.statusCode":             15,
-			"request.headers.User-Agent":  internal.MatchAnything,
-			"request.headers.userAgent":   internal.MatchAnything,
-			"request.headers.contentType": "application/grpc",
-			"request.method":              "TestApplication/DoUnaryStreamError",
-			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
-		},
-		UserAttributes: map[string]interface{}{},
 	}})
 }
 
@@ -665,7 +639,7 @@ func TestUnaryServerInterceptorNilApp(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	msg, err := client.DoUnaryUnary(context.Background(), &testapp.Message{})
-	if nil != err {
+	if err != nil {
 		t.Fatal("unable to call client DoUnaryUnary", err)
 	}
 	if !strings.Contains(msg.Text, "content-type") {
@@ -680,11 +654,11 @@ func TestStreamServerInterceptorNilApp(t *testing.T) {
 
 	client := testapp.NewTestApplicationClient(conn)
 	stream, err := client.DoStreamUnary(context.Background())
-	if nil != err {
+	if err != nil {
 		t.Fatal("client call to DoStreamUnary failed", err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -692,7 +666,7 @@ func TestStreamServerInterceptorNilApp(t *testing.T) {
 		}
 	}
 	msg, err := stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		t.Fatal("failure to CloseAndRecv", err)
 	}
 	if !strings.Contains(msg.Text, "content-type") {

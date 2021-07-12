@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// Instrument all new AWS clients with New Relic
-	nraws.AppendMiddlewares(&awsConfig.APIOptions, txn)
+	nraws.AppendMiddlewares(&awsConfig.APIOptions, nil)
 
 	s3Client := s3.NewFromConfig(awsConfig)
 	output, err := s3Client.ListBuckets(ctx, nil)
