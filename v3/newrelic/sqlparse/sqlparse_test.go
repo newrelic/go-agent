@@ -123,7 +123,7 @@ func TestLineComment(t *testing.T) {
 	}
 }
 
-func TestSemicolonPrefix(t *testing.T) {
+func TestSemicolon(t *testing.T) {
 	for _, tc := range []sqlTestcase{
 		{
 			Input:     `;select * from foo`,
@@ -138,6 +138,11 @@ func TestSemicolonPrefix(t *testing.T) {
 		{
 			Input: ` ;
 			SELECT * FROM foo`,
+			Operation: "select",
+			Table:     "foo",
+		},
+		{
+			Input:     `SELECT * FROM foo;`,
 			Operation: "select",
 			Table:     "foo",
 		},
@@ -190,5 +195,111 @@ func TestExtractTable(t *testing.T) {
 		if table != "table" {
 			t.Error(idx, table)
 		}
+	}
+}
+
+func TestSqlTokenizerNextWord(t *testing.T) {
+	for input, words := range map[string][]string{
+		"SELECT * FROM table":            {"SELECT", "*", "FROM", "table"},
+		"SELECT * FROM [ table ]":        {"SELECT", "*", "FROM", "[", "table", "]"},
+		"SELECT a,b FROM table":          {"SELECT", "a", ",", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": {"SELECT", "*", "FROM", "(", "SELECT", "COUNT", "(", ")", ")"},
+		"UPDATE rollback{foo}":           {"UPDATE", "rollback", "{", "foo", "}"},
+	} {
+		tokenizer := sqlTokenizer{input}
+
+		for _, word := range words {
+			if next := tokenizer.nextWord(); word != next {
+				t.Errorf("query '%s': expected %s, got %s", input, word, next)
+			}
+		}
+
+		if next := tokenizer.nextWord(); next != "" {
+			t.Errorf("query '%s': expected empty word, got %s", input, next)
+		}
+	}
+}
+
+func TestSqlTokenizerNextToken(t *testing.T) {
+	for input, tokens := range map[string][]string{
+		"SELECT * FROM [ table ]":        {"SELECT", "*", "FROM", "[ table ]"},
+		"SELECT a,b FROM table":          {"SELECT", "a", "b", "FROM", "table"},
+		"SELECT * FROM (SELECT COUNT())": {"SELECT", "*", "FROM", "(SELECT", "COUNT", "))"},
+		"UPDATE rollback{foo}":           {"UPDATE", "rollback", "foo}"},
+	} {
+		tokenizer := sqlTokenizer{input}
+
+		for _, token := range tokens {
+			if next := tokenizer.nextToken(); token != next {
+				t.Errorf("query '%s': expected %s, got %s", input, token, next)
+			}
+		}
+
+		if next := tokenizer.nextToken(); next != "" {
+			t.Errorf("query '%s': expected empty token , got %s", input, next)
+		}
+	}
+}
+
+func TestRemoveAllComments(t *testing.T) {
+	for input, expected := range map[string]string{
+		"query -- comment":                                  "query  ",
+		"query -- comment\nother":                           "query  other",
+		"query /* comment */":                               "query  ",
+		"query /* comment */ other":                         "query  other",
+		"query /* comment */ other /* other comment */ end": "query  other  end",
+		"/* leading */ query /* comment */ other /* other comment */ end /* trailing */": "query  other  end  ",
+		"query # comment":       "query  ",
+		"query# comment\nother": "query other",
+	} {
+		if result := removeAllComments(input); result != expected {
+			t.Errorf("query '%s': expected %s, got %s", input, expected, result)
+		}
+	}
+}
+
+func TestSkipComment(t *testing.T) {
+	for input, expected := range map[string]string{
+		" -- comment\nquery":   "query",
+		"/* comment */ query":  "query",
+		"/* comment */query":   "query",
+		"\t/* comment */query": "query",
+		"# comment\nquery":     "query",
+		"# comment\nquery ":    "query ",
+		" query":               "query",
+	} {
+		if result := skipComment(input); result != expected {
+			t.Errorf("query '%s': expected %s, got %s", input, expected, result)
+		}
+	}
+}
+
+func TestSkipSpace(t *testing.T) {
+	for input, expected := range map[string]string{
+		"query":    "query",
+		"  query":  "query",
+		"\t query": "query",
+		"\n query": "query",
+	} {
+		if result := skipSpace(input); result != expected {
+			t.Errorf("query: '%s': expected %s, got %s", input, expected, result)
+		}
+	}
+}
+
+func BenchmarkSqlParsing(b *testing.B) {
+	var segment newrelic.DatastoreSegment
+	query := `SELECT DISTINCT id, envdata->>'Go version' as "Go version", count(envdata->>'Go version')
+		FROM env_data_by_month
+		    WHERE language='go'
+			AND envdata->>'Go version' IS NOT NULL
+			    GROUP BY id, envdata->>'Go version'
+				ORDER BY id;`
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		ParseQuery(&segment, query)
 	}
 }
