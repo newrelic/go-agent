@@ -17,7 +17,7 @@ import (
 func main() {
 
 	// Create a New Relic application. This will look for your license key in an
-	// environment varluable called NEW_RELIC_LICENSE_KEY. This example turns on
+	// environment variable called NEW_RELIC_LICENSE_KEY. This example turns on
 	// Distributed Tracing, but that's not required.
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigFromEnvironment(),
