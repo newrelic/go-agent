@@ -196,7 +196,7 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "gRPC Error: DataLoss",
+			"error.class":     "gRPC Status: DataLoss",
 			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
@@ -606,7 +606,7 @@ func TestStreamServerInterceptorError(t *testing.T) {
 	}})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
-			"error.class":     "gRPC Error: DataLoss",
+			"error.class":     "gRPC Status: DataLoss",
 			"error.message":   "oooooops!",
 			"guid":            internal.MatchAnything,
 			"priority":        internal.MatchAnything,
