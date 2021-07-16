@@ -111,6 +111,10 @@ var interceptorStatusHandlerRegistry = statusHandlerMap{
 	codes.Unauthenticated:    InfoInterceptorStatusHandler,
 }
 
+//
+// HandlerOption is the type for options passed to the interceptor
+// functions to specify gRPC status handlers.
+//
 type HandlerOption func(statusHandlerMap)
 
 //
