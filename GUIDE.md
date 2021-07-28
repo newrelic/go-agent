@@ -44,7 +44,7 @@ Then, installing the Go Agent is the same as installing any other Go library.  T
 simplest way is to run:
 
 ```
-go get github.com/newrelic/go-agent
+go get github.com/newrelic/go-agent/v3/newrelic
 ```
 
 Then import the package in your application:
