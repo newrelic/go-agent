@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -200,11 +201,12 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmRespons
 // collectorRequest makes a request to New Relic.
 func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 	url := rpmURL(cmd, cs)
+	urlWithoutLicense := removeLicenseFromURL(url)
 
 	if cs.Logger.DebugEnabled() {
 		cs.Logger.Debug("rpm request", map[string]interface{}{
 			"command": cmd.Name,
-			"url":     url,
+			"url":     urlWithoutLicense,
 			"payload": jsonString(cmd.Data),
 		})
 	}
@@ -215,20 +217,33 @@ func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 		if err := resp.Err; err != nil {
 			cs.Logger.Debug("rpm failure", map[string]interface{}{
 				"command":  cmd.Name,
-				"url":      url,
+				"url":      urlWithoutLicense,
 				"response": string(resp.body), // Body might not be JSON on failure.
 				"error":    err.Error(),
 			})
 		} else {
 			cs.Logger.Debug("rpm response", map[string]interface{}{
 				"command":  cmd.Name,
-				"url":      url,
+				"url":      urlWithoutLicense,
 				"response": jsonString(resp.body),
 			})
 		}
 	}
 
 	return resp
+}
+
+func removeLicenseFromURL(u string) string {
+	rawURL, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+
+	query := rawURL.Query()
+	query.Set("license_key", "xxx")
+
+	rawURL.RawQuery = query.Encode()
+	return rawURL.String()
 }
 
 type preconnectRequest struct {
