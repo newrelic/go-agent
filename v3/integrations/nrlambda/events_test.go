@@ -109,6 +109,33 @@ func TestEventWebRequest(t *testing.T) {
 			transport:  newrelic.TransportHTTPS,
 		},
 		{
+			testname:   "empty api gateway v2 request",
+			input:      events.APIGatewayV2HTTPRequest{},
+			numHeaders: 0,
+			method:     "",
+			urlString:  "",
+			transport:  newrelic.TransportUnknown,
+		},
+		{
+			testname: "populated api gateway v2 request",
+			input: events.APIGatewayV2HTTPRequest{
+				Headers: map[string]string{
+					"x-forwarded-port":  "4000",
+					"x-forwarded-proto": "HTTPS",
+				},
+				RequestContext: events.APIGatewayV2HTTPRequestContext{
+					HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+						Method: "GET",
+					},
+				},
+				RawPath: "the/path",
+			},
+			numHeaders: 2,
+			method:     "GET",
+			urlString:  "//:4000/the/path",
+			transport:  newrelic.TransportHTTPS,
+		},
+		{
 			testname:   "empty alb request",
 			input:      events.ALBTargetGroupRequest{},
 			numHeaders: 0,
@@ -176,6 +203,23 @@ func TestEventResponse(t *testing.T) {
 		{
 			testname: "populated proxy response",
 			input: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Headers: map[string]string{
+					"x-custom-header": "my custom header value",
+				},
+			},
+			numHeaders: 1,
+			code:       200,
+		},
+		{
+			testname:   "empty http v2 response",
+			input:      events.APIGatewayV2HTTPResponse{},
+			numHeaders: 0,
+			code:       0,
+		},
+		{
+			testname: "populated http v2 response",
+			input: events.APIGatewayV2HTTPResponse{
 				StatusCode: 200,
 				Headers: map[string]string{
 					"x-custom-header": "my custom header value",

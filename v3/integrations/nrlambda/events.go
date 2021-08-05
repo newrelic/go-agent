@@ -54,6 +54,10 @@ func eventWebRequest(event interface{}) *newrelic.WebRequest {
 		request.Method = r.HTTPMethod
 		path = r.Path
 		headers = r.Headers
+	case events.APIGatewayV2HTTPRequest:
+		request.Method = r.RequestContext.HTTP.Method
+		path = r.RawPath
+		headers = r.Headers
 	case events.ALBTargetGroupRequest:
 		// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html#receive-event-from-load-balancer
 		request.Method = r.HTTPMethod
@@ -96,6 +100,9 @@ func eventResponse(event interface{}) *response {
 
 	switch r := event.(type) {
 	case events.APIGatewayProxyResponse:
+		code = r.StatusCode
+		headers = r.Headers
+	case events.APIGatewayV2HTTPResponse:
 		code = r.StatusCode
 		headers = r.Headers
 	case events.ALBTargetGroupResponse:
