@@ -245,8 +245,6 @@ func removeLicenseFromURL(u string) string {
 	// conservative check here.
 	if n := len(licenseKey); n > 4 {
 		query.Set("license_key", string(licenseKey[0:2]+".."+licenseKey[n-2:]))
-	} else {
-		query.Set("license_key", licenseKey)
 	}
 	rawURL.RawQuery = query.Encode()
 	return rawURL.String()
