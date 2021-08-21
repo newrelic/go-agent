@@ -52,9 +52,10 @@
 // A working example is shown here:
 // https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrpgx/example/sql_compat/main.go
 //
-// TODO: direct calls into the pgx library instead of database/sql
-// TODO: maybe this should be a separate module since it requires database/sql itself
-//       and includes an init() function to register as a driver.
+//
+// USING WITH DIRECT PGX CALLS WITHOUT DATABASE/SQL
+//
+// This mode of operation is not supported by the nrpgx integration at this time.
 //
 package nrpgx
 
@@ -195,6 +196,12 @@ func parsePort(p string) (uint16, string) {
 // Any text after the hostname (and port, if any), is ignored.
 //
 var ip6HostPort = regexp.MustCompile(`^\[([0-9a-fA-F:]*)\](:([0-9]+))?`)
+
+//
+// fullIp6ConnectPattern and fullConnectPattern are regular expressions which
+// match a postgres URI connection string using IPv6 addresses, or other forms,
+// respectively.
+//
 var fullIp6ConnectPattern = regexp.MustCompile(
 	//                     user     password    host                 port                dbname      params
 	//                     __1__    __2__     _________3________     __4__               __5__       __6_
@@ -203,6 +210,11 @@ var fullConnectPattern = regexp.MustCompile(
 	//                     user     password  host                 port                dbname      params
 	//                     __1__    __2__     ________3________    __4__               __5__       __6_
 	`^postgres(?:ql)?://(?:(.*?)(?::(.*?))?@)?([a-zA-Z0-9_.-]+)(?::(.*?))?(?:,.*?)*(?:/(.*?))?(?:\?(.*))?$`)
+
+//
+// fullParamPattern is a regular expression to match the key=value pairs of a
+// parameterized DSN string.
+//
 var fullParamPattern = regexp.MustCompile(
 	`(\w+)\s*=\s*('[^=]*'|[^'\s]+)`)
 

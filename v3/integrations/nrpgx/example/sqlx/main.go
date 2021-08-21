@@ -31,7 +31,7 @@
 //	}
 //
 // Then change the side-effect import to the integration package, and open
-// "nrpostgres" instead:
+// "nrpgx" instead:
 //
 //	import (
 //		"github.com/jmoiron/sqlx"
