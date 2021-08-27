@@ -1,6 +1,18 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//
+// To run this example, be sure the environment variable NEW_RELIC_LICENSE_KEY
+// is set to your license key. Postgres must be running on the default port
+// 5432 on localhost, and have a password "docker". An easy (albeit insecure)
+// way to test this is to issue the following command to run a postgres database
+// in a docker container:
+//    docker run --rm -e POSTGRES_PASSWORD=docker -p 5432:5432 postgres
+//
+// Run that in the background or in a separate window, and then run this program
+// to access that database.
+//
+
 package main
 
 import (

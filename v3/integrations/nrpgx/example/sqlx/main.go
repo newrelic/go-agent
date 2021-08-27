@@ -5,7 +5,11 @@
 //
 // To run this example, be sure the environment varible NEW_RELIC_LICENSE_KEY
 // is set to your license key.  Postgres must be running on the default port
-// 5432 and have a user "foo" and a database "bar".
+// 5432 and have a user "foo" and a database "bar". One quick (albeit insecure)
+// way of doing this is to run a small local Postgres instance in Docker:
+//    docker run --rm -e POSTGRES_USER=foo -e POSTGRES_DB=bar \
+//      -e POSTGRES_PASSWORD=password -e POSTGRES_HOST_AUTH_METHOD=trust \
+//      -p 5432:5432 postgres &
 //
 // Adding instrumentation for the SQLx package is easy.  It means you can
 // make database calls without having to manually create DatastoreSegments.
