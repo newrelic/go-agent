@@ -200,11 +200,12 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmRespons
 // collectorRequest makes a request to New Relic.
 func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 	url := rpmURL(cmd, cs)
+	urlWithoutLicense := removeLicenseFromURL(url)
 
 	if cs.Logger.DebugEnabled() {
 		cs.Logger.Debug("rpm request", map[string]interface{}{
 			"command": cmd.Name,
-			"url":     url,
+			"url":     urlWithoutLicense,
 			"payload": jsonString(cmd.Data),
 		})
 	}
@@ -215,20 +216,38 @@ func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 		if err := resp.Err; err != nil {
 			cs.Logger.Debug("rpm failure", map[string]interface{}{
 				"command":  cmd.Name,
-				"url":      url,
+				"url":      urlWithoutLicense,
 				"response": string(resp.body), // Body might not be JSON on failure.
 				"error":    err.Error(),
 			})
 		} else {
 			cs.Logger.Debug("rpm response", map[string]interface{}{
 				"command":  cmd.Name,
-				"url":      url,
+				"url":      urlWithoutLicense,
 				"response": jsonString(resp.body),
 			})
 		}
 	}
 
 	return resp
+}
+
+func removeLicenseFromURL(u string) string {
+	rawURL, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+
+	query := rawURL.Query()
+	licenseKey := query.Get("license_key")
+
+	// License key length has already been checked, but doing another
+	// conservative check here.
+	if n := len(licenseKey); n > 4 {
+		query.Set("license_key", string(licenseKey[0:2]+".."+licenseKey[n-2:]))
+	}
+	rawURL.RawQuery = query.Encode()
+	return rawURL.String()
 }
 
 type preconnectRequest struct {
