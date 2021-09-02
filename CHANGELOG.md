@@ -9,7 +9,7 @@
 
 
 ### Added
-* New integration `nrpgx` added to provide the same functionality for instrumenting Postgres database queries as the existing `nrpq` integration, but using the [pgx](github.com/jackc/pgx) driver instead. This only covers (at present) the use case of the `pgx` driver with the standard library `database/sql`. Fixes [Issue #142](https://github.com/newrelic/go-agent/issues/142) and [Issue #292](https://github.com/newrelic/go-agent/issues/292)
+* New integration `nrpgx` added to provide the same functionality for instrumenting Postgres database queries as the existing `nrpq` integration, but using the [pgx](https://github.com/jackc/pgx) driver instead. This only covers (at present) the use case of the `pgx` driver with the standard library `database/sql`. Fixes [Issue #142](https://github.com/newrelic/go-agent/issues/142) and [Issue #292](https://github.com/newrelic/go-agent/issues/292)
 
 ### Changed
 * Enhanced debugging logs so that New Relic license keys are redacted from the log output. Fixes [Issue #353](https://github.com/newrelic/go-agent/issues/353).
