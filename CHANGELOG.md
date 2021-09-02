@@ -5,7 +5,7 @@
 ### Fixed
 * Updated mongodb driver version to 1.5.1 to fix security issue in external dependency. Fixes [Issue #358](https://github.com/newrelic/go-agent/issues/358) and [Issue #370](https://github.com/newrelic/go-agent/pull/370).
 
-* Updated the `go.mod` file in the `nrgin` integration to require version 1.7.0 of that package. This addresses [CVE-2020-28483](https://github.com/advisories/GHSA-h395-qcrw-5vmq) which documents a vulnerability in versions of `github.com/gin-gonic/gin` earlier than 1.7.0. 
+* Updated the `go.mod` file in the `nrgin` integration to require version 1.7.0 of the `github.com/gin-gonic/gin` package. This addresses [CVE-2020-28483](https://github.com/advisories/GHSA-h395-qcrw-5vmq) which documents a vulnerability in versions of `github.com/gin-gonic/gin` earlier than 1.7.0. 
 
 
 ### Added
