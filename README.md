@@ -89,7 +89,8 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
-| [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver |
+| [lib/pq](https://github.com/lib/pq) | [v3/integrations/nrpq](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq) | Instrument PostgreSQL driver (`pq` driver for `database/sql`) |
+| [jackc/pgx](https://github.com/jackc/pgx) | [v3/integrations/nrpgx](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpgx) | Instrument PostgreSQL driver (`pgx` driver for `database/sql`)|
 | [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) | [v3/integrations/nrmysql](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmysql) | Instrument MySQL driver |
 | [elastic/go-elasticsearch](https://github.com/elastic/go-elasticsearch) | [v3/integrations/nrelasticsearch-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7) | Instrument Elasticsearch datastore calls |
 | [database/sql](https://godoc.org/database/sql) | Use a supported database driver or [builtin instrumentation](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#InstrumentSQLConnector) | Instrument database calls with SQL |

@@ -1,6 +1,9 @@
-// Copyright 2020 New Relic Corporation. All rights reserved.
+// Copyright 2020, 2021 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//
+// Example of using nrpgx to instrument a Postgres database application
+// using the jackc/pgx driver with database/sql.
 //
 // To run this example, be sure the environment variable NEW_RELIC_LICENSE_KEY
 // is set to your license key. Postgres must be running on the default port
@@ -22,13 +25,13 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/newrelic/go-agent/v3/integrations/nrpq"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	_ "github.com/newrelic/go-agent/v3/integrations/nrpgx"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func main() {
 	// docker run --rm -e POSTGRES_PASSWORD=docker -p 5432:5432 postgres
-	db, err := sql.Open("nrpostgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable")
+	db, err := sql.Open("nrpgx", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -38,9 +41,12 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
+	//
+	// N.B.: We do not recommend using app.WaitForConnection in production code.
+	//
 	app.WaitForConnection(5 * time.Second)
 	txn := app.StartTransaction("postgresQuery")
 

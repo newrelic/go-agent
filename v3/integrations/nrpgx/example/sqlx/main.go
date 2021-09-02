@@ -1,4 +1,4 @@
-// Copyright 2020 New Relic Corporation. All rights reserved.
+// Copyright 2020, 2021 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // An application that illustrates how to instrument jmoiron/sqlx with DatastoreSegments
@@ -11,7 +11,6 @@
 //      -e POSTGRES_PASSWORD=password -e POSTGRES_HOST_AUTH_METHOD=trust \
 //      -p 5432:5432 postgres &
 //
-//
 // Adding instrumentation for the SQLx package is easy.  It means you can
 // make database calls without having to manually create DatastoreSegments.
 // Setup can be done in two steps:
@@ -22,13 +21,13 @@
 // https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements#frameworks),
 // follow the instructions on installing the driver.
 //
-// As an example, for the `lib/pq` driver, you will use the newrelic
+// As an example, for the `pgx` driver, you will use the newrelic
 // integration's driver in place of the postgres driver.  If your code is using
-// sqlx.Open with `lib/pq` like this:
+// sqlx.Open with `pgx` like this:
 //
 //	import (
 //		"github.com/jmoiron/sqlx"
-//		_ "github.com/lib/pq"
+//		_ "github.com/jackc/pgx"
 //	)
 //
 //	func main() {
@@ -36,15 +35,15 @@
 //	}
 //
 // Then change the side-effect import to the integration package, and open
-// "nrpostgres" instead:
+// "nrpgx" instead:
 //
 //	import (
 //		"github.com/jmoiron/sqlx"
-//		_ "github.com/newrelic/go-agent/v3/integrations/nrpq"
+//		_ "github.com/newrelic/go-agent/v3/integrations/nrpgx"
 //	)
 //
 //	func main() {
-//		db, err := sqlx.Open("nrpostgres", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+//		db, err := sqlx.Open("nrpgx", "user=pqgotest dbname=pqgotest sslmode=verify-full")
 //	}
 //
 // If you are not using one of the supported database drivers, use the
@@ -76,7 +75,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/newrelic/go-agent/v3/integrations/nrpq"
+	_ "github.com/newrelic/go-agent/v3/integrations/nrpgx"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -100,10 +99,13 @@ func createApp() *newrelic.Application {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
+	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := app.WaitForConnection(5 * time.Second); nil != err {
+	//
+	// DO NOT USE WaitForConnection in production code!
+	//
+	if err := app.WaitForConnection(5 * time.Second); err != nil {
 		log.Fatalln(err)
 	}
 	return app
@@ -119,8 +121,8 @@ func main() {
 	// Add transaction to context
 	ctx := newrelic.NewContext(context.Background(), txn)
 
-	// Connect to database using the "nrpostgres" driver
-	db, err := sqlx.Connect("nrpostgres", "user=foo dbname=bar sslmode=disable")
+	// Connect to database using the "nrpgx" driver
+	db, err := sqlx.Connect("nrpgx", "host=localhost user=foo dbname=bar sslmode=disable")
 	if err != nil {
 		log.Fatalln(err)
 	}
