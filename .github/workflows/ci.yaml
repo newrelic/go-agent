@@ -6,217 +6,236 @@ name: Go Agent CI
 on: pull_request
 
 jobs:
-  go-agent:
+  # go-agent:
+  #   runs-on: ubuntu-18.04
+  #   env:
+  #     # Required when using older versions of Go that do not support gomod.
+  #     GOPATH: ${{ github.workspace }}
+
+  #   strategy:
+  #     # if one test fails, do not abort the rest
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+
+  #         # v2 agent
+  #         # 1.3.x and 1.4.x are failing with a linker error, skip those for now
+  #         # - go-version: 1.3.x
+  #         #   dirs: .
+  #         # - go-version: 1.4.x
+  #         #   dirs: .
+  #         - go-version: 1.5.x
+  #           dirs: .
+  #         - go-version: 1.6.x
+  #           dirs: .
+  #         - go-version: 1.7.x
+  #           dirs: .
+  #         - go-version: 1.8.x
+  #           dirs: .
+  #         - go-version: 1.9.x
+  #           dirs: .
+  #         - go-version: 1.10.x
+  #           dirs: .
+  #         - go-version: 1.11.x
+  #           dirs: .
+  #         - go-version: 1.12.x
+  #           dirs: .
+  #         - go-version: 1.13.x
+  #           dirs: .
+
+  #         # v2 integrations
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrawssdk
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrecho
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrgin/v1
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrgorilla/v1
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrlogrus
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrlogxi/v1
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrpkgerrors
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrlambda
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrmysql
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrpq
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrsqlite3
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrgrpc
+  #         # As of October 2019, errors result from go get -u github.com/micro/go-micro
+  #         # As of June 2020, confirmed errors still result
+  #         # - go-version: 1.13.x
+  #         #   dirs: _integrations/nrmicro
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrnats
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrstan
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/logcontext
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrzap
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrhttprouter
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrb3
+  #         - go-version: 1.13.x
+  #           dirs: _integrations/nrmongo
+
+  #         # v3 agent
+  #         - go-version: 1.7.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.8.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.9.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.10.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.11.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.12.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.13.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.14.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples
+  #         - go-version: 1.15.x
+  #           dirs: v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext
+
+  #         # v3 integrations
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/logcontext/nrlogrusplugin
+  #           extratesting: go get -u github.com/sirupsen/logrus@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrawssdk-v1
+  #           extratesting: go get -u github.com/aws/aws-sdk-go@main
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrawssdk-v2
+  #           extratesting: go get -u github.com/aws/aws-sdk-go-v2@main
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrecho-v3
+  #           # Test against the latest v3 Echo:
+  #           extratesting: go get -u github.com/labstack/echo@v3
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrecho-v4
+  #           extratesting: go get -u github.com/labstack/echo@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrelasticsearch-v7
+  #           extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrgin
+  #           extratesting: go get -u github.com/gin-gonic/gin@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrgorilla
+  #           extratesting: go get -u github.com/gorilla/mux@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrgraphgophers
+  #           extratesting: go get -u github.com/graph-gophers/graphql-go@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrlogrus
+  #           extratesting: go get -u github.com/sirupsen/logrus@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrlogxi
+  #           extratesting: go get -u github.com/mgutz/logxi@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrpkgerrors
+  #           extratesting: go get -u github.com/pkg/errors@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrlambda
+  #           extratesting: go get -u github.com/aws/aws-lambda-go@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrmysql
+  #           extratesting: go get -u github.com/go-sql-driver/mysql@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrpq
+  #           extratesting: go get -u github.com/lib/pq@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrpq/example/sqlx
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrredis-v7
+  #           extratesting: go get -u github.com/go-redis/redis/v7@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrsqlite3
+  #           extratesting: go get -u github.com/mattn/go-sqlite3@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrsnowflake
+  #           extratesting: go get -u github.com/snowflakedb/gosnowflake@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrgrpc
+  #           extratesting: go get -u google.golang.org/grpc@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrmicro
+  #           # As of Dec 2019, there is a race condition in when using go-micro@master
+  #           # in their logging system.  Instead, we'll test against the latest
+  #           # released version.
+  #           # As of Jan 2019, it is impossible to go get the latest micro version.
+  #           # As of June 2020, confirmed errors still result
+  #           # extratesting: go get -u github.com/micro/go-micro@latest
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrnats
+  #           extratesting: go get -u github.com/nats-io/nats.go/@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrnats/test
+  #           extratesting: go get -u github.com/nats-io/nats.go/@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrstan
+  #           extratesting: go get -u github.com/nats-io/stan.go/@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrstan/test
+  #           extratesting: go get -u github.com/nats-io/stan.go/@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrstan/examples
+  #           extratesting: go get -u github.com/nats-io/stan.go/@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/logcontext
+  #           extratesting: go get -u github.com/sirupsen/logrus@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrzap
+  #           extratesting: go get -u go.uber.org/zap@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrhttprouter
+  #           extratesting: go get -u github.com/julienschmidt/httprouter@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrb3
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrmongo
+  #           extratesting: go get -u go.mongodb.org/mongo-driver@master
+  #         - go-version: 1.15.x
+  #           dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
+  #           extratesting: go get -u github.com/graphql-go/graphql@master
+
+  #   steps:
+  #   - name: Install Go
+  #     uses: actions/setup-go@v1
+  #     with:
+  #       go-version: ${{ matrix.go-version }}
+
+  #   - name: Checkout Code
+  #     uses: actions/checkout@v1
+  #     with:
+  #       # Required when using older versions of Go that do not support gomod.
+  #       # Note the required presence of the /go-agent/ directory at the
+  #       # beginning of this path.  It is required in order to match the
+  #       # ${{ github.workspace }} used by the GOPATH env var.  pwd when cloning
+  #       # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
+  #       # returns <something/go-agent/go-agent/.
+  #       path: ./go-agent/src/github.com/newrelic/go-agent
+
+  #   - name: Run Tests
+  #     run: bash build-script.sh
+  #     env:
+  #       DIRS: ${{ matrix.dirs }}
+  #       EXTRATESTING: ${{ matrix.extratesting }}
+
+  go-agent-arm64:
     runs-on: ubuntu-18.04
-    env:
-      # Required when using older versions of Go that do not support gomod.
-      GOPATH: ${{ github.workspace }}
-
-    strategy:
-      # if one test fails, do not abort the rest
-      fail-fast: false
-      matrix:
-        include:
-
-          # v2 agent
-          # 1.3.x and 1.4.x are failing with a linker error, skip those for now
-          # - go-version: 1.3.x
-          #   dirs: .
-          # - go-version: 1.4.x
-          #   dirs: .
-          - go-version: 1.5.x
-            dirs: .
-          - go-version: 1.6.x
-            dirs: .
-          - go-version: 1.7.x
-            dirs: .
-          - go-version: 1.8.x
-            dirs: .
-          - go-version: 1.9.x
-            dirs: .
-          - go-version: 1.10.x
-            dirs: .
-          - go-version: 1.11.x
-            dirs: .
-          - go-version: 1.12.x
-            dirs: .
-          - go-version: 1.13.x
-            dirs: .
-
-          # v2 integrations
-          - go-version: 1.13.x
-            dirs: _integrations/nrawssdk
-          - go-version: 1.13.x
-            dirs: _integrations/nrecho
-          - go-version: 1.13.x
-            dirs: _integrations/nrgin/v1
-          - go-version: 1.13.x
-            dirs: _integrations/nrgorilla/v1
-          - go-version: 1.13.x
-            dirs: _integrations/nrlogrus
-          - go-version: 1.13.x
-            dirs: _integrations/nrlogxi/v1
-          - go-version: 1.13.x
-            dirs: _integrations/nrpkgerrors
-          - go-version: 1.13.x
-            dirs: _integrations/nrlambda
-          - go-version: 1.13.x
-            dirs: _integrations/nrmysql
-          - go-version: 1.13.x
-            dirs: _integrations/nrpq
-          - go-version: 1.13.x
-            dirs: _integrations/nrsqlite3
-          - go-version: 1.13.x
-            dirs: _integrations/nrgrpc
-          # As of October 2019, errors result from go get -u github.com/micro/go-micro
-          # As of June 2020, confirmed errors still result
-          # - go-version: 1.13.x
-          #   dirs: _integrations/nrmicro
-          - go-version: 1.13.x
-            dirs: _integrations/nrnats
-          - go-version: 1.13.x
-            dirs: _integrations/nrstan
-          - go-version: 1.13.x
-            dirs: _integrations/logcontext
-          - go-version: 1.13.x
-            dirs: _integrations/nrzap
-          - go-version: 1.13.x
-            dirs: _integrations/nrhttprouter
-          - go-version: 1.13.x
-            dirs: _integrations/nrb3
-          - go-version: 1.13.x
-            dirs: _integrations/nrmongo
-
-          # v3 agent
-          - go-version: 1.7.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.8.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.9.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.10.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.11.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.12.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.13.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.14.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.15.x
-            dirs: v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext
-
-          # v3 integrations
-          - go-version: 1.15.x
-            dirs: v3/integrations/logcontext/nrlogrusplugin
-            extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrawssdk-v1
-            extratesting: go get -u github.com/aws/aws-sdk-go@main
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrawssdk-v2
-            extratesting: go get -u github.com/aws/aws-sdk-go-v2@main
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrecho-v3
-            # Test against the latest v3 Echo:
-            extratesting: go get -u github.com/labstack/echo@v3
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrecho-v4
-            extratesting: go get -u github.com/labstack/echo@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrelasticsearch-v7
-            extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrgin
-            extratesting: go get -u github.com/gin-gonic/gin@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrgorilla
-            extratesting: go get -u github.com/gorilla/mux@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrgraphgophers
-            extratesting: go get -u github.com/graph-gophers/graphql-go@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrlogrus
-            extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrlogxi
-            extratesting: go get -u github.com/mgutz/logxi@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrpkgerrors
-            extratesting: go get -u github.com/pkg/errors@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrlambda
-            extratesting: go get -u github.com/aws/aws-lambda-go@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrmysql
-            extratesting: go get -u github.com/go-sql-driver/mysql@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrpq
-            extratesting: go get -u github.com/lib/pq@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrpq/example/sqlx
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrredis-v7
-            extratesting: go get -u github.com/go-redis/redis/v7@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrsqlite3
-            extratesting: go get -u github.com/mattn/go-sqlite3@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrsnowflake
-            extratesting: go get -u github.com/snowflakedb/gosnowflake@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrgrpc
-            extratesting: go get -u google.golang.org/grpc@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrmicro
-            # As of Dec 2019, there is a race condition in when using go-micro@master
-            # in their logging system.  Instead, we'll test against the latest
-            # released version.
-            # As of Jan 2019, it is impossible to go get the latest micro version.
-            # As of June 2020, confirmed errors still result
-            # extratesting: go get -u github.com/micro/go-micro@latest
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrnats
-            extratesting: go get -u github.com/nats-io/nats.go/@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrnats/test
-            extratesting: go get -u github.com/nats-io/nats.go/@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrstan
-            extratesting: go get -u github.com/nats-io/stan.go/@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrstan/test
-            extratesting: go get -u github.com/nats-io/stan.go/@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrstan/examples
-            extratesting: go get -u github.com/nats-io/stan.go/@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/logcontext
-            extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrzap
-            extratesting: go get -u go.uber.org/zap@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrhttprouter
-            extratesting: go get -u github.com/julienschmidt/httprouter@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrb3
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrmongo
-            extratesting: go get -u go.mongodb.org/mongo-driver@master
-          - go-version: 1.15.x
-            dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
-            extratesting: go get -u github.com/graphql-go/graphql@master
-
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v1
-      with:
-        go-version: ${{ matrix.go-version }}
-
-    - name: Checkout Code
-      uses: actions/checkout@v1
+    - uses: actions/checkout@v1
       with:
         # Required when using older versions of Go that do not support gomod.
         # Note the required presence of the /go-agent/ directory at the
@@ -225,9 +244,20 @@ jobs:
         # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
         # returns <something/go-agent/go-agent/.
         path: ./go-agent/src/github.com/newrelic/go-agent
-
-    - name: Run Tests
-      run: bash build-script.sh
-      env:
-        DIRS: ${{ matrix.dirs }}
-        EXTRATESTING: ${{ matrix.extratesting }}
+    - uses: uraimo/run-on-arch-action@v2.1.1
+      name: Run Tests
+      id: runcmd
+      with:
+        arch: aarch64
+        distro: ubuntu20.04
+        githubToken: ${{ github.token }}
+        install: |
+          DEBIAN_FRONTEND=noninteractive apt update
+          DEBIAN_FRONTEND=noninteractive apt install -y golang
+        run: |
+          cd v3/newrelic
+          go test ./...
+          cd ../internal
+          go test ./...
+          cd ../examples
+          go test ./...
