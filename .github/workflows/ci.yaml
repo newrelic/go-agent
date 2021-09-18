@@ -244,7 +244,7 @@ jobs:
         # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
         # returns <something/go-agent/go-agent/.
         path: ./go-agent/src/github.com/newrelic/go-agent
-    - uses: uraimo/run-on-arch-action@v2.1.1
+    - uses: uraimo/run-on-arch-action@v2.0.5
       name: Run Tests
       id: runcmd
       with:
