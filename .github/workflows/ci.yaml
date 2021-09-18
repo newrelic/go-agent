@@ -255,7 +255,7 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt update
           DEBIAN_FRONTEND=noninteractive apt install -y golang
         run: |
-          go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+          DEBIAN_FRONTEND=noninteractive apt install -y golang-goprotobuf-dev protobuf-compiler
           cd v3/newrelic
           go test ./...
           cd ../internal
