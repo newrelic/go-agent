@@ -260,7 +260,7 @@ jobs:
         run: |
           export PATH=$PATH:/usr/local/go/bin
           go version
-          go mod download
+          go mod download github.com/golang/protobuf
           cd v3/newrelic
           go test ./...
           cd ../internal
