@@ -262,6 +262,7 @@ jobs:
           go version
           cd v3/newrelic
           go mod download github.com/golang/protobuf
+          go get
           go test ./...
           cd ../internal
           go test ./...
