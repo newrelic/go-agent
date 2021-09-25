@@ -260,6 +260,7 @@ jobs:
         run: |
           export PATH=$PATH:/usr/local/go/bin
           go version
+          go mod download
           cd v3/newrelic
           go test ./...
           cd ../internal
