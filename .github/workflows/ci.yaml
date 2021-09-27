@@ -234,6 +234,9 @@ jobs:
 
   go-agent-arm64:
     runs-on: ubuntu-18.04
+    strategy:
+    # if one test fails, do not abort the rest
+      fail-fast: false
     steps:
     - uses: actions/checkout@v1
       with:
