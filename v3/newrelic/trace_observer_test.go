@@ -1,7 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.9
 // +build go1.9
+
 // This build tag is necessary because Infinite Tracing is only supported for Go version 1.9 and up
 
 package newrelic
@@ -268,7 +270,7 @@ func TestTraceObserverRestart(t *testing.T) {
 
 	// Make sure the server has received the new data
 	to.consumeSpan(&spanEvent{})
-	if !s.DidSpansArrive(t, 1, 50*time.Millisecond) {
+	if !s.DidSpansArrive(t, 1, 500*time.Millisecond) {
 		t.Error("Did not receive expected spans before timeout")
 	}
 
