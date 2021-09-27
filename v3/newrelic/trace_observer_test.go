@@ -260,6 +260,12 @@ func TestTraceObserverRestart(t *testing.T) {
 	waitForTrObs(t, to)
 	defer s.Close()
 
+	// Make sure the server has received the new data
+	to.consumeSpan(&spanEvent{})
+	if !s.DidSpansArrive(t, 1, 150*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout -- before restart")
+	}
+
 	s.ExpectMetadata(t, map[string]string{
 		"agent_run_token": runToken,
 		"license_key":     testLicenseKey,
@@ -270,8 +276,8 @@ func TestTraceObserverRestart(t *testing.T) {
 
 	// Make sure the server has received the new data
 	to.consumeSpan(&spanEvent{})
-	if !s.DidSpansArrive(t, 1, 500*time.Millisecond) {
-		t.Error("Did not receive expected spans before timeout")
+	if !s.DidSpansArrive(t, 1, 150*time.Millisecond) {
+		t.Error("Did not receive expected spans before timeout -- after restart")
 	}
 
 	s.ExpectMetadata(t, map[string]string{
