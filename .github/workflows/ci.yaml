@@ -233,10 +233,16 @@ jobs:
   #       EXTRATESTING: ${{ matrix.extratesting }}
 
   go-agent-arm64:
+    # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
+    # Graviton instances
     runs-on: ubuntu-18.04
     strategy:
     # if one test fails, do not abort the rest
       fail-fast: false
+      matrix:
+        include:
+          - go-version: 1.17.1
+          - go-version: 1.16.8
     steps:
     - uses: actions/checkout@v1
       with:
@@ -257,9 +263,9 @@ jobs:
         install: |
           DEBIAN_FRONTEND=noninteractive apt -q update
           DEBIAN_FRONTEND=noninteractive apt -q install -y wget build-essential
-          wget -nv https://golang.org/dl/go1.17.1.linux-arm64.tar.gz
+          wget -nv https://golang.org/dl/go${{ go-version }}.linux-arm64.tar.gz
           rm -rf /usr/local/go
-          tar -C /usr/local -xzf go1.17.1.linux-arm64.tar.gz
+          tar -C /usr/local -xzf go${{ go-version }}.linux-arm64.tar.gz
         run: |
           export PATH=$PATH:/usr/local/go/bin
           go version
@@ -269,7 +275,7 @@ jobs:
           echo ==== v3/newrelic tests ====
           go test -v ./...
           cd ../internal
-          echo ==== v3/internals tests ====
+          echo ==== v3/internal tests ====
           go test -v ./...
           cd ../examples
           echo ==== v3/examples tests ====
