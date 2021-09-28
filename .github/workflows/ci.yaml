@@ -231,3 +231,52 @@ jobs:
       env:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
+
+  go-agent-arm64:
+    # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
+    # Graviton instances
+    runs-on: ubuntu-18.04
+    strategy:
+    # if one test fails, do not abort the rest
+      fail-fast: false
+      matrix:
+        include:
+          - go-version: 1.17.1
+          - go-version: 1.16.8
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        # Required when using older versions of Go that do not support gomod.
+        # Note the required presence of the /go-agent/ directory at the
+        # beginning of this path.  It is required in order to match the
+        # ${{ github.workspace }} used by the GOPATH env var.  pwd when cloning
+        # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
+        # returns <something/go-agent/go-agent/.
+        path: ./go-agent/src/github.com/newrelic/go-agent
+    - uses: uraimo/run-on-arch-action@v2.0.5
+      name: Run Tests
+      id: runcmd
+      with:
+        arch: aarch64
+        distro: ubuntu20.04
+        githubToken: ${{ github.token }}
+        install: |
+          DEBIAN_FRONTEND=noninteractive apt-get -qq update
+          DEBIAN_FRONTEND=noninteractive apt-get -qq install -y wget build-essential
+          wget -nv https://golang.org/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
+          rm -rf /usr/local/go
+          tar -C /usr/local -xzf go${{ matrix.go-version }}.linux-arm64.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/go/bin
+          go version
+          cd v3/newrelic
+          go mod download github.com/golang/protobuf
+          go get
+          echo ==== v3/newrelic tests ====
+          go test ./...
+          cd ../internal
+          echo ==== v3/internal tests ====
+          go test ./...
+          cd ../examples
+          echo ==== v3/examples tests ====
+          go test ./...
