@@ -56,6 +56,7 @@ func TestParseSQLSubQuery(t *testing.T) {
 		{Input: "SELECT * FROM (SELECT * FROM foobar)", Operation: "select", Table: "foobar"},
 		{Input: "SELECT * FROM (SELECT * FROM foobar) WHERE x > y", Operation: "select", Table: "foobar"},
 		{Input: "SELECT * FROM(SELECT * FROM foobar) WHERE x > y", Operation: "select", Table: "foobar"},
+		{Input: "SELECT substring('spam' FROM 2 FOR 3) AS x FROM FROMAGE) FROM fromagier", Operation: "select", Table: "fromagier"},
 	} {
 		tc.test(t)
 	}
@@ -71,6 +72,9 @@ func TestParseSQLOther(t *testing.T) {
 		{Input: "SELECT * FROM[ `something`.'foo' ]", Operation: "select", Table: "foo"},
 		// Test that we handle the cheese.
 		{Input: "SELECT fromage FROM fromagier", Operation: "select", Table: "fromagier"},
+		{Input: "SELECT (x from fromage) FROM fromagier", Operation: "select", Table: "fromagier"},
+		{Input: "SELECT (x FROM FROMAGE) FROM fromagier", Operation: "select", Table: "fromagier"},
+		{Input: "SELECT substring('spam' FROM 2 FOR 3) AS x FROM FROMAGE) FROM fromagier", Operation: "select", Table: "fromagier"},
 	} {
 		tc.test(t)
 	}
