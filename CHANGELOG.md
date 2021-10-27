@@ -1,4 +1,21 @@
 # ChangeLog
+## 3.15.1
+
+### Fixed
+
+* Updated support for SQL database instrumentation across the board for the Go Agent’s database integrations to more accurately extract the database table name from SQL queries. Fixes [Issue #397](https://github.com/newrelic/go-agent/issues/397).
+
+* Updated the `go.mod` file in the `nrecho-v4` integration to require version 4.5.0 of the `github.com/labstack/echo` package. This addresses a security concern arising from downstream dependencies in older versions of the echo package, as described in the [release notes](https://github.com/labstack/echo/releases/tag/v4.5.0) for `echo` v4.5.0.
+
+### ARM64 Compatibility Note
+
+The New Relic Go Agent is implemented in platform-independent Go, and supports (among the other platforms which run Go) ARM64/Graviton2 using Go 1.17+.
+
+### Support Statement
+
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+
 
 ## 3.15.0
 
