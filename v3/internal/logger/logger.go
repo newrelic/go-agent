@@ -75,7 +75,7 @@ func (f *logFile) fire(level, msg string, ctx map[string]interface{}) {
 	})
 	if err == nil {
 		// scrub license keys from any portion of the log message
-		re := regexp.MustCompile(`license_key=[a-fA-F0-9]+`)
+		re := regexp.MustCompile(`license_key=[a-fA-F0-9.]+`)
 		sanitized := re.ReplaceAllLiteralString(string(js), "license_key=[redacted]")
 		f.l.Print(sanitized)
 	} else {
