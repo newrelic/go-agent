@@ -1,4 +1,11 @@
 # ChangeLog
+## 3.15.2
+### Added
+* Strings logged via the Go Agent's built-in logger will have strings of the form `license_key=`*hex-string* changed to `license_key=[redacted]` before they are output, regardless of severity level, where *hex-string* means a sequence of upper- or lower-case hexadecimal digits and dots ('.').
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
 ## 3.15.1
 
 ### Fixed
