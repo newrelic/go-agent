@@ -79,7 +79,9 @@ func (f *logFile) fire(level, msg string, ctx map[string]interface{}) {
 		sanitized := re.ReplaceAllLiteralString(string(js), "license_key=[redacted]")
 		f.l.Print(sanitized)
 	} else {
-		f.l.Printf("unable to marshal log entry: %v", err)
+		f.l.Printf("unable to marshal log entry")
+		// error value removed from message to avoid possibility of sensitive
+		// content being leaked that way
 	}
 }
 
