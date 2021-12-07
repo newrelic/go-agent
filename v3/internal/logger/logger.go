@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 )
 
 // Logger matches newrelic.Logger to allow implementations to be passed to
@@ -72,10 +73,15 @@ func (f *logFile) fire(level, msg string, ctx map[string]interface{}) {
 		msg,
 		ctx,
 	})
-	if nil == err {
-		f.l.Print(string(js))
+	if err == nil {
+		// scrub license keys from any portion of the log message
+		re := regexp.MustCompile(`license_key=[a-fA-F0-9.]+`)
+		sanitized := re.ReplaceAllLiteralString(string(js), "license_key=[redacted]")
+		f.l.Print(sanitized)
 	} else {
-		f.l.Printf("unable to marshal log entry: %v", err)
+		f.l.Printf("unable to marshal log entry")
+		// error value removed from message to avoid possibility of sensitive
+		// content being leaked that way
 	}
 }
 
