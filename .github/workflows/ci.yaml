@@ -86,6 +86,8 @@ jobs:
             dirs: _integrations/nrb3
           - go-version: 1.13.x
             dirs: _integrations/nrmongo
+          - go-version: 1.13.x
+            dirs: _integrations/nrmssql
 
           # v3 agent
           - go-version: 1.7.x
@@ -208,6 +210,9 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
             extratesting: go get -u github.com/graphql-go/graphql@master
+          - go-version: 1.15.x
+            dirs: v3/integrations/nrmssql
+            extratesting: go get -u github.com/denisenkom/go-mssqldb@master
 
     steps:
     - name: Install Go
