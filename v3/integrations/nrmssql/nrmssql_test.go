@@ -32,19 +32,19 @@ func TestParseDSN(t *testing.T) {
 			expDatabaseName: "",
 		},
 		{
-			dsn:            "sqlserver://someuser:foo%3A%2F%5C%21~%40;bar@somehost:1434?connection+timeout=30",
+			dsn:             "sqlserver://someuser:foo%3A%2F%5C%21~%40;bar@somehost:1434?connection+timeout=30",
 			expHost:         "somehost",
 			expPortPathOrID: "1434",
 			expDatabaseName: "",
 		},
 		{
-			dsn:            "Server=mssql.test.local; Initial Catalog=test; User ID=xxxxxxx; Password=abccxxxxxx;",
+			dsn:             "Server=mssql.test.local; Initial Catalog=test; User ID=xxxxxxx; Password=abccxxxxxx;",
 			expHost:         "mssql.test.local",
 			expPortPathOrID: "0",
 			expDatabaseName: "test",
 		},
 		{
-			dsn:            "sport=invalid",
+			dsn:             "sport=invalid",
 			expHost:         "localhost",
 			expPortPathOrID: "0",
 			expDatabaseName: "",
