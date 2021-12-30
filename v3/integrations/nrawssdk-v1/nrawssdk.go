@@ -84,7 +84,7 @@ func endSegment(req *request.Request) {
 //    req.HTTPRequest = newrelic.RequestWithTransactionContext(req.HTTPRequest, txn)
 //    err := req.Send()
 func InstrumentHandlers(handlers *request.Handlers) {
-	handlers.Send.SetFrontNamed(request.NamedHandler{
+	handlers.Sign.SetFrontNamed(request.NamedHandler{
 		Name: "StartNewRelicSegment",
 		Fn:   startSegment,
 	})

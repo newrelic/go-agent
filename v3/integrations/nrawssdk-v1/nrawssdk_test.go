@@ -432,13 +432,19 @@ func TestDoublyInstrumented(t *testing.T) {
 	}
 
 	InstrumentHandlers(hs)
-	if found := hs.Send.Len(); 2 != found {
+	if found := hs.Send.Len(); 1 != found {
 		t.Error("unexpected number of Send handlers found:", found)
+	}
+	if found := hs.Sign.Len(); 1 != found {
+		t.Error("unexpected number of Sign handlers found:", found)
 	}
 
 	InstrumentHandlers(hs)
-	if found := hs.Send.Len(); 2 != found {
+	if found := hs.Send.Len(); 1 != found {
 		t.Error("unexpected number of Send handlers found:", found)
+	}
+	if found := hs.Sign.Len(); 1 != found {
+		t.Error("unexpected number of Sign handlers found:", found)
 	}
 }
 
