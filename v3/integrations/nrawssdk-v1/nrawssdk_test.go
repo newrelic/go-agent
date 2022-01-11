@@ -93,11 +93,12 @@ var (
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.operation": "Invoke",
-			"aws.region":    "us-west-2",
-			"aws.requestId": requestID,
-			"http.method":   "POST",
-			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"aws.operation":   "Invoke",
+			"aws.region":      "us-west-2",
+			"aws.requestId":   requestID,
+			"http.method":     "POST",
+			"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"http.statusCode": 200,
 		},
 	}
 	externalSpanNoRequestID = internal.WantEvent{
@@ -115,10 +116,33 @@ var (
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.operation": "Invoke",
-			"aws.region":    "us-west-2",
-			"http.method":   "POST",
-			"http.url":      "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"aws.operation":   "Invoke",
+			"aws.region":      "us-west-2",
+			"http.method":     "POST",
+			"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"http.statusCode": 200,
+		},
+	}
+	externalSpanSendFailure = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":          "External/lambda.us-west-2.amazonaws.com/http/POST",
+			"sampled":       true,
+			"category":      "http",
+			"priority":      internal.MatchAnything,
+			"guid":          internal.MatchAnything,
+			"transactionId": internal.MatchAnything,
+			"traceId":       internal.MatchAnything,
+			"parentId":      internal.MatchAnything,
+			"component":     "http",
+			"span.kind":     "client",
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"aws.operation":   "Invoke",
+			"aws.region":      "us-west-2",
+			"http.method":     "POST",
+			"http.url":        "https://lambda.us-west-2.amazonaws.com/2015-03-31/functions/non-existent-function/invocations",
+			"http.statusCode": 0,
 		},
 	}
 	datastoreSpan = internal.WantEvent{
@@ -493,7 +517,7 @@ func TestRetrySend(t *testing.T) {
 
 	app.ExpectMetrics(t, externalMetrics)
 	app.ExpectSpanEvents(t, []internal.WantEvent{
-		externalSpanNoRequestID, externalSpan, genericSpan})
+		externalSpanSendFailure, externalSpan, genericSpan})
 }
 
 func TestRequestSentTwice(t *testing.T) {

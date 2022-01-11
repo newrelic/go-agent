@@ -5,8 +5,6 @@
 package nrawssdk
 
 import (
-	"net/http"
-
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/awssupport"
@@ -26,14 +24,7 @@ func startSegment(req *request.Request) {
 }
 
 func endSegment(req *request.Request) {
-	ctx := req.HTTPRequest.Context()
-
-	hdr := http.Header{}
-	if req.HTTPRequest != nil {
-		hdr = req.HTTPRequest.Header
-	}
-
-	awssupport.EndSegment(ctx, hdr)
+	awssupport.EndSegment(req.HTTPRequest.Context(), req.HTTPResponse)
 }
 
 // InstrumentHandlers will add instrumentation to the given *request.Handlers.
