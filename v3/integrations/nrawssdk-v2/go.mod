@@ -14,5 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.6.0
 	github.com/aws/smithy-go v1.4.0
 	github.com/newrelic/go-agent/v3 v3.0.0
-	golang.org/x/tools v0.1.0 // indirect
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
+	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
