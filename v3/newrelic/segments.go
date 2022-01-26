@@ -286,6 +286,7 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 	s := &ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
 		Request:   request,
+		Host:      request.Host,
 	}
 
 	if request != nil && request.Header != nil {
