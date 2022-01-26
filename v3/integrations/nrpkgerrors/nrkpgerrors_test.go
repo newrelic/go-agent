@@ -31,6 +31,7 @@ func gamma(e error) error { return errors.WithStack(e) }
 
 func theta(e error) error { return errors.WithMessage(e, "theta") }
 
+func basicNRError(e error) newrelic.Error { return newrelic.Error{Message: e.Error()} }
 func withAttributes(e error) newrelic.Error {
 	return newrelic.Error{
 		Message: e.Error(),
@@ -54,6 +55,7 @@ func TestWrappedStackTrace(t *testing.T) {
 		{Error: alpha(theta(beta(basicError{}))), ExpectTopFrame: "beta"},
 		{Error: alpha(theta(beta(theta(basicError{})))), ExpectTopFrame: "beta"},
 		{Error: theta(basicError{}), ExpectTopFrame: ""},
+		{Error: basicNRError(basicError{}), ExpectTopFrame: ""},
 		{Error: withAttributes(basicError{}), ExpectTopFrame: "", ExpectAttributes: map[string]interface{}{"testAttribute": 1, "foo": 2}},
 	}
 

@@ -83,7 +83,7 @@ func Wrap(e error) error {
 	attributes := make(map[string]interface{})
 	switch error := e.(type) {
 	case newrelic.Error:
-		// if e is type newrelic.Error, copy attributes into wrapped errror
+		// if e is type newrelic.Error, copy attributes into wrapped error
 		for key, value := range error.ErrorAttributes() {
 			attributes[key] = value
 		}
