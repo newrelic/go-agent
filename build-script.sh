@@ -19,6 +19,22 @@ fi
 
 pwd=$(pwd)
 
+# inputs
+# 1: repo pin; example: github.com/rewrelic/go-agent@v1.9.0
+pin_go_dependency() {
+  echo "Pinning: $1"
+  if [[ ! -z "$1" ]]; then
+    repo=$(echo "$1" | cut -d '@' -f1)
+    pinTo=$(echo "$1" | cut -d '@' -f2)
+    set +e
+    go get -u "$repo" # this go get will fail to build
+    set -e
+    cd $GOPATH/src/"$repo"
+    git checkout "$pinTo"
+    cd -
+  fi
+}
+
 IFS=","
 for dir in $DIRS; do
   cd "$pwd/$dir"
@@ -26,6 +42,8 @@ for dir in $DIRS; do
   if [ -f "go.mod" ]; then
     go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
   fi
+
+  pin_go_dependency "$PIN"
 
   # go get is necessary for testing v2 integrations since they do not have
   # a go.mod file.
@@ -50,20 +68,10 @@ for dir in $DIRS; do
       echo "Not installing GRPC for old versions"
     elif [[ "$VERSION" =~ .*"$V1_9" || "$VERSION" =~ .*"$V1_10" || "$VERSION" =~ .*"$V1_11" || "$VERSION" =~ .*"$V1_12" ||  "$VERSION" =~ .*"$V1_13" || "$VERSION" =~ .*"$V1_14" ]]; then
       # install v3 dependencies that support this go version
-      set +e
-      go get -u google.golang.org/grpc # this go get will fail to build
-      set -e
-      cd $GOPATH/src/google.golang.org/grpc
-      git checkout v1.31.0
-      cd -
+      pin_go_dependency "google.golang.org/grpc@v1.31.0"
+      pin_go_dependency "golang.org/x/net/http2@7fd8e65b642006927f6cec5cb4241df7f98a2210"
 
-      set +e
-      go get -u golang.org/x/net/http2 # this go get will fail to build
-      set -e
-      cd $GOPATH/src/golang.org/x/net/http2
-      git checkout 7fd8e65b642006927f6cec5cb4241df7f98a2210
-      cd -
-
+      # install protobuff once dependencies are resolved
       go get -u github.com/golang/protobuf/protoc-gen-go
     else
       go get -u github.com/golang/protobuf/protoc-gen-go

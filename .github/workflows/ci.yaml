@@ -231,6 +231,7 @@ jobs:
       env:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
+        PIN: ${{ matrix.pin }}
 
   go-agent-arm64:
     # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
@@ -271,7 +272,7 @@ jobs:
           go version
           cd v3/newrelic
           go mod download github.com/golang/protobuf
-          go get
+          go get -t
           echo ==== v3/newrelic tests ====
           go test ./...
           cd ../internal
