@@ -22,14 +22,14 @@ pwd=$(pwd)
 # inputs
 # 1: repo pin; example: github.com/rewrelic/go-agent@v1.9.0
 pin_go_dependency() {
-  echo "Pinning: $1"
   if [[ ! -z "$1" ]]; then
+    echo "Pinning: $1"
     repo=$(echo "$1" | cut -d '@' -f1)
     pinTo=$(echo "$1" | cut -d '@' -f2)
     set +e
     go get -u "$repo" # this go get will fail to build
     set -e
-    cd $GOPATH/src/"$repo"
+    cd "$GOPATH"/src/"$repo"
     git checkout "$pinTo"
     cd -
   fi
@@ -40,18 +40,13 @@ for dir in $DIRS; do
   cd "$pwd/$dir"
 
   if [ -f "go.mod" ]; then
-    go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
+    go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
   fi
 
   pin_go_dependency "$PIN"
 
-  # go get is necessary for testing v2 integrations since they do not have
-  # a go.mod file.
-  if [[ $dir =~ "_integrations" ]]; then
-    go get -t ./...
-  fi
   # avoid testing v3 code when testing v2 newrelic package
-  if [ $dir == "." ]; then
+  if [ "$dir" == "." ]; then
     rm -rf v3/
   else
     # Only v3 code version 1.9+ needs GRPC dependencies
@@ -77,6 +72,12 @@ for dir in $DIRS; do
       go get -u github.com/golang/protobuf/protoc-gen-go
       go get -u google.golang.org/grpc
     fi
+  fi
+
+  # go get is necessary for testing v2 integrations since they do not have
+  # a go.mod file.
+  if [[ $dir =~ "_integrations" ]]; then
+    go get -t ./...
   fi
 
   go test -race -benchtime=1ms -bench=. ./...
