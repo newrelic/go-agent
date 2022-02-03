@@ -45,6 +45,8 @@ jobs:
 
           # v2 integrations
           - go-version: 1.13.x
+            # only versions up to 0.24.0 of awssdkv2 are supported by this code
+            pin: github.com/aws/aws-sdk-go-v2@v0.24.0
             dirs: _integrations/nrawssdk
           - go-version: 1.13.x
             dirs: _integrations/nrecho
