@@ -12,6 +12,10 @@ import (
 )
 
 func validateStringField(v internal.Validator, fieldName, expect, actual string) {
+	// If an expected value is not set, we assume the user does not want to validate it
+	if expect == "" {
+		return
+	}
 	if expect != actual {
 		v.Error(fieldName, "incorrect: Expected:", expect, " Got:", actual)
 	}
