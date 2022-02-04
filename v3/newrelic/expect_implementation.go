@@ -11,9 +11,9 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
-func validateStringField(v internal.Validator, fieldName, v1, v2 string) {
-	if v1 != v2 {
-		v.Error(fieldName, v1, v2)
+func validateStringField(v internal.Validator, fieldName, expect, actual string) {
+	if expect != actual {
+		v.Error(fieldName, "incorrect: Expected:", expect, " Got:", actual)
 	}
 }
 
@@ -442,13 +442,13 @@ func expectSlowQuery(t internal.Validator, slowQuery *slowQuery, want internal.W
 		t.Error("wrong Count field", slowQuery.Count, want.Count)
 	}
 	uri, _ := slowQuery.txnEvent.Attrs.GetAgentValue(AttributeRequestURI, destTxnTrace)
-	validateStringField(t, "MetricName", slowQuery.DatastoreMetric, want.MetricName)
-	validateStringField(t, "Query", slowQuery.ParameterizedQuery, want.Query)
-	validateStringField(t, "TxnEvent.FinalName", slowQuery.txnEvent.FinalName, want.TxnName)
-	validateStringField(t, "request.uri", uri, want.TxnURL)
-	validateStringField(t, "DatabaseName", slowQuery.DatabaseName, want.DatabaseName)
-	validateStringField(t, "Host", slowQuery.Host, want.Host)
-	validateStringField(t, "PortPathOrID", slowQuery.PortPathOrID, want.PortPathOrID)
+	validateStringField(t, "MetricName", want.MetricName, slowQuery.DatastoreMetric)
+	validateStringField(t, "Query", want.Query, slowQuery.ParameterizedQuery)
+	validateStringField(t, "TxnEvent.FinalName", want.TxnName, slowQuery.txnEvent.FinalName)
+	validateStringField(t, "request.uri", want.TxnURL, uri)
+	validateStringField(t, "DatabaseName", want.DatabaseName, slowQuery.DatabaseName)
+	validateStringField(t, "Host", want.Host, slowQuery.Host)
+	validateStringField(t, "PortPathOrID", want.PortPathOrID, slowQuery.PortPathOrID)
 	expectAttributes(t, map[string]interface{}(slowQuery.QueryParameters), want.Params)
 }
 
