@@ -1,4 +1,10 @@
 # ChangeLog
+
+## Unreleased
+
+### Changed
+* Updated version of `nats-streaming-server` in the nrstan integration to patch vulnerability mentioned in [this Dependabot alert](https://github.com/newrelic/go-agent/security/dependabot/3).
+
 ## 3.15.2
 ### Added
 * Strings logged via the Go Agent's built-in logger will have strings of the form `license_key=`*hex-string* changed to `license_key=[redacted]` before they are output, regardless of severity level, where *hex-string* means a sequence of upper- or lower-case hexadecimal digits and dots ('.'). This incorporates [PR #415](https://github.com/newrelic/go-agent/pull/415).
