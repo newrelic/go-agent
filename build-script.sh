@@ -66,7 +66,7 @@ for dir in $DIRS; do
       pin_go_dependency "google.golang.org/grpc@v1.31.0"
       pin_go_dependency "golang.org/x/net/http2@7fd8e65b642006927f6cec5cb4241df7f98a2210"
 
-      # install protobuff once dependencies are resolved
+      # install protobuf once dependencies are resolved
       go get -u github.com/golang/protobuf/protoc-gen-go
     else
       go get -u github.com/golang/protobuf/protoc-gen-go
