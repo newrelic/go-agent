@@ -235,6 +235,7 @@ type Config struct {
 		// Disabling the New Relic header here does not prevent the agent from
 		// accepting *inbound* New Relic headers.
 		ExcludeNewRelicHeader bool
+		ReservoirLimit        int
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
@@ -413,8 +414,9 @@ func defaultConfig() Config {
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
 
-	c.CrossApplicationTracer.Enabled = true
-	c.DistributedTracer.Enabled = false
+	c.CrossApplicationTracer.Enabled = false
+	c.DistributedTracer.Enabled = true
+	c.DistributedTracer.ReservoirLimit = 2000
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 

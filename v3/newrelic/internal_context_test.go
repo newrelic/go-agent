@@ -14,7 +14,7 @@ func TestWrapHandlerContext(t *testing.T) {
 	// Test that WrapHandleFunc adds the transaction to the request's
 	// context, and that it is accessible through FromContext.
 
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	_, h := WrapHandleFunc(app.Application, "myTxn", func(rw http.ResponseWriter, r *http.Request) {
 		txn := FromContext(r.Context())
 		segment := txn.StartSegment("mySegment")
@@ -41,7 +41,7 @@ func TestStartExternalSegmentNilTransaction(t *testing.T) {
 	// Test that StartExternalSegment pulls the transaction from the
 	// request's context if it is not explicitly provided.
 
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("myTxn")
 
 	req, _ := http.NewRequest("GET", "http://example.com", nil)

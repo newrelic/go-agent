@@ -36,6 +36,13 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
 }
 
+// ConfigDistributedTracerReservoirLimit alters the sample reservoir size to be
+// used for distributed tracing instead of using the built-in default.
+// Alters the DistributedTracer.ReservoirLimit setting.
+func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
+	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
+}
+
 // ConfigLogger populates the Config's Logger.
 func ConfigLogger(l Logger) ConfigOption {
 	return func(cfg *Config) { cfg.Logger = l }

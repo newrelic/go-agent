@@ -38,6 +38,7 @@ const (
 	maxHarvestSlowSQLs  = 10
 	// maxSpanEvents is the maximum number of Span Events that can be captured
 	// per 60-second harvest cycle
+	// XXX DEPRECATED: replaced with DistributedTracer.ReservoirLimit configuration value
 	maxSpanEvents = 1000
 
 	// attributes

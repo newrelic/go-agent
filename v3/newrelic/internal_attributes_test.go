@@ -16,6 +16,7 @@ import (
 func TestAddAttributeHighSecurity(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.HighSecurity = true
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -39,7 +40,7 @@ func TestAddAttributeSecurityPolicyDisablesParameters(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.SecurityPolicies.CustomParameters.SetEnabled(false)
 	}
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 
 	txn.AddAttribute(`key`, 1)
@@ -62,6 +63,7 @@ func TestAddAttributeSecurityPolicyDisablesInclude(t *testing.T) {
 		reply.SecurityPolicies.AttributesInclude.SetEnabled(false)
 	}
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
 		cfg.TransactionEvents.Attributes.Include = append(cfg.TransactionEvents.Attributes.Include,
 			AttributeRequestUserAgent)
 	}
@@ -98,6 +100,7 @@ func TestUserAttributeBasics(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -157,6 +160,7 @@ func TestUserAttributeBasics(t *testing.T) {
 
 func TestUserAttributeConfiguration(t *testing.T) {
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
 		cfg.TransactionEvents.Attributes.Exclude = []string{"only_errors", "only_txn_traces"}
 		cfg.ErrorCollector.Attributes.Exclude = []string{"only_txn_events", "only_txn_traces"}
 		cfg.TransactionTracer.Attributes.Exclude = []string{"only_txn_events", "only_errors"}
@@ -242,6 +246,7 @@ func agentAttributeTestcase(t testing.TB, cfgfn func(cfg *Config), e AttributeEx
 		cfg.HostDisplayName = `my\host\display\name`
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.DistributedTracer.Enabled = false
 		if nil != cfgfn {
 			cfgfn(cfg)
 		}
@@ -318,6 +323,7 @@ func TestAgentAttributes(t *testing.T) {
 func TestAttributesDisabled(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.Attributes.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: map[string]interface{}{},
@@ -332,7 +338,7 @@ func TestAttributesDisabled(t *testing.T) {
 }
 
 func TestDefaultResponseCode(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
@@ -354,7 +360,7 @@ func TestDefaultResponseCode(t *testing.T) {
 }
 
 func TestNoResponseCode(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	txn.SetWebResponse(w)
@@ -374,6 +380,7 @@ func TestNoResponseCode(t *testing.T) {
 func TestTxnEventAttributesDisabled(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionEvents.Attributes.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: map[string]interface{}{},
@@ -390,6 +397,7 @@ func TestTxnEventAttributesDisabled(t *testing.T) {
 func TestErrorAttributesDisabled(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.ErrorCollector.Attributes.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: agent1,
@@ -406,6 +414,7 @@ func TestErrorAttributesDisabled(t *testing.T) {
 func TestTxnTraceAttributesDisabled(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionTracer.Attributes.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: agent1,
@@ -441,6 +450,7 @@ var (
 func TestAgentAttributesExcluded(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.Attributes.Exclude = allAgentAttributeNames
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: map[string]interface{}{},
@@ -457,6 +467,7 @@ func TestAgentAttributesExcluded(t *testing.T) {
 func TestAgentAttributesExcludedFromErrors(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.ErrorCollector.Attributes.Exclude = allAgentAttributeNames
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: agent1,
@@ -473,6 +484,7 @@ func TestAgentAttributesExcludedFromErrors(t *testing.T) {
 func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionEvents.Attributes.Exclude = allAgentAttributeNames
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: map[string]interface{}{},
@@ -489,6 +501,7 @@ func TestAgentAttributesExcludedFromTxnEvents(t *testing.T) {
 func TestAgentAttributesExcludedFromTxnTraces(t *testing.T) {
 	agentAttributeTestcase(t, func(cfg *Config) {
 		cfg.TransactionTracer.Attributes.Exclude = allAgentAttributeNames
+		cfg.DistributedTracer.Enabled = false
 	}, AttributeExpect{
 		TxnEvent: UserAgent{
 			Agent: agent1,
@@ -506,6 +519,7 @@ func TestRequestURIPresent(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -556,6 +570,7 @@ func TestRequestURIExcluded(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.DistributedTracer.Enabled = false
 		cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, AttributeRequestURI)
 	}
 	app := testApp(nil, cfgfn, t)
@@ -606,7 +621,7 @@ func TestRequestURIExcluded(t *testing.T) {
 func TestMessageAttributes(t *testing.T) {
 	// test that adding message attributes as agent attributes filters them,
 	// but as user attributes does not filter them.
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 
 	txn := app.StartTransaction("hello1")
 	txn.Private.(internal.AddAgentAttributer).AddAgentAttribute(AttributeMessageRoutingKey, "myRoutingKey", nil)

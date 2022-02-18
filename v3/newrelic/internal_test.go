@@ -257,6 +257,19 @@ func (ea expectApp) ExpectSpanEvents(t internal.Validator, want []internal.WantE
 	ea.Application.Private.(internal.Expect).ExpectSpanEvents(t, want)
 }
 
+func testAppMultiConfig(opts ...func(*Config)) func(*Config) {
+	return func(c *Config) {
+		for _, fn := range opts {
+			if fn != nil {
+				fn(c)
+				if c.Error != nil {
+					return
+				}
+			}
+		}
+	}
+}
+
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
 	lg := &errorSaverLogger{}
 	app, err := NewApplication(

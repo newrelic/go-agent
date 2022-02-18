@@ -46,10 +46,10 @@ func TestResponseCodeIsError(t *testing.T) {
 }
 
 func TestCrossAppTracingEnabled(t *testing.T) {
-	// CAT should be enabled by default.
+	// CAT should NOT be enabled by default.
 	cfg := config{Config: defaultConfig()}
 	run := newAppRun(cfg, internal.ConnectReplyDefaults())
-	if enabled := run.Config.CrossApplicationTracer.Enabled; !enabled {
+	if enabled := run.Config.CrossApplicationTracer.Enabled; enabled {
 		t.Error(enabled)
 	}
 
