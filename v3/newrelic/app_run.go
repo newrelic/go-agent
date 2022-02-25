@@ -197,10 +197,29 @@ func (run *appRun) MaxCustomEvents() int {
 func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
 }
-func (run *appRun) MaxSpanEvents() int { return run.limit(maxSpanEvents, run.ptrSpanEvents) }
+
+// MaxSpanEvents returns the reservoir limit for collected span events,
+// which will be the default or the user's configured size (if any), but
+// may be capped to the maximum allowed by the collector.
+func (run *appRun) MaxSpanEvents() int {
+	return run.maxLimit(run.Config.DistributedTracer.ReservoirLimit, run.ptrSpanEvents)
+}
+
+// maxLimit is like limit, but rather than always allowing the collector's
+// value to override the default, we will let the collector specify the maximum
+// value, allowing the default to be less than that amount.
+func (run *appRun) maxLimit(dflt int, field func() *uint) int {
+	if field() != nil {
+		maxAllowed := int(*field())
+		if maxAllowed < dflt {
+			return maxAllowed
+		}
+	}
+	return dflt
+}
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
-	if nil != field() {
+	if field() != nil {
 		return int(*field())
 	}
 	return dflt
@@ -216,7 +235,7 @@ func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {
 		harvestErrorEvents:  run.ptrErrorEvents,
 		harvestSpanEvents:   run.ptrSpanEvents,
 	} {
-		if nil != run && fn() != nil {
+		if run != nil && fn() != nil {
 			configurable |= tp
 		} else {
 			fixed |= tp

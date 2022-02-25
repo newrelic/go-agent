@@ -129,7 +129,7 @@ func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
+		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
@@ -179,7 +179,7 @@ func TestZeroReportPeriod(t *testing.T) {
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
+		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
@@ -223,7 +223,7 @@ func TestEventHarvestFieldsOnlyTxnEvents(t *testing.T) {
 		maxTxnEvents:    3,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
+		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll ^ harvestTxnEvents: 60 * time.Second,
 			harvestTxnEvents:                   5 * time.Second,
@@ -245,7 +245,7 @@ func TestEventHarvestFieldsOnlyErrorEvents(t *testing.T) {
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxErrorEvents:  3,
-		maxSpanEvents:   maxSpanEvents,
+		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll ^ harvestErrorEvents: 60 * time.Second,
 			harvestErrorEvents:                   5 * time.Second,
@@ -267,7 +267,7 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 		maxTxnEvents:    internal.MaxTxnEvents,
 		maxCustomEvents: 3,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   maxSpanEvents,
+		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll ^ harvestCustomEvents: 60 * time.Second,
 			harvestCustomEvents:                   5 * time.Second,
