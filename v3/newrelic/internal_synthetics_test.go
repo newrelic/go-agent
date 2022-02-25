@@ -76,7 +76,10 @@ func inboundSyntheticsRequestBuilder(oldCatEnabled bool, betterCatEnabled bool) 
 }
 
 func TestSyntheticsOldCAT(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)
 	clientTxn := app.StartTransaction("helloOldCAT")
 	clientTxn.SetWebRequestHTTP(inboundSyntheticsRequestBuilder(true, false))
@@ -155,6 +158,7 @@ func TestSyntheticsBetterCAT(t *testing.T) {
 func TestSyntheticsStandalone(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.AppName = "syntheticsReceiver"
+		cfg.DistributedTracer.Enabled = false
 		cfg.CrossApplicationTracer.Enabled = false
 	}
 	app := testApp(syntheticsConnectReplyFn, cfgFn, t)

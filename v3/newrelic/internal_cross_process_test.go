@@ -34,25 +34,31 @@ var (
 )
 
 func inboundCrossProcessRequestFactory() *http.Request {
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(crossProcessReplyFn, cfgFn, nil)
 	clientTxn := app.StartTransaction("client")
 	req, err := http.NewRequest("GET", "newrelic.com", nil)
 	StartExternalSegment(clientTxn, req)
-	if "" == req.Header.Get(cat.NewRelicIDName) {
+	if req.Header.Get(cat.NewRelicIDName) == "" {
 		panic("missing cat header NewRelicIDName: " + req.Header.Get(cat.NewRelicIDName))
 	}
-	if "" == req.Header.Get(cat.NewRelicTxnName) {
+	if req.Header.Get(cat.NewRelicTxnName) == "" {
 		panic("missing cat header NewRelicTxnName: " + req.Header.Get(cat.NewRelicTxnName))
 	}
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	return req
 }
 
 func outboundCrossProcessResponse() http.Header {
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(crossProcessReplyFn, cfgFn, nil)
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("txn")
@@ -65,7 +71,10 @@ func outboundCrossProcessResponse() http.Header {
 func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	// Test that the CAT response header is present when the consumer uses
 	// txn.SetWebResponse().WriteHeader.
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+		cfg.CrossApplicationTracer.Enabled = true
+	}
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
@@ -74,7 +83,7 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 	rw.WriteHeader(200)
 	txn.End()
 
-	if "" == w.Header().Get(cat.NewRelicAppDataName) {
+	if w.Header().Get(cat.NewRelicAppDataName) == "" {
 		t.Error(w.Header().Get(cat.NewRelicAppDataName))
 	}
 
@@ -94,7 +103,10 @@ func TestCrossProcessWriteHeaderSuccess(t *testing.T) {
 func TestCrossProcessWriteSuccess(t *testing.T) {
 	// Test that the CAT response header is present when the consumer uses
 	// txn.Write.
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
@@ -120,7 +132,10 @@ func TestCrossProcessWriteSuccess(t *testing.T) {
 
 func TestCrossProcessLocallyDisabled(t *testing.T) {
 	// Test that the CAT can be disabled by local configuration.
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(crossProcessReplyFn, cfgFn, t)
 	w := httptest.NewRecorder()
 	txn := app.StartTransaction("hello")
@@ -148,7 +163,9 @@ func TestCrossProcessLocallyDisabled(t *testing.T) {
 
 func TestCrossProcessDisabledByServerSideConfig(t *testing.T) {
 	// Test that the CAT can be disabled by server-side-config.
-	cfgFn := func(cfg *Config) {}
+	cfgFn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+	}
 	replyfn := func(reply *internal.ConnectReply) {
 		crossProcessReplyFn(reply)
 		json.Unmarshal([]byte(`{"agent_config":{"cross_application_tracer.enabled":false}}`), reply)
@@ -180,7 +197,10 @@ func TestCrossProcessDisabledByServerSideConfig(t *testing.T) {
 
 func TestCrossProcessEnabledByServerSideConfig(t *testing.T) {
 	// Test that the CAT can be enabled by server-side-config.
-	cfgFn := func(cfg *Config) { cfg.CrossApplicationTracer.Enabled = false }
+	cfgFn := func(cfg *Config) {
+		cfg.CrossApplicationTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = false
+	}
 	replyfn := func(reply *internal.ConnectReply) {
 		crossProcessReplyFn(reply)
 		json.Unmarshal([]byte(`{"agent_config":{"cross_application_tracer.enabled":true}}`), reply)

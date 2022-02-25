@@ -257,19 +257,6 @@ func (ea expectApp) ExpectSpanEvents(t internal.Validator, want []internal.WantE
 	ea.Application.Private.(internal.Expect).ExpectSpanEvents(t, want)
 }
 
-func testAppMultiConfig(opts ...func(*Config)) func(*Config) {
-	return func(c *Config) {
-		for _, fn := range opts {
-			if fn != nil {
-				fn(c)
-				if c.Error != nil {
-					return
-				}
-			}
-		}
-	}
-}
-
 func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testing.TB) expectApp {
 	lg := &errorSaverLogger{}
 	app, err := NewApplication(
@@ -443,7 +430,7 @@ func TestTxnResponseWriter(t *testing.T) {
 }
 
 func TestTransactionEventWeb(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
@@ -457,7 +444,7 @@ func TestTransactionEventWeb(t *testing.T) {
 }
 
 func TestTransactionEventBackground(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.End()
 	app.expectNoLoggedErrors(t)
@@ -469,7 +456,10 @@ func TestTransactionEventBackground(t *testing.T) {
 }
 
 func TestTransactionEventLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.TransactionEvents.Enabled = false }
+	cfgFn := func(cfg *Config) {
+		cfg.TransactionEvents.Enabled = false
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
@@ -480,7 +470,7 @@ func TestTransactionEventLocallyDisabled(t *testing.T) {
 
 func TestTransactionEventRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectAnalyticsEvents = false }
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
@@ -489,7 +479,7 @@ func TestTransactionEventRemotelyDisabled(t *testing.T) {
 }
 
 func TestSetName(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("one")
 	txn.SetName("hello")
 	txn.End()
@@ -516,7 +506,7 @@ func enableRecordPanics(cfg *Config) { cfg.ErrorCollector.RecordPanics = true }
 func TestPanicNotEnabled(t *testing.T) {
 	// Test that panics are not recorded as errors if the config setting has
 	// not been enabled.
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 
 	e := myError{}
@@ -531,7 +521,10 @@ func TestPanicNotEnabled(t *testing.T) {
 }
 
 func TestPanicError(t *testing.T) {
-	app := testApp(nil, enableRecordPanics, t)
+	app := testApp(nil, func(cfg *Config) {
+		enableRecordPanics(cfg)
+		cfg.DistributedTracer.Enabled = false
+	}, t)
 	txn := app.StartTransaction("hello")
 
 	e := myError{}
@@ -556,7 +549,10 @@ func TestPanicError(t *testing.T) {
 }
 
 func TestPanicString(t *testing.T) {
-	app := testApp(nil, enableRecordPanics, t)
+	app := testApp(nil, func(cfg *Config) {
+		enableRecordPanics(cfg)
+		cfg.DistributedTracer.Enabled = false
+	}, t)
 	txn := app.StartTransaction("hello")
 
 	e := "my string"
@@ -581,7 +577,10 @@ func TestPanicString(t *testing.T) {
 }
 
 func TestPanicInt(t *testing.T) {
-	app := testApp(nil, enableRecordPanics, t)
+	app := testApp(nil, func(cfg *Config) {
+		enableRecordPanics(cfg)
+		cfg.DistributedTracer.Enabled = false
+	}, t)
 	txn := app.StartTransaction("hello")
 
 	e := 22
@@ -606,7 +605,10 @@ func TestPanicInt(t *testing.T) {
 }
 
 func TestPanicNil(t *testing.T) {
-	app := testApp(nil, enableRecordPanics, t)
+	app := testApp(nil, func(cfg *Config) {
+		enableRecordPanics(cfg)
+		cfg.DistributedTracer.Enabled = false
+	}, t)
 	txn := app.StartTransaction("hello")
 
 	r := deferEndPanic(txn, nil)
@@ -620,7 +622,7 @@ func TestPanicNil(t *testing.T) {
 }
 
 func TestResponseCodeError(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
@@ -655,7 +657,7 @@ func TestResponseCodeError(t *testing.T) {
 }
 
 func TestResponseCode404Filtered(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
@@ -678,6 +680,7 @@ func TestResponseCodeCustomFilter(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.ErrorCollector.IgnoreStatusCodes =
 			append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
 	w := newCompatibleResponseRecorder()
@@ -698,6 +701,7 @@ func TestResponseCodeServerSideFilterObserved(t *testing.T) {
 	// Test that server-side ignore_status_codes are observed.
 	cfgFn := func(cfg *Config) {
 		cfg.ErrorCollector.IgnoreStatusCodes = nil
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.ignore_status_codes":[405]}}`), reply)
@@ -721,6 +725,7 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 	// Test that server-side ignore_status_codes are used in place of local
 	// Config.ErrorCollector.IgnoreStatusCodes.
 	cfgFn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.ignore_status_codes":[402]}}`), reply)
@@ -755,7 +760,7 @@ func TestResponseCodeServerSideOverwriteLocal(t *testing.T) {
 }
 
 func TestResponseCodeAfterEnd(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
@@ -774,7 +779,7 @@ func TestResponseCodeAfterEnd(t *testing.T) {
 }
 
 func TestResponseCodeAfterWrite(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(w)
@@ -799,7 +804,7 @@ func TestResponseCodeAfterWrite(t *testing.T) {
 }
 
 func TestQueueTime(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	req, err := http.NewRequest("GET", helloPath+helloQueryParams, nil)
 	req.Header.Add("X-Queue-Start", "1465793282.12345")
 	if nil != err {
@@ -841,7 +846,7 @@ func TestQueueTime(t *testing.T) {
 }
 
 func TestIgnore(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	txn.Ignore()
@@ -854,7 +859,7 @@ func TestIgnore(t *testing.T) {
 }
 
 func TestIgnoreAlreadyEnded(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	txn.End()
@@ -1022,7 +1027,7 @@ func TestZeroSegmentsSafe(t *testing.T) {
 }
 
 func TestTraceSegmentDefer(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	func() {
@@ -1037,7 +1042,7 @@ func TestTraceSegmentDefer(t *testing.T) {
 }
 
 func TestTraceSegmentNilErr(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.StartSegment("segment").End()
@@ -1051,7 +1056,7 @@ func TestTraceSegmentNilErr(t *testing.T) {
 }
 
 func TestTraceSegmentOutOfOrder(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s1 := txn.StartSegment("s1")
@@ -1071,7 +1076,7 @@ func TestTraceSegmentOutOfOrder(t *testing.T) {
 }
 
 func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
@@ -1084,7 +1089,7 @@ func TestTraceSegmentEndedBeforeStartSegment(t *testing.T) {
 }
 
 func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := txn.StartSegment("segment")
@@ -1097,7 +1102,7 @@ func TestTraceSegmentEndedBeforeEndSegment(t *testing.T) {
 }
 
 func TestTraceSegmentPanic(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	func() {
@@ -1137,7 +1142,7 @@ func TestTraceSegmentPanic(t *testing.T) {
 }
 
 func TestTraceSegmentNilTxn(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := Segment{Name: "hello"}
@@ -1148,7 +1153,7 @@ func TestTraceSegmentNilTxn(t *testing.T) {
 }
 
 func TestTraceDatastore(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := DatastoreSegment{}
@@ -1190,7 +1195,7 @@ func TestTraceDatastore(t *testing.T) {
 }
 
 func TestTraceDatastoreBackground(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := DatastoreSegment{
 		StartTime:  txn.StartSegmentNow(),
@@ -1231,7 +1236,7 @@ func TestTraceDatastoreBackground(t *testing.T) {
 }
 
 func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := DatastoreSegment{
@@ -1270,7 +1275,7 @@ func TestTraceDatastoreMissingProductOperationCollection(t *testing.T) {
 }
 
 func TestTraceDatastoreNilTxn(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	var s DatastoreSegment
@@ -1298,7 +1303,7 @@ func TestTraceDatastoreNilTxn(t *testing.T) {
 }
 
 func TestTraceDatastoreTxnEnded(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(myError{})
@@ -1330,7 +1335,7 @@ func TestTraceDatastoreTxnEnded(t *testing.T) {
 }
 
 func TestTraceExternal(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := ExternalSegment{
@@ -1570,7 +1575,7 @@ func TestExternalSegmentCustomFieldsWithResponse(t *testing.T) {
 }
 
 func TestTraceExternalBadURL(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := ExternalSegment{
@@ -1600,7 +1605,7 @@ func TestTraceExternalBadURL(t *testing.T) {
 }
 
 func TestTraceExternalBackground(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := ExternalSegment{
 		StartTime: txn.StartSegmentNow(),
@@ -1636,7 +1641,7 @@ func TestTraceExternalBackground(t *testing.T) {
 }
 
 func TestTraceExternalMissingURL(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	s := ExternalSegment{
@@ -1673,7 +1678,7 @@ func TestTraceExternalMissingURL(t *testing.T) {
 }
 
 func TestTraceExternalNilTxn(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(myError{})
@@ -1698,7 +1703,7 @@ func TestTraceExternalNilTxn(t *testing.T) {
 }
 
 func TestTraceExternalTxnEnded(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(myError{})
@@ -1728,7 +1733,7 @@ func TestTraceExternalTxnEnded(t *testing.T) {
 }
 
 func TestTraceBelowThreshold(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.End()
@@ -1736,7 +1741,7 @@ func TestTraceBelowThreshold(t *testing.T) {
 }
 
 func TestTraceBelowThresholdBackground(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.End()
 	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
@@ -1747,6 +1752,7 @@ func TestTraceNoSegments(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1764,6 +1770,7 @@ func TestTraceDisabledLocally(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1779,6 +1786,7 @@ func TestTraceDisabledByServerSideConfig(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":false}}`), reply)
@@ -1798,6 +1806,7 @@ func TestTraceEnabledByServerSideConfig(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true}}`), reply)
@@ -1820,6 +1829,7 @@ func TestTraceDisabledRemotelyOverridesServerSideConfig(t *testing.T) {
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Enabled = true
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"transaction_tracer.enabled":true},"collect_traces":false}`), reply)
@@ -1836,6 +1846,7 @@ func TestTraceDisabledRemotely(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.CollectTraces = false
@@ -1852,6 +1863,7 @@ func TestTraceWithSegments(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1882,6 +1894,7 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
 		cfg.TransactionTracer.Segments.Threshold = 1 * time.Hour
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -1908,7 +1921,7 @@ func TestTraceSegmentsBelowThreshold(t *testing.T) {
 }
 
 func TestNoticeErrorTxnEvents(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	app.expectNoLoggedErrors(t)
@@ -1922,7 +1935,7 @@ func TestNoticeErrorTxnEvents(t *testing.T) {
 }
 
 func TestTransactionApplication(t *testing.T) {
-	ap := testApp(nil, nil, t)
+	ap := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := ap.StartTransaction("hello")
 	app := txn.Application()
 	app.RecordCustomMetric("myMetric", 123.0)
@@ -1952,7 +1965,7 @@ func (f flushWriter) Header() http.Header       { return nil }
 func (f flushWriter) Flush()                    {}
 
 func TestAsync(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s1 := txn.StartSegment("mainThread")
 	asyncThread := txn.NewGoroutine()
@@ -2044,7 +2057,7 @@ func TestMessageProducerSegmentBasic(t *testing.T) {
 }
 
 func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:       txn.StartSegmentNow(),
@@ -2065,7 +2078,7 @@ func TestMessageProducerSegmentMissingDestinationType(t *testing.T) {
 }
 
 func TestMessageProducerSegmentTemp(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:            txn.StartSegmentNow(),
@@ -2088,7 +2101,7 @@ func TestMessageProducerSegmentTemp(t *testing.T) {
 }
 
 func TestMessageProducerSegmentNoName(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:       txn.StartSegmentNow(),
@@ -2109,7 +2122,7 @@ func TestMessageProducerSegmentNoName(t *testing.T) {
 }
 
 func TestMessageProducerSegmentTxnEnded(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	s := MessageProducerSegment{
 		StartTime:            txn.StartSegmentNow(),

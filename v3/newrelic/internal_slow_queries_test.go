@@ -15,6 +15,7 @@ import (
 func TestSlowQueryBasic(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -45,6 +46,7 @@ func TestSlowQueryLocallyDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.SlowQuery.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -65,6 +67,7 @@ func TestSlowQueryLocallyDisabled(t *testing.T) {
 func TestSlowQueryRemotelyDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.CollectTraces = false
@@ -88,6 +91,7 @@ func TestSlowQueryRemotelyDisabled(t *testing.T) {
 func TestSlowQueryBelowThreshold(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 1 * time.Hour
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -107,6 +111,7 @@ func TestSlowQueryBelowThreshold(t *testing.T) {
 
 func TestSlowQueryDatabaseProvided(t *testing.T) {
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 	}
 	app := testApp(nil, cfgfn, t)
@@ -138,6 +143,7 @@ func TestSlowQueryDatabaseProvided(t *testing.T) {
 func TestSlowQueryHostProvided(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -179,6 +185,7 @@ func TestSlowQueryHostProvided(t *testing.T) {
 func TestSlowQueryPortProvided(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -220,6 +227,7 @@ func TestSlowQueryPortProvided(t *testing.T) {
 func TestSlowQueryHostPortProvided(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -262,6 +270,7 @@ func TestSlowQueryHostPortProvided(t *testing.T) {
 func TestSlowQueryAggregation(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -317,6 +326,7 @@ func TestSlowQueryAggregation(t *testing.T) {
 func TestSlowQueryMissingQuery(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -345,6 +355,7 @@ func TestSlowQueryMissingQuery(t *testing.T) {
 func TestSlowQueryMissingEverything(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -379,6 +390,7 @@ func TestSlowQueryMissingEverything(t *testing.T) {
 func TestSlowQueryWithQueryParameters(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -415,6 +427,7 @@ func TestSlowQueryHighSecurity(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.HighSecurity = true
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -452,6 +465,7 @@ func TestSlowQuerySecurityPolicyFalse(t *testing.T) {
 	// and the sql format string should be replaced.
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.SecurityPolicies.RecordSQL.SetEnabled(false)
@@ -492,6 +506,7 @@ func TestSlowQuerySecurityPolicyTrue(t *testing.T) {
 	// should be omitted.
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		reply.SecurityPolicies.RecordSQL.SetEnabled(true)
@@ -530,6 +545,7 @@ func TestSlowQuerySecurityPolicyTrue(t *testing.T) {
 func TestSlowQueryInvalidParameters(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -573,6 +589,7 @@ func TestSlowQueryParametersDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.QueryParameters.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -609,6 +626,7 @@ func TestSlowQueryInstanceDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.InstanceReporting.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -650,6 +668,7 @@ func TestSlowQueryInstanceDisabledLocalhost(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.InstanceReporting.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -692,6 +711,7 @@ func TestSlowQueryDatabaseNameDisabled(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
 		cfg.DatastoreTracer.DatabaseNameReporting.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -763,6 +783,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 				tc.Input.Configuration.InstanceEnabled
 			cfg.DatastoreTracer.DatabaseNameReporting.Enabled =
 				tc.Input.Configuration.DatabaseEnabled
+			cfg.DistributedTracer.Enabled = false
 		}
 		app := testApp(nil, cfgfn, t)
 		txn := app.StartTransaction("hello")
@@ -834,6 +855,7 @@ func TestDatastoreAPICrossAgent(t *testing.T) {
 func TestSlowQueryParamsInvalid(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.DatastoreTracer.SlowQuery.Threshold = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")

@@ -193,7 +193,12 @@ func TestRoundTripper(t *testing.T) {
 }
 
 func TestRoundTripperOldCAT(t *testing.T) {
-	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
+	cfgfn := func(c *Config) {
+		c.DistributedTracer.Enabled = false
+		c.CrossApplicationTracer.Enabled = true
+	}
+
+	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	url := "http://example.com/"
 	req, err := http.NewRequest("GET", url, nil)

@@ -137,6 +137,7 @@ func TestServerlessLowApdex(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.ServerlessMode.ApdexThreshold = apdex
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
@@ -160,6 +161,7 @@ func TestServerlessHighApdex(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.ServerlessMode.Enabled = true
 		cfg.ServerlessMode.ApdexThreshold = apdex
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
@@ -179,7 +181,10 @@ func TestServerlessHighApdex(t *testing.T) {
 }
 
 func TestServerlessRecordCustomMetric(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.ServerlessMode.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	app.RecordCustomMetric("myMetric", 123.0)
 	app.expectSingleLoggedError(t, "unable to record custom metric", map[string]interface{}{
@@ -189,7 +194,10 @@ func TestServerlessRecordCustomMetric(t *testing.T) {
 }
 
 func TestServerlessRecordCustomEvent(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ServerlessMode.Enabled = true }
+	cfgFn := func(cfg *Config) {
+		cfg.ServerlessMode.Enabled = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 
 	attributes := map[string]interface{}{"zip": 1}
@@ -225,6 +233,7 @@ func TestServerlessRecordCustomEvent(t *testing.T) {
 func TestServerlessJSON(t *testing.T) {
 	cfgFn := func(cfg *Config) {
 		cfg.ServerlessMode.Enabled = true
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
