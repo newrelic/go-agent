@@ -46,24 +46,49 @@ func transactionName(c echo.Context) string {
 	return c.Request().Method + " " + c.Path()
 }
 
-// Middleware creates Echo middleware that instruments requests.
+// Skipper defines a function to skip middleware. Returning true skips processing
+// the middleware.
+type Skipper func(c echo.Context) bool
+
+// Config defines the config for the middleware.
+type Config struct {
+	// App contains newrelic application.
+	App *newrelic.Application
+
+	// Skipper defines a function to skip middleware.
+	Skipper Skipper
+}
+
+// MiddlewareWithConfig creates Echo middleware with provided config that
+// instruments requests.
 //
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
-//	e.Use(nrecho.Middleware(app))
+//	e.Use(nrecho.MiddlewareWithConfig(nrecho.Config{App: app}))
 //
-func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
+func MiddlewareWithConfig(config Config) func(echo.HandlerFunc) echo.HandlerFunc {
 
-	if nil == app {
+	if nil == config.App {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
 			return next
 		}
 	}
 
+	if config.Skipper == nil {
+		// set default skipper
+		config.Skipper = func(echo.Context) bool {
+			return false
+		}
+	}
+
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
+			if config.Skipper(c) {
+				return next(c)
+			}
+
 			rw := c.Response().Writer
-			txn := app.StartTransaction(transactionName(c))
+			txn := config.App.StartTransaction(transactionName(c))
 			defer txn.End()
 
 			txn.SetWebRequestHTTP(c.Request())
@@ -92,4 +117,16 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 			return
 		}
 	}
+}
+
+// Middleware creates Echo middleware that instruments requests.
+//
+//	e := echo.New()
+//	// Add the nrecho middleware before other middlewares or routes:
+//	e.Use(nrecho.Middleware(app))
+//
+func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
+	return MiddlewareWithConfig(Config{
+		App: app,
+	})
 }

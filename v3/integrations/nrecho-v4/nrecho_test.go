@@ -59,6 +59,66 @@ func TestBasicRoute(t *testing.T) {
 	}})
 }
 
+func TestSkipper(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+
+	e := echo.New()
+	e.Use(MiddlewareWithConfig(Config{
+		App: app.Application,
+		Skipper: func(c echo.Context) bool {
+			return c.Path() == "/health"
+		},
+	}))
+	e.GET("/hello", func(c echo.Context) error {
+		return c.Blob(http.StatusOK, "text/html", []byte("Hello, World!"))
+	})
+	e.GET("/health", func(c echo.Context) error {
+		return c.NoContent(http.StatusNoContent)
+	})
+
+	// call /hello endpoint (should be traced)
+	helloResp := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/hello?remove=me", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.ServeHTTP(helloResp, req)
+	if respBody := helloResp.Body.String(); respBody != "Hello, World!" {
+		t.Error("wrong response body", respBody)
+	}
+
+	// call /health endpoint (should NOT be traced)
+	healthResp := httptest.NewRecorder()
+	req, err = http.NewRequest("GET", "/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.ServeHTTP(healthResp, req)
+	if healthResp.Code != http.StatusNoContent {
+		t.Errorf("wrong response status code; expected: %d; got: %d",
+			http.StatusNoContent, healthResp.Code)
+	}
+
+	app.ExpectTxnMetrics(t, internal.WantTxn{
+		Name:  "GET /hello",
+		IsWeb: true,
+	})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"name":             "WebTransaction/Go/GET /hello",
+			"nr.apdexPerfZone": "S",
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":             "200",
+			"http.statusCode":              "200",
+			"request.method":               "GET",
+			"response.headers.contentType": "text/html",
+			"request.uri":                  "/hello",
+		},
+		UserAttributes: map[string]interface{}{},
+	}})
+}
+
 func TestNilApp(t *testing.T) {
 	e := echo.New()
 	e.Use(Middleware(nil))
