@@ -60,6 +60,7 @@ func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	s = sqlPrefixRegex.ReplaceAllString(s, "")
 	op := strings.ToLower(firstWordRegex.FindString(s))
 	if rg, ok := sqlOperations[op]; ok {
+		segment.ParameterizedQuery = query
 		segment.Operation = op
 		if nil != rg {
 			if m := rg.FindStringSubmatch(s); len(m) > 1 {
