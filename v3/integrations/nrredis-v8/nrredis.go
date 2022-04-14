@@ -9,6 +9,7 @@ package nrredis
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 
@@ -35,6 +36,7 @@ var (
 // broken out by host and port.  The hook returned can be used with
 // redis.Client, redis.ClusterClient, and redis.Ring.
 func NewHook(opts *redis.Options) redis.Hook {
+	fmt.Printf("[naman] installing hook")
 	h := hook{}
 	h.segment.Product = newrelic.DatastoreRedis
 	if opts != nil {
@@ -55,14 +57,18 @@ func NewHook(opts *redis.Options) redis.Hook {
 }
 
 func (h hook) before(ctx context.Context, operation string) (context.Context, error) {
+	fmt.Printf("[naman] came here!")
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return ctx, nil
 	}
+	fmt.Printf("[naman] txn found!")
 	s := h.segment
 	s.StartTime = txn.StartSegmentNow()
+	fmt.Printf("[naman] segment started!")
 	s.Operation = operation
 	ctx = context.WithValue(ctx, segmentContextKey, &s)
+	fmt.Printf("[naman] returning")
 	return ctx, nil
 }
 
