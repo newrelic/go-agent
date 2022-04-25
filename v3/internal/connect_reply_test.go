@@ -177,7 +177,9 @@ func TestDefaultEventHarvestConfigJSON(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(js) != `{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":10000,"error_event_data":100}}` {
-		t.Error(string(js))
+
+	expect := `{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":10000,"log_event_data":10000,"error_event_data":100}}`
+	if string(js) != expect {
+		t.Errorf("DefaultEventHarvestConfig does not match expected valued:\nExpected:\t%s\nActual:\t\t%s", expect, string(js))
 	}
 }

@@ -129,6 +129,16 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
+			"ApplicationLogging": {
+				"Enabled": true,
+				"Forwarding": {
+					"Enabled": false,
+					"MaxSamplesStored": 10000
+				},
+				"Metrics": {
+					"Enabled": true
+				}
+			},
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
 			"BrowserMonitoring":{
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
@@ -250,6 +260,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
+				"log_event_data": 10000,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}
@@ -302,6 +313,16 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
+			"ApplicationLogging": {
+				"Enabled": true,
+				"Forwarding": {
+					"Enabled": false,
+					"MaxSamplesStored": 10000
+				},
+				"Metrics": {
+					"Enabled": true
+				}
+			},
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 			"BrowserMonitoring":{
 				"Attributes":{
@@ -415,6 +436,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
+				"log_event_data": 10000,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}

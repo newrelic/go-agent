@@ -44,6 +44,29 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
+// ConfigAppLogForwadringEnabled enables or disables the collection
+// of logs from a users application by the agent
+// Defaults: enabled=false, maxSamplesStored=10,000
+func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled == true {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.Forwarding.MaxSamplesStored = 0
+		}
+	}
+}
+
+// ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
+// log events the agent is allowed to collect and store in a given harvest cycle.
+func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxSamplesStored
+	}
+}
+
 // ConfigLogger populates the Config's Logger.
 func ConfigLogger(l Logger) ConfigOption {
 	return func(cfg *Config) { cfg.Logger = l }

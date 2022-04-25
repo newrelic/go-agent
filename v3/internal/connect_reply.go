@@ -118,6 +118,7 @@ type EventHarvestConfig struct {
 	Limits         struct {
 		TxnEvents    *uint `json:"analytic_event_data,omitempty"`
 		CustomEvents *uint `json:"custom_event_data,omitempty"`
+		LogEvents    *uint `json:"log_event_data,omitempty"`
 		ErrorEvents  *uint `json:"error_event_data,omitempty"`
 		SpanEvents   *uint `json:"span_event_data,omitempty"`
 	} `json:"harvest_limits"`
@@ -141,6 +142,7 @@ func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
 	cfg.ReportPeriodMs = DefaultConfigurableEventHarvestMs
 	cfg.Limits.TxnEvents = uintPtr(uint(maxTxnEvents))
 	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
+	cfg.Limits.LogEvents = uintPtr(uint(MaxLogEvents))
 	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg
 }

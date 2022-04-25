@@ -181,7 +181,7 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 func TestEmptyPayloads(t *testing.T) {
 	h := newHarvest(time.Now(), dfltHarvestCfgr)
 	payloads := h.Payloads(true)
-	if len(payloads) != 8 {
+	if len(payloads) != 9 {
 		t.Error(len(payloads))
 	}
 	for _, p := range payloads {
@@ -258,6 +258,66 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 		{Name: customEventsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: customEventsSent, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
+}
+
+func TestHarvestLogEventsReady(t *testing.T) {
+	now := time.Now()
+	fixedHarvestTypes := harvestMetricsTraces & harvestTxnEvents & harvestSpanEvents & harvestLogEvents
+	h := newHarvest(now, harvestConfig{
+		ReportPeriods: map[harvestTypes]time.Duration{
+			fixedHarvestTypes: fixedHarvestPeriod,
+			harvestLogEvents:  time.Second * 5,
+		},
+		MaxLogEvents: 3,
+	})
+	timestamp := timeToIntMillis(now)
+	severity := "INFO"
+	message := "User 'xyz' logged in"
+	spanID := "123456789ADF"
+	traceID := "ADF09876565"
+
+	logEvent := logEvent{
+		0.9,
+		severity,
+		message,
+		spanID,
+		traceID,
+		123456,
+	}
+
+	h.LogEvents.Add(&logEvent)
+	ready := h.Ready(now.Add(10 * time.Second))
+	payloads := ready.Payloads(true)
+	if len(payloads) == 0 {
+		t.Fatal("no payloads generated")
+	} else if len(payloads) > 1 {
+		t.Fatalf("too many payloads: %d", len(payloads))
+	}
+	p := payloads[0]
+	if m := p.EndpointMethod(); m != "log_event_data" {
+		t.Error(m)
+	}
+	data, err := p.Data("agentRunID", now)
+	if nil != err || nil == data {
+		t.Error(err, data)
+	}
+	if h.LogEvents.capacity() != 3 || h.LogEvents.NumSaved() != 0 {
+		t.Fatal("log events not correctly reset")
+	}
+
+	expectLogEvents(t, ready.LogEvents, []internal.WantLog{
+		internal.WantLog{
+			severity,
+			message,
+			spanID,
+			traceID,
+			timestamp,
+		},
+	})
+	/* expectMetrics(t, h.Metrics, []internal.WantMetric{
+		{Name: logEventsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logEventsSent, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	}) */
 }
 
 func TestHarvestTxnEventsReady(t *testing.T) {
@@ -473,6 +533,22 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Duration:  1 * time.Second,
 		TotalTime: 2 * time.Second,
 	}, 0)
+	//	timestamp := timeToIntMillis(now)
+	logLevel := "INFO"
+	message := "User 'xyz' logged in"
+	spanID := "123456789ADF"
+	traceID := "ADF09876565"
+
+	logEvent := logEvent{
+		0.9,
+		logLevel,
+		message,
+		spanID,
+		traceID,
+		123456,
+	}
+
+	h.LogEvents.Add(&logEvent)
 	customEventParams := map[string]interface{}{"zip": 1}
 	ce, err := createCustomEvent("myEvent", customEventParams, time.Now())
 	if nil != err {
@@ -513,6 +589,9 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if 0 != h.CustomEvents.analyticsEvents.failedHarvests {
 		t.Error(h.CustomEvents.analyticsEvents.failedHarvests)
 	}
+	if 0 != h.LogEvents.failedHarvests {
+		t.Error(h.LogEvents.failedHarvests)
+	}
 	if 0 != h.TxnEvents.analyticsEvents.failedHarvests {
 		t.Error(h.TxnEvents.analyticsEvents.failedHarvests)
 	}
@@ -532,6 +611,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
+	/*	expectLogEvents(t, h.LogEvents, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"timestamp": timestamp,
+			"log.level": logLevel,
+			"message":   message,
+			"span.id":   spanID,
+			"trace.id":  traceID,
+		},
+	}})*/
 	expectErrorEvents(t, h.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -582,6 +670,9 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if 1 != nextHarvest.CustomEvents.analyticsEvents.failedHarvests {
 		t.Error(nextHarvest.CustomEvents.analyticsEvents.failedHarvests)
 	}
+	if 1 != nextHarvest.LogEvents.failedHarvests {
+		t.Error(nextHarvest.LogEvents.failedHarvests)
+	}
 	if 1 != nextHarvest.TxnEvents.analyticsEvents.failedHarvests {
 		t.Error(nextHarvest.TxnEvents.analyticsEvents.failedHarvests)
 	}
@@ -601,6 +692,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
+	/*	expectLogEvents(t, nextHarvest.LogEvents, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"timestamp": timestamp,
+			"log.level": logLevel,
+			"message":   message,
+			"span.id":   spanID,
+			"trace.id":  traceID,
+		},
+	}}) */
 	expectErrorEvents(t, nextHarvest.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -730,10 +830,10 @@ func TestHarvestSplitTxnEvents(t *testing.T) {
 	payloadsWithSplit := h.Payloads(true)
 	payloadsWithoutSplit := h.Payloads(false)
 
-	if len(payloadsWithSplit) != 9 {
+	if len(payloadsWithSplit) != 10 {
 		t.Error(len(payloadsWithSplit))
 	}
-	if len(payloadsWithoutSplit) != 8 {
+	if len(payloadsWithoutSplit) != 9 {
 		t.Error(len(payloadsWithoutSplit))
 	}
 }
@@ -826,6 +926,9 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if cp := h.CustomEvents.capacity(); cp != internal.MaxCustomEvents {
 		t.Error("wrong custom event capacity", cp)
 	}
+	if cp := h.LogEvents.capacity(); cp != internal.MaxLogEvents {
+		t.Error("wrong log event capacity", cp)
+	}
 	if cp := h.ErrorEvents.capacity(); cp != internal.MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
 	}
@@ -845,6 +948,7 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 		MaxCustomEvents: 2,
 		MaxErrorEvents:  3,
 		MaxSpanEvents:   4,
+		MaxLogEvents:    5,
 	})
 
 	if cp := h.TxnEvents.capacity(); cp != 1 {
@@ -859,6 +963,9 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	if cp := h.SpanEvents.capacity(); cp != 4 {
 		t.Error("wrong span event capacity", cp)
 	}
+	if cp := h.LogEvents.capacity(); cp != 5 {
+		t.Error("wrong log event capacity", cp)
+	}
 }
 
 func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
@@ -871,6 +978,7 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 		},
 		MaxTxnEvents:    0,
 		MaxCustomEvents: 0,
+		MaxLogEvents:    0,
 		MaxErrorEvents:  0,
 		MaxSpanEvents:   0,
 	})
@@ -879,6 +987,9 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	}
 	if cp := h.CustomEvents.capacity(); cp != 0 {
 		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.LogEvents.capacity(); cp != 0 {
+		t.Error("wrong log event capacity", cp)
 	}
 	if cp := h.ErrorEvents.capacity(); cp != 0 {
 		t.Error("wrong error event capacity", cp)
@@ -891,6 +1002,7 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	// safe.
 	h.TxnEvents.AddTxnEvent(&txnEvent{}, 1.0)
 	h.CustomEvents.Add(&customEvent{})
+	h.LogEvents.Add(&logEvent{})
 	h.ErrorEvents.Add(&errorEvent{}, 1.0)
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 

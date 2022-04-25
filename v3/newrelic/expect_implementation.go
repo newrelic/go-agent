@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -159,19 +160,31 @@ func expectAttributes(v internal.Validator, exists map[string]interface{}, expec
 	if len(exists) != len(expect) {
 		v.Error("attributes length difference", len(exists), len(expect))
 	}
-	for key, val := range expect {
-		found, ok := exists[key]
+	for key, expectVal := range expect {
+		actualVal, ok := exists[key]
 		if !ok {
 			v.Error("expected attribute not found: ", key)
 			continue
 		}
-		if val == internal.MatchAnything || val == "*" {
+		if expectVal == internal.MatchAnything || expectVal == "*" {
 			continue
 		}
-		v1 := fmt.Sprint(found)
-		v2 := fmt.Sprint(val)
-		if v1 != v2 {
-			v.Error("value difference", fmt.Sprintf("key=%s", key), v1, v2)
+
+		actualString := fmt.Sprint(actualVal)
+		expectString := fmt.Sprint(expectVal)
+		switch expectVal.(type) {
+		case float64:
+			// json.Number type objects need to be converted into float64 strings
+			// when compared against a float64 or the comparison will fail due to
+			// the number formatting being different
+			if number, ok := actualVal.(json.Number); ok {
+				numString, _ := number.Float64()
+				actualString = fmt.Sprint(numString)
+			}
+		}
+
+		if expectString != actualString {
+			v.Error(fmt.Sprintf("Values of key \"%s\" do not match; Expect: %s Actual: %s", key, expectString, actualString))
 		}
 	}
 	for key, val := range exists {
@@ -188,18 +201,36 @@ func expectCustomEvents(v internal.Validator, cs *customEvents, expect []interna
 	expectEvents(v, cs.analyticsEvents, expect, nil)
 }
 
+func expectLogEvents(v internal.Validator, logEvents *logEvents, expect []internal.WantLog) {
+	//TODO(egarcia): implement this
+	return
+}
+
 func expectEvent(v internal.Validator, e json.Marshaler, expect internal.WantEvent) {
 	js, err := e.MarshalJSON()
 	if nil != err {
 		v.Error("unable to marshal event", err)
 		return
 	}
+
+	// Because we are unmarshaling into a generic struct without types
+	// JSON numbers will be set to the float64 type by default, causing
+	// errors when comparing to the expected integer timestamp value.
+	decoder := json.NewDecoder(bytes.NewReader(js))
+	decoder.UseNumber()
 	var event []map[string]interface{}
-	err = json.Unmarshal(js, &event)
+	err = decoder.Decode(&event)
 	if nil != err {
 		v.Error("unable to parse event json", err)
 		return
 	}
+
+	// avoid nil pointer errors or index out of bounds errors
+	if event == nil || len(event) == 0 {
+		v.Error("Event can not be nil or empty")
+		return
+	}
+
 	intrinsics := event[0]
 	userAttributes := event[1]
 	agentAttributes := event[2]

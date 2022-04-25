@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -13,7 +14,9 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Short Lived App"),
+		newrelic.ConfigAppName("Logs in context testing"),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
@@ -38,6 +41,8 @@ func main() {
 			"color": task,
 		})
 	}
+
+	app.RecordFormattedLogEvent(context.Background(), "App Executed Succesfully", "INFO", time.Now().UnixMilli())
 
 	// Shut down the application to flush data to New Relic.
 	app.Shutdown(10 * time.Second)

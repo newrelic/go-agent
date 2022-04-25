@@ -26,6 +26,15 @@ type WantError struct {
 	AgentAttributes map[string]interface{}
 }
 
+// WantLog is a traced log event expectation
+type WantLog struct {
+	Severity  string
+	Message   string
+	SpanID    string
+	TraceID   string
+	Timestamp int64
+}
+
 func uniquePointer() *struct{} {
 	s := struct{}{}
 	return &s
@@ -112,6 +121,7 @@ type WantTxn struct {
 // captured.
 type Expect interface {
 	ExpectCustomEvents(t Validator, want []WantEvent)
+	ExpectLogEvents(t Validator, want []WantLog)
 	ExpectErrors(t Validator, want []WantError)
 	ExpectErrorEvents(t Validator, want []WantEvent)
 

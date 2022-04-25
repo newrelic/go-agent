@@ -145,6 +145,29 @@ type Config struct {
 		}
 	}
 
+	// ApplicationLogging contains settings which control the capture and sending
+	// of log event data
+	ApplicationLogging struct {
+		// If this is disabled, all sub-features are disabled;
+		// if it is enabled, the individual sub-feature configurations take effect.
+		// MAY accomplish this by not installing instrumentation, or by early-return/no-op as necessary for an agent.
+		Enabled bool
+		// Forwarding controls log forwarding to New Relic One
+		Forwarding struct {
+			// Toggles whether the agent gathers log records for sending to New Relic.
+			Enabled bool
+			// Number of log records to send per minute to New Relic.
+			// Controls the overall memory consumption when using log forwarding.
+			// SHOULD be sent as part of the harvest_limits on Connect.
+			MaxSamplesStored int
+		}
+		Metrics struct {
+			// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
+			// Logging Metrics used in the Logs chart on the APM Summary page.
+			Enabled bool
+		}
+	}
+
 	// BrowserMonitoring contains settings which control the behavior of
 	// Transaction.BrowserTimingHeader.
 	BrowserMonitoring struct {
@@ -411,6 +434,11 @@ func defaultConfig() Config {
 	c.TransactionTracer.Segments.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
 	c.TransactionTracer.Segments.Attributes.Enabled = true
+
+	c.ApplicationLogging.Enabled = true
+	c.ApplicationLogging.Forwarding.Enabled = false
+	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
+	c.ApplicationLogging.Metrics.Enabled = true
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default

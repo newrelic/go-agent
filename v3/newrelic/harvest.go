@@ -22,13 +22,14 @@ const (
 	harvestMetricsTraces harvestTypes = 1 << iota
 	harvestSpanEvents
 	harvestCustomEvents
+	harvestLogEvents
 	harvestTxnEvents
 	harvestErrorEvents
 )
 
 const (
 	// harvestTypesEvents includes all Event types
-	harvestTypesEvents = harvestSpanEvents | harvestCustomEvents | harvestTxnEvents | harvestErrorEvents
+	harvestTypesEvents = harvestSpanEvents | harvestCustomEvents | harvestTxnEvents | harvestErrorEvents | harvestLogEvents
 	// harvestTypesAll includes all harvest types
 	harvestTypesAll = harvestMetricsTraces | harvestTypesEvents
 )
@@ -66,6 +67,7 @@ type harvest struct {
 	SlowSQLs     *slowQueries
 	SpanEvents   *spanEvents
 	CustomEvents *customEvents
+	LogEvents    *logEvents
 	TxnEvents    *txnEvents
 	ErrorEvents  *errorEvents
 }
@@ -91,6 +93,10 @@ func (h *harvest) Ready(now time.Time) *harvest {
 		h.Metrics.addCount(customEventsSent, h.CustomEvents.NumSaved(), forced)
 		ready.CustomEvents = h.CustomEvents
 		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
+	}
+	if 0 != types&harvestLogEvents {
+		ready.LogEvents = h.LogEvents
+		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.capacity())
 	}
 	if 0 != types&harvestTxnEvents {
 		h.Metrics.addCount(txnEventsSeen, h.TxnEvents.NumSeen(), forced)
@@ -133,6 +139,9 @@ func (h *harvest) Payloads(splitLargeTxnEvents bool) (ps []payloadCreator) {
 	if nil != h.CustomEvents {
 		ps = append(ps, h.CustomEvents)
 	}
+	if nil != h.LogEvents {
+		ps = append(ps, h.LogEvents)
+	}
 	if nil != h.ErrorEvents {
 		ps = append(ps, h.ErrorEvents)
 	}
@@ -162,11 +171,13 @@ func (h *harvest) Payloads(splitLargeTxnEvents bool) (ps []payloadCreator) {
 }
 
 type harvestConfig struct {
-	ReportPeriods   map[harvestTypes]time.Duration
-	MaxSpanEvents   int
-	MaxCustomEvents int
-	MaxErrorEvents  int
-	MaxTxnEvents    int
+	ReportPeriods    map[harvestTypes]time.Duration
+	CommonAttributes commonAttributes
+	MaxSpanEvents    int
+	MaxCustomEvents  int
+	MaxLogEvents     int
+	MaxErrorEvents   int
+	MaxTxnEvents     int
 }
 
 // newHarvest returns a new Harvest.
@@ -179,6 +190,7 @@ func newHarvest(now time.Time, configurer harvestConfig) *harvest {
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
 		SpanEvents:   newSpanEvents(configurer.MaxSpanEvents),
 		CustomEvents: newCustomEvents(configurer.MaxCustomEvents),
+		LogEvents:    newLogEvents(configurer.CommonAttributes, configurer.MaxLogEvents),
 		TxnEvents:    newTxnEvents(configurer.MaxTxnEvents),
 		ErrorEvents:  newErrorEvents(configurer.MaxErrorEvents),
 	}
@@ -326,6 +338,7 @@ var (
 		MaxTxnEvents:    internal.MaxTxnEvents,
 		MaxSpanEvents:   defaultMaxSpanEvents,
 		MaxCustomEvents: internal.MaxCustomEvents,
+		MaxLogEvents:    internal.MaxLogEvents,
 		MaxErrorEvents:  internal.MaxErrorEvents,
 	}
 )

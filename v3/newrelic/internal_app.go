@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -291,6 +292,13 @@ func (app *app) process() {
 					"server-SpanEvents.Enabled":        run.Config.SpanEvents.Enabled,
 				})
 			}
+
+			run.harvestConfig.CommonAttributes = commonAttributes{
+				hostname:   app.config.hostname,
+				entityName: app.config.AppName,
+				entityGUID: run.Reply.EntityGUID,
+			}
+
 			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
 
@@ -543,6 +551,48 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 }
 
 var (
+	errApplicationLoggingDisabled = errors.New("application logging disabled")
+	errLogForwardingDisabled      = errors.New("log forwarding disabled")
+
+	// making a function for this because this huge if statement is an eyesore
+	isAppLogFowardingDisabled = func(app *app) bool {
+		return !(app.config.ApplicationLogging.Forwarding.Enabled &&
+			app.config.ApplicationLogging.Forwarding.MaxSamplesStored > 0)
+	}
+)
+
+func (app *app) RecordLogEvent(context context.Context, message, severity string, timestamp int64) error {
+	if app.config.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+
+	if !app.config.ApplicationLogging.Enabled {
+		return errApplicationLoggingDisabled
+	}
+	if isAppLogFowardingDisabled(app) {
+		return errLogForwardingDisabled
+	}
+
+	txn := FromContext(context)
+	traceMetadata := txn.GetTraceMetadata()
+	logEvent := logEvent{
+		severity: severity,
+		message:  message,
+		traceID:  traceMetadata.TraceID,
+		spanID:   traceMetadata.SpanID,
+	}
+	err := logEvent.Validate()
+	if err != nil {
+		return err
+	}
+
+	run, _ := app.getState()
+
+	app.Consume(run.Reply.RunID, &logEvent)
+	return nil
+}
+
+var (
 	errMetricInf        = errors.New("invalid metric value: inf")
 	errMetricNaN        = errors.New("invalid metric value: NaN")
 	errMetricNameEmpty  = errors.New("missing metric name")
@@ -603,6 +653,10 @@ func (app *app) Consume(id internal.AgentRunID, data harvestable) {
 
 func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
 	expectCustomEvents(extendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
+}
+
+func (app *app) ExpectLogEvents(t internal.Validator, want []internal.WantLog) {
+	expectLogEvents(extendValidator(t, "log events"), app.testHarvest.LogEvents, want)
 }
 
 func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {
