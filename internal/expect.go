@@ -24,9 +24,13 @@ type Validator interface {
 	Error(...interface{})
 }
 
-func validateStringField(v Validator, fieldName, v1, v2 string) {
-	if v1 != v2 {
-		v.Error(fieldName, v1, v2)
+func validateStringField(v Validator, fieldName, expect, actual string) {
+	// If an expected value is not set, we assume the user does not want to validate it
+	if expect == "" {
+		return
+	}
+	if expect != actual {
+		v.Error(fieldName, "incorrect: Expected:", expect, " Got:", actual)
 	}
 }
 
