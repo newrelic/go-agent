@@ -95,6 +95,9 @@ func (h *harvest) Ready(now time.Time) *harvest {
 		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
 	}
 	if 0 != types&harvestLogEvents {
+		h.Metrics.addCount(logsSeen, h.LogEvents.NumSeen(), forced)
+		h.Metrics.addCount(logsDropped, h.LogEvents.NumSeen()-h.LogEvents.NumSaved(), forced)
+		h.LogEvents.RecordSeverityMetrics(h.Metrics, forced)
 		ready.LogEvents = h.LogEvents
 		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.capacity())
 	}
@@ -232,6 +235,7 @@ func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestCon
 	h.Metrics.addValue(supportCustomEventLimit, "", float64(hc.MaxCustomEvents), forced)
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(hc.MaxErrorEvents), forced)
 	h.Metrics.addValue(supportSpanEventLimit, "", float64(hc.MaxSpanEvents), forced)
+	h.Metrics.addValue(supportLogEventLimit, "", float64(hc.MaxLogEvents), forced)
 
 	createTraceObserverMetrics(to, h.Metrics)
 	createTrackUsageMetrics(h.Metrics)

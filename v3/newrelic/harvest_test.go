@@ -84,7 +84,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 				"analytic_event_data": 22,
 				"custom_event_data": 33,
 				"error_event_data": 44,
-				"span_event_data": 55
+				"span_event_data": 55,
+				"log_event_data":66
 			}
 		}
 	}}`)
@@ -101,6 +102,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		MaxCustomEvents: 33,
 		MaxErrorEvents:  44,
 		MaxSpanEvents:   55,
+		MaxLogEvents:    66,
 	}
 	h := newHarvest(now, cfgr)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
@@ -113,6 +115,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 33, 33, 33, 33, 33 * 33}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 44, 44, 44, 44, 44 * 44}},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 55, 55, 55, 55, 55 * 55}},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 66, 66, 66, 66, 66 * 66}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -137,6 +140,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 100, 100, 100, 100, 100 * 100}},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 2000, 2000, 2000, 2000, 2000 * 2000}},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10000, 10000, 10000, 10000, 10000 * 10000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -170,6 +174,7 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -305,19 +310,20 @@ func TestHarvestLogEventsReady(t *testing.T) {
 		t.Fatal("log events not correctly reset")
 	}
 
-	expectLogEvents(t, ready.LogEvents, []internal.WantLog{
-		internal.WantLog{
-			severity,
-			message,
-			spanID,
-			traceID,
-			timestamp,
-		},
+	sampleLogEvent := internal.WantLog{
+		Severity:  severity,
+		Message:   message,
+		SpanID:    spanID,
+		TraceID:   traceID,
+		Timestamp: timestamp,
+	}
+
+	expectLogEvents(t, ready.LogEvents, []internal.WantLog{sampleLogEvent})
+	expectMetrics(t, h.Metrics, []internal.WantMetric{
+		{Name: logsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logsSeen + "/" + severity, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logsDropped, Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 	})
-	/* expectMetrics(t, h.Metrics, []internal.WantMetric{
-		{Name: logEventsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: logEventsSent, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-	}) */
 }
 
 func TestHarvestTxnEventsReady(t *testing.T) {
@@ -464,6 +470,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 		MaxCustomEvents: 1,
 		MaxErrorEvents:  1,
 		MaxSpanEvents:   1,
+		MaxLogEvents:    1,
 	})
 	h.Metrics.addCount("zip", 1, forced)
 
@@ -538,6 +545,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	message := "User 'xyz' logged in"
 	spanID := "123456789ADF"
 	traceID := "ADF09876565"
+	logTimestamp := int64(123456)
 
 	logEvent := logEvent{
 		0.9,
@@ -545,7 +553,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		message,
 		spanID,
 		traceID,
-		123456,
+		logTimestamp,
 	}
 
 	h.LogEvents.Add(&logEvent)
@@ -611,15 +619,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
-	/*	expectLogEvents(t, h.LogEvents, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"timestamp": timestamp,
-			"log.level": logLevel,
-			"message":   message,
-			"span.id":   spanID,
-			"trace.id":  traceID,
+	expectLogEvents(t, h.LogEvents, []internal.WantLog{
+		{
+			Timestamp: logTimestamp,
+			Severity:  logLevel,
+			Message:   message,
+			SpanID:    spanID,
+			TraceID:   traceID,
 		},
-	}})*/
+	})
 	expectErrorEvents(t, h.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -692,15 +700,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
-	/*	expectLogEvents(t, nextHarvest.LogEvents, []internal.WantEvent{{
-		Intrinsics: map[string]interface{}{
-			"timestamp": timestamp,
-			"log.level": logLevel,
-			"message":   message,
-			"span.id":   spanID,
-			"trace.id":  traceID,
+	expectLogEvents(t, nextHarvest.LogEvents, []internal.WantLog{
+		{
+			Timestamp: logTimestamp,
+			Severity:  logLevel,
+			Message:   message,
+			SpanID:    spanID,
+			TraceID:   traceID,
 		},
-	}}) */
+	})
 	expectErrorEvents(t, nextHarvest.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",

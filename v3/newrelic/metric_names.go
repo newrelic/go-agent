@@ -61,6 +61,15 @@ const (
 	supportCustomEventLimit = "Supportability/EventHarvest/CustomEventData/HarvestLimit"
 	supportErrorEventLimit  = "Supportability/EventHarvest/ErrorEventData/HarvestLimit"
 	supportSpanEventLimit   = "Supportability/EventHarvest/SpanEventData/HarvestLimit"
+	supportLogEventLimit    = "Supportability/EventHarvest/LogEventData/HarvestLimit"
+
+	// Logging Metrics https://source.datanerd.us/agents/agent-specs/pull/570/files
+	logsSeen    = "Logging/lines"
+	logsDropped = "Logging/Forwarding/Dropped"
+
+	supportLoggingMetrics     = "Supportability/Logging/Metrics/Golang/"
+	supportLogForwarding      = "Supportability/Logging/Forwarding/Golang/"
+	supportLocalLogDecorating = "Supportability/Logging/Decorating/Golang/"
 )
 
 // distributedTracingSupport is used to track distributed tracing activity for

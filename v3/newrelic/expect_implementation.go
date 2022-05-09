@@ -95,9 +95,9 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 	expectMetrics(t, mt, metrics)
 }
 
-func expectMetricField(t internal.Validator, id metricID, v1, v2 float64, fieldName string) {
-	if v1 != v2 {
-		t.Error("metric fields do not match", id, v1, v2, fieldName)
+func expectMetricField(t internal.Validator, id metricID, expect, want float64, fieldName string) {
+	if expect != want {
+		t.Error("incorrect value for metric", fieldName, id, "expect:", expect, "want: ", want)
 	}
 }
 
@@ -114,7 +114,7 @@ func expectMetrics(t internal.Validator, mt *metricTable, expect []internal.Want
 func expectMetricsInternal(t internal.Validator, mt *metricTable, expect []internal.WantMetric, exactMatch bool) {
 	if exactMatch {
 		if len(mt.metrics) != len(expect) {
-			t.Error("metric counts do not match expectations", len(mt.metrics), len(expect))
+			t.Error("incorrect number of metrics stored, expected:", len(expect), "got:", len(mt.metrics))
 		}
 	}
 	expectedIds := make(map[metricID]struct{})
@@ -123,7 +123,7 @@ func expectMetricsInternal(t internal.Validator, mt *metricTable, expect []inter
 		expectedIds[id] = struct{}{}
 		m := mt.metrics[id]
 		if nil == m {
-			t.Error("unable to find metric", id)
+			t.Error("expected metric not found", id)
 			continue
 		}
 

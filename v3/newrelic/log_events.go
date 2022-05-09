@@ -28,17 +28,23 @@ type logEvents struct {
 }
 
 // NumSeen returns the number of events seen
-// if a severity is passed, it returns number of events seen by severity
-func (events *logEvents) NumSeen(severity ...string) float64 {
-	if len(severity) == 0 {
-		return float64(events.numSeen)
-	} else {
-		return float64(events.severityCount[severity[0]])
+func (events *logEvents) NumSeen() float64 { return float64(events.numSeen) }
+
+// NumSaved returns the number of events that will be harvested for this cycle
+func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
+
+func (events *logEvents) RecordSeverityMetrics(metrics *metricTable, forced metricForce) {
+	if metrics == nil {
+		return
+	}
+
+	for k, v := range events.severityCount {
+		metricName := logsSeen + "/" + k
+		metrics.addCount(metricName, float64(v), forced)
 	}
 }
 
-func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
-
+//func (events *logEvents)
 func (h logEventHeap) Len() int           { return len(h) }
 func (h logEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority) }
 func (h logEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
