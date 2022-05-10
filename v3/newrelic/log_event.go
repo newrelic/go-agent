@@ -5,74 +5,31 @@ package newrelic
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 )
 
-var (
-	// regex allows a single word, or number
-	severityRegexRaw = `^[a-zA-Z]+$|^[0-9]+$`
-	severityRegex    = regexp.MustCompile(severityRegexRaw)
-	severityUnknown  = "UNKNOWN"
+const (
+	LogSeverityFieldName  = "level"
+	LogMessageFieldName   = "message"
+	LogTimestampFieldName = "timestamp"
+	LogSpanIDFieldName    = "span.id"
+	LogTraceIDFieldName   = "trace.id"
 
-	errNilLogEvent      = errors.New("log event can not be nil")
-	errEmptySeverity    = errors.New("severity can not be an empty string")
-	errSeverityTooLarge = fmt.Errorf("severity exceeds length limit of %d", attributeKeyLengthLimit)
-	errSeverityRegex    = fmt.Errorf("severity must match %s", severityRegexRaw)
-	errMessageSizeZero  = errors.New("message must be a non empty string")
+	maxLogBytes = 32768
 )
 
 type logEvent struct {
-	priority  priority
-	severity  string
-	message   string
-	spanID    string
-	traceID   string
-	timestamp int64
-}
-
-// ValidateAndRender validates inputs, and creates a rendered log event with
-// a jsonWriter buffer populated by rendered json
-func (event *logEvent) Validate() error {
-	if event == nil {
-		return errNilLogEvent
-	}
-
-	// Default severity to "UNKNOWN" if no severity is passed.
-	if len(event.severity) == 0 {
-		event.severity = severityUnknown
-	}
-
-	if ok, err := validateSeverity(event.severity); !ok {
-		return fmt.Errorf("invalid severity: %s", err)
-	}
-
-	if len(event.message) == 0 {
-		return errMessageSizeZero
-	}
-
-	return nil
+	priority priority
+	traceID  string
+	severity string
+	log      string
 }
 
 // writeJSON prepares JSON in the format expected by the collector.
 func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
-	w := jsonFieldsWriter{buf: buf}
-	buf.WriteByte('{')
-	w.stringField("severity", e.severity)
-	w.stringField("message", e.message)
-
-	if len(e.spanID) > 0 {
-		w.stringField("span.id", e.spanID)
-	}
-	if len(e.traceID) > 0 {
-		w.stringField("trace.id", e.traceID)
-	}
-
-	w.needsComma = false
-	buf.WriteByte(',')
-	w.intField("timestamp", e.timestamp)
-	buf.WriteByte('}')
+	buf.WriteString(e.log)
 }
 
 // MarshalJSON is used for testing.
@@ -84,22 +41,52 @@ func (e *logEvent) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// must be a single word or number. If unknown, should be "UNKNOWN"
-func validateSeverity(severity string) (bool, error) {
-	size := len(severity)
-	if size == 0 {
-		return false, errEmptySeverity
+type logJson struct {
+	Timestamp float64 `json:"timestamp"`
+	Severity  string  `json:"level"`
+	Message   string  `json:"message"`
+	SpanID    string  `json:"span.id"`
+	TraceID   string  `json:"trace.id"`
+}
+
+var (
+	// regex allows a single word, or number
+	severityUnknown = "UNKNOWN"
+	errEmptyLog     = errors.New("log event can not be empty")
+	errLogTooLarge  = fmt.Errorf("log can not exceed %d bytes", maxLogBytes)
+)
+
+func CreateLogEvent(log []byte) (logEvent, error) {
+	if len(log) > maxLogBytes {
+		return logEvent{}, errLogTooLarge
 	}
-	if size > attributeKeyLengthLimit {
-		return false, errSeverityTooLarge
+	if len(log) == 0 {
+		return logEvent{}, errEmptyLog
 	}
 
-	if !severityRegex.MatchString(severity) {
-		return false, errSeverityRegex
+	l := &logJson{}
+	err := json.Unmarshal(log, l)
+	if err != nil {
+		return logEvent{}, err
 	}
-	return true, nil
+
+	logEvent := logEvent{
+		log:      string(log),
+		severity: l.Severity,
+		traceID:  l.TraceID,
+	}
+
+	return logEvent, nil
 }
 
 func (e *logEvent) MergeIntoHarvest(h *harvest) {
+	// Inherit priority from traces or spans if possible
+	if e.traceID != "" {
+		priority, known := h.knownPriorities.get(e.traceID)
+		if known {
+			e.priority = priority
+		}
+	}
+
 	h.LogEvents.Add(e)
 }

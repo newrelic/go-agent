@@ -120,9 +120,13 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		ReportPeriods:   run.ReportPeriods(),
 		MaxTxnEvents:    run.MaxTxnEvents(),
 		MaxCustomEvents: run.MaxCustomEvents(),
-		MaxLogEvents:    run.MaxLogEvents(),
 		MaxErrorEvents:  run.MaxErrorEvents(),
 		MaxSpanEvents:   run.MaxSpanEvents(),
+		LoggingConfig: configLogHarvest{
+			config.ApplicationLogging.Forwarding.Enabled,
+			config.ApplicationLogging.Metrics.Enabled,
+			run.MaxLogEvents(),
+		},
 	}
 
 	return run

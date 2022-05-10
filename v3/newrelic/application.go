@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"context"
 	"os"
 	"time"
 )
@@ -48,25 +47,6 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 		app.app.Error("unable to record custom event", map[string]interface{}{
 			"event-type": eventType,
 			"reason":     err.Error(),
-		})
-	}
-}
-
-// RecordLogEvent adds a log event from a newrelic context, a log message, a log severity, and a timestamp
-// formatted as UnixMilliseconds.
-//
-// The severity should be either a single word, number, or an empty string.
-func (app *Application) RecordLogEvent(context context.Context, message, severity string, timestamp int64) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
-		return
-	}
-	err := app.app.RecordLogEvent(context, message, severity, timestamp)
-	if err != nil {
-		app.app.Error("unable to record log event", map[string]interface{}{
-			"reason": err.Error(),
 		})
 	}
 }

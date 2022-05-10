@@ -11,6 +11,12 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
 )
 
+type configLogHarvest struct {
+	collectEvents  bool
+	collectMetrics bool
+	maxLogEvents   int
+}
+
 type commonAttributes struct {
 	entityGUID string
 	entityName string
@@ -24,7 +30,8 @@ type logEvents struct {
 	failedHarvests int
 	severityCount  map[string]int
 	commonAttributes
-	logs logEventHeap
+	config configLogHarvest
+	logs   logEventHeap
 }
 
 // NumSeen returns the number of events seen
@@ -33,17 +40,27 @@ func (events *logEvents) NumSeen() float64 { return float64(events.numSeen) }
 // NumSaved returns the number of events that will be harvested for this cycle
 func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
 
-func (events *logEvents) RecordSeverityMetrics(metrics *metricTable, forced metricForce) {
+func (events *logEvents) RecordLoggingMetrics(metrics *metricTable, forced metricForce) {
+	// Allows us to disable the reporting of metrics for logs
+	if !events.config.collectMetrics {
+		return
+	}
+	// avoid nil pointers during tests
 	if metrics == nil {
 		return
 	}
 
+	metrics.addCount(logsSeen, events.NumSeen(), forced)
+	metrics.addCount(logsDropped, events.NumSeen()-events.NumSaved(), forced)
+
 	for k, v := range events.severityCount {
-		metricName := logsSeen + "/" + k
-		metrics.addCount(metricName, float64(v), forced)
+		severitySeen := logsSeen + "/" + k
+		metrics.addCount(severitySeen, float64(v), forced)
 	}
 }
 
+// TODO: when go 1.18 becomes the minimum supported version, re-write to make a generic heap implementation
+// for all event heaps, to de-duplicate this code
 //func (events *logEvents)
 func (h logEventHeap) Len() int           { return len(h) }
 func (h logEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority) }
@@ -53,23 +70,26 @@ func (h logEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h logEventHeap) Push(x interface{}) {}
 func (h logEventHeap) Pop() interface{}   { return nil }
 
-func newLogEvents(ca commonAttributes, max int) *logEvents {
+func newLogEvents(ca commonAttributes, loggingConfig configLogHarvest) *logEvents {
 	return &logEvents{
 		commonAttributes: ca,
+		config:           loggingConfig,
 		severityCount:    map[string]int{},
-		logs:             make(logEventHeap, 0, max),
+		logs:             make(logEventHeap, 0, loggingConfig.maxLogEvents),
 	}
 }
 
 func (events *logEvents) capacity() int {
-	return cap(events.logs)
+	return events.config.maxLogEvents
 }
 
 func (events *logEvents) Add(e *logEvent) {
 	events.numSeen++
 	events.severityCount[e.severity] += 1
 
-	if events.capacity() == 0 {
+	// Do not collect log events when the harvest capacity is intentionally set to 0
+	// or the collection of events is explicitly disabled
+	if events.capacity() == 0 || !events.config.collectEvents {
 		// Configurable event harvest limits may be zero.
 		return
 	}
@@ -191,7 +211,8 @@ func (events *logEvents) split() (*logEvents, *logEvents) {
 
 // splits the contents and counts of the severity map
 func splitSeverityCount(severityCount map[string]int) (map[string]int, map[string]int) {
-	var count1, count2 map[string]int
+	count1 := map[string]int{}
+	count2 := map[string]int{}
 	for k, v := range severityCount {
 		count1[k] = v / 2
 		count2[k] = v - count1[k]

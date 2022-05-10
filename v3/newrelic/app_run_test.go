@@ -400,7 +400,7 @@ func assertHarvestConfig(t testing.TB, hc harvestConfig, expect expectHarvestCon
 	if max := hc.MaxErrorEvents; max != expect.maxErrorEvents {
 		t.Error(errorExpectNotEqualActual("MaxErrorEvents", max, expect.maxErrorEvents))
 	}
-	if max := hc.MaxLogEvents; max != expect.maxLogEvents {
+	if max := hc.LoggingConfig.maxLogEvents; max != expect.maxLogEvents {
 		t.Error(errorExpectNotEqualActual("MaxLogEvents", max, expect.maxErrorEvents))
 	}
 	if periods := hc.ReportPeriods; !reflect.DeepEqual(periods, expect.periods) {

@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -547,48 +546,6 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 
 	app.Consume(run.Reply.RunID, event)
 
-	return nil
-}
-
-var (
-	errApplicationLoggingDisabled = errors.New("application logging disabled")
-	errLogForwardingDisabled      = errors.New("log forwarding disabled")
-
-	// making a function for this because this huge if statement is an eyesore
-	isAppLogFowardingDisabled = func(app *app) bool {
-		return !(app.config.ApplicationLogging.Forwarding.Enabled &&
-			app.config.ApplicationLogging.Forwarding.MaxSamplesStored > 0)
-	}
-)
-
-func (app *app) RecordLogEvent(context context.Context, message, severity string, timestamp int64) error {
-	if app.config.Config.HighSecurity {
-		return errHighSecurityEnabled
-	}
-
-	if !app.config.ApplicationLogging.Enabled {
-		return errApplicationLoggingDisabled
-	}
-	if isAppLogFowardingDisabled(app) {
-		return errLogForwardingDisabled
-	}
-
-	txn := FromContext(context)
-	traceMetadata := txn.GetTraceMetadata()
-	logEvent := logEvent{
-		severity: severity,
-		message:  message,
-		traceID:  traceMetadata.TraceID,
-		spanID:   traceMetadata.SpanID,
-	}
-	err := logEvent.Validate()
-	if err != nil {
-		return err
-	}
-
-	run, _ := app.getState()
-
-	app.Consume(run.Reply.RunID, &logEvent)
 	return nil
 }
 

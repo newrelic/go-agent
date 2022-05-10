@@ -59,6 +59,27 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled == true {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Metrics.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Metrics.Enabled = false
+		}
+	}
+}
+
+func ConfigAppLogEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled == true {
+			cfg.ApplicationLogging.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Enabled = false
+		}
+	}
+}
+
 // ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
 // log events the agent is allowed to collect and store in a given harvest cycle.
 func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {

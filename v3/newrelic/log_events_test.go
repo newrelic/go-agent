@@ -4,7 +4,12 @@
 package newrelic
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
+	"time"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 var (
@@ -16,39 +21,83 @@ var (
 		entityName: testEntityName,
 		hostname:   testHostname,
 	}
+
 	commonJSON = `[{"common":{"attributes":{"entity.guid":"testGUID","entity.name":"testEntityName","hostname":"testHostname"}},"logs":[`
 
 	infoLevel    = "INFO"
 	unknownLevel = "UNKNOWN"
 )
 
-func sampleLogEvent(priority priority, severity, message string) *logEvent {
-	return &logEvent{
-		priority,
-		severity,
-		message,
-		"AF02332",
-		"0024483",
-		123456,
+func loggingConfigEnabled(limit int) configLogHarvest {
+	return configLogHarvest{
+		collectEvents:  true,
+		collectMetrics: true,
+		maxLogEvents:   limit,
 	}
 }
 
-// NOTE: this is going to make the tests run really slow due to heap allocation
-func sampleLogEventNoParent(priority priority, severity, message string) *logEvent {
+func writeLogWithAttributes(severity, message, spanID, traceID string, timestamp int64, attributes map[string]interface{}) []byte {
+	buf := &bytes.Buffer{}
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('{')
+	w.stringField(LogSeverityFieldName, severity)
+	w.stringField(LogMessageFieldName, message)
+
+	if len(spanID) > 0 {
+		w.stringField(LogSpanIDFieldName, spanID)
+	}
+	if len(traceID) > 0 {
+		w.stringField(LogTraceIDFieldName, traceID)
+	}
+
+	w.needsComma = false
+	buf.WriteByte(',')
+	w.intField(LogTimestampFieldName, timestamp)
+	if len(attributes) > 0 {
+		for key, val := range attributes {
+			writeAttributeValueJSON(&w, key, val)
+		}
+	}
+
+	buf.WriteByte('}')
+
+	return w.buf.Bytes()
+}
+
+func writeLog(severity, message, spanID, traceID string, timestamp int64) []byte {
+	buf := &bytes.Buffer{}
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('{')
+	w.stringField(LogSeverityFieldName, severity)
+	w.stringField(LogMessageFieldName, message)
+
+	if len(spanID) > 0 {
+		w.stringField(LogSpanIDFieldName, spanID)
+	}
+	if len(traceID) > 0 {
+		w.stringField(LogTraceIDFieldName, traceID)
+	}
+
+	w.needsComma = false
+	buf.WriteByte(',')
+	w.intField(LogTimestampFieldName, timestamp)
+	buf.WriteByte('}')
+
+	return w.buf.Bytes()
+}
+
+func sampleLogEvent(priority priority, severity, message string) *logEvent {
 	return &logEvent{
-		priority,
-		severity,
-		message,
-		"",
-		"",
-		123456,
+		priority: priority,
+		severity: severity,
+		log:      string(writeLog(severity, message, "", "", 123456)),
 	}
 }
 
 func TestBasicLogEvents(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 5)
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(5))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message1"))
-	events.Add(sampleLogEventNoParent(0.1, infoLevel, "message2"))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message2"))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -56,9 +105,8 @@ func TestBasicLogEvents(t *testing.T) {
 	}
 
 	expected := commonJSON +
-		`{"severity":"INFO","message":"message1","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"message2","timestamp":123456}]}` +
-		`]`
+		`{"level":"INFO","message":"message1","timestamp":123456},` +
+		`{"level":"INFO","message":"message2","timestamp":123456}]}]`
 
 	if string(json) != expected {
 		t.Error(string(json), expected)
@@ -72,7 +120,7 @@ func TestBasicLogEvents(t *testing.T) {
 }
 
 func TestEmptyLogEvents(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 10)
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
 		t.Fatal(err)
@@ -90,7 +138,7 @@ func TestEmptyLogEvents(t *testing.T) {
 
 // The events with the highest priority should make it: a, c, e
 func TestSamplingLogEvents(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 3)
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
 	events.Add(sampleLogEvent(0.999999, infoLevel, "a"))
 	events.Add(sampleLogEvent(0.1, infoLevel, "b"))
@@ -104,9 +152,9 @@ func TestSamplingLogEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := commonJSON +
-		`{"severity":"INFO","message":"e","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"a","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"c","span.id":"AF02332","trace.id":"0024483","timestamp":123456}]}` +
+		`{"level":"INFO","message":"e","timestamp":123456},` +
+		`{"level":"INFO","message":"a","timestamp":123456},` +
+		`{"level":"INFO","message":"c","timestamp":123456}]}` +
 		`]`
 	if string(json) != expect {
 		t.Error(string(json), expect)
@@ -120,8 +168,8 @@ func TestSamplingLogEvents(t *testing.T) {
 }
 
 func TestMergeEmptyLogEvents(t *testing.T) {
-	e1 := newLogEvents(testCommonAttributes, 10)
-	e2 := newLogEvents(testCommonAttributes, 10)
+	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
+	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	e1.Merge(e2)
 	json, err := e1.CollectorJSON(agentRunID)
 	if nil != err {
@@ -139,8 +187,8 @@ func TestMergeEmptyLogEvents(t *testing.T) {
 }
 
 func TestMergeFullLogEvents(t *testing.T) {
-	e1 := newLogEvents(testCommonAttributes, 2)
-	e2 := newLogEvents(testCommonAttributes, 3)
+	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
+	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
 	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
 	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
@@ -158,8 +206,8 @@ func TestMergeFullLogEvents(t *testing.T) {
 
 	// expect the highest priority events: c, g
 	expect := commonJSON +
-		`{"severity":"INFO","message":"g","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"c","span.id":"AF02332","trace.id":"0024483","timestamp":123456}]}]`
+		`{"level":"INFO","message":"g","timestamp":123456},` +
+		`{"level":"INFO","message":"c","timestamp":123456}]}]`
 
 	if string(json) != expect {
 		t.Error(string(json))
@@ -173,8 +221,8 @@ func TestMergeFullLogEvents(t *testing.T) {
 }
 
 func TestLogEventMergeFailedSuccess(t *testing.T) {
-	e1 := newLogEvents(testCommonAttributes, 2)
-	e2 := newLogEvents(testCommonAttributes, 3)
+	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
+	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
 	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
 	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
@@ -193,8 +241,8 @@ func TestLogEventMergeFailedSuccess(t *testing.T) {
 	}
 	// expect the highest priority events: c, g
 	expect := commonJSON +
-		`{"severity":"INFO","message":"g","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"c","span.id":"AF02332","trace.id":"0024483","timestamp":123456}]}]`
+		`{"level":"INFO","message":"g","timestamp":123456},` +
+		`{"level":"INFO","message":"c","timestamp":123456}]}]`
 
 	if string(json) != expect {
 		t.Error(string(json))
@@ -211,8 +259,8 @@ func TestLogEventMergeFailedSuccess(t *testing.T) {
 }
 
 func TestLogEventMergeFailedLimitReached(t *testing.T) {
-	e1 := newLogEvents(testCommonAttributes, 2)
-	e2 := newLogEvents(testCommonAttributes, 3)
+	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
+	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
 	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
 	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
@@ -232,8 +280,8 @@ func TestLogEventMergeFailedLimitReached(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := commonJSON +
-		`{"severity":"INFO","message":"b","span.id":"AF02332","trace.id":"0024483","timestamp":123456},` +
-		`{"severity":"INFO","message":"c","span.id":"AF02332","trace.id":"0024483","timestamp":123456}]}]`
+		`{"level":"INFO","message":"b","timestamp":123456},` +
+		`{"level":"INFO","message":"c","timestamp":123456}]}]`
 
 	if string(json) != expect {
 		t.Error(string(json))
@@ -249,12 +297,155 @@ func TestLogEventMergeFailedLimitReached(t *testing.T) {
 	}
 }
 
-/*
-func logEventBenchmarkHelper(b *testing.B, w jsonWriter) {
-	events := newLogEvents(testCommonAttributes, internal.MaxTxnEvents)
-	event := logEvent{0, w}
+func TestLogEventsSplitFull(t *testing.T) {
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
+	for i := 0; i < 15; i++ {
+		priority := priority(float32(i) / 10.0)
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+	}
+	// Test that the capacity cannot exceed the max.
+	if 10 != events.capacity() {
+		t.Error(events.capacity())
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	expect1 := commonJSON +
+		`{"level":"INFO","message":"0.5","timestamp":123456},` +
+		`{"level":"INFO","message":"0.7","timestamp":123456},` +
+		`{"level":"INFO","message":"0.6","timestamp":123456},` +
+		`{"level":"INFO","message":"0.8","timestamp":123456},` +
+		`{"level":"INFO","message":"0.9","timestamp":123456}]}]`
+	if string(j1) != expect1 {
+		t.Error(string(j1))
+	}
+
+	expect2 := commonJSON +
+		`{"level":"INFO","message":"1.1","timestamp":123456},` +
+		`{"level":"INFO","message":"1.4","timestamp":123456},` +
+		`{"level":"INFO","message":"1","timestamp":123456},` +
+		`{"level":"INFO","message":"1.3","timestamp":123456},` +
+		`{"level":"INFO","message":"1.2","timestamp":123456}]}]`
+	if string(j2) != expect2 {
+		t.Error(string(j2))
+	}
+}
+
+// TODO: When miniumu supported go version is 1.18, make an event heap in GO generics and remove all this duplicate code
+// interfaces are too slow :(
+func TestLogEventsSplitNotFullOdd(t *testing.T) {
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
+	for i := 0; i < 7; i++ {
+		priority := priority(float32(i) / 10.0)
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	expect1 := commonJSON +
+		`{"level":"INFO","message":"0","timestamp":123456},` +
+		`{"level":"INFO","message":"0.1","timestamp":123456},` +
+		`{"level":"INFO","message":"0.2","timestamp":123456}]}]`
+	if string(j1) != expect1 {
+		t.Error(string(j1))
+	}
+
+	expect2 := commonJSON +
+		`{"level":"INFO","message":"0.3","timestamp":123456},` +
+		`{"level":"INFO","message":"0.4","timestamp":123456},` +
+		`{"level":"INFO","message":"0.5","timestamp":123456},` +
+		`{"level":"INFO","message":"0.6","timestamp":123456}]}]`
+	if string(j2) != expect2 {
+		t.Error(string(j2))
+	}
+}
+
+func TestLogEventsSplitNotFullEven(t *testing.T) {
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
+	for i := 0; i < 8; i++ {
+		priority := priority(float32(i) / 10.0)
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+	}
+	e1, e2 := events.split()
+	j1, err1 := e1.CollectorJSON(agentRunID)
+	j2, err2 := e2.CollectorJSON(agentRunID)
+	if err1 != nil || err2 != nil {
+		t.Fatal(err1, err2)
+	}
+	expect1 := commonJSON +
+		`{"level":"INFO","message":"0","timestamp":123456},` +
+		`{"level":"INFO","message":"0.1","timestamp":123456},` +
+		`{"level":"INFO","message":"0.2","timestamp":123456},` +
+		`{"level":"INFO","message":"0.3","timestamp":123456}]}]`
+	if string(j1) != expect1 {
+		t.Error(string(j1))
+	}
+
+	expect2 := commonJSON +
+		`{"level":"INFO","message":"0.4","timestamp":123456},` +
+		`{"level":"INFO","message":"0.5","timestamp":123456},` +
+		`{"level":"INFO","message":"0.6","timestamp":123456},` +
+		`{"level":"INFO","message":"0.7","timestamp":123456}]}]`
+	if string(j2) != expect2 {
+		t.Error(string(j2))
+	}
+}
+
+func TestLogEventsZeroCapacity(t *testing.T) {
+	// Analytics events methods should be safe when configurable harvest
+	// settings have an event limit of zero.
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(0))
+	if 0 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
+		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
+	}
+	events.Add(sampleLogEvent(0.5, "INFO", "TEST"))
+	if 1 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
+		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
+	}
+	js, err := events.CollectorJSON("agentRunID")
+	if err != nil || js != nil {
+		t.Error(err, string(js))
+	}
+}
+
+func TestLogEventCollectionDisabled(t *testing.T) {
+	// Analytics events methods should be safe when configurable harvest
+	// settings have an event limit of zero.
+	config := loggingConfigEnabled(5)
+	config.collectEvents = false
+	events := newLogEvents(testCommonAttributes, config)
+	if 0 != events.NumSeen() || 0 != len(events.severityCount) || 0 != events.NumSaved() || 5 != events.capacity() {
+		t.Error(events.NumSeen(), len(events.severityCount), events.NumSaved(), events.capacity())
+	}
+	events.Add(sampleLogEvent(0.5, "INFO", "TEST"))
+	if 1 != events.NumSeen() || 1 != len(events.severityCount) || 0 != events.NumSaved() || 5 != events.capacity() {
+		t.Error(events.NumSeen(), len(events.severityCount), events.NumSaved(), events.capacity())
+	}
+	js, err := events.CollectorJSON("agentRunID")
+	if err != nil || js != nil {
+		t.Error(err, string(js))
+	}
+}
+
+func BenchmarkCollectLogEvent(b *testing.B) {
+	json := writeLog("debug", "test message", "", "", time.Now().UnixMilli())
+	logEvent, err := CreateLogEvent(json)
+	if err != nil {
+		b.Error(err)
+	}
+	logEventBenchmarkHelper(b, &logEvent)
+}
+
+func logEventBenchmarkHelper(b *testing.B, event *logEvent) {
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
 	for n := 0; n < internal.MaxTxnEvents; n++ {
-		events.addEvent(event)
+		events.Add(event)
 	}
 
 	b.ReportAllocs()
@@ -267,125 +458,3 @@ func logEventBenchmarkHelper(b *testing.B, w jsonWriter) {
 		}
 	}
 }
-
-
-func BenchmarkTxnEventsCollectorJSON(b *testing.B) {
-	event := &txnEvent{
-		FinalName: "WebTransaction/Go/zip/zap",
-		Start:     time.Now(),
-		Duration:  2 * time.Second,
-		Queuing:   1 * time.Second,
-		Zone:      apdexSatisfying,
-		Attrs:     nil,
-	}
-	analyticsEventBenchmarkHelper(b, event)
-}
-
-func BenchmarkCustomEventsCollectorJSON(b *testing.B) {
-	now := time.Now()
-	ce, err := createCustomEvent("myEventType", map[string]interface{}{
-		"string": "myString",
-		"bool":   true,
-		"int64":  int64(123),
-	}, now)
-	if nil != err {
-		b.Fatal(err)
-	}
-	analyticsEventBenchmarkHelper(b, ce)
-}
-
-func BenchmarkErrorEventsCollectorJSON(b *testing.B) {
-	e := txnErrorFromResponseCode(time.Now(), 503)
-	e.Stack = getStackTrace()
-
-	txnName := "WebTransaction/Go/zip/zap"
-	event := &errorEvent{
-		errorData: e,
-		txnEvent: txnEvent{
-			FinalName: txnName,
-			Duration:  3 * time.Second,
-			Attrs:     nil,
-		},
-	}
-	analyticsEventBenchmarkHelper(b, event)
-}
-
-
-func TestSplitFull(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 10)
-	for i := 0; i < 15; i++ {
-		events.addEvent(sampleLogEvent(priority(float32(i) / 10.0)))
-	}
-	// Test that the capacity cannot exceed the max.
-	if 10 != events.capacity() {
-		t.Error(events.capacity())
-	}
-	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
-	if err1 != nil || err2 != nil {
-		t.Fatal(err1, err2)
-	}
-	if string(j1) != `["12345",{"reservoir_size":5,"events_seen":5},[0.5,0.7,0.6,0.8,0.9]]` {
-		t.Error(string(j1))
-	}
-	if string(j2) != `["12345",{"reservoir_size":5,"events_seen":10},[1.1,1.4,1,1.3,1.2]]` {
-		t.Error(string(j2))
-	}
-}
-
-func TestSplitNotFullOdd(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 10)
-	for i := 0; i < 7; i++ {
-		events.addEvent(sampleLogEvent(priority(float32(i) / 10.0)))
-	}
-	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
-	if err1 != nil || err2 != nil {
-		t.Fatal(err1, err2)
-	}
-	if string(j1) != `["12345",{"reservoir_size":3,"events_seen":3},[0,0.1,0.2]]` {
-		t.Error(string(j1))
-	}
-	if string(j2) != `["12345",{"reservoir_size":4,"events_seen":4},[0.3,0.4,0.5,0.6]]` {
-		t.Error(string(j2))
-	}
-}
-
-func TestSplitNotFullEven(t *testing.T) {
-	events := newLogEvents(testCommonAttributes, 10)
-	for i := 0; i < 8; i++ {
-		events.addEvent(sampleLogEvent(priority(float32(i) / 10.0)))
-	}
-	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
-	if err1 != nil || err2 != nil {
-		t.Fatal(err1, err2)
-	}
-	if string(j1) != `["12345",{"reservoir_size":4,"events_seen":4},[0,0.1,0.2,0.3]]` {
-		t.Error(string(j1))
-	}
-	if string(j2) != `["12345",{"reservoir_size":4,"events_seen":4},[0.4,0.5,0.6,0.7]]` {
-		t.Error(string(j2))
-	}
-}
-
-func TestLogEventsZeroCapacity(t *testing.T) {
-	// Analytics events methods should be safe when configurable harvest
-	// settings have an event limit of zero.
-	events := newLogEvents(testCommonAttributes, 0)
-	if 0 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
-		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
-	}
-	events.addEvent(sampleLogEvent(0.5))
-	if 1 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
-		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
-	}
-	js, err := events.CollectorJSON("agentRunID")
-	if err != nil || js != nil {
-		t.Error(err, string(js))
-	}
-}
-*/

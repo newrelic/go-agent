@@ -14,9 +14,10 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Logs in context testing"),
+		newrelic.ConfigAppName("Example Short Lived Process"),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigDistributedTracerEnabled(true),
+		newrelic.ConfigAppLogMetricsEnabled(true),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
@@ -30,6 +31,8 @@ func main() {
 		fmt.Println(err)
 	}
 
+	app.RecordLogEvent(context.Background(), "App Started", "INFO", time.Now().UnixMilli())
+
 	// Do the tasks at hand.  Perhaps record them using transactions and/or
 	// custom events.
 	tasks := []string{"white", "black", "red", "blue", "green", "yellow"}
@@ -42,7 +45,10 @@ func main() {
 		})
 	}
 
-	app.RecordFormattedLogEvent(context.Background(), "App Executed Succesfully", "INFO", time.Now().UnixMilli())
+	app.RecordLogEvent(context.Background(), "A warning log occured!", "WARN", time.Now().UnixMilli())
+	app.RecordLogEvent(context.Background(), "App Executed Succesfully", "INFO", time.Now().UnixMilli())
+
+	time.Sleep(60 * time.Second)
 
 	// Shut down the application to flush data to New Relic.
 	app.Shutdown(10 * time.Second)

@@ -57,8 +57,24 @@ func (timer *harvestTimer) ready(now time.Time) (ready harvestTypes) {
 	return
 }
 
+type knownPriorities map[string]priority
+
+func (kp knownPriorities) get(uuid string) (priority, bool) {
+	priority, ok := kp[uuid]
+	return priority, ok
+}
+
+func (kp knownPriorities) add(uuid string, p priority) {
+	kp[uuid] = p
+}
+
+func (kp knownPriorities) drop(uuid string) {
+	delete(kp, uuid)
+}
+
 // harvest contains collected data.
 type harvest struct {
+	knownPriorities
 	timer *harvestTimer
 
 	Metrics      *metricTable
@@ -95,11 +111,9 @@ func (h *harvest) Ready(now time.Time) *harvest {
 		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
 	}
 	if 0 != types&harvestLogEvents {
-		h.Metrics.addCount(logsSeen, h.LogEvents.NumSeen(), forced)
-		h.Metrics.addCount(logsDropped, h.LogEvents.NumSeen()-h.LogEvents.NumSaved(), forced)
-		h.LogEvents.RecordSeverityMetrics(h.Metrics, forced)
+		h.LogEvents.RecordLoggingMetrics(h.Metrics, forced)
 		ready.LogEvents = h.LogEvents
-		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.capacity())
+		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.config)
 	}
 	if 0 != types&harvestTxnEvents {
 		h.Metrics.addCount(txnEventsSeen, h.TxnEvents.NumSeen(), forced)
@@ -176,9 +190,9 @@ func (h *harvest) Payloads(splitLargeTxnEvents bool) (ps []payloadCreator) {
 type harvestConfig struct {
 	ReportPeriods    map[harvestTypes]time.Duration
 	CommonAttributes commonAttributes
+	LoggingConfig    configLogHarvest
 	MaxSpanEvents    int
 	MaxCustomEvents  int
-	MaxLogEvents     int
 	MaxErrorEvents   int
 	MaxTxnEvents     int
 }
@@ -193,7 +207,7 @@ func newHarvest(now time.Time, configurer harvestConfig) *harvest {
 		SlowSQLs:     newSlowQueries(maxHarvestSlowSQLs),
 		SpanEvents:   newSpanEvents(configurer.MaxSpanEvents),
 		CustomEvents: newCustomEvents(configurer.MaxCustomEvents),
-		LogEvents:    newLogEvents(configurer.CommonAttributes, configurer.MaxLogEvents),
+		LogEvents:    newLogEvents(configurer.CommonAttributes, configurer.LoggingConfig),
 		TxnEvents:    newTxnEvents(configurer.MaxTxnEvents),
 		ErrorEvents:  newErrorEvents(configurer.MaxErrorEvents),
 	}
@@ -235,7 +249,7 @@ func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestCon
 	h.Metrics.addValue(supportCustomEventLimit, "", float64(hc.MaxCustomEvents), forced)
 	h.Metrics.addValue(supportErrorEventLimit, "", float64(hc.MaxErrorEvents), forced)
 	h.Metrics.addValue(supportSpanEventLimit, "", float64(hc.MaxSpanEvents), forced)
-	h.Metrics.addValue(supportLogEventLimit, "", float64(hc.MaxLogEvents), forced)
+	h.Metrics.addValue(supportLogEventLimit, "", float64(hc.LoggingConfig.maxLogEvents), forced)
 
 	createTraceObserverMetrics(to, h.Metrics)
 	createTrackUsageMetrics(h.Metrics)
@@ -335,14 +349,18 @@ func createTxnMetrics(args *txnData, metrics *metricTable) {
 }
 
 var (
-	// dfltHarvestCfgr is use in internal test cases, and for situations
-	// where we don't have a ConnectReply, such as for serverless harvests
+
+	// This should only be used by harvests in cases where a connect response is unavailable
 	dfltHarvestCfgr = harvestConfig{
 		ReportPeriods:   map[harvestTypes]time.Duration{harvestTypesAll: fixedHarvestPeriod},
 		MaxTxnEvents:    internal.MaxTxnEvents,
 		MaxSpanEvents:   defaultMaxSpanEvents,
 		MaxCustomEvents: internal.MaxCustomEvents,
-		MaxLogEvents:    internal.MaxLogEvents,
 		MaxErrorEvents:  internal.MaxErrorEvents,
+		LoggingConfig: configLogHarvest{
+			false,
+			true,
+			internal.MaxLogEvents,
+		},
 	}
 )
