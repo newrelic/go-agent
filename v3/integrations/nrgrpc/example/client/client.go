@@ -18,7 +18,7 @@ import (
 
 func doUnaryUnary(ctx context.Context, client sampleapp.SampleApplicationClient) {
 	msg, err := client.DoUnaryUnary(ctx, &sampleapp.Message{Text: "Hello DoUnaryUnary"})
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	fmt.Println(msg.Text)
@@ -26,7 +26,7 @@ func doUnaryUnary(ctx context.Context, client sampleapp.SampleApplicationClient)
 
 func doUnaryStream(ctx context.Context, client sampleapp.SampleApplicationClient) {
 	stream, err := client.DoUnaryStream(ctx, &sampleapp.Message{Text: "Hello DoUnaryStream"})
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	for {
@@ -34,7 +34,7 @@ func doUnaryStream(ctx context.Context, client sampleapp.SampleApplicationClient
 		if err == io.EOF {
 			break
 		}
-		if nil != err {
+		if err != nil {
 			panic(err)
 		}
 		fmt.Println(msg.Text)
@@ -43,11 +43,11 @@ func doUnaryStream(ctx context.Context, client sampleapp.SampleApplicationClient
 
 func doStreamUnary(ctx context.Context, client sampleapp.SampleApplicationClient) {
 	stream, err := client.DoStreamUnary(ctx)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	for i := 0; i < 3; i++ {
-		if err := stream.Send(&sampleapp.Message{Text: "Hello DoStreamUnary"}); nil != err {
+		if err := stream.Send(&sampleapp.Message{Text: "Hello DoStreamUnary"}); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -55,7 +55,7 @@ func doStreamUnary(ctx context.Context, client sampleapp.SampleApplicationClient
 		}
 	}
 	msg, err := stream.CloseAndRecv()
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	fmt.Println(msg.Text)
@@ -63,7 +63,7 @@ func doStreamUnary(ctx context.Context, client sampleapp.SampleApplicationClient
 
 func doStreamStream(ctx context.Context, client sampleapp.SampleApplicationClient) {
 	stream, err := client.DoStreamStream(ctx)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	waitc := make(chan struct{})
@@ -95,11 +95,7 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
-		panic(err)
-	}
-	err = app.WaitForConnection(10 * time.Second)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	defer app.Shutdown(10 * time.Second)

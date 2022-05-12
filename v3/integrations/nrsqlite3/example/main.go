@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	defer db.Close()
 
 	db.Exec("CREATE TABLE zaps ( zap_num INTEGER )")
@@ -29,19 +30,33 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
-		panic(err)
-	}
-	app.WaitForConnection(5 * time.Second)
-	txn := app.StartTransaction("sqliteQuery")
 
+	txn := app.StartTransaction("sqliteQuery")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	row := db.QueryRowContext(ctx, "SELECT count(*) from zaps")
 	var count int
 	row.Scan(&count)
-
 	txn.End()
-	app.Shutdown(5 * time.Second)
 
-	fmt.Println("number of entries in table", count)
+	txn = app.StartTransaction("CustomSQLQuery")
+	s := newrelic.DatastoreSegment{
+		Product:            newrelic.DatastoreMySQL,
+		Collection:         "users",
+		Operation:          "INSERT",
+		ParameterizedQuery: "INSERT INTO users (name, age) VALUES ($1, $2)",
+		QueryParameters: map[string]interface{}{
+			"name": "Dracula",
+			"age":  439,
+		},
+		Host:         "mysql-server-1",
+		PortPathOrID: "3306",
+		DatabaseName: "my_database",
+	}
+	s.StartTime = txn.StartSegmentNow()
+	// ... do the operation
+	s.End()
+	txn.End()
+
+	app.Shutdown(5 * time.Second)
+	fmt.Printf("number of elements in table: %v\n", count)
 }
