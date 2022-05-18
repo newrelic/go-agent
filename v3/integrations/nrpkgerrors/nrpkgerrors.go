@@ -80,9 +80,18 @@ func errorClass(e error) string {
 // newrelic.Transaction.NoticeError it gives an improved stacktrace and class
 // type.
 func Wrap(e error) error {
+	attributes := make(map[string]interface{})
+	switch error := e.(type) {
+	case newrelic.Error:
+		// if e is type newrelic.Error, copy attributes into wrapped error
+		for key, value := range error.ErrorAttributes() {
+			attributes[key] = value
+		}
+	}
 	return newrelic.Error{
-		Message: e.Error(),
-		Class:   errorClass(e),
-		Stack:   stackTrace(e),
+		Message:    e.Error(),
+		Class:      errorClass(e),
+		Stack:      stackTrace(e),
+		Attributes: attributes,
 	}
 }

@@ -31,10 +31,22 @@ func gamma(e error) error { return errors.WithStack(e) }
 
 func theta(e error) error { return errors.WithMessage(e, "theta") }
 
+func basicNRError(e error) newrelic.Error { return newrelic.Error{Message: e.Error()} }
+func withAttributes(e error) newrelic.Error {
+	return newrelic.Error{
+		Message: e.Error(),
+		Attributes: map[string]interface{}{
+			"testAttribute": 1,
+			"foo":           2,
+		},
+	}
+}
+
 func TestWrappedStackTrace(t *testing.T) {
 	testcases := []struct {
-		Error          error
-		ExpectTopFrame string
+		Error            error
+		ExpectTopFrame   string
+		ExpectAttributes map[string]interface{}
 	}{
 		{Error: basicError{}, ExpectTopFrame: ""},
 		{Error: alpha(basicError{}), ExpectTopFrame: "alpha"},
@@ -43,6 +55,8 @@ func TestWrappedStackTrace(t *testing.T) {
 		{Error: alpha(theta(beta(basicError{}))), ExpectTopFrame: "beta"},
 		{Error: alpha(theta(beta(theta(basicError{})))), ExpectTopFrame: "beta"},
 		{Error: theta(basicError{}), ExpectTopFrame: ""},
+		{Error: basicNRError(basicError{}), ExpectTopFrame: ""},
+		{Error: withAttributes(basicError{}), ExpectTopFrame: "", ExpectAttributes: map[string]interface{}{"testAttribute": 1, "foo": 2}},
 	}
 
 	for idx, tc := range testcases {
@@ -52,6 +66,20 @@ func TestWrappedStackTrace(t *testing.T) {
 		if !strings.Contains(fn, tc.ExpectTopFrame) {
 			t.Errorf("testcase %d: expected %s got %s",
 				idx, tc.ExpectTopFrame, fn)
+		}
+		// check that error attributes are equal if they are expected
+		if tc.ExpectAttributes != nil {
+			errorAttributes := e.(newrelic.Error).ErrorAttributes()
+			if len(tc.ExpectAttributes) != len(errorAttributes) {
+				t.Errorf("testcase %d: error attribute size expected %d got %d",
+					idx, len(tc.ExpectAttributes), len(errorAttributes))
+			}
+			for k, v := range errorAttributes {
+				if tc.ExpectAttributes[k] != v {
+					t.Errorf("testcase %d: expected attribute %s:%v got %s:%v",
+						idx, k, tc.ExpectAttributes[k], k, v)
+				}
+			}
 		}
 	}
 }
