@@ -136,7 +136,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/AnalyticEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 100, 100, 100, 100, 100 * 100}},
-		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 1000, 1000, 1000, 1000, 1000 * 1000}},
+		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 2000, 2000, 2000, 2000, 2000 * 2000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -829,7 +829,7 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if cp := h.ErrorEvents.capacity(); cp != internal.MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
 	}
-	if cp := h.SpanEvents.capacity(); cp != maxSpanEvents {
+	if cp := h.SpanEvents.capacity(); cp != defaultMaxSpanEvents {
 		t.Error("wrong span event capacity", cp)
 	}
 }
