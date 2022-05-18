@@ -109,7 +109,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		reply.SamplingTarget,
 		time.Now())
 
-	if "" != run.Reply.RunID {
+	if run.Reply.RunID != "" {
 		js, _ := json.Marshal(settings(run.Config.Config))
 		run.Config.Logger.Debug("final configuration", map[string]interface{}{
 			"config": jsonString(js),
@@ -148,13 +148,13 @@ func newServerlessConnectReply(config config) *internal.ConnectReply {
 	reply.TrustedAccountKey = config.ServerlessMode.TrustedAccountKey
 	reply.PrimaryAppID = config.ServerlessMode.PrimaryAppID
 
-	if "" == reply.TrustedAccountKey {
+	if reply.TrustedAccountKey == "" {
 		// The trust key does not need to be provided by customers whose
 		// account ID is the same as the trust key.
 		reply.TrustedAccountKey = reply.AccountID
 	}
 
-	if "" == reply.PrimaryAppID {
+	if reply.PrimaryAppID == "" {
 		reply.PrimaryAppID = serverlessDefaultPrimaryAppID
 	}
 
@@ -202,20 +202,7 @@ func (run *appRun) MaxErrorEvents() int {
 // which will be the default or the user's configured size (if any), but
 // may be capped to the maximum allowed by the collector.
 func (run *appRun) MaxSpanEvents() int {
-	return run.maxLimit(run.Config.DistributedTracer.ReservoirLimit, run.ptrSpanEvents)
-}
-
-// maxLimit is like limit, but rather than always allowing the collector's
-// value to override the default, we will let the collector specify the maximum
-// value, allowing the default to be less than that amount.
-func (run *appRun) maxLimit(dflt int, field func() *uint) int {
-	if field() != nil {
-		maxAllowed := int(*field())
-		if maxAllowed < dflt {
-			return maxAllowed
-		}
-	}
-	return dflt
+	return run.limit(run.Config.DistributedTracer.ReservoirLimit, run.ptrSpanEvents)
 }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {

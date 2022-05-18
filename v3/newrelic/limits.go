@@ -38,7 +38,7 @@ const (
 	maxHarvestSlowSQLs  = 10
 	// maxSpanEvents is the maximum number of Span Events that can be captured
 	// per 60-second harvest cycle
-	// XXX DEPRECATED: replaced with DistributedTracer.ReservoirLimit configuration value
+	// DEPRECATED: replaced with DistributedTracer.ReservoirLimit configuration value
 	// This constant is the default we start that value as, but it can be changed at runtime.
 	// always find the dynamic value, e.g. run.MaxSpanEvents(), instead of this value.
 	defaultMaxSpanEvents = 2000
