@@ -10,6 +10,7 @@
 * Updated version of nats-streaming-server. [PR #458](https://github.com/newrelic/go-agent/pull/458)
 * Correction ot nrpkgerrors so that `nrpkgerrors.Wrap`  now checks if the error it is passed has attributes, and if it does, copies them into the New Relic error it creates.
 This fixes [issue #409](https://github.com/newrelic/go-agent/issues/409) via [PR #441](https://github.com/newrelic/go-agent/pull/441).
+   * This increments the `nrpkgerrors` version to v1.1.0.
 
 ### Support Statement
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
