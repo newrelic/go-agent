@@ -145,6 +145,16 @@ func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
 	return cfg
 }
 
+// DefaultEventHarvestConfigWithDT is an extended version of DefaultEventHarvestConfig,
+// with the addition that it takes into account distributed tracer span event harvest limits.
+func DefaultEventHarvestConfigWithDT(maxTxnEvents int, dtEnabled bool, spanEventLimit int) EventHarvestConfig {
+	cfg := DefaultEventHarvestConfig(maxTxnEvents)
+	if dtEnabled {
+		cfg.Limits.SpanEvents = uintPtr(uint(spanEventLimit))
+	}
+	return cfg
+}
+
 // TrustedAccountSet is used for CAT.
 type TrustedAccountSet map[int]struct{}
 

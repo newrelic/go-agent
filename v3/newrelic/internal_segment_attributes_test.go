@@ -181,6 +181,7 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
 		cfg.TransactionTracer.Threshold.Duration = 0
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(replyfn, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -214,6 +215,7 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 		reply.SetSampleEverything()
 	}
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Segments.StackTraceThreshold = 1 * time.Hour
 		cfg.TransactionTracer.Threshold.IsApdexFailing = false
@@ -371,6 +373,8 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 	// Test that segment attributes can be disabled by Attributes.Enabled
 	// but backtrace and transaction_guid still appear.
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+		cfg.CrossApplicationTracer.Enabled = true
 		cfg.Attributes.Enabled = false
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Segments.StackTraceThreshold = 0
@@ -442,6 +446,8 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 	// TransactionTracer.Segments.Attributes.Enabled but backtrace and
 	// transaction_guid still appear.
 	cfgfn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+		cfg.CrossApplicationTracer.Enabled = true
 		cfg.TransactionTracer.Segments.Attributes.Enabled = false
 		cfg.TransactionTracer.Segments.Threshold = 0
 		cfg.TransactionTracer.Segments.StackTraceThreshold = 0

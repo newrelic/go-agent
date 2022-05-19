@@ -12,7 +12,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/integrations/nrgrpc"
 	sampleapp "github.com/newrelic/go-agent/v3/integrations/nrgrpc/example/sampleapp"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"google.golang.org/grpc"
 )
 
@@ -77,7 +77,7 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 
@@ -86,10 +86,10 @@ func main() {
 		panic(err)
 	}
 	grpcServer := grpc.NewServer(
-		// Add the New Relic gRPC server instrumentation
 		grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
 		grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
 	)
 	sampleapp.RegisterSampleApplicationServer(grpcServer, &Server{})
 	grpcServer.Serve(lis)
+
 }

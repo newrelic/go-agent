@@ -14,7 +14,7 @@ import (
 func TestSetWebResponseNil(t *testing.T) {
 	// Test that the methods of the txn.SetWebResponse(nil) return value
 	// writer can safely be called.
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(nil)
 	rw.WriteHeader(123)
@@ -38,7 +38,7 @@ func TestSetWebResponseNil(t *testing.T) {
 func TestSetWebResponseSuccess(t *testing.T) {
 	// Test that the return value of txn.SetWebResponse delegates to the
 	// input writer.
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	w := httptest.NewRecorder()
 	rw := txn.SetWebResponse(w)
@@ -79,7 +79,7 @@ func (w writerWithFlush) Flush()                    {}
 func TestSetWebResponseTxnUpgraded(t *testing.T) {
 	// Test that the writer returned by SetWebResponse has the optional
 	// methods of the input writer.
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	rw := txn.SetWebResponse(writerWithFlush{})
 	if _, ok := rw.(http.Flusher); !ok {

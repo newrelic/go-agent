@@ -168,7 +168,7 @@ func external(w http.ResponseWriter, r *http.Request) {
 	resp, err := http.DefaultClient.Do(req)
 	es.End()
 
-	if nil != err {
+	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
@@ -199,7 +199,7 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	//	request = newrelic.RequestWithTransactionContext(request, txn)
 
 	resp, err := client.Do(request)
-	if nil != err {
+	if err != nil {
 		io.WriteString(w, err.Error())
 		return
 	}
@@ -252,7 +252,7 @@ func main() {
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

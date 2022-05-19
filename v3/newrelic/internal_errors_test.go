@@ -17,7 +17,7 @@ type myError struct{}
 func (e myError) Error() string { return "my msg" }
 
 func TestNoticeErrorBackground(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	app.expectNoLoggedErrors(t)
@@ -38,7 +38,7 @@ func TestNoticeErrorBackground(t *testing.T) {
 }
 
 func TestNoticeErrorWeb(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.SetWebRequestHTTP(helloRequest)
 	txn.NoticeError(myError{})
@@ -61,7 +61,7 @@ func TestNoticeErrorWeb(t *testing.T) {
 }
 
 func TestNoticeErrorTxnEnded(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.End()
 	txn.NoticeError(myError{})
@@ -75,7 +75,10 @@ func TestNoticeErrorTxnEnded(t *testing.T) {
 }
 
 func TestNoticeErrorHighSecurity(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
+	cfgFn := func(cfg *Config) {
+		cfg.HighSecurity = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
@@ -98,7 +101,7 @@ func TestNoticeErrorHighSecurity(t *testing.T) {
 
 func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.AllowRawExceptionMessages.SetEnabled(false) }
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	app.expectNoLoggedErrors(t)
@@ -119,7 +122,10 @@ func TestNoticeErrorMessageSecurityPolicy(t *testing.T) {
 }
 
 func TestNoticeErrorLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ErrorCollector.Enabled = false }
+	cfgFn := func(cfg *Config) {
+		cfg.ErrorCollector.Enabled = false
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
@@ -134,7 +140,9 @@ func TestNoticeErrorLocallyDisabled(t *testing.T) {
 
 func TestErrorsDisabledByServerSideConfig(t *testing.T) {
 	// Test that errors can be disabled by server-side-config.
-	cfgFn := func(cfg *Config) {}
+	cfgFn := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = false
+	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":false}}`), reply)
 	}
@@ -154,6 +162,7 @@ func TestErrorsEnabledByServerSideConfig(t *testing.T) {
 	// Test that errors can be enabled by server-side-config.
 	cfgFn := func(cfg *Config) {
 		cfg.ErrorCollector.Enabled = false
+		cfg.DistributedTracer.Enabled = false
 	}
 	replyfn := func(reply *internal.ConnectReply) {
 		json.Unmarshal([]byte(`{"agent_config":{"error_collector.enabled":true}}`), reply)
@@ -184,7 +193,7 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 	// This tests that the connect reply field "collect_errors" controls the
 	// collection of traced-errors, not error-events.
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrors = false }
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	app.expectNoLoggedErrors(t)
@@ -203,7 +212,7 @@ func TestNoticeErrorTracedErrorsRemotelyDisabled(t *testing.T) {
 }
 
 func TestNoticeErrorNil(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(nil)
 	app.expectSingleLoggedError(t, "unable to notice error", map[string]interface{}{
@@ -216,7 +225,10 @@ func TestNoticeErrorNil(t *testing.T) {
 }
 
 func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
-	cfgFn := func(cfg *Config) { cfg.ErrorCollector.CaptureEvents = false }
+	cfgFn := func(cfg *Config) {
+		cfg.ErrorCollector.CaptureEvents = false
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
@@ -233,7 +245,7 @@ func TestNoticeErrorEventsLocallyDisabled(t *testing.T) {
 
 func TestNoticeErrorEventsRemotelyDisabled(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) { reply.CollectErrorEvents = false }
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(myError{})
 	app.expectNoLoggedErrors(t)
@@ -253,7 +265,7 @@ func (e errorWithClass) Error() string      { return "my msg" }
 func (e errorWithClass) ErrorClass() string { return e.class }
 
 func TestErrorWithClasser(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(errorWithClass{class: "zap"})
 	app.expectNoLoggedErrors(t)
@@ -274,7 +286,7 @@ func TestErrorWithClasser(t *testing.T) {
 }
 
 func TestErrorWithClasserReturnsEmpty(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(errorWithClass{class: ""})
 	app.expectNoLoggedErrors(t)
@@ -308,7 +320,7 @@ func (e withStackTrace) Error() string         { return "my msg" }
 func (e withStackTrace) StackTrace() []uintptr { return e.trace }
 
 func TestErrorWithStackTrace(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	e := makeErrorWithStackTrace()
 	txn.NoticeError(e)
@@ -330,7 +342,7 @@ func TestErrorWithStackTrace(t *testing.T) {
 }
 
 func TestErrorWithStackTraceReturnsNil(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	e := withStackTrace{trace: nil}
 	txn.NoticeError(e)
@@ -352,7 +364,7 @@ func TestErrorWithStackTraceReturnsNil(t *testing.T) {
 }
 
 func TestNewrelicErrorNoAttributes(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
 		Message: "my msg",
@@ -379,7 +391,7 @@ func TestNewrelicErrorValidAttributes(t *testing.T) {
 	extraAttributes := map[string]interface{}{
 		"zip": "zap",
 	}
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
 		Message:    "my msg",
@@ -409,7 +421,10 @@ func TestNewrelicErrorAttributesHighSecurity(t *testing.T) {
 	extraAttributes := map[string]interface{}{
 		"zip": "zap",
 	}
-	cfgFn := func(cfg *Config) { cfg.HighSecurity = true }
+	cfgFn := func(cfg *Config) {
+		cfg.HighSecurity = true
+		cfg.DistributedTracer.Enabled = false
+	}
 	app := testApp(nil, cfgFn, t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
@@ -441,7 +456,7 @@ func TestNewrelicErrorAttributesSecurityPolicy(t *testing.T) {
 		"zip": "zap",
 	}
 	replyfn := func(reply *internal.ConnectReply) { reply.SecurityPolicies.CustomParameters.SetEnabled(false) }
-	app := testApp(replyfn, nil, t)
+	app := testApp(replyfn, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
 		Message:    "my msg",
@@ -471,7 +486,7 @@ func TestNewrelicErrorAttributeOverridesNormalAttribute(t *testing.T) {
 	extraAttributes := map[string]interface{}{
 		"zip": "zap",
 	}
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.AddAttribute("zip", 123)
 	txn.NoticeError(Error{
@@ -503,7 +518,7 @@ func TestNewrelicErrorInvalidAttributes(t *testing.T) {
 		"zip":     "zap",
 		"INVALID": struct{}{},
 	}
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
 		Message:    "my msg",
@@ -522,6 +537,7 @@ func TestNewrelicErrorInvalidAttributes(t *testing.T) {
 func TestExtraErrorAttributeRemovedThroughConfiguration(t *testing.T) {
 	cfgfn := func(cfg *Config) {
 		cfg.ErrorCollector.Attributes.Exclude = []string{"IGNORE_ME"}
+		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
@@ -558,7 +574,7 @@ func TestTooManyExtraErrorAttributes(t *testing.T) {
 	for i := 0; i <= attributeErrorLimit; i++ {
 		attrs[strconv.Itoa(i)] = i
 	}
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	txn := app.StartTransaction("hello")
 	txn.NoticeError(Error{
 		Message:    "my msg",

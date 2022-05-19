@@ -134,7 +134,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
-			"CrossApplicationTracer":{"Enabled":true},
+			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
@@ -145,7 +145,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":false,"ExcludeNewRelicHeader":false},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -250,7 +250,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
-				"error_event_data": 100
+				"error_event_data": 100,
+				"span_event_data": 2000
 			}
 		}
 	}]`)
@@ -310,7 +311,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
-			"CrossApplicationTracer":{"Enabled":true},
+			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
@@ -321,7 +322,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":false,"ExcludeNewRelicHeader":false},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -414,7 +415,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
-				"error_event_data": 100
+				"error_event_data": 100,
+				"span_event_data": 2000
 			}
 		}
 	}]`)
