@@ -7,6 +7,8 @@
    * The reservoir limit's default was increased from 1000 to 2000.
    * The maximum reservoir limit supported is 10,000.
 * Note that Cross Application Tracing is now deprecated.
+* Added support for gathering memory statistics via `PhysicalMemoryBytes` functions for OpenBSD.
+
 ### Fixed
 * Corrected some example code to be cleaner.
 * Updated version of nats-streaming-server. [PR #458](https://github.com/newrelic/go-agent/pull/458)
