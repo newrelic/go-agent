@@ -27,6 +27,11 @@ func main() {
 		panic(err)
 	}
 
+	// normally, production code wouldn't require the WaitForConnection call,
+	// but for an extremely short-lived script, we want to be sure we are
+	// connected before we've already exited.
+	app.WaitForConnection(10 * time.Second)
+
 	txn := app.StartTransaction("ping txn")
 
 	opts := &redis.Options{
@@ -34,8 +39,15 @@ func main() {
 	}
 	client := redis.NewClient(opts)
 
+	//
+	// Step 1:  Add a nrredis.NewHook() to your redis client.
+	//
 	client.AddHook(nrredis.NewHook(opts))
 
+	//
+	// Step 2: Ensure that all client calls contain a context which includes
+	// the transaction.
+	//
 	ctx := newrelic.NewContext(context.Background(), txn)
 	pipe := client.WithContext(ctx).Pipeline()
 	incr := pipe.Incr(ctx, "pipeline_counter")
