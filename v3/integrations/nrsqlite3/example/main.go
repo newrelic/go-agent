@@ -30,7 +30,11 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
+	if err != nil {
+		panic(err)
+	}
 
+	app.WaitForConnection(10 * time.Second)
 	txn := app.StartTransaction("sqliteQuery")
 	ctx := newrelic.NewContext(context.Background(), txn)
 	row := db.QueryRowContext(ctx, "SELECT count(*) from zaps")
