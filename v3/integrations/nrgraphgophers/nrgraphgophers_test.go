@@ -244,7 +244,6 @@ func TestQueryRequestError(t *testing.T) {
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/POST /",
 		Msg:     "graphql: something went wrong",
-		Klass:   "*errors.QueryError",
 	}})
 }
 

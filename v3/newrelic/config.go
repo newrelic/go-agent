@@ -235,6 +235,9 @@ type Config struct {
 		// Disabling the New Relic header here does not prevent the agent from
 		// accepting *inbound* New Relic headers.
 		ExcludeNewRelicHeader bool
+		// ReservoirLimit sets the desired maximum span event reservoir limit
+		// for collecting span event data. The collector MAY override this value.
+		ReservoirLimit int
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
@@ -413,8 +416,9 @@ func defaultConfig() Config {
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
 
-	c.CrossApplicationTracer.Enabled = true
-	c.DistributedTracer.Enabled = false
+	c.CrossApplicationTracer.Enabled = false
+	c.DistributedTracer.Enabled = true
+	c.DistributedTracer.ReservoirLimit = defaultMaxSpanEvents
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
@@ -663,7 +667,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfig(c.maxTxnEvents()),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit),
 	}})
 }
 

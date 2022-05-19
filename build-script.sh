@@ -19,21 +19,34 @@ fi
 
 pwd=$(pwd)
 
+# inputs
+# 1: repo pin; example: github.com/rewrelic/go-agent@v1.9.0
+pin_go_dependency() {
+  if [[ ! -z "$1" ]]; then
+    echo "Pinning: $1"
+    repo=$(echo "$1" | cut -d '@' -f1)
+    pinTo=$(echo "$1" | cut -d '@' -f2)
+    set +e
+    go get -u "$repo" # this go get will fail to build
+    set -e
+    cd "$GOPATH"/src/"$repo"
+    git checkout "$pinTo"
+    cd -
+  fi
+}
+
 IFS=","
 for dir in $DIRS; do
   cd "$pwd/$dir"
 
   if [ -f "go.mod" ]; then
-    go mod edit -replace github.com/newrelic/go-agent/v3=$pwd/v3
+    go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
   fi
 
-  # go get is necessary for testing v2 integrations since they do not have
-  # a go.mod file.
-  if [[ $dir =~ "_integrations" ]]; then
-    go get -t ./...
-  fi
+  pin_go_dependency "$PIN"
+
   # avoid testing v3 code when testing v2 newrelic package
-  if [ $dir == "." ]; then
+  if [ "$dir" == "." ]; then
     rm -rf v3/
   else
     # Only v3 code version 1.9+ needs GRPC dependencies
@@ -44,29 +57,27 @@ for dir in $DIRS; do
     V1_10="1.10"
     V1_11="1.11"
     V1_12="1.12"
+    V1_13="1.13"
+    V1_14="1.14"
     if [[ "$VERSION" =~ .*"$V1_7".* || "$VERSION" =~ .*"$V1_8".* ]]; then
       echo "Not installing GRPC for old versions"
-    elif [[ "$VERSION" =~ .*"$V1_9" || "$VERSION" =~ .*"$V1_10" || "$VERSION" =~ .*"$V1_11" || "$VERSION" =~ .*"$V1_12" ]]; then
+    elif [[ "$VERSION" =~ .*"$V1_9" || "$VERSION" =~ .*"$V1_10" || "$VERSION" =~ .*"$V1_11" || "$VERSION" =~ .*"$V1_12" ||  "$VERSION" =~ .*"$V1_13" || "$VERSION" =~ .*"$V1_14" ]]; then
       # install v3 dependencies that support this go version
-      set +e
-      go get -u google.golang.org/grpc # this go get will fail to build
-      set -e
-      cd $GOPATH/src/google.golang.org/grpc
-      git checkout v1.31.0
-      cd -
+      pin_go_dependency "google.golang.org/grpc@v1.31.0"
+      pin_go_dependency "golang.org/x/net/http2@7fd8e65b642006927f6cec5cb4241df7f98a2210"
 
-      set +e
-      go get -u golang.org/x/net/http2 # this go get will fail to build
-      set -e
-      cd $GOPATH/src/golang.org/x/net/http2
-      git checkout 7fd8e65b642006927f6cec5cb4241df7f98a2210
-      cd -
-
+      # install protobuf once dependencies are resolved
       go get -u github.com/golang/protobuf/protoc-gen-go
     else
       go get -u github.com/golang/protobuf/protoc-gen-go
       go get -u google.golang.org/grpc
     fi
+  fi
+
+  # go get is necessary for testing v2 integrations since they do not have
+  # a go.mod file.
+  if [[ $dir =~ "_integrations" ]]; then
+    go get -t ./...
   fi
 
   go test -race -benchtime=1ms -bench=. ./...

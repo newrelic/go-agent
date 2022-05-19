@@ -19,7 +19,7 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TestWrapHandleFunc(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	mux := http.NewServeMux()
 	mux.HandleFunc(WrapHandleFunc(app.Application, helloPath, myErrorHandler))
 	w := newCompatibleResponseRecorder()
@@ -61,7 +61,7 @@ func TestWrapHandleFunc(t *testing.T) {
 }
 
 func TestWrapHandle(t *testing.T) {
-	app := testApp(nil, nil, t)
+	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	mux := http.NewServeMux()
 	mux.Handle(WrapHandle(app.Application, helloPath, http.HandlerFunc(myErrorHandler)))
 	w := newCompatibleResponseRecorder()
@@ -193,7 +193,12 @@ func TestRoundTripper(t *testing.T) {
 }
 
 func TestRoundTripperOldCAT(t *testing.T) {
-	app := testApp(nil, nil, t)
+	cfgfn := func(c *Config) {
+		c.DistributedTracer.Enabled = false
+		c.CrossApplicationTracer.Enabled = true
+	}
+
+	app := testApp(nil, cfgfn, t)
 	txn := app.StartTransaction("hello")
 	url := "http://example.com/"
 	req, err := http.NewRequest("GET", url, nil)

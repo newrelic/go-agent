@@ -324,7 +324,7 @@ var (
 	dfltHarvestCfgr = harvestConfig{
 		ReportPeriods:   map[harvestTypes]time.Duration{harvestTypesAll: fixedHarvestPeriod},
 		MaxTxnEvents:    internal.MaxTxnEvents,
-		MaxSpanEvents:   maxSpanEvents,
+		MaxSpanEvents:   defaultMaxSpanEvents,
 		MaxCustomEvents: internal.MaxCustomEvents,
 		MaxErrorEvents:  internal.MaxErrorEvents,
 	}
