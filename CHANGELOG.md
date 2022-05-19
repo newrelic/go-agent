@@ -1,9 +1,22 @@
 # ChangeLog
+## 3.16.0
+### Added
+* Distributed Tracing is now the default mode of operation. It may be disabled by user configuration if so desired. [PR #495](https://github.com/newrelic/go-agent/pull/495)
+   * To disable DT, add `newrelic.ConfigDistributedTracerEnabled(false)` to your application configuration.
+   * To change the reservoir limit for how many span events are to be collected per harvest cycle from the default, add `newrelic.ConfigDistributedTracerReservoirLimit(`*newlimit*`)` to your application configuration.
+   * The reservoir limit's default was increased from 1000 to 2000.
+   * The maximum reservoir limit supported is 10,000.
+* Note that Cross Application Tracing is now deprecated.
+### Fixed
+* Corrected some example code to be cleaner.
+* Updated version of nats-streaming-server. [PR #458](https://github.com/newrelic/go-agent/pull/458)
+* Correction to nrpkgerrors so that `nrpkgerrors.Wrap`  now checks if the error it is passed has attributes, and if it does, copies them into the New Relic error it creates.
+This fixes [issue #409](https://github.com/newrelic/go-agent/issues/409) via [PR #441](https://github.com/newrelic/go-agent/pull/441).
+   * This increments the `nrpkgerrors` version to v1.1.0.
 
-## Unreleased
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
 
-### Changed
-* Updated version of `nats-streaming-server` in the nrstan integration to patch vulnerability mentioned in [this Dependabot alert](https://github.com/newrelic/go-agent/security/dependabot/3).
 
 ## 3.15.2
 ### Added
