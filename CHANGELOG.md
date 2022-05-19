@@ -5,10 +5,12 @@
    * To disable DT, add `newrelic.ConfigDistributedTracerEnabled(false)` to your application configuration.
    * To change the reservoir limit for how many span events are to be collected per harvest cycle from the default, add `newrelic.ConfigDistributedTracerReservoirLimit(`*newlimit*`)` to your application configuration.
    * The reservoir limit's default was increased from 1000 to 2000.
+   * The maximum reservoir limit supported is 10,000.
+* Note that Cross Application Tracing is now deprecated.
 ### Fixed
 * Corrected some example code to be cleaner.
 * Updated version of nats-streaming-server. [PR #458](https://github.com/newrelic/go-agent/pull/458)
-* Correction ot nrpkgerrors so that `nrpkgerrors.Wrap`  now checks if the error it is passed has attributes, and if it does, copies them into the New Relic error it creates.
+* Correction to nrpkgerrors so that `nrpkgerrors.Wrap`  now checks if the error it is passed has attributes, and if it does, copies them into the New Relic error it creates.
 This fixes [issue #409](https://github.com/newrelic/go-agent/issues/409) via [PR #441](https://github.com/newrelic/go-agent/pull/441).
    * This increments the `nrpkgerrors` version to v1.1.0.
 
