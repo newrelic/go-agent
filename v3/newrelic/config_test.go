@@ -250,7 +250,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
-				"error_event_data": 100
+				"error_event_data": 100,
+				"span_event_data": 2000
 			}
 		}
 	}]`)
@@ -414,7 +415,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
-				"error_event_data": 100
+				"error_event_data": 100,
+				"span_event_data": 2000
 			}
 		}
 	}]`)
