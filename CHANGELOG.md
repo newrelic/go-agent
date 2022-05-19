@@ -1,4 +1,19 @@
 # ChangeLog
+## 3.16.0
+### Added
+* Distributed Tracing is now the default mode of operation. It may be disabled by user configuration if so desired. [PR #495](https://github.com/newrelic/go-agent/pull/495)
+   * To disable DT, add `newrelic.ConfigDistributedTracerEnabled(false)` to your application configuration.
+   * To change the reservoir limit for how many span events are to be collected per harvest cycle from the default, add `newrelic.ConfigDistributedTracerReservoirLimit(`*newlimit*`)` to your application configuration.
+   * The reservoir limit's default was increased from 1000 to 2000.
+### Fixed
+* Corrected some example code to be cleaner.
+* Updated version of nats-streaming-server. [PR #458](https://github.com/newrelic/go-agent/pull/458)
+* Correction ot nrpkgerrors so that `nrpkgerrors.Wrap`  now checks if the error it is passed has attributes, and if it does, copies them into the New Relic error it creates.
+This fixes [issue #409](https://github.com/newrelic/go-agent/issues/409) via [PR #441](https://github.com/newrelic/go-agent/pull/441).
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
 ## 3.15.2
 ### Added
 * Strings logged via the Go Agent's built-in logger will have strings of the form `license_key=`*hex-string* changed to `license_key=[redacted]` before they are output, regardless of severity level, where *hex-string* means a sequence of upper- or lower-case hexadecimal digits and dots ('.'). This incorporates [PR #415](https://github.com/newrelic/go-agent/pull/415).
