@@ -582,6 +582,29 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 }
 
 var (
+	errAppLoggingDisabled = errors.New("log data can not be recorded when application logging is disabled")
+)
+
+// RecordLog implements newrelic.Application's RecordCustomMetric.
+func (app *app) RecordLog(log *LogData) error {
+	if app.config.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+	if !app.config.ApplicationLogging.Enabled {
+		return errAppLoggingDisabled
+	}
+
+	event, err := log.ToLogEvent()
+	if err != nil {
+		return err
+	}
+
+	run, _ := app.getState()
+	app.Consume(run.Reply.RunID, event)
+	return nil
+}
+
+var (
 	_ internal.ServerlessWriter = &app{}
 )
 

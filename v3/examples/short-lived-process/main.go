@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
@@ -14,12 +13,12 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Example Short Lived Process"),
+		newrelic.ConfigAppName("zerolog test"),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigAppLogMetricsEnabled(true),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigInfoLogger(os.Stdout),
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -30,8 +29,6 @@ func main() {
 	if err := app.WaitForConnection(5 * time.Second); nil != err {
 		fmt.Println(err)
 	}
-
-	app.RecordLogEvent(context.Background(), "App Started", "INFO", time.Now().UnixMilli())
 
 	// Do the tasks at hand.  Perhaps record them using transactions and/or
 	// custom events.
@@ -44,12 +41,6 @@ func main() {
 			"color": task,
 		})
 	}
-
-	app.RecordLogEvent(context.Background(), "A warning log occured!", "WARN", time.Now().UnixMilli())
-	app.RecordLogEvent(context.Background(), "App Executed Succesfully", "INFO", time.Now().UnixMilli())
-
-	time.Sleep(60 * time.Second)
-
 	// Shut down the application to flush data to New Relic.
 	app.Shutdown(10 * time.Second)
 }

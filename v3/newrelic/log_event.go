@@ -5,7 +5,6 @@ package newrelic
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -16,67 +15,85 @@ const (
 	LogTimestampFieldName = "timestamp"
 	LogSpanIDFieldName    = "span.id"
 	LogTraceIDFieldName   = "trace.id"
+	LogSeverityUnknown    = "UNKNOWN"
 
-	maxLogBytes = 32768
+	MaxLogLength = 32768
 )
 
+// for internal user only
 type logEvent struct {
-	priority priority
-	traceID  string
-	severity string
-	log      string
+	priority  priority
+	timestamp int64
+	severity  string
+	message   string
+	spanID    string
+	traceID   string
+}
+
+// For customer use
+type LogData struct {
+	Timestamp int64
+	Severity  string
+	Message   string
+	SpanID    string
+	TraceID   string
 }
 
 // writeJSON prepares JSON in the format expected by the collector.
 func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
-	buf.WriteString(e.log)
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('{')
+	w.stringField(LogSeverityFieldName, e.severity)
+	w.stringField(LogMessageFieldName, e.message)
+
+	if len(e.spanID) > 0 {
+		w.stringField(LogSpanIDFieldName, e.spanID)
+	}
+	if len(e.traceID) > 0 {
+		w.stringField(LogTraceIDFieldName, e.traceID)
+	}
+
+	w.needsComma = false
+	buf.WriteByte(',')
+	w.intField(LogTimestampFieldName, e.timestamp)
+	buf.WriteByte('}')
 }
 
 // MarshalJSON is used for testing.
 func (e *logEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
-
 	e.WriteJSON(buf)
-
 	return buf.Bytes(), nil
-}
-
-type logJson struct {
-	Timestamp float64 `json:"timestamp"`
-	Severity  string  `json:"level"`
-	Message   string  `json:"message"`
-	SpanID    string  `json:"span.id"`
-	TraceID   string  `json:"trace.id"`
 }
 
 var (
 	// regex allows a single word, or number
-	severityUnknown = "UNKNOWN"
-	errEmptyLog     = errors.New("log event can not be empty")
-	errLogTooLarge  = fmt.Errorf("log can not exceed %d bytes", maxLogBytes)
+	severityUnknown       = "UNKNOWN"
+	errEmptySeverity      = errors.New("severity can not be empty")
+	errNilLogData         = errors.New("log data can not be nil")
+	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
 )
 
-func CreateLogEvent(log []byte) (logEvent, error) {
-	if len(log) > maxLogBytes {
-		return logEvent{}, errLogTooLarge
+func (data *LogData) ToLogEvent() (*logEvent, error) {
+	if data == nil {
+		return nil, errNilLogData
 	}
-	if len(log) == 0 {
-		return logEvent{}, errEmptyLog
+	if data.Severity == "" {
+		return nil, errEmptySeverity
 	}
-
-	l := &logJson{}
-	err := json.Unmarshal(log, l)
-	if err != nil {
-		return logEvent{}, err
+	if len(data.Message) > MaxLogLength {
+		return nil, errLogMessageTooLarge
 	}
 
-	logEvent := logEvent{
-		log:      string(log),
-		severity: l.Severity,
-		traceID:  l.TraceID,
+	event := logEvent{
+		message:   data.Message,
+		severity:  data.Severity,
+		spanID:    data.SpanID,
+		traceID:   data.TraceID,
+		timestamp: data.Timestamp,
 	}
 
-	return logEvent, nil
+	return &event, nil
 }
 
 func (e *logEvent) MergeIntoHarvest(h *harvest) {

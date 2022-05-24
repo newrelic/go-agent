@@ -201,9 +201,39 @@ func expectCustomEvents(v internal.Validator, cs *customEvents, expect []interna
 	expectEvents(v, cs.analyticsEvents, expect, nil)
 }
 
-func expectLogEvents(v internal.Validator, logEvents *logEvents, expect []internal.WantLog) {
-	//TODO(egarcia): implement this
-	return
+func expectLogEvents(v internal.Validator, events *logEvents, expect []internal.WantLog) {
+	if len(events.logs) != len(expect) {
+		v.Error("number of events does not match", len(events.logs), len(expect))
+		return
+	}
+
+	for i, e := range expect {
+		event := events.logs[i]
+		expectLogEvent(v, event, e)
+	}
+}
+
+func expectLogEvent(v internal.Validator, event logEvent, want internal.WantLog) {
+	if event.message != want.Message {
+		v.Error(fmt.Sprintf("unexpected log message: want %s, got %s", event.message, want.Message))
+		return
+	}
+	if event.severity != want.Severity {
+		v.Error(fmt.Sprintf("unexpected log severity: want %s, got %s", event.severity, want.Severity))
+		return
+	}
+	if event.traceID != want.TraceID {
+		v.Error(fmt.Sprintf("unexpected log trace id: want %s, got %s", event.traceID, want.TraceID))
+		return
+	}
+	if event.spanID != want.SpanID {
+		v.Error(fmt.Sprintf("unexpected log span id: want %s, got %s", event.spanID, want.SpanID))
+		return
+	}
+	if event.timestamp != want.Timestamp {
+		v.Error(fmt.Sprintf("unexpected log timestamp: want %d, got %d", event.timestamp, want.Timestamp))
+		return
+	}
 }
 
 func expectEvent(v internal.Validator, e json.Marshaler, expect internal.WantEvent) {

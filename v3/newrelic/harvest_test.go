@@ -12,19 +12,22 @@ import (
 )
 
 var (
-	testHarvestCfgr = harvestConfig{
-		ReportPeriods:   map[harvestTypes]time.Duration{harvestTypesAll: fixedHarvestPeriod},
-		MaxTxnEvents:    internal.MaxTxnEvents,
-		MaxSpanEvents:   maxSpanEvents,
-		MaxCustomEvents: internal.MaxCustomEvents,
-		MaxErrorEvents:  internal.MaxErrorEvents,
-		LoggingConfig: configLogHarvest{
-			true,
-			true,
-			internal.MaxLogEvents,
-		},
-	}
+	// This is for testing only
+	testHarvestCfgr = generateTestHarvestConfig()
 )
+
+func generateTestHarvestConfig() harvestConfig {
+	cfg := dfltHarvestCfgr
+
+	// Enable logging features for testing (not enabled by default)
+	loggingCfg := configLogHarvest{
+		true,
+		true,
+		internal.MaxLogEvents,
+	}
+	cfg.LoggingConfig = loggingCfg
+	return cfg
+}
 
 func TestHarvestTimerAllFixed(t *testing.T) {
 	now := time.Now()
@@ -290,16 +293,14 @@ func TestHarvestLogEventsReady(t *testing.T) {
 		},
 		LoggingConfig: loggingConfigEnabled(3),
 	})
-	timestamp := timeToIntMillis(now)
-	severity := "INFO"
-	message := "User 'xyz' logged in"
-	spanID := "123456789ADF"
-	traceID := "ADF09876565"
 
-	log := writeLog(severity, message, spanID, traceID, timestamp)
-	logEvent, err := CreateLogEvent(log)
-	if err != nil {
-		t.Error(err)
+	logEvent := logEvent{
+		0.5,
+		int64(time.Now().UnixMilli()),
+		"INFO",
+		"User 'xyz' logged in",
+		"123456789ADF",
+		"ADF09876565",
 	}
 
 	h.LogEvents.Add(&logEvent)
@@ -323,17 +324,17 @@ func TestHarvestLogEventsReady(t *testing.T) {
 	}
 
 	sampleLogEvent := internal.WantLog{
-		Severity:  severity,
-		Message:   message,
-		SpanID:    spanID,
-		TraceID:   traceID,
-		Timestamp: timestamp,
+		Severity:  logEvent.severity,
+		Message:   logEvent.message,
+		SpanID:    logEvent.spanID,
+		TraceID:   logEvent.traceID,
+		Timestamp: logEvent.timestamp,
 	}
 
 	expectLogEvents(t, ready.LogEvents, []internal.WantLog{sampleLogEvent})
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: logsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: logsSeen + "/" + severity, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logsSeen + "/" + logEvent.severity, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: logsDropped, Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 	})
 }
@@ -552,18 +553,16 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Duration:  1 * time.Second,
 		TotalTime: 2 * time.Second,
 	}, 0)
-	//	timestamp := timeToIntMillis(now)
-	logLevel := "INFO"
-	message := "User 'xyz' logged in"
-	spanID := "123456789ADF"
-	traceID := "ADF09876565"
-	logTimestamp := int64(123456)
 
-	log := writeLog(logLevel, message, spanID, traceID, logTimestamp)
-	logEvent, err := CreateLogEvent(log)
-	if err != nil {
-		t.Error(err)
+	logEvent := logEvent{
+		0.5,
+		int64(time.Now().UnixMilli()),
+		"INFO",
+		"User 'xyz' logged in",
+		"123456789ADF",
+		"ADF09876565",
 	}
+
 	h.LogEvents.Add(&logEvent)
 	customEventParams := map[string]interface{}{"zip": 1}
 	ce, err := createCustomEvent("myEvent", customEventParams, time.Now())
@@ -629,11 +628,11 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}})
 	expectLogEvents(t, h.LogEvents, []internal.WantLog{
 		{
-			Timestamp: logTimestamp,
-			Severity:  logLevel,
-			Message:   message,
-			SpanID:    spanID,
-			TraceID:   traceID,
+			Severity:  logEvent.severity,
+			Message:   logEvent.message,
+			SpanID:    logEvent.spanID,
+			TraceID:   logEvent.traceID,
+			Timestamp: logEvent.timestamp,
 		},
 	})
 	expectErrorEvents(t, h.ErrorEvents, []internal.WantEvent{{
@@ -710,11 +709,11 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}})
 	expectLogEvents(t, nextHarvest.LogEvents, []internal.WantLog{
 		{
-			Timestamp: logTimestamp,
-			Severity:  logLevel,
-			Message:   message,
-			SpanID:    spanID,
-			TraceID:   traceID,
+			Severity:  logEvent.severity,
+			Message:   logEvent.message,
+			SpanID:    logEvent.spanID,
+			TraceID:   logEvent.traceID,
+			Timestamp: logEvent.timestamp,
 		},
 	})
 	expectErrorEvents(t, nextHarvest.ErrorEvents, []internal.WantEvent{{

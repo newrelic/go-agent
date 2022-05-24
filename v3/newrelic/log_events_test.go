@@ -4,10 +4,8 @@
 package newrelic
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 )
@@ -36,61 +34,12 @@ func loggingConfigEnabled(limit int) configLogHarvest {
 	}
 }
 
-func writeLogWithAttributes(severity, message, spanID, traceID string, timestamp int64, attributes map[string]interface{}) []byte {
-	buf := &bytes.Buffer{}
-	w := jsonFieldsWriter{buf: buf}
-	buf.WriteByte('{')
-	w.stringField(LogSeverityFieldName, severity)
-	w.stringField(LogMessageFieldName, message)
-
-	if len(spanID) > 0 {
-		w.stringField(LogSpanIDFieldName, spanID)
-	}
-	if len(traceID) > 0 {
-		w.stringField(LogTraceIDFieldName, traceID)
-	}
-
-	w.needsComma = false
-	buf.WriteByte(',')
-	w.intField(LogTimestampFieldName, timestamp)
-	if len(attributes) > 0 {
-		for key, val := range attributes {
-			writeAttributeValueJSON(&w, key, val)
-		}
-	}
-
-	buf.WriteByte('}')
-
-	return w.buf.Bytes()
-}
-
-func writeLog(severity, message, spanID, traceID string, timestamp int64) []byte {
-	buf := &bytes.Buffer{}
-	w := jsonFieldsWriter{buf: buf}
-	buf.WriteByte('{')
-	w.stringField(LogSeverityFieldName, severity)
-	w.stringField(LogMessageFieldName, message)
-
-	if len(spanID) > 0 {
-		w.stringField(LogSpanIDFieldName, spanID)
-	}
-	if len(traceID) > 0 {
-		w.stringField(LogTraceIDFieldName, traceID)
-	}
-
-	w.needsComma = false
-	buf.WriteByte(',')
-	w.intField(LogTimestampFieldName, timestamp)
-	buf.WriteByte('}')
-
-	return w.buf.Bytes()
-}
-
 func sampleLogEvent(priority priority, severity, message string) *logEvent {
 	return &logEvent{
-		priority: priority,
-		severity: severity,
-		log:      string(writeLog(severity, message, "", "", 123456)),
+		priority:  priority,
+		severity:  severity,
+		message:   message,
+		timestamp: 123456,
 	}
 }
 
@@ -433,13 +382,8 @@ func TestLogEventCollectionDisabled(t *testing.T) {
 	}
 }
 
-func BenchmarkCollectLogEvent(b *testing.B) {
-	json := writeLog("debug", "test message", "", "", time.Now().UnixMilli())
-	logEvent, err := CreateLogEvent(json)
-	if err != nil {
-		b.Error(err)
-	}
-	logEventBenchmarkHelper(b, &logEvent)
+func BenchmarkAddLogEvent(b *testing.B) {
+
 }
 
 func logEventBenchmarkHelper(b *testing.B, event *logEvent) {
