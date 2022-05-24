@@ -68,7 +68,9 @@ func (e *logEvent) MarshalJSON() ([]byte, error) {
 
 var (
 	// regex allows a single word, or number
-	severityUnknown       = "UNKNOWN"
+	severityUnknown = "UNKNOWN"
+
+	errEmptyTimestamp     = errors.New("timestamp can not be empty")
 	errEmptySeverity      = errors.New("severity can not be empty")
 	errNilLogData         = errors.New("log data can not be nil")
 	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
@@ -83,6 +85,9 @@ func (data *LogData) ToLogEvent() (*logEvent, error) {
 	}
 	if len(data.Message) > MaxLogLength {
 		return nil, errLogMessageTooLarge
+	}
+	if data.Timestamp == 0 {
+		return nil, errEmptyTimestamp
 	}
 
 	event := logEvent{

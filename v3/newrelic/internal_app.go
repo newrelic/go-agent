@@ -585,7 +585,7 @@ var (
 	errAppLoggingDisabled = errors.New("log data can not be recorded when application logging is disabled")
 )
 
-// RecordLog implements newrelic.Application's RecordCustomMetric.
+// RecordLog implements newrelic.Application's RecordLog.
 func (app *app) RecordLog(log *LogData) error {
 	if app.config.Config.HighSecurity {
 		return errHighSecurityEnabled
