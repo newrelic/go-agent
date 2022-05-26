@@ -13,12 +13,9 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("zerolog test"),
-		newrelic.ConfigAppLogForwardingEnabled(true),
-		newrelic.ConfigDistributedTracerEnabled(true),
-		newrelic.ConfigAppLogMetricsEnabled(true),
+		newrelic.ConfigAppName("Short Lived App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigInfoLogger(os.Stdout),
+		newrelic.ConfigDebugLogger(os.Stdout),
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -41,6 +38,7 @@ func main() {
 			"color": task,
 		})
 	}
+
 	// Shut down the application to flush data to New Relic.
 	app.Shutdown(10 * time.Second)
 }
