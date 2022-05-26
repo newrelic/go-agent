@@ -1,4 +1,12 @@
 # ChangeLog
+## 3.16.1
+### Fixed
+* Changed dependency on gRPC from v1.27.0 to v1.39.0. This in turn changes gRPC's dependency on `x/crypto` to v0.0.0-20200622213623-75b288015ac9, which fixes a security vulnerability in the `x/crypto` standard library module. Fixes [issue #451](https://github.com/newrelic/go-agent/issues/451).
+* Incremented version number of the `nrawssdk-v1` integration from v1.0.1 to v1.1.0 to resolve an incompatibility issue due to changes to underlying code. Fixes [issue #499](https://github.com/newrelic/go-agent/issues/499)
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
 ## 3.16.0
 ### Added
 * Distributed Tracing is now the default mode of operation. It may be disabled by user configuration if so desired. [PR #495](https://github.com/newrelic/go-agent/pull/495)

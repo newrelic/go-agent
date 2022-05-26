@@ -10,5 +10,5 @@ require (
 	github.com/golang/protobuf v1.3.3
 	github.com/newrelic/go-agent/v3 v3.12.0
 	// v1.15.0 is the earliest version of grpc using modules.
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.39.0
 )
