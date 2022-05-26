@@ -14,8 +14,16 @@ are supported by this plugin in the current release:
 ## Installation
 
 The nrzerolog plugin, and the go-agent need to be integrated into your code
-in order to use this tool. The following example will shows how to install
-and set up your code to send logs to new relic from zerolog.
+in order to use this tool. Make sure to set `newrelic.ConfigZerologPluginEnabled(true)`
+in your config settings for the application. This will enable log forwarding and metrics
+in the go agent, as well as let the agent know that the zerolog pluging is in use.
+If you want to disable metrics, set `newrelic.ConfigAppLogMetricsEnabled(false),`.
+If you want to disable log forwarding, set `newrelic.ConfigAppLogForwardingEnabled(false),`.
+Note that the agent sets the default number of logs per harverst cycle to 10000, but that
+number may be reuced by the server. You can manually set this number by setting
+`newrelic.ConfigAppLogForwardingMaxSamplesStored(123),`.
+
+The following example will shows how to install and set up your code to send logs to new relic from zerolog.
 
 ```go
 
@@ -32,6 +40,7 @@ func main() {
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppName("NRZerolog Example"),
 		newrelic.ConfigInfoLogger(os.Stdout),
+		newrelic.ConfigZerologPluginEnabled(true),
 		newrelic.ConfigDistributedTracerEnabled(true),
 	)
 	if nil != err {
@@ -62,3 +71,5 @@ The plugin captures the log level, and the message from zerolog. It will generat
 timestamp at the moment the hook function is called in zerolog. In most cases, this
 timestamp will be the same as the time posted in zerolog, however in some corner
 cases, a very small amount of offset is possible.
+
+
