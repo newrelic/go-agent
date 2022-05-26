@@ -319,7 +319,7 @@ func TestHarvestLogEventsReady(t *testing.T) {
 
 	logEvent := logEvent{
 		0.5,
-		int64(time.Now().UnixMilli()),
+		123456,
 		"INFO",
 		"User 'xyz' logged in",
 		"123456789ADF",
@@ -579,7 +579,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 
 	logEvent := logEvent{
 		0.5,
-		int64(time.Now().UnixMilli()),
+		123456,
 		"INFO",
 		"User 'xyz' logged in",
 		"123456789ADF",
