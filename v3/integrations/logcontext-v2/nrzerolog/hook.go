@@ -8,12 +8,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Hook struct {
+type NewRelicHook struct {
 	App     *newrelic.Application
 	Context context.Context
 }
 
-func (h Hook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	logLevel := ""
 	if level == zerolog.NoLevel {
 		logLevel = newrelic.LogSeverityUnknown
@@ -36,5 +36,6 @@ func (h Hook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 		SpanID:    spanID,
 		TraceID:   traceID,
 	}
+
 	h.App.RecordLog(&data)
 }
