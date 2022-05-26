@@ -26,11 +26,13 @@ var (
 	unknownLevel = "UNKNOWN"
 )
 
-func loggingConfigEnabled(limit int) configLogHarvest {
-	return configLogHarvest{
-		collectEvents:  true,
-		collectMetrics: true,
-		maxLogEvents:   limit,
+func loggingConfigEnabled(limit int) loggingConfig {
+	return loggingConfig{
+		loggingEnabled:  true,
+		localEnrichment: true,
+		collectEvents:   true,
+		collectMetrics:  true,
+		maxLogEvents:    limit,
 	}
 }
 

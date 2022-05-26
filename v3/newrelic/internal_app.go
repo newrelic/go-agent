@@ -66,7 +66,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, run.harvestConfig, app.getObserver())
+	h.CreateFinalMetrics(run, app.getObserver())
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -587,9 +587,6 @@ var (
 
 // RecordLog implements newrelic.Application's RecordLog.
 func (app *app) RecordLog(log *LogData) error {
-	if app.config.Config.HighSecurity {
-		return errHighSecurityEnabled
-	}
 	if !app.config.ApplicationLogging.Enabled {
 		return errAppLoggingDisabled
 	}

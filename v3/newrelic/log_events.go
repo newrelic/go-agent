@@ -11,12 +11,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
 )
 
-type configLogHarvest struct {
-	collectEvents  bool
-	collectMetrics bool
-	maxLogEvents   int
-}
-
 type commonAttributes struct {
 	entityGUID string
 	entityName string
@@ -30,7 +24,7 @@ type logEvents struct {
 	failedHarvests int
 	severityCount  map[string]int
 	commonAttributes
-	config configLogHarvest
+	config loggingConfig
 	logs   logEventHeap
 }
 
@@ -41,21 +35,16 @@ func (events *logEvents) NumSeen() float64 { return float64(events.numSeen) }
 func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
 
 func (events *logEvents) RecordLoggingMetrics(metrics *metricTable, forced metricForce) {
-	// Allows us to disable the reporting of metrics for logs
-	if !events.config.collectMetrics {
-		return
-	}
-	// avoid nil pointers during tests
-	if metrics == nil {
-		return
+	if events.config.collectMetrics && metrics != nil {
+		metrics.addCount(logsSeen, events.NumSeen(), forced)
+		for k, v := range events.severityCount {
+			severitySeen := logsSeen + "/" + k
+			metrics.addCount(severitySeen, float64(v), forced)
+		}
 	}
 
-	metrics.addCount(logsSeen, events.NumSeen(), forced)
-	metrics.addCount(logsDropped, events.NumSeen()-events.NumSaved(), forced)
-
-	for k, v := range events.severityCount {
-		severitySeen := logsSeen + "/" + k
-		metrics.addCount(severitySeen, float64(v), forced)
+	if events.config.collectEvents {
+		metrics.addCount(logsDropped, events.NumSeen()-events.NumSaved(), forced)
 	}
 }
 
@@ -70,7 +59,7 @@ func (h logEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h logEventHeap) Push(x interface{}) {}
 func (h logEventHeap) Pop() interface{}   { return nil }
 
-func newLogEvents(ca commonAttributes, loggingConfig configLogHarvest) *logEvents {
+func newLogEvents(ca commonAttributes, loggingConfig loggingConfig) *logEvents {
 	return &logEvents{
 		commonAttributes: ca,
 		config:           loggingConfig,
@@ -84,6 +73,7 @@ func (events *logEvents) capacity() int {
 }
 
 func (events *logEvents) Add(e *logEvent) {
+	// always collect this but do not report logging metrics when disabled
 	events.numSeen++
 	events.severityCount[e.severity] += 1
 

@@ -190,7 +190,7 @@ func (h *harvest) Payloads(splitLargeTxnEvents bool) (ps []payloadCreator) {
 type harvestConfig struct {
 	ReportPeriods    map[harvestTypes]time.Duration
 	CommonAttributes commonAttributes
-	LoggingConfig    configLogHarvest
+	LoggingConfig    loggingConfig
 	MaxSpanEvents    int
 	MaxCustomEvents  int
 	MaxErrorEvents   int
@@ -228,8 +228,17 @@ func createTraceObserverMetrics(to traceObserver, metrics *metricTable) {
 	}
 }
 
+func createAppLoggingSupportabilityMetrics(lc *loggingConfig, frameworks []string, metrics *metricTable) {
+	lc.connectMetrics(metrics)
+	for _, framework := range frameworks {
+		loggingFrameworkMetric(metrics, framework)
+	}
+}
+
 // CreateFinalMetrics creates extra metrics at harvest time.
-func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestConfig, to traceObserver) {
+func (h *harvest) CreateFinalMetrics(run *appRun, to traceObserver) {
+	reply := run.Reply
+	hc := run.harvestConfig
 	if nil == h {
 		return
 	}
@@ -253,6 +262,7 @@ func (h *harvest) CreateFinalMetrics(reply *internal.ConnectReply, hc harvestCon
 
 	createTraceObserverMetrics(to, h.Metrics)
 	createTrackUsageMetrics(h.Metrics)
+	createAppLoggingSupportabilityMetrics(&hc.LoggingConfig, run.Config.ApplicationLogging.Frameworks, h.Metrics)
 
 	h.Metrics = h.Metrics.ApplyRules(reply.MetricRules)
 }
@@ -357,9 +367,11 @@ var (
 		MaxSpanEvents:   defaultMaxSpanEvents,
 		MaxCustomEvents: internal.MaxCustomEvents,
 		MaxErrorEvents:  internal.MaxErrorEvents,
-		LoggingConfig: configLogHarvest{
+		LoggingConfig: loggingConfig{
+			true,
 			false,
 			true,
+			false,
 			internal.MaxLogEvents,
 		},
 	}

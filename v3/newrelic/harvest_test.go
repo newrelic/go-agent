@@ -20,11 +20,7 @@ func generateTestHarvestConfig() harvestConfig {
 	cfg := dfltHarvestCfgr
 
 	// Enable logging features for testing (not enabled by default)
-	loggingCfg := configLogHarvest{
-		true,
-		true,
-		internal.MaxLogEvents,
-	}
+	loggingCfg := loggingConfigEnabled(internal.MaxLogEvents)
 	cfg.LoggingConfig = loggingCfg
 	return cfg
 }
@@ -87,9 +83,16 @@ func TestCreateFinalMetrics(t *testing.T) {
 	// If the harvest or metrics is nil then CreateFinalMetrics should
 	// not panic.
 	var nilHarvest *harvest
-	nilHarvest.CreateFinalMetrics(nil, testHarvestCfgr, nil)
+
+	config := config{Config: defaultConfig()}
+	config.ApplicationLogging.Frameworks = append(config.ApplicationLogging.Frameworks, ZerologFrameworkName)
+
+	run := newAppRun(config, internal.ConnectReplyDefaults())
+	run.harvestConfig = testHarvestCfgr
+
+	nilHarvest.CreateFinalMetrics(run, nil)
 	emptyHarvest := &harvest{}
-	emptyHarvest.CreateFinalMetrics(nil, testHarvestCfgr, nil)
+	emptyHarvest.CreateFinalMetrics(run, nil)
 
 	replyJSON := []byte(`{"return_value":{
 		"metric_name_rules":[{
@@ -124,7 +127,9 @@ func TestCreateFinalMetrics(t *testing.T) {
 	}
 	h := newHarvest(now, cfgr)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, cfgr, nil)
+	run = newAppRun(config, reply)
+	run.harvestConfig = cfgr
+	h.CreateFinalMetrics(run, nil)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "been_renamed", Scope: "", Forced: false, Data: []float64{1.0, 0, 0, 0, 0, 0}},
@@ -137,6 +142,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang/Zerolog", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	// Test again without any metric rules or event_harvest_config.
@@ -147,9 +157,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	run = newAppRun(config, reply)
+	run.harvestConfig = testHarvestCfgr
 	h = newHarvest(now, testHarvestCfgr)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, testHarvestCfgr, nil)
+	h.CreateFinalMetrics(run, nil)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "rename_me", Scope: "", Forced: false, Data: []float64{1.0, 0, 0, 0, 0, 0}},
@@ -162,6 +174,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang/Zerolog", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -176,15 +193,17 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	run := newAppRun(config{Config: defaultConfig()}, reply)
+	run.harvestConfig = testHarvestCfgr
+
 	to, _ := newTraceObserver(
 		internal.AgentRunID("runid"), nil,
 		observerConfig{
 			log: logger.ShimLogger{},
 		},
 	)
-
 	h := newHarvest(now, testHarvestCfgr)
-	h.CreateFinalMetrics(reply, testHarvestCfgr, to)
+	h.CreateFinalMetrics(run, to)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/ReportPeriod", Scope: "", Forced: true, Data: nil},
@@ -193,6 +212,10 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},

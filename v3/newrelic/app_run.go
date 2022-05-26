@@ -122,11 +122,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		MaxCustomEvents: run.MaxCustomEvents(),
 		MaxErrorEvents:  run.MaxErrorEvents(),
 		MaxSpanEvents:   run.MaxSpanEvents(),
-		LoggingConfig: configLogHarvest{
-			config.ApplicationLogging.Forwarding.Enabled,
-			config.ApplicationLogging.Metrics.Enabled,
-			run.MaxLogEvents(),
-		},
+		LoggingConfig:   run.LoggingConfig(),
 	}
 
 	return run
@@ -205,6 +201,20 @@ func (run *appRun) MaxLogEvents() int {
 }
 func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+
+func (run *appRun) LoggingConfig() (config loggingConfig) {
+	logging := run.Config.ApplicationLogging
+
+	config.loggingEnabled = logging.Enabled
+	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
+	config.maxLogEvents = run.MaxLogEvents()
+	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
+
+	//TODO
+	config.localEnrichment = false
+
+	return config
 }
 
 // MaxSpanEvents returns the reservoir limit for collected span events,

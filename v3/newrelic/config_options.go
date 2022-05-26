@@ -59,6 +59,9 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigAppLogMetricsEnabled enables or disables the collection of metrics
+// data for logs seen by an instrumented logging framework
+// default: true
 func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		if enabled == true {
@@ -70,12 +73,39 @@ func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigAppLogEnabled enables or disables all application logging features
+// and data collection
 func ConfigAppLogEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		if enabled == true {
 			cfg.ApplicationLogging.Enabled = true
 		} else {
 			cfg.ApplicationLogging.Enabled = false
+		}
+	}
+}
+
+const (
+	ZerologFrameworkName = "Zerolog"
+)
+
+// ConfigZerologPluginEnabled enables all supported features
+// for the zerolog logs in context plugin. This will not alter
+// the max samples stored for logs.
+//
+// Log Enrichment is currently not supported, and will not be
+// enabled.
+func ConfigZerologPluginEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled == true {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = true
+			cfg.ApplicationLogging.Metrics.Enabled = true
+			if cfg.ApplicationLogging.Frameworks == nil {
+				cfg.ApplicationLogging.Frameworks = []string{ZerologFrameworkName}
+			} else {
+				cfg.ApplicationLogging.Frameworks = append(cfg.ApplicationLogging.Frameworks, ZerologFrameworkName)
+			}
 		}
 	}
 }
