@@ -12,15 +12,26 @@ import (
 )
 
 const (
-	LogSeverityFieldName  = "level"     // The name of the log level field in New Relic logging JSON
-	LogMessageFieldName   = "message"   // The name of the log message field in New Relic logging JSON
-	LogTimestampFieldName = "timestamp" // The name of the timestamp field in New Relic logging JSON
-	LogSpanIDFieldName    = "span.id"   // The name of the span ID field in the New Relic logging JSON
-	LogTraceIDFieldName   = "trace.id"  // The name of the trace ID field in the New Relic logging JSON
+	// LogSeverityFieldName is the name of the log level field in New Relic logging JSON
+	LogSeverityFieldName = "level"
 
-	LogSeverityUnknown = "UNKNOWN" // If the log level/severity is not known, it must be set to this value
+	// LogMessageFieldName is the name of the log message field in New Relic logging JSON
+	LogMessageFieldName = "message"
 
-	MaxLogLength = 32768 // The maximum number of bytes a new relic log message is allowed to have
+	// LogTimestampFieldName is the name of the timestamp field in New Relic logging JSON
+	LogTimestampFieldName = "timestamp"
+
+	// LogSpanIDFieldName is the name of the span ID field in the New Relic logging JSON
+	LogSpanIDFieldName = "span.id"
+
+	// LogTraceIDFieldName is the name of the trace ID field in the New Relic logging JSON
+	LogTraceIDFieldName = "trace.id"
+
+	// LogSeverityUnknown is the value the log severity should be set to if no log severity is known
+	LogSeverityUnknown = "UNKNOWN"
+
+	// MaxLogLength is the maximum number of bytes the log message is allowed to be
+	MaxLogLength = 32768
 )
 
 // for internal user only
