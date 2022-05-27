@@ -591,7 +591,7 @@ func (app *app) RecordLog(log *LogData) error {
 		return errAppLoggingDisabled
 	}
 
-	event, err := log.ToLogEvent()
+	event, err := log.toLogEvent()
 	if err != nil {
 		return err
 	}

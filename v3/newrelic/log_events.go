@@ -75,7 +75,7 @@ func (events *logEvents) capacity() int {
 func (events *logEvents) Add(e *logEvent) {
 	// always collect this but do not report logging metrics when disabled
 	events.numSeen++
-	events.severityCount[e.severity] += 1
+	events.severityCount[e.severity]++
 
 	// Do not collect log events when the harvest capacity is intentionally set to 0
 	// or the collection of events is explicitly disabled

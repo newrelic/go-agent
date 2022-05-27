@@ -12,14 +12,15 @@ import (
 )
 
 const (
-	LogSeverityFieldName  = "level"
-	LogMessageFieldName   = "message"
-	LogTimestampFieldName = "timestamp"
-	LogSpanIDFieldName    = "span.id"
-	LogTraceIDFieldName   = "trace.id"
-	LogSeverityUnknown    = "UNKNOWN"
+	LogSeverityFieldName  = "level"     // The name of the log level field in New Relic logging JSON
+	LogMessageFieldName   = "message"   // The name of the log message field in New Relic logging JSON
+	LogTimestampFieldName = "timestamp" // The name of the timestamp field in New Relic logging JSON
+	LogSpanIDFieldName    = "span.id"   // The name of the span ID field in the New Relic logging JSON
+	LogTraceIDFieldName   = "trace.id"  // The name of the trace ID field in the New Relic logging JSON
 
-	MaxLogLength = 32768
+	LogSeverityUnknown = "UNKNOWN" // If the log level/severity is not known, it must be set to this value
+
+	MaxLogLength = 32768 // The maximum number of bytes a new relic log message is allowed to have
 )
 
 // for internal user only
@@ -76,7 +77,7 @@ var (
 	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
 )
 
-func (data *LogData) ToLogEvent() (*logEvent, error) {
+func (data *LogData) toLogEvent() (*logEvent, error) {
 	if data == nil {
 		return nil, errNilLogData
 	}

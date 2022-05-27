@@ -1,14 +1,14 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package scaleTests
 
 import (
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzerolog"
+	nrzerolog "github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzerolog"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )

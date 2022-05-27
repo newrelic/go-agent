@@ -385,7 +385,15 @@ func TestLogEventCollectionDisabled(t *testing.T) {
 }
 
 func BenchmarkAddLogEvent(b *testing.B) {
-
+	event := logEvent{
+		priority:  0.6,
+		timestamp: 123456,
+		severity:  "INFO",
+		message:   "test message",
+		spanID:    "Ad300dra7re89",
+		traceID:   "2234iIhfLlejrJ0",
+	}
+	logEventBenchmarkHelper(b, &event)
 }
 
 func logEventBenchmarkHelper(b *testing.B, event *logEvent) {
