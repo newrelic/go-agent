@@ -57,24 +57,8 @@ func (timer *harvestTimer) ready(now time.Time) (ready harvestTypes) {
 	return
 }
 
-type knownPriorities map[string]priority
-
-func (kp knownPriorities) get(uuid string) (priority, bool) {
-	priority, ok := kp[uuid]
-	return priority, ok
-}
-
-func (kp knownPriorities) add(uuid string, p priority) {
-	kp[uuid] = p
-}
-
-func (kp knownPriorities) drop(uuid string) {
-	delete(kp, uuid)
-}
-
 // harvest contains collected data.
 type harvest struct {
-	knownPriorities
 	timer *harvestTimer
 
 	Metrics      *metricTable

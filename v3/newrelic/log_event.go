@@ -95,9 +95,11 @@ func (data *LogData) toLogEvent() (*logEvent, error) {
 	data.Severity = strings.TrimSpace(data.Severity)
 
 	var spanID, traceID string
+	var priority priority
 
 	if data.Context != nil {
 		txn := FromContext(data.Context)
+		priority = txn.thread.BetterCAT.Priority
 		traceMetadata := txn.GetTraceMetadata()
 		spanID = traceMetadata.SpanID
 		traceID = traceMetadata.TraceID
@@ -109,19 +111,12 @@ func (data *LogData) toLogEvent() (*logEvent, error) {
 		spanID:    spanID,
 		traceID:   traceID,
 		timestamp: data.Timestamp,
+		priority:  priority,
 	}
 
 	return &event, nil
 }
 
 func (e *logEvent) MergeIntoHarvest(h *harvest) {
-	// Inherit priority from traces or spans if possible
-	if e.traceID != "" {
-		priority, known := h.knownPriorities.get(e.traceID)
-		if known {
-			e.priority = priority
-		}
-	}
-
 	h.LogEvents.Add(e)
 }
