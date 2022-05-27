@@ -85,7 +85,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 	var nilHarvest *harvest
 
 	config := config{Config: defaultConfig()}
-	config.ApplicationLogging.Frameworks = append(config.ApplicationLogging.Frameworks, ZerologFrameworkName)
+	config.ApplicationLogging.Frameworks = append(config.ApplicationLogging.Frameworks, zerologFrameworkName)
 
 	run := newAppRun(config, internal.ConnectReplyDefaults())
 	run.harvestConfig = testHarvestCfgr

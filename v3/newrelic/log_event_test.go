@@ -41,15 +41,3 @@ func TestWriteJSONWithTrace(t *testing.T) {
 		t.Errorf("Log json did not build correctly: expecting %s, got %s", expect, actualString)
 	}
 }
-
-func BenchmarkToLogEvent(b *testing.B) {
-	b.ReportAllocs()
-	data := LogData{
-		Severity:  "INFO",
-		Message:   "test message",
-		Timestamp: 123456,
-		TraceID:   "123Ad234",
-		SpanID:    "adf3441",
-	}
-	data.ToLogEvent()
-}

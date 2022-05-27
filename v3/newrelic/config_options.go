@@ -44,9 +44,9 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
-// ConfigAppLogForwadringEnabled enables or disables the collection
+// ConfigAppLogForwardingEnabled enables or disables the collection
 // of logs from a users application by the agent
-// Defaults: enabled=false, maxSamplesStored=10,000
+// Defaults: enabled=false
 func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		if enabled == true {
@@ -86,7 +86,7 @@ func ConfigAppLogEnabled(enabled bool) ConfigOption {
 }
 
 const (
-	ZerologFrameworkName = "Zerolog"
+	zerologFrameworkName = "Zerolog"
 )
 
 // ConfigZerologPluginEnabled enables all supported features
@@ -102,9 +102,9 @@ func ConfigZerologPluginEnabled(enabled bool) ConfigOption {
 			cfg.ApplicationLogging.Forwarding.Enabled = true
 			cfg.ApplicationLogging.Metrics.Enabled = true
 			if cfg.ApplicationLogging.Frameworks == nil {
-				cfg.ApplicationLogging.Frameworks = []string{ZerologFrameworkName}
+				cfg.ApplicationLogging.Frameworks = []string{zerologFrameworkName}
 			} else {
-				cfg.ApplicationLogging.Frameworks = append(cfg.ApplicationLogging.Frameworks, ZerologFrameworkName)
+				cfg.ApplicationLogging.Frameworks = append(cfg.ApplicationLogging.Frameworks, zerologFrameworkName)
 			}
 		}
 	}

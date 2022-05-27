@@ -5,8 +5,10 @@ package newrelic
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -30,13 +32,12 @@ type logEvent struct {
 	traceID   string
 }
 
-// For customer use
+// LogData contains data fields that are needed to generate log events.
 type LogData struct {
-	Timestamp int64
-	Severity  string
-	Message   string
-	SpanID    string
-	TraceID   string
+	Timestamp int64           // Required: Unix Millisecond Timestamp
+	Severity  string          // Optional: Severity of log being consumed
+	Message   string          // Optional: Message of log being consumed; Maximum size: 32768 Bytes.
+	Context   context.Context // Optional: context containing a New Relic Transaction
 }
 
 // writeJSON prepares JSON in the format expected by the collector.
@@ -71,7 +72,6 @@ var (
 	severityUnknown = "UNKNOWN"
 
 	errEmptyTimestamp     = errors.New("timestamp can not be empty")
-	errEmptySeverity      = errors.New("severity can not be empty")
 	errNilLogData         = errors.New("log data can not be nil")
 	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
 )
@@ -81,7 +81,7 @@ func (data *LogData) ToLogEvent() (*logEvent, error) {
 		return nil, errNilLogData
 	}
 	if data.Severity == "" {
-		return nil, errEmptySeverity
+		data.Severity = LogSeverityUnknown
 	}
 	if len(data.Message) > MaxLogLength {
 		return nil, errLogMessageTooLarge
@@ -90,11 +90,23 @@ func (data *LogData) ToLogEvent() (*logEvent, error) {
 		return nil, errEmptyTimestamp
 	}
 
+	data.Message = strings.TrimSpace(data.Message)
+	data.Severity = strings.TrimSpace(data.Severity)
+
+	var spanID, traceID string
+
+	if data.Context != nil {
+		txn := FromContext(data.Context)
+		traceMetadata := txn.GetTraceMetadata()
+		spanID = traceMetadata.SpanID
+		traceID = traceMetadata.TraceID
+	}
+
 	event := logEvent{
 		message:   data.Message,
 		severity:  data.Severity,
-		spanID:    data.SpanID,
-		traceID:   data.TraceID,
+		spanID:    spanID,
+		traceID:   traceID,
 		timestamp: data.Timestamp,
 	}
 

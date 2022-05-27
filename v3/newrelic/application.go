@@ -75,16 +75,13 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 }
 
 // RecordLog records the data from a single log line.
-// This consumes a LogData object pointer with the following expectations:
+// This consumes a LogData object that should be configured
+// with data taken from a logging framework.
 //
-// Timestamp: Required; An int64 unix millisecond timestamp
-// Severity:  Required; A string log severity or level taken from logging framework.
-//             If unknown, must be set to "UNKNOWN".
-// Message:   Optional; A string containing the message body of a log.
-// SpanID:    Optional; A string containing the UUID of a span.
-// TraceID:   Optional; A string containing the UUID of a transaction trace. Log events
-//              inherit their priority from transaction traces when possible. Failing to
-//              include this when necessary, may result in important logs being dropped.
+// Certian parts of this feature can be turned off based on your
+// config settings. Record log is capable of recording log events,
+// as well as log metrics depending on how your application is
+// configured.
 func (app *Application) RecordLog(logEvent *LogData) {
 	if nil == app {
 		return

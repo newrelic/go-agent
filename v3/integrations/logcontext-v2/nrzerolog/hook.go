@@ -21,20 +21,11 @@ func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 		logLevel = level.String()
 	}
 
-	var spanID, traceID string
-	if h.Context != nil {
-		txn := newrelic.FromContext(h.Context)
-		traceMetadata := txn.GetTraceMetadata()
-		spanID = traceMetadata.SpanID
-		traceID = traceMetadata.TraceID
-	}
-
 	data := newrelic.LogData{
 		Timestamp: time.Now().UnixMilli(),
 		Severity:  logLevel,
 		Message:   msg,
-		SpanID:    spanID,
-		TraceID:   traceID,
+		Context:   h.Context,
 	}
 
 	h.App.RecordLog(&data)
