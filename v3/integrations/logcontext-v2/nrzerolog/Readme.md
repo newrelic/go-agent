@@ -34,7 +34,8 @@ import (
 )
 
 func main() {
-    baseLogger := zerolog.New(os.Stdout)
+    // Initialize a zerolog logger
+	baseLogger := zerolog.New(os.Stdout)
 
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigFromEnvironment(),
@@ -52,6 +53,7 @@ func main() {
 		App: app,
 	}
 
+	// Wrap logger with New Relic Hook
 	nrLogger := baseLogger.Hook(nrHook)
 	nrLogger.Info().Msg("Hello World")
 }

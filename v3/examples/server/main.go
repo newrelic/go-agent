@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -251,6 +252,8 @@ func main() {
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigDistributedTracerEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -274,6 +277,26 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/browser", browser))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
+	http.HandleFunc("/log", func(w http.ResponseWriter, req *http.Request) {
+		// Transactions started without an http.Request are classified as
+		// background transactions.
+		txn := app.StartTransaction("Log")
+		defer txn.End()
+
+		ctx := newrelic.NewContext(context.Background(), txn)
+
+		data := &newrelic.LogData{
+			Timestamp: time.Now().UnixMilli(),
+			Message:   "Log Message",
+			Severity:  "info",
+			Context:   ctx,
+		}
+
+		app.RecordLog(data)
+
+		io.WriteString(w, "Log")
+		time.Sleep(150 * time.Millisecond)
+	})
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as
