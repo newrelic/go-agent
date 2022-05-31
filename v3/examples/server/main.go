@@ -285,8 +285,12 @@ func main() {
 
 		ctx := newrelic.NewContext(context.Background(), txn)
 
+		// Versions of go prior to 1.17 do not have a built in function for Unix Milli time.
+		// For go versions 1.17+ use time.Now().UnixMilli() to generate timestamps
+		timestamp := time.Now().UnixNano() / int64(time.Millisecond)
+
 		data := &newrelic.LogData{
-			Timestamp: time.Now().UnixMilli(),
+			Timestamp: timestamp,
 			Message:   "Log Message",
 			Severity:  "info",
 			Context:   ctx,
