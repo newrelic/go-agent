@@ -6,6 +6,7 @@ package newrelic
 import (
 	"bytes"
 	"container/heap"
+	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
@@ -23,6 +24,7 @@ type logEvents struct {
 	numSeen        int
 	failedHarvests int
 	severityCount  map[string]int
+	rwMutex        sync.RWMutex
 	commonAttributes
 	config loggingConfig
 	logs   logEventHeap
@@ -34,7 +36,10 @@ func (events *logEvents) NumSeen() float64 { return float64(events.numSeen) }
 // NumSaved returns the number of events that will be harvested for this cycle
 func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
 
+// Adds logging metrics to a harvest metric table if appropriate
 func (events *logEvents) RecordLoggingMetrics(metrics *metricTable, forced metricForce) {
+	events.rwMutex.RLock()
+	defer events.rwMutex.RUnlock()
 	if events.config.collectMetrics && metrics != nil {
 		metrics.addCount(logsSeen, events.NumSeen(), forced)
 		for k, v := range events.severityCount {
@@ -73,6 +78,8 @@ func (events *logEvents) capacity() int {
 }
 
 func (events *logEvents) Add(e *logEvent) {
+	events.rwMutex.Lock()
+	defer events.rwMutex.Unlock()
 	// always collect this but do not report logging metrics when disabled
 	events.numSeen++
 	events.severityCount[e.severity]++

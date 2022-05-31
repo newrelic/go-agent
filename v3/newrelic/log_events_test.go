@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -384,31 +385,242 @@ func TestLogEventCollectionDisabled(t *testing.T) {
 	}
 }
 
-func BenchmarkAddLogEvent(b *testing.B) {
-	event := logEvent{
-		priority:  0.6,
+func TestAsyncAddLogEvent(t *testing.T) {
+	numThreads := 8
+	capacity := numThreads - 1
+
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(capacity))
+	group := new(sync.WaitGroup)
+	group.Add(numThreads)
+
+	// Add a bunch of log events aynchronously
+	for n := 0; n < numThreads/2; n++ {
+		p := priority(float32(n) / 10.0)
+		event := &logEvent{
+			priority:  p,
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   fmt.Sprintf("info message %.2f", p),
+		}
+		go func(event *logEvent) {
+			events.Add(event)
+			group.Done()
+		}(event)
+	}
+
+	for n := 0; n < numThreads/2; n++ {
+		p := priority(float32(n+numThreads/2) / 10.0)
+		event := &logEvent{
+			priority:  p,
+			timestamp: 123456,
+			severity:  "WARN",
+			message:   fmt.Sprintf("warn message %.2f", p),
+		}
+		go func(event *logEvent) {
+			events.Add(event)
+			group.Done()
+		}(event)
+	}
+
+	group.Wait()
+
+	expectMap := map[string]int{
+		"INFO": numThreads / 2,
+		"WARN": numThreads / 2,
+	}
+
+	metricErrors := events.assertMetrics(8, capacity, expectMap)
+	if metricErrors != nil {
+		t.Error(metricErrors)
+	}
+
+	// Test Heap Data
+	// Assumes that heap implementation is correct when executed synchronously
+	expectEvents := newLogEvents(testCommonAttributes, loggingConfigEnabled(capacity))
+	for n := 0; n < numThreads/2; n++ {
+		p := priority(float32(n) / 10.0)
+		event := &logEvent{
+			priority:  p,
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   fmt.Sprintf("info message %.2f", p),
+		}
+		expectEvents.Add(event)
+	}
+
+	for n := 0; n < numThreads/2; n++ {
+		p := priority(float32(n+numThreads/2) / 10.0)
+		event := &logEvent{
+			priority:  p,
+			timestamp: 123456,
+			severity:  "WARN",
+			message:   fmt.Sprintf("warn message %.2f", p),
+		}
+		expectEvents.Add(event)
+	}
+
+	heapError := events.assertHeapContains(expectEvents)
+	if heapError != nil {
+		t.Error(heapError)
+	}
+}
+
+// verifies that each log events heap contains the same elements
+// heaps must be composed of unique messages
+func (events *logEvents) assertHeapContains(expect *logEvents) error {
+	expectLogs := make(map[string]bool, len(expect.logs))
+
+	for _, event := range expect.logs {
+		expectLogs[event.message] = false
+	}
+
+	for _, event := range events.logs {
+		expectLogs[event.message] = true
+	}
+
+	missing := []string{}
+	for msg, contains := range expectLogs {
+		if !contains {
+			missing = append(missing, msg)
+		}
+	}
+
+	if len(missing) != 0 {
+		return fmt.Errorf("expected logs were missing from the event heap: %v", missing)
+	}
+
+	return nil
+}
+
+func (events *logEvents) assertMetrics(expectSeen, expectSaved int, expectSeverity map[string]int) error {
+	err := assertInt(expectSeen, int(events.NumSeen()))
+	if err != nil {
+		return fmt.Errorf("incorrect number of events seen: %v", err)
+	}
+
+	err = assertInt(expectSaved, int(events.NumSaved()))
+	if err != nil {
+		return fmt.Errorf("incorrect number of events saved: %v", err)
+	}
+
+	if len(expectSeverity) != len(events.severityCount) {
+		return fmt.Errorf("incorrect number of severities seen: expect %d, actual %d", len(expectSeverity), len(events.severityCount))
+	}
+
+	for k, v := range expectSeverity {
+		val, ok := events.severityCount[k]
+		if !ok {
+			return fmt.Errorf("expected severity %s is missing from actual severity count", k)
+		}
+
+		err := assertInt(v, val)
+		if err != nil {
+			return fmt.Errorf("incorrect severity count for %s: expect %d, actual %d", k, v, val)
+		}
+	}
+
+	return nil
+}
+
+func assertInt(expect int, actual int) error {
+	if expect != actual {
+		return fmt.Errorf("expected %d, actual %d", expect, actual)
+	}
+	return nil
+}
+
+func BenchmarkAddMaximumLogEvent(b *testing.B) {
+	eventList := make([]*logEvent, internal.MaxLogEvents)
+	for n := 0; n < internal.MaxTxnEvents; n++ {
+		eventList[n] = &logEvent{
+			priority:  newPriority(),
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   "test message",
+			spanID:    "Ad300dra7re89",
+			traceID:   "2234iIhfLlejrJ0",
+		}
+	}
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for n := 0; n < internal.MaxTxnEvents; n++ {
+		events.Add(eventList[n])
+	}
+}
+
+func BenchmarkWriteMaximumLogEventJSON(b *testing.B) {
+	eventList := make([]*logEvent, internal.MaxLogEvents)
+	for n := 0; n < internal.MaxTxnEvents; n++ {
+		eventList[n] = &logEvent{
+			priority:  newPriority(),
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   "test message",
+			spanID:    "Ad300dra7re89",
+			traceID:   "2234iIhfLlejrJ0",
+		}
+	}
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
+
+	for n := 0; n < internal.MaxTxnEvents; n++ {
+		events.Add(eventList[n])
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	js, err := events.CollectorJSON(agentRunID)
+	if nil != err {
+		b.Fatal(err, js)
+	}
+}
+
+func BenchmarkAddAndWriteLogEvent(b *testing.B) {
+	b.ReportAllocs()
+
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
+	event := &logEvent{
+		priority:  newPriority(),
 		timestamp: 123456,
 		severity:  "INFO",
 		message:   "test message",
 		spanID:    "Ad300dra7re89",
 		traceID:   "2234iIhfLlejrJ0",
 	}
-	logEventBenchmarkHelper(b, &event)
+
+	events.Add(event)
+	js, err := events.CollectorJSON(agentRunID)
+	if nil != err {
+		b.Fatal(err, js)
+	}
 }
 
-func logEventBenchmarkHelper(b *testing.B, event *logEvent) {
+func BenchmarkAddAndWriteMaximumLogEvents(b *testing.B) {
+
+	eventList := make([]*logEvent, internal.MaxLogEvents)
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
 	for n := 0; n < internal.MaxTxnEvents; n++ {
-		events.Add(event)
+		eventList[n] = &logEvent{
+			priority:  newPriority(),
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   "test message",
+			spanID:    "Ad300dra7re89",
+			traceID:   "2234iIhfLlejrJ0",
+		}
 	}
 
-	b.ReportAllocs()
 	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
-		js, err := events.CollectorJSON(agentRunID)
-		if nil != err {
-			b.Fatal(err, js)
-		}
+	for n := 0; n < internal.MaxTxnEvents; n++ {
+		events.Add(eventList[n])
+	}
+
+	js, err := events.CollectorJSON(agentRunID)
+	if nil != err {
+		b.Fatal(err, js)
 	}
 }
