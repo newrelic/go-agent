@@ -6,7 +6,6 @@ package newrelic
 import (
 	"bytes"
 	"container/heap"
-	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
@@ -24,34 +23,26 @@ type logEvents struct {
 	numSeen        int
 	failedHarvests int
 	severityCount  map[string]int
-	rwMutex        sync.RWMutex
 	commonAttributes
 	config loggingConfig
 	logs   logEventHeap
 }
 
 // NumSeen returns the number of events seen
-func (events *logEvents) NumSeen() int {
-	events.rwMutex.RLock()
-	defer events.rwMutex.RUnlock()
-	return events.numSeen
+func (events *logEvents) NumSeen() float64 {
+	return float64(events.numSeen)
 }
 
 // NumSaved returns the number of events that will be harvested for this cycle
-func (events *logEvents) NumSaved() int {
-	events.rwMutex.RLock()
-	defer events.rwMutex.RUnlock()
-	return len(events.logs)
+func (events *logEvents) NumSaved() float64 {
+	return float64(len(events.logs))
 }
 
 // Adds logging metrics to a harvest metric table if appropriate
 func (events *logEvents) RecordLoggingMetrics(metrics *metricTable) {
-	events.rwMutex.RLock()
-	defer events.rwMutex.RUnlock()
-
 	// This is done to avoid accessing locks 3 times instead of once
-	seen := float64(events.numSeen)
-	saved := float64(len(events.logs))
+	seen := events.NumSeen()
+	saved := events.NumSaved()
 
 	if events.config.collectMetrics && metrics != nil {
 		metrics.addCount(logsSeen, seen, forced)
@@ -91,8 +82,6 @@ func (events *logEvents) capacity() int {
 }
 
 func (events *logEvents) Add(e *logEvent) {
-	events.rwMutex.Lock()
-	defer events.rwMutex.Unlock()
 	// always collect this but do not report logging metrics when disabled
 	events.numSeen++
 	events.severityCount[e.severity]++
@@ -140,13 +129,10 @@ func (events *logEvents) Merge(other *logEvents) {
 		events.Add(&e)
 	}
 
-	events.numSeen = allSeen
+	events.numSeen = int(allSeen)
 }
 
 func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
-	events.rwMutex.RLock()
-	defer events.rwMutex.RUnlock()
-
 	if 0 == len(events.logs) {
 		return nil, nil
 	}
