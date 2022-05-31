@@ -289,7 +289,7 @@ func main() {
 		// For go versions 1.17+ use time.Now().UnixMilli() to generate timestamps
 		timestamp := time.Now().UnixNano() / int64(time.Millisecond)
 
-		data := &newrelic.LogData{
+		data := newrelic.LogData{
 			Timestamp: timestamp,
 			Message:   "Log Message",
 			Severity:  "info",

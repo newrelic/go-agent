@@ -95,7 +95,7 @@ func (h *harvest) Ready(now time.Time) *harvest {
 		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
 	}
 	if 0 != types&harvestLogEvents {
-		h.LogEvents.RecordLoggingMetrics(h.Metrics, forced)
+		h.LogEvents.RecordLoggingMetrics(h.Metrics)
 		ready.LogEvents = h.LogEvents
 		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.config)
 	}

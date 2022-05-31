@@ -32,5 +32,5 @@ func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 		Context:   h.Context,
 	}
 
-	h.App.RecordLog(&data)
+	h.App.RecordLog(data)
 }

@@ -82,14 +82,14 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // config settings. Record log is capable of recording log events,
 // as well as log metrics depending on how your application is
 // configured.
-func (app *Application) RecordLog(logEvent *LogData) {
+func (app *Application) RecordLog(logEvent LogData) {
 	if nil == app {
 		return
 	}
 	if nil == app.app {
 		return
 	}
-	err := app.app.RecordLog(logEvent)
+	err := app.app.RecordLog(&logEvent)
 	if err != nil {
 		app.app.Error("unable to record log", map[string]interface{}{
 			"reason": err.Error(),

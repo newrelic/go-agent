@@ -145,6 +145,7 @@ func TestMergeFullLogEvents(t *testing.T) {
 	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
 	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
 	e1.Add(sampleLogEvent(0.25, infoLevel, "c"))
+
 	e2.Add(sampleLogEvent(0.06, infoLevel, "d"))
 	e2.Add(sampleLogEvent(0.12, infoLevel, "e"))
 	e2.Add(sampleLogEvent(0.18, infoLevel, "f"))
@@ -164,10 +165,10 @@ func TestMergeFullLogEvents(t *testing.T) {
 	if string(json) != expect {
 		t.Error(string(json))
 	}
-	if 7 != e1.numSeen {
+	if e1.numSeen != 7 {
 		t.Error(e1.numSeen)
 	}
-	if 2 != e1.NumSaved() {
+	if e1.NumSaved() != 2 {
 		t.Error(e1.NumSaved())
 	}
 }
@@ -529,58 +530,26 @@ func assertInt(expect int, actual int) error {
 	return nil
 }
 
-func BenchmarkAddMaximumLogEvent(b *testing.B) {
-	eventList := make([]*logEvent, internal.MaxLogEvents)
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		eventList[n] = &logEvent{
-			priority:  newPriority(),
-			timestamp: 123456,
-			severity:  "INFO",
-			message:   "test message",
-			spanID:    "Ad300dra7re89",
-			traceID:   "2234iIhfLlejrJ0",
-		}
-	}
+func BenchmarkLogEventsAdd(b *testing.B) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		events.Add(eventList[n])
-	}
-}
-
-func BenchmarkWriteMaximumLogEventJSON(b *testing.B) {
-	eventList := make([]*logEvent, internal.MaxLogEvents)
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		eventList[n] = &logEvent{
-			priority:  newPriority(),
-			timestamp: 123456,
-			severity:  "INFO",
-			message:   "test message",
-			spanID:    "Ad300dra7re89",
-			traceID:   "2234iIhfLlejrJ0",
-		}
-	}
-	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
-
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		events.Add(eventList[n])
+	event := &logEvent{
+		priority:  newPriority(),
+		timestamp: 123456,
+		severity:  "INFO",
+		message:   "test message",
+		spanID:    "Ad300dra7re89",
+		traceID:   "2234iIhfLlejrJ0",
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	js, err := events.CollectorJSON(agentRunID)
-	if nil != err {
-		b.Fatal(err, js)
+	for i := 0; i < b.N; i++ {
+		events.Add(event)
 	}
 }
 
-func BenchmarkAddAndWriteLogEvent(b *testing.B) {
-	b.ReportAllocs()
-
+func BenchmarkLogEventsCollectorJSON(b *testing.B) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
 	event := &logEvent{
 		priority:  newPriority(),
@@ -592,35 +561,14 @@ func BenchmarkAddAndWriteLogEvent(b *testing.B) {
 	}
 
 	events.Add(event)
-	js, err := events.CollectorJSON(agentRunID)
-	if nil != err {
-		b.Fatal(err, js)
-	}
-}
 
-func BenchmarkAddAndWriteMaximumLogEvents(b *testing.B) {
-
-	eventList := make([]*logEvent, internal.MaxLogEvents)
-	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		eventList[n] = &logEvent{
-			priority:  newPriority(),
-			timestamp: 123456,
-			severity:  "INFO",
-			message:   "test message",
-			spanID:    "Ad300dra7re89",
-			traceID:   "2234iIhfLlejrJ0",
-		}
-	}
-
+	b.ReportAllocs()
 	b.ResetTimer()
 
-	for n := 0; n < internal.MaxTxnEvents; n++ {
-		events.Add(eventList[n])
-	}
-
-	js, err := events.CollectorJSON(agentRunID)
-	if nil != err {
-		b.Fatal(err, js)
+	for i := 0; i < b.N; i++ {
+		js, err := events.CollectorJSON(agentRunID)
+		if nil != err {
+			b.Fatal(err, js)
+		}
 	}
 }

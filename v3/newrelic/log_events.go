@@ -31,17 +31,30 @@ type logEvents struct {
 }
 
 // NumSeen returns the number of events seen
-func (events *logEvents) NumSeen() float64 { return float64(events.numSeen) }
-
-// NumSaved returns the number of events that will be harvested for this cycle
-func (events *logEvents) NumSaved() float64 { return float64(len(events.logs)) }
-
-// Adds logging metrics to a harvest metric table if appropriate
-func (events *logEvents) RecordLoggingMetrics(metrics *metricTable, forced metricForce) {
+func (events *logEvents) NumSeen() int {
 	events.rwMutex.RLock()
 	defer events.rwMutex.RUnlock()
+	return events.numSeen
+}
+
+// NumSaved returns the number of events that will be harvested for this cycle
+func (events *logEvents) NumSaved() int {
+	events.rwMutex.RLock()
+	defer events.rwMutex.RUnlock()
+	return len(events.logs)
+}
+
+// Adds logging metrics to a harvest metric table if appropriate
+func (events *logEvents) RecordLoggingMetrics(metrics *metricTable) {
+	events.rwMutex.RLock()
+	defer events.rwMutex.RUnlock()
+
+	// This is done to avoid accessing locks 3 times instead of once
+	seen := float64(events.numSeen)
+	saved := float64(len(events.logs))
+
 	if events.config.collectMetrics && metrics != nil {
-		metrics.addCount(logsSeen, events.NumSeen(), forced)
+		metrics.addCount(logsSeen, seen, forced)
 		for k, v := range events.severityCount {
 			severitySeen := logsSeen + "/" + k
 			metrics.addCount(severitySeen, float64(v), forced)
@@ -49,7 +62,7 @@ func (events *logEvents) RecordLoggingMetrics(metrics *metricTable, forced metri
 	}
 
 	if events.config.collectEvents {
-		metrics.addCount(logsDropped, events.NumSeen()-events.NumSaved(), forced)
+		metrics.addCount(logsDropped, seen-saved, forced)
 	}
 }
 
@@ -120,16 +133,20 @@ func (events *logEvents) mergeFailed(other *logEvents) {
 	events.Merge(other)
 }
 
+// Merge two logEvents together
 func (events *logEvents) Merge(other *logEvents) {
-	allSeen := events.numSeen + other.numSeen
-
+	allSeen := events.NumSeen() + other.NumSeen()
 	for _, e := range other.logs {
 		events.Add(&e)
 	}
+
 	events.numSeen = allSeen
 }
 
 func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
+	events.rwMutex.RLock()
+	defer events.rwMutex.RUnlock()
+
 	if 0 == len(events.logs) {
 		return nil, nil
 	}
