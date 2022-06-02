@@ -20,6 +20,7 @@ func TestBasicRoute(t *testing.T) {
 	e := echo.New()
 	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
+
 		return c.Blob(http.StatusOK, "text/html", []byte("Hello, World!"))
 	})
 
