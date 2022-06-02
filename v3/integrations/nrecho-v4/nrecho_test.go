@@ -18,6 +18,7 @@ func TestBasicRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
+
 	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
 
