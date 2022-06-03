@@ -5,23 +5,20 @@ package nrecho
 
 import (
 	"errors"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-
 	"github.com/labstack/echo/v4"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestBasicRoute(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-
 	e.Use(Middleware(app.Application))
 	e.GET("/hello", func(c echo.Context) error {
-
 		return c.Blob(http.StatusOK, "text/html", []byte("Hello, World!"))
 	})
 
