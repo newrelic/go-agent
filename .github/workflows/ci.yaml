@@ -124,8 +124,8 @@ jobs:
             dirs: v3/integrations/nrecho-v3
             # Test against the latest v3 Echo:
             extratesting: go get -u github.com/labstack/echo@v3
+            # go/new/http no longer stable under go 1.17.x
           - go-version: 1.17.x
-            # go/new/http no longer stable under go 1.17
             dirs: v3/integrations/nrecho-v4
             extratesting: go get -u github.com/labstack/echo@master
           - go-version: 1.15.x
