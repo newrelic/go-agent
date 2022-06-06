@@ -49,9 +49,9 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/denisenkom/go-mssqldb/msdsn"
+	"github.com/newrelic/go-agent/v3/internal"
 
 	"github.com/denisenkom/go-mssqldb"
-	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/sqlparse"
 )
