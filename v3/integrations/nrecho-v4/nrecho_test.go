@@ -33,13 +33,19 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET /hello",
-		IsWeb: true,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
+
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "S",
+			"sampled":          false,
+			"guid":             "*",
+			"traceId":          "*",
+			"priority":         "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "200",
@@ -93,9 +99,11 @@ func TestTransactionContext(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -113,8 +121,9 @@ func TestNotFoundHandler(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "NotFoundHandler",
-		IsWeb: true,
+		Name:          "NotFoundHandler",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -135,9 +144,11 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "MethodNotAllowedHandler",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "MethodNotAllowedHandler",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -158,14 +169,20 @@ func TestReturnsHTTPError(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
+			"sampled":          false,
+			"guid":             "*",
+			"traceId":          "*",
+			"priority":         "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "418",
@@ -194,14 +211,20 @@ func TestReturnsError(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
+			"sampled":          false,
+			"guid":             "*",
+			"traceId":          "*",
+			"priority":         "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": "500",
@@ -230,14 +253,20 @@ func TestResponseCode(t *testing.T) {
 
 	e.ServeHTTP(response, req)
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "F",
+			"sampled":          false,
+			"guid":             "*",
+			"traceId":          "*",
+			"priority":         "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "418",
