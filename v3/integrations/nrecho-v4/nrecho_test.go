@@ -43,9 +43,10 @@ func TestBasicRoute(t *testing.T) {
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "S",
 			"sampled":          false,
-			"guid":             "*",
-			"traceId":          "*",
-			"priority":         "*",
+			// Note: "*" is a wildcard value
+			"guid":     "*",
+			"traceId":  "*",
+			"priority": "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "200",
