@@ -42,7 +42,6 @@
 //
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	row := db.QueryRowContext(ctx, "SELECT count(*) from tables")
-
 package nrmssql
 
 import (
