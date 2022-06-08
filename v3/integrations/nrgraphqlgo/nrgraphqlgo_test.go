@@ -95,9 +95,10 @@ func TestExtensionWithTransaction(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 }
-
 func TestExtensionResolveError(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 	txn := app.StartTransaction("query")
@@ -140,12 +141,21 @@ func TestExtensionResolveError(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.message":   "ooooooops",
 			"error.class":     internal.MatchAnything,
 			"transactionName": "OtherTransaction/Go/query",
+			"sampled":         false,
+			// Note: "*" is a wildcard value
+			"guid":     "*",
+			"traceId":  "*",
+			"priority": "*",
 		},
 	}})
 }
@@ -177,12 +187,20 @@ func TestExtensionParseError(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.message":   internal.MatchAnything,
 			"error.class":     internal.MatchAnything,
 			"transactionName": "OtherTransaction/Go/query",
+			"sampled":         false,
+			"guid":            "*",
+			"traceId":         "*",
+			"priority":        "*",
 		},
 	}})
 }
@@ -216,12 +234,20 @@ func TestExtensionValidationError(t *testing.T) {
 		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "OtherTransactionTotalTime/Go/query", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 	})
 	app.ExpectErrorEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.message":   internal.MatchAnything,
 			"error.class":     internal.MatchAnything,
 			"transactionName": "OtherTransaction/Go/query",
+			"sampled":         false,
+			"guid":            "*",
+			"traceId":         "*",
+			"priority":        "*",
 		},
 	}})
 }
