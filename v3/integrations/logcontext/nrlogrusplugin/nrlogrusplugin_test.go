@@ -93,7 +93,15 @@ func BenchmarkTextFormatter(b *testing.B) {
 }
 
 func BenchmarkWithTransaction(b *testing.B) {
-	app := integrationsupport.NewTestApp(nil, nil)
+	app := integrationsupport.NewTestApp(
+		func(reply *internal.ConnectReply) {
+			reply.SetSampleNothing()
+			// reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		},
+		func(cfg *newrelic.Config) {
+			cfg.DistributedTracer.Enabled = false
+			cfg.CrossApplicationTracer.Enabled = false
+		})
 	txn := app.StartTransaction("TestLogDistributedTracingDisabled")
 	log := newTestLogger(bytes.NewBuffer([]byte("")))
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -135,7 +143,15 @@ func TestLogNoTxn(t *testing.T) {
 }
 
 func TestLogDistributedTracingDisabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, nil)
+	app := integrationsupport.NewTestApp(
+		func(reply *internal.ConnectReply) {
+			reply.SetSampleNothing()
+			// reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+		},
+		func(cfg *newrelic.Config) {
+			cfg.DistributedTracer.Enabled = false
+			cfg.CrossApplicationTracer.Enabled = false
+		})
 	txn := app.StartTransaction("TestLogDistributedTracingDisabled")
 	out := bytes.NewBuffer([]byte{})
 	log := newTestLogger(out)
@@ -286,6 +302,7 @@ func TestEntryError(t *testing.T) {
 		"message":     "Hello World!",
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
+		"trace.id":    matchAnything,
 	})
 }
 
@@ -307,6 +324,7 @@ func TestWithCustomField(t *testing.T) {
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
 		"zip":         "zap",
+		"trace.id":    matchAnything,
 	})
 }
 

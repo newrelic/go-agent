@@ -8,4 +8,5 @@ require (
 	github.com/newrelic/go-agent/v3 v3.16.1
 	// v1.4.0 is required for for the log.WithContext.
 	github.com/sirupsen/logrus v1.4.0
+	golang.org/x/sys v0.0.0-20220608164250-635b8c9b7f68 // indirect
 )
