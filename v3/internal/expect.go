@@ -101,9 +101,11 @@ func HarvestTesting(app interface{}, replyfn func(*ConnectReply)) {
 
 // WantTxn provides the expectation parameters to ExpectTxnMetrics.
 type WantTxn struct {
-	Name      string
-	IsWeb     bool
-	NumErrors int
+	Name          string
+	IsWeb         bool
+	NumErrors     int
+	UnknownCaller bool
+	ErrorByCaller bool
 }
 
 // Expect exposes methods that allow for testing whether the correct data was

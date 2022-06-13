@@ -56,6 +56,23 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 			{Name: "Apdex", Scope: "", Forced: true, Data: nil},
 			{Name: "Apdex/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
 		}
+		if want.UnknownCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+			)
+		}
+		if want.ErrorByCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
+		}
+
 	} else {
 		scope = "OtherTransaction/Go/" + want.Name
 		allWebOther = "allOther"
@@ -148,7 +165,7 @@ func expectAttributes(v internal.Validator, exists map[string]interface{}, expec
 			v.Error("expected attribute not found: ", key)
 			continue
 		}
-		if val == internal.MatchAnything {
+		if val == internal.MatchAnything || val == "*" {
 			continue
 		}
 		v1 := fmt.Sprint(found)
