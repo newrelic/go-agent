@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -22,6 +23,91 @@ func TestWriteJSON(t *testing.T) {
 	if expect != actualString {
 		t.Errorf("Log json did not build correctly: expecting %s, got %s", expect, actualString)
 	}
+}
+
+func TestToLogEvent(t *testing.T) {
+	type testcase struct {
+		name        string
+		data        LogData
+		expectEvent logEvent
+		expectErr   error
+	}
+
+	testcases := []testcase{
+		{
+			name: "valid case no context",
+			data: LogData{
+				Timestamp: 123456,
+				Severity:  "info",
+				Message:   "test 123",
+			},
+			expectEvent: logEvent{
+				timestamp: 123456,
+				severity:  "info",
+				message:   "test 123",
+			},
+		},
+		{
+			name: "valid case empty severity",
+			data: LogData{
+				Timestamp: 123456,
+				Message:   "test 123",
+			},
+			expectEvent: logEvent{
+				timestamp: 123456,
+				severity:  "UNKNOWN",
+				message:   "test 123",
+			},
+		},
+		{
+			name: "message too large",
+			data: LogData{
+				Timestamp: 123456,
+				Severity:  "info",
+				Message:   randomString(32769),
+			},
+			expectErr: errLogMessageTooLarge,
+		},
+		{
+			name: "empty timestamp",
+			data: LogData{
+				Severity: "info",
+				Message:  "test 123",
+			},
+			expectErr: errEmptyTimestamp,
+		},
+	}
+
+	for _, testcase := range testcases {
+		actualEvent, err := testcase.data.toLogEvent()
+
+		if testcase.expectErr != err {
+			t.Error(fmt.Errorf("%s: expected error %v, got %v", testcase.name, testcase.expectErr, err))
+		}
+
+		if testcase.expectErr == nil {
+			expect := testcase.expectEvent
+			if expect.message != actualEvent.message {
+				t.Error(fmt.Errorf("%s: expected message %s, got %s", testcase.name, expect.message, actualEvent.message))
+			}
+			if expect.severity != actualEvent.severity {
+				t.Error(fmt.Errorf("%s: expected severity %s, got %s", testcase.name, expect.severity, actualEvent.severity))
+			}
+			if expect.timestamp != actualEvent.timestamp {
+				t.Error(fmt.Errorf("%s: expected timestamp %d, got %d", testcase.name, expect.timestamp, actualEvent.timestamp))
+			}
+		}
+	}
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randomString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
 
 func TestWriteJSONWithTrace(t *testing.T) {
@@ -51,7 +137,12 @@ func BenchmarkToLogEvent(b *testing.B) {
 		Message:   "test message",
 	}
 
-	data.toLogEvent()
+	b.ReportAllocs()
+
+	for n := 0; n < b.N; n++ {
+		data.toLogEvent()
+	}
+
 }
 
 func recordLogBenchmarkHelper(b *testing.B, data *LogData, h *harvest) {
@@ -70,25 +161,7 @@ func BenchmarkRecordLog(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	recordLogBenchmarkHelper(b, &data, harvest)
-}
-
-func BenchmarkRecordLog100(b *testing.B) {
-	harvest := newHarvest(time.Now(), testHarvestCfgr)
-
-	logs := make([]*LogData, 100)
-	for i := 0; i < 100; i++ {
-		logs[i] = &LogData{
-			Timestamp: 123456,
-			Severity:  "INFO",
-			Message:   "test message " + fmt.Sprint(i),
-		}
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for _, log := range logs {
-		recordLogBenchmarkHelper(b, log, harvest)
+	for n := 0; n < b.N; n++ {
+		recordLogBenchmarkHelper(b, &data, harvest)
 	}
 }

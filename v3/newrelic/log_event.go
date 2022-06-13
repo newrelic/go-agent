@@ -80,26 +80,23 @@ func (e *logEvent) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	// regex allows a single word, or number
-	severityUnknown = "UNKNOWN"
-
 	errEmptyTimestamp     = errors.New("timestamp can not be empty")
 	errNilLogData         = errors.New("log data can not be nil")
 	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
 )
 
-func (data *LogData) toLogEvent() (*logEvent, error) {
+func (data *LogData) toLogEvent() (logEvent, error) {
 	if data == nil {
-		return nil, errNilLogData
+		return logEvent{}, errNilLogData
 	}
 	if data.Severity == "" {
 		data.Severity = LogSeverityUnknown
 	}
 	if len(data.Message) > MaxLogLength {
-		return nil, errLogMessageTooLarge
+		return logEvent{}, errLogMessageTooLarge
 	}
 	if data.Timestamp == 0 {
-		return nil, errEmptyTimestamp
+		return logEvent{}, errEmptyTimestamp
 	}
 
 	data.Message = strings.TrimSpace(data.Message)
@@ -125,7 +122,7 @@ func (data *LogData) toLogEvent() (*logEvent, error) {
 		priority:  priority,
 	}
 
-	return &event, nil
+	return event, nil
 }
 
 func (e *logEvent) MergeIntoHarvest(h *harvest) {

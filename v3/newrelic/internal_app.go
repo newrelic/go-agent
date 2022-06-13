@@ -597,7 +597,7 @@ func (app *app) RecordLog(log *LogData) error {
 	}
 
 	run, _ := app.getState()
-	app.Consume(run.Reply.RunID, event)
+	app.Consume(run.Reply.RunID, &event)
 	return nil
 }
 
