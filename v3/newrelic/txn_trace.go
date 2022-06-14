@@ -392,9 +392,9 @@ func (traces *harvestTraces) Witness(trace harvestTrace) {
 	}
 }
 
-func (traces *harvestTraces) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+func (traces *harvestTraces) DataBuffer() *bytes.Buffer {
 	if traces.Len() == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// This estimate is used to guess the size of the buffer.  No worries if
@@ -408,7 +408,13 @@ func (traces *harvestTraces) Data(agentRunID string, harvestStart time.Time) ([]
 		estimate += 100 * t.Trace.nodes.Len()
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 0, estimate))
+	return bytes.NewBuffer(make([]byte, 0, estimate))
+}
+
+func (traces *harvestTraces) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
+	if buf == nil {
+		return nil
+	}
 	buf.WriteByte('[')
 	jsonx.AppendString(buf, agentRunID)
 	buf.WriteByte(',')
@@ -435,7 +441,7 @@ func (traces *harvestTraces) Data(agentRunID string, harvestStart time.Time) ([]
 	buf.WriteByte(']')
 	buf.WriteByte(']')
 
-	return buf.Bytes(), nil
+	return nil
 }
 
 func (traces *harvestTraces) slice() []*harvestTrace {

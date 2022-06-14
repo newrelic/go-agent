@@ -91,13 +91,10 @@ func (events *analyticsEvents) Merge(other *analyticsEvents) {
 	events.numSeen = allSeen
 }
 
-func (events *analyticsEvents) CollectorJSON(agentRunID string) ([]byte, error) {
-	if 0 == len(events.events) {
-		return nil, nil
+func (events *analyticsEvents) CollectorJSON(buf *bytes.Buffer, agentRunID string) error {
+	if buf == nil || events.NumSaved() == 0 {
+		return nil
 	}
-
-	estimate := 256 * len(events.events)
-	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
 	buf.WriteByte('[')
 	jsonx.AppendString(buf, agentRunID)
@@ -120,8 +117,7 @@ func (events *analyticsEvents) CollectorJSON(agentRunID string) ([]byte, error) 
 	buf.WriteByte(']')
 	buf.WriteByte(']')
 
-	return buf.Bytes(), nil
-
+	return nil
 }
 
 // split splits the events into two.  NOTE! The two event pools are not valid

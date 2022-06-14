@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -257,10 +258,12 @@ type payloadCreator interface {
 	// intermittent collector issue) the payload may be merged into the next
 	// time period's harvest.
 	harvestable
+
+	DataBuffer() *bytes.Buffer
 	// Data prepares JSON in the format expected by the collector endpoint.
 	// This method should return (nil, nil) if the payload is empty and no
 	// rpm request is necessary.
-	Data(agentRunID string, harvestStart time.Time) ([]byte, error)
+	WriteData(buffer *bytes.Buffer, agentRunID string, harvestStart time.Time) error
 	// EndpointMethod is used for the "method" query parameter when posting
 	// the data.
 	EndpointMethod() string

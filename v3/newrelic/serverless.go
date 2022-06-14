@@ -80,7 +80,8 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 	for _, p := range payloads {
 		agentRunID := ""
 		cmd := p.EndpointMethod()
-		data, err := p.Data(agentRunID, time.Now())
+		data := p.DataBuffer()
+		err := p.WriteData(data, agentRunID, time.Now())
 		if err != nil {
 			sh.logger.Error("error creating payload json", map[string]interface{}{
 				"command": cmd,
@@ -88,7 +89,7 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 			})
 			continue
 		}
-		if nil == data {
+		if data == nil {
 			continue
 		}
 		// NOTE!  This code relies on the fact that each payload is
@@ -104,7 +105,7 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 				"command": cmd,
 			})
 		}
-		d := json.RawMessage(data)
+		d := json.RawMessage(data.Bytes())
 		harvestPayloads[cmd] = &d
 	}
 

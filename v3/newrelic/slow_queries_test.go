@@ -13,9 +13,10 @@ import (
 
 func TestEmptySlowQueriesData(t *testing.T) {
 	slows := newSlowQueries(maxHarvestSlowSQLs)
-	js, err := slows.Data("agentRunID", time.Now())
-	if nil != js || nil != err {
-		t.Error(string(js), err)
+	buf := slows.DataBuffer()
+	err := slows.WriteData(buf, "agentRunID", time.Now())
+	if buf != nil {
+		t.Error(string(buf.Bytes()), err)
 	}
 }
 
@@ -53,7 +54,13 @@ func TestSlowQueriesBasic(t *testing.T) {
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)
-	js, err := harvestSlows.Data("agentRunID", time.Now())
+	buf := harvestSlows.DataBuffer()
+	err = harvestSlows.WriteData(buf, "agentRunID", time.Now())
+	if err != nil {
+		t.Error(err)
+	}
+
+	js := buf.Bytes()
 	expect := compactJSONString(`[[
 	[
 		"WebTransaction/Go/hello",
@@ -118,7 +125,13 @@ func TestSlowQueriesExcludeURI(t *testing.T) {
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)
-	js, err := harvestSlows.Data("agentRunID", time.Now())
+	buf := harvestSlows.DataBuffer()
+	err = harvestSlows.WriteData(buf, "agentRunID", time.Now())
+	if err != nil {
+		t.Error(err)
+	}
+
+	js := buf.Bytes()
 	expect := compactJSONString(`[[
 	[
 		"WebTransaction/Go/hello",
@@ -182,7 +195,13 @@ func TestSlowQueriesAggregation(t *testing.T) {
 	for _, idx := range perm {
 		sq.observeInstance(slows[idx])
 	}
-	js, err := sq.Data("agentRunID", time.Now())
+	buf := sq.DataBuffer()
+	err := sq.WriteData(buf, "agentRunID", time.Now())
+	if err != nil {
+		t.Error(err)
+	}
+
+	js := buf.Bytes()
 	expect := compactJSONString(`[[
 	["Txn/241","",2296612630,"41","Datastore/41",1,241000,241000,241000,{}],
 	["Txn/242","",2279835011,"42","Datastore/42",2,384000,142000,242000,{}],
@@ -252,7 +271,13 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 	})
 	harvestSlows := newSlowQueries(maxHarvestSlowSQLs)
 	harvestSlows.Merge(txnSlows, txnEvent)
-	js, err := harvestSlows.Data("agentRunID", time.Now())
+	buf := harvestSlows.DataBuffer()
+	err = harvestSlows.WriteData(buf, "agentRunID", time.Now())
+	if err != nil {
+		t.Error(err)
+	}
+
+	js := buf.Bytes()
 	expect := compactJSONString(`[[
 	[
 		"WebTransaction/Go/hello",

@@ -19,12 +19,13 @@ var (
 
 func TestEmptyMetrics(t *testing.T) {
 	mt := newMetricTable(20, start)
-	js, err := mt.CollectorJSON(`12345`, end)
+	buf := mt.DataBuffer()
+	err := mt.CollectorJSON(buf, `12345`, end)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if nil != js {
-		t.Error(string(js))
+	if nil != buf {
+		t.Error(string(buf.Bytes()))
 	}
 }
 
@@ -62,8 +63,10 @@ func TestMetrics(t *testing.T) {
 		{Name: "count 1", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
-	js, err := mt.Data("12345", end)
-	if nil != err {
+	buf := mt.DataBuffer()
+	err := mt.CollectorJSON(buf, `12345`, end)
+	js := buf.Bytes()
+	if err != nil {
 		t.Error(err)
 	}
 	// The JSON metric order is not deterministic, so we merely test that it
@@ -277,10 +280,13 @@ func BenchmarkMetricTableCollectorJSON(b *testing.B) {
 		}
 	}
 
-	data, err := mt.CollectorJSON("12345", time.Now())
+	buf := mt.DataBuffer()
+	err := mt.CollectorJSON(buf, "12345", time.Now())
 	if nil != err {
 		b.Fatal(err)
 	}
+
+	data := buf.Bytes()
 	if err := isValidJSON(data); nil != err {
 		b.Fatal(err, string(data))
 	}
@@ -291,7 +297,7 @@ func BenchmarkMetricTableCollectorJSON(b *testing.B) {
 	id := "12345"
 	now := time.Now()
 	for i := 0; i < b.N; i++ {
-		mt.CollectorJSON(id, now)
+		mt.CollectorJSON(buf, id, now)
 	}
 }
 

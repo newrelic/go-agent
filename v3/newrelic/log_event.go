@@ -72,7 +72,7 @@ func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('}')
 }
 
-// MarshalJSON is used for testing.
+// MarshalJSON is used for testing only
 func (e *logEvent) MarshalJSON() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 256))
 	e.WriteJSON(buf)

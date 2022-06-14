@@ -61,8 +61,17 @@ func (events *errorEvents) MergeIntoHarvest(h *harvest) {
 	h.ErrorEvents.mergeFailed(events.analyticsEvents)
 }
 
-func (events *errorEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	return events.CollectorJSON(agentRunID)
+func (events *errorEvents) DataBuffer() *bytes.Buffer {
+	if 0 == len(events.events) {
+		return nil
+	}
+
+	estimate := 256 * len(events.events)
+	return bytes.NewBuffer(make([]byte, 0, estimate))
+}
+
+func (events *errorEvents) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
+	return events.CollectorJSON(buf, agentRunID)
 }
 
 func (events *errorEvents) EndpointMethod() string {

@@ -813,9 +813,10 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 func TestEmptyHarvestTraces(t *testing.T) {
 	start := time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC)
 	ht := newHarvestTraces()
-	js, err := ht.Data("12345", start)
-	if nil != err || nil != js {
-		t.Error(string(js), err)
+	data := ht.DataBuffer()
+	err := ht.WriteData(data, "12345", start)
+	if err != nil || data != nil {
+		t.Error(string(data.Bytes()), err)
 	}
 }
 
@@ -1169,7 +1170,9 @@ func TestTraceJSON(t *testing.T) {
    ]
 ]`
 
-	js, err := ht.Data("12345", start)
+	data := ht.DataBuffer()
+	err := ht.WriteData(data, "12345", start)
+	js := data.Bytes()
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -1223,7 +1226,9 @@ func TestTraceCatGUID(t *testing.T) {
    ]
 ]`
 
-	js, err := ht.Data("12345", start)
+	data := ht.DataBuffer()
+	err := ht.WriteData(data, "12345", start)
+	js := data.Bytes()
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -1284,7 +1289,9 @@ func TestTraceDistributedTracingGUID(t *testing.T) {
    ]
 ]`
 
-	js, err := ht.Data("12345", start)
+	data := ht.DataBuffer()
+	err := ht.WriteData(data, "12345", start)
+	js := data.Bytes()
 	if nil != err {
 		t.Fatal(err)
 	}

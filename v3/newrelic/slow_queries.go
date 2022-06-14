@@ -246,14 +246,19 @@ func (slows *slowQueries) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(']')
 }
 
-func (slows *slowQueries) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+func (slows *slowQueries) DataBuffer() *bytes.Buffer {
 	if 0 == len(slows.priorityQueue) {
-		return nil, nil
+		return nil
 	}
 	estimate := 1024 * len(slows.priorityQueue)
-	buf := bytes.NewBuffer(make([]byte, 0, estimate))
+	return bytes.NewBuffer(make([]byte, 0, estimate))
+}
+func (slows *slowQueries) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
+	if buf == nil {
+		return nil
+	}
 	slows.WriteJSON(buf)
-	return buf.Bytes(), nil
+	return nil
 }
 
 func (slows *slowQueries) MergeIntoHarvest(newHarvest *harvest) {

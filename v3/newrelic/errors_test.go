@@ -239,7 +239,9 @@ func TestErrorsLifecycle(t *testing.T) {
 		},
 		TotalTime: 2 * time.Second,
 	})
-	js, err := he.Data("agentRunID", time.Now())
+	buf := he.DataBuffer()
+	err := he.WriteData(buf, "agentRunID", time.Now())
+	js := buf.Bytes()
 	if nil != err {
 		t.Error(err)
 	}
@@ -350,7 +352,10 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		js, err := he.Data("agentRundID", when)
+		buf := he.DataBuffer()
+		err := he.WriteData(buf, "agentRundID", when)
+		js := buf.Bytes()
+
 		if nil != err || nil == js {
 			b.Fatal(err, js)
 		}

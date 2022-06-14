@@ -6,6 +6,7 @@ package newrelic
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 )
@@ -22,8 +23,7 @@ var (
 
 	commonJSON = `[{"common":{"attributes":{"entity.guid":"testGUID","entity.name":"testEntityName","hostname":"testHostname"}},"logs":[`
 
-	infoLevel    = "INFO"
-	unknownLevel = "UNKNOWN"
+	infoLevel = "INFO"
 )
 
 func loggingConfigEnabled(limit int) loggingConfig {
@@ -50,10 +50,13 @@ func TestBasicLogEvents(t *testing.T) {
 	events.Add(sampleLogEvent(0.5, infoLevel, "message1"))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message2"))
 
-	json, err := events.CollectorJSON(agentRunID)
+	buf := events.DataBuffer()
+	err := events.CollectorJSON(buf, agentRunID)
 	if nil != err {
 		t.Fatal(err)
 	}
+
+	json := buf.Bytes()
 
 	expected := commonJSON +
 		`{"level":"INFO","message":"message1","timestamp":123456},` +
@@ -62,22 +65,23 @@ func TestBasicLogEvents(t *testing.T) {
 	if string(json) != expected {
 		t.Error(string(json), expected)
 	}
-	if 2 != events.numSeen {
+	if events.numSeen != 2 {
 		t.Error(events.numSeen)
 	}
-	if 2 != events.NumSaved() {
+	if events.NumSaved() != 2 {
 		t.Error(events.NumSaved())
 	}
 }
 
 func TestEmptyLogEvents(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
-	json, err := events.CollectorJSON(agentRunID)
+	buf := events.DataBuffer()
+	err := events.CollectorJSON(buf, agentRunID)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if nil != json {
-		t.Error(string(json))
+	if nil != buf {
+		t.Error(string(buf.Bytes()))
 	}
 	if 0 != events.numSeen {
 		t.Error(events.numSeen)
@@ -98,7 +102,9 @@ func TestSamplingLogEvents(t *testing.T) {
 	events.Add(sampleLogEvent(0.8, infoLevel, "e"))
 	events.Add(sampleLogEvent(0.3, infoLevel, "f"))
 
-	json, err := events.CollectorJSON(agentRunID)
+	buf := events.DataBuffer()
+	err := events.CollectorJSON(buf, agentRunID)
+	json := buf.Bytes()
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -122,17 +128,20 @@ func TestMergeEmptyLogEvents(t *testing.T) {
 	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	e1.Merge(e2)
-	json, err := e1.CollectorJSON(agentRunID)
-	if nil != err {
+
+	buf := e1.DataBuffer()
+	err := e1.CollectorJSON(buf, agentRunID)
+
+	if err != nil {
 		t.Fatal(err)
 	}
-	if nil != json {
-		t.Error(string(json))
+	if buf != nil {
+		t.Error(string(buf.Bytes()))
 	}
-	if 0 != e1.numSeen {
+	if e1.numSeen != 0 {
 		t.Error(e1.numSeen)
 	}
-	if 0 != e1.NumSaved() {
+	if e1.NumSaved() != 0 {
 		t.Error(e1.NumSaved())
 	}
 }
@@ -151,7 +160,11 @@ func TestMergeFullLogEvents(t *testing.T) {
 	e2.Add(sampleLogEvent(0.24, infoLevel, "g"))
 
 	e1.Merge(e2)
-	json, err := e1.CollectorJSON(agentRunID)
+
+	buf := e1.DataBuffer()
+	err := e1.CollectorJSON(buf, agentRunID)
+	json := buf.Bytes()
+
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -187,7 +200,10 @@ func TestLogEventMergeFailedSuccess(t *testing.T) {
 
 	e1.mergeFailed(e2)
 
-	json, err := e1.CollectorJSON(agentRunID)
+	buf := e1.DataBuffer()
+	err := e1.CollectorJSON(buf, agentRunID)
+	json := buf.Bytes()
+
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -227,7 +243,10 @@ func TestLogEventMergeFailedLimitReached(t *testing.T) {
 
 	e1.mergeFailed(e2)
 
-	json, err := e1.CollectorJSON(agentRunID)
+	buf := e1.DataBuffer()
+	err := e1.CollectorJSON(buf, agentRunID)
+	json := buf.Bytes()
+
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -256,12 +275,19 @@ func TestLogEventsSplitFull(t *testing.T) {
 		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
 	}
 	// Test that the capacity cannot exceed the max.
-	if 10 != events.capacity() {
+	if events.capacity() != 10 {
 		t.Error(events.capacity())
 	}
 	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
+
+	buf := e1.DataBuffer()
+	err1 := e1.CollectorJSON(buf, agentRunID)
+	j1 := buf.Bytes()
+
+	buf = e2.DataBuffer()
+	err2 := e2.CollectorJSON(buf, agentRunID)
+	j2 := buf.Bytes()
+
 	if err1 != nil || err2 != nil {
 		t.Fatal(err1, err2)
 	}
@@ -295,8 +321,14 @@ func TestLogEventsSplitNotFullOdd(t *testing.T) {
 		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
 	}
 	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
+	buf := e1.DataBuffer()
+	err1 := e1.CollectorJSON(buf, agentRunID)
+	j1 := buf.Bytes()
+
+	buf = e2.DataBuffer()
+	err2 := e2.CollectorJSON(buf, agentRunID)
+	j2 := buf.Bytes()
+
 	if err1 != nil || err2 != nil {
 		t.Fatal(err1, err2)
 	}
@@ -325,8 +357,14 @@ func TestLogEventsSplitNotFullEven(t *testing.T) {
 		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
 	}
 	e1, e2 := events.split()
-	j1, err1 := e1.CollectorJSON(agentRunID)
-	j2, err2 := e2.CollectorJSON(agentRunID)
+	buf := e1.DataBuffer()
+	err1 := e1.CollectorJSON(buf, agentRunID)
+	j1 := buf.Bytes()
+
+	buf = e2.DataBuffer()
+	err2 := e2.CollectorJSON(buf, agentRunID)
+	j2 := buf.Bytes()
+
 	if err1 != nil || err2 != nil {
 		t.Fatal(err1, err2)
 	}
@@ -360,9 +398,10 @@ func TestLogEventsZeroCapacity(t *testing.T) {
 	if 1 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
 		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
 	}
-	js, err := events.CollectorJSON("agentRunID")
-	if err != nil || js != nil {
-		t.Error(err, string(js))
+	buf := events.DataBuffer()
+	err := events.CollectorJSON(buf, agentRunID)
+	if err != nil || buf != nil {
+		t.Error(err, string(buf.Bytes()))
 	}
 }
 
@@ -379,9 +418,42 @@ func TestLogEventCollectionDisabled(t *testing.T) {
 	if 1 != events.NumSeen() || 1 != len(events.severityCount) || 0 != events.NumSaved() || 5 != events.capacity() {
 		t.Error(events.NumSeen(), len(events.severityCount), events.NumSaved(), events.capacity())
 	}
-	js, err := events.CollectorJSON("agentRunID")
-	if err != nil || js != nil {
-		t.Error(err, string(js))
+
+	buf := events.DataBuffer()
+	err := events.CollectorJSON(buf, agentRunID)
+	if err != nil || buf != nil {
+		t.Error(err, string(buf.Bytes()))
+	}
+}
+
+func BenchmarkRecordLoggingMetrics(b *testing.B) {
+	now := time.Now()
+	fixedHarvestTypes := harvestMetricsTraces & harvestTxnEvents & harvestSpanEvents & harvestLogEvents
+	h := newHarvest(now, harvestConfig{
+		ReportPeriods: map[harvestTypes]time.Duration{
+			fixedHarvestTypes: fixedHarvestPeriod,
+			harvestLogEvents:  time.Second * 5,
+		},
+		LoggingConfig: loggingConfigEnabled(3),
+	})
+
+	for i := 0; i < internal.MaxLogEvents; i++ {
+		logEvent := logEvent{
+			newPriority(),
+			123456,
+			"INFO",
+			fmt.Sprintf("User 'xyz' logged in %d", i),
+			"123456789ADF",
+			"ADF09876565",
+		}
+
+		h.LogEvents.Add(&logEvent)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.ReportAllocs()
+		h.LogEvents.RecordLoggingMetrics(h.Metrics)
 	}
 }
 
@@ -404,26 +476,30 @@ func BenchmarkLogEventsAdd(b *testing.B) {
 	}
 }
 
+// Benchmark the cost of harvesting a full log event collector
 func BenchmarkLogEventsCollectorJSON(b *testing.B) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
-	event := &logEvent{
-		priority:  newPriority(),
-		timestamp: 123456,
-		severity:  "INFO",
-		message:   "test message",
-		spanID:    "Ad300dra7re89",
-		traceID:   "2234iIhfLlejrJ0",
-	}
 
-	events.Add(event)
+	for i := 0; i < internal.MaxLogEvents; i++ {
+		event := &logEvent{
+			priority:  newPriority(),
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   "test message",
+			spanID:    "Ad300dra7re89",
+			traceID:   "2234iIhfLlejrJ0",
+		}
+		events.Add(event)
+	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		js, err := events.CollectorJSON(agentRunID)
+		buf := events.DataBuffer()
+		err := events.CollectorJSON(buf, agentRunID)
 		if nil != err {
-			b.Fatal(err, js)
+			b.Fatal(err)
 		}
 	}
 }

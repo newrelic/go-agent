@@ -231,9 +231,10 @@ func TestEmptyPayloads(t *testing.T) {
 		t.Error(len(payloads))
 	}
 	for _, p := range payloads {
-		d, err := p.Data("agentRunID", time.Now())
-		if d != nil || err != nil {
-			t.Error(d, err)
+		data := p.DataBuffer()
+		err := p.WriteData(data, "agentRunID", time.Now())
+		if data != nil || err != nil {
+			t.Error(data.Bytes(), err)
 		}
 	}
 }
@@ -289,9 +290,10 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 	if m := p.EndpointMethod(); m != "custom_event_data" {
 		t.Error(m)
 	}
-	data, err := p.Data("agentRunID", now)
-	if nil != err || nil == data {
-		t.Error(err, data)
+	data := p.DataBuffer()
+	err := p.WriteData(data, "agentRunID", now)
+	if err != nil || data == nil {
+		t.Error(err, data.Bytes())
 	}
 	if h.CustomEvents.capacity() != 3 || h.CustomEvents.NumSaved() != 0 {
 		t.Fatal("custom events not correctly reset")
@@ -338,9 +340,10 @@ func TestHarvestLogEventsReady(t *testing.T) {
 	if m := p.EndpointMethod(); m != "log_event_data" {
 		t.Error(m)
 	}
-	data, err := p.Data("agentRunID", now)
-	if nil != err || nil == data {
-		t.Error(err, data)
+	data := p.DataBuffer()
+	err := p.WriteData(data, "agentRunID", now)
+	if err != nil || data == nil {
+		t.Error(err, data.Bytes())
 	}
 	if h.LogEvents.capacity() != 3 || h.LogEvents.NumSaved() != 0 {
 		t.Fatal("log events not correctly reset")
@@ -387,9 +390,10 @@ func TestHarvestTxnEventsReady(t *testing.T) {
 	if m := p.EndpointMethod(); m != "analytic_event_data" {
 		t.Error(m)
 	}
-	data, err := p.Data("agentRunID", now)
-	if nil != err || nil == data {
-		t.Error(err, data)
+	data := p.DataBuffer()
+	err := p.WriteData(data, "agentRunID", now)
+	if err != nil || data == nil {
+		t.Error(err, data.Bytes())
 	}
 	if h.TxnEvents.capacity() != 3 || h.TxnEvents.NumSaved() != 0 {
 		t.Fatal("txn events not correctly reset")
@@ -429,9 +433,10 @@ func TestHarvestErrorEventsReady(t *testing.T) {
 	if m := p.EndpointMethod(); m != "error_event_data" {
 		t.Error(m)
 	}
-	data, err := p.Data("agentRunID", now)
-	if nil != err || nil == data {
-		t.Error(err, data)
+	data := p.DataBuffer()
+	err := p.WriteData(data, "agentRunID", now)
+	if err != nil || data == nil {
+		t.Error(err, data.Bytes())
 	}
 	if h.ErrorEvents.capacity() != 3 || h.ErrorEvents.NumSaved() != 0 {
 		t.Fatal("error events not correctly reset")
@@ -469,9 +474,10 @@ func TestHarvestSpanEventsReady(t *testing.T) {
 	if m := p.EndpointMethod(); m != "span_event_data" {
 		t.Error(m)
 	}
-	data, err := p.Data("agentRunID", now)
-	if nil != err || nil == data {
-		t.Error(err, data)
+	data := p.DataBuffer()
+	err := p.WriteData(data, "agentRunID", now)
+	if err != nil || data == nil {
+		t.Error(err, data.Bytes())
 	}
 	if h.SpanEvents.capacity() != 3 || h.SpanEvents.NumSaved() != 0 {
 		t.Fatal("span events not correctly reset")
@@ -1048,11 +1054,18 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	// safe.
 	payloads := h.Ready(now.Add(2 * time.Minute)).Payloads(false)
 	for _, p := range payloads {
-		js, err := p.Data("agentRunID", now.Add(2*time.Minute))
-		if nil != err {
+		data := p.DataBuffer()
+		err := p.WriteData(data, "agentRunID", now.Add(2*time.Minute))
+		if err != nil {
 			t.Error(err)
 			continue
 		}
+
+		var js []byte
+		if data != nil {
+			js = data.Bytes()
+		}
+
 		// Only metric data should be present.
 		if (p.EndpointMethod() == "metric_data") !=
 			(string(js) != "") {
