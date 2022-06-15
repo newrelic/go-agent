@@ -137,7 +137,7 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 		return nil, nil
 	}
 
-	estimate := 256 * len(events.logs)
+	estimate := 500 * len(events.logs)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
 	if events.numSeen == 0 {

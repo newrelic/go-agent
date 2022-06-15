@@ -6,6 +6,7 @@ package newrelic
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 )
@@ -406,11 +407,37 @@ func BenchmarkLogEventsAdd(b *testing.B) {
 
 func BenchmarkLogEventsCollectorJSON(b *testing.B) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
+	for i := 0; i < internal.MaxLogEvents; i++ {
+		event := &logEvent{
+			priority:  newPriority(),
+			timestamp: 123456,
+			severity:  "INFO",
+			message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
+			spanID:    "Ad300dra7re89",
+			traceID:   "2234iIhfLlejrJ0",
+		}
+
+		events.Add(event)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		js, err := events.CollectorJSON(agentRunID)
+		if nil != err {
+			b.Fatal(err, js)
+		}
+	}
+}
+
+func BenchmarkLogEventCollectorJSON_OneEvent(b *testing.B) {
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(internal.MaxLogEvents))
 	event := &logEvent{
 		priority:  newPriority(),
 		timestamp: 123456,
 		severity:  "INFO",
-		message:   "test message",
+		message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
 		spanID:    "Ad300dra7re89",
 		traceID:   "2234iIhfLlejrJ0",
 	}
@@ -425,5 +452,36 @@ func BenchmarkLogEventsCollectorJSON(b *testing.B) {
 		if nil != err {
 			b.Fatal(err, js)
 		}
+	}
+}
+
+func BenchmarkRecordLoggingMetrics(b *testing.B) {
+	now := time.Now()
+	fixedHarvestTypes := harvestMetricsTraces & harvestTxnEvents & harvestSpanEvents & harvestLogEvents
+	h := newHarvest(now, harvestConfig{
+		ReportPeriods: map[harvestTypes]time.Duration{
+			fixedHarvestTypes: fixedHarvestPeriod,
+			harvestLogEvents:  time.Second * 5,
+		},
+		LoggingConfig: loggingConfigEnabled(3),
+	})
+
+	for i := 0; i < internal.MaxLogEvents; i++ {
+		logEvent := logEvent{
+			newPriority(),
+			123456,
+			"INFO",
+			fmt.Sprintf("User 'xyz' logged in %d", i),
+			"123456789ADF",
+			"ADF09876565",
+		}
+
+		h.LogEvents.Add(&logEvent)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.ReportAllocs()
+		h.LogEvents.RecordLoggingMetrics(h.Metrics)
 	}
 }
