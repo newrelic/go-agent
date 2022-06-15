@@ -437,7 +437,7 @@ func BenchmarkLogEventCollectorJSON_OneEvent(b *testing.B) {
 		priority:  newPriority(),
 		timestamp: 123456,
 		severity:  "INFO",
-		message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
+		message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytes.",
 		spanID:    "Ad300dra7re89",
 		traceID:   "2234iIhfLlejrJ0",
 	}

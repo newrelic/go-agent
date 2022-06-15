@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Exported Constants for log decorators
 const (
 	// LogSeverityFieldName is the name of the log level field in New Relic logging JSON
 	LogSeverityFieldName = "level"
@@ -34,7 +35,12 @@ const (
 	MaxLogLength = 32768
 )
 
-// for internal user only
+// internal variable names and constants
+const (
+	// number of bytes expected to be needed for the average log message
+	averageLogSizeEstimate = 400
+)
+
 type logEvent struct {
 	priority  priority
 	timestamp int64
@@ -74,7 +80,7 @@ func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 
 // MarshalJSON is used for testing.
 func (e *logEvent) MarshalJSON() ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, 256))
+	buf := bytes.NewBuffer(make([]byte, 0, averageLogSizeEstimate))
 	e.WriteJSON(buf)
 	return buf.Bytes(), nil
 }

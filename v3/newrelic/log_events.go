@@ -133,11 +133,11 @@ func (events *logEvents) Merge(other *logEvents) {
 }
 
 func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
-	if 0 == len(events.logs) {
+	if len(events.logs) == 0 {
 		return nil, nil
 	}
 
-	estimate := 500 * len(events.logs)
+	estimate := averageLogSizeEstimate * len(events.logs)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
 	if events.numSeen == 0 {
@@ -178,7 +178,6 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 	buf.WriteByte('}')
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
-
 }
 
 // split splits the events into two.  NOTE! The two event pools are not valid

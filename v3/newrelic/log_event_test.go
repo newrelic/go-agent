@@ -1,6 +1,7 @@
 package newrelic
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -163,5 +164,27 @@ func BenchmarkRecordLog(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		recordLogBenchmarkHelper(b, &data, harvest)
+	}
+}
+
+func BenchmarkWriteJSON(b *testing.B) {
+	data := LogData{
+		Timestamp: 123456,
+		Severity:  "INFO",
+		Message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
+	}
+
+	event, err := data.toLogEvent()
+	if err != nil {
+		b.Fail()
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, averageLogSizeEstimate))
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		event.WriteJSON(buf)
 	}
 }
