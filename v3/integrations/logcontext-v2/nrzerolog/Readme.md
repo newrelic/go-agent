@@ -49,6 +49,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Send logs to New Relic outside of a transaction
 	nrHook := nrzerolog.NewRelicHook{
 		App: app,
 	}
@@ -56,22 +57,43 @@ func main() {
 	// Wrap logger with New Relic Hook
 	nrLogger := baseLogger.Hook(nrHook)
 	nrLogger.Info().Msg("Hello World")
+
+	// Send logs to New Relic inside of a transaction
+	txn := app.StartTransaction("My Transaction")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	nrTxnHook := nrzerolog.NewRelicHook{
+		App:     app,
+		Context: ctx,
+	}
+
+	txnLogger := baseLogger.Hook(nrTxnHook)
+	txnLogger.Debug().Msg("This is a transaction log")
+
+	txn.End()
 }
 ```
 
 ## Usage
 
-When zerolog hooks a logger object, a copy of that logger is made and the 
-hook is appended to it. Zerolog will *Never* check if you duplicate information
-in your logger, so it is very important to treat each logger as an immutable step
-in how you generate your logs. If you apply a hook function to a logger that is
-already hooked, it will capture all logs generated from that logger twice.  
-To avoid that issue, we recommend that you create a base logger object with the 
-formatting settings you prefer, then new hooked loggers from that base logger.
+Please enable the agent to ingest your logs by calling newrelic.ConfigZerologPluginEnabled(true),
+when setting up your application. This will enable log forwarding and log metrics in the
+go agent automatically.
 
-The plugin captures the log level, and the message from zerolog. It will generate a
-timestamp at the moment the hook function is called in zerolog. In most cases, this
-timestamp will be the same as the time posted in zerolog, however in some corner
-cases, a very small amount of offset is possible.
+This integration for the zerolog logging frameworks uses a built in feature
+of the zerolog framework called hook functions. Zerolog loggers can be modified
+to have hook functions run on them before each time a write is executed. When a
+logger is hooked, meaning a hook function was added to that logger with the Hook() 
+funciton, a copy of that logger is created with those changes. Note that zerolog
+will *never* attempt to verify that the hook functions were not duplicated, or 
+that fields are not repeated in any way. As a result, we recommend that you create
+a base logger that is configured in the way you prefer to use zerolog. Then you
+create hooked loggers to send log data to New Relic from that base logger.
+
+The plugin captures the log level, and the message from zerolog. It will also collect
+distributed tracing data from your transaction context. At the moment the hook function is
+called in zerolog, a timestamp will be generated for your log .In most cases, this
+timestamp will be the same as the time posted in zerolog log message, however it is possible that
+there could be a slight offset depending on the the performance of your system.
 
 
