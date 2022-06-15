@@ -100,7 +100,7 @@ func (events *logEvents) Add(e *logEvent) {
 			// Delay heap initialization so that we can have
 			// deterministic ordering for integration tests (the max
 			// is not being reached).
-			heap.Init(events.logs) // Malloc required
+			heap.Init(events.logs)
 		}
 		return
 	}
@@ -132,9 +132,16 @@ func (events *logEvents) Merge(other *logEvents) {
 	events.numSeen = int(allSeen)
 }
 
-func (events *logEvents) CollectorJSON(buf *bytes.Buffer, agentRunID string) error {
-	if buf == nil {
-		return nil
+func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
+	if 0 == len(events.logs) {
+		return nil, nil
+	}
+
+	estimate := 256 * len(events.logs)
+	buf := bytes.NewBuffer(make([]byte, 0, estimate))
+
+	if events.numSeen == 0 {
+		return nil, nil
 	}
 
 	buf.WriteByte('[')
@@ -170,7 +177,8 @@ func (events *logEvents) CollectorJSON(buf *bytes.Buffer, agentRunID string) err
 	buf.WriteByte(']')
 	buf.WriteByte('}')
 	buf.WriteByte(']')
-	return nil
+	return buf.Bytes(), nil
+
 }
 
 // split splits the events into two.  NOTE! The two event pools are not valid
@@ -216,19 +224,8 @@ func (events *logEvents) MergeIntoHarvest(h *harvest) {
 	h.LogEvents.mergeFailed(events)
 }
 
-// DataBuffer returns a bytes Buffer with an estimated size based on the contents of the logEvents object
-func (events *logEvents) DataBuffer() *bytes.Buffer {
-	if len(events.logs) == 0 || events.numSeen == 0 {
-		return nil
-	}
-
-	estimate := 256 * len(events.logs)
-	return bytes.NewBuffer(make([]byte, 0, estimate))
-}
-
-// WriteData writes JSON data to a DataBuffer during a harvest cycle
-func (events *logEvents) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
-	return events.CollectorJSON(buf, agentRunID)
+func (events *logEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+	return events.CollectorJSON(agentRunID)
 }
 
 func (events *logEvents) EndpointMethod() string {

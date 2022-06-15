@@ -151,18 +151,12 @@ func mergeTxnErrors(errors *harvestErrors, errs txnErrors, txnEvent txnEvent) {
 	}
 }
 
-func (errors harvestErrors) DataBuffer() *bytes.Buffer {
+func (errors harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
 	if 0 == len(errors) {
-		return nil
+		return nil, nil
 	}
 	estimate := 1024 * len(errors)
-	return bytes.NewBuffer(make([]byte, 0, estimate))
-}
-
-func (errors harvestErrors) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
-	if buf == nil {
-		return nil
-	}
+	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 	buf.WriteByte('[')
 	jsonx.AppendString(buf, agentRunID)
 	buf.WriteByte(',')
@@ -175,7 +169,7 @@ func (errors harvestErrors) WriteData(buf *bytes.Buffer, agentRunID string, harv
 	}
 	buf.WriteByte(']')
 	buf.WriteByte(']')
-	return nil
+	return buf.Bytes(), nil
 }
 
 func (errors harvestErrors) MergeIntoHarvest(h *harvest) {}

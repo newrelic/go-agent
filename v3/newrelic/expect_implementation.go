@@ -493,14 +493,12 @@ func expectTxnTraces(v internal.Validator, traces *harvestTraces, want []interna
 	if len(want) == 0 {
 		return
 	}
-	data := traces.DataBuffer()
-	err := traces.WriteData(data, "agentRunID", time.Now())
-	if err != nil {
+	js, err := traces.Data("agentRunID", time.Now())
+	if nil != err {
 		v.Error("error creasing harvest traces data", err)
 		return
 	}
 
-	js := data.Bytes()
 	var unmarshalled []interface{}
 	err = json.Unmarshal(js, &unmarshalled)
 	if nil != err {

@@ -3,10 +3,7 @@
 
 package newrelic
 
-import (
-	"bytes"
-	"time"
-)
+import "time"
 
 type customEvents struct {
 	*analyticsEvents
@@ -30,17 +27,8 @@ func (cs *customEvents) MergeIntoHarvest(h *harvest) {
 	h.CustomEvents.mergeFailed(cs.analyticsEvents)
 }
 
-func (cs *customEvents) DataBuffer() *bytes.Buffer {
-	if len(cs.events) == 0 {
-		return nil
-	}
-
-	estimate := 256 * len(cs.events)
-	return bytes.NewBuffer(make([]byte, 0, estimate))
-}
-
-func (cs *customEvents) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
-	return cs.CollectorJSON(buf, agentRunID)
+func (cs *customEvents) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+	return cs.CollectorJSON(agentRunID)
 }
 
 func (cs *customEvents) EndpointMethod() string {

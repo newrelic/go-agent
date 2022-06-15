@@ -71,8 +71,7 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
 		cmd := p.EndpointMethod()
-		dataBuffer := p.DataBuffer()
-		err := p.WriteData(dataBuffer, run.Reply.RunID.String(), harvestStart)
+		data, err := p.Data(run.Reply.RunID.String(), harvestStart)
 
 		if nil != err {
 			app.Warn("unable to create harvest data", map[string]interface{}{
@@ -81,7 +80,7 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 			})
 			continue
 		}
-		if dataBuffer == nil {
+		if nil == data {
 			continue
 		}
 
@@ -89,7 +88,7 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 			Collector:         run.Reply.Collector,
 			RunID:             run.Reply.RunID.String(),
 			Name:              cmd,
-			Data:              dataBuffer.Bytes(),
+			Data:              data,
 			RequestHeadersMap: run.Reply.RequestHeadersMap,
 			MaxPayloadSize:    run.Reply.MaxPayloadSizeInBytes,
 		}

@@ -176,10 +176,13 @@ func (mt *metricTable) addApdex(name, scope string, apdexThreshold time.Duration
 	mt.add(name, scope, data, force)
 }
 
-func (mt *metricTable) CollectorJSON(buf *bytes.Buffer, agentRunID string, now time.Time) error {
-	if buf == nil {
-		return nil
+func (mt *metricTable) CollectorJSON(agentRunID string, now time.Time) ([]byte, error) {
+	if 0 == len(mt.metrics) {
+		return nil, nil
 	}
+	estimatedBytesPerMetric := 128
+	estimatedLen := len(mt.metrics) * estimatedBytesPerMetric
+	buf := bytes.NewBuffer(make([]byte, 0, estimatedLen))
 	buf.WriteByte('[')
 
 	jsonx.AppendString(buf, agentRunID)
@@ -221,20 +224,11 @@ func (mt *metricTable) CollectorJSON(buf *bytes.Buffer, agentRunID string, now t
 	buf.WriteByte(']')
 
 	buf.WriteByte(']')
-	return nil
+	return buf.Bytes(), nil
 }
 
-func (mt *metricTable) DataBuffer() *bytes.Buffer {
-	if len(mt.metrics) == 0 {
-		return nil
-	}
-
-	estimatedBytesPerMetric := 128
-	estimatedLen := len(mt.metrics) * estimatedBytesPerMetric
-	return bytes.NewBuffer(make([]byte, 0, estimatedLen))
-}
-func (mt *metricTable) WriteData(buf *bytes.Buffer, agentRunID string, harvestStart time.Time) error {
-	return mt.CollectorJSON(buf, agentRunID, harvestStart)
+func (mt *metricTable) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
+	return mt.CollectorJSON(agentRunID, harvestStart)
 }
 func (mt *metricTable) MergeIntoHarvest(h *harvest) {
 	h.Metrics.mergeFailed(mt)

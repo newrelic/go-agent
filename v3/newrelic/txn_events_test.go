@@ -243,10 +243,8 @@ func TestTxnEventsPayloadsEmpty(t *testing.T) {
 	if len(ps) != 1 {
 		t.Error(ps)
 	}
-	data := events.DataBuffer()
-	err := ps[0].WriteData(data, "agentRunID", time.Now())
-	if data != nil || err != nil {
-		t.Error(data.Bytes(), err)
+	if data, err := ps[0].Data("agentRunID", time.Now()); data != nil || err != nil {
+		t.Error(data, err)
 	}
 }
 
@@ -259,9 +257,7 @@ func TestTxnEventsPayloadsUnderLimit(t *testing.T) {
 	if len(ps) != 1 {
 		t.Error(ps)
 	}
-	data := events.DataBuffer()
-	err := ps[0].WriteData(data, "agentRunID", time.Now())
-	if data == nil || err != nil {
+	if data, err := ps[0].Data("agentRunID", time.Now()); data == nil || err != nil {
 		t.Error(data, err)
 	}
 }
@@ -275,16 +271,11 @@ func TestTxnEventsPayloadsOverLimit(t *testing.T) {
 	if len(ps) != 2 {
 		t.Error(ps)
 	}
-	data := events.DataBuffer()
-	err := ps[0].WriteData(data, "agentRunID", time.Now())
-	if data == nil || err != nil {
-		t.Error(data.Bytes(), err)
+	if data, err := ps[0].Data("agentRunID", time.Now()); data == nil || err != nil {
+		t.Error(data, err)
 	}
-
-	data = events.DataBuffer()
-	err = ps[1].WriteData(data, "agentRunID", time.Now())
-	if data == nil || err != nil {
-		t.Error(data.Bytes(), err)
+	if data, err := ps[1].Data("agentRunID", time.Now()); data == nil || err != nil {
+		t.Error(data, err)
 	}
 }
 
