@@ -1,9 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/nrzap
 
-// As of Dec 2019, zap has 1.13 in their go.mod file:
+// As of Jun 2022, zap has 1.18 in their go.mod file:
 // https://github.com/uber-go/zap/blob/master/go.mod
-go 1.13
-
+go 1.18
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/google/renameio v0.1.0 // indirect
@@ -13,7 +12,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
-	// v1.12.0 is the earliest version of zap using modules.
+	// v1.21.0 is the earliest version of zap using modules.
 	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/net v0.0.0-20220615171555-694bf12d69de // indirect
