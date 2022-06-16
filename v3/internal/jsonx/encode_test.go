@@ -196,11 +196,3 @@ func BenchmarkAppendString10(b *testing.B) {
 		AppendString(buf, "qwertyuiop")
 	}
 }
-
-func BenchmarkWriteString10(b *testing.B) {
-	buf := &bytes.Buffer{}
-
-	for i := 0; i < b.N; i++ {
-		buf.WriteString("qwertyuiop")
-	}
-}
