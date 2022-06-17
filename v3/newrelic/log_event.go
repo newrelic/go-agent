@@ -108,24 +108,10 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 	data.Message = strings.TrimSpace(data.Message)
 	data.Severity = strings.TrimSpace(data.Severity)
 
-	var spanID, traceID string
-	var priority priority
-
-	if data.Context != nil {
-		txn := FromContext(data.Context)
-		priority = txn.thread.BetterCAT.Priority
-		traceMetadata := txn.GetTraceMetadata()
-		spanID = traceMetadata.SpanID
-		traceID = traceMetadata.TraceID
-	}
-
 	event := logEvent{
 		message:   data.Message,
 		severity:  data.Severity,
-		spanID:    spanID,
-		traceID:   traceID,
 		timestamp: data.Timestamp,
-		priority:  priority,
 	}
 
 	return event, nil

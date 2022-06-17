@@ -79,6 +79,7 @@ type txnData struct {
 	rootSpanID              string
 	rootSpanErrData         *errorData
 	SpanEvents              []*spanEvent
+	logs                    []logEvent
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[datastoreMetricKey]*metricData

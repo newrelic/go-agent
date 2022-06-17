@@ -252,7 +252,6 @@ func main() {
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
-		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	if err != nil {
@@ -278,28 +277,31 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
 	http.HandleFunc("/log", func(w http.ResponseWriter, req *http.Request) {
-		// Transactions started without an http.Request are classified as
-		// background transactions.
-		txn := app.StartTransaction("Log")
-		defer txn.End()
-
-		ctx := newrelic.NewContext(context.Background(), txn)
-
 		// Versions of go prior to 1.17 do not have a built in function for Unix Milli time.
 		// For go versions 1.17+ use time.Now().UnixMilli() to generate timestamps
 		timestamp := time.Now().UnixNano() / int64(time.Millisecond)
-
-		data := newrelic.LogData{
+		app.RecordLog(newrelic.LogData{
 			Timestamp: timestamp,
 			Message:   "Log Message",
 			Severity:  "info",
+		})
+
+		io.WriteString(w, "A log message was recorded")
+	})
+
+	http.HandleFunc("/transaction_log", func(w http.ResponseWriter, req *http.Request) {
+		txn := app.StartTransaction("Log Transaction")
+		defer txn.End()
+		ctx := newrelic.NewContext(context.Background(), txn)
+
+		app.RecordLog(newrelic.LogData{
+			Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
+			Message:   "Transaction Log Message",
+			Severity:  "info",
 			Context:   ctx,
-		}
+		})
 
-		app.RecordLog(data)
-
-		io.WriteString(w, "Log")
-		time.Sleep(150 * time.Millisecond)
+		io.WriteString(w, "A log message was recorded as part of a transaction")
 	})
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
