@@ -17,8 +17,6 @@ type commonAttributes struct {
 	hostname   string
 }
 
-type logEventHeap []logEvent
-
 type logEvents struct {
 	numSeen        int
 	failedHarvests int
@@ -57,23 +55,51 @@ func (events *logEvents) RecordLoggingMetrics(metrics *metricTable) {
 	}
 }
 
+type logEventHeap []logEvent
+
 // TODO: when go 1.18 becomes the minimum supported version, re-write to make a generic heap implementation
 // for all event heaps, to de-duplicate this code
 //func (events *logEvents)
-func (h logEventHeap) Len() int           { return len(h) }
-func (h logEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority) }
-func (h logEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func NewLogHeap(capacity int) logEventHeap { return make(logEventHeap, 0, capacity) }
+func (h logEventHeap) Len() int            { return len(h) }
+func (h logEventHeap) Less(i, j int) bool  { return h[i].priority.isLowerPriority(h[j].priority) }
+func (h logEventHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+
+// To avoid using interface reflection, this function is used in place of Push() to add log events to the heap
+// Please replace all of this when the minimum supported version of go is 1.18 so that we can use generics
+func (h *logEventHeap) Add(event *logEvent) {
+	// when fewer events are in the heap than the capacity, do not heap sort
+	if len(*h) < cap(*h) {
+		// copy log event onto event heap
+		*h = append(*h, *event)
+		if len(*h) == cap(*h) {
+			// Delay heap initialization so that we can have
+			// deterministic ordering for integration tests (the max
+			// is not being reached).
+			heap.Init(*h)
+		}
+		return
+	}
+
+	if event.priority.isLowerPriority((*h)[0].priority) {
+		return
+	}
+
+	(*h)[0] = *event
+	heap.Fix(h, 0)
+}
 
 // Push and Pop are unused: only heap.Init and heap.Fix are used.
-func (h logEventHeap) Push(x interface{}) {}
 func (h logEventHeap) Pop() interface{}   { return nil }
+func (h logEventHeap) Push(x interface{}) {}
 
 func newLogEvents(ca commonAttributes, loggingConfig loggingConfig) *logEvents {
 	return &logEvents{
 		commonAttributes: ca,
 		config:           loggingConfig,
 		severityCount:    map[string]int{},
-		logs:             make(logEventHeap, 0, loggingConfig.maxLogEvents),
+		logs:             NewLogHeap(loggingConfig.maxLogEvents),
 	}
 }
 
@@ -93,24 +119,8 @@ func (events *logEvents) Add(e *logEvent) {
 		return
 	}
 
-	if len(events.logs) < cap(events.logs) {
-		// copy log event onto event heap
-		events.logs = append(events.logs, *e)
-		if len(events.logs) == cap(events.logs) {
-			// Delay heap initialization so that we can have
-			// deterministic ordering for integration tests (the max
-			// is not being reached).
-			heap.Init(events.logs)
-		}
-		return
-	}
-
-	if e.priority.isLowerPriority((events.logs)[0].priority) {
-		return
-	}
-
-	events.logs[0] = *e
-	heap.Fix(events.logs, 0)
+	// Add logs to event heap
+	events.logs.Add(e)
 }
 
 func (events *logEvents) mergeFailed(other *logEvents) {

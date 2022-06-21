@@ -23,8 +23,7 @@ var (
 
 	commonJSON = `[{"common":{"attributes":{"entity.guid":"testGUID","entity.name":"testEntityName","hostname":"testHostname"}},"logs":[`
 
-	infoLevel    = "INFO"
-	unknownLevel = "UNKNOWN"
+	infoLevel = "INFO"
 )
 
 func loggingConfigEnabled(limit int) loggingConfig {
@@ -63,10 +62,10 @@ func TestBasicLogEvents(t *testing.T) {
 	if string(json) != expected {
 		t.Error(string(json), expected)
 	}
-	if 2 != events.numSeen {
+	if events.numSeen != 2 {
 		t.Error(events.numSeen)
 	}
-	if 2 != events.NumSaved() {
+	if events.NumSaved() != 2 {
 		t.Error(events.NumSaved())
 	}
 }

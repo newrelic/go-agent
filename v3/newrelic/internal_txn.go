@@ -231,12 +231,10 @@ func (thd *thread) StoreLog(log *logEvent) {
 	txn.Lock()
 	defer txn.Unlock()
 
-	// Copy log data into the slice so that the stack frame can return without needing to allocate heap memory
 	if txn.logs == nil {
-		txn.logs = []logEvent{*log}
-	} else {
-		txn.logs = append(txn.logs, *log)
+		txn.logs = NewLogHeap(internal.MaxLogEvents)
 	}
+	txn.logs.Add(log)
 }
 
 func (txn *txn) freezeName() {
