@@ -28,15 +28,16 @@ func TestWriteJSON(t *testing.T) {
 
 func TestToLogEvent(t *testing.T) {
 	type testcase struct {
-		name        string
-		data        LogData
-		expectEvent logEvent
-		expectErr   error
+		name          string
+		data          LogData
+		expectEvent   logEvent
+		expectErr     error
+		skipTimestamp bool
 	}
 
 	testcases := []testcase{
 		{
-			name: "valid case no context",
+			name: "context nil",
 			data: LogData{
 				Timestamp: 123456,
 				Severity:  "info",
@@ -49,7 +50,7 @@ func TestToLogEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid case empty severity",
+			name: "severity empty",
 			data: LogData{
 				Timestamp: 123456,
 				Message:   "test 123",
@@ -59,6 +60,18 @@ func TestToLogEvent(t *testing.T) {
 				severity:  "UNKNOWN",
 				message:   "test 123",
 			},
+		},
+		{
+			name: "no timestamp",
+			data: LogData{
+				Severity: "info",
+				Message:  "test 123",
+			},
+			expectEvent: logEvent{
+				severity: "info",
+				message:  "test 123",
+			},
+			skipTimestamp: true,
 		},
 		{
 			name: "message too large",
@@ -86,7 +99,10 @@ func TestToLogEvent(t *testing.T) {
 			if expect.severity != actualEvent.severity {
 				t.Error(fmt.Errorf("%s: expected severity %s, got %s", testcase.name, expect.severity, actualEvent.severity))
 			}
-			if expect.timestamp != actualEvent.timestamp {
+			if actualEvent.timestamp == 0 {
+				t.Errorf("timestamp was not set on test %s", testcase.name)
+			}
+			if expect.timestamp != actualEvent.timestamp && !testcase.skipTimestamp {
 				t.Error(fmt.Errorf("%s: expected timestamp %d, got %d", testcase.name, expect.timestamp, actualEvent.timestamp))
 			}
 		}

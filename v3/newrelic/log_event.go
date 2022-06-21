@@ -53,7 +53,7 @@ type logEvent struct {
 
 // LogData contains data fields that are needed to generate log events.
 type LogData struct {
-	Timestamp int64           // Required: Unix Millisecond Timestamp
+	Timestamp int64           // Optional: Unix Millisecond Timestamp; A timestamp will be generated if unset
 	Severity  string          // Optional: Severity of log being consumed
 	Message   string          // Optional: Message of log being consumed; Maximum size: 32768 Bytes.
 	Context   context.Context // Optional: context containing a New Relic Transaction
