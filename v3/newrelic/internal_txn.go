@@ -232,7 +232,7 @@ func (thd *thread) StoreLog(log *logEvent) {
 	defer txn.Unlock()
 
 	if txn.logs == nil {
-		txn.logs = NewLogHeap(internal.MaxLogEvents)
+		txn.logs = make(logEventHeap, 0, internal.MaxLogEvents)
 	}
 	txn.logs.Add(log)
 }

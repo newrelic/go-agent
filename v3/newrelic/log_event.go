@@ -109,6 +109,7 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 	data.Severity = strings.TrimSpace(data.Severity)
 
 	event := logEvent{
+		priority:  newPriority(),
 		message:   data.Message,
 		severity:  data.Severity,
 		timestamp: data.Timestamp,

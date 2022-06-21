@@ -60,11 +60,9 @@ type logEventHeap []logEvent
 // TODO: when go 1.18 becomes the minimum supported version, re-write to make a generic heap implementation
 // for all event heaps, to de-duplicate this code
 //func (events *logEvents)
-
-func NewLogHeap(capacity int) logEventHeap { return make(logEventHeap, 0, capacity) }
-func (h logEventHeap) Len() int            { return len(h) }
-func (h logEventHeap) Less(i, j int) bool  { return h[i].priority.isLowerPriority(h[j].priority) }
-func (h logEventHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h logEventHeap) Len() int           { return len(h) }
+func (h logEventHeap) Less(i, j int) bool { return h[i].priority.isLowerPriority(h[j].priority) }
+func (h logEventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 // To avoid using interface reflection, this function is used in place of Push() to add log events to the heap
 // Please replace all of this when the minimum supported version of go is 1.18 so that we can use generics
@@ -99,7 +97,7 @@ func newLogEvents(ca commonAttributes, loggingConfig loggingConfig) *logEvents {
 		commonAttributes: ca,
 		config:           loggingConfig,
 		severityCount:    map[string]int{},
-		logs:             NewLogHeap(loggingConfig.maxLogEvents),
+		logs:             make(logEventHeap, 0, loggingConfig.maxLogEvents),
 	}
 }
 
