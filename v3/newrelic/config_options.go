@@ -49,7 +49,7 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 // Defaults: enabled=false
 func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		if enabled == true {
+		if enabled {
 			cfg.ApplicationLogging.Enabled = true
 			cfg.ApplicationLogging.Forwarding.Enabled = true
 		} else {
@@ -64,7 +64,7 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 // default: true
 func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		if enabled == true {
+		if enabled {
 			cfg.ApplicationLogging.Enabled = true
 			cfg.ApplicationLogging.Metrics.Enabled = true
 		} else {
@@ -77,7 +77,7 @@ func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
 // and data collection
 func ConfigAppLogEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		if enabled == true {
+		if enabled {
 			cfg.ApplicationLogging.Enabled = true
 		} else {
 			cfg.ApplicationLogging.Enabled = false
