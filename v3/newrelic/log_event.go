@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Exported Constants for log decorators
@@ -86,7 +87,6 @@ func (e *logEvent) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	errEmptyTimestamp     = errors.New("timestamp can not be empty")
 	errNilLogData         = errors.New("log data can not be nil")
 	errLogMessageTooLarge = fmt.Errorf("log message can not exceed %d bytes", MaxLogLength)
 )
@@ -102,7 +102,7 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 		return logEvent{}, errLogMessageTooLarge
 	}
 	if data.Timestamp == 0 {
-		return logEvent{}, errEmptyTimestamp
+		data.Timestamp = int64(timeToUnixMilliseconds(time.Now()))
 	}
 
 	data.Message = strings.TrimSpace(data.Message)

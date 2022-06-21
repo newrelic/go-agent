@@ -69,14 +69,6 @@ func TestToLogEvent(t *testing.T) {
 			},
 			expectErr: errLogMessageTooLarge,
 		},
-		{
-			name: "empty timestamp",
-			data: LogData{
-				Severity: "info",
-				Message:  "test 123",
-			},
-			expectErr: errEmptyTimestamp,
-		},
 	}
 
 	for _, testcase := range testcases {
