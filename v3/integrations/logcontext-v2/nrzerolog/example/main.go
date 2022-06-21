@@ -19,9 +19,8 @@ func main() {
 		newrelic.ConfigAppName("NRZerolog Example"),
 		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigZerologPluginEnabled(true),
-		newrelic.ConfigDistributedTracerEnabled(true),
 	)
-	if nil != err {
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

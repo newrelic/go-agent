@@ -97,7 +97,7 @@ const (
 // enabled.
 func ConfigZerologPluginEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		if enabled == true {
+		if enabled {
 			cfg.ApplicationLogging.Enabled = true
 			cfg.ApplicationLogging.Forwarding.Enabled = true
 			cfg.ApplicationLogging.Metrics.Enabled = true
