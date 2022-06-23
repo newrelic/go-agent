@@ -89,27 +89,6 @@ const (
 	zerologFrameworkName = "Zerolog"
 )
 
-// ConfigZerologPluginEnabled enables all supported features
-// for the zerolog logs in context plugin. This will not alter
-// the max samples stored for logs.
-//
-// Log Enrichment is currently not supported, and will not be
-// enabled.
-func ConfigZerologPluginEnabled(enabled bool) ConfigOption {
-	return func(cfg *Config) {
-		if enabled {
-			cfg.ApplicationLogging.Enabled = true
-			cfg.ApplicationLogging.Forwarding.Enabled = true
-			cfg.ApplicationLogging.Metrics.Enabled = true
-			if cfg.ApplicationLogging.Frameworks == nil {
-				cfg.ApplicationLogging.Frameworks = []string{zerologFrameworkName}
-			} else {
-				cfg.ApplicationLogging.Frameworks = append(cfg.ApplicationLogging.Frameworks, zerologFrameworkName)
-			}
-		}
-	}
-}
-
 // ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
 // log events the agent is allowed to collect and store in a given harvest cycle.
 func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {

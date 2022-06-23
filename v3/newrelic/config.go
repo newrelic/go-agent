@@ -359,8 +359,6 @@ type ApplicationLogging struct {
 	// if it is enabled, the individual sub-feature configurations take effect.
 	// MAY accomplish this by not installing instrumentation, or by early-return/no-op as necessary for an agent.
 	Enabled bool
-	// Name of instrumented frameworks enabled
-	Frameworks []string
 	// Forwarding controls log forwarding to New Relic One
 	Forwarding struct {
 		// Toggles whether the agent gathers log records for sending to New Relic.

@@ -85,7 +85,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 	var nilHarvest *harvest
 
 	config := config{Config: defaultConfig()}
-	config.ApplicationLogging.Frameworks = append(config.ApplicationLogging.Frameworks, zerologFrameworkName)
 
 	run := newAppRun(config, internal.ConnectReplyDefaults())
 	run.harvestConfig = testHarvestCfgr
@@ -143,7 +142,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Supportability/Logging/Golang/Zerolog", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -175,7 +173,6 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
-		{Name: "Supportability/Logging/Golang/Zerolog", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},

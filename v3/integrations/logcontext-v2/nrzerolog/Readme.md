@@ -41,7 +41,7 @@ func main() {
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppName("NRZerolog Example"),
 		newrelic.ConfigInfoLogger(os.Stdout),
-		newrelic.ConfigZerologPluginEnabled(true),
+		newrelic.ConfigAppLogForwarding(true),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -75,24 +75,23 @@ func main() {
 
 ## Usage
 
-Please enable the agent to ingest your logs by calling newrelic.ConfigZerologPluginEnabled(true),
-when setting up your application. This will enable log forwarding and log metrics in the
-go agent automatically.
+Please enable the agent to ingest your logs by calling newrelic.ConfigAppLogForwardingEnabled(true),
+when setting up your application. This is not enabled by default.
 
 This integration for the zerolog logging frameworks uses a built in feature
 of the zerolog framework called hook functions. Zerolog loggers can be modified
 to have hook functions run on them before each time a write is executed. When a
 logger is hooked, meaning a hook function was added to that logger with the Hook() 
 funciton, a copy of that logger is created with those changes. Note that zerolog
-will *never* attempt to verify that the hook functions were not duplicated, or 
+will *never* attempt to verify that any hook functions have not been not duplicated, or 
 that fields are not repeated in any way. As a result, we recommend that you create
 a base logger that is configured in the way you prefer to use zerolog. Then you
 create hooked loggers to send log data to New Relic from that base logger.
 
 The plugin captures the log level, and the message from zerolog. It will also collect
 distributed tracing data from your transaction context. At the moment the hook function is
-called in zerolog, a timestamp will be generated for your log .In most cases, this
-timestamp will be the same as the time posted in zerolog log message, however it is possible that
+called in zerolog, a timestamp will be generated for your log. In most cases, this
+timestamp will be the same as the time posted in the zerolog log message, however it is possible that
 there could be a slight offset depending on the the performance of your system.
 
 

@@ -18,7 +18,7 @@ func main() {
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppName("NRZerolog Example"),
 		newrelic.ConfigInfoLogger(os.Stdout),
-		newrelic.ConfigZerologPluginEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	if err != nil {
 		fmt.Println(err)

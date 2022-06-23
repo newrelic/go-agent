@@ -212,11 +212,8 @@ func createTraceObserverMetrics(to traceObserver, metrics *metricTable) {
 	}
 }
 
-func createAppLoggingSupportabilityMetrics(lc *loggingConfig, frameworks []string, metrics *metricTable) {
+func createAppLoggingSupportabilityMetrics(lc *loggingConfig, metrics *metricTable) {
 	lc.connectMetrics(metrics)
-	for _, framework := range frameworks {
-		loggingFrameworkMetric(metrics, framework)
-	}
 }
 
 // CreateFinalMetrics creates extra metrics at harvest time.
@@ -246,7 +243,7 @@ func (h *harvest) CreateFinalMetrics(run *appRun, to traceObserver) {
 
 	createTraceObserverMetrics(to, h.Metrics)
 	createTrackUsageMetrics(h.Metrics)
-	createAppLoggingSupportabilityMetrics(&hc.LoggingConfig, run.Config.ApplicationLogging.Frameworks, h.Metrics)
+	createAppLoggingSupportabilityMetrics(&hc.LoggingConfig, h.Metrics)
 
 	h.Metrics = h.Metrics.ApplyRules(reply.MetricRules)
 }
