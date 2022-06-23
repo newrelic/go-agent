@@ -45,7 +45,7 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 }
 
 // ConfigAppLogForwardingEnabled enables or disables the collection
-// of logs from a users application by the agent
+// of logs from a user's application by the agent
 // Defaults: enabled=false
 func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {

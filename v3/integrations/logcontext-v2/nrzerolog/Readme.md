@@ -20,7 +20,7 @@ in the go agent, as well as let the agent know that the zerolog pluging is in us
 If you want to disable metrics, set `newrelic.ConfigAppLogMetricsEnabled(false),`.
 If you want to disable log forwarding, set `newrelic.ConfigAppLogForwardingEnabled(false),`.
 Note that the agent sets the default number of logs per harverst cycle to 10000, but that
-number may be reuced by the server. You can manually set this number by setting
+number may be reduced by the server. You can manually set this number by setting
 `newrelic.ConfigAppLogForwardingMaxSamplesStored(123),`.
 
 The following example will shows how to install and set up your code to send logs to new relic from zerolog.
