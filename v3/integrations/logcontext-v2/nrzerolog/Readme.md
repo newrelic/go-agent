@@ -14,11 +14,9 @@ are supported by this plugin in the current release:
 ## Installation
 
 The nrzerolog plugin, and the go-agent need to be integrated into your code
-in order to use this tool. Make sure to set `newrelic.ConfigZerologPluginEnabled(true)`
-in your config settings for the application. This will enable log forwarding and metrics
-in the go agent, as well as let the agent know that the zerolog pluging is in use.
-If you want to disable metrics, set `newrelic.ConfigAppLogMetricsEnabled(false),`.
-If you want to disable log forwarding, set `newrelic.ConfigAppLogForwardingEnabled(false),`.
+in order to use this tool. Make sure to set `newrelic.ConfigAppLogForwardingEnabled(true)`
+in your config settings for the application. This will enable log forwarding
+in the go agent. If you want to disable metrics, set `newrelic.ConfigAppLogMetricsEnabled(false),`.
 Note that the agent sets the default number of logs per harverst cycle to 10000, but that
 number may be reduced by the server. You can manually set this number by setting
 `newrelic.ConfigAppLogForwardingMaxSamplesStored(123),`.
