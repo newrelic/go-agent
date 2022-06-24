@@ -181,8 +181,11 @@ type HarvestConfigurer interface {
 	MaxSpanEvents() int
 	// MaxCustomEvents returns the maximum number of Custom Events that should be reported per period
 	MaxCustomEvents() int
+	// MaxSamplesStored returns the maximum number of Custom Event Samples stored in a Custom Event
+	MaxSamplesStored() int
 	// MaxErrorEvents returns the maximum number of Error Events that should be reported per period
 	MaxErrorEvents() int
+
 	MaxTxnEventer
 }
 
