@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
-
 	"github.com/newrelic/go-agent/v3/internal"
 )
 
@@ -191,9 +190,7 @@ func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.E
 func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
 
 func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
-func (run *appRun) MaxCustomEvents() int {
-	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
-}
+
 func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
 }
@@ -203,6 +200,9 @@ func (run *appRun) MaxErrorEvents() int {
 // may be capped to the maximum allowed by the collector.
 func (run *appRun) MaxSpanEvents() int {
 	return run.limit(run.Config.DistributedTracer.ReservoirLimit, run.ptrSpanEvents)
+}
+func (run *appRun) MaxCustomEvents() int {
+	return run.limit(run.Config.maxCustomEvents(), run.ptrCustomEvents)
 }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
