@@ -63,12 +63,10 @@ func TestSkipper(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	e := echo.New()
-	e.Use(MiddlewareWithConfig(Config{
-		App: app.Application,
-		Skipper: func(c echo.Context) bool {
-			return c.Path() == "/health"
-		},
-	}))
+	skipper := func(c echo.Context) bool {
+		return c.Path() == "/health"
+	}
+	e.Use(Middleware(app.Application, WithSkipper(skipper)))
 	e.GET("/hello", func(c echo.Context) error {
 		return c.Blob(http.StatusOK, "text/html", []byte("Hello, World!"))
 	})

@@ -59,19 +59,32 @@ type Config struct {
 	Skipper Skipper
 }
 
-// MiddlewareWithConfig creates Echo middleware with provided config that
+type ConfigOption func(*Config)
+
+func WithSkipper(skipper Skipper) ConfigOption {
+	return func(cfg *Config) { cfg.Skipper = skipper }
+}
+
+// Middleware creates Echo middleware with provided config that
 // instruments requests.
 //
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.MiddlewareWithConfig(nrecho.Config{App: app}))
 //
-func MiddlewareWithConfig(config Config) func(echo.HandlerFunc) echo.HandlerFunc {
-
-	if nil == config.App {
+func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.HandlerFunc) echo.HandlerFunc {
+	if app == nil {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
 			return next
 		}
+	}
+
+	config := Config{
+		App: app,
+	}
+
+	for _, opt := range opts {
+		opt(&config)
 	}
 
 	if config.Skipper == nil {
@@ -117,16 +130,4 @@ func MiddlewareWithConfig(config Config) func(echo.HandlerFunc) echo.HandlerFunc
 			return
 		}
 	}
-}
-
-// Middleware creates Echo middleware that instruments requests.
-//
-//	e := echo.New()
-//	// Add the nrecho middleware before other middlewares or routes:
-//	e.Use(nrecho.Middleware(app))
-//
-func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
-	return MiddlewareWithConfig(Config{
-		App: app,
-	})
 }
