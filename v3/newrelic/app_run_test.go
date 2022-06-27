@@ -335,7 +335,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 
 func TestConfigurableMaxCustomEventsDefault(t *testing.T) {
 	reply := internal.ConnectReplyDefaults()
-	expected := 10000
+	expected := internal.MaxCustomEvents
 	cfg := config{Config: defaultConfig()}
 	result := newAppRun(cfg, reply).MaxCustomEvents()
 	if result != expected {
