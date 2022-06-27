@@ -136,19 +136,19 @@ func (r *ConnectReply) ConfigurablePeriod() time.Duration {
 func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
-func DefaultEventHarvestConfig(maxTxnEvents int, maxCustomEvents int) EventHarvestConfig {
+func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = DefaultConfigurableEventHarvestMs
 	cfg.Limits.TxnEvents = uintPtr(uint(maxTxnEvents))
-	cfg.Limits.CustomEvents = uintPtr(uint(maxCustomEvents))
+	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
 	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg
 }
 
 // DefaultEventHarvestConfigWithDT is an extended version of DefaultEventHarvestConfig,
 // with the addition that it takes into account distributed tracer span event harvest limits.
-func DefaultEventHarvestConfigWithDT(maxTxnEvents int, dtEnabled bool, spanEventLimit int, maxCustomEvents int) EventHarvestConfig {
-	cfg := DefaultEventHarvestConfig(maxTxnEvents,maxCustomEvents)
+func DefaultEventHarvestConfigWithDT(maxTxnEvents int, dtEnabled bool, spanEventLimit int) EventHarvestConfig {
+	cfg := DefaultEventHarvestConfig(maxTxnEvents)
 	if dtEnabled {
 		cfg.Limits.SpanEvents = uintPtr(uint(spanEventLimit))
 	}

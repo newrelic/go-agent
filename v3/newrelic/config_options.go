@@ -36,14 +36,6 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
 }
 
-// ConfigCustomInsightsEventsMaxSamplesLimit alters the sample size allowing control
-// of how many custom events are stored in an agent for a given harvest cycle.
-// Alters the CustomInsightsEvents.MaxSamplesStored setting.
-func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit}
-}
-
-
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
 // number of span events to be collected) for distributed tracing instead of
 // using the built-in default.

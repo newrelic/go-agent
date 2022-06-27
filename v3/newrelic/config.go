@@ -71,9 +71,8 @@ type Config struct {
 		// custom analytics events.  High security mode overrides this
 		// setting.
 		Enabled bool
-		// MaxSamplesStored sets the desired maximum custom events stored
-		MaxSamplesStored int
 	}
+
 	// TransactionEvents controls the behavior of transaction analytics
 	// events.
 	TransactionEvents struct {
@@ -383,7 +382,6 @@ func defaultConfig() Config {
 	c.Enabled = true
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
-	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
@@ -503,16 +501,6 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 		host:   fmt.Sprintf("%s:%d", configHost, c.InfiniteTracing.TraceObserver.Port),
 		secure: configHost != localTestingHost,
 	}, nil
-}
-
-// maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxCustomEvents() int {
-	configured := c.CustomInsightsEvents.MaxSamplesStored
-	if configured < 0 || configured > internal.MaxCustomEvents {
-		return internal.MaxTxnEvents
-	}
-	return configured
 }
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
@@ -679,7 +667,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit, c.maxCustomEvents()),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit),
 	}})
 }
 
