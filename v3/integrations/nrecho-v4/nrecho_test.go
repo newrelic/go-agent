@@ -5,12 +5,13 @@ package nrecho
 
 import (
 	"errors"
-	"github.com/labstack/echo/v4"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 )
 
 func TestBasicRoute(t *testing.T) {
@@ -98,13 +99,19 @@ func TestSkipper(t *testing.T) {
 	}
 
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET /hello",
-		IsWeb: true,
+		Name:          "GET /hello",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"name":             "WebTransaction/Go/GET /hello",
 			"nr.apdexPerfZone": "S",
+			"sampled":          false,
+			// Note: "*" is a wildcard value
+			"guid":     "*",
+			"traceId":  "*",
+			"priority": "*",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":             "200",
