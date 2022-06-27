@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,12 +16,17 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/jsonx"
 )
 
 type distTraceVersion [2]int
 
 func (v distTraceVersion) major() int { return v[0] }
 func (v distTraceVersion) minor() int { return v[1] }
+
+func (v distTraceVersion) WriteJSON(buf *bytes.Buffer) {
+	jsonx.AppendIntArray(buf, int64(v[0]), int64(v[1]))
+}
 
 const (
 	// callerTypeApp is the Type field's value for outbound payloads.
@@ -57,6 +63,10 @@ func (tm timestampMillis) MarshalJSON() ([]byte, error) {
 	return json.Marshal(timeToUnixMilliseconds(tm.Time()))
 }
 
+func (tm timestampMillis) WriteJSON(buf *bytes.Buffer) {
+	jsonx.AppendUint(buf, timeToUnixMilliseconds(tm.Time()))
+}
+
 func (tm timestampMillis) Time() time.Time  { return time.Time(tm) }
 func (tm *timestampMillis) Set(t time.Time) { *tm = timestampMillis(t) }
 
@@ -84,6 +94,34 @@ type payload struct {
 	TrustedAccountKey    string          `json:"tk,omitempty"`
 	NonTrustedTraceState string          `json:"-"`
 	OriginalTraceState   string          `json:"-"`
+}
+
+func (p payload) WriteJSON(buf *bytes.Buffer) {
+	buf.WriteByte('{')
+	w := jsonFieldsWriter{buf: buf}
+	w.stringField("ty", p.Type)
+	w.stringField("ap", p.App)
+	w.stringField("ac", p.Account)
+	if p.TransactionID != "" {
+		w.stringField("tx", p.TransactionID)
+	}
+	if p.ID != "" {
+		w.stringField("id", p.ID)
+	}
+	w.stringField("tr", p.TracedID)
+	w.float32Field("pr", float32(p.Priority))
+
+	if p.Sampled == nil {
+		w.addKey("sa")
+		w.buf.WriteString("null")
+	} else {
+		w.boolField("sa", *p.Sampled)
+	}
+	w.writerField("ti", p.Timestamp)
+	if p.TrustedAccountKey != "" {
+		w.stringField("tk", p.TrustedAccountKey)
+	}
+	buf.WriteByte('}')
 }
 
 type payloadCaller struct {
@@ -142,14 +180,17 @@ func (p payload) text(v distTraceVersion) []byte {
 	if p.TrustedAccountKey == p.Account {
 		p.TrustedAccountKey = ""
 	}
-	js, _ := json.Marshal(struct {
-		Version distTraceVersion `json:"v"`
-		Data    payload          `json:"d"`
-	}{
-		Version: v,
-		Data:    p,
-	})
-	return js
+
+	var js bytes.Buffer
+	w := jsonFieldsWriter{
+		buf: &js,
+	}
+	js.WriteByte('{')
+	w.writerField("v", v)
+	w.writerField("d", p)
+	js.WriteByte('}')
+
+	return js.Bytes()
 }
 
 // NRText implements newrelic.DistributedTracePayload.

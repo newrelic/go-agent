@@ -44,6 +44,11 @@ func (w *jsonFieldsWriter) floatField(key string, val float64) {
 	jsonx.AppendFloat(w.buf, val)
 }
 
+func (w *jsonFieldsWriter) float32Field(key string, val float32) {
+	w.addKey(key)
+	jsonx.AppendFloat32(w.buf, val)
+}
+
 func (w *jsonFieldsWriter) boolField(key string, val bool) {
 	w.addKey(key)
 	if val {
