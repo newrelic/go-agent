@@ -135,10 +135,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomInsightsEvents":{
-				"Enabled":true,
-				"MaxSamplesStored":1000
-			},
+			"CustomInsightsEvents":{"Enabled":true},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
