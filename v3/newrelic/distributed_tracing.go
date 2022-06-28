@@ -183,6 +183,8 @@ func (p payload) validateNewRelicData() error {
 	return nil
 }
 
+const payloadJSONStartingSizeEstimate = 256
+
 func (p payload) text(v distTraceVersion) []byte {
 	// TrustedAccountKey should only be attached to the outbound payload if its value differs
 	// from the Account field.
@@ -190,7 +192,7 @@ func (p payload) text(v distTraceVersion) []byte {
 		p.TrustedAccountKey = ""
 	}
 
-	js := bytes.NewBuffer(make([]byte, 0, 256))
+	js := bytes.NewBuffer(make([]byte, 0, payloadJSONStartingSizeEstimate))
 	w := jsonFieldsWriter{
 		buf: js,
 	}
