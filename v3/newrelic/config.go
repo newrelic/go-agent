@@ -545,6 +545,16 @@ func (c Config) maxTxnEvents() int {
 	return configured
 }
 
+// maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxLogEvents() int {
+	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxTxnEvents {
+		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
 func copyDestConfig(c AttributeDestinationConfig) AttributeDestinationConfig {
 	cp := c
 	if nil != c.Include {
@@ -699,7 +709,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.maxLogEvents(), c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
 	}})
 }
 
