@@ -606,7 +606,7 @@ func (app *app) RecordLog(log *LogData) error {
 	if txn != nil {
 		metadata := txn.GetTraceMetadata()
 		event.spanID = metadata.SpanID
-		event.traceID = metadata.SpanID
+		event.traceID = metadata.TraceID
 		txn.thread.StoreLog(&event)
 	} else {
 		run, _ := app.getState()
