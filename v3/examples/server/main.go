@@ -246,18 +246,6 @@ func browser(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "browser header page")
 }
 
-func logMessage(w http.ResponseWriter, r *http.Request) {
-	txn := newrelic.FromContext(r.Context())
-	app := txn.Application()
-
-	app.RecordLog(newrelic.LogData{
-		Message:  "Log Message",
-		Severity: "info",
-	})
-
-	io.WriteString(w, "A log message was recorded")
-}
-
 func logTxnMessage(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
 	txn.RecordLog(newrelic.LogData{
@@ -265,7 +253,7 @@ func logTxnMessage(w http.ResponseWriter, r *http.Request) {
 		Severity: "info",
 	})
 
-	io.WriteString(w, "A log message was recorded as part of a transaction")
+	io.WriteString(w, "A log message was recorded")
 }
 
 func main() {
@@ -297,8 +285,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/browser", browser))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
-	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logMessage))
-	http.HandleFunc(newrelic.WrapHandleFunc(app, "/transaction_log", logTxnMessage))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
 
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as
@@ -308,6 +295,18 @@ func main() {
 
 		io.WriteString(w, "background transaction")
 		time.Sleep(150 * time.Millisecond)
+	})
+
+	http.HandleFunc("/background_log", func(w http.ResponseWriter, req *http.Request) {
+		// Logs that occur outside of a transaction are classified as
+		// background logs.
+
+		app.RecordLog(newrelic.LogData{
+			Message:  "Background Log Message",
+			Severity: "info",
+		})
+
+		io.WriteString(w, "A background log message was recorded")
 	})
 
 	http.ListenAndServe(":8000", nil)
