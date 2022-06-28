@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -136,35 +135,11 @@ func TestRecordLog(t *testing.T) {
 		Timestamp: time,
 	})
 
-	txn := testApp.StartTransaction("test transaction")
-	ctx := NewContext(context.Background(), txn)
-
-	// gather linking metadata values for test verification
-	metadata := txn.GetTraceMetadata()
-	spanID := metadata.SpanID
-	traceID := metadata.TraceID
-
-	testApp.Application.RecordLog(LogData{
-		Severity:  "Warn",
-		Message:   "Test Message With Transaction",
-		Timestamp: time,
-		Context:   ctx,
-	})
-
-	txn.End()
-
 	testApp.ExpectLogEvents(t, []internal.WantLog{
 		{
 			Severity:  "Debug",
 			Message:   "Test Message",
 			Timestamp: time,
-		},
-		{
-			Severity:  "Warn",
-			Message:   "Test Message With Transaction",
-			Timestamp: time,
-			SpanID:    spanID,
-			TraceID:   traceID,
 		},
 	})
 }

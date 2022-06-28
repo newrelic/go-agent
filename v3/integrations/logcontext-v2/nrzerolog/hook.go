@@ -16,17 +16,26 @@ type NewRelicHook struct {
 }
 
 func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	var txn *newrelic.Transaction
+	if h.Context != nil {
+		txn = newrelic.FromContext(h.Context)
+	}
+
 	logLevel := ""
 	if level == zerolog.NoLevel {
 		logLevel = newrelic.LogSeverityUnknown
 	} else {
 		logLevel = level.String()
 	}
+
 	data := newrelic.LogData{
 		Severity: logLevel,
 		Message:  msg,
-		Context:  h.Context,
 	}
 
-	h.App.RecordLog(data)
+	if txn != nil {
+		txn.RecordLog(data)
+	} else {
+		h.App.RecordLog(data)
+	}
 }

@@ -119,6 +119,29 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
 }
 
+// RecordLog records the data from a single log line.
+// This consumes a LogData object that should be configured
+// with data taken from a logging framework.
+//
+// Certian parts of this feature can be turned off based on your
+// config settings. Record log is capable of recording log events,
+// as well as log metrics depending on how your application is
+// configured.
+func (txn *Transaction) RecordLog(log LogData) {
+	event, err := log.toLogEvent()
+	if err != nil {
+		txn.Application().app.Error("unable to record log", map[string]interface{}{
+			"reason": err.Error(),
+		})
+		return
+	}
+
+	metadata := txn.GetTraceMetadata()
+	event.spanID = metadata.SpanID
+	event.traceID = metadata.TraceID
+	txn.thread.StoreLog(&event)
+}
+
 // SetWebRequestHTTP marks the transaction as a web transaction.  If
 // the request is non-nil, SetWebRequestHTTP will additionally collect
 // details on request attributes, url, and method.  If headers are

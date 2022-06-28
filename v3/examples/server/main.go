@@ -259,14 +259,10 @@ func logMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func logTxnMessage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	txn := newrelic.FromContext(ctx)
-	app := txn.Application()
-
-	app.RecordLog(newrelic.LogData{
+	txn := newrelic.FromContext(r.Context())
+	txn.RecordLog(newrelic.LogData{
 		Message:  "Log Message",
 		Severity: "info",
-		Context:  ctx,
 	})
 
 	io.WriteString(w, "A log message was recorded as part of a transaction")

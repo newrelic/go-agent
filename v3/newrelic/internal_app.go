@@ -596,22 +596,8 @@ func (app *app) RecordLog(log *LogData) error {
 		return err
 	}
 
-	var txn *Transaction
-	if log.Context != nil {
-		txn = FromContext(log.Context)
-	}
-
-	// Whenever a log is part of a transaction, store it on the transaction
-	// to ensure it gets correctly prioritized.
-	if txn != nil {
-		metadata := txn.GetTraceMetadata()
-		event.spanID = metadata.SpanID
-		event.traceID = metadata.TraceID
-		txn.thread.StoreLog(&event)
-	} else {
-		run, _ := app.getState()
-		app.Consume(run.Reply.RunID, &event)
-	}
+	run, _ := app.getState()
+	app.Consume(run.Reply.RunID, &event)
 	return nil
 }
 
