@@ -24,6 +24,9 @@ type distTraceVersion [2]int
 func (v distTraceVersion) major() int { return v[0] }
 func (v distTraceVersion) minor() int { return v[1] }
 
+// WriteJSON implements the functionality to support writerField
+// in our internal json builder. It appends the JSON representation
+// of a distTraceVersion to the destination bytes.Buffer.
 func (v distTraceVersion) WriteJSON(buf *bytes.Buffer) {
 	jsonx.AppendIntArray(buf, int64(v[0]), int64(v[1]))
 }
@@ -63,6 +66,9 @@ func (tm timestampMillis) MarshalJSON() ([]byte, error) {
 	return json.Marshal(timeToUnixMilliseconds(tm.Time()))
 }
 
+// WriteJSON implements the functionality to support writerField
+// in our internal json builder. It appends the JSON representation
+// of a timestampMillis value to the destination bytes.Buffer.
 func (tm timestampMillis) WriteJSON(buf *bytes.Buffer) {
 	jsonx.AppendUint(buf, timeToUnixMilliseconds(tm.Time()))
 }
@@ -96,6 +102,9 @@ type payload struct {
 	OriginalTraceState   string          `json:"-"`
 }
 
+// WriteJSON implements the functionality to support writerField
+// in our internal json builder. It appends the JSON representation
+// of a payload struct to the destination bytes.Buffer.
 func (p payload) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('{')
 	w := jsonFieldsWriter{buf: buf}
@@ -147,27 +156,27 @@ func (p payload) validateNewRelicData() error {
 
 	// If a payload is missing both `guid` and `transactionId` is received,
 	// a ParseException supportability metric should be generated.
-	if "" == p.TransactionID && "" == p.ID {
+	if p.TransactionID == "" && p.ID == "" {
 		return errPayloadMissingGUIDTxnID
 	}
 
-	if "" == p.Type {
+	if p.Type == "" {
 		return errPayloadMissingType
 	}
 
-	if "" == p.Account {
+	if p.Account == "" {
 		return errPayloadMissingAccount
 	}
 
-	if "" == p.App {
+	if p.App == "" {
 		return errPayloadMissingApp
 	}
 
-	if "" == p.TracedID {
+	if p.TracedID == "" {
 		return errPayloadMissingTraceID
 	}
 
-	if p.Timestamp.Time().IsZero() || 0 == p.Timestamp.Time().Unix() {
+	if p.Timestamp.Time().IsZero() || p.Timestamp.Time().Unix() == 0 {
 		return errPayloadMissingTimestamp
 	}
 
@@ -300,12 +309,12 @@ func processNRDTString(str string, support *distributedTracingSupport) (*payload
 		return nil, nil
 	}
 	var decoded []byte
-	if '{' == str[0] {
+	if str[0] == '{' {
 		decoded = []byte(str)
 	} else {
 		var err error
 		decoded, err = base64.StdEncoding.DecodeString(str)
-		if nil != err {
+		if err != nil {
 			support.AcceptPayloadParseException = true
 			return nil, fmt.Errorf("unable to decode payload: %v", err)
 		}
@@ -314,12 +323,12 @@ func processNRDTString(str string, support *distributedTracingSupport) (*payload
 		Version distTraceVersion `json:"v"`
 		Data    json.RawMessage  `json:"d"`
 	}{}
-	if err := json.Unmarshal(decoded, &envelope); nil != err {
+	if err := json.Unmarshal(decoded, &envelope); err != nil {
 		support.AcceptPayloadParseException = true
 		return nil, fmt.Errorf("unable to unmarshal payload: %v", err)
 	}
 
-	if 0 == envelope.Version.major() && 0 == envelope.Version.minor() {
+	if envelope.Version.major() == 0 && envelope.Version.minor() == 0 {
 		support.AcceptPayloadParseException = true
 		return nil, errPayloadMissingVersion
 	}
@@ -330,7 +339,7 @@ func processNRDTString(str string, support *distributedTracingSupport) (*payload
 			envelope.Version.major())
 	}
 	payload := new(payload)
-	if err := json.Unmarshal(envelope.Data, payload); nil != err {
+	if err := json.Unmarshal(envelope.Data, payload); err != nil {
 		support.AcceptPayloadParseException = true
 		return nil, fmt.Errorf("unable to unmarshal payload data: %v", err)
 	}
@@ -346,12 +355,12 @@ func processNRDTString(str string, support *distributedTracingSupport) (*payload
 
 func processW3CHeaders(hdrs http.Header, trustedAccountKey string, support *distributedTracingSupport) (*payload, error) {
 	p, err := processTraceParent(hdrs)
-	if nil != err {
+	if err != nil {
 		support.TraceContextParentParseException = true
 		return nil, err
 	}
 	err = processTraceState(hdrs, trustedAccountKey, p)
-	if nil != err {
+	if err != nil {
 		if err == errInvalidNRTraceState {
 			support.TraceContextStateInvalidNrEntry = true
 		} else {
@@ -435,7 +444,7 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *payload) e
 	app := matches[3]
 	timestamp, err := strconv.ParseUint(matches[8], 10, 64)
 
-	if nil != err || "" == version || "" == parentType || "" == account || "" == app {
+	if err != nil || version == "" || parentType == "" || account == "" || app == "" {
 		return errInvalidNRTraceState
 	}
 
