@@ -93,6 +93,13 @@ var DTEnabledCfgFn = func(cfg *newrelic.Config) {
 	cfg.DistributedTracer.Enabled = true
 }
 
+var AppLogEnabledCfgFn = func(cfg *newrelic.Config) {
+	cfg.Enabled = false
+	cfg.ApplicationLogging.Enabled = true
+	cfg.ApplicationLogging.Forwarding.Enabled = true
+	cfg.ApplicationLogging.Metrics.Enabled = true
+}
+
 // SampleEverythingReplyFn is a reusable ConnectReply function that samples everything
 var SampleEverythingReplyFn = func(reply *internal.ConnectReply) {
 	reply.SetSampleEverything()

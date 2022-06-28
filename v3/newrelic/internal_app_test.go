@@ -4,10 +4,13 @@
 package newrelic
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 func TestConnectBackoff(t *testing.T) {
@@ -70,4 +73,98 @@ func TestConfigOptionError(t *testing.T) {
 	if app != nil {
 		t.Error("app not nil")
 	}
+}
+
+const (
+	SampleAppName = "my app"
+)
+
+// ExpectApp combines Application and Expect, for use in validating data in test apps
+type ExpectApp struct {
+	internal.Expect
+	*Application
+}
+
+// NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
+func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) ExpectApp {
+	cfgFn = append(cfgFn,
+		func(cfg *Config) {
+			// Prevent spawning app goroutines in tests.
+			if !cfg.ServerlessMode.Enabled {
+				cfg.Enabled = false
+			}
+		},
+		ConfigAppName(SampleAppName),
+		ConfigLicense(testLicenseKey),
+	)
+
+	app, err := NewApplication(cfgFn...)
+	if nil != err {
+		panic(err)
+	}
+
+	internal.HarvestTesting(app.Private, replyfn)
+
+	return ExpectApp{
+		Expect:      app.Private.(internal.Expect),
+		Application: app,
+	}
+}
+
+var SampleEverythingReplyFn = func(reply *internal.ConnectReply) {
+	reply.SetSampleEverything()
+}
+
+var ConfigTestAppLogFn = func(cfg *Config) {
+	cfg.Enabled = false
+	cfg.ApplicationLogging.Enabled = true
+	cfg.ApplicationLogging.Forwarding.Enabled = true
+	cfg.ApplicationLogging.Metrics.Enabled = true
+}
+
+func TestRecordLog(t *testing.T) {
+	testApp := NewTestApp(
+		SampleEverythingReplyFn,
+		ConfigTestAppLogFn,
+	)
+
+	time := int64(timeToUnixMilliseconds(time.Now()))
+
+	testApp.Application.RecordLog(LogData{
+		Severity:  "Debug",
+		Message:   "Test Message",
+		Timestamp: time,
+	})
+
+	txn := testApp.StartTransaction("test transaction")
+	ctx := NewContext(context.Background(), txn)
+
+	// gather linking metadata values for test verification
+	metadata := txn.GetTraceMetadata()
+	spanID := metadata.SpanID
+	traceID := metadata.TraceID
+
+	testApp.Application.RecordLog(LogData{
+		Severity:  "Warn",
+		Message:   "Test Message With Transaction",
+		Timestamp: time,
+		Context:   ctx,
+	})
+
+	txn.End()
+
+	testApp.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  "Debug",
+			Message:   "Test Message",
+			Timestamp: time,
+		},
+		{
+			Severity:  "Warn",
+			Message:   "Test Message With Transaction",
+			Timestamp: time,
+			SpanID:    spanID,
+			TraceID:   traceID,
+		},
+	})
 }

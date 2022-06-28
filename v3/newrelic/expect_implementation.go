@@ -203,7 +203,7 @@ func expectCustomEvents(v internal.Validator, cs *customEvents, expect []interna
 
 func expectLogEvents(v internal.Validator, events *logEvents, expect []internal.WantLog) {
 	if len(events.logs) != len(expect) {
-		v.Error("number of events does not match", len(events.logs), len(expect))
+		v.Error("actual number of events does not match what is expected", len(events.logs), len(expect))
 		return
 	}
 
