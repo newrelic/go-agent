@@ -181,9 +181,9 @@ func (p payload) text(v distTraceVersion) []byte {
 		p.TrustedAccountKey = ""
 	}
 
-	var js bytes.Buffer
+	js := bytes.NewBuffer(make([]byte, 0, 256))
 	w := jsonFieldsWriter{
-		buf: &js,
+		buf: js,
 	}
 	js.WriteByte('{')
 	w.writerField("v", v)
