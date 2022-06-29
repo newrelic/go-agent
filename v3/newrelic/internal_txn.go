@@ -226,6 +226,17 @@ func (thd *thread) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
 	})
 }
 
+func (thd *thread) StoreLog(log *logEvent) {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.logs == nil {
+		txn.logs = make(logEventHeap, 0, internal.MaxLogEvents)
+	}
+	txn.logs.Add(log)
+}
+
 func (txn *txn) freezeName() {
 	if txn.ignore || ("" != txn.FinalName) {
 		return
@@ -261,6 +272,13 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 
 	createTxnMetrics(&txn.txnData, h.Metrics)
 	mergeBreakdownMetrics(&txn.txnData, h.Metrics)
+
+	// Dump log events into harvest
+	// Note: this will create a surge of log events that could affect sampling.
+	for _, logEvent := range txn.logs {
+		logEvent.priority = priority
+		h.LogEvents.Add(&logEvent)
+	}
 
 	if txn.Config.TransactionEvents.Enabled {
 		// Allocate a new TxnEvent to prevent a reference to the large transaction.

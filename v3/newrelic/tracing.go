@@ -21,32 +21,32 @@ import (
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
 type txnEvent struct {
+	HasError           bool
 	FinalName          string
+	Attrs              *attributes
+	CrossProcess       txnCrossProcess
+	BetterCAT          betterCAT
 	Start              time.Time
 	Duration           time.Duration
 	TotalTime          time.Duration
 	Queuing            time.Duration
 	Zone               apdexZone
-	Attrs              *attributes
 	externalCallCount  uint64
 	externalDuration   time.Duration
 	datastoreCallCount uint64
 	datastoreDuration  time.Duration
-	CrossProcess       txnCrossProcess
-	BetterCAT          betterCAT
-	HasError           bool
 }
 
 // betterCAT stores the transaction's priority and all fields related
 // to a DistributedTracer's Cross-Application Trace.
 type betterCAT struct {
 	Enabled       bool
-	Priority      priority
 	Sampled       bool
-	Inbound       *payload
+	Priority      priority
 	TxnID         string
 	TraceID       string
 	TransportType string
+	Inbound       *payload
 }
 
 // SetTraceAndTxnIDs takes a single 32 character ID and uses it to
@@ -79,6 +79,7 @@ type txnData struct {
 	rootSpanID              string
 	rootSpanErrData         *errorData
 	SpanEvents              []*spanEvent
+	logs                    logEventHeap
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[datastoreMetricKey]*metricData

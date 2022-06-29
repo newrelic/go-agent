@@ -300,6 +300,9 @@ type Config struct {
 		}
 	}
 
+	// Config Settings for Logs in Context features
+	ApplicationLogging ApplicationLogging
+
 	// Attributes controls which attributes are enabled and disabled globally.
 	// This setting affects all attribute destinations: Transaction Events,
 	// Error Events, Transaction Traces and segments, Traced Errors, Span
@@ -347,6 +350,29 @@ type Config struct {
 	// to indicate that setup has failed.  NewApplication will return this
 	// error if it is set.
 	Error error
+}
+
+// ApplicationLogging contains settings which control the capture and sending
+// of log event data
+type ApplicationLogging struct {
+	// If this is disabled, all sub-features are disabled;
+	// if it is enabled, the individual sub-feature configurations take effect.
+	// MAY accomplish this by not installing instrumentation, or by early-return/no-op as necessary for an agent.
+	Enabled bool
+	// Forwarding controls log forwarding to New Relic One
+	Forwarding struct {
+		// Toggles whether the agent gathers log records for sending to New Relic.
+		Enabled bool
+		// Number of log records to send per minute to New Relic.
+		// Controls the overall memory consumption when using log forwarding.
+		// SHOULD be sent as part of the harvest_limits on Connect.
+		MaxSamplesStored int
+	}
+	Metrics struct {
+		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
+		// Logging Metrics used in the Logs chart on the APM Summary page.
+		Enabled bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -411,6 +437,12 @@ func defaultConfig() Config {
 	c.TransactionTracer.Segments.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
 	c.TransactionTracer.Segments.Attributes.Enabled = true
+
+	// Application Logging Settings
+	c.ApplicationLogging.Enabled = true
+	c.ApplicationLogging.Forwarding.Enabled = false
+	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
+	c.ApplicationLogging.Metrics.Enabled = true
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
@@ -507,6 +539,16 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 // and is less than the default maximum; otherwise it returns the default max.
 func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxTxnEvents {
+		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
+// maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxLogEvents() int {
+	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
 	}
@@ -667,7 +709,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.maxLogEvents(), c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
 	}})
 }
 
