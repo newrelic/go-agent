@@ -11,9 +11,23 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
+var (
+	// This is for testing only
+	testHarvestCfgr = generateTestHarvestConfig()
+)
+
+func generateTestHarvestConfig() harvestConfig {
+	cfg := dfltHarvestCfgr
+
+	// Enable logging features for testing (not enabled by default)
+	loggingCfg := loggingConfigEnabled(internal.MaxLogEvents)
+	cfg.LoggingConfig = loggingCfg
+	return cfg
+}
+
 func TestHarvestTimerAllFixed(t *testing.T) {
 	now := time.Now()
-	harvest := newHarvest(now, dfltHarvestCfgr)
+	harvest := newHarvest(now, testHarvestCfgr)
 	timer := harvest.timer
 	for _, tc := range []struct {
 		Elapsed time.Duration
@@ -69,9 +83,15 @@ func TestCreateFinalMetrics(t *testing.T) {
 	// If the harvest or metrics is nil then CreateFinalMetrics should
 	// not panic.
 	var nilHarvest *harvest
-	nilHarvest.CreateFinalMetrics(nil, dfltHarvestCfgr, nil)
+
+	config := config{Config: defaultConfig()}
+
+	run := newAppRun(config, internal.ConnectReplyDefaults())
+	run.harvestConfig = testHarvestCfgr
+
+	nilHarvest.CreateFinalMetrics(run, nil)
 	emptyHarvest := &harvest{}
-	emptyHarvest.CreateFinalMetrics(nil, dfltHarvestCfgr, nil)
+	emptyHarvest.CreateFinalMetrics(run, nil)
 
 	replyJSON := []byte(`{"return_value":{
 		"metric_name_rules":[{
@@ -84,7 +104,8 @@ func TestCreateFinalMetrics(t *testing.T) {
 				"analytic_event_data": 22,
 				"custom_event_data": 33,
 				"error_event_data": 44,
-				"span_event_data": 55
+				"span_event_data": 55,
+				"log_event_data":66
 			}
 		}
 	}}`)
@@ -101,10 +122,13 @@ func TestCreateFinalMetrics(t *testing.T) {
 		MaxCustomEvents: 33,
 		MaxErrorEvents:  44,
 		MaxSpanEvents:   55,
+		LoggingConfig:   loggingConfigEnabled(66),
 	}
 	h := newHarvest(now, cfgr)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, cfgr, nil)
+	run = newAppRun(config, reply)
+	run.harvestConfig = cfgr
+	h.CreateFinalMetrics(run, nil)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "been_renamed", Scope: "", Forced: false, Data: []float64{1.0, 0, 0, 0, 0, 0}},
@@ -113,9 +137,14 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 33, 33, 33, 33, 33 * 33}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 44, 44, 44, 44, 44 * 44}},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 55, 55, 55, 55, 55 * 55}},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 66, 66, 66, 66, 66 * 66}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
 	// Test again without any metric rules or event_harvest_config.
@@ -126,9 +155,11 @@ func TestCreateFinalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h = newHarvest(now, dfltHarvestCfgr)
+	run = newAppRun(config, reply)
+	run.harvestConfig = testHarvestCfgr
+	h = newHarvest(now, testHarvestCfgr)
 	h.Metrics.addCount("rename_me", 1.0, unforced)
-	h.CreateFinalMetrics(reply, dfltHarvestCfgr, nil)
+	h.CreateFinalMetrics(run, nil)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "rename_me", Scope: "", Forced: false, Data: []float64{1.0, 0, 0, 0, 0, 0}},
@@ -137,9 +168,14 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 100, 100, 100, 100, 100 * 100}},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 2000, 2000, 2000, 2000, 2000 * 2000}},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10000, 10000, 10000, 10000, 10000 * 10000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -154,15 +190,17 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	run := newAppRun(config{Config: defaultConfig()}, reply)
+	run.harvestConfig = testHarvestCfgr
+
 	to, _ := newTraceObserver(
 		internal.AgentRunID("runid"), nil,
 		observerConfig{
 			log: logger.ShimLogger{},
 		},
 	)
-
-	h := newHarvest(now, dfltHarvestCfgr)
-	h.CreateFinalMetrics(reply, dfltHarvestCfgr, to)
+	h := newHarvest(now, testHarvestCfgr)
+	h.CreateFinalMetrics(run, to)
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: instanceReporting, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/ReportPeriod", Scope: "", Forced: true, Data: nil},
@@ -170,6 +208,11 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Forwarding/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/Metrics/Golang", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/Logging/LocalDecorating/Golang", Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: nil},
 		{Name: "Supportability/Go/gRPC/Version/" + grpcVersion, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -179,9 +222,9 @@ func TestCreateFinalMetricsTraceObserver(t *testing.T) {
 }
 
 func TestEmptyPayloads(t *testing.T) {
-	h := newHarvest(time.Now(), dfltHarvestCfgr)
+	h := newHarvest(time.Now(), testHarvestCfgr)
 	payloads := h.Payloads(true)
-	if len(payloads) != 8 {
+	if len(payloads) != 9 {
 		t.Error(len(payloads))
 	}
 	for _, p := range payloads {
@@ -209,7 +252,7 @@ func TestPayloadsEmptyHarvest(t *testing.T) {
 
 func TestHarvestNothingReady(t *testing.T) {
 	now := time.Now()
-	h := newHarvest(now, dfltHarvestCfgr)
+	h := newHarvest(now, testHarvestCfgr)
 	ready := h.Ready(now.Add(10 * time.Second))
 	if ready != nil {
 		t.Error("harvest should be nil")
@@ -257,6 +300,62 @@ func TestHarvestCustomEventsReady(t *testing.T) {
 	expectMetrics(t, h.Metrics, []internal.WantMetric{
 		{Name: customEventsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: customEventsSent, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+	})
+}
+
+func TestHarvestLogEventsReady(t *testing.T) {
+	now := time.Now()
+	fixedHarvestTypes := harvestMetricsTraces & harvestTxnEvents & harvestSpanEvents & harvestLogEvents
+	h := newHarvest(now, harvestConfig{
+		ReportPeriods: map[harvestTypes]time.Duration{
+			fixedHarvestTypes: fixedHarvestPeriod,
+			harvestLogEvents:  time.Second * 5,
+		},
+		LoggingConfig: loggingConfigEnabled(3),
+	})
+
+	logEvent := logEvent{
+		0.5,
+		123456,
+		"INFO",
+		"User 'xyz' logged in",
+		"123456789ADF",
+		"ADF09876565",
+	}
+
+	h.LogEvents.Add(&logEvent)
+	ready := h.Ready(now.Add(10 * time.Second))
+	payloads := ready.Payloads(true)
+	if len(payloads) == 0 {
+		t.Fatal("no payloads generated")
+	} else if len(payloads) > 1 {
+		t.Fatalf("too many payloads: %d", len(payloads))
+	}
+	p := payloads[0]
+	if m := p.EndpointMethod(); m != "log_event_data" {
+		t.Error(m)
+	}
+	data, err := p.Data("agentRunID", now)
+	if nil != err || nil == data {
+		t.Error(err, data)
+	}
+	if h.LogEvents.capacity() != 3 || h.LogEvents.NumSaved() != 0 {
+		t.Fatal("log events not correctly reset")
+	}
+
+	sampleLogEvent := internal.WantLog{
+		Severity:  logEvent.severity,
+		Message:   logEvent.message,
+		SpanID:    logEvent.spanID,
+		TraceID:   logEvent.traceID,
+		Timestamp: logEvent.timestamp,
+	}
+
+	expectLogEvents(t, ready.LogEvents, []internal.WantLog{sampleLogEvent})
+	expectMetrics(t, h.Metrics, []internal.WantMetric{
+		{Name: logsSeen, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logsSeen + "/" + logEvent.severity, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: logsDropped, Scope: "", Forced: true, Data: []float64{0, 0, 0, 0, 0, 0}},
 	})
 }
 
@@ -404,6 +503,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 		MaxCustomEvents: 1,
 		MaxErrorEvents:  1,
 		MaxSpanEvents:   1,
+		LoggingConfig:   loggingConfigEnabled(1),
 	})
 	h.Metrics.addCount("zip", 1, forced)
 
@@ -465,7 +565,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	start1 := time.Now()
 	start2 := start1.Add(1 * time.Minute)
 
-	h := newHarvest(start1, dfltHarvestCfgr)
+	h := newHarvest(start1, testHarvestCfgr)
 	h.Metrics.addCount("zip", 1, forced)
 	h.TxnEvents.AddTxnEvent(&txnEvent{
 		FinalName: "finalName",
@@ -473,6 +573,17 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Duration:  1 * time.Second,
 		TotalTime: 2 * time.Second,
 	}, 0)
+
+	logEvent := logEvent{
+		0.5,
+		123456,
+		"INFO",
+		"User 'xyz' logged in",
+		"123456789ADF",
+		"ADF09876565",
+	}
+
+	h.LogEvents.Add(&logEvent)
 	customEventParams := map[string]interface{}{"zip": 1}
 	ce, err := createCustomEvent("myEvent", customEventParams, time.Now())
 	if nil != err {
@@ -513,6 +624,9 @@ func TestMergeFailedHarvest(t *testing.T) {
 	if 0 != h.CustomEvents.analyticsEvents.failedHarvests {
 		t.Error(h.CustomEvents.analyticsEvents.failedHarvests)
 	}
+	if 0 != h.LogEvents.failedHarvests {
+		t.Error(h.LogEvents.failedHarvests)
+	}
 	if 0 != h.TxnEvents.analyticsEvents.failedHarvests {
 		t.Error(h.TxnEvents.analyticsEvents.failedHarvests)
 	}
@@ -532,6 +646,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
+	expectLogEvents(t, h.LogEvents, []internal.WantLog{
+		{
+			Severity:  logEvent.severity,
+			Message:   logEvent.message,
+			SpanID:    logEvent.spanID,
+			TraceID:   logEvent.traceID,
+			Timestamp: logEvent.timestamp,
+		},
+	})
 	expectErrorEvents(t, h.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -564,7 +687,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 		Klass:   "klass",
 	}})
 
-	nextHarvest := newHarvest(start2, dfltHarvestCfgr)
+	nextHarvest := newHarvest(start2, testHarvestCfgr)
 	if start2 != nextHarvest.Metrics.metricPeriodStart {
 		t.Error(nextHarvest.Metrics.metricPeriodStart)
 	}
@@ -581,6 +704,9 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}
 	if 1 != nextHarvest.CustomEvents.analyticsEvents.failedHarvests {
 		t.Error(nextHarvest.CustomEvents.analyticsEvents.failedHarvests)
+	}
+	if 1 != nextHarvest.LogEvents.failedHarvests {
+		t.Error(nextHarvest.LogEvents.failedHarvests)
 	}
 	if 1 != nextHarvest.TxnEvents.analyticsEvents.failedHarvests {
 		t.Error(nextHarvest.TxnEvents.analyticsEvents.failedHarvests)
@@ -601,6 +727,15 @@ func TestMergeFailedHarvest(t *testing.T) {
 		},
 		UserAttributes: customEventParams,
 	}})
+	expectLogEvents(t, nextHarvest.LogEvents, []internal.WantLog{
+		{
+			Severity:  logEvent.severity,
+			Message:   logEvent.message,
+			SpanID:    logEvent.spanID,
+			TraceID:   logEvent.traceID,
+			Timestamp: logEvent.timestamp,
+		},
+	})
 	expectErrorEvents(t, nextHarvest.ErrorEvents, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{
 			"error.class":     "klass",
@@ -722,7 +857,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 
 func TestHarvestSplitTxnEvents(t *testing.T) {
 	now := time.Now()
-	h := newHarvest(now, dfltHarvestCfgr)
+	h := newHarvest(now, testHarvestCfgr)
 	for i := 0; i < internal.MaxTxnEvents; i++ {
 		h.TxnEvents.AddTxnEvent(&txnEvent{}, priority(float32(i)))
 	}
@@ -730,10 +865,10 @@ func TestHarvestSplitTxnEvents(t *testing.T) {
 	payloadsWithSplit := h.Payloads(true)
 	payloadsWithoutSplit := h.Payloads(false)
 
-	if len(payloadsWithSplit) != 9 {
+	if len(payloadsWithSplit) != 10 {
 		t.Error(len(payloadsWithSplit))
 	}
-	if len(payloadsWithoutSplit) != 8 {
+	if len(payloadsWithoutSplit) != 9 {
 		t.Error(len(payloadsWithoutSplit))
 	}
 }
@@ -818,13 +953,16 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 
 func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	now := time.Now()
-	h := newHarvest(now, dfltHarvestCfgr)
+	h := newHarvest(now, testHarvestCfgr)
 
 	if cp := h.TxnEvents.capacity(); cp != internal.MaxTxnEvents {
 		t.Error("wrong txn event capacity", cp)
 	}
 	if cp := h.CustomEvents.capacity(); cp != internal.MaxCustomEvents {
 		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.LogEvents.capacity(); cp != internal.MaxLogEvents {
+		t.Error("wrong log event capacity", cp)
 	}
 	if cp := h.ErrorEvents.capacity(); cp != internal.MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
@@ -845,6 +983,7 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 		MaxCustomEvents: 2,
 		MaxErrorEvents:  3,
 		MaxSpanEvents:   4,
+		LoggingConfig:   loggingConfigEnabled(5),
 	})
 
 	if cp := h.TxnEvents.capacity(); cp != 1 {
@@ -858,6 +997,9 @@ func TestNewHarvestUsesConnectReply(t *testing.T) {
 	}
 	if cp := h.SpanEvents.capacity(); cp != 4 {
 		t.Error("wrong span event capacity", cp)
+	}
+	if cp := h.LogEvents.capacity(); cp != 5 {
+		t.Error("wrong log event capacity", cp)
 	}
 }
 
@@ -873,12 +1015,16 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 		MaxCustomEvents: 0,
 		MaxErrorEvents:  0,
 		MaxSpanEvents:   0,
+		LoggingConfig:   loggingConfigEnabled(0),
 	})
 	if cp := h.TxnEvents.capacity(); cp != 0 {
 		t.Error("wrong txn event capacity", cp)
 	}
 	if cp := h.CustomEvents.capacity(); cp != 0 {
 		t.Error("wrong custom event capacity", cp)
+	}
+	if cp := h.LogEvents.capacity(); cp != 0 {
+		t.Error("wrong log event capacity", cp)
 	}
 	if cp := h.ErrorEvents.capacity(); cp != 0 {
 		t.Error("wrong error event capacity", cp)
@@ -891,6 +1037,7 @@ func TestConfigurableHarvestZeroHarvestLimits(t *testing.T) {
 	// safe.
 	h.TxnEvents.AddTxnEvent(&txnEvent{}, 1.0)
 	h.CustomEvents.Add(&customEvent{})
+	h.LogEvents.Add(&logEvent{})
 	h.ErrorEvents.Add(&errorEvent{}, 1.0)
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 

@@ -66,7 +66,7 @@ type app struct {
 }
 
 func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
-	h.CreateFinalMetrics(run.Reply, run.harvestConfig, app.getObserver())
+	h.CreateFinalMetrics(run, app.getObserver())
 
 	payloads := h.Payloads(app.config.DistributedTracer.Enabled)
 	for _, p := range payloads {
@@ -291,6 +291,13 @@ func (app *app) process() {
 					"server-SpanEvents.Enabled":        run.Config.SpanEvents.Enabled,
 				})
 			}
+
+			run.harvestConfig.CommonAttributes = commonAttributes{
+				hostname:   app.config.hostname,
+				entityName: app.config.AppName,
+				entityGUID: run.Reply.EntityGUID,
+			}
+
 			h = newHarvest(time.Now(), run.harvestConfig)
 			app.setState(run, nil)
 
@@ -575,6 +582,26 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 }
 
 var (
+	errAppLoggingDisabled = errors.New("log data can not be recorded when application logging is disabled")
+)
+
+// RecordLog implements newrelic.Application's RecordLog.
+func (app *app) RecordLog(log *LogData) error {
+	if !app.config.ApplicationLogging.Enabled {
+		return errAppLoggingDisabled
+	}
+
+	event, err := log.toLogEvent()
+	if err != nil {
+		return err
+	}
+
+	run, _ := app.getState()
+	app.Consume(run.Reply.RunID, &event)
+	return nil
+}
+
+var (
 	_ internal.ServerlessWriter = &app{}
 )
 
@@ -603,6 +630,10 @@ func (app *app) Consume(id internal.AgentRunID, data harvestable) {
 
 func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantEvent) {
 	expectCustomEvents(extendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
+}
+
+func (app *app) ExpectLogEvents(t internal.Validator, want []internal.WantLog) {
+	expectLogEvents(extendValidator(t, "log events"), app.testHarvest.LogEvents, want)
 }
 
 func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {

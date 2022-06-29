@@ -129,13 +129,26 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
+			"ApplicationLogging": {
+				"Enabled":true,
+				"Forwarding": {
+					"Enabled": false,
+					"MaxSamplesStored": 10000
+				},
+				"Metrics": {
+					"Enabled": true
+				}
+			},
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
 			"BrowserMonitoring":{
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomInsightsEvents":{"Enabled":true},
+			"CustomInsightsEvents":{
+				"Enabled":true,
+				"MaxSamplesStored":10000
+			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
@@ -250,6 +263,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
+				"log_event_data": 10000,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}
@@ -302,6 +316,16 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AppName":"my appname",
+			"ApplicationLogging": {
+				"Enabled": true,
+				"Forwarding": {
+					"Enabled": false,
+					"MaxSamplesStored": 10000
+				},
+				"Metrics": {
+					"Enabled": true
+				}
+			},
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 			"BrowserMonitoring":{
 				"Attributes":{
@@ -312,7 +336,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomInsightsEvents":{"Enabled":true},
+			"CustomInsightsEvents":{
+				"Enabled":true,
+				"MaxSamplesStored":10000
+			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
@@ -415,6 +442,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"harvest_limits": {
 				"analytic_event_data": 10000,
 				"custom_event_data": 10000,
+				"log_event_data": 10000,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}
@@ -773,5 +801,15 @@ func TestNewInternalConfig(t *testing.T) {
 		"NEW_RELIC_METADATA_ZIP": "ZAP",
 	}) {
 		t.Error(c.metadata)
+	}
+}
+
+func TestConfigurableMaxCustomEvents(t *testing.T) {
+	expected := 1000
+	cfg := config{Config: defaultConfig()}
+	cfg.CustomInsightsEvents.MaxSamplesStored = expected
+	result := cfg.maxCustomEvents()
+	if result != expected {
+		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
 	}
 }

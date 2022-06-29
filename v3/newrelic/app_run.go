@@ -122,6 +122,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		MaxCustomEvents: run.MaxCustomEvents(),
 		MaxErrorEvents:  run.MaxErrorEvents(),
 		MaxSpanEvents:   run.MaxSpanEvents(),
+		LoggingConfig:   run.LoggingConfig(),
 	}
 
 	return run
@@ -187,6 +188,7 @@ func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration
 
 func (run *appRun) ptrTxnEvents() *uint    { return run.Reply.EventData.Limits.TxnEvents }
 func (run *appRun) ptrCustomEvents() *uint { return run.Reply.EventData.Limits.CustomEvents }
+func (run *appRun) ptrLogEvents() *uint    { return run.Reply.EventData.Limits.LogEvents }
 func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
 func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
 
@@ -194,8 +196,25 @@ func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents
 func (run *appRun) MaxCustomEvents() int {
 	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
 }
+func (run *appRun) MaxLogEvents() int {
+	return run.limit(internal.MaxLogEvents, run.ptrLogEvents)
+}
 func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+
+func (run *appRun) LoggingConfig() (config loggingConfig) {
+	logging := run.Config.ApplicationLogging
+
+	config.loggingEnabled = logging.Enabled
+	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
+	config.maxLogEvents = run.MaxLogEvents()
+	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
+
+	//TODO
+	config.localEnrichment = false
+
+	return config
 }
 
 // MaxSpanEvents returns the reservoir limit for collected span events,
@@ -219,6 +238,7 @@ func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {
 	for tp, fn := range map[harvestTypes]func() *uint{
 		harvestTxnEvents:    run.ptrTxnEvents,
 		harvestCustomEvents: run.ptrCustomEvents,
+		harvestLogEvents:    run.ptrLogEvents,
 		harvestErrorEvents:  run.ptrErrorEvents,
 		harvestSpanEvents:   run.ptrSpanEvents,
 	} {

@@ -30,6 +30,7 @@ const (
 	cmdConnect      = "connect"
 	cmdMetrics      = "metric_data"
 	cmdCustomEvents = "custom_event_data"
+	cmdLogEvents    = "log_event_data"
 	cmdTxnEvents    = "analytic_event_data"
 	cmdErrorEvents  = "error_event_data"
 	cmdErrorData    = "error_data"

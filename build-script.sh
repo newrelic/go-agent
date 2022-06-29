@@ -35,6 +35,10 @@ pin_go_dependency() {
   fi
 }
 
+go_mod_tidy() {
+  go mod tidy
+}
+
 IFS=","
 for dir in $DIRS; do
   cd "$pwd/$dir"
@@ -42,6 +46,9 @@ for dir in $DIRS; do
   if [ -f "go.mod" ]; then
     go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
   fi
+
+  # Do tidy if we can
+  go_mod_tidy || true
 
   pin_go_dependency "$PIN"
 

@@ -19,8 +19,8 @@ type analyticsEventHeap []analyticsEvent
 
 type analyticsEvents struct {
 	numSeen        int
-	events         analyticsEventHeap
 	failedHarvests int
+	events         analyticsEventHeap
 }
 
 func (events *analyticsEvents) NumSeen() float64  { return float64(events.numSeen) }

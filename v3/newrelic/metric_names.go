@@ -3,6 +3,8 @@
 
 package newrelic
 
+import "fmt"
+
 const (
 	apdexRollup = "Apdex"
 	apdexPrefix = "Apdex/"
@@ -61,7 +63,53 @@ const (
 	supportCustomEventLimit = "Supportability/EventHarvest/CustomEventData/HarvestLimit"
 	supportErrorEventLimit  = "Supportability/EventHarvest/ErrorEventData/HarvestLimit"
 	supportSpanEventLimit   = "Supportability/EventHarvest/SpanEventData/HarvestLimit"
+	supportLogEventLimit    = "Supportability/EventHarvest/LogEventData/HarvestLimit"
+
+	// Logging Metrics https://source.datanerd.us/agents/agent-specs/pull/570/files
+	// User Facing
+	logsSeen    = "Logging/lines"
+	logsDropped = "Logging/Forwarding/Dropped"
+
+	// Supportability (at connect)
+	supportLogging        = "Supportability/Logging/Golang"
+	supportLoggingMetrics = "Supportability/Logging/Metrics/Golang"
+	supportLogForwarding  = "Supportability/Logging/Forwarding/Golang"
+	supportLogDecorating  = "Supportability/Logging/LocalDecorating/Golang"
+
+	// Supportability (once per harvest)
+	logEventsSeen = "Supportability/Logging/Forwarding/Seen"
+	logEventsSent = "Supportability/Logging/Forwarding/Sent"
 )
+
+func supportMetric(metrics *metricTable, b bool, metricName string) {
+	if b {
+		metrics.addSingleCount(metricName, forced)
+	}
+}
+
+// logSupport contains final configuration settings for
+// logging features for log data generation and supportability
+// metrics generation.
+type loggingConfig struct {
+	loggingEnabled  bool // application logging features are enabled
+	collectEvents   bool // collection of log event data is enabled
+	collectMetrics  bool // collection of log metric data is enabled
+	localEnrichment bool // local log enrichment is enabled
+	maxLogEvents    int  // maximum number of log events allowed to be collected
+}
+
+// Logging metrics that are generated at connect response
+func (cfg loggingConfig) connectMetrics(ms *metricTable) {
+	supportMetric(ms, cfg.loggingEnabled, supportLogging)
+	supportMetric(ms, cfg.collectEvents, supportLogForwarding)
+	supportMetric(ms, cfg.collectMetrics, supportLoggingMetrics)
+	supportMetric(ms, cfg.localEnrichment, supportLogDecorating)
+}
+
+func loggingFrameworkMetric(ms *metricTable, framework string) {
+	name := fmt.Sprintf("%s/%s", supportLogging, framework)
+	supportMetric(ms, true, name)
+}
 
 // distributedTracingSupport is used to track distributed tracing activity for
 // supportability.
@@ -91,12 +139,6 @@ type distributedTracingSupport struct {
 
 func (dts distributedTracingSupport) isEmpty() bool {
 	return (distributedTracingSupport{}) == dts
-}
-
-func supportMetric(metrics *metricTable, b bool, metricName string) {
-	if b {
-		metrics.addSingleCount(metricName, forced)
-	}
 }
 
 func (dts distributedTracingSupport) createMetrics(ms *metricTable) {

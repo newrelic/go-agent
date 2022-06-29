@@ -118,6 +118,22 @@ func AppendFloat(buf *bytes.Buffer, x float64) error {
 	return nil
 }
 
+// AppendFloat32 appends a numeric literal representingthe value to buf.
+func AppendFloat32(buf *bytes.Buffer, x float32) error {
+	var scratch [64]byte
+	x64 := float64(x)
+
+	if math.IsInf(x64, 0) || math.IsNaN(x64) {
+		return &json.UnsupportedValueError{
+			Value: reflect.ValueOf(x64),
+			Str:   strconv.FormatFloat(x64, 'g', -1, 32),
+		}
+	}
+
+	buf.Write(strconv.AppendFloat(scratch[:0], x64, 'g', -1, 32))
+	return nil
+}
+
 // AppendFloatArray appends an array of numeric literals to buf.
 func AppendFloatArray(buf *bytes.Buffer, a ...float64) error {
 	buf.WriteByte('[')

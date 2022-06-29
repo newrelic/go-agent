@@ -71,6 +71,8 @@ type Config struct {
 		// custom analytics events.  High security mode overrides this
 		// setting.
 		Enabled bool
+		// MaxSamplesStored sets the desired maximum custom event samples stored
+		MaxSamplesStored int
 	}
 
 	// TransactionEvents controls the behavior of transaction analytics
@@ -300,6 +302,9 @@ type Config struct {
 		}
 	}
 
+	// Config Settings for Logs in Context features
+	ApplicationLogging ApplicationLogging
+
 	// Attributes controls which attributes are enabled and disabled globally.
 	// This setting affects all attribute destinations: Transaction Events,
 	// Error Events, Transaction Traces and segments, Traced Errors, Span
@@ -349,6 +354,29 @@ type Config struct {
 	Error error
 }
 
+// ApplicationLogging contains settings which control the capture and sending
+// of log event data
+type ApplicationLogging struct {
+	// If this is disabled, all sub-features are disabled;
+	// if it is enabled, the individual sub-feature configurations take effect.
+	// MAY accomplish this by not installing instrumentation, or by early-return/no-op as necessary for an agent.
+	Enabled bool
+	// Forwarding controls log forwarding to New Relic One
+	Forwarding struct {
+		// Toggles whether the agent gathers log records for sending to New Relic.
+		Enabled bool
+		// Number of log records to send per minute to New Relic.
+		// Controls the overall memory consumption when using log forwarding.
+		// SHOULD be sent as part of the harvest_limits on Connect.
+		MaxSamplesStored int
+	}
+	Metrics struct {
+		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
+		// Logging Metrics used in the Logs chart on the APM Summary page.
+		Enabled bool
+	}
+}
+
 // AttributeDestinationConfig controls the attributes sent to each destination.
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/agent-attributes
@@ -382,6 +410,7 @@ func defaultConfig() Config {
 	c.Enabled = true
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
+	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
@@ -411,6 +440,12 @@ func defaultConfig() Config {
 	c.TransactionTracer.Segments.StackTraceThreshold = 500 * time.Millisecond
 	c.TransactionTracer.Attributes.Enabled = true
 	c.TransactionTracer.Segments.Attributes.Enabled = true
+
+	// Application Logging Settings
+	c.ApplicationLogging.Enabled = true
+	c.ApplicationLogging.Forwarding.Enabled = false
+	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
+	c.ApplicationLogging.Metrics.Enabled = true
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
@@ -509,6 +544,26 @@ func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
+// maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxCustomEvents() int {
+	configured := c.CustomInsightsEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxCustomEvents {
+		return internal.MaxCustomEvents
+	}
+	return configured
+}
+
+// maxLogEvents returns the configured maximum number of Log Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxLogEvents() int {
+	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxLogEvents {
+		return internal.MaxLogEvents
 	}
 	return configured
 }
@@ -667,7 +722,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.DistributedTracer.Enabled, c.DistributedTracer.ReservoirLimit),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.maxLogEvents(), c.maxCustomEvents(), c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
 	}})
 }
 
