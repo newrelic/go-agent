@@ -332,6 +332,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
 	}
 }
+
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	reply, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{
