@@ -180,7 +180,6 @@ func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
 }
 func (run *appRun) MaxSpanEvents() int { return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents) }
-func (run *appRun) MaxSamplesStored() int { return run.limit(internal.MaxSamplesStored, run.ptrCustomEvents) }
 
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
