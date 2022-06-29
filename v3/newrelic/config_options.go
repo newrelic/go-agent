@@ -36,7 +36,7 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
 }
 
-// ConfigCustomInsightsEventsMaxSamplesLimit alters the sample size allowing control
+// ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
