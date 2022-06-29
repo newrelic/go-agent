@@ -67,7 +67,7 @@ Now, add instrumentation to your Go application to get additional performance da
 * Import any of our [integration packages](https://github.com/newrelic/go-agent#integrations) for out-of-the box support for many popular Go web 
 frameworks and libraries. 
 * [Instrument Transactions](#transactions)
-* [Use Distributed Tracing](#distributed-tracing)
+* [Use Distributed Tracing](#distributed-tracing) (Note that this is on by default.)
 * [(Optional) Instrument Segments](#segments) for an extra level of timing detail
   * External segments are needed for Distributed Tracing
 * Read through the rest of this GUIDE for more instrumentation
@@ -101,6 +101,9 @@ app, err := newrelic.NewApplication(
 
 
 ## Logging
+
+For information about logs in context, please see [the documentation here](https://docs.newrelic.com/docs/logs/logs-context/logs-in-context).
+As of Go Agent version 3.17.0, we support logs in context with the zerolog integration.
 
 The agent's logging system is designed to be easily extensible.  By default, no
 logging will occur.  To enable logging, use the following config functions
