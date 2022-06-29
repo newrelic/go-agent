@@ -173,7 +173,7 @@ func TestNegativeHarvestLimits(t *testing.T) {
 }
 
 func TestDefaultEventHarvestConfigJSON(t *testing.T) {
-	js, err := json.Marshal(DefaultEventHarvestConfig(MaxTxnEvents, MaxLogEvents))
+	js, err := json.Marshal(DefaultEventHarvestConfig(MaxTxnEvents, MaxLogEvents, MaxCustomEvents))
 	if err != nil {
 		t.Error(err)
 	}

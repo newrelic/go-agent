@@ -145,7 +145,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomInsightsEvents":{"Enabled":true},
+			"CustomInsightsEvents":{
+				"Enabled":true,
+				"MaxSamplesStored":10000
+			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
@@ -333,7 +336,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true
 			},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomInsightsEvents":{"Enabled":true},
+			"CustomInsightsEvents":{
+				"Enabled":true,
+				"MaxSamplesStored":10000
+			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
@@ -795,5 +801,15 @@ func TestNewInternalConfig(t *testing.T) {
 		"NEW_RELIC_METADATA_ZIP": "ZAP",
 	}) {
 		t.Error(c.metadata)
+	}
+}
+
+func TestConfigurableMaxCustomEvents(t *testing.T) {
+	expected := 1000
+	cfg := config{Config: defaultConfig()}
+	cfg.CustomInsightsEvents.MaxSamplesStored = expected
+	result := cfg.maxCustomEvents()
+	if result != expected {
+		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
 	}
 }
