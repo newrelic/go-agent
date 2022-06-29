@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
-	
+
 	"github.com/newrelic/go-agent/internal"
 )
 
