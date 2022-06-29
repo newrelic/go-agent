@@ -71,6 +71,8 @@ type Config struct {
 		// custom analytics events.  High security mode overrides this
 		// setting.
 		Enabled bool
+		// MaxSamplesStored sets the desired maximum custom event samples stored
+		MaxSamplesStored int
 	}
 
 	// TransactionEvents controls the behavior of transaction analytics
@@ -408,6 +410,7 @@ func defaultConfig() Config {
 	c.Enabled = true
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
+	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
@@ -545,12 +548,22 @@ func (c Config) maxTxnEvents() int {
 	return configured
 }
 
-// maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
+// maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxCustomEvents() int {
+	configured := c.CustomInsightsEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxCustomEvents {
+		return internal.MaxCustomEvents
+	}
+	return configured
+}
+
+// maxLogEvents returns the configured maximum number of Log Events if it has been configured
 // and is less than the default maximum; otherwise it returns the default max.
 func (c Config) maxLogEvents() int {
 	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
-	if configured < 0 || configured > internal.MaxTxnEvents {
-		return internal.MaxTxnEvents
+	if configured < 0 || configured > internal.MaxLogEvents {
+		return internal.MaxLogEvents
 	}
 	return configured
 }
@@ -709,7 +722,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.maxLogEvents(), c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.maxTxnEvents(), c.maxLogEvents(), c.maxCustomEvents(), c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
 	}})
 }
 

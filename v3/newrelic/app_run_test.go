@@ -332,28 +332,6 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
 	}
 }
-
-func TestConfigurableMaxCustomEventsDefault(t *testing.T) {
-	reply := internal.ConnectReplyDefaults()
-	expected := internal.MaxCustomEvents
-	cfg := config{Config: defaultConfig()}
-	result := newAppRun(cfg, reply).MaxCustomEvents()
-	if result != expected {
-		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
-	}
-}
-
-func TestConfigurableMaxCustomEvents(t *testing.T) {
-	reply := internal.ConnectReplyDefaults()
-	expected := 1000
-	cfg := config{Config: defaultConfig()}
-	cfg.CustomInsightsEvents.MaxSamplesStored = expected
-	result := newAppRun(cfg, reply).MaxCustomEvents()
-	if result != expected {
-		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
-	}
-}
-
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	reply, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{

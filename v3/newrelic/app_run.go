@@ -223,13 +223,6 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 func (run *appRun) MaxSpanEvents() int {
 	return run.limit(run.Config.DistributedTracer.ReservoirLimit, run.ptrSpanEvents)
 }
-func (run *appRun) MaxSamplesStored() int {
-	return run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, run.ptrCustomEvents)
-}
-
-func (run *appRun) MaxCustomEvents() int {
-	return run.limit(run.Config.maxCustomEvents(), run.ptrCustomEvents)
-}
 
 func (run *appRun) limit(dflt int, field func() *uint) int {
 	if field() != nil {
