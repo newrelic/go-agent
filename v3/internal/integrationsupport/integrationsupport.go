@@ -93,6 +93,7 @@ var DTEnabledCfgFn = func(cfg *newrelic.Config) {
 	cfg.DistributedTracer.Enabled = true
 }
 
+// AppLogEnabledCfgFn enables application logging features
 var AppLogEnabledCfgFn = func(cfg *newrelic.Config) {
 	cfg.Enabled = false
 	cfg.ApplicationLogging.Enabled = true

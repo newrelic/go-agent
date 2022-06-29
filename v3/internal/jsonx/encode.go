@@ -118,6 +118,7 @@ func AppendFloat(buf *bytes.Buffer, x float64) error {
 	return nil
 }
 
+// AppendFloat32 appends a numeric literal representingthe value to buf.
 func AppendFloat32(buf *bytes.Buffer, x float32) error {
 	var scratch [64]byte
 	x64 := float64(x)

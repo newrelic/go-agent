@@ -78,14 +78,14 @@ const (
 	SampleAppName = "my app"
 )
 
-// ExpectApp combines Application and Expect, for use in validating data in test apps
-type ExpectApp struct {
+// expectApp combines Application and Expect, for use in validating data in test apps
+type expectApplication struct {
 	internal.Expect
 	*Application
 }
 
-// NewTestApp creates an ExpectApp with the given ConnectReply function and Config function
-func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) ExpectApp {
+// newTestApp creates an ExpectApp with the given ConnectReply function and Config function
+func newTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) expectApplication {
 	cfgFn = append(cfgFn,
 		func(cfg *Config) {
 			// Prevent spawning app goroutines in tests.
@@ -104,17 +104,17 @@ func NewTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) Exp
 
 	internal.HarvestTesting(app.Private, replyfn)
 
-	return ExpectApp{
+	return expectApplication{
 		Expect:      app.Private.(internal.Expect),
 		Application: app,
 	}
 }
 
-var SampleEverythingReplyFn = func(reply *internal.ConnectReply) {
+var sampleEverythingReplyFn = func(reply *internal.ConnectReply) {
 	reply.SetSampleEverything()
 }
 
-var ConfigTestAppLogFn = func(cfg *Config) {
+var configTestAppLogFn = func(cfg *Config) {
 	cfg.Enabled = false
 	cfg.ApplicationLogging.Enabled = true
 	cfg.ApplicationLogging.Forwarding.Enabled = true
@@ -122,9 +122,9 @@ var ConfigTestAppLogFn = func(cfg *Config) {
 }
 
 func TestRecordLog(t *testing.T) {
-	testApp := NewTestApp(
-		SampleEverythingReplyFn,
-		ConfigTestAppLogFn,
+	testApp := newTestApp(
+		sampleEverythingReplyFn,
+		configTestAppLogFn,
 	)
 
 	time := int64(timeToUnixMilliseconds(time.Now()))
