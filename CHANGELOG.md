@@ -1,4 +1,31 @@
 # ChangeLog
+
+## 3.17.0
+### Added
+* Logs in context now supported for zerolog.
+* This is a quick way to view logs no matter where you are in the platform.
+	* Adds support for logging metrics which shows the rate of log messages by severity in the Logs chart in the APM Summary view. This is enabled by default in this release.
+	* Adds support for forwarding application logs to New Relic. This automatically sends application logs that have been enriched to power APM logs in context. This is disabled by default in this release. This will be on by default in a future release.
+	* To learn more about APM logs in context see the documentation [here](https://docs.newrelic.com/docs/logs/logs-context/logs-in-context).
+	* Includes the `RecordLog` function for recording log data from a single log entry
+	* An integrated plugin for zerolog to automatically ingest log data with the Go Agent.
+	* Resolves [issue 178](https://github.com/newrelic/go-agent/issues/178), [issue 488](https://github.com/newrelic/go-agent/issues/488), [issue 489](https://github.com/newrelic/go-agent/issues/489), [issue 490](https://github.com/newrelic/go-agent/issues/490), and [issue 491](https://github.com/newrelic/go-agent/issues/491) .
+* Added integration for MS SQL Server ([PR 425](https://github.com/newrelic/go-agent/pull/425); thanks @ishahid91!)
+	* This introduces the `nrmssql` integration v1.0.0.
+* Added configuration option for limiting the amount of samples stored in a custom insights event.
+### Fixed
+* Improved speed of building distributed trace header JSON payload. Fixes [issue 505](https://github.com/newrelic/go-agent/issues/505).
+* Renamed the gRPC attribute names from  `GrpcStatusLevel`, `GrpcStatusMessage`, and `GrpcStatusCode` to `grpcStatusLevel`, `grpcStatusMessage`, and `grpcStatusCode` respectively, to conform to existing naming conventions for New Relic agents. Fixes [issue 492](https://github.com/newrelic/go-agent/issues/492).
+* Updated `go.mod` for the `nrgin` integration to mitigate security issue in 3rd party dependency.
+* Updated `go.mod` for the `nrawssdk-v1` integration to properly reflect its dependency on version 3.16.0 of the Go Agent.
+* Updated `go.mod` for the `nrlambda` integration to require `aws-lambda-go` version 1.20.0. ([PR 356](https://github.com/newrelic/go-agent/pull/356); thanks MattWhelan!)
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+* Note that the oldest supported version of the Go Agent is 3.6.0.
+
+
+
 ## 3.16.1
 ### Fixed
 * Changed dependency on gRPC from v1.27.0 to v1.39.0. This in turn changes gRPC's dependency on `x/crypto` to v0.0.0-20200622213623-75b288015ac9, which fixes a security vulnerability in the `x/crypto` standard library module. Fixes [issue #451](https://github.com/newrelic/go-agent/issues/451).
