@@ -10,6 +10,7 @@
 	* Resolves [issue 178](https://github.com/newrelic/go-agent/issues/178), [issue 488](https://github.com/newrelic/go-agent/issues/488), [issue 489](https://github.com/newrelic/go-agent/issues/489), [issue 490](https://github.com/newrelic/go-agent/issues/490), and [issue 491](https://github.com/newrelic/go-agent/issues/491) .
 * Added integration for MS SQL Server ([PR 425](https://github.com/newrelic/go-agent/pull/425); thanks @ishahid91!)
 	* This introduces the `nrmssql` integration v1.0.0.
+* Added config function `ConfigCustomInsightsEventsMaxSamplesStored` for limiting the number of samples stored in a custom insights event. Fixes [issue 476](https://github.com/newrelic/go-agent/issues/476)
 
 ### Fixed
 * Improved speed of building distributed trace header JSON payload. Fixes [issue 505](https://github.com/newrelic/go-agent/issues/505).
