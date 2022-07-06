@@ -116,6 +116,32 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 	return event, nil
 }
 
+var (
+	errNilLogBuffer = errors.New("AppendLog can not append to nil byte buffer")
+)
+
+// AppendLog appends a formatted log to an existing byte buffer.
+// This should only be used for writing logs locally to frameworks.
+func (data *LogData) AppendLog(buf *bytes.Buffer, txn *Transaction) error {
+	if buf == nil {
+		return errNilLogBuffer
+	}
+	event, err := data.toLogEvent()
+	if err != nil {
+		return err
+	}
+
+	if txn != nil {
+		md := txn.thread.GetTraceMetadata()
+		event.spanID = md.SpanID
+		event.traceID = md.TraceID
+	}
+
+	event.WriteJSON(buf)
+	buf.WriteString("\n")
+	return nil
+}
+
 func (e *logEvent) MergeIntoHarvest(h *harvest) {
 	h.LogEvents.Add(e)
 }
