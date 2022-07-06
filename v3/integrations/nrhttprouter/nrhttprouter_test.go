@@ -48,9 +48,11 @@ func TestMethodFunctions(t *testing.T) {
 			t.Error("wrong response body", respBody)
 		}
 		app.ExpectTxnMetrics(t, internal.WantTxn{
-			Name:      md.Method + " /hello/:name",
-			IsWeb:     true,
-			NumErrors: 1,
+			Name:          md.Method + " /hello/:name",
+			IsWeb:         true,
+			NumErrors:     1,
+			UnknownCaller: true,
+			ErrorByCaller: true,
 		})
 	}
 }
@@ -93,15 +95,22 @@ func TestHandle(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello/:name",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello/:name",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":             "WebTransaction/Go/GET /hello/:name",
 				"nr.apdexPerfZone": internal.MatchAnything,
+				"sampled":          false,
+				// Note: "*" is a wildcard value
+				"guid":     "*",
+				"traceId":  "*",
+				"priority": "*",
 			},
 			UserAttributes: map[string]interface{}{
 				"color": "purple",
@@ -137,15 +146,22 @@ func TestHandler(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello/",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello/",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":             "WebTransaction/Go/GET /hello/",
 				"nr.apdexPerfZone": internal.MatchAnything,
+				"sampled":          false,
+				// Note: "*" is a wildcard value
+				"guid":     "*",
+				"traceId":  "*",
+				"priority": "*",
 			},
 			UserAttributes: map[string]interface{}{
 				"color": "purple",
@@ -197,9 +213,11 @@ func TestHandlerFunc(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /hello/",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /hello/",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -224,15 +242,22 @@ func TestNotFound(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "NotFound",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "NotFound",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 	app.ExpectTxnEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
 				"name":             "WebTransaction/Go/NotFound",
 				"nr.apdexPerfZone": internal.MatchAnything,
+				"sampled":          false,
+				// Note: "*" is a wildcard value
+				"guid":     "*",
+				"traceId":  "*",
+				"priority": "*",
 			},
 			UserAttributes: map[string]interface{}{
 				"color": "purple",
@@ -280,7 +305,8 @@ func TestNotFoundNotSet(t *testing.T) {
 		t.Error(response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "NotFound",
-		IsWeb: true,
+		Name:          "NotFound",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
