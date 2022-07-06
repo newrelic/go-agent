@@ -197,7 +197,8 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/logcontext
             extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.15.x
+          - go-version: 1.17.x
+	    # nrzap only supports the two most recent go releases
             dirs: v3/integrations/nrzap
             extratesting: go get -u go.uber.org/zap@master
           - go-version: 1.15.x
