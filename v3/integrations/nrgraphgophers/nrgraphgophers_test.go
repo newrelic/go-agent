@@ -112,6 +112,8 @@ func TestQueryWithAsyncFields(t *testing.T) {
 		{Name: "Custom/field2", Scope: "WebTransaction/Go/hello"},
 		{Name: "Custom/field1"},
 		{Name: "Custom/field1", Scope: "WebTransaction/Go/hello"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Forced: nil},
 	})
 }
 
@@ -166,6 +168,8 @@ func TestQueryRequest(t *testing.T) {
 		{Name: "Custom/HelloOperation", Scope: "WebTransaction/Go/POST /"},
 		{Name: "Custom/hello"},
 		{Name: "Custom/hello", Scope: "WebTransaction/Go/POST /"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Forced: nil},
 	})
 }
 
@@ -202,6 +206,8 @@ func TestQueryRequestUnknownOperation(t *testing.T) {
 		{Name: "Custom/HelloOperation", Scope: "WebTransaction/Go/POST /"},
 		{Name: "Custom/hello"},
 		{Name: "Custom/hello", Scope: "WebTransaction/Go/POST /"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Forced: nil},
 	})
 }
 
@@ -240,6 +246,10 @@ func TestQueryRequestError(t *testing.T) {
 		{Name: "Errors/all"},
 		{Name: "Errors/allWeb"},
 		{Name: "Errors/WebTransaction/Go/POST /"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Forced: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all"},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb"},
 	})
 	app.ExpectErrors(t, []internal.WantError{{
 		TxnName: "WebTransaction/Go/POST /",
@@ -281,5 +291,7 @@ func TestQueryRequestMultipleFields(t *testing.T) {
 		{Name: "Custom/zip", Scope: "WebTransaction/Go/POST /"},
 		{Name: "Custom/zap"},
 		{Name: "Custom/zap", Scope: "WebTransaction/Go/POST /"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Forced: nil},
 	})
 }
