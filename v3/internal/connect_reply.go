@@ -118,6 +118,7 @@ type EventHarvestConfig struct {
 	Limits         struct {
 		TxnEvents    *uint `json:"analytic_event_data,omitempty"`
 		CustomEvents *uint `json:"custom_event_data,omitempty"`
+		LogEvents    *uint `json:"log_event_data,omitempty"`
 		ErrorEvents  *uint `json:"error_event_data,omitempty"`
 		SpanEvents   *uint `json:"span_event_data,omitempty"`
 	} `json:"harvest_limits"`
@@ -136,19 +137,20 @@ func (r *ConnectReply) ConfigurablePeriod() time.Duration {
 func uintPtr(x uint) *uint { return &x }
 
 // DefaultEventHarvestConfig provides faster event harvest defaults.
-func DefaultEventHarvestConfig(maxTxnEvents int) EventHarvestConfig {
+func DefaultEventHarvestConfig(maxTxnEvents, maxLogEvents, maxCustomEvents int) EventHarvestConfig {
 	cfg := EventHarvestConfig{}
 	cfg.ReportPeriodMs = DefaultConfigurableEventHarvestMs
 	cfg.Limits.TxnEvents = uintPtr(uint(maxTxnEvents))
-	cfg.Limits.CustomEvents = uintPtr(uint(MaxCustomEvents))
+	cfg.Limits.CustomEvents = uintPtr(uint(maxCustomEvents))
+	cfg.Limits.LogEvents = uintPtr(uint(maxLogEvents))
 	cfg.Limits.ErrorEvents = uintPtr(uint(MaxErrorEvents))
 	return cfg
 }
 
 // DefaultEventHarvestConfigWithDT is an extended version of DefaultEventHarvestConfig,
 // with the addition that it takes into account distributed tracer span event harvest limits.
-func DefaultEventHarvestConfigWithDT(maxTxnEvents int, dtEnabled bool, spanEventLimit int) EventHarvestConfig {
-	cfg := DefaultEventHarvestConfig(maxTxnEvents)
+func DefaultEventHarvestConfigWithDT(maxTxnEvents, maxLogEvents, maxCustomEvents, spanEventLimit int, dtEnabled bool) EventHarvestConfig {
+	cfg := DefaultEventHarvestConfig(maxTxnEvents, maxLogEvents, maxCustomEvents)
 	if dtEnabled {
 		cfg.Limits.SpanEvents = uintPtr(uint(spanEventLimit))
 	}

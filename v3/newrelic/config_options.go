@@ -36,12 +36,72 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
 }
 
+// ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
+// of how many custom events are stored in an agent for a given harvest cycle.
+// Alters the CustomInsightsEvents.MaxSamplesStored setting.
+func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
+	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
+}
+
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
 // number of span events to be collected) for distributed tracing instead of
 // using the built-in default.
 // Alters the DistributedTracer.ReservoirLimit setting.
 func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
+}
+
+// ConfigAppLogForwardingEnabled enables or disables the collection
+// of logs from a user's application by the agent
+// Defaults: enabled=false
+func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.Forwarding.MaxSamplesStored = 0
+		}
+	}
+}
+
+// ConfigAppLogMetricsEnabled enables or disables the collection of metrics
+// data for logs seen by an instrumented logging framework
+// default: true
+func ConfigAppLogMetricsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Metrics.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Metrics.Enabled = false
+		}
+	}
+}
+
+// ConfigAppLogEnabled enables or disables all application logging features
+// and data collection
+func ConfigAppLogEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.ApplicationLogging.Enabled = true
+		} else {
+			cfg.ApplicationLogging.Enabled = false
+		}
+	}
+}
+
+const (
+	zerologFrameworkName = "Zerolog"
+)
+
+// ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
+// log events the agent is allowed to collect and store in a given harvest cycle.
+func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxSamplesStored
+	}
 }
 
 // ConfigLogger populates the Config's Logger.

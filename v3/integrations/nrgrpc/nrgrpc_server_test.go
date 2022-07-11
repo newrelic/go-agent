@@ -182,9 +182,9 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"traceId":          internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{
-			"GrpcStatusMessage": "oooooops!",
-			"GrpcStatusCode":    "DataLoss",
-			"GrpcStatusLevel":   "error",
+			"grpcStatusMessage": "oooooops!",
+			"grpcStatusCode":    "DataLoss",
+			"grpcStatusLevel":   "error",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
@@ -215,9 +215,9 @@ func TestUnaryServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnaryError",
 		},
 		UserAttributes: map[string]interface{}{
-			"GrpcStatusMessage": "oooooops!",
-			"GrpcStatusCode":    "DataLoss",
-			"GrpcStatusLevel":   "error",
+			"grpcStatusMessage": "oooooops!",
+			"grpcStatusCode":    "DataLoss",
+			"grpcStatusLevel":   "error",
 		},
 	}})
 }
@@ -592,9 +592,9 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"traceId":          internal.MatchAnything,
 		},
 		UserAttributes: map[string]interface{}{
-			"GrpcStatusLevel":   "error",
-			"GrpcStatusMessage": "oooooops!",
-			"GrpcStatusCode":    "DataLoss",
+			"grpcStatusLevel":   "error",
+			"grpcStatusMessage": "oooooops!",
+			"grpcStatusCode":    "DataLoss",
 		},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode":            0,
@@ -625,9 +625,9 @@ func TestStreamServerInterceptorError(t *testing.T) {
 			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryStreamError",
 		},
 		UserAttributes: map[string]interface{}{
-			"GrpcStatusLevel":   "error",
-			"GrpcStatusMessage": "oooooops!",
-			"GrpcStatusCode":    "DataLoss",
+			"grpcStatusLevel":   "error",
+			"grpcStatusMessage": "oooooops!",
+			"grpcStatusCode":    "DataLoss",
 		},
 	}})
 }

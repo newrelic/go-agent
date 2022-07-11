@@ -85,6 +85,8 @@ jobs:
             dirs: _integrations/nrb3
           - go-version: 1.13.x
             dirs: _integrations/nrmongo
+          - go-version: 1.13.x
+            dirs: _integrations/nrmssql
 
           # v3 agent
           - go-version: 1.7.x
@@ -116,9 +118,10 @@ jobs:
             dirs: v3/integrations/nrecho-v3
             # Test against the latest v3 Echo:
             extratesting: go get -u github.com/labstack/echo@v3
-          - go-version: 1.15.x
+            # go/new/http no longer stable under go 1.17.x
+          - go-version: 1.17.x
             dirs: v3/integrations/nrecho-v4
-            extratesting: go get -u github.com/labstack/echo@master
+            extratesting: go get -u github.com/labstack/echo/v4@master
           - go-version: 1.15.x
             dirs: v3/integrations/nrelasticsearch-v7
             extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
@@ -205,6 +208,9 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
             extratesting: go get -u github.com/graphql-go/graphql@master
+          - go-version: 1.15.x
+            dirs: v3/integrations/nrmssql
+            extratesting: go get -u github.com/denisenkom/go-mssqldb@master
 
     steps:
     - name: Install Go

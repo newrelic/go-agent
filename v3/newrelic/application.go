@@ -74,6 +74,29 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 	}
 }
 
+// RecordLog records the data from a single log line.
+// This consumes a LogData object that should be configured
+// with data taken from a logging framework.
+//
+// Certian parts of this feature can be turned off based on your
+// config settings. Record log is capable of recording log events,
+// as well as log metrics depending on how your application is
+// configured.
+func (app *Application) RecordLog(logEvent LogData) {
+	if nil == app {
+		return
+	}
+	if nil == app.app {
+		return
+	}
+	err := app.app.RecordLog(&logEvent)
+	if err != nil {
+		app.app.Error("unable to record log", map[string]interface{}{
+			"reason": err.Error(),
+		})
+	}
+}
+
 // WaitForConnection blocks until the application is connected, is
 // incapable of being connected, or the timeout has been reached.  This
 // method is useful for short-lived processes since the application will
