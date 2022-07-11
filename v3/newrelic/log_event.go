@@ -9,36 +9,13 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal/logcontext"
 )
 
-// Exported Constants for log decorators
 const (
-	// LogSeverityFieldName is the name of the log level field in New Relic logging JSON
-	LogSeverityFieldName = "level"
-
-	// LogMessageFieldName is the name of the log message field in New Relic logging JSON
-	LogMessageFieldName = "message"
-
-	// LogTimestampFieldName is the name of the timestamp field in New Relic logging JSON
-	LogTimestampFieldName = "timestamp"
-
-	// LogSpanIDFieldName is the name of the span ID field in the New Relic logging JSON
-	LogSpanIDFieldName = "span.id"
-
-	// LogTraceIDFieldName is the name of the trace ID field in the New Relic logging JSON
-	LogTraceIDFieldName = "trace.id"
-
-	// LogSeverityUnknown is the value the log severity should be set to if no log severity is known
-	LogSeverityUnknown = "UNKNOWN"
-
 	// MaxLogLength is the maximum number of bytes the log message is allowed to be
 	MaxLogLength = 32768
-)
-
-// internal variable names and constants
-const (
-	// number of bytes expected to be needed for the average log message
-	averageLogSizeEstimate = 400
 )
 
 type logEvent struct {
@@ -61,25 +38,25 @@ type LogData struct {
 func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('{')
-	w.stringField(LogSeverityFieldName, e.severity)
-	w.stringField(LogMessageFieldName, e.message)
+	w.stringField(logcontext.LogSeverityFieldName, e.severity)
+	w.stringField(logcontext.LogMessageFieldName, e.message)
 
 	if len(e.spanID) > 0 {
-		w.stringField(LogSpanIDFieldName, e.spanID)
+		w.stringField(logcontext.LogSpanIDFieldName, e.spanID)
 	}
 	if len(e.traceID) > 0 {
-		w.stringField(LogTraceIDFieldName, e.traceID)
+		w.stringField(logcontext.LogTraceIDFieldName, e.traceID)
 	}
 
 	w.needsComma = false
 	buf.WriteByte(',')
-	w.intField(LogTimestampFieldName, e.timestamp)
+	w.intField(logcontext.LogTimestampFieldName, e.timestamp)
 	buf.WriteByte('}')
 }
 
 // MarshalJSON is used for testing.
 func (e *logEvent) MarshalJSON() ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, averageLogSizeEstimate))
+	buf := bytes.NewBuffer(make([]byte, 0, logcontext.AverageLogSizeEstimate))
 	e.WriteJSON(buf)
 	return buf.Bytes(), nil
 }
@@ -94,7 +71,7 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 		return logEvent{}, errNilLogData
 	}
 	if data.Severity == "" {
-		data.Severity = LogSeverityUnknown
+		data.Severity = logcontext.LogSeverityUnknown
 	}
 	if len(data.Message) > MaxLogLength {
 		return logEvent{}, errLogMessageTooLarge
@@ -116,32 +93,112 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 	return event, nil
 }
 
-var (
-	errNilLogBuffer = errors.New("AppendLog can not append to nil byte buffer")
+func (e *logEvent) MergeIntoHarvest(h *harvest) {
+	h.LogEvents.Add(e)
+}
+
+const (
+	logDecorationErrorHeader = "New Relic failed to decorate a log"
 )
 
-// AppendLog appends a formatted log to an existing byte buffer.
-// This should only be used for writing logs locally to frameworks.
-func (data *LogData) AppendLog(buf *bytes.Buffer, txn *Transaction) error {
+var (
+	errNilLogBuffer  = fmt.Errorf("%s: the EnrichLog() function must not be passed a nil byte buffer", logDecorationErrorHeader)
+	errNoApplication = fmt.Errorf("%s: either an application or transaction must be provided to enrich a log", logDecorationErrorHeader)
+)
+
+type logEnricherConfig struct {
+	app *Application
+	txn *Transaction
+}
+
+type enricherOption func(*logEnricherConfig)
+
+func FromApp(app *Application) enricherOption {
+	return func(cfg *logEnricherConfig) { cfg.app = app }
+}
+
+func FromTxn(txn *Transaction) enricherOption {
+	return func(cfg *logEnricherConfig) { cfg.txn = txn }
+}
+
+type linkingMetadata struct {
+	traceID    string
+	spanID     string
+	entityGUID string
+	hostname   string
+	entityName string
+}
+
+// EnrichLog appends newrelic linnking metadata to a log stored in a byte buffer.
+// This should only be used by plugins built for frameworks.
+func EnrichLog(buf *bytes.Buffer, opts enricherOption) error {
+	config := logEnricherConfig{}
+	opts(&config)
+
 	if buf == nil {
 		return errNilLogBuffer
 	}
-	event, err := data.toLogEvent()
+
+	md := linkingMetadata{}
+
+	var app *Application
+	var txn *Transaction
+
+	if config.app != nil {
+		app = config.app
+	} else if config.txn != nil {
+		app = config.txn.Application()
+		txn = config.txn
+
+		txnMD := txn.thread.GetTraceMetadata()
+		md.spanID = txnMD.SpanID
+		md.traceID = txnMD.TraceID
+	} else {
+		return errNoApplication
+	}
+
+	if app.app == nil {
+		return errNoApplication
+	}
+
+	reply, err := app.app.getState()
 	if err != nil {
 		return err
 	}
 
-	if txn != nil {
-		md := txn.thread.GetTraceMetadata()
-		event.spanID = md.SpanID
-		event.traceID = md.TraceID
+	md.entityGUID = reply.Reply.EntityGUID
+	md.entityName = app.app.config.AppName
+	md.hostname = app.app.config.hostname
+
+	if reply.Config.ApplicationLogging.Enabled && reply.Config.ApplicationLogging.LocalDecorating.Enabled {
+		md.appendLinkingMetadata(buf)
 	}
 
-	event.WriteJSON(buf)
-	buf.WriteString("\n")
 	return nil
 }
 
-func (e *logEvent) MergeIntoHarvest(h *harvest) {
-	h.LogEvents.Add(e)
+func (md *linkingMetadata) appendLinkingMetadata(buf *bytes.Buffer) {
+	if md.entityGUID == "" || md.entityName == "" || md.hostname == "" {
+		return
+	}
+	buf.WriteString(" NR-LINKING|")
+	if md.traceID != "" && md.spanID != "" {
+		buf.WriteString(md.entityGUID)
+		buf.WriteByte('|')
+		buf.WriteString(md.hostname)
+		buf.WriteByte('|')
+		buf.WriteString(md.traceID)
+		buf.WriteByte('|')
+		buf.WriteString(md.spanID)
+		buf.WriteByte('|')
+		buf.WriteString(md.entityName)
+		buf.WriteByte('|')
+	} else {
+		buf.WriteString(md.entityGUID)
+		buf.WriteByte('|')
+		buf.WriteString(md.hostname)
+		buf.WriteByte('|')
+		buf.WriteString(md.entityName)
+		buf.WriteByte('|')
+	}
 }

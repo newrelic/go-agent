@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal/logcontext"
 )
 
 func TestWriteJSON(t *testing.T) {
@@ -179,7 +181,7 @@ func BenchmarkWriteJSON(b *testing.B) {
 	data := LogData{
 		Timestamp: 123456,
 		Severity:  "INFO",
-		Message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
+		Message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytes.",
 	}
 
 	event, err := data.toLogEvent()
@@ -187,12 +189,30 @@ func BenchmarkWriteJSON(b *testing.B) {
 		b.Fail()
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 0, averageLogSizeEstimate))
+	buf := bytes.NewBuffer(make([]byte, 0, logcontext.AverageLogSizeEstimate))
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		event.WriteJSON(buf)
+	}
+}
+
+func BenchmarkAppendLinkingMetadata(b *testing.B) {
+	buf := bytes.NewBuffer([]byte("test log message"))
+	md := linkingMetadata{
+		traceID:    "testTraceID",
+		spanID:     "testSpanID",
+		entityGUID: "testEntityGUID",
+		hostname:   "testHostname",
+		entityName: "testEntityName",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for n := 0; n < b.N; n++ {
+		md.appendLinkingMetadata(buf)
 	}
 }

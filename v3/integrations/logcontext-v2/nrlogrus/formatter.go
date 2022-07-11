@@ -6,55 +6,59 @@ package nrlogrus
 import (
 	"bytes"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sirupsen/logrus"
 )
 
-//func init() { internal.TrackUsage("integration", "logcontext-v2", "logrus") }
-
-type logFields map[string]interface{}
+func init() { internal.TrackUsage("integration", "logcontext-v2", "logrus") }
 
 // ContextFormatter is a `logrus.Formatter` that will format logs for sending
 // to New Relic.
-type ContextFormatter struct{}
+type ContextFormatter struct {
+	app       *newrelic.Application
+	formatter logrus.Formatter
+}
+
+func NewFormatter(app *newrelic.Application, formatter logrus.Formatter) ContextFormatter {
+	return ContextFormatter{
+		app:       app,
+		formatter: formatter,
+	}
+}
 
 // Format renders a single log entry.
 func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	// 12 = 6 from GetLinkingMetadata + 6 more below
-	data := make(logFields, len(e.Data)+12)
-	for k, v := range e.Data {
-		data[k] = v
-	}
-
 	logData := newrelic.LogData{
 		Severity: e.Level.String(),
 		Message:  e.Message,
 	}
+
+	logBytes, err := f.formatter.Format(e)
+	if err != nil {
+		return nil, err
+	}
+	logBytes = bytes.TrimRight(logBytes, "\n")
+	b := bytes.NewBuffer(logBytes)
 
 	ctx := e.Context
 	var txn *newrelic.Transaction
 	if ctx != nil {
 		txn = newrelic.FromContext(ctx)
 	}
-
-	/*
-		if e.HasCaller() {
-			data[logcontext.KeyFile] = e.Caller.File
-			data[logcontext.KeyLine] = e.Caller.Line
-			data[logcontext.KeyMethod] = e.Caller.Function
-		}*/
-
-	var b *bytes.Buffer
-	if e.Buffer != nil {
-		b = e.Buffer
+	if txn != nil {
+		txn.RecordLog(logData)
+		err := newrelic.EnrichLog(b, newrelic.FromTxn(txn))
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		b = &bytes.Buffer{}
+		f.app.RecordLog(logData)
+		err := newrelic.EnrichLog(b, newrelic.FromApp(f.app))
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	err := logData.AppendLog(b, txn)
-	if err != nil {
-		return nil, err
-	}
-
+	b.WriteString("\n")
 	return b.Bytes(), nil
 }

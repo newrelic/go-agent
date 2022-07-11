@@ -375,6 +375,10 @@ type ApplicationLogging struct {
 		// Logging Metrics used in the Logs chart on the APM Summary page.
 		Enabled bool
 	}
+	LocalDecorating struct {
+		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
+		Enabled bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
