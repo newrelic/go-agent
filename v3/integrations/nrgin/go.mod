@@ -4,8 +4,6 @@ module github.com/newrelic/go-agent/v3/integrations/nrgin
 // https://github.com/gin-gonic/gin/blob/master/go.mod
 go 1.18
 
-replace github.com/newrelic/go-agent/v3 => ../../
-
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
