@@ -25,7 +25,6 @@ func main() {
 	// Wait for the application to connect.
 	if err := app.WaitForConnection(5 * time.Second); nil != err {
 		fmt.Println(err)
-
 	}
 
 	// Do the tasks at hand.  Perhaps record them using transactions and/or
