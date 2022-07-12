@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"strings"
 	"testing"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/internal/logcontext"
 	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sirupsen/logrus"
@@ -35,72 +36,6 @@ func newJSONLogger(out io.Writer, app *newrelic.Application) *logrus.Logger {
 	return l
 }
 
-type expectVals struct {
-	decorationDisabled bool
-	entityGUID         string
-	entityName         string
-	hostname           string
-	traceID            string
-	spanID             string
-}
-
-// metadata indexes
-const (
-	entityguid = 1
-	hostname   = 2
-	traceid    = 3
-	spanid     = 4
-)
-
-func entityname(vals []string) string {
-	if len(vals) < 2 {
-		return ""
-	}
-
-	return vals[len(vals)-2]
-}
-
-func validateOutput(t *testing.T, out *bytes.Buffer, expect *expectVals) {
-	actual := out.String()
-	split := strings.Split(actual, "NR-LINKING")
-
-	if expect.decorationDisabled && len(split) != 2 {
-		t.Errorf("expected log decoration, but NR-LINKING data was missing: %s", actual)
-	}
-
-	linkingData := strings.Split(split[1], "|")
-
-	if len(linkingData) < 5 {
-		t.Errorf("linking data is missing required fields: %s", split[1])
-	}
-
-	if linkingData[entityguid] != expect.entityGUID {
-		t.Errorf("incorrect entity GUID; expect: %s actual: %s", expect.entityGUID, linkingData[entityguid])
-	}
-
-	if linkingData[hostname] != expect.hostname {
-		t.Errorf("incorrect hostname; expect: %s actual: %s", expect.hostname, linkingData[hostname])
-	}
-
-	if entityname(linkingData) != expect.entityName {
-		t.Errorf("incorrect entity name; expect: %s actual: %s", expect.entityName, entityname(linkingData))
-	}
-
-	if expect.traceID != "" && expect.spanID != "" {
-		if len(linkingData) < 7 {
-			t.Errorf("transaction metadata is missing from linking data: %s", split[1])
-		}
-
-		if linkingData[traceid] != expect.traceID {
-			t.Errorf("incorrect traceID; expect: %s actual: %s", expect.traceID, linkingData[traceid])
-		}
-
-		if linkingData[spanid] != expect.spanID {
-			t.Errorf("incorrect hostname; expect: %s actual: %s", expect.spanID, linkingData[spanid])
-		}
-	}
-}
-
 func BenchmarkFormatterLogic(b *testing.B) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
 	formatter := NewFormatter(app.Application, &logrus.TextFormatter{})
@@ -115,7 +50,7 @@ func BenchmarkFormatterLogic(b *testing.B) {
 	}
 }
 
-func BenchmarkTextFormatter(b *testing.B) {
+func BenchmarkLogrusTextFormatter(b *testing.B) {
 	log := newTextLogger(bytes.NewBuffer([]byte("")), nil)
 	log.Formatter = new(logrus.TextFormatter)
 	ctx := context.Background()
@@ -128,7 +63,7 @@ func BenchmarkTextFormatter(b *testing.B) {
 	}
 }
 
-func BenchmarkWithOutTransaction(b *testing.B) {
+func BenchmarkFormattingWithOutTransaction(b *testing.B) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
 	log := newTextLogger(bytes.NewBuffer([]byte("")), app.Application)
 	ctx := context.Background()
@@ -141,7 +76,7 @@ func BenchmarkWithOutTransaction(b *testing.B) {
 	}
 }
 
-func BenchmarkWithTransaction(b *testing.B) {
+func BenchmarkFormattingWithTransaction(b *testing.B) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
 	txn := app.StartTransaction("TestLogDistributedTracingDisabled")
 	out := bytes.NewBuffer([]byte{})
@@ -157,56 +92,103 @@ func BenchmarkWithTransaction(b *testing.B) {
 }
 
 func TestBackgroundLog(t *testing.T) {
-	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
 	out := bytes.NewBuffer([]byte{})
 	log := newTextLogger(out, app.Application)
-	log.Info("Hello World!")
-	validateOutput(t, out, &expectVals{
-		entityGUID: integrationsupport.TestEntityGUID,
-		hostname:   host,
-		entityName: integrationsupport.SampleAppName,
+	message := "Hello World!"
+	log.Info(message)
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
 	})
 }
 
 func TestJSONBackgroundLog(t *testing.T) {
-	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
 	out := bytes.NewBuffer([]byte{})
 	log := newJSONLogger(out, app.Application)
-	log.Info("Hello World!")
-	validateOutput(t, out, &expectVals{
-		entityGUID: integrationsupport.TestEntityGUID,
-		hostname:   host,
-		entityName: integrationsupport.SampleAppName,
+	message := "Hello World!"
+	log.Info(message)
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
 	})
 }
 
 func TestLogEmptyContext(t *testing.T) {
-	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
 	out := bytes.NewBuffer([]byte{})
 	log := newTextLogger(out, app.Application)
-	log.WithContext(context.Background()).Info("Hello World!")
-	validateOutput(t, out, &expectVals{
-		entityGUID: integrationsupport.TestEntityGUID,
-		hostname:   host,
-		entityName: integrationsupport.SampleAppName,
+	message := "Hello World!"
+	log.WithContext(context.Background()).Info(message)
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
 	})
 }
 
 func TestLogInContext(t *testing.T) {
-	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, newrelic.ConfigAppLogDecoratingEnabled(true))
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
 	out := bytes.NewBuffer([]byte{})
 	log := newTextLogger(out, app.Application)
 	txn := app.StartTransaction("test txn")
-	defer txn.End()
 
 	ctx := newrelic.NewContext(context.Background(), txn)
-	log.WithContext(ctx).Info("Hello World!")
+	message := "Hello World!"
+	log.WithContext(ctx).Info(message)
 
-	validateOutput(t, out, &expectVals{
-		entityGUID: integrationsupport.TestEntityGUID,
-		hostname:   host,
-		entityName: integrationsupport.SampleAppName,
-		traceID:    txn.GetLinkingMetadata().TraceID,
-		spanID:     txn.GetLinkingMetadata().SpanID,
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+		TraceID:    txn.GetLinkingMetadata().TraceID,
+		SpanID:     txn.GetLinkingMetadata().SpanID,
 	})
+	txn.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			SpanID:    txn.GetLinkingMetadata().SpanID,
+			TraceID:   txn.GetLinkingMetadata().TraceID,
+		},
+	})
+
+	txn.End()
 }

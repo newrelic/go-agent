@@ -66,8 +66,8 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	}
 }
 
-// ConfigAppLogForwardingEnabled enables or disables the collection
-// of logs from a user's application by the agent
+// ConfigAppLogDecoratingEnabled enables or disables the local decoration
+// of logs when using one of our logs in context plugins
 // Defaults: enabled=false
 func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {

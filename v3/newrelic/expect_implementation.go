@@ -229,23 +229,23 @@ func expectLogEvents(v internal.Validator, events *logEvents, expect []internal.
 }
 
 func expectLogEvent(v internal.Validator, event logEvent, want internal.WantLog) {
-	if event.message != want.Message {
+	if event.message != want.Message && want.Message != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log message: want %s, got %s", event.message, want.Message))
 		return
 	}
-	if event.severity != want.Severity {
+	if event.severity != want.Severity && want.Severity != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log severity: want %s, got %s", event.severity, want.Severity))
 		return
 	}
-	if event.traceID != want.TraceID {
+	if event.traceID != want.TraceID && want.TraceID != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log trace id: want %s, got %s", event.traceID, want.TraceID))
 		return
 	}
-	if event.spanID != want.SpanID {
+	if event.spanID != want.SpanID && want.SpanID != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log span id: want %s, got %s", event.spanID, want.SpanID))
 		return
 	}
-	if event.timestamp != want.Timestamp {
+	if event.timestamp != want.Timestamp && want.Timestamp != internal.MatchAnyUnixMilli {
 		v.Error(fmt.Sprintf("unexpected log timestamp: want %d, got %d", event.timestamp, want.Timestamp))
 		return
 	}

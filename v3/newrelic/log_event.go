@@ -111,13 +111,16 @@ type logEnricherConfig struct {
 	txn *Transaction
 }
 
-type enricherOption func(*logEnricherConfig)
+// EnricherOption is a function that configures the enricher based on the source of data it recieves.
+type EnricherOption func(*logEnricherConfig)
 
-func FromApp(app *Application) enricherOption {
+// FromApp configures the log enricher to build a linking payload from an application.
+func FromApp(app *Application) EnricherOption {
 	return func(cfg *logEnricherConfig) { cfg.app = app }
 }
 
-func FromTxn(txn *Transaction) enricherOption {
+// FromTxn configres the log enricher to build a linking payload from a transaction.
+func FromTxn(txn *Transaction) EnricherOption {
 	return func(cfg *logEnricherConfig) { cfg.txn = txn }
 }
 
@@ -131,7 +134,7 @@ type linkingMetadata struct {
 
 // EnrichLog appends newrelic linnking metadata to a log stored in a byte buffer.
 // This should only be used by plugins built for frameworks.
-func EnrichLog(buf *bytes.Buffer, opts enricherOption) error {
+func EnrichLog(buf *bytes.Buffer, opts EnricherOption) error {
 	config := logEnricherConfig{}
 	opts(&config)
 
