@@ -73,7 +73,6 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 			)
 		}
-
 	} else {
 		scope = "OtherTransaction/Go/" + want.Name
 		allWebOther = "allOther"
@@ -82,6 +81,22 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 			{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 			{Name: "OtherTransactionTotalTime/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
 			{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		}
+		if want.UnknownCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+			)
+		}
+		if want.ErrorByCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
 		}
 	}
 	if want.NumErrors > 0 {
