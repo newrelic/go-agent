@@ -13,10 +13,10 @@ const (
 	// MaxPayloadSizeInBytes specifies the maximum payload size in bytes that
 	// should be sent to any endpoint
 	MaxPayloadSizeInBytes = 1000 * 1000
-
 	// MaxCustomEvents is the maximum number of Transaction Events that can be captured
 	// per 60-second harvest cycle
-	MaxCustomEvents = 10 * 1000
+	MaxCustomEvents = 30 * 1000
+	// MaxCustomEvents
 	// MaxLogEvents is the maximum number of Log Events that can be captured per
 	// 60-second harvest cycle
 	MaxLogEvents = 10 * 1000
@@ -25,5 +25,7 @@ const (
 	MaxTxnEvents = 10 * 1000
 	// MaxErrorEvents is the maximum number of Error Events that can be captured
 	// per 60-second harvest cycle
-	MaxErrorEvents = 100
+	MaxErrorEvents                 = 100
+	DefaultCustomEventsLimit       = 30 * 1000
+	DefaultCustomEventsLimitLegacy = 10 * 10000
 )

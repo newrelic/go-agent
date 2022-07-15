@@ -38,6 +38,7 @@ type Error struct {
 	// or leave it nil to indicate that Transaction.NoticeError should
 	// generate one.
 	Stack []uintptr
+	// Expected indicates if the error is
 }
 
 // NewStackTrace generates a stack trace for the newrelic.Error struct's Stack

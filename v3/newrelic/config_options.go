@@ -39,8 +39,13 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 // ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
+// Note: As of Jul 2022, the absolute maximum events that can be sent each minute is 100000.
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
+	if limit > 100000 {
+		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = 100000 }
+	} else {
+		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
+	}
 }
 
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
