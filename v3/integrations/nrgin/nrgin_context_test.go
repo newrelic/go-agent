@@ -49,9 +49,11 @@ func TestContextContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          txnName,
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -87,9 +89,11 @@ func TestFromContext(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          txnName,
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -117,8 +121,10 @@ func TestNewContextTransaction(t *testing.T) {
 	txn.End()
 
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "name",
-		IsWeb:     false,
-		NumErrors: 1,
+		Name:          "name",
+		IsWeb:         false,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
