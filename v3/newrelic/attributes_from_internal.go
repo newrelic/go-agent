@@ -52,6 +52,10 @@ var (
 		AttributeMessageExchangeType:        destNone,
 		AttributeMessageReplyTo:             destNone,
 		AttributeMessageCorrelationID:       destNone,
+		AttributeCodeFunction:               usualDests,
+		AttributeCodeNamespace:              usualDests,
+		AttributeCodeFilepath:               usualDests,
+		AttributeCodeLineno:                 usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,

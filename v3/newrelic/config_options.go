@@ -51,6 +51,41 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
+// ConfigCodeLevelMetricsEnabled turns on or off the collection of code
+// level metrics entirely.
+func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.Enabled = enabled
+	}
+}
+
+// ConfigCodeLevelMetricsScope narrows the scope of where code level
+// metrics are to be used. By default, if CodeLevelMetrics are enabled,
+// they apply everywhere the agent currently supports them. To narrow
+// this, supply a list of one or more CodeLevelMetricsScope values
+// ORed together to ConfigCodeLevelMetricsScope.
+//
+// Note that a zero value CodeLevelMetricsScope means to collect all supported
+// telemetry data types. If you want to stop collecting any code level metrics,
+// then disable collection via ConfigCodeLevelMetricsEnabled.
+func ConfigCodeLevelMetricsScope(scope CodeLevelMetricsScope) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.Scope = scope
+	}
+}
+
+// ConfigCodeLevelMetricsPathPrefix specifies the filename pattern that describes the start of
+// the project area. Any text before this pattern is ignored. Thus, if
+// the path prefix is set to "myproject/src", then a function located in a file
+// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+// pathname "myproject/src/foo.go". If this value is empty, the full path
+// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+func ConfigCodeLevelMetricsPathPrefix(prefix string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.PathPrefix = prefix
+	}
+}
+
 // ConfigAppLogForwardingEnabled enables or disables the collection
 // of logs from a user's application by the agent
 // Defaults: enabled=false

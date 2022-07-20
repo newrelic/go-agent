@@ -262,6 +262,8 @@ func main() {
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
 		newrelic.ConfigAppLogForwardingEnabled(true),
+		newrelic.ConfigCodeLevelMetricsEnabled(true),
+		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -287,10 +289,11 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
 
+	//loc := newrelic.ThisCodeLocation()
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as
 		// background transactions.
-		txn := app.StartTransaction("background")
+		txn := app.StartTransaction("background", newrelic.WithThisCodeLocation())
 		defer txn.End()
 
 		io.WriteString(w, "background transaction")

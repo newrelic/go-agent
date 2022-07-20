@@ -44,6 +44,14 @@ const (
 	AttributeResponseContentLength = "response.headers.contentLength"
 	// AttributeHostDisplayName contains the value of Config.HostDisplayName.
 	AttributeHostDisplayName = "host.displayName"
+	// AttributeCodeFunction contains the Code Level Metrics function name.
+	AttributeCodeFunction = "code.function"
+	// AttributeCodeNamespace contains the Code Level Metrics namespace name.
+	AttributeCodeNamespace = "code.namespace"
+	// AttributeCodeFilepath contains the Code Level Metrics source file path name.
+	AttributeCodeFilepath = "code.filepath"
+	// AttributeCodeLineno contains the Code Level Metrics source file line number name.
+	AttributeCodeLineno = "code.lineno"
 )
 
 // Attributes destined for Errors and Transaction Traces:

@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,15 +80,114 @@ func (txn *txn) markEnd(now time.Time, thread *tracingThread) {
 	}
 }
 
-func newTxn(app *app, run *appRun, name string) *thread {
+// EXPERIMENTAL
+type CodeLocation struct {
+	LineNo   int
+	Function string
+	FilePath string
+}
+
+type TxnOptSet struct {
+	LocationOverride *CodeLocation
+	SuppressCLM      bool
+}
+type TxnOption func(*TxnOptSet)
+
+func WithCodeLocation(loc *CodeLocation) TxnOption {
+	return func(o *TxnOptSet) {
+		o.LocationOverride = loc
+	}
+}
+
+func WithoutCodeLevelMetrics() TxnOption {
+	return func(o *TxnOptSet) {
+		o.SuppressCLM = true
+	}
+}
+
+func WithThisCodeLocation() TxnOption {
+	return WithCodeLocation(ThisCodeLocation(1))
+}
+
+func ThisCodeLocation(skipLevels ...int) *CodeLocation {
+	var loc CodeLocation
+	skip := 2
+	if len(skipLevels) > 0 {
+		skip += skipLevels[0]
+	}
+
+	pcs := make([]uintptr, 10)
+	depth := runtime.Callers(skip, pcs)
+	if depth > 0 {
+		frames := runtime.CallersFrames(pcs[:1])
+		frame, _ := frames.Next()
+		loc.LineNo = frame.Line
+		loc.Function = frame.Function
+		loc.FilePath = frame.File
+	}
+	return &loc
+}
+
+func newTxn(app *app, run *appRun, name string, opts ...TxnOption) *thread {
 	txn := &txn{
 		app:    app,
 		appRun: run,
+	}
+	var txnOpts TxnOptSet
+	for _, o := range opts {
+		o(&txnOpts)
 	}
 	txn.markStart(time.Now())
 
 	txn.Name = name
 	txn.Attrs = newAttributes(run.AttributeConfig)
+
+	if !txnOpts.SuppressCLM && run.Config.CodeLevelMetrics.Enabled && (run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+		var location CodeLocation
+		if txnOpts.LocationOverride != nil {
+			location = *txnOpts.LocationOverride
+		} else {
+			pcs := make([]uintptr, 10)
+			depth := runtime.Callers(1, pcs)
+			if depth > 0 {
+				frames := runtime.CallersFrames(pcs[:depth])
+				moreToRead := true
+				var frame runtime.Frame
+
+				// skip out to first non-agent frame, unless that IS the top-most frame
+				for moreToRead {
+					frame, moreToRead = frames.Next()
+					if !strings.HasPrefix(frame.Function, "github.com/newrelic/go-agent/") {
+						break
+					}
+				}
+
+				location.FilePath = frame.File
+				location.Function = frame.Function
+				location.LineNo = frame.Line
+			}
+		}
+
+		if run.Config.CodeLevelMetrics.PathPrefix != "" {
+			if pi := strings.Index(location.FilePath, run.Config.CodeLevelMetrics.PathPrefix); pi > 0 {
+				location.FilePath = location.FilePath[pi:]
+			}
+		}
+
+		ns := strings.LastIndex(location.Function, ".")
+		function := location.Function
+		namespace := ""
+
+		if ns >= 0 {
+			namespace = location.Function[:ns]
+			function = location.Function[ns+1:]
+		}
+
+		txn.Attrs.Agent.Add(AttributeCodeLineno, "", location.LineNo)
+		txn.Attrs.Agent.Add(AttributeCodeNamespace, namespace, nil)
+		txn.Attrs.Agent.Add(AttributeCodeFilepath, location.FilePath, nil)
+		txn.Attrs.Agent.Add(AttributeCodeFunction, function, nil)
+	}
 
 	if run.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
