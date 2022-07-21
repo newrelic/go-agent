@@ -50,7 +50,6 @@ func makeApplication() (*newrelic.Application, error) {
 		newrelic.ConfigAppName("HTTP Server App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
-		newrelic.ConfigDistributedTracerEnabled(true),
 	)
 	if nil != err {
 		return nil, err
