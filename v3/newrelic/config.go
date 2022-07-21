@@ -372,6 +372,13 @@ type Config struct {
 		// pathname "myproject/src/foo.go". If this value is empty, the full path
 		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
 		PathPrefix string
+		// IgnoredPrefix specifies the initial pattern to look for in fully-qualified
+		// function names to determine which functions to ignore while searching up
+		// through the call stack to find the application function to associate
+		// with telemetry data. The agent will look for the innermost caller whose name
+		// does not begin with this prefix. If empty, it will ignore functions whose
+		// names look like they are internal to the agent itself.
+		IgnoredPrefix string
 	}
 }
 

@@ -503,7 +503,7 @@ func newTransaction(thd *thread) *Transaction {
 }
 
 // StartTransaction implements newrelic.Application's StartTransaction.
-func (app *app) StartTransaction(name string, opts ...TxnOption) *Transaction {
+func (app *app) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if nil == app {
 		return nil
 	}

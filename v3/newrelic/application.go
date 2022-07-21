@@ -16,7 +16,7 @@ type Application struct {
 }
 
 // StartTransaction begins a Transaction with the given name.
-func (app *Application) StartTransaction(name string, opts ...TxnOption) *Transaction {
+func (app *Application) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if nil == app {
 		return nil
 	}
