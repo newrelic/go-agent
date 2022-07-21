@@ -26,8 +26,12 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Logrus Logs In Context Example"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigAppLogForwardingEnabled(true),
+
+		// If you wanted to forward your logs using a log forwarder instead
+		// newrelic.ConfigAppLogDecoratingEnabled(true),
+		// newrelic.ConfigAppLogForwardingEnabled(false),
 	)
 	if nil != err {
 		log.Panic("Failed to create application", err)
