@@ -5,6 +5,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -178,7 +179,7 @@ func TestDefaultEventHarvestConfigJSON(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := `{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":10000,"log_event_data":10000,"error_event_data":100}}`
+	expect := fmt.Sprintf(`{"report_period_ms":60000,"harvest_limits":{"analytic_event_data":10000,"custom_event_data":%d,"log_event_data":%d,"error_event_data":100}}`, MaxCustomEvents, MaxLogEvents)
 	if string(js) != expect {
 		t.Errorf("DefaultEventHarvestConfig does not match expected valued:\nExpected:\t%s\nActual:\t\t%s", expect, string(js))
 	}
