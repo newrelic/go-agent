@@ -388,10 +388,22 @@ type CodeLevelMetricsScope uint32
 // attach code level metric data. These may be ORed together to give
 // the desired combination (e.g., SpanCLM | TransactionCLM). AllCLM
 // means to include code level metrics everywhere currently supported.
+//
+// A scope of 0 means "all types" as a convenience so that any zero-value
+// CodeLevelMetricsScope variable provides the default expected behavior
+// rather than turning off all code level metrics.
 const (
-	AllCLM         CodeLevelMetricsScope = 0         // all supported types
 	TransactionCLM CodeLevelMetricsScope = 1 << iota // include CLM data in transactions
+	AllCLM         CodeLevelMetricsScope = 0         // all supported types
 )
+
+func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
+	switch label {
+	case "transaction", "transactions", "txn":
+		return TransactionCLM, true
+	}
+	return 0, false
+}
 
 // ApplicationLogging contains settings which control the capture and sending
 // of log event data
