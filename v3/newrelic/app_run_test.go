@@ -286,30 +286,6 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 		},
 	})
 }
-
-/*
-func TestCustomEventsReservoirLimit(t *testing.T) {
-	reply, err := internal.UnmarshalConnectReply([]byte(
-		`{"return_value":{
-			"event_harvest_config": {
-				"report_period_ms": 10000
-			}
-        }}`), internal.PreconnectReply{})
-	if nil != err {
-		t.Fatal(err)
-	}
-	expected := 10
-	cfg := config{Config:}
-	cfg.TransactionEvents.MaxSamplesStored = expected
-	result := newAppRun(cfg, reply)
-	t.Error(fmt.Print(result))
-
-	if result != expected {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
-	}
-}
-*/
-
 func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
 	h, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
