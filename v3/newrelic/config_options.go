@@ -43,9 +43,8 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 	if limit > 100000 {
 		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = 100000 }
-	} else {
-		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
 	}
+	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
 }
 
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
