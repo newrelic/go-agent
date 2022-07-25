@@ -125,6 +125,7 @@ type EventHarvestConfig struct {
 	} `json:"harvest_limits"`
 }
 
+// SpanEventHarvestConfig contains the Reporting period time and the given harvest limit.
 type SpanEventHarvestConfig struct {
 	ReportPeriod *uint `json:"report_period_ms"`
 	HarvestLimit *uint `json:"harvest_limit"`
