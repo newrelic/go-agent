@@ -92,7 +92,6 @@ func newTxn(app *app, run *appRun, name string, opts ...TraceOption) *thread {
 	txn.Name = name
 	txn.Attrs = newAttributes(run.AttributeConfig)
 
-	// This will be refactored out to a common function when we support CLM for other things besides transactions
 	if !txnOpts.SuppressCLM && run.Config.CodeLevelMetrics.Enabled && (run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
 		reportCodeLevelMetrics(txnOpts, run, txn.Attrs.Agent.Add)
 	}
