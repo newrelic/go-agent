@@ -399,6 +399,9 @@ const (
 
 func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
 	switch label {
+	case "all":
+		return AllCLM, true
+
 	case "transaction", "transactions", "txn":
 		return TransactionCLM, true
 	}
