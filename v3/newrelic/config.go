@@ -382,6 +382,11 @@ type Config struct {
 	}
 }
 
+//
+// CodeLevelMetricsScope is a bit-encoded value. Each such value describes
+// a trace type for which code-level metrics are to be collected and
+// reported.
+//
 type CodeLevelMetricsScope uint32
 
 // These constants specify the types of telemetry data to which we will
