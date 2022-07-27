@@ -1,3 +1,14 @@
+## 3.18.0
+### Added
+* Code-Level Metrics are now available for instrumented transactions. This is off by default but once enabled via `ConfigCodeLevelMetricsEnabled(true)` transactions will include information about the location in the source code where `StartTransaction` was invoked.
+   * This feature enables CodeStream integration to allow developers to see telemetry data related to specific lines of code.
+   * See the Go Agent documentation for details on [configuring](https://docs.newrelic.com/docs/apm/agents/go-agent/configuration/go-agent-code-level-metrics-config) Code-Level Metrics and how to [instrument](https://docs.newrelic.com/docs/apm/agents/go-agent/instrumentation/go-agent-code-level-metrics-instrument) your code using them.
+
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+* Note that the oldest supported version of the Go Agent is 3.6.0.
+
 ## 3.17.0
 ### Added
 * Logs in context now supported for zerolog.
