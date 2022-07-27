@@ -4,6 +4,8 @@
 package newrelic
 
 import (
+	"errors"
+	"reflect"
 	"runtime"
 	"strings"
 )
@@ -99,6 +101,48 @@ func WithThisCodeLocation() TraceOption {
 }
 
 //
+// FunctionLocation is like ThisCodeLocation, but takes as its parameter
+// a function value. It will report the code-level metrics information for
+// that function if that is possible to do. It returns an error if it
+// was not possible to get a code location from the parameter passed to it.
+//
+func FunctionLocation(function interface{}) (*CodeLocation, error) {
+	if function == nil {
+		return nil, errors.New("nil function passed to FunctionLocation")
+	}
+
+	v := reflect.ValueOf(function)
+	if !v.IsValid() || v.Kind() != reflect.Func {
+		return nil, errors.New("value passed to FunctionLocation is not a function")
+	}
+
+	if fInfo := runtime.FuncForPC(v.Pointer()); fInfo != nil {
+		var loc CodeLocation
+
+		loc.FilePath, loc.LineNo = fInfo.FileLine(fInfo.Entry())
+		loc.Function = fInfo.Name()
+		return &loc, nil
+	}
+
+	return nil, errors.New("could not find code location for function")
+}
+
+//
+// WithFunctionLocation is like WithThisCodeLocation, but uses the
+// function value passed as the location to report. Unlike FunctionLocation,
+// this does not report errors explicitly. If it is unable to use the
+// value passed to find a code location, it will do nothing.
+//
+func WithFunctionLocation(function interface{}) TraceOption {
+	return func(o *traceOptSet) {
+		loc, err := FunctionLocation(function)
+		if err == nil {
+			o.LocationOverride = loc
+		}
+	}
+}
+
+//
 // ThisCodeLocation returns a CodeLocation value referring to
 // the place in your code that it was invoked.
 //
@@ -125,6 +169,13 @@ func ThisCodeLocation(skipLevels ...int) *CodeLocation {
 		loc.FilePath = frame.File
 	}
 	return &loc
+}
+
+func removeCodeLevelMetrics(remAttr func(string)) {
+	remAttr(AttributeCodeLineno)
+	remAttr(AttributeCodeNamespace)
+	remAttr(AttributeCodeFilepath)
+	remAttr(AttributeCodeFunction)
 }
 
 func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string, string, interface{})) {
