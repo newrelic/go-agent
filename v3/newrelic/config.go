@@ -352,6 +352,65 @@ type Config struct {
 	// to indicate that setup has failed.  NewApplication will return this
 	// error if it is set.
 	Error error
+
+	// CodeLevelMetrics contains fields which control the collection and reporting
+	// of source code context information associated with telemetry data.
+	CodeLevelMetrics struct {
+		// Enabling CodeLevelMetrics will include source code context information
+		// as attributes. If this is disabled, no such metrics will be collected
+		// or reported.
+		Enabled bool
+		// Scope is a combination of CodeLevelMetricsScope values OR-ed together
+		// to indicate which specific kinds of events will carry CodeLevelMetrics
+		// data. This allows the agent to spend resources on discovering the source
+		// code context data only where actually needed.
+		Scope CodeLevelMetricsScope
+		// PathPrefix specifies the filename pattern that describes the start of
+		// the project area. Any text before this pattern is ignored. Thus, if
+		// PathPrefix is set to "myproject/src", then a function located in a file
+		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+		// pathname "myproject/src/foo.go". If this value is empty, the full path
+		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		PathPrefix string
+		// IgnoredPrefix specifies the initial pattern to look for in fully-qualified
+		// function names to determine which functions to ignore while searching up
+		// through the call stack to find the application function to associate
+		// with telemetry data. The agent will look for the innermost caller whose name
+		// does not begin with this prefix. If empty, it will ignore functions whose
+		// names look like they are internal to the agent itself.
+		IgnoredPrefix string
+	}
+}
+
+//
+// CodeLevelMetricsScope is a bit-encoded value. Each such value describes
+// a trace type for which code-level metrics are to be collected and
+// reported.
+//
+type CodeLevelMetricsScope uint32
+
+// These constants specify the types of telemetry data to which we will
+// attach code level metric data. These may be ORed together to give
+// the desired combination (e.g., SpanCLM | TransactionCLM). AllCLM
+// means to include code level metrics everywhere currently supported.
+//
+// A scope of 0 means "all types" as a convenience so that any zero-value
+// CodeLevelMetricsScope variable provides the default expected behavior
+// rather than turning off all code level metrics.
+const (
+	TransactionCLM CodeLevelMetricsScope = 1 << iota // include CLM data in transactions
+	AllCLM         CodeLevelMetricsScope = 0         // all supported types
+)
+
+func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
+	switch label {
+	case "all":
+		return AllCLM, true
+
+	case "transaction", "transactions", "txn":
+		return TransactionCLM, true
+	}
+	return 0, false
 }
 
 // ApplicationLogging contains settings which control the capture and sending
@@ -477,6 +536,10 @@ func defaultConfig() Config {
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
+	// Code Level Metrics
+	c.CodeLevelMetrics.Enabled = false
+	c.CodeLevelMetrics.Scope = AllCLM
+	c.CodeLevelMetrics.PathPrefix = ""
 	return c
 }
 

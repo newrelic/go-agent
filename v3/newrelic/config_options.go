@@ -51,6 +51,53 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
+// ConfigCodeLevelMetricsEnabled turns on or off the collection of code
+// level metrics entirely.
+func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.Enabled = enabled
+	}
+}
+
+// ConfigCodeLevelMetricsIgnoredPrefix alters the way the Code Level Metrics
+// collection code searches for the right function to report for a given
+// telemetry trace. It will find the innermost function whose name does NOT
+// begin with the string given here. By default (or if this is the empty string),
+// it will ignore functions whose names imply that the function is part of
+// the agent itself.
+func ConfigCodeLevelMetricsIgnoredPrefix(prefix string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.IgnoredPrefix = prefix
+	}
+}
+
+// ConfigCodeLevelMetricsScope narrows the scope of where code level
+// metrics are to be used. By default, if CodeLevelMetrics are enabled,
+// they apply everywhere the agent currently supports them. To narrow
+// this, supply a list of one or more CodeLevelMetricsScope values
+// ORed together to ConfigCodeLevelMetricsScope.
+//
+// Note that a zero value CodeLevelMetricsScope means to collect all supported
+// telemetry data types. If you want to stop collecting any code level metrics,
+// then disable collection via ConfigCodeLevelMetricsEnabled.
+func ConfigCodeLevelMetricsScope(scope CodeLevelMetricsScope) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.Scope = scope
+	}
+}
+
+// ConfigCodeLevelMetricsPathPrefix specifies the filename pattern that describes the start of
+// the project area. Any text before this pattern is ignored. Thus, if
+// the path prefix is set to "myproject/src", then a function located in a file
+// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+// pathname "myproject/src/foo.go". If this value is empty, the full path
+// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+func ConfigCodeLevelMetricsPathPrefix(prefix string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.PathPrefix = prefix
+	}
+}
+
 // ConfigAppLogForwardingEnabled enables or disables the collection
 // of logs from a user's application by the agent
 // Defaults: enabled=false
@@ -134,6 +181,10 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_APP_NAME                                sets AppName
 //  NEW_RELIC_ATTRIBUTES_EXCLUDE                      sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
 //  NEW_RELIC_ATTRIBUTES_INCLUDE                      sets Attributes.Include using a comma-separated list
+//  NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              sets CodeLevelMetrics.Enabled
+//  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction,datastore"
+//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          sets CodeLevelMetrics.PathPrefix
+//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefix
 //  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             sets DistributedTracer.Enabled using strconv.ParseBool
 //  NEW_RELIC_ENABLED                                 sets Enabled using strconv.ParseBool
 //  NEW_RELIC_HIGH_SECURITY                           sets HighSecurity using strconv.ParseBool
@@ -189,6 +240,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
 		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
+		assignBool(&cfg.CodeLevelMetrics.Enabled, "NEW_RELIC_CODE_LEVEL_METRICS_ENABLED")
+		assignString(&cfg.CodeLevelMetrics.PathPrefix, "NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX")
+		assignString(&cfg.CodeLevelMetrics.IgnoredPrefix, "NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX")
 		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
 		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
 		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
@@ -215,6 +269,17 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 		if env := getenv("NEW_RELIC_ATTRIBUTES_EXCLUDE"); env != "" {
 			cfg.Attributes.Exclude = strings.Split(env, ",")
+		}
+
+		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_SCOPE"); env != "" {
+			for _, label := range strings.Split(env, ",") {
+				bit, ok := codeLevelMetricsScopeLabelToValue(label)
+				if ok {
+					cfg.CodeLevelMetrics.Scope |= bit
+				} else {
+					cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value \"%s\" in \"%s\"", label, env)
+				}
+			}
 		}
 
 		if env := getenv("NEW_RELIC_LOG"); env != "" {

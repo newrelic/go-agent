@@ -78,15 +78,42 @@ func (txn *txn) markEnd(now time.Time, thread *tracingThread) {
 	}
 }
 
-func newTxn(app *app, run *appRun, name string) *thread {
+func (txn *txn) setOption(opts ...TraceOption) {
+	txnOpts := traceOptSet{}
+	for _, o := range opts {
+		o(&txnOpts)
+	}
+
+	// If we are suppressing code-level metrics but had already set up to report them,
+	// remove those attributes now entirely. We've already spent the time to collect
+	// the data, but that's water under the bridge at this point and the user is saying
+	// explicitly they don't want them.
+	if txnOpts.SuppressCLM {
+		removeCodeLevelMetrics(txn.Attrs.Agent.Remove)
+	} else if txn.appRun != nil && txn.appRun.Config.CodeLevelMetrics.Enabled && (txn.appRun.Config.CodeLevelMetrics.Scope == 0 || (txn.appRun.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+		// If we're given an explicit code location to report, do that now. This will override
+		// any previous code-level metrics information in the transaction.
+		reportCodeLevelMetrics(txnOpts, txn.appRun, txn.Attrs.Agent.Add)
+	}
+}
+
+func newTxn(app *app, run *appRun, name string, opts ...TraceOption) *thread {
 	txn := &txn{
 		app:    app,
 		appRun: run,
+	}
+	txnOpts := traceOptSet{}
+	for _, o := range opts {
+		o(&txnOpts)
 	}
 	txn.markStart(time.Now())
 
 	txn.Name = name
 	txn.Attrs = newAttributes(run.AttributeConfig)
+
+	if !txnOpts.SuppressCLM && run.Config.CodeLevelMetrics.Enabled && (run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+		reportCodeLevelMetrics(txnOpts, run, txn.Attrs.Agent.Add)
+	}
 
 	if run.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true

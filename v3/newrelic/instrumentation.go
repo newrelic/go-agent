@@ -28,12 +28,24 @@ import (
 //	}
 //
 // The WrapHandle function is safe to call if app is nil.
-func WrapHandle(app *Application, pattern string, handler http.Handler) (string, http.Handler) {
+//
+// WrapHandle accepts zero or more TraceOption functions to allow additional options to be
+// manually added to the transaction trace generated, in the same fashion as StartTransaction
+// does. For example, this can be used to control code level metrics generated for this transaction.
+func WrapHandle(app *Application, pattern string, handler http.Handler, options ...TraceOption) (string, http.Handler) {
 	if app == nil {
 		return pattern, handler
 	}
+	// add the wrapped function to the trace options as the source code reference point
+	// (to the beginning of the option list, so that the user can override this)
+	// If we came here via WrapHandleFunc, that means it will have pushed the handler's
+	// code location if possible, so the options will be (this code location), (handler function location),
+	// (other options); that results in having a backup in case either failed, with preference
+	// given to the handler's function location. In any event, the user may override all of that
+	// with a location they choose.
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txn := app.StartTransaction(r.Method + " " + pattern)
+		options = append([]TraceOption{WithThisCodeLocation()}, options...)
+		txn := app.StartTransaction(r.Method+" "+pattern, options...)
 		defer txn.End()
 
 		w = txn.SetWebResponse(w)
@@ -68,8 +80,15 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 //	}))
 //
 // The WrapHandleFunc function is safe to call if app is nil.
-func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
-	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
+//
+// WrapHandleFunc accepts zero or more TraceOption functions to allow additional options to be
+// manually added to the transaction trace generated, in the same fashion as StartTransaction
+// does. For example, this can be used to control code level metrics generated for this transaction.
+func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request), options ...TraceOption) (string, func(http.ResponseWriter, *http.Request)) {
+	// add the wrapped function to the trace options as the source code reference point
+	// (to the beginning of the option list, so that the user can override this)
+	options = append([]TraceOption{WithFunctionLocation(handler)}, options...)
+	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler), options...)
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
