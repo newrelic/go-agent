@@ -62,7 +62,7 @@ func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 // ConfigCodeLevelMetricsIgnoredPrefix alters the way the Code Level Metrics
 // collection code searches for the right function to report for a given
 // telemetry trace. It will find the innermost function whose name does NOT
-// match the string given here. By default (or if this is the empty string),
+// begin with the string given here. By default (or if this is the empty string),
 // it will ignore functions whose names imply that the function is part of
 // the agent itself.
 func ConfigCodeLevelMetricsIgnoredPrefix(prefix string) ConfigOption {

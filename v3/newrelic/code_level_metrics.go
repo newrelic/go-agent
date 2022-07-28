@@ -68,7 +68,7 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 // this option.
 //
 // If all functions in the call stack begin with this prefix,
-// the bottom-most one (outermost caller) will be used anyway, since we didn't find
+// the outermos one will be used anyway, since we didn't find
 // anything better on the way to the bottom of the stack.
 //
 func WithIgnoredPrefix(prefix string) TraceOption {
