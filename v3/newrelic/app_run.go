@@ -210,9 +210,7 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
 	config.maxLogEvents = run.MaxLogEvents()
 	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
-
-	//TODO
-	config.localEnrichment = false
+	config.localEnrichment = logging.Enabled && logging.LocalDecorating.Enabled
 
 	return config
 }

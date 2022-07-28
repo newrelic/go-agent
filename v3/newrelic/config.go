@@ -375,6 +375,10 @@ type ApplicationLogging struct {
 		// Logging Metrics used in the Logs chart on the APM Summary page.
 		Enabled bool
 	}
+	LocalDecorating struct {
+		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
+		Enabled bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -446,6 +450,7 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Forwarding.Enabled = false
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
+	c.ApplicationLogging.LocalDecorating.Enabled = false
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default

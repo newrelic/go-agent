@@ -75,7 +75,7 @@ func TestConfigOptionError(t *testing.T) {
 }
 
 const (
-	SampleAppName = "my app"
+	sampleAppName = "my app"
 )
 
 // expectApp combines Application and Expect, for use in validating data in test apps
@@ -93,7 +93,7 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) exp
 				cfg.Enabled = false
 			}
 		},
-		ConfigAppName(SampleAppName),
+		ConfigAppName(sampleAppName),
 		ConfigLicense(testLicenseKey),
 	)
 
@@ -110,8 +110,13 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) exp
 	}
 }
 
+const (
+	testEntityGUID = "testEntityGUID123"
+)
+
 var sampleEverythingReplyFn = func(reply *internal.ConnectReply) {
 	reply.SetSampleEverything()
+	reply.EntityGUID = testEntityGUID
 }
 
 var configTestAppLogFn = func(cfg *Config) {

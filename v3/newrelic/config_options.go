@@ -66,6 +66,20 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigAppLogDecoratingEnabled enables or disables the local decoration
+// of logs when using one of our logs in context plugins
+// Defaults: enabled=false
+func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.LocalDecorating.Enabled = true
+		} else {
+			cfg.ApplicationLogging.LocalDecorating.Enabled = false
+		}
+	}
+}
+
 // ConfigAppLogMetricsEnabled enables or disables the collection of metrics
 // data for logs seen by an instrumented logging framework
 // default: true
@@ -91,10 +105,6 @@ func ConfigAppLogEnabled(enabled bool) ConfigOption {
 		}
 	}
 }
-
-const (
-	zerologFrameworkName = "Zerolog"
-)
 
 // ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
 // log events the agent is allowed to collect and store in a given harvest cycle.

@@ -45,6 +45,8 @@ var (
 	MatchAnything = uniquePointer()
 	// MatchAnyString is a placeholder for matching any string
 	MatchAnyString = "xxANY-STRINGxx"
+	// MatchAnyUnixMilli is a placeholder for matching any unix millisecond timestamp int64
+	MatchAnyUnixMilli = int64(-1)
 )
 
 // WantEvent is a transaction or error event expectation.
