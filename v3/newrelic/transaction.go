@@ -48,6 +48,9 @@ func (txn *Transaction) End() {
 // after the transaction has already been started, such as specifying a new
 // source code location for code-level metrics.
 //
+// The set of options should be the complete set you wish to have in effect,
+// just as if you were calling StartTransaction now with the same set of options.
+//
 func (txn *Transaction) SetOption(options ...TraceOption) {
 	if txn == nil || txn.thread == nil || txn.thread.txn == nil {
 		return
