@@ -104,7 +104,8 @@ type ConnectReply struct {
 	} `json:"agent_config"`
 
 	// Faster Event Harvest
-	EventData EventHarvestConfig `json:"event_harvest_config"`
+	EventData              EventHarvestConfig `json:"event_harvest_config"`
+	SpanEventHarvestConfig `json:"span_event_harvest_config"`
 }
 
 // EventHarvestConfig contains fields relating to faster event harvest.
@@ -122,6 +123,12 @@ type EventHarvestConfig struct {
 		ErrorEvents  *uint `json:"error_event_data,omitempty"`
 		SpanEvents   *uint `json:"span_event_data,omitempty"`
 	} `json:"harvest_limits"`
+}
+
+// SpanEventHarvestConfig contains the Reporting period time and the given harvest limit.
+type SpanEventHarvestConfig struct {
+	ReportPeriod *uint `json:"report_period_ms"`
+	HarvestLimit *uint `json:"harvest_limit"`
 }
 
 // ConfigurablePeriod returns the Faster Event Harvest configurable reporting period if it is set, or the default

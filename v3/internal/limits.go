@@ -13,7 +13,6 @@ const (
 	// MaxPayloadSizeInBytes specifies the maximum payload size in bytes that
 	// should be sent to any endpoint
 	MaxPayloadSizeInBytes = 1000 * 1000
-
 	// MaxCustomEvents is the maximum number of Transaction Events that can be captured
 	// per 60-second harvest cycle
 	MaxCustomEvents = 10 * 1000
