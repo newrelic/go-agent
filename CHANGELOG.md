@@ -10,6 +10,9 @@
    * Use the Logrus formatting package of your choice
    * Local Log Decorating is now available for the new logcontext-v2/nrlogrus plugin only. This is off by default but can be enabled with `ConfigAppLogForwardingEnabled(true)`.
 
+### Fixed
+ * Fixed issue with custom event limits and number of DT Spans to more accurately follow configured limits.
+
 ### Support Statement
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
 * Note that the oldest supported version of the Go Agent is 3.6.0.
