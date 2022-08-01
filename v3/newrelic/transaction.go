@@ -43,6 +43,21 @@ func (txn *Transaction) End() {
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
 
+//
+// SetOption allows the setting of some transaction TraceOption parameters
+// after the transaction has already been started, such as specifying a new
+// source code location for code-level metrics.
+//
+// The set of options should be the complete set you wish to have in effect,
+// just as if you were calling StartTransaction now with the same set of options.
+//
+func (txn *Transaction) SetOption(options ...TraceOption) {
+	if txn == nil || txn.thread == nil || txn.thread.txn == nil {
+		return
+	}
+	txn.thread.txn.setOption(options...)
+}
+
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {
 	if nil == txn {

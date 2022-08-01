@@ -75,22 +75,16 @@ jobs:
           # As of June 2020, confirmed errors still result
           # - go-version: 1.13.x
           #   dirs: _integrations/nrmicro
-          - go-version: 1.13.x
-            dirs: _integrations/nrnats
-          - go-version: 1.13.x
-            dirs: _integrations/nrstan
+          # As of Jul 2022, we have depreciated the legacy nrnats,nrmssql, nrzap, and nrstan integrations tests.
+          # These tests still exist under the v3 versions of the integrations.
           - go-version: 1.13.x
             dirs: _integrations/logcontext
-          - go-version: 1.13.x
-            dirs: _integrations/nrzap
           - go-version: 1.13.x
             dirs: _integrations/nrhttprouter
           - go-version: 1.13.x
             dirs: _integrations/nrb3
           - go-version: 1.13.x
             dirs: _integrations/nrmongo
-          - go-version: 1.13.x
-            dirs: _integrations/nrmssql
 
           # v3 agent
           - go-version: 1.7.x
@@ -104,10 +98,6 @@ jobs:
           - go-version: 1.11.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.12.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.13.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.14.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.15.x
             dirs: v3/newrelic,v3/internal,v3/examples,v3/integrations/logcontext
@@ -133,7 +123,7 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/nrelasticsearch-v7
             extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
-          - go-version: 1.15.x
+          - go-version: 1.18.x
             dirs: v3/integrations/nrgin
             extratesting: go get -u github.com/gin-gonic/gin@master
           - go-version: 1.15.x
@@ -174,7 +164,7 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/nrgrpc
             extratesting: go get -u google.golang.org/grpc@master
-          - go-version: 1.15.x
+          - go-version: 1.17.x
             dirs: v3/integrations/nrmicro
             # As of Dec 2019, there is a race condition in when using go-micro@master
             # in their logging system.  Instead, we'll test against the latest
@@ -182,6 +172,7 @@ jobs:
             # As of Jan 2019, it is impossible to go get the latest micro version.
             # As of June 2020, confirmed errors still result
             # extratesting: go get -u github.com/micro/go-micro@latest
+            # If we are using the latest released version to test, we need to use a newer version of go
           - go-version: 1.15.x
             dirs: v3/integrations/nrnats
             extratesting: go get -u github.com/nats-io/nats.go/@master
@@ -200,7 +191,8 @@ jobs:
           - go-version: 1.15.x
             dirs: v3/integrations/logcontext
             extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.15.x
+            # nrzap only supports the two most recent minor go releases
+          - go-version: 1.17.x
             dirs: v3/integrations/nrzap
             extratesting: go get -u go.uber.org/zap@master
           - go-version: 1.15.x

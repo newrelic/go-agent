@@ -1,3 +1,22 @@
+## 3.18.0
+### Added
+* Code-Level Metrics are now available for instrumented transactions. This is off by default but once enabled via `ConfigCodeLevelMetricsEnabled(true)` transactions will include information about the location in the source code where `StartTransaction` was invoked.
+   * Adds information about where in your source code transaction traces originated.
+   * See the Go Agent documentation for details on [configuring](https://docs.newrelic.com/docs/apm/agents/go-agent/configuration/go-agent-code-level-metrics-config) Code-Level Metrics and how to [instrument](https://docs.newrelic.com/docs/apm/agents/go-agent/instrumentation/go-agent-code-level-metrics-instrument) your code using them.
+* New V2 logs in context plugin is available for Logrus, packed with all the features you didn't know you wanted:
+   * Automatic Log Forwarding
+   * Log Metrics
+   * Capture logs anywhere in your code; both inside or outside of a transaction.
+   * Use the Logrus formatting package of your choice
+   * Local Log Decorating is now available for the new logcontext-v2/nrlogrus plugin only. This is off by default but can be enabled with `ConfigAppLogForwardingEnabled(true)`.
+
+### Fixed
+ * Fixed issue with custom event limits and number of DT Spans to more accurately follow configured limits.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+* Note that the oldest supported version of the Go Agent is 3.6.0.
+
 ## 3.17.0
 ### Added
 * Logs in context now supported for zerolog.

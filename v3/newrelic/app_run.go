@@ -190,7 +190,7 @@ func (run *appRun) ptrTxnEvents() *uint    { return run.Reply.EventData.Limits.T
 func (run *appRun) ptrCustomEvents() *uint { return run.Reply.EventData.Limits.CustomEvents }
 func (run *appRun) ptrLogEvents() *uint    { return run.Reply.EventData.Limits.LogEvents }
 func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
-func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.EventData.Limits.SpanEvents }
+func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.SpanEventHarvestConfig.HarvestLimit }
 
 func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
 func (run *appRun) MaxCustomEvents() int {
@@ -210,9 +210,7 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
 	config.maxLogEvents = run.MaxLogEvents()
 	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
-
-	//TODO
-	config.localEnrichment = false
+	config.localEnrichment = logging.Enabled && logging.LocalDecorating.Enabled
 
 	return config
 }

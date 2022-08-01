@@ -16,11 +16,11 @@ type Application struct {
 }
 
 // StartTransaction begins a Transaction with the given name.
-func (app *Application) StartTransaction(name string) *Transaction {
+func (app *Application) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if nil == app {
 		return nil
 	}
-	return app.app.StartTransaction(name)
+	return app.app.StartTransaction(name, opts...)
 }
 
 // RecordCustomEvent adds a custom event.

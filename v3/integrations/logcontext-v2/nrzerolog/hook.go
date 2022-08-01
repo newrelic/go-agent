@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func init() { internal.TrackUsage("integration", "logcontext", "zerolog") }
+func init() { internal.TrackUsage("integration", "logcontext-v2", "zerolog") }
 
 type NewRelicHook struct {
 	App     *newrelic.Application

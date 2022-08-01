@@ -503,12 +503,12 @@ func newTransaction(thd *thread) *Transaction {
 }
 
 // StartTransaction implements newrelic.Application's StartTransaction.
-func (app *app) StartTransaction(name string) *Transaction {
+func (app *app) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if nil == app {
 		return nil
 	}
 	run, _ := app.getState()
-	return newTransaction(newTxn(app, run, name))
+	return newTransaction(newTxn(app, run, name, opts...))
 }
 
 var (
@@ -632,8 +632,16 @@ func (app *app) ExpectCustomEvents(t internal.Validator, want []internal.WantEve
 	expectCustomEvents(extendValidator(t, "custom events"), app.testHarvest.CustomEvents, want)
 }
 
+// ExpectLogEvents from app checks that the contents of the logs test harvest matches the list of WantLogs.
 func (app *app) ExpectLogEvents(t internal.Validator, want []internal.WantLog) {
 	expectLogEvents(extendValidator(t, "log events"), app.testHarvest.LogEvents, want)
+}
+
+// ExpectLogEvents from transactions dumps all the log events from a transaction into the test harvest
+// then checks that the contents of the logs harvest matches the list of WantLogs.
+func (txn *Transaction) ExpectLogEvents(t internal.Validator, want []internal.WantLog) {
+	txn.thread.MergeIntoHarvest(txn.Application().app.testHarvest)
+	expectLogEvents(extendValidator(t, "log events"), txn.Application().app.testHarvest.LogEvents, want)
 }
 
 func (app *app) ExpectErrors(t internal.Validator, want []internal.WantError) {

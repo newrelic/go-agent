@@ -73,7 +73,6 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 			)
 		}
-
 	} else {
 		scope = "OtherTransaction/Go/" + want.Name
 		allWebOther = "allOther"
@@ -82,6 +81,22 @@ func expectTxnMetrics(t internal.Validator, mt *metricTable, want internal.WantT
 			{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
 			{Name: "OtherTransactionTotalTime/Go/" + want.Name, Scope: "", Forced: false, Data: nil},
 			{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		}
+		if want.UnknownCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+			)
+		}
+		if want.ErrorByCaller {
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+			)
+			metrics = append(metrics,
+				internal.WantMetric{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+			)
 		}
 	}
 	if want.NumErrors > 0 {
@@ -214,23 +229,23 @@ func expectLogEvents(v internal.Validator, events *logEvents, expect []internal.
 }
 
 func expectLogEvent(v internal.Validator, event logEvent, want internal.WantLog) {
-	if event.message != want.Message {
+	if event.message != want.Message && want.Message != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log message: want %s, got %s", event.message, want.Message))
 		return
 	}
-	if event.severity != want.Severity {
+	if event.severity != want.Severity && want.Severity != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log severity: want %s, got %s", event.severity, want.Severity))
 		return
 	}
-	if event.traceID != want.TraceID {
+	if event.traceID != want.TraceID && want.TraceID != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log trace id: want %s, got %s", event.traceID, want.TraceID))
 		return
 	}
-	if event.spanID != want.SpanID {
+	if event.spanID != want.SpanID && want.SpanID != internal.MatchAnyString {
 		v.Error(fmt.Sprintf("unexpected log span id: want %s, got %s", event.spanID, want.SpanID))
 		return
 	}
-	if event.timestamp != want.Timestamp {
+	if event.timestamp != want.Timestamp && want.Timestamp != internal.MatchAnyUnixMilli {
 		v.Error(fmt.Sprintf("unexpected log timestamp: want %d, got %d", event.timestamp, want.Timestamp))
 		return
 	}

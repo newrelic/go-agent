@@ -147,9 +147,12 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 					"analytic_event_data": 1,
 					"custom_event_data": 2,
 					"log_event_data": 3,
-					"span_event_data": 4,
-					"error_event_data": 5
+					"error_event_data": 4
 				}
+			},
+			"span_event_harvest_config":{
+				"report_period_ms": 10000,
+				"harvest_limit": 5
 			}
 		}}`), internal.PreconnectReply{})
 	if nil != err {
@@ -160,8 +163,8 @@ func TestEventHarvestFieldsAllPopulated(t *testing.T) {
 		maxTxnEvents:    1,
 		maxCustomEvents: 2,
 		maxLogEvents:    3,
-		maxSpanEvents:   4,
-		maxErrorEvents:  5,
+		maxErrorEvents:  4,
+		maxSpanEvents:   5,
 		periods: map[harvestTypes]time.Duration{
 			harvestMetricsTraces: 60 * time.Second,
 			harvestTypesEvents:   5 * time.Second,
@@ -184,7 +187,7 @@ func TestZeroReportPeriod(t *testing.T) {
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxLogEvents:    internal.MaxLogEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   run.Config.DistributedTracer.ReservoirLimit,
+		maxSpanEvents:   defaultMaxSpanEvents,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
@@ -192,11 +195,11 @@ func TestZeroReportPeriod(t *testing.T) {
 	})
 }
 
-func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
+func TestConnectResponseOnlySpanEvents(t *testing.T) {
 	reply, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
-			"event_harvest_config": {
-				"report_period_ms": 5000,
-				"harvest_limits": { "span_event_data": 3 }
+			"span_event_harvest_config":{
+				"report_period_ms": 10000,
+				"harvest_limit": 3
 			}}}`), internal.PreconnectReply{})
 	if nil != err {
 		t.Fatal(err)
@@ -210,7 +213,7 @@ func TestEventHarvestFieldsOnlySpanEvents(t *testing.T) {
 		maxSpanEvents:   3,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll ^ harvestSpanEvents: 60 * time.Second,
-			harvestSpanEvents:                   5 * time.Second,
+			2:                                   60 * time.Second,
 		},
 	})
 }
@@ -283,7 +286,6 @@ func TestEventHarvestFieldsOnlyCustomEvents(t *testing.T) {
 		},
 	})
 }
-
 func TestConfigurableHarvestNegativeReportPeriod(t *testing.T) {
 	h, err := internal.UnmarshalConnectReply([]byte(`{"return_value":{
 			"event_harvest_config": {
@@ -379,8 +381,8 @@ type expectHarvestConfig struct {
 	periods         map[harvestTypes]time.Duration
 }
 
-func errorExpectNotEqualActual(value string, expect, actual interface{}) error {
-	return fmt.Errorf("Expected %s value does not match actual; expected: %+v actual: %+v", value, expect, actual)
+func errorExpectNotEqualActual(value string, actual, expect interface{}) error {
+	return fmt.Errorf("Expected %s value does not match actual; actual: %+v expect: %+v", value, actual, expect)
 }
 func assertHarvestConfig(t testing.TB, hc harvestConfig, expect expectHarvestConfig) {
 	if h, ok := t.(interface {

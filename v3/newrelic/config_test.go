@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"reflect"
@@ -121,7 +122,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.TransactionTracer.Segments.Attributes.Include[0] = "zap"
 	cfg.TransactionTracer.Segments.Attributes.Exclude[0] = "zap"
 
-	expect := internal.CompactJSONString(`[
+	expect := internal.CompactJSONString(fmt.Sprintf(`[
 	{
 		"pid":123,
 		"language":"go",
@@ -133,7 +134,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true,
 				"Forwarding": {
 					"Enabled": false,
-					"MaxSamplesStored": 10000
+					"MaxSamplesStored": %d
+				},
+				"LocalDecorating":{
+					"Enabled": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -144,10 +148,11 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","PathPrefix":"","Scope":0},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
-				"MaxSamplesStored":10000
+				"MaxSamplesStored":%d
 			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
@@ -202,7 +207,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
 				"Enabled":true,
-				"MaxSamplesStored": 10000
+				"MaxSamplesStored": %d
 			},
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":["8"],"Include":["7"]},
@@ -262,13 +267,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"report_period_ms": 60000,
 			"harvest_limits": {
 				"analytic_event_data": 10000,
-				"custom_event_data": 10000,
-				"log_event_data": 10000,
+				"custom_event_data": %d,
+				"log_event_data": %d,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}
 		}
-	}]`)
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -308,7 +313,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 
 	cp := copyConfigReferenceFields(cfg)
 
-	expect := internal.CompactJSONString(`[
+	expect := internal.CompactJSONString(fmt.Sprintf(`[
 	{
 		"pid":123,
 		"language":"go",
@@ -320,7 +325,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled": true,
 				"Forwarding": {
 					"Enabled": false,
-					"MaxSamplesStored": 10000
+					"MaxSamplesStored": %d
+				},
+				"LocalDecorating":{
+					"Enabled": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -335,10 +343,11 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","PathPrefix":"","Scope":0},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
-				"MaxSamplesStored":10000
+				"MaxSamplesStored":%d
 			},
 			"DatastoreTracer":{
 				"DatabaseNameReporting":{"Enabled":true},
@@ -391,7 +400,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"Enabled":true,
-				"MaxSamplesStored": 10000
+				"MaxSamplesStored": %d
 			},
 			"TransactionTracer":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
@@ -441,13 +450,13 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"report_period_ms": 60000,
 			"harvest_limits": {
 				"analytic_event_data": 10000,
-				"custom_event_data": 10000,
-				"log_event_data": 10000,
+				"custom_event_data": %d,
+				"log_event_data": %d,
 				"error_event_data": 100,
 				"span_event_data": 2000
 			}
 		}
-	}]`)
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
