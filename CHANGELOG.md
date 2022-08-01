@@ -1,7 +1,7 @@
 ## 3.18.0
 ### Added
 * Code-Level Metrics are now available for instrumented transactions. This is off by default but once enabled via `ConfigCodeLevelMetricsEnabled(true)` transactions will include information about the location in the source code where `StartTransaction` was invoked.
-   * This feature enables CodeStream integration to allow developers to see telemetry data related to specific lines of code.
+   * Adds information about where in your source code transaction traces originated.
    * See the Go Agent documentation for details on [configuring](https://docs.newrelic.com/docs/apm/agents/go-agent/configuration/go-agent-code-level-metrics-config) Code-Level Metrics and how to [instrument](https://docs.newrelic.com/docs/apm/agents/go-agent/instrumentation/go-agent-code-level-metrics-instrument) your code using them.
 * New V2 logs in context plugin is available for Logrus, packed with all the features you didn't know you wanted:
    * Automatic Log Forwarding
