@@ -22,9 +22,7 @@ func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	}
 
 	logLevel := ""
-	if level == zerolog.NoLevel {
-		logLevel = newrelic.LogSeverityUnknown
-	} else {
+	if level != zerolog.NoLevel {
 		logLevel = level.String()
 	}
 
