@@ -9,11 +9,16 @@ import (
 // DecorationExpect defines the expected values a log decorated by a logcontext v2 decorator should have
 type DecorationExpect struct {
 	DecorationDisabled bool
-	EntityGUID         string
-	EntityName         string
-	Hostname           string
-	TraceID            string
-	SpanID             string
+
+	EntityGUID string
+	EntityName string
+	Hostname   string
+	TraceID    string
+	SpanID     string
+
+	// decorator errors will result in an undecorated log message being printed
+	// and an error message also being printed in a separate line
+	DecoratorError error
 }
 
 // metadata indexes
@@ -40,6 +45,19 @@ func ValidateDecoratedOutput(t *testing.T, out *bytes.Buffer, expect *Decoration
 	if expect.DecorationDisabled {
 		if strings.Contains(actual, "NR-LINKING") {
 			t.Fatal("log decoration was expected to be disabled, but were decorated anyway")
+		} else {
+			return
+		}
+	}
+
+	if expect.DecoratorError != nil {
+		if strings.Contains(actual, "NR-LINKING") {
+			t.Fatal("logs should not be decorated when a decorator error occurs")
+		}
+
+		msg := expect.DecoratorError.Error()
+		if !strings.Contains(actual, msg) {
+			t.Fatalf("an error message debug log was expected, \"%s\", but was not found: %s", msg, actual)
 		} else {
 			return
 		}
