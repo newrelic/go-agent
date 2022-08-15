@@ -87,7 +87,7 @@ func TestCustomLimitsTypo(t *testing.T) {
 		ConfigCustomInsightsEventsMaxSamplesStored(limit),
 	)
 
-	customEventRate := limit / (60 / internal.CustomEventHarvestsPerMinute)
+	customEventRate := 100000 / (60 / internal.CustomEventHarvestsPerMinute)
 
 	// Check if custom event queue capacity == rate
 	if customEventRate != testApp.app.testHarvest.CustomEvents.capacity() {
