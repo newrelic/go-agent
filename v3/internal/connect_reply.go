@@ -255,6 +255,7 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	return reply.SegmentTerms.apply(afterNameRules)
 }
 
+// Limits set by reservior testing
 type RequestEventLimits struct {
 	CustomEvents int
 }
@@ -264,6 +265,7 @@ const (
 	CustomEventHarvestsPerMinute = 5
 )
 
+// Sets up a mock connect reply to test event limits
 func (r *ConnectReply) MockConnectReplyEventLimits(limits *RequestEventLimits) {
 	r.SetSampleEverything()
 
