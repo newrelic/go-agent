@@ -15,7 +15,7 @@ const (
 	MaxPayloadSizeInBytes = 1000 * 1000
 	// MaxCustomEvents is the maximum number of Transaction Events that can be captured
 	// per 60-second harvest cycle
-	MaxCustomEvents = 10 * 1000
+	MaxCustomEvents = 30 * 1000
 	// MaxLogEvents is the maximum number of Log Events that can be captured per
 	// 60-second harvest cycle
 	MaxLogEvents = 10 * 1000
