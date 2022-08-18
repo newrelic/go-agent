@@ -36,7 +36,7 @@ type CodeLocation struct {
 type traceOptSet struct {
 	LocationOverride *CodeLocation
 	SuppressCLM      bool
-	IgnoredPrefix    string
+	IgnoredPrefixes  []string
 }
 
 //
@@ -59,7 +59,7 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 //
 // WithIgnoredPrefix indicates that the code location reported
 // for Code Level Metrics should be the first function in the
-// call stack that does not begin with the given string. This
+// call stack that does not begin with the given string (or any of the given strings if more than one are given). This
 // string is matched against the entire fully-qualified function
 // name, which includes the name of the package the function
 // comes from. By default, the Go Agent tries to take the first
@@ -68,12 +68,12 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 // this option.
 //
 // If all functions in the call stack begin with this prefix,
-// the outermos one will be used anyway, since we didn't find
+// the outermost one will be used anyway, since we didn't find
 // anything better on the way to the bottom of the stack.
 //
-func WithIgnoredPrefix(prefix string) TraceOption {
+func WithIgnoredPrefix(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
-		o.IgnoredPrefix = prefix
+		o.IgnoredPrefixes = prefix
 	}
 }
 
@@ -191,17 +191,28 @@ func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string,
 			moreToRead := true
 			var frame runtime.Frame
 
-			if tOpts.IgnoredPrefix == "" {
-				tOpts.IgnoredPrefix = run.Config.CodeLevelMetrics.IgnoredPrefix
-				if tOpts.IgnoredPrefix == "" {
-					tOpts.IgnoredPrefix = defaultAgentProjectRoot
+			if tOpts.IgnoredPrefixes == nil {
+				tOpts.IgnoredPrefixes = run.Config.CodeLevelMetrics.IgnoredPrefixes
+				// for backward compatibility, add the singleton IgnoredPrefix if there is one
+				if run.Config.CodeLevelMetrics.IgnoredPrefix != "" {
+					tOpts.IgnoredPrefixes = append(tOpts.IgnoredPrefixes, run.Config.CodeLevelMetrics.IgnoredPrefix)
+				}
+				if tOpts.IgnoredPrefixes == nil {
+					tOpts.IgnoredPrefixes = append(tOpts.IgnoredPrefixes, defaultAgentProjectRoot)
 				}
 			}
 
 			// skip out to first non-agent frame, unless that IS the top-most frame
 			for moreToRead {
 				frame, moreToRead = frames.Next()
-				if !strings.HasPrefix(frame.Function, tOpts.IgnoredPrefix) {
+				if func() bool {
+					for _, eachPrefix := range tOpts.IgnoredPrefixes {
+						if strings.HasPrefix(frame.Function, eachPrefix) {
+							return false
+						}
+					}
+					return true
+				}() {
 					break
 				}
 			}

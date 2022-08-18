@@ -228,25 +228,25 @@ func expectLogEvents(v internal.Validator, events *logEvents, expect []internal.
 	}
 }
 
-func expectLogEvent(v internal.Validator, event logEvent, want internal.WantLog) {
-	if event.message != want.Message && want.Message != internal.MatchAnyString {
-		v.Error(fmt.Sprintf("unexpected log message: want %s, got %s", event.message, want.Message))
+func expectLogEvent(v internal.Validator, actual logEvent, want internal.WantLog) {
+	if actual.message != want.Message && want.Message != internal.MatchAnyString {
+		v.Error(fmt.Sprintf("unexpected log message: got %s, want %s", actual.message, want.Message))
 		return
 	}
-	if event.severity != want.Severity && want.Severity != internal.MatchAnyString {
-		v.Error(fmt.Sprintf("unexpected log severity: want %s, got %s", event.severity, want.Severity))
+	if actual.severity != want.Severity && want.Severity != internal.MatchAnyString {
+		v.Error(fmt.Sprintf("unexpected log severity: got %s, want %s", actual.severity, want.Severity))
 		return
 	}
-	if event.traceID != want.TraceID && want.TraceID != internal.MatchAnyString {
-		v.Error(fmt.Sprintf("unexpected log trace id: want %s, got %s", event.traceID, want.TraceID))
+	if actual.traceID != want.TraceID && want.TraceID != internal.MatchAnyString {
+		v.Error(fmt.Sprintf("unexpected log trace id: got %s, want %s", actual.traceID, want.TraceID))
 		return
 	}
-	if event.spanID != want.SpanID && want.SpanID != internal.MatchAnyString {
-		v.Error(fmt.Sprintf("unexpected log span id: want %s, got %s", event.spanID, want.SpanID))
+	if actual.spanID != want.SpanID && want.SpanID != internal.MatchAnyString {
+		v.Error(fmt.Sprintf("unexpected log span id: got %s, want %s", actual.spanID, want.SpanID))
 		return
 	}
-	if event.timestamp != want.Timestamp && want.Timestamp != internal.MatchAnyUnixMilli {
-		v.Error(fmt.Sprintf("unexpected log timestamp: want %d, got %d", event.timestamp, want.Timestamp))
+	if actual.timestamp != want.Timestamp && want.Timestamp != internal.MatchAnyUnixMilli {
+		v.Error(fmt.Sprintf("unexpected log timestamp: got %d, want %d", actual.timestamp, want.Timestamp))
 		return
 	}
 }

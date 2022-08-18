@@ -66,12 +66,16 @@ func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 // ConfigCodeLevelMetricsIgnoredPrefix alters the way the Code Level Metrics
 // collection code searches for the right function to report for a given
 // telemetry trace. It will find the innermost function whose name does NOT
-// begin with the string given here. By default (or if this is the empty string),
+// begin with any of the strings given here. By default (or if no paramters are given),
 // it will ignore functions whose names imply that the function is part of
 // the agent itself.
-func ConfigCodeLevelMetricsIgnoredPrefix(prefix string) ConfigOption {
+//
+// In agent version 3.18.0 (only), this took a single string parameter.
+// It now takes a variable number of parameters, preserving the old call semantics
+// for backward compatibility while allowing for multiple IgnoredPrefix values now.
+func ConfigCodeLevelMetricsIgnoredPrefix(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CodeLevelMetrics.IgnoredPrefix = prefix
+		cfg.CodeLevelMetrics.IgnoredPrefixes = prefix
 	}
 }
 
@@ -188,7 +192,7 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              sets CodeLevelMetrics.Enabled
 //  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction,datastore"
 //  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          sets CodeLevelMetrics.PathPrefix
-//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefix
+//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefixes
 //  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             sets DistributedTracer.Enabled using strconv.ParseBool
 //  NEW_RELIC_ENABLED                                 sets Enabled using strconv.ParseBool
 //  NEW_RELIC_HIGH_SECURITY                           sets HighSecurity using strconv.ParseBool
@@ -246,7 +250,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
 		assignBool(&cfg.CodeLevelMetrics.Enabled, "NEW_RELIC_CODE_LEVEL_METRICS_ENABLED")
 		assignString(&cfg.CodeLevelMetrics.PathPrefix, "NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX")
-		assignString(&cfg.CodeLevelMetrics.IgnoredPrefix, "NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX")
 		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
 		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
 		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
@@ -284,6 +287,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 					cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value \"%s\" in \"%s\"", label, env)
 				}
 			}
+		}
+
+		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX"); env != "" {
+			cfg.CodeLevelMetrics.IgnoredPrefixes = strings.Split(env, ",")
 		}
 
 		if env := getenv("NEW_RELIC_LOG"); env != "" {

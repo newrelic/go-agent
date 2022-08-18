@@ -1,3 +1,23 @@
+## 3.18.1
+### Added
+* Extended the `IgnoredPrefix` configuration value for Code-Level Metrics so that multiple such prefixes may be given instead of a single one. This deprecates the `IgnoredPrefix` configuration field of `Config.CodeLevelMetrics` in favor of a new slice field `IgnoredPrefixes`. The corresponding configuration option-setting functions `ConfigCodeLevelMetricsIgnoredPrefix` and `WithIgnoredPrefix` now take any number of string parameters to set these values. Since those functions used to take a single string value, this change is backward-compatible with pre-3.18.1 code.  Accordingly, the `NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX` environment variable is now a comma-separated list of prefixes.  Fixes [Issue #551](https://github.com/newrelic/go-agent/issues/551).
+
+### Fixed
+* Corrected some small errors in documentation of package features. Fixes [Issue #550](https://github.com/newrelic/go-agent/issues/550)
+
+### Compatibility Notice
+As of release 3.18.0, the API was extended by allowing custom options to be added to calls to the `Application.StartTransaction` method and the `WrapHandle` and `WrapHandleFunc` functions. They are implemented as variadic functions such that the new option parameters are optional (i.e., zero or more options may be added to the end of the function calls) to be backward-compatible with pre-3.18.0 usage of those functions. This prevents the changes from breaking existing code for typical usage of the agent. However, it does mean those functions' call signatures have changed:
+ * `StartTransaction(string)` -> `StartTransaction(string, ...TraceOption)`
+ *  `WrapHandle(*Application, string, http.Handler)` -> `WrapHandle(*Application, string, http.Handler, ...TraceOption)`
+ *  `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request))`	-> `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request), ...TraceOption)`
+   
+If, for example, you created your own custom interface type which includes the `StartTransaction` method or something that depends on these functions' exact call semantics, that code will need to be updated accordingly before using version 3.18.0 (or later) of the Go Agent.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.18.0
 ### Added
 * Code-Level Metrics are now available for instrumented transactions. This is off by default but once enabled via `ConfigCodeLevelMetricsEnabled(true)` transactions will include information about the location in the source code where `StartTransaction` was invoked.
@@ -12,6 +32,15 @@
 
 ### Fixed
  * Fixed issue with custom event limits and number of DT Spans to more accurately follow configured limits.
+
+### Compatibility Notice
+This release extends the API by allowing custom options to be added to calls to the `Application.StartTransaction` method and the `WrapHandle` and `WrapHandleFunc` functions. They are implemented as variadic functions such that the new option parameters are optional (i.e., zero or more options may be added to the end of the function calls) to be backward-compatible with pre-3.18.0 usage of those functions.
+This prevents the changes from breaking existing code for typical usage of the agent. However, it does mean those functions' call signatures have changed:
+ * `StartTransaction(string)` -> `StartTransaction(string, ...TraceOption)`
+ * `WrapHandle(*Application, string, http.Handler)` -> `WrapHandle(*Application, string, http.Handler, ...TraceOption)`
+ * `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request))` -> `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request), ...TraceOption)`
+
+If, for example, you created your own custom interface type which includes the `StartTransaction` method or something that depends on these functions' exact call semantics, that code will need to be updated accordingly before using version 3.18.0 of the Go Agent.
 
 ### Support Statement
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
