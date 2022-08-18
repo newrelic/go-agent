@@ -372,13 +372,20 @@ type Config struct {
 		// pathname "myproject/src/foo.go". If this value is empty, the full path
 		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
 		PathPrefix string
-		// IgnoredPrefix specifies the initial pattern to look for in fully-qualified
+		// IgnoredPrefix holds a single module path prefix to ignore when searching
+		// to find the calling function to be reported.
+		//
+		// Deprecated: new code should use IgnoredPrefixes instead (or better yet,
+		// use the ConfigCodeLevelMetricsIgnoredPrefix option, which accepts any number
+		// of string parameters for backwards compatibility).
+		IgnoredPrefix string
+		// IgnoredPrefixes specifies a slice of initial patterns to look for in fully-qualified
 		// function names to determine which functions to ignore while searching up
 		// through the call stack to find the application function to associate
 		// with telemetry data. The agent will look for the innermost caller whose name
-		// does not begin with this prefix. If empty, it will ignore functions whose
+		// does not begin with one of these prefixes. If empty, it will ignore functions whose
 		// names look like they are internal to the agent itself.
-		IgnoredPrefix string
+		IgnoredPrefixes []string
 	}
 }
 
@@ -390,8 +397,10 @@ type Config struct {
 type CodeLevelMetricsScope uint32
 
 // These constants specify the types of telemetry data to which we will
-// attach code level metric data. These may be ORed together to give
-// the desired combination (e.g., SpanCLM | TransactionCLM). AllCLM
+// attach code level metric data. Currently TransactionCLM is defined.
+// If and when other types of telemetry data are added for Code-Level
+// Metrics collection, more constants will be added here as well.
+// AllCLM
 // means to include code level metrics everywhere currently supported.
 //
 // A scope of 0 means "all types" as a convenience so that any zero-value
