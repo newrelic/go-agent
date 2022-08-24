@@ -365,12 +365,26 @@ type Config struct {
 		// data. This allows the agent to spend resources on discovering the source
 		// code context data only where actually needed.
 		Scope CodeLevelMetricsScope
+		// PathPrefixes specifies a slice of filename patterns that describe the start of
+		// the project area. Any text before any of these patterns is ignored. Thus, if
+		// PathPrefixes is set to ["myproject/src", "otherproject/src"], then a function located in a file
+		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+		// pathname "myproject/src/foo.go". If this value is nil, the full path
+		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		// The first string in the slice which is found in a file pathname will be the one
+		// used to truncate that filename; if none of the strings in PathPrefixes are found
+		// anywhere in a file's pathname, the full path will be reported.
+		PathPrefixes []string
 		// PathPrefix specifies the filename pattern that describes the start of
 		// the project area. Any text before this pattern is ignored. Thus, if
 		// PathPrefix is set to "myproject/src", then a function located in a file
 		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
 		// pathname "myproject/src/foo.go". If this value is empty, the full path
 		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		//
+		// Deprecated: new code should use PathPrefixes instead (or better yet,
+		// use the ConfigCodeLevelMetricsPathPrefix option, which accepts any number
+		// of string parameters for backwards compatibility).
 		PathPrefix string
 		// IgnoredPrefix holds a single module path prefix to ignore when searching
 		// to find the calling function to be reported.
@@ -397,18 +411,22 @@ type Config struct {
 type CodeLevelMetricsScope uint32
 
 // These constants specify the types of telemetry data to which we will
-// attach code level metric data. Currently TransactionCLM is defined.
-// If and when other types of telemetry data are added for Code-Level
-// Metrics collection, more constants will be added here as well.
-// AllCLM
-// means to include code level metrics everywhere currently supported.
+// attach code level metric data.
 //
-// A scope of 0 means "all types" as a convenience so that any zero-value
-// CodeLevelMetricsScope variable provides the default expected behavior
-// rather than turning off all code level metrics.
+// Currently, this includes
+//    TransactionCLM            any kind of transaction
+//    AllCLM                    all kinds of telemetry data for which CLM is implemented (the default)
+//
+// The zero value of CodeLevelMetricsScope means "all types" as a convenience so that
+// new variables of this type provide the default expected behavior
+// rather than, say, turning off all code level metrics as a 0 bit value would otherwise imply.
+// Otherwise the numeric values of these constants are not to be relied
+// upon and are subject to change. Only use the named constant identifiers in
+// your code. We do not recommend saving the raw numeric value of these constants
+// to use later.
 const (
-	TransactionCLM CodeLevelMetricsScope = 1 << iota // include CLM data in transactions
-	AllCLM         CodeLevelMetricsScope = 0         // all supported types
+	TransactionCLM CodeLevelMetricsScope = 1 << iota
+	AllCLM         CodeLevelMetricsScope = 0
 )
 
 func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
@@ -419,6 +437,7 @@ func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, boo
 	case "transaction", "transactions", "txn":
 		return TransactionCLM, true
 	}
+
 	return 0, false
 }
 
@@ -548,7 +567,6 @@ func defaultConfig() Config {
 	// Code Level Metrics
 	c.CodeLevelMetrics.Enabled = false
 	c.CodeLevelMetrics.Scope = AllCLM
-	c.CodeLevelMetrics.PathPrefix = ""
 	return c
 }
 

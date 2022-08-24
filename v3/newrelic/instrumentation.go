@@ -36,16 +36,32 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	if app == nil {
 		return pattern, handler
 	}
+
 	// add the wrapped function to the trace options as the source code reference point
-	// (to the beginning of the option list, so that the user can override this)
-	// If we came here via WrapHandleFunc, that means it will have pushed the handler's
-	// code location if possible, so the options will be (this code location), (handler function location),
-	// (other options); that results in having a backup in case either failed, with preference
-	// given to the handler's function location. In any event, the user may override all of that
-	// with a location they choose.
+	// (but only if we know we're collecting CLM for this transaction and the user didn't already
+	// specify a different code location explicitly).
+
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		options = append([]TraceOption{WithThisCodeLocation()}, options...)
-		txn := app.StartTransaction(r.Method+" "+pattern, options...)
+		var tOptions *traceOptSet
+		var txnOptionList []TraceOption
+
+		if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
+			tOptions = resolveCLMTraceOptions(options)
+			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+				// we are for sure collecting CLM here, so go to the trouble of collecting this code location.
+				if tOptions.LocationOverride == nil {
+					WithThisCodeLocation()(tOptions)
+				}
+			}
+		}
+		if tOptions == nil {
+			// we weren't able to curate the options above, so pass whatever we were given downstream
+			txnOptionList = options
+		} else {
+			txnOptionList = append(txnOptionList, withPreparedOptions(tOptions))
+		}
+
+		txn := app.StartTransaction(r.Method+" "+pattern, txnOptionList...)
 		defer txn.End()
 
 		w = txn.SetWebResponse(w)
@@ -87,7 +103,8 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request), options ...TraceOption) (string, func(http.ResponseWriter, *http.Request)) {
 	// add the wrapped function to the trace options as the source code reference point
 	// (to the beginning of the option list, so that the user can override this)
-	options = append([]TraceOption{WithFunctionLocation(handler)}, options...)
+
+	options = append(options, WithDefaultFunctionLocation(handler))
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler), options...)
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }

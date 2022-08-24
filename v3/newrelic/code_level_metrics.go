@@ -36,7 +36,9 @@ type CodeLocation struct {
 type traceOptSet struct {
 	LocationOverride *CodeLocation
 	SuppressCLM      bool
+	DemandCLM        bool
 	IgnoredPrefixes  []string
+	PathPrefixes     []string
 }
 
 //
@@ -71,9 +73,23 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 // the outermost one will be used anyway, since we didn't find
 // anything better on the way to the bottom of the stack.
 //
+// If no prefix strings are passed here, the configured defaults will be used.
+//
 func WithIgnoredPrefix(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.IgnoredPrefixes = prefix
+	}
+}
+
+//
+// WithPathPrefix overrides the list of source code path prefixes
+// used to trim source file pathnames, providing a new set of one
+// or more path prefixes to use for this trace only.
+// If no strings are given, the configured defaults will be used.
+//
+func WithPathPrefix(prefix ...string) TraceOption {
+	return func(o *traceOptSet) {
+		o.PathPrefixes = prefix
 	}
 }
 
@@ -85,6 +101,19 @@ func WithIgnoredPrefix(prefix ...string) TraceOption {
 func WithoutCodeLevelMetrics() TraceOption {
 	return func(o *traceOptSet) {
 		o.SuppressCLM = true
+	}
+}
+
+//
+// WithCodeLevelMetrics includes this trace in code level metrics even if
+// it would otherwise not be (for example, if it would be out of the configured
+// scope setting). This will never cause code level metrics to be reported if
+// CLM were explicitly disabled (e.g. by CLM being globally off or WithoutCodeLevelMetrics
+// being present in the options for this trace).
+//
+func WithCodeLevelMetrics() TraceOption {
+	return func(o *traceOptSet) {
+		o.DemandCLM = true
 	}
 }
 
@@ -143,6 +172,46 @@ func WithFunctionLocation(function interface{}) TraceOption {
 }
 
 //
+// WithDefaultFunctionLocation is like WithFunctionLocation but will only
+// evaluate the location of the function if nothing that came before it
+// set a code location first. This is useful, for example, if you want to
+// provide a default code location value to be used but not pay the overhead
+// of resolving that location until it's clear that you will need to. This
+// should appear at the end of a TraceOption list (or at least before any
+// other options that want to specify the code location).
+//
+func WithDefaultFunctionLocation(function interface{}) TraceOption {
+	return func(o *traceOptSet) {
+		if o.LocationOverride == nil {
+			WithFunctionLocation(function)(o)
+		}
+	}
+}
+
+//
+// withPreparedOptions copies the option settings from a structure
+// which was already set up (probably by executing a set of TraceOption
+// functions already).
+//
+func withPreparedOptions(newOptions *traceOptSet) TraceOption {
+	return func(o *traceOptSet) {
+		if newOptions != nil {
+			if newOptions.LocationOverride != nil {
+				o.LocationOverride = newOptions.LocationOverride
+			}
+			o.SuppressCLM = newOptions.SuppressCLM
+			o.DemandCLM = newOptions.DemandCLM
+			if newOptions.IgnoredPrefixes != nil {
+				o.IgnoredPrefixes = newOptions.IgnoredPrefixes
+			}
+			if newOptions.PathPrefixes != nil {
+				o.PathPrefixes = newOptions.PathPrefixes
+			}
+		}
+	}
+}
+
+//
 // ThisCodeLocation returns a CodeLocation value referring to
 // the place in your code that it was invoked.
 //
@@ -176,6 +245,23 @@ func removeCodeLevelMetrics(remAttr func(string)) {
 	remAttr(AttributeCodeNamespace)
 	remAttr(AttributeCodeFilepath)
 	remAttr(AttributeCodeFunction)
+}
+
+//
+// Evaluate a set of TraceOptions, returning a pointer to a new traceOptSet struct
+// initialized from those options. To avoid any unnecessary performance penalties,
+// if we encounter an option that suppresses CLM collection, we stop without evaluating
+// anything further.
+//
+func resolveCLMTraceOptions(options []TraceOption) *traceOptSet {
+	optSet := traceOptSet{}
+	for _, o := range options {
+		o(&optSet)
+		if optSet.SuppressCLM {
+			break
+		}
+	}
+	return &optSet
 }
 
 func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string, string, interface{})) {
@@ -223,9 +309,21 @@ func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string,
 		}
 	}
 
-	if run.Config.CodeLevelMetrics.PathPrefix != "" {
-		if pi := strings.Index(location.FilePath, run.Config.CodeLevelMetrics.PathPrefix); pi > 0 {
-			location.FilePath = location.FilePath[pi:]
+	if tOpts.PathPrefixes == nil {
+		tOpts.PathPrefixes = run.Config.CodeLevelMetrics.PathPrefixes
+		// bring in a value still lingering in the deprecated PathPrefix field if the user put one there on their own
+		if run.Config.CodeLevelMetrics.PathPrefix != "" {
+			tOpts.PathPrefixes = append(tOpts.PathPrefixes, run.Config.CodeLevelMetrics.PathPrefix)
+		}
+	}
+
+	// scan for any requested suppression of leading parts of file pathnames
+	if tOpts.PathPrefixes != nil {
+		for _, prefix := range tOpts.PathPrefixes {
+			if pi := strings.Index(location.FilePath, prefix); pi >= 0 {
+				location.FilePath = location.FilePath[pi:]
+				break
+			}
 		}
 	}
 
