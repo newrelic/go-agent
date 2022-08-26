@@ -89,9 +89,16 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 // manually added to the transaction trace generated, in the same fashion as StartTransaction
 // does. For example, this can be used to control code level metrics generated for this transaction.
 func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request), options ...TraceOption) (string, func(http.ResponseWriter, *http.Request)) {
-	options = append([]TraceOption{WithFunctionLocation(handler)}, options...)
+	if app == nil {
+		return pattern, handler
+	}
+	if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
+		// add the wrapped function to the trace options as the source code reference point
+		// (to the beginning of the option list, so that the user can override this)
+		options = append([]TraceOption{WithFunctionLocation(handler)}, options...)
+	}
 	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler), options...)
-	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
+	return p, h.ServeHTTP
 }
 
 // NewRoundTripper creates an http.RoundTripper to instrument external requests
