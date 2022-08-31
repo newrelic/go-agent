@@ -31,7 +31,7 @@ func BenchmarkEnrichLog(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		a.EnrichLog("", buf.Bytes())
+		a.EnrichLog(newrelic.LogData{}, buf.Bytes())
 	}
 }
 
@@ -57,7 +57,7 @@ func TestLogSpacingAndNewlines(t *testing.T) {
 	}
 
 	for _, line := range lines {
-		buf.Write(a.EnrichLog("", []byte(line)))
+		buf.Write(a.EnrichLog(newrelic.LogData{}, []byte(line)))
 		log := buf.String()
 		// verify there is a single newline at the end of the log line
 		if strings.Count(log, "\n") != 1 {
@@ -97,7 +97,7 @@ func TestBackgroundLog(t *testing.T) {
 	a := New(buf, app.Application)
 	a.DebugLogging(true)
 
-	a.Write(a.EnrichLog("", []byte(logMessageWithNewline)))
+	a.Write(a.EnrichLog(newrelic.LogData{}, []byte(logMessageWithNewline)))
 	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
@@ -114,7 +114,7 @@ func TestTransactionLog(t *testing.T) {
 	txn := app.StartTransaction("test transaction")
 	b := a.WithTransaction(txn)
 
-	b.Write(b.EnrichLog("", []byte(logMessageWithNewline)))
+	b.Write(b.EnrichLog(newrelic.LogData{}, []byte(logMessageWithNewline)))
 	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
@@ -135,7 +135,7 @@ func TestContextLog(t *testing.T) {
 	ctx := newrelic.NewContext(context.Background(), txn)
 	b := a.WithContext(ctx)
 
-	b.Write(b.EnrichLog("", []byte(logMessageWithNewline)))
+	b.Write(b.EnrichLog(newrelic.LogData{}, []byte(logMessageWithNewline)))
 	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
@@ -155,7 +155,7 @@ func TestNilContextLog(t *testing.T) {
 	b := a.WithContext(nil)
 
 	// verify that when context is nil, log is enriched with application data
-	b.Write(b.EnrichLog("", []byte(logMessageWithNewline)))
+	b.Write(b.EnrichLog(newrelic.LogData{}, []byte(logMessageWithNewline)))
 	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
@@ -166,7 +166,7 @@ func TestNilContextLog(t *testing.T) {
 
 	// verify that when context is empty, log is enriched with application data
 	c := a.WithContext(context.Background())
-	c.Write(c.EnrichLog("", []byte(logMessageWithNewline)))
+	c.Write(c.EnrichLog(newrelic.LogData{}, []byte(logMessageWithNewline)))
 	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
