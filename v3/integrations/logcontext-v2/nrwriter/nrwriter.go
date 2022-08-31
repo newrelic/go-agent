@@ -56,22 +56,16 @@ func (b *LogWriter) WithContext(ctx context.Context) LogWriter {
 // EnrichLog attempts to enrich a log with New Relic linking metadata. If it fails,
 // it will return the original log line unless debug=true, otherwise it will print
 // an error on a following line.
-func (b *LogWriter) EnrichLog(logLevel string, p []byte) []byte {
+func (b *LogWriter) EnrichLog(data newrelic.LogData, p []byte) []byte {
 	logLine := bytes.TrimRight(p, "\n")
 	buf := bytes.NewBuffer(logLine)
 
 	var enrichErr error
 	if b.txn != nil {
-		b.txn.RecordLog(newrelic.LogData{
-			Severity: logLevel,
-			Message:  buf.String(),
-		})
+		b.txn.RecordLog(data)
 		enrichErr = newrelic.EnrichLog(buf, newrelic.FromTxn(b.txn))
 	} else {
-		b.app.RecordLog(newrelic.LogData{
-			Severity: logLevel,
-			Message:  buf.String(),
-		})
+		b.app.RecordLog(data)
 		enrichErr = newrelic.EnrichLog(buf, newrelic.FromApp(b.app))
 	}
 

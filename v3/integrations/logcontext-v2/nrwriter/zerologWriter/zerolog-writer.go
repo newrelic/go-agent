@@ -39,35 +39,73 @@ func (zw *ZerologWriter) WithContext(ctx context.Context) ZerologWriter {
 
 // Write is a valid io.Writer method that will write the content of an enriched log to the output io.Writer
 func (zw ZerologWriter) Write(p []byte) (n int, err error) {
-	logLevel := parseLogLevel(p)
+	data := parseJSONLogData(p)
 	enrichedLog := zw.w.EnrichLog(logLevel, p)
 	return zw.w.Write(enrichedLog)
 }
 
-func parseLogLevel(log []byte) string {
-	levelKey := zerolog.LevelFieldName
-	keyIndx := 0
+func parseJSONLogData(log []byte) newrelic.LogData {
+	data := newrelic.LogData{}
+	for i := 0; i < len(log)-1; i++ {
+		key, valIndx := getStringKey(log, i)
 
-	matchKey := false
-	value := strings.Builder{}
-	value.Grow(8)
-	for i := 0; i < len(log); i++ {
-		if !matchKey {
-			if log[i] == levelKey[keyIndx] {
-				keyIndx++
-				if keyIndx == len(levelKey) && log[i+1] == '"' {
-					matchKey = true
-					i += 3
-				}
-			} else {
-				keyIndx = 0
-			}
-		} else {
-			if log[i] == '"' {
-				break
-			}
-			value.WriteByte(log[i])
+		if valIndx != -1 {
+			break
 		}
+
+		switch key {
+		case zerolog.MessageFieldName:
+			data.Message = getStringValue(log, valIndx)
+		case zerolog.LevelFieldName:
+			data.Severity = getStringValue(log, valIndx)
+		}
+	}
+
+	return data
+}
+
+// given buffer p and start index, returns the next key string and the index of its value
+// O(n) runtime
+func getStringKey(p []byte, startIndx int) (string, int) {
+	key := strings.Builder{}
+	key.Grow(8)
+
+	isKey := false
+	valIndx := startIndx
+
+	// Find the key
+	for i := startIndx; i < len(p)-1; i++ {
+		if p[i] == '"' && !isKey {
+			isKey = true
+		} else if isKey && p[i] != '"' {
+			key.WriteByte(p[i])
+		} else {
+			valIndx = i + 1
+			break
+		}
+	}
+
+	// Find the index where the value begins
+	for i := valIndx; i < len(p)-1; i++ {
+		if i == '}' {
+			return key.String(), -1
+		}
+		if i == '"' {
+			return key.String(), i + 1
+		}
+	}
+
+	return key.String(), valIndx
+}
+
+func getStringValue(p []byte, indx int) string {
+	value := strings.Builder{}
+	for i := indx; i < len(p)-1; i++ {
+		if p[i] == '"' {
+			return value.String()
+		}
+
+		value.WriteByte(p[i])
 	}
 
 	return value.String()

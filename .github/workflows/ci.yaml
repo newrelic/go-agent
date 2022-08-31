@@ -121,8 +121,10 @@ jobs:
           - go-version: 1.17.x
             dirs: v3/integrations/logcontext-v2/nrwriter
           - go-version: 1.17.x
-            dirs: v3/integrations/logcontext-v2/nrwriter/zerolog-writer
+            dirs: v3/integrations/logcontext-v2/nrwriter/zerologWriter
             extratesting: go get -u github.com/rs/zerolog@master
+          - go-version: 1.17.x
+            dirs: v3/integrations/logcontext-v2/nrwriter/logWriter
           - go-version: 1.15.x
             dirs: v3/integrations/nrawssdk-v1
             extratesting: go get -u github.com/aws/aws-sdk-go@main
