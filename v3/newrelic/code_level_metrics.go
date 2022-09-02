@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 //
@@ -33,6 +34,22 @@ type CodeLocation struct {
 	FilePath string
 }
 
+//
+// CachedCodeLocation provides storage for the code location computed such that
+// the discovery of the code location is only done once; thereafter the cached
+// value is available for use.
+//
+// This type includes methods with the same names as some of the basic code location
+// reporting functions and TraceOptions. However, when called as methods of a CachedCodeLocation value
+// instead of a stand-alone function, the operation will make use of the cache to
+// prevent computing the same source location more than once.
+//
+type CachedCodeLocation struct {
+	Location *CodeLocation
+	Err      error
+	once     sync.Once
+}
+
 type traceOptSet struct {
 	LocationOverride *CodeLocation
 	SuppressCLM      bool
@@ -43,6 +60,9 @@ type traceOptSet struct {
 
 //
 // TraceOption values provide optional parameters to transactions.
+//
+// (Currently it's only implemented for transactions, but the name TraceOption is
+// intentionally generic in case we apply these to other kinds of traces in the future.)
 //
 type TraceOption func(*traceOptSet)
 
@@ -108,8 +128,8 @@ func WithoutCodeLevelMetrics() TraceOption {
 // WithCodeLevelMetrics includes this trace in code level metrics even if
 // it would otherwise not be (for example, if it would be out of the configured
 // scope setting). This will never cause code level metrics to be reported if
-// CLM were explicitly disabled (e.g. by CLM being globally off or WithoutCodeLevelMetrics
-// being present in the options for this trace).
+// CLM were explicitly disabled (e.g. by CLM being globally off or if WithoutCodeLevelMetrics
+// is present in the options for this trace).
 //
 func WithCodeLevelMetrics() TraceOption {
 	return func(o *traceOptSet) {
@@ -127,6 +147,16 @@ func WithCodeLevelMetrics() TraceOption {
 //
 func WithThisCodeLocation() TraceOption {
 	return WithCodeLocation(ThisCodeLocation(1))
+}
+
+//
+// WithThisCodeLocation is equivalent to the standalone WithThisCodeLocation
+// TraceOption, but uses the cached value in its receiver to ensure that the
+// overhead of computing the code location is only performed the first time
+// it is invoked for each instance of the receiver variable.
+//
+func (c *CachedCodeLocation) WithThisCodeLocation() TraceOption {
+	return WithCodeLocation(c.ThisCodeLocation(1))
 }
 
 //
@@ -157,6 +187,27 @@ func FunctionLocation(function interface{}) (*CodeLocation, error) {
 }
 
 //
+// FunctionLocation works identically to the stand-alone FunctionLocation function,
+// in that it determines the souce code location of the named function, returning
+// a pointer to a CodeLocation value which represents that location, or an error value
+// if it was unable to find a valid code location for the provided value. However,
+// unlike the stand-alone function, this stores the result in the CachedCodeLocation receiver;
+// thus, subsequent invocations of FunctionLocation for the same receiver will result in
+// immediately repeating the value (or error, if applicable) obtained from the first
+// invocation.
+//
+// This is thread-safe and is intended to allow the same code to run in multiple
+// concurrent goroutines without needlessly recalculating the location of the
+// function value.
+//
+func (c *CachedCodeLocation) FunctionLocation(function interface{}) (*CodeLocation, error) {
+	c.once.Do(func() {
+		c.Location, c.Err = FunctionLocation(function)
+	})
+	return c.Location, c.Err
+}
+
+//
 // WithFunctionLocation is like WithThisCodeLocation, but uses the
 // function value passed as the location to report. Unlike FunctionLocation,
 // this does not report errors explicitly. If it is unable to use the
@@ -165,6 +216,25 @@ func FunctionLocation(function interface{}) (*CodeLocation, error) {
 func WithFunctionLocation(function interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		loc, err := FunctionLocation(function)
+		if err == nil {
+			o.LocationOverride = loc
+		}
+	}
+}
+
+//
+// WithFunctionLocation works like the standalone function WithFunctionLocation,
+// but it stores a copy of the function's location in its receiver the first time
+// it is used. Subsequently that cached value will be used instead of computing
+// the source code location every time.
+//
+// This is thread-safe and is intended to allow the same code to run in multiple
+// concurrent goroutines without needlessly recalculating the location of the
+// function value.
+//
+func (c *CachedCodeLocation) WithFunctionLocation(function interface{}) TraceOption {
+	return func(o *traceOptSet) {
+		loc, err := c.FunctionLocation(function)
 		if err == nil {
 			o.LocationOverride = loc
 		}
@@ -184,6 +254,39 @@ func WithDefaultFunctionLocation(function interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		if o.LocationOverride == nil {
 			WithFunctionLocation(function)(o)
+		}
+	}
+}
+
+//
+// WithDefaultFunctionLocation works like the standalone WithDefaultFunctionLocation function,
+// except that it takes a CachedCodeLocation receiver which will
+// be used to cache the source code location of the function value.
+//
+// Thus, this will arrange for the given function to be reported in Code Level Metrics
+// only if no other option that came before it gave an explicit location to use instead,
+// but will also cache that answer in the provided CachedCodeLocation receiver variable, so that
+// if called again with the same CachedCodeLocation variable, it will avoid the overhead
+// of finding the function's location again, using instead the cached answer.
+//
+// This is thread-safe and is intended to allow the same code to run in multiple
+// concurrent goroutines without needlessly recalculating the location of the
+// function value.
+//
+// If an error is encountered when trying to evaluate the source code location of
+// the provided function value, WithCachedDefaultFunctionLocation will not set anything
+// for the reported code location, and the error will be available as a non-nil value
+// in the Err member of the CachedCodeLocation variable.
+// In this case, no additional attempts are guaranteed to be made on subsequent executions
+// to determine the code location.
+//
+func (c *CachedCodeLocation) WithDefaultFunctionLocation(function interface{}) TraceOption {
+	return func(o *traceOptSet) {
+		if o.LocationOverride == nil {
+			loc, err := c.FunctionLocation(function)
+			if err == nil {
+				WithCodeLocation(loc)(o)
+			}
 		}
 	}
 }
@@ -238,6 +341,34 @@ func ThisCodeLocation(skipLevels ...int) *CodeLocation {
 		loc.FilePath = frame.File
 	}
 	return &loc
+}
+
+//
+// ThisCodeLocation works identically to the stand-alone ThisCodeLocation function,
+// in that it determines the souce code location from whence it was called, returning
+// a pointer to a CodeLocation value which represents that location. However,
+// unlike the stand-alone function, this stores the result in the CachedCodeLocation receiver;
+// thus, subsequent invocations of ThisCodeLocation for the same receiver will result in
+// immediately repeating the value obtained from the first
+// invocation.
+//
+// This is thread-safe and is intended to allow the same code to run in multiple
+// concurrent goroutines without needlessly recalculating the location of the
+// caller.
+//
+func (c *CachedCodeLocation) ThisCodeLocation(skiplevels ...int) *CodeLocation {
+	var skip int
+
+	if len(skiplevels) > 0 {
+		skip = skiplevels[0]
+	}
+
+	c.once.Do(func() {
+		// add 4 skip levels to compensate for the internal calls used to get here.
+		c.Location = ThisCodeLocation(skip + 4)
+		c.Err = nil
+	})
+	return c.Location
 }
 
 func removeCodeLevelMetrics(remAttr func(string)) {

@@ -300,13 +300,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 
 		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_SCOPE"); env != "" {
-			for _, label := range strings.Split(env, ",") {
-				bit, ok := codeLevelMetricsScopeLabelToValue(label)
-				if ok {
-					cfg.CodeLevelMetrics.Scope |= bit
-				} else {
-					cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value \"%s\" in \"%s\"", label, env)
-				}
+			var ok bool
+			cfg.CodeLevelMetrics.Scope, ok = CodeLevelMetricsScopeLabelListToValue(env)
+			if !ok {
+				cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value")
 			}
 		}
 

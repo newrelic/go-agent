@@ -429,16 +429,84 @@ const (
 	AllCLM         CodeLevelMetricsScope = 0
 )
 
-func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
-	switch label {
-	case "all":
-		return AllCLM, true
+//
+// CodeLevelMetricsScopeLabelToValue accepts a number of string values representing
+// the possible scope restrictions available for the agent, returning the
+// CodeLevelMetricsScope value which represents the combination of all of the given
+// labels. This value is suitable to be presented to ConfigCodeLevelMetricsScope.
+//
+// It also returns a boolean flag; if true, it was able to understand all of the
+// provided labels; otherwise, one or more of the values were not recognized and
+// thus the returned CodeLevelMetricsScope value may be incomplete (although it
+// will represent any valid label strings passed, if any).
+//
+// Currently, this function recognizes the following labels:
+//   for AllCLM: "all" (if this value appears anywhere in the list of strings, AllCLM will be returned)
+//   for TransactionCLM: "transaction", "transactions", "txn"
+//
+func CodeLevelMetricsScopeLabelToValue(labels ...string) (CodeLevelMetricsScope, bool) {
+	var scope CodeLevelMetricsScope
+	ok := true
 
-	case "transaction", "transactions", "txn":
-		return TransactionCLM, true
+	for _, label := range labels {
+		switch label {
+		case "":
+
+		case "all":
+			return AllCLM, true
+
+		case "transaction", "transactions", "txn":
+			scope |= TransactionCLM
+
+		default:
+			ok = false
+		}
+	}
+	return scope, ok
+}
+
+//
+// UnmarshalJSON allows for a CodeLevelMetricsScope value to be read from a JSON
+// string whose value is a comma-separated list of scope labels.
+//
+func (s *CodeLevelMetricsScope) UnmarshalJSON(b []byte) error {
+	var sv string
+	var ok bool
+
+	if err := json.Unmarshal(b, &sv); err != nil {
+		return err
 	}
 
-	return 0, false
+	if *s, ok = CodeLevelMetricsScopeLabelListToValue(sv); !ok {
+		return fmt.Errorf("invalid code level metrics scope label value")
+	}
+
+	return nil
+}
+
+//
+// MarshalJSON allows for a CodeLevelMetrics value to be encoded into JSON string.
+//
+func (s CodeLevelMetricsScope) MarshalJSON() ([]byte, error) {
+	if s == 0 || s == AllCLM {
+		return json.Marshal("all")
+	}
+
+	if (s & TransactionCLM) != 0 {
+		return json.Marshal("transaction")
+	}
+
+	return nil, fmt.Errorf("unrecognized bit pattern in CodeLevelMetricsScope value")
+}
+
+//
+// CodeLevelMetricsScopeLabelListToValue is a convenience function which
+// is like CodeLevelMetricsScopeLabeltoValue except that it takes a single
+// string which contains comma-separated values instead of an already-broken-out
+// set of individual label strings.
+//
+func CodeLevelMetricsScopeLabelListToValue(labels string) (CodeLevelMetricsScope, bool) {
+	return CodeLevelMetricsScopeLabelToValue(strings.Split(labels, ",")...)
 }
 
 // ApplicationLogging contains settings which control the capture and sending
