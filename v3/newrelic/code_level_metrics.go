@@ -247,7 +247,7 @@ func (c *CachedCodeLocation) WithFunctionLocation(function interface{}) TraceOpt
 // set a code location first. This is useful, for example, if you want to
 // provide a default code location value to be used but not pay the overhead
 // of resolving that location until it's clear that you will need to. This
-// should appear at the end of a TraceOption list (or at least before any
+// should appear at the end of a TraceOption list (or at least after any
 // other options that want to specify the code location).
 //
 func WithDefaultFunctionLocation(function interface{}) TraceOption {
