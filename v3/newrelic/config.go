@@ -466,18 +466,13 @@ func CodeLevelMetricsScopeLabelToValue(labels ...string) (CodeLevelMetricsScope,
 }
 
 //
-// UnmarshalJSON allows for a CodeLevelMetricsScope value to be read from a JSON
-// string whose value is a comma-separated list of scope labels.
+// UnmarshalText allows for a CodeLevelMetricsScope value to be read from a JSON
+// string (or other text encodings) whose value is a comma-separated list of scope labels.
 //
-func (s *CodeLevelMetricsScope) UnmarshalJSON(b []byte) error {
-	var sv string
+func (s *CodeLevelMetricsScope) UnmarshalText(b []byte) error {
 	var ok bool
 
-	if err := json.Unmarshal(b, &sv); err != nil {
-		return err
-	}
-
-	if *s, ok = CodeLevelMetricsScopeLabelListToValue(sv); !ok {
+	if *s, ok = CodeLevelMetricsScopeLabelListToValue(string(b)); !ok {
 		return fmt.Errorf("invalid code level metrics scope label value")
 	}
 
@@ -485,15 +480,16 @@ func (s *CodeLevelMetricsScope) UnmarshalJSON(b []byte) error {
 }
 
 //
-// MarshalJSON allows for a CodeLevelMetrics value to be encoded into JSON string.
+// MarshalText allows for a CodeLevelMetrics value to be encoded into JSON strings and other
+// text encodings.
 //
-func (s CodeLevelMetricsScope) MarshalJSON() ([]byte, error) {
+func (s CodeLevelMetricsScope) MarshalText() ([]byte, error) {
 	if s == 0 || s == AllCLM {
-		return json.Marshal("all")
+		return []byte("all"), nil
 	}
 
 	if (s & TransactionCLM) != 0 {
-		return json.Marshal("transaction")
+		return []byte("transaction"), nil
 	}
 
 	return nil, fmt.Errorf("unrecognized bit pattern in CodeLevelMetricsScope value")
