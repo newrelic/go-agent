@@ -40,8 +40,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	// add the wrapped function to the trace options as the source code reference point
 	// (but only if we know we're collecting CLM for this transaction and the user didn't already
 	// specify a different code location explicitly).
-	var cache CachedCodeLocation
-	var cache2 CachedCodeLocation
+	cache := NewCachedCodeLocation()
 
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tOptions *traceOptSet
@@ -52,11 +51,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
 				// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
 				if tOptions.LocationOverride == nil {
-					if loc, err := cache.FunctionLocation(handler); err == nil {
-						// if handler is itself a function, use that
-						WithCodeLocation(loc)(tOptions)
-					} else if loc, err := cache2.FunctionLocation(handler.ServeHTTP); err == nil {
-						// otherwise, use the ServeHTTP method it has
+					if loc, err := cache.FunctionLocation(handler, handler.ServeHTTP); err == nil {
 						WithCodeLocation(loc)(tOptions)
 					}
 				}

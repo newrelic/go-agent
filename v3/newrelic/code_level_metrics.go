@@ -44,10 +44,36 @@ type CodeLocation struct {
 // instead of a stand-alone function, the operation will make use of the cache to
 // prevent computing the same source location more than once.
 //
+// A usable CachedCodeLocation value must be obtained via a call to
+// NewCachedCodeLocation.
+//
 type CachedCodeLocation struct {
-	Location *CodeLocation
-	Err      error
-	once     sync.Once
+	location *CodeLocation
+	once     *sync.Once
+	err      error
+}
+
+//
+// Err returns the error condition encountered when trying to determine
+// the code location being cached, if any.
+//
+func (c CachedCodeLocation) Err() error {
+	return c.err
+}
+
+//
+// IsValid returns true if the cache value was correctly initialized
+// (as by, for example, NewCachedCodeLocation), and therefore can be
+// used to cache code location values. Otherwise it cannot be used.
+//
+func (c CachedCodeLocation) IsValid() bool {
+	return c.once != nil
+}
+
+func NewCachedCodeLocation() *CachedCodeLocation {
+	return &CachedCodeLocation{
+		once: new(sync.Once),
+	}
 }
 
 type traceOptSet struct {
@@ -165,22 +191,27 @@ func (c *CachedCodeLocation) WithThisCodeLocation() TraceOption {
 // that function if that is possible to do. It returns an error if it
 // was not possible to get a code location from the parameter passed to it.
 //
-func FunctionLocation(function interface{}) (*CodeLocation, error) {
-	if function == nil {
-		return nil, errors.New("nil function passed to FunctionLocation")
-	}
+// If multiple functions are passed, each will be attempted until one is
+// found for which we can successfully find a code location.
+//
+func FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
+	for _, function := range functions {
+		if function == nil {
+			continue
+		}
 
-	v := reflect.ValueOf(function)
-	if !v.IsValid() || v.Kind() != reflect.Func {
-		return nil, errors.New("value passed to FunctionLocation is not a function")
-	}
+		v := reflect.ValueOf(function)
+		if !v.IsValid() || v.Kind() != reflect.Func {
+			continue
+		}
 
-	if fInfo := runtime.FuncForPC(v.Pointer()); fInfo != nil {
-		var loc CodeLocation
+		if fInfo := runtime.FuncForPC(v.Pointer()); fInfo != nil {
+			var loc CodeLocation
 
-		loc.FilePath, loc.LineNo = fInfo.FileLine(fInfo.Entry())
-		loc.Function = fInfo.Name()
-		return &loc, nil
+			loc.FilePath, loc.LineNo = fInfo.FileLine(fInfo.Entry())
+			loc.Function = fInfo.Name()
+			return &loc, nil
+		}
 	}
 
 	return nil, errors.New("could not find code location for function")
@@ -200,22 +231,27 @@ func FunctionLocation(function interface{}) (*CodeLocation, error) {
 // concurrent goroutines without needlessly recalculating the location of the
 // function value.
 //
-func (c *CachedCodeLocation) FunctionLocation(function interface{}) (*CodeLocation, error) {
+func (c *CachedCodeLocation) FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
+	if !c.IsValid() {
+		// The cache is bogus so don't use it
+		return FunctionLocation(functions...)
+	}
+
 	c.once.Do(func() {
-		c.Location, c.Err = FunctionLocation(function)
+		c.location, c.err = FunctionLocation(functions...)
 	})
-	return c.Location, c.Err
+	return c.location, c.err
 }
 
 //
 // WithFunctionLocation is like WithThisCodeLocation, but uses the
-// function value passed as the location to report. Unlike FunctionLocation,
+// function value(s) passed as the location to report. Unlike FunctionLocation,
 // this does not report errors explicitly. If it is unable to use the
 // value passed to find a code location, it will do nothing.
 //
-func WithFunctionLocation(function interface{}) TraceOption {
+func WithFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
-		loc, err := FunctionLocation(function)
+		loc, err := FunctionLocation(functions...)
 		if err == nil {
 			o.LocationOverride = loc
 		}
@@ -232,9 +268,9 @@ func WithFunctionLocation(function interface{}) TraceOption {
 // concurrent goroutines without needlessly recalculating the location of the
 // function value.
 //
-func (c *CachedCodeLocation) WithFunctionLocation(function interface{}) TraceOption {
+func (c *CachedCodeLocation) WithFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
-		loc, err := c.FunctionLocation(function)
+		loc, err := c.FunctionLocation(functions...)
 		if err == nil {
 			o.LocationOverride = loc
 		}
@@ -250,10 +286,10 @@ func (c *CachedCodeLocation) WithFunctionLocation(function interface{}) TraceOpt
 // should appear at the end of a TraceOption list (or at least after any
 // other options that want to specify the code location).
 //
-func WithDefaultFunctionLocation(function interface{}) TraceOption {
+func WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		if o.LocationOverride == nil {
-			WithFunctionLocation(function)(o)
+			WithFunctionLocation(functions...)(o)
 		}
 	}
 }
@@ -280,10 +316,10 @@ func WithDefaultFunctionLocation(function interface{}) TraceOption {
 // In this case, no additional attempts are guaranteed to be made on subsequent executions
 // to determine the code location.
 //
-func (c *CachedCodeLocation) WithDefaultFunctionLocation(function interface{}) TraceOption {
+func (c *CachedCodeLocation) WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		if o.LocationOverride == nil {
-			loc, err := c.FunctionLocation(function)
+			loc, err := c.FunctionLocation(functions...)
 			if err == nil {
 				WithCodeLocation(loc)(o)
 			}
@@ -363,12 +399,18 @@ func (c *CachedCodeLocation) ThisCodeLocation(skiplevels ...int) *CodeLocation {
 		skip = skiplevels[0]
 	}
 
+	if !c.IsValid() {
+		// the cache is bogus so we can't use it.
+		return ThisCodeLocation(skip + 1)
+	}
+
 	c.once.Do(func() {
 		// add 4 skip levels to compensate for the internal calls used to get here.
-		c.Location = ThisCodeLocation(skip + 4)
-		c.Err = nil
+		// TODO: this depends too much on the implementation details of sync.once.
+		c.location = ThisCodeLocation(skip + 4)
+		c.err = nil
 	})
-	return c.Location
+	return c.location
 }
 
 func removeCodeLevelMetrics(remAttr func(string)) {

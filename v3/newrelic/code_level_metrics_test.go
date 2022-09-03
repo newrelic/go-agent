@@ -49,7 +49,7 @@ func TestClosureCLM(t *testing.T) {
 }
 
 func TestBasicCaching(t *testing.T) {
-	var c CachedCodeLocation
+	c := NewCachedCodeLocation()
 
 	l, err := c.FunctionLocation(anotherFunction)
 	if err != nil {
@@ -60,20 +60,20 @@ func TestBasicCaching(t *testing.T) {
 		t.Errorf("FunctionLocation() returned %v", l)
 	}
 
-	if c.Location == nil {
+	if c.location == nil {
 		t.Errorf("FunctionLocation cache location is nil")
-	} else if c.Location.LineNo != 13 || c.Location.Function != "github.com/newrelic/go-agent/v3/newrelic.anotherFunction" || !strings.HasSuffix(c.Location.FilePath, "/go-agent/v3/newrelic/code_level_metrics_test.go") {
-		t.Errorf("FunctionLocation cache value is wrong %v", *c.Location)
+	} else if c.location.LineNo != 13 || c.location.Function != "github.com/newrelic/go-agent/v3/newrelic.anotherFunction" || !strings.HasSuffix(c.location.FilePath, "/go-agent/v3/newrelic/code_level_metrics_test.go") {
+		t.Errorf("FunctionLocation cache value is wrong %v", *c.location)
 	}
 
-	if c.Err != nil {
-		t.Errorf("FunctionLocation cache error %v", c.Err)
+	if c.Err() != nil {
+		t.Errorf("FunctionLocation cache error %v", c.Err())
 	}
 }
 
 func TestCachedCodeLocation(t *testing.T) {
-	var c CachedCodeLocation
-	var c2 CachedCodeLocation
+	c := NewCachedCodeLocation()
+	c2 := NewCachedCodeLocation()
 
 	loc1 := c.ThisCodeLocation()
 	if loc1.LineNo != 78 || loc1.Function != "github.com/newrelic/go-agent/v3/newrelic.TestCachedCodeLocation" || !strings.HasSuffix(loc1.FilePath, "/go-agent/v3/newrelic/code_level_metrics_test.go") {

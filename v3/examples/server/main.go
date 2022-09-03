@@ -290,7 +290,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
 
 	//loc := newrelic.ThisCodeLocation()
-	var backgroundCache newrelic.CachedCodeLocation
+	backgroundCache := newrelic.NewCachedCodeLocation()
 	http.HandleFunc("/background", func(w http.ResponseWriter, req *http.Request) {
 		// Transactions started without an http.Request are classified as
 		// background transactions.
