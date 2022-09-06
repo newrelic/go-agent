@@ -57,7 +57,10 @@ type CachedCodeLocation struct {
 // Err returns the error condition encountered when trying to determine
 // the code location being cached, if any.
 //
-func (c CachedCodeLocation) Err() error {
+func (c *CachedCodeLocation) Err() error {
+	if c == nil {
+		return errors.New("nil CachedCodeLocation")
+	}
 	return c.err
 }
 
@@ -66,8 +69,8 @@ func (c CachedCodeLocation) Err() error {
 // (as by, for example, NewCachedCodeLocation), and therefore can be
 // used to cache code location values. Otherwise it cannot be used.
 //
-func (c CachedCodeLocation) IsValid() bool {
-	return c.once != nil
+func (c *CachedCodeLocation) IsValid() bool {
+	return c != nil && c.once != nil
 }
 
 func NewCachedCodeLocation() *CachedCodeLocation {
@@ -172,7 +175,7 @@ func WithCodeLevelMetrics() TraceOption {
 // for the Code Level Metrics associated with this trace.
 //
 func WithThisCodeLocation() TraceOption {
-	return WithCodeLocation(ThisCodeLocation(1))
+	return WithCodeLocation(ThisCodeLocation())
 }
 
 //
@@ -182,7 +185,7 @@ func WithThisCodeLocation() TraceOption {
 // it is invoked for each instance of the receiver variable.
 //
 func (c *CachedCodeLocation) WithThisCodeLocation() TraceOption {
-	return WithCodeLocation(c.ThisCodeLocation(1))
+	return WithCodeLocation(c.ThisCodeLocation())
 }
 
 //
@@ -232,7 +235,7 @@ func FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
 // function value.
 //
 func (c *CachedCodeLocation) FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
-	if !c.IsValid() {
+	if c == nil || !c.IsValid() {
 		// The cache is bogus so don't use it
 		return FunctionLocation(functions...)
 	}
@@ -361,21 +364,79 @@ func withPreparedOptions(newOptions *traceOptSet) TraceOption {
 // (i.e., the caller of the caller of ThisCodeLocation).
 //
 func ThisCodeLocation(skipLevels ...int) *CodeLocation {
-	var loc CodeLocation
-	skip := 2
+	skip := 0
 	if len(skipLevels) > 0 {
 		skip += skipLevels[0]
 	}
 
-	pcs := make([]uintptr, 10)
-	depth := runtime.Callers(skip, pcs)
+	return thisCodeLocationCommon(skip, false)
+}
+
+func thisCodeLocationCommon(skip int, skipInternal bool) *CodeLocation {
+	var loc CodeLocation
+	pcs := make([]uintptr, 20)
+
+	depth := runtime.Callers(1, pcs)
 	if depth > 0 {
-		frames := runtime.CallersFrames(pcs[:1])
-		frame, _ := frames.Next()
+		var frame runtime.Frame
+		var clmFile string
+		stillMore := true
+		skipCLM := true
+
+		frames := runtime.CallersFrames(pcs)
+		for stillMore {
+			frame, stillMore = frames.Next()
+			//
+			// We will begin here in our own CLM module code. We don't need to know
+			// the IgnoredPrefix value since we can see the actual filename here now.
+			// The first function in the call stack will be from here in the CLM code
+			// so remember it for later.
+			//
+			if clmFile == "" {
+				clmFile = frame.File
+			}
+			//
+			// We need to skip over all the functions internal to this CLM module
+			// to get to the function being reported.
+			//
+			if skipCLM && frame.File == clmFile {
+				continue
+			}
+			skipCLM = false
+			//
+			// Now that we're past our CLM code, we might need to skip past an intermediary
+			// set of calls that we entered (e.g., sync.(*Once)).
+			//
+			if skipInternal {
+				if frame.File != clmFile {
+					continue
+				}
+				//
+				// past that, and back in our CLM code again, which we now also
+				// need to skip as well.
+				//
+				skipInternal = false
+				skipCLM = true
+				continue
+			}
+			//
+			// This should now be into the user's code. If they asked us to skip
+			// over a number of calls, do that.
+			//
+			if skip > 0 {
+				skip--
+				continue
+			}
+			//
+			// Finally, we have arrived at the target function.
+			//
+			stillMore = false
+		}
 		loc.LineNo = frame.Line
 		loc.Function = frame.Function
 		loc.FilePath = frame.File
 	}
+
 	return &loc
 }
 
@@ -399,15 +460,13 @@ func (c *CachedCodeLocation) ThisCodeLocation(skiplevels ...int) *CodeLocation {
 		skip = skiplevels[0]
 	}
 
-	if !c.IsValid() {
+	if c == nil || !c.IsValid() {
 		// the cache is bogus so we can't use it.
-		return ThisCodeLocation(skip + 1)
+		return thisCodeLocationCommon(skip, false)
 	}
 
 	c.once.Do(func() {
-		// add 4 skip levels to compensate for the internal calls used to get here.
-		// TODO: this depends too much on the implementation details of sync.once.
-		c.location = ThisCodeLocation(skip + 4)
+		c.location = thisCodeLocationCommon(skip, true)
 		c.err = nil
 	})
 	return c.location

@@ -168,3 +168,88 @@ func TestTraceOptions2(t *testing.T) {
 		t.Errorf("ignored prefixes wrong: %v", o.PathPrefixes)
 	}
 }
+
+func TestNullCache(t *testing.T) {
+	// verify that given a zero-value cache, we still fall back to the non-cached version
+	var c CachedCodeLocation
+
+	l, err := c.FunctionLocation(anotherFunction)
+	if err != nil {
+		t.Errorf("cached FunctionLocation error %v", err)
+	}
+
+	if l.LineNo != 13 || l.Function != "github.com/newrelic/go-agent/v3/newrelic.anotherFunction" || !strings.HasSuffix(l.FilePath, "/go-agent/v3/newrelic/code_level_metrics_test.go") {
+		t.Errorf("FunctionLocation() returned %v", l)
+	}
+
+	if c.location != nil {
+		t.Errorf("FunctionLocation cache location is non-nil")
+	}
+
+	if c.Err() != nil {
+		t.Errorf("FunctionLocation cache error %v", c.Err())
+	}
+
+	l = c.ThisCodeLocation()
+	if l.LineNo != 193 || !strings.HasSuffix(l.Function, "TestNullCache") {
+		t.Errorf("ThisCodeLocation line %v func %v", l.LineNo, l.Function)
+	}
+}
+
+func skipA(t *testing.T) {
+	skipB(t)
+}
+
+func skipB(t *testing.T) {
+	skipC(t)
+}
+
+func skipC(t *testing.T) {
+	l := ThisCodeLocation()
+	if l.LineNo != 208 || !strings.HasSuffix(l.Function, "skipC") {
+		t.Errorf("skipC shows as %v %v", l.LineNo, l.Function)
+	}
+
+	l = ThisCodeLocation(1)
+	if l.LineNo != 204 || !strings.HasSuffix(l.Function, "skipB") {
+		t.Errorf("skipB shows as %v %v", l.LineNo, l.Function)
+	}
+
+	l = ThisCodeLocation(2)
+	if l.LineNo != 200 || !strings.HasSuffix(l.Function, "skipA") {
+		t.Errorf("skipA shows as %v %v", l.LineNo, l.Function)
+	}
+}
+
+func TestCLMSkip(t *testing.T) {
+	skipA(t)
+}
+
+func skipACached(t *testing.T) {
+	skipBCached(t)
+}
+
+func skipBCached(t *testing.T) {
+	skipCCached(t)
+}
+
+func skipCCached(t *testing.T) {
+	l := ThisCodeLocation()
+	if l.LineNo != 237 || !strings.HasSuffix(l.Function, "skipCCached") {
+		t.Errorf("skipC shows as %v %v", l.LineNo, l.Function)
+	}
+
+	l = ThisCodeLocation(1)
+	if l.LineNo != 233 || !strings.HasSuffix(l.Function, "skipBCached") {
+		t.Errorf("skipB shows as %v %v", l.LineNo, l.Function)
+	}
+
+	l = ThisCodeLocation(2)
+	if l.LineNo != 229 || !strings.HasSuffix(l.Function, "skipACached") {
+		t.Errorf("skipA shows as %v %v", l.LineNo, l.Function)
+	}
+}
+
+func TestCLMSkipCached(t *testing.T) {
+	skipACached(t)
+}
