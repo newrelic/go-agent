@@ -1,3 +1,39 @@
+## 3.18.2
+
+### Added
+* Added `WithDefaultFunctionLocation` trace option. This allows the caller to indicate a fall-back function to use for CLM in case no other location was found first.
+* Added caching versions of the code-level metrics functions `ThisCodeLocation` and `FunctionLocation` , and trace options `WithThisCodeLocation`  and  `WithFunctionLocation`. These improve performance by caching the result of computing the source code location, and reuse that cached result on all subsequent calls.
+* Added a `WithCodeLevelMetrics` trace option to force the collection of CLM data even if it would have been excluded as being out of the configured scope. (Note that CLM data are _never_ collected if CLM is turned off globally or if the `WithoutCodeLevelMetrics` option was specified for the same transaction.)
+* Added an exported `CodeLevelMetricsScopeLabelToValue` function to convert a list of strings describing CLM scopes in the same manner as the `NEW_RELIC_CODE_LEVEL_METRICS_SCOPE` environment variable (but as individual string parameters), returning the `CodeLevelMetricsScope` value which corresponds to that set of scopes.
+* Added a new `CodeLevelMetricsScopeLabelListToValue` function which takes a comma-separated list of scope names exactly as the `NEW_RELIC_CODE_LEVEL_METRICS_SCOPE` environment variable does, and returns the `CodeLevelMetrics` value corresponding to that set of scopes.
+* Added text marshaling and unmarshaling for the `CodeLevelMetricsScope` value, allowing the `CodeLevelMetrics` field of the configuration `struct` to be converted to or from JSON or other text-based encoding representations.
+
+### Changed
+* The `WithPathPrefix` trace option now takes any number of `string` parameters, allowing multiple path prefixes to be recognized rather than just one.
+* The `FunctionLocation` function now accepts any number of function values instead of just a single one. The first such parameter which indicates a valid function, and for which CLM data are successfully obtained, is the one which will be reported.
+* The configuration `struct` field `PathPrefix` is now deprecated with the introduction of a new `PathPrefixes` field. This allows for multiple path prefixes to be given to the agent instead of only a single one. 
+* The `NEW_RELIC_CODE_LEVEL_METRICS_SCOPE` environment variable now accepts a comma-separated list of pathnames.
+
+### Fixed
+* Improved the implementation of CLM internals to improve speed, robustness, and thread safety.
+* Corrected the implementation of the `WrapHandle` and `WrapHandleFunc` functions so that they consistently report the function being invoked by the `http` framework, and improved them to use the new caching functions and ensured they are thread-safe.
+
+This release fixes [issue #557](https://github.com/newrelic/go-agent/issues/557).
+
+### Compatibility Notice
+As of release 3.18.0, the API was extended by allowing custom options to be added to calls to the `Application.StartTransaction` method and the `WrapHandle`  and `WrapHandleFunc` functions. They are implemented as variadic functions such that the new option parameters are optional (i.e., zero or more options may be added to the end of the function calls) to be backward-compatible with pre-3.18.0 usage of those functions. This prevents the changes from breaking existing code for typical usage of the agent. However, it does mean those functions' call signatures have changed:
+ * `StartTransaction(string)` -> `StartTransaction(string, ...TraceOption)`
+ *  `WrapHandle(*Application, string, http.Handler)` -> `WrapHandle(*Application, string, http.Handler, ...TraceOption)`
+ *  `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request))`    -> `WrapHandleFunc(*Application, string, func(http.ResponseWriter, *http.Request), ...TraceOption)`
+   
+If, for example, you created your own custom interface type which includes the `StartTransaction` method or something that depends on these functions' exact  call semantics, that code will need to be updated accordingly before using version 3.18.0 (or later) of the Go Agent.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
+
 ## 3.18.1
 ### Added
 * Extended the `IgnoredPrefix` configuration value for Code-Level Metrics so that multiple such prefixes may be given instead of a single one. This deprecates the `IgnoredPrefix` configuration field of `Config.CodeLevelMetrics` in favor of a new slice field `IgnoredPrefixes`. The corresponding configuration option-setting functions `ConfigCodeLevelMetricsIgnoredPrefix` and `WithIgnoredPrefix` now take any number of string parameters to set these values. Since those functions used to take a single string value, this change is backward-compatible with pre-3.18.1 code.  Accordingly, the `NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX` environment variable is now a comma-separated list of prefixes.  Fixes [Issue #551](https://github.com/newrelic/go-agent/issues/551).
