@@ -388,7 +388,7 @@ func thisCodeLocationCommon(skip int, skipInternal bool) *CodeLocation {
 		stillMore := true
 		skipCLM := true
 
-		frames := runtime.CallersFrames(pcs)
+		frames := runtime.CallersFrames(pcs[:depth])
 		for stillMore {
 			frame, stillMore = frames.Next()
 			//
@@ -507,7 +507,7 @@ func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string,
 	if tOpts.LocationOverride != nil {
 		location = *tOpts.LocationOverride
 	} else {
-		pcs := make([]uintptr, 10)
+		pcs := make([]uintptr, 20)
 		depth := runtime.Callers(2, pcs)
 		if depth > 0 {
 			frames := runtime.CallersFrames(pcs[:depth])
