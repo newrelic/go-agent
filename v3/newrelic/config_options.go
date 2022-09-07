@@ -76,6 +76,12 @@ func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 func ConfigCodeLevelMetricsIgnoredPrefix(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CodeLevelMetrics.IgnoredPrefixes = prefix
+
+		// Correct things if the user populated the old IgnoredPrefix value in the struct
+		if cfg.CodeLevelMetrics.IgnoredPrefix != "" {
+			cfg.CodeLevelMetrics.IgnoredPrefixes = append(cfg.CodeLevelMetrics.IgnoredPrefixes, cfg.CodeLevelMetrics.IgnoredPrefix)
+			cfg.CodeLevelMetrics.IgnoredPrefix = ""
+		}
 	}
 }
 
@@ -94,15 +100,31 @@ func ConfigCodeLevelMetricsScope(scope CodeLevelMetricsScope) ConfigOption {
 	}
 }
 
-// ConfigCodeLevelMetricsPathPrefix specifies the filename pattern that describes the start of
-// the project area. Any text before this pattern is ignored. Thus, if
-// the path prefix is set to "myproject/src", then a function located in a file
+// ConfigCodeLevelMetricsPathPrefix specifies the filename pattern(s) that describe(s) the start of
+// the project area(s). When reporting a source filename for Code Level Metrics, and any of the
+// values in the path prefix list are found in the source filename, anything before that prefix
+// is discarded from the file pathname. This will be based on the first value in the prefix list
+// that is found in the pathname.
+//
+// For example, if
+// the path prefix list is set to ["myproject/src", "myproject/extra"], then a function located in a file
 // called "/usr/local/src/myproject/src/foo.go" will be reported with the
-// pathname "myproject/src/foo.go". If this value is empty, the full path
+// pathname "myproject/src/foo.go". If this value is empty or none of the prefix strings
+// are found in a file's pathname, the full path
 // will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
-func ConfigCodeLevelMetricsPathPrefix(prefix string) ConfigOption {
+//
+// In agent versions 3.18.0 and 3.18.1, this took a single string parameter.
+// It now takes a variable number of parameters, preserving the old call semantics
+// for backward compatibility while allowing for multiple PathPrefix values now.
+func ConfigCodeLevelMetricsPathPrefix(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CodeLevelMetrics.PathPrefix = prefix
+		cfg.CodeLevelMetrics.PathPrefixes = prefix
+
+		// Correct things if the user populated the old PathPrefix value in the struct
+		if cfg.CodeLevelMetrics.PathPrefix != "" {
+			cfg.CodeLevelMetrics.PathPrefixes = append(cfg.CodeLevelMetrics.PathPrefixes, cfg.CodeLevelMetrics.PathPrefix)
+			cfg.CodeLevelMetrics.PathPrefix = ""
+		}
 	}
 }
 
@@ -190,9 +212,9 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //  NEW_RELIC_ATTRIBUTES_EXCLUDE                      sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
 //  NEW_RELIC_ATTRIBUTES_INCLUDE                      sets Attributes.Include using a comma-separated list
 //  NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              sets CodeLevelMetrics.Enabled
-//  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction,datastore"
-//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          sets CodeLevelMetrics.PathPrefix
-//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefixes
+//  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
 //  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             sets DistributedTracer.Enabled using strconv.ParseBool
 //  NEW_RELIC_ENABLED                                 sets Enabled using strconv.ParseBool
 //  NEW_RELIC_HIGH_SECURITY                           sets HighSecurity using strconv.ParseBool
@@ -249,7 +271,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
 		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
 		assignBool(&cfg.CodeLevelMetrics.Enabled, "NEW_RELIC_CODE_LEVEL_METRICS_ENABLED")
-		assignString(&cfg.CodeLevelMetrics.PathPrefix, "NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX")
 		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
 		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
 		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
@@ -279,18 +300,19 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 
 		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_SCOPE"); env != "" {
-			for _, label := range strings.Split(env, ",") {
-				bit, ok := codeLevelMetricsScopeLabelToValue(label)
-				if ok {
-					cfg.CodeLevelMetrics.Scope |= bit
-				} else {
-					cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value \"%s\" in \"%s\"", label, env)
-				}
+			var ok bool
+			cfg.CodeLevelMetrics.Scope, ok = CodeLevelMetricsScopeLabelListToValue(env)
+			if !ok {
+				cfg.Error = fmt.Errorf("invalid NEW_RELIC_CODE_LEVEL_METRICS_SCOPE value")
 			}
 		}
 
 		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX"); env != "" {
 			cfg.CodeLevelMetrics.IgnoredPrefixes = strings.Split(env, ",")
+		}
+
+		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX"); env != "" {
+			cfg.CodeLevelMetrics.PathPrefixes = strings.Split(env, ",")
 		}
 
 		if env := getenv("NEW_RELIC_LOG"); env != "" {

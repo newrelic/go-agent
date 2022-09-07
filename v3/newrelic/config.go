@@ -365,12 +365,26 @@ type Config struct {
 		// data. This allows the agent to spend resources on discovering the source
 		// code context data only where actually needed.
 		Scope CodeLevelMetricsScope
+		// PathPrefixes specifies a slice of filename patterns that describe the start of
+		// the project area. Any text before any of these patterns is ignored. Thus, if
+		// PathPrefixes is set to ["myproject/src", "otherproject/src"], then a function located in a file
+		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+		// pathname "myproject/src/foo.go". If this value is nil, the full path
+		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		// The first string in the slice which is found in a file pathname will be the one
+		// used to truncate that filename; if none of the strings in PathPrefixes are found
+		// anywhere in a file's pathname, the full path will be reported.
+		PathPrefixes []string
 		// PathPrefix specifies the filename pattern that describes the start of
 		// the project area. Any text before this pattern is ignored. Thus, if
 		// PathPrefix is set to "myproject/src", then a function located in a file
 		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
 		// pathname "myproject/src/foo.go". If this value is empty, the full path
 		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		//
+		// Deprecated: new code should use PathPrefixes instead (or better yet,
+		// use the ConfigCodeLevelMetricsPathPrefix option, which accepts any number
+		// of string parameters for backwards compatibility).
 		PathPrefix string
 		// IgnoredPrefix holds a single module path prefix to ignore when searching
 		// to find the calling function to be reported.
@@ -397,29 +411,98 @@ type Config struct {
 type CodeLevelMetricsScope uint32
 
 // These constants specify the types of telemetry data to which we will
-// attach code level metric data. Currently TransactionCLM is defined.
-// If and when other types of telemetry data are added for Code-Level
-// Metrics collection, more constants will be added here as well.
-// AllCLM
-// means to include code level metrics everywhere currently supported.
+// attach code level metric data.
 //
-// A scope of 0 means "all types" as a convenience so that any zero-value
-// CodeLevelMetricsScope variable provides the default expected behavior
-// rather than turning off all code level metrics.
+// Currently, this includes
+//    TransactionCLM            any kind of transaction
+//    AllCLM                    all kinds of telemetry data for which CLM is implemented (the default)
+//
+// The zero value of CodeLevelMetricsScope means "all types" as a convenience so that
+// new variables of this type provide the default expected behavior
+// rather than, say, turning off all code level metrics as a 0 bit value would otherwise imply.
+// Otherwise the numeric values of these constants are not to be relied
+// upon and are subject to change. Only use the named constant identifiers in
+// your code. We do not recommend saving the raw numeric value of these constants
+// to use later.
 const (
-	TransactionCLM CodeLevelMetricsScope = 1 << iota // include CLM data in transactions
-	AllCLM         CodeLevelMetricsScope = 0         // all supported types
+	TransactionCLM CodeLevelMetricsScope = 1 << iota
+	AllCLM         CodeLevelMetricsScope = 0
 )
 
-func codeLevelMetricsScopeLabelToValue(label string) (CodeLevelMetricsScope, bool) {
-	switch label {
-	case "all":
-		return AllCLM, true
+//
+// CodeLevelMetricsScopeLabelToValue accepts a number of string values representing
+// the possible scope restrictions available for the agent, returning the
+// CodeLevelMetricsScope value which represents the combination of all of the given
+// labels. This value is suitable to be presented to ConfigCodeLevelMetricsScope.
+//
+// It also returns a boolean flag; if true, it was able to understand all of the
+// provided labels; otherwise, one or more of the values were not recognized and
+// thus the returned CodeLevelMetricsScope value may be incomplete (although it
+// will represent any valid label strings passed, if any).
+//
+// Currently, this function recognizes the following labels:
+//   for AllCLM: "all" (if this value appears anywhere in the list of strings, AllCLM will be returned)
+//   for TransactionCLM: "transaction", "transactions", "txn"
+//
+func CodeLevelMetricsScopeLabelToValue(labels ...string) (CodeLevelMetricsScope, bool) {
+	var scope CodeLevelMetricsScope
+	ok := true
 
-	case "transaction", "transactions", "txn":
-		return TransactionCLM, true
+	for _, label := range labels {
+		switch label {
+		case "":
+
+		case "all":
+			return AllCLM, true
+
+		case "transaction", "transactions", "txn":
+			scope |= TransactionCLM
+
+		default:
+			ok = false
+		}
 	}
-	return 0, false
+	return scope, ok
+}
+
+//
+// UnmarshalText allows for a CodeLevelMetricsScope value to be read from a JSON
+// string (or other text encodings) whose value is a comma-separated list of scope labels.
+//
+func (s *CodeLevelMetricsScope) UnmarshalText(b []byte) error {
+	var ok bool
+
+	if *s, ok = CodeLevelMetricsScopeLabelListToValue(string(b)); !ok {
+		return fmt.Errorf("invalid code level metrics scope label value")
+	}
+
+	return nil
+}
+
+//
+// MarshalText allows for a CodeLevelMetrics value to be encoded into JSON strings and other
+// text encodings.
+//
+func (s CodeLevelMetricsScope) MarshalText() ([]byte, error) {
+	if s == 0 || s == AllCLM {
+		return []byte("all"), nil
+	}
+
+	if (s & TransactionCLM) != 0 {
+		return []byte("transaction"), nil
+	}
+
+	return nil, fmt.Errorf("unrecognized bit pattern in CodeLevelMetricsScope value")
+}
+
+//
+// CodeLevelMetricsScopeLabelListToValue is a convenience function which
+// is like CodeLevelMetricsScopeLabeltoValue except that it takes a single
+// string which contains comma-separated values instead of an already-broken-out
+// set of individual label strings.
+//
+func CodeLevelMetricsScopeLabelListToValue(labels string) (CodeLevelMetricsScope, bool) {
+	return CodeLevelMetricsScopeLabelToValue(strings.Split(labels, ",")...)
 }
 
 // ApplicationLogging contains settings which control the capture and sending
@@ -548,7 +631,6 @@ func defaultConfig() Config {
 	// Code Level Metrics
 	c.CodeLevelMetrics.Enabled = false
 	c.CodeLevelMetrics.Scope = AllCLM
-	c.CodeLevelMetrics.PathPrefix = ""
 	return c
 }
 
