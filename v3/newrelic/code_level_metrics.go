@@ -73,6 +73,11 @@ func (c *CachedCodeLocation) IsValid() bool {
 	return c != nil && c.once != nil
 }
 
+//
+// NewCachedCodeLocation returns a pointer to a newly-created
+// CachedCodeLocation value, suitable for use with the methods
+// defined for that type.
+//
 func NewCachedCodeLocation() *CachedCodeLocation {
 	return &CachedCodeLocation{
 		once: new(sync.Once),
