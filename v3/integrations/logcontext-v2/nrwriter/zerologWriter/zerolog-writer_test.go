@@ -16,45 +16,65 @@ var (
 	host, _ = sysinfo.Hostname()
 )
 
-func TestParseLevelValue(t *testing.T) {
+func TestParseLogData(t *testing.T) {
 	type logTest struct {
-		log       string
-		expectVal string
-		levelKey  string
+		log      string
+		levelKey string
+		expect   newrelic.LogData
 	}
 	tests := []logTest{
 		{
 			`{"time":1516134303,"level":"debug","message":"hello world"}`,
-			"debug",
-			"",
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"level":"debug","message":"hello world"}`,
+				Severity: "debug",
+			},
 		},
 		{
 			`{"time":1516134303,"level":"info","message":"hello world"}`,
-			"info",
-			"",
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"level":"info","message":"hello world"}`,
+				Severity: "info",
+			},
 		},
 		{
 			`{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}`,
-			"fatal",
-			"",
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}`,
+				Severity: "fatal",
+			},
 		},
 		{
 			`{"time":1516134303,"hi":"info","message":"hello world"}`,
-			"info",
 			"hi",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"hi":"info","message":"hello world"}`,
+				Severity: "info",
+			},
 		},
 	}
 	for _, test := range tests {
 		if test.levelKey != "" {
 			zerolog.LevelFieldName = test.levelKey
 		}
-		val := parseLogLevel([]byte(test.log))
-		if val != test.expectVal {
-			t.Errorf("incorrect log level; expected: debug, got %s", val)
+		val := parseJSONLogData([]byte(test.log))
+
+		if val.Message != test.expect.Message {
+			parserTestError(t, "Message", val.Message, test.expect.Message)
+		}
+		if val.Severity != test.expect.Severity {
+			parserTestError(t, "Severity", val.Severity, test.expect.Severity)
 		}
 
 		zerolog.LevelFieldName = "level"
 	}
+}
+
+func parserTestError(t *testing.T, field, actual, expect string) {
+	t.Errorf("The parsed %s does not match the expected message: parsed \"%s\" expected \"%s\"", field, actual, expect)
 }
 
 func TestE2E(t *testing.T) {
@@ -91,6 +111,6 @@ func BenchmarkParseLogLevel(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		parseLogLevel(log)
+		parseJSONLogData(log)
 	}
 }
