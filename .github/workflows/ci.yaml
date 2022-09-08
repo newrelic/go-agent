@@ -87,12 +87,6 @@ jobs:
             dirs: _integrations/nrmongo
 
           # v3 agent
-          - go-version: 1.7.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.8.x
-            dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.9.x
-            dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.10.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.11.x
@@ -106,6 +100,8 @@ jobs:
           - go-version: 1.17.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.18.x
+            dirs: v3/newrelic,v3/internal,v3/examples
+          - go-version: 1.19.x
             dirs: v3/newrelic,v3/internal,v3/examples
 
           # v3 integrations
