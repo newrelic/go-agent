@@ -40,73 +40,82 @@ func (zw *ZerologWriter) WithContext(ctx context.Context) ZerologWriter {
 // Write is a valid io.Writer method that will write the content of an enriched log to the output io.Writer
 func (zw ZerologWriter) Write(p []byte) (n int, err error) {
 	data := parseJSONLogData(p)
-	enrichedLog := zw.w.EnrichLog(logLevel, p)
+	enrichedLog := zw.w.EnrichLog(data, p)
 	return zw.w.Write(enrichedLog)
 }
 
 func parseJSONLogData(log []byte) newrelic.LogData {
+	// For this iteration of the tool, the entire log gets captured as the message
 	data := newrelic.LogData{}
-	for i := 0; i < len(log)-1; i++ {
-		key, valIndx := getStringKey(log, i)
+	data.Message = string(log)
 
-		if valIndx != -1 {
-			break
-		}
+	for i := 0; i < len(log)-1; {
+		// get key; always a string field
+		key, keyEnd := getStringField(log, i)
 
+		// find index where value starts
+		valStart := getValueIndex(log, keyEnd)
+		valEnd := valStart
+
+		// NOTE: depending on the key, the type of field the value is can differ
 		switch key {
-		case zerolog.MessageFieldName:
-			data.Message = getStringValue(log, valIndx)
 		case zerolog.LevelFieldName:
-			data.Severity = getStringValue(log, valIndx)
+			data.Severity, valEnd = getStringField(log, valStart)
 		}
+
+		next := nextKeyIndex(log, valEnd)
+		if next == -1 {
+			return data
+		}
+		i = next
 	}
 
 	return data
 }
 
-// given buffer p and start index, returns the next key string and the index of its value
-// O(n) runtime
-func getStringKey(p []byte, startIndx int) (string, int) {
-	key := strings.Builder{}
-	key.Grow(8)
+func getValueIndex(p []byte, indx int) int {
+	// Find the index where the value begins
+	for i := indx; i < len(p)-1; i++ {
+		if p[i] == ':' {
+			return i + 1
+		}
+	}
 
-	isKey := false
-	valIndx := startIndx
+	return -1
+}
 
-	// Find the key
-	for i := startIndx; i < len(p)-1; i++ {
-		if p[i] == '"' && !isKey {
-			isKey = true
-		} else if isKey && p[i] != '"' {
-			key.WriteByte(p[i])
-		} else {
-			valIndx = i + 1
+func nextKeyIndex(p []byte, indx int) int {
+	// Find the index where the key begins
+	for i := indx; i < len(p)-1; i++ {
+		if p[i] == ',' {
+			return i + 1
+		}
+	}
+
+	return -1
+}
+
+func getStringField(p []byte, indx int) (string, int) {
+	value := strings.Builder{}
+	i := indx
+
+	// find start of string field
+	for ; i < len(p)-1; i++ {
+		if p[i] == '"' {
+			i += 1
 			break
 		}
 	}
 
-	// Find the index where the value begins
-	for i := valIndx; i < len(p)-1; i++ {
-		if i == '}' {
-			return key.String(), -1
-		}
-		if i == '"' {
-			return key.String(), i + 1
-		}
-	}
-
-	return key.String(), valIndx
-}
-
-func getStringValue(p []byte, indx int) string {
-	value := strings.Builder{}
-	for i := indx; i < len(p)-1; i++ {
+	// parse value of string field
+	for ; i < len(p)-1; i++ {
 		if p[i] == '"' {
-			return value.String()
+			return value.String(), i + 1
+		} else {
+			value.WriteByte(p[i])
 		}
 
-		value.WriteByte(p[i])
 	}
 
-	return value.String()
+	return "", -1
 }
