@@ -4,13 +4,15 @@ import (
 	"context"
 	"io"
 
-	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrwriter"
+	"github.com/newrelic/go-agent/v3/internal/logcontext/nrwriter"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 type LogWriter struct {
 	w nrwriter.LogWriter
 }
+
+func init() { internal.TrackUsage("integration", "logcontext-v2", "logWriter") }
 
 // New creates a new LogWriter
 // output is the io.Writer destination that you want your log to be written to
