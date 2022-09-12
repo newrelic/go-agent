@@ -14,7 +14,7 @@ type ZerologWriter struct {
 	w nrwriter.LogWriter
 }
 
-func init() { internal.TrackUsage("integration", "logcontext-v2", "zerolog") }
+func init() { internal.TrackUsage("integration", "logcontext-v2", "zerologWriter") }
 
 // New creates a new NewRelicWriter Object
 // output is the io.Writer destination that you want your log to be written to
