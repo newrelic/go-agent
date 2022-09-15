@@ -11,7 +11,7 @@ import (
 
 const (
 	// Version is the full string version of this Go Agent.
-	Version = "3.18.2"
+	Version = "3.19.0"
 )
 
 var (
