@@ -1,3 +1,19 @@
+## 3.19.0
+
+### Added
+* `logcontext-v2/logWriter` plugin: a new logs in context plugin that supports the standard library logging package.
+* `logcontext-v2/zerologWriter` plugin: a new logs in context plugin for zerolog that will replace the old logcontext-v2/zerolog plugin. This plugin is more robust, and will be able to support a richer set of features than the previous plugin.
+* see the updated [logs in context documentation](https://docs.newrelic.com/docs/logs/logs-context/configure-logs-context-go) for information about configuration and installation.
+
+### Changed
+* the logcontext-v2/zerolog plugin will be deprecated once the 3.17.0 release EOLs.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
+
 ## 3.18.2
 
 ### Added
