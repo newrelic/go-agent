@@ -102,8 +102,13 @@ const (
 )
 
 var (
-	errNilLogBuffer  = fmt.Errorf("%s: the EnrichLog() function must not be passed a nil byte buffer", logDecorationErrorHeader)
-	errNoApplication = fmt.Errorf("%s: either an application or transaction must be provided to enrich a log", logDecorationErrorHeader)
+	// ErrNilLogBuffer is a type of error that occurs when the New Relic log decorator is passed a nil object when it was
+	// expecting a valid, non nil pointer to a log bytes.Buffer object.
+	ErrNilLogBuffer = fmt.Errorf("%s: the EnrichLog() function must not be passed a nil byte buffer", logDecorationErrorHeader)
+
+	// ErrNoApplication is a type of error that occurs when the New Relic log decorator is passed a nil New Relic Application
+	// when it was expecting a valid, non nil pointer to a New Relic application.
+	ErrNoApplication = fmt.Errorf("%s: a non nil application or transaction must be provided to enrich a log", logDecorationErrorHeader)
 )
 
 type logEnricherConfig struct {
@@ -139,7 +144,7 @@ func EnrichLog(buf *bytes.Buffer, opts EnricherOption) error {
 	opts(&config)
 
 	if buf == nil {
-		return errNilLogBuffer
+		return ErrNilLogBuffer
 	}
 
 	md := linkingMetadata{}
@@ -157,11 +162,11 @@ func EnrichLog(buf *bytes.Buffer, opts EnricherOption) error {
 		md.spanID = txnMD.SpanID
 		md.traceID = txnMD.TraceID
 	} else {
-		return errNoApplication
+		return ErrNoApplication
 	}
 
 	if app.app == nil {
-		return errNoApplication
+		return ErrNoApplication
 	}
 
 	reply, err := app.app.getState()
@@ -184,7 +189,10 @@ func (md *linkingMetadata) appendLinkingMetadata(buf *bytes.Buffer) {
 	if md.entityGUID == "" || md.entityName == "" || md.hostname == "" {
 		return
 	}
-	buf.WriteString(" NR-LINKING|")
+
+	addDynamicSpacing(buf)
+
+	buf.WriteString("NR-LINKING|")
 	if md.traceID != "" && md.spanID != "" {
 		buf.WriteString(md.entityGUID)
 		buf.WriteByte('|')
@@ -203,5 +211,16 @@ func (md *linkingMetadata) appendLinkingMetadata(buf *bytes.Buffer) {
 		buf.WriteByte('|')
 		buf.WriteString(md.entityName)
 		buf.WriteByte('|')
+	}
+}
+
+func addDynamicSpacing(buf *bytes.Buffer) {
+	if buf.Len() == 0 {
+		return
+	}
+
+	bytes := buf.Bytes()
+	if bytes[len(bytes)-1] != ' ' {
+		buf.WriteByte(' ')
 	}
 }
