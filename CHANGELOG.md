@@ -1,3 +1,13 @@
+## 3.19.1 - Hotfix Release
+
+### Changed
+* Moved the v3/internal/logcontext/nrwriter module to v3/integrations/logcontext-v2/nrwriter
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.19.0
 
 ### Added
@@ -12,7 +22,6 @@
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
 
 See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
-
 
 ## 3.18.2
 
