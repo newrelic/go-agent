@@ -1,3 +1,9 @@
+// nrwriter is a library of common code that handles capturing and sending New Relic logs in context data
+// from any io.Writer. This module should not be used as a standalone integration for logs in context.
+//
+// See github.com/newrelic/go-agent/v3/integrations/logcontext-v2/zerologWriter for an example of how
+// to use this library.
+
 package nrwriter
 
 import (
