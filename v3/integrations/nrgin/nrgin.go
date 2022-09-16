@@ -144,7 +144,7 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 			name := c.Request.Method + " " + getName(c, useNewNames)
 
 			w := &headerResponseWriter{w: c.Writer}
-			txn := app.StartTransaction(name)
+			txn := app.StartTransaction(name, newrelic.WithFunctionLocation(c.Handler()))
 			txn.SetWebRequestHTTP(c.Request)
 			defer txn.End()
 

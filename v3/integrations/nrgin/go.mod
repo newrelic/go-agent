@@ -6,5 +6,5 @@ go 1.12
 
 require (
 	github.com/gin-gonic/gin v1.8.0
-	github.com/newrelic/go-agent/v3 v3.17.0
+	github.com/newrelic/go-agent/v3 v3.18.2
 )
