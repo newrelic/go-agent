@@ -25,9 +25,9 @@ pin_go_dependency() {
 verify_go_fmt() {
   needsFMT=$(gofmt -d .)
   if [ ! -z "$needsFMT" ]; then
-    echo "Please format your code with \"gofmt .\""
     echo "$needsFMT"
-    exit 1
+    echo "Please format your code with \"gofmt .\""
+    # exit 1
   fi
 }
 
