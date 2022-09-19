@@ -266,7 +266,7 @@ jobs:
         path: ./go-agent/src/github.com/newrelic/go-agent
 
     - name: Run Tests
-      run: bash build-script.sh
+      run: bash v3/build-script.sh
       env:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
