@@ -58,6 +58,7 @@ func main() {
 		newrelic.ConfigAppName("Gin App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigCodeLevelMetricsEnabled(true),
 	)
 	if nil != err {
 		fmt.Println(err)
