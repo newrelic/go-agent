@@ -4,8 +4,6 @@
 set -x
 set -e
 
-pwd=$(pwd)
-
 # inputs
 # 1: repo pin; example: github.com/rewrelic/go-agent@v1.9.0
 pin_go_dependency() {
@@ -31,15 +29,22 @@ verify_go_fmt() {
   fi
 }
 
+pwd=$(pwd)
+version=$(go version)
+echo $version
+
+tmp=$(echo $version | cut -d 'o' -f4)
+shortVersion=${tmp%.*}
+
 IFS=","
 for dir in $DIRS; do
   cd "$pwd/$dir"
 
-  if [ -f "go.mod" ]; then
-    go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
-  fi
+  # replace go-agent with local pull
+  go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
+
   # manage dependencies
-  go mod tidy
+  go mod tidy -go=$shortVersion -compat=$shortVersion
   pin_go_dependency "$PIN"
 
   # run tests
