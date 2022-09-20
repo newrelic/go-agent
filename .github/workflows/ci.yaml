@@ -85,8 +85,41 @@ jobs:
             dirs: _integrations/nrb3
           - go-version: 1.13.x
             dirs: _integrations/nrmongo
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
 
-          # v3 agent
+    - name: Checkout Code
+      uses: actions/checkout@v1
+      with:
+        # Required when using older versions of Go that do not support gomod.
+        # Note the required presence of the /go-agent/ directory at the
+        # beginning of this path.  It is required in order to match the
+        # ${{ github.workspace }} used by the GOPATH env var.  pwd when cloning
+        # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
+        # returns <something/go-agent/go-agent/.
+        path: ./go-agent/src/github.com/newrelic/go-agent
+
+    - name: Run Tests
+      run: bash build-script.sh
+      env:
+        DIRS: ${{ matrix.dirs }}
+        EXTRATESTING: ${{ matrix.extratesting }}
+        PIN: ${{ matrix.pin }}
+
+  go-agent-v3:
+    runs-on: ubuntu-18.04
+    env:
+      # Required when using older versions of Go that do not support gomod.
+      GOPATH: ${{ github.workspace }}
+
+    strategy:
+      # if one test fails, do not abort the rest
+      fail-fast: false
+      matrix:
+        include:
           - go-version: 1.17.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.18.x
@@ -183,16 +216,13 @@ jobs:
             extratesting: go get -u github.com/nats-io/nats.go/@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrnats/test
-            extratesting: go get -u github.com/nats-io/nats.go/@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrstan
             extratesting: go get -u github.com/nats-io/stan.go/@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrstan/test
-            extratesting: go get -u github.com/nats-io/stan.go/@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrstan/examples
-            extratesting: go get -u github.com/nats-io/stan.go/@master
           - go-version: 1.17.x
             dirs: v3/integrations/logcontext
             extratesting: go get -u github.com/sirupsen/logrus@master
@@ -233,7 +263,7 @@ jobs:
         path: ./go-agent/src/github.com/newrelic/go-agent
 
     - name: Run Tests
-      run: bash build-script.sh
+      run: bash v3/build-script.sh
       env:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
