@@ -5,12 +5,14 @@ package nrgrpc
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"strings"
 	"testing"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
@@ -39,7 +41,7 @@ func newTestServerAndConn(t *testing.T, app *newrelic.Application) (*grpc.Server
 	}
 	conn, err := grpc.Dial("bufnet",
 		grpc.WithContextDialer(bufDialer),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(), // create the connection synchronously
 		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
 		grpc.WithStreamInterceptor(StreamClientInterceptor),
@@ -446,9 +448,9 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 	if err != nil {
 		t.Fatal("client call to DoStreamStream failed", err)
 	}
-	waitc := make(chan struct{})
-	go func() {
-		defer close(waitc)
+
+	errc := make(chan error)
+	go func(errc chan error) {
 		var recved int
 		for {
 			_, err := stream.Recv()
@@ -456,21 +458,29 @@ func TestStreamStreamServerInterceptor(t *testing.T) {
 				break
 			}
 			if err != nil {
-				t.Fatal("failure to Recv", err)
+				errc <- fmt.Errorf("failure to Recv: %v", err)
+				return
 			}
 			recved++
 		}
 		if recved != 3 {
-			t.Fatal("received incorrect number of messages from server", recved)
+			errc <- fmt.Errorf("received incorrect number of messages from server: %v", recved)
+			return
 		}
-	}()
+		errc <- nil
+	}(errc)
 	for i := 0; i < 3; i++ {
 		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamStream"}); err != nil {
 			t.Fatal("failure to Send", err)
 		}
 	}
 	stream.CloseSend()
-	<-waitc
+
+	err = <-errc
+	close(errc)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
