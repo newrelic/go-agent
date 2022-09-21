@@ -6,6 +6,7 @@ package nrgrpc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"testing"
 
@@ -364,9 +365,9 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 	if err != nil {
 		t.Fatal("client call to DoStreamStream failed", err)
 	}
-	waitc := make(chan struct{})
-	go func() {
-		defer close(waitc)
+
+	errC := make(chan error)
+	go func(errC chan error) {
 		var recved int
 		for {
 			msg, err := stream.Recv()
@@ -374,29 +375,40 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 				break
 			}
 			if err != nil {
-				t.Fatal("failure to Recv", err)
+				errC <- fmt.Errorf("failure to Recv: %v", err)
+				return
 			}
 			var hdrs map[string][]string
 			err = json.Unmarshal([]byte(msg.Text), &hdrs)
 			if err != nil {
-				t.Fatal("cannot unmarshall client response", err)
+				errC <- fmt.Errorf("cannot unmarshall client response: %v", err)
+				return
 			}
 			if hdr, ok := hdrs["newrelic"]; !ok || len(hdr) != 1 || hdr[0] == "" {
-				t.Error("distributed trace header not sent", hdrs)
+				errC <- fmt.Errorf("distributed trace header not sent: %v", hdrs)
+				return
 			}
 			recved++
 		}
 		if recved != 3 {
-			t.Fatal("received incorrect number of messages from server", recved)
+			errC <- fmt.Errorf("received incorrect number of messages from server: %v", recved)
+			return
 		}
-	}()
+		errC <- nil
+	}(errC)
 	for i := 0; i < 3; i++ {
 		if err := stream.Send(&testapp.Message{Text: "Hello DoStreamStream"}); err != nil {
 			t.Fatal("failure to Send", err)
 		}
 	}
 	stream.CloseSend()
-	<-waitc
+
+	err = <-errC
+	close(errC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	txn.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{

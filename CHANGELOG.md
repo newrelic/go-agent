@@ -1,3 +1,21 @@
+## 3.19.2
+
+### Changed
+* Updated nrgin integration to more accurately report code locations when code level metrics are enabled.
+* The Go Agent and all integrations now require Go version 1.17 or later.
+* Updated minimum versions for third-party modules.
+  * nrawssdk-v2, nrecho-v4, nrgrpc, nrmongo, nrmysql, nrnats, and nrstan now require Go Agent 3.18.2 or later
+  * the Go Agent now requires protobuf 1.5.2 and grpc 1.49.0
+* Internal dev process and unit test improvements.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
+
 ## 3.19.1 - Hotfix Release
 
 ### Changed
