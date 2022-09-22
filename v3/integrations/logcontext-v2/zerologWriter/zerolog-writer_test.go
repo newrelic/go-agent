@@ -79,6 +79,14 @@ func TestParseLogData(t *testing.T) {
 				Severity: "debug",
 			},
 		},
+		{
+			`{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}`,
+			"level",
+			newrelic.LogData{
+				Message:  `{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}`,
+				Severity: "debug",
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.levelKey != "" {

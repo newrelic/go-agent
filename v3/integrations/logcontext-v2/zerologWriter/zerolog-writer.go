@@ -125,8 +125,13 @@ func getStringValue(p []byte, indx int) (string, int) {
 
 	// parse value of string field
 	for i := indx; i < len(p); i++ {
-		if p[i] == '"' && i+1 < len(p) && p[i+1] == ',' {
-			return value.String(), i + 2
+		if p[i] == '"' && i+1 < len(p) {
+			if p[i+1] == ',' {
+				return value.String(), i + 2
+			}
+			if p[i+1] == '}' {
+				return value.String(), -1
+			}
 		} else {
 			value.WriteByte(p[i])
 		}
@@ -140,8 +145,13 @@ func getNumberValue(p []byte, indx int) (string, int) {
 
 	// parse value of string field
 	for i := indx; i < len(p); i++ {
-		if p[i] == ',' && i+1 < len(p) && p[i+1] == '"' {
-			return value.String(), i + 1
+		if p[i] == ',' && i+1 < len(p) {
+			if p[i+1] == '"' {
+				return value.String(), i + 1
+			}
+			if p[i+1] == '}' {
+				return value.String(), -1
+			}
 		} else {
 			value.WriteByte(p[i])
 		}
@@ -158,11 +168,13 @@ func getStackTrace(p []byte, indx int) (string, int) {
 		if p[i] == ']' {
 			value.WriteByte(p[i])
 
-			if i+1 <= len(p)-1 && p[i] == '}' {
-				return value.String(), -1
-			}
-			if i+1 < len(p) && p[i] == ',' {
-				return value.String(), i + 2
+			if i+1 < len(p) {
+				if p[i+1] == '}' {
+					return value.String(), -1
+				}
+				if p[i+1] == ',' {
+					return value.String(), i + 2
+				}
 			}
 		} else {
 			value.WriteByte(p[i])
