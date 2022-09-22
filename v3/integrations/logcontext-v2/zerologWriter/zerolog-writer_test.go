@@ -55,6 +55,30 @@ func TestParseLogData(t *testing.T) {
 				Severity: "info",
 			},
 		},
+		{
+			`{"time":1516134303,"level":"debug","message":"hello, world"}`,
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"level":"debug","message":"hello, world"}`,
+				Severity: "debug",
+			},
+		},
+		{
+			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
+			"level",
+			newrelic.LogData{
+				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
+				Severity: "error",
+			},
+		},
+		{
+			`{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}`,
+			"level",
+			newrelic.LogData{
+				Message:  `{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}`,
+				Severity: "debug",
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.levelKey != "" {
