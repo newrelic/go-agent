@@ -2,6 +2,7 @@ package zerologWriter
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -103,6 +104,53 @@ func TestParseLogData(t *testing.T) {
 
 		zerolog.LevelFieldName = "level"
 	}
+}
+
+func TestParseLogDataEscapes(t *testing.T) {
+	type logTest struct {
+		logMessage    string
+		levelKey      string
+		expectMessage string
+	}
+	tests := []logTest{
+		{
+			"escape quote,\"",
+			"info",
+			`{"level":"info","message":"escape quote,\""}`,
+		},
+		{
+			"escape quote,\", hi",
+			"info",
+			`{"level":"info","message":"escape quote,\", hi"}`,
+		},
+		{
+			"escape quote,\",\" hi",
+			"info",
+			`{"level":"info","message":"escape quote,\",\" hi"}`,
+		},
+	}
+
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	writer := New(io.Discard, app.Application)
+	writer.DebugLogging(true)
+	logger := zerolog.New(writer)
+
+	wantLog := []internal.WantLog{}
+	for _, test := range tests {
+		logger.Info().Msg(test.logMessage)
+		wantLog = append(wantLog, internal.WantLog{
+			Severity:  zerolog.LevelInfoValue,
+			Message:   test.expectMessage,
+			Timestamp: internal.MatchAnyUnixMilli,
+		})
+
+	}
+	app.ExpectLogEvents(t, wantLog)
+
 }
 
 func parserTestError(t *testing.T, field, actual, expect string) {

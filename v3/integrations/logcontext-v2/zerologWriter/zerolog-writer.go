@@ -127,7 +127,13 @@ func getStringValue(p []byte, indx int) (string, int) {
 	for i := indx; i < len(p); i++ {
 		if p[i] == '"' && i+1 < len(p) {
 			if p[i+1] == ',' {
-				return value.String(), i + 2
+				if i+2 < len(p) && p[i+2] == '"' {
+					return value.String(), i + 2
+				} else {
+					value.WriteByte(p[i])
+					value.WriteByte(p[i+1])
+					value.WriteByte(p[i+2])
+				}
 			}
 			if p[i+1] == '}' {
 				return value.String(), -1
