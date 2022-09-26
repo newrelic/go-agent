@@ -2,6 +2,7 @@ package zerologWriter
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
@@ -65,10 +66,20 @@ func TestParseLogData(t *testing.T) {
 			},
 		},
 		{
+			// basic stack trace test
 			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
 			"level",
 			newrelic.LogData{
 				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
+				Severity: "error",
+			},
+		},
+		{
+			// Tests that code can handle a stack trace, even if its at EOL
+			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}`,
+			"level",
+			newrelic.LogData{
+				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}`,
 				Severity: "error",
 			},
 		},
@@ -183,6 +194,83 @@ func TestE2E(t *testing.T) {
 			Timestamp: internal.MatchAnyUnixMilli,
 		},
 	})
+}
+
+func TestE2EWithContext(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	buf := bytes.NewBuffer([]byte{})
+	a := New(buf, app.Application)
+	a.DebugLogging(true)
+
+	txn := app.Application.StartTransaction("test")
+
+	ctx := newrelic.NewContext(context.Background(), txn)
+	txnWriter := a.WithContext(ctx)
+	logger := zerolog.New(txnWriter)
+
+	logger.Info().Msg("Hello World!")
+	traceID := txn.GetLinkingMetadata().TraceID
+	spanID := txn.GetLinkingMetadata().SpanID
+	txn.End() // must end txn to dump logs into harvest
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  zerolog.LevelInfoValue,
+			Message:   `{"level":"info","message":"Hello World!"}`,
+			Timestamp: internal.MatchAnyUnixMilli,
+			TraceID:   traceID,
+			SpanID:    spanID,
+		},
+	})
+}
+
+func TestE2EWithTxn(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	buf := bytes.NewBuffer([]byte{})
+	a := New(buf, app.Application)
+	a.DebugLogging(true)
+
+	txn := app.Application.StartTransaction("test")
+
+	// create logger with txn context
+	txnWriter := a.WithTransaction(txn)
+	logger := zerolog.New(txnWriter)
+
+	logger.Info().Msg("Hello World!")
+	traceID := txn.GetLinkingMetadata().TraceID
+	spanID := txn.GetLinkingMetadata().SpanID
+	txn.End() // must end txn to dump logs into harvest
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  zerolog.LevelInfoValue,
+			Message:   `{"level":"info","message":"Hello World!"}`,
+			Timestamp: internal.MatchAnyUnixMilli,
+			TraceID:   traceID,
+			SpanID:    spanID,
+		},
+	})
+
 }
 
 func BenchmarkParseLogLevel(b *testing.B) {
