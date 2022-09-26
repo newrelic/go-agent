@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrwriter"
@@ -52,6 +53,7 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 	// For this iteration of the tool, the entire log gets captured as the message
 	data := newrelic.LogData{}
 	data.Message = string(log)
+	data.Timestamp = time.Now().UnixMilli()
 
 	for i := 0; i < len(log)-1; {
 		// get key; always a string field
@@ -131,8 +133,6 @@ func getStringValue(p []byte, indx int) (string, int) {
 					return value.String(), i + 2
 				} else {
 					value.WriteByte(p[i])
-					value.WriteByte(p[i+1])
-					value.WriteByte(p[i+2])
 				}
 			}
 			if p[i+1] == '}' {
