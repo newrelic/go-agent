@@ -7,15 +7,18 @@ import (
 	"encoding/json"
 	"reflect"
 	"runtime"
+	"runtime/debug"
+	"strings"
 )
 
 // environment describes the application's environment.
 type environment struct {
-	Compiler string `env:"runtime.Compiler"`
-	GOARCH   string `env:"runtime.GOARCH"`
-	GOOS     string `env:"runtime.GOOS"`
-	Version  string `env:"runtime.Version"`
-	NumCPU   int    `env:"runtime.NumCPU"`
+	NumCPU   int            `env:"runtime.NumCPU"`
+	Compiler string         `env:"runtime.Compiler"`
+	GOARCH   string         `env:"runtime.GOARCH"`
+	GOOS     string         `env:"runtime.GOOS"`
+	Version  string         `env:"runtime.Version"`
+	Modules  []debug.Module `env:"Modules"`
 }
 
 var (
@@ -30,14 +33,41 @@ var (
 )
 
 // newEnvironment returns a new Environment.
-func newEnvironment() environment {
+func newEnvironment(c *config) environment {
 	return environment{
 		Compiler: runtime.Compiler,
 		GOARCH:   runtime.GOARCH,
 		GOOS:     runtime.GOOS,
 		Version:  runtime.Version(),
 		NumCPU:   runtime.NumCPU(),
+		Modules:  getDependencyModuleList(c),
 	}
+}
+
+func getDependencyModuleList(c *config) []debug.Module {
+	var modList []debug.Module
+
+	if c != nil && c.ModuleDependencyMetrics.Enabled {
+		info, ok := debug.ReadBuildInfo()
+		if info != nil && ok {
+			for _, module := range info.Deps {
+				if module != nil && includeModule(module.Path, c.ModuleDependencyMetrics.IgnoredPrefixes) {
+					modList = append(modList, *module)
+				}
+			}
+		}
+	}
+	return modList
+}
+
+func includeModule(name string, ignoredModulePrefixes []string) bool {
+	for _, excluded := range ignoredModulePrefixes {
+		if strings.HasPrefix(name, excluded) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // MarshalJSON prepares Environment JSON in the format expected by the collector

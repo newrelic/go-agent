@@ -17,18 +17,19 @@ func TestMarshalEnvironment(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := internal.CompactJSONString(`[
+		["runtime.NumCPU",8],
 		["runtime.Compiler","comp"],
 		["runtime.GOARCH","arch"],
 		["runtime.GOOS","goos"],
 		["runtime.Version","vers"],
-		["runtime.NumCPU",8]]`)
+		["Modules",null]]`)
 	if string(js) != expect {
 		t.Fatal(string(js))
 	}
 }
 
 func TestEnvironmentFields(t *testing.T) {
-	env := newEnvironment()
+	env := newEnvironment(nil)
 	if env.Compiler != runtime.Compiler {
 		t.Error(env.Compiler, runtime.Compiler)
 	}
