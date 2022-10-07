@@ -26,76 +26,100 @@ func TestParseLogData(t *testing.T) {
 	}
 	tests := []logTest{
 		{
-			`{"time":1516134303,"level":"debug","message":"hello world"}`,
+			`{"time":1516134303,"level":"debug","message":"hello world"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"time":1516134303,"level":"debug","message":"hello world"}`,
+				Message:  `{"time":1516134303,"level":"debug","message":"hello world"}` + "\n",
 				Severity: "debug",
 			},
 		},
 		{
-			`{"time":1516134303,"level":"info","message":"hello world"}`,
+			`{"time":1516134303,"level":"info","message":"hello world"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"time":1516134303,"level":"info","message":"hello world"}`,
+				Message:  `{"time":1516134303,"level":"info","message":"hello world"}` + "\n",
 				Severity: "info",
 			},
 		},
 		{
-			`{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}`,
+			`{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}`,
+				Message:  `{"time":1516133263,"level":"fatal","error":"A repo man spends his life getting into tense situations","service":"myservice","message":"Cannot start myservice"}` + "\n",
 				Severity: "fatal",
 			},
 		},
 		{
-			`{"time":1516134303,"hi":"info","message":"hello world"}`,
+			`{"time":1516134303,"hi":"info","message":"hello world"}` + "\n",
 			"hi",
 			newrelic.LogData{
-				Message:  `{"time":1516134303,"hi":"info","message":"hello world"}`,
+				Message:  `{"time":1516134303,"hi":"info","message":"hello world"}` + "\n",
 				Severity: "info",
 			},
 		},
 		{
-			`{"time":1516134303,"level":"debug","message":"hello, world"}`,
+			`{"time":1516134303,"level":"debug","message":"hello, world"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"time":1516134303,"level":"debug","message":"hello, world"}`,
+				Message:  `{"time":1516134303,"level":"debug","message":"hello, world"}` + "\n",
+				Severity: "debug",
+			},
+		},
+		{
+			`{"time":1516134303,"level":"debug","message":"hello, world { thing }"}` + "\n",
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"level":"debug","message":"hello, world { thing }"}` + "\n",
+				Severity: "debug",
+			},
+		},
+		{
+			`{"time":1516134303,"level":"debug","message":"hello, world \"{ thing \"}"}` + "\n",
+			"level",
+			newrelic.LogData{
+				Message:  `{"time":1516134303,"level":"debug","message":"hello, world \"{ thing \"}"}` + "\n",
+				Severity: "debug",
+			},
+		},
+		{
+			`{"message":"hello, world \"{ thing \"}","time":1516134303,"level":"debug"}` + "\n",
+			"level",
+			newrelic.LogData{
+				Message:  `{"message":"hello, world \"{ thing \"}","time":1516134303,"level":"debug"}` + "\n",
 				Severity: "debug",
 			},
 		},
 		{
 			// basic stack trace test
-			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
+			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}`,
+				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}],"error":"seems we have an error here","time":1609086683}` + "\n",
 				Severity: "error",
 			},
 		},
 		{
 			// Tests that code can handle a stack trace, even if its at EOL
-			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}`,
+			`{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}`,
+				Message:  `{"level":"error","stack":[{"func":"inner","line":"20","source":"errors.go"},{"func":"middle","line":"24","source":"errors.go"},{"func":"outer","line":"32","source":"errors.go"},{"func":"main","line":"15","source":"errors.go"},{"func":"main","line":"204","source":"proc.go"},{"func":"goexit","line":"1374","source":"asm_amd64.s"}]}` + "\n",
 				Severity: "error",
 			},
 		},
 		{
-			`{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}`,
+			`{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}`,
+				Message:  `{"level":"debug","Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere"}` + "\n",
 				Severity: "debug",
 			},
 		},
 		{
-			`{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}`,
+			`{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}`,
+				Message:  `{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
 				Severity: "debug",
 			},
 		},
@@ -107,10 +131,10 @@ func TestParseLogData(t *testing.T) {
 		val := parseJSONLogData([]byte(test.log))
 
 		if val.Message != test.expect.Message {
-			parserTestError(t, "Message", val.Message, test.expect.Message)
+			parserTestError(t, "Message", val.Message, test.expect.Message, test.log)
 		}
 		if val.Severity != test.expect.Severity {
-			parserTestError(t, "Severity", val.Severity, test.expect.Severity)
+			parserTestError(t, "Severity", val.Severity, test.expect.Severity, test.log)
 		}
 
 		zerolog.LevelFieldName = "level"
@@ -139,6 +163,11 @@ func TestParseLogDataEscapes(t *testing.T) {
 			"info",
 			`{"level":"info","message":"escape quote,\",\" hi"}`,
 		},
+		{
+			"escape bracket,\"}\" hi",
+			"info",
+			`{"level":"info","message":"escape bracket,\"}\" hi"}`,
+		},
 	}
 
 	app := integrationsupport.NewTestApp(
@@ -164,8 +193,8 @@ func TestParseLogDataEscapes(t *testing.T) {
 
 }
 
-func parserTestError(t *testing.T, field, actual, expect string) {
-	t.Errorf("The parsed %s does not match the expected message: parsed \"%s\" expected \"%s\"", field, actual, expect)
+func parserTestError(t *testing.T, field, actual, expect, input string) {
+	t.Errorf("The parsed %s does not match the expected message: parsed \"%s\" expected \"%s\"\nFailed on input: %s", field, actual, expect, input)
 }
 
 func TestE2E(t *testing.T) {
