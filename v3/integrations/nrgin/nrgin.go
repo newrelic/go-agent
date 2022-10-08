@@ -16,6 +16,7 @@ package nrgin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -140,11 +141,13 @@ func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
 
 func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var txn *newrelic.Transaction
+
 		if app != nil {
 			name := c.Request.Method + " " + getName(c, useNewNames)
 
 			w := &headerResponseWriter{w: c.Writer}
-			txn := app.StartTransaction(name, newrelic.WithFunctionLocation(c.Handler()))
+			txn = app.StartTransaction(name, newrelic.WithFunctionLocation(c.Handler()))
 			txn.SetWebRequestHTTP(c.Request)
 			defer txn.End()
 
@@ -159,5 +162,23 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 			c.Set(internal.GinTransactionContextKey, txn)
 		}
 		c.Next()
+
+		if app != nil && txn != nil {
+			status := c.Writer.Status()
+			statusText := http.StatusText(status)
+
+			if status > http.StatusBadRequest {
+				msg := c.Errors.String()
+
+				txn.NoticeError(&newrelic.Error{
+					Message: msg,
+					Class:   "HTTP Status: " + strconv.Itoa(status) + " " + statusText,
+				})
+
+				txn.AddAttribute("httpStatusLevel", "error")
+				txn.AddAttribute("httpStatusMessage", msg)
+				txn.AddAttribute("httpStatusCode", http.StatusText(status))
+			}
+		}
 	}
 }
