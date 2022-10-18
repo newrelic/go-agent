@@ -334,11 +334,11 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //		NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
 //		NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
 //		NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
-//		NEW_RELIC_APPLICATION_LOGGING_ENABLED			  			sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
-//		NEW_RELIC_APPLICATION_LOG_FORWARDING_ENABLED	  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
-//		NEW_RELIC_APPLICATION_LOG_LIMIT					  			sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
-//		NEW_RELIC_APPLICATION_LOG_METRICS_ENABLED		  			sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
-//		NEW_RELIC_APPLICATION_LOG_DECORATING_ENABLED      			sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//		NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
+//	 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
+//	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
+//	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -398,10 +398,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// Application Logging Env Variables
 		assignBool(&cfg.ApplicationLogging.Enabled, "NEW_RELIC_APPLICATION_LOGGING_ENABLED")
-		assignBool(&cfg.ApplicationLogging.Forwarding.Enabled, "NEW_RELIC_APPLICATION_LOG_FORWARDING_ENABLED")
-		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOG_LIMIT")
-		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOG_METRICS_ENABLED")
-		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOG_DECORATING_ENABLED")
+		assignBool(&cfg.ApplicationLogging.Forwarding.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED")
+		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
+		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
+		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
