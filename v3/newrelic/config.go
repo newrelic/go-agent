@@ -812,12 +812,12 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	c.Logger = nil
 
 	js, err := json.Marshal(c)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	fields := make(map[string]interface{})
 	err = json.Unmarshal(js, &fields)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	// The License field is not simply ignored by adding the `json:"-"` tag
