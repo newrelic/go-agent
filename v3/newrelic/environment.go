@@ -45,6 +45,21 @@ func newEnvironment(c *config) environment {
 	}
 }
 
+// indended for testing purposes. This just returns the formatted
+// modules subject to the user's filtering rules.
+func injectDependencyModuleList(c *config, modules []*debug.Module) []string {
+	var modList []string
+
+	if c != nil && c.ModuleDependencyMetrics.Enabled {
+		for _, module := range modules {
+			if module != nil && includeModule(module.Path, c.ModuleDependencyMetrics.IgnoredPrefixes) {
+				modList = append(modList, fmt.Sprintf("%s(%s)", module.Path, module.Version))
+			}
+		}
+	}
+	return modList
+}
+
 func getDependencyModuleList(c *config) []string {
 	var modList []string
 
