@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"runtime"
 	"runtime/debug"
@@ -13,12 +14,12 @@ import (
 
 // environment describes the application's environment.
 type environment struct {
-	NumCPU   int            `env:"runtime.NumCPU"`
-	Compiler string         `env:"runtime.Compiler"`
-	GOARCH   string         `env:"runtime.GOARCH"`
-	GOOS     string         `env:"runtime.GOOS"`
-	Version  string         `env:"runtime.Version"`
-	Modules  []debug.Module `env:"Modules"`
+	NumCPU   int      `env:"runtime.NumCPU"`
+	Compiler string   `env:"runtime.Compiler"`
+	GOARCH   string   `env:"runtime.GOARCH"`
+	GOOS     string   `env:"runtime.GOOS"`
+	Version  string   `env:"runtime.Version"`
+	Modules  []string `env:"Modules"`
 }
 
 var (
@@ -44,15 +45,15 @@ func newEnvironment(c *config) environment {
 	}
 }
 
-func getDependencyModuleList(c *config) []debug.Module {
-	var modList []debug.Module
+func getDependencyModuleList(c *config) []string {
+	var modList []string
 
 	if c != nil && c.ModuleDependencyMetrics.Enabled {
 		info, ok := debug.ReadBuildInfo()
 		if info != nil && ok {
 			for _, module := range info.Deps {
 				if module != nil && includeModule(module.Path, c.ModuleDependencyMetrics.IgnoredPrefixes) {
-					modList = append(modList, *module)
+					modList = append(modList, fmt.Sprintf("%s(%s)", module.Path, module.Version))
 				}
 			}
 		}
