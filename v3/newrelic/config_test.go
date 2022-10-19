@@ -189,7 +189,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
-			"ModuleDependencyMetrics":{"Enabled":false,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -387,7 +387,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"Labels":null,
 			"Logger":null,
-			"ModuleDependencyMetrics":{"Enabled":false,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
