@@ -645,7 +645,7 @@ func defaultConfig() Config {
 	c.CodeLevelMetrics.Scope = AllCLM
 
 	// Module Dependency Metrics
-	c.ModuleDependencyMetrics.Enabled = false
+	c.ModuleDependencyMetrics.Enabled = true
 	return c
 }
 
