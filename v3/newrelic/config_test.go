@@ -148,7 +148,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":false,"RedactPathPrefixes":false,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -189,7 +189,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
-			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -346,7 +346,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":false,"RedactPathPrefixes":false,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -387,7 +387,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"Labels":null,
 			"Logger":null,
-			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":false},
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{

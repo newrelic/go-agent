@@ -642,10 +642,13 @@ func defaultConfig() Config {
 
 	// Code Level Metrics
 	c.CodeLevelMetrics.Enabled = false
+	c.CodeLevelMetrics.RedactPathPrefixes = true
+	c.CodeLevelMetrics.RedactIgnoredPrefixes = true
 	c.CodeLevelMetrics.Scope = AllCLM
 
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
+	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
 	return c
 }
 
