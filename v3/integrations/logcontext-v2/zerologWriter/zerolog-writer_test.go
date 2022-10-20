@@ -164,9 +164,9 @@ func TestParseLogDataEscapes(t *testing.T) {
 			`{"level":"info","message":"escape quote,\",\" hi"}`,
 		},
 		{
-			"escape bracket,\"}\" hi",
+			"escape bracket,\"}\n hi",
 			"info",
-			`{"level":"info","message":"escape bracket,\"}\" hi"}`,
+			`{"level":"info","message":"escape bracket,\"}\n hi"}`,
 		},
 	}
 

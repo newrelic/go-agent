@@ -123,7 +123,7 @@ func getKey(p []byte, indx int) (string, int) {
 }
 
 func isEOL(p []byte, i int) bool {
-	return p[i] == '}' && i+1 < len(p) && p[i+1] == '\n'
+	return p[i] == '}' && i+2 == len(p)
 }
 
 func getStringValue(p []byte, indx int) (string, int) {
