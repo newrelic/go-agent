@@ -233,9 +233,9 @@ func ConfigInfoLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewLogger(w))
 }
 
-// ConfigModuleDependencyMetricsEnable controls whether the agent collects and reports
+// ConfigModuleDependencyMetricsEnabled controls whether the agent collects and reports
 // the list of modules compiled into the instrumented application.
-func ConfigModuleDependencyMetricsEnable(enabled bool) ConfigOption {
+func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.ModuleDependencyMetrics.Enabled = enabled
 	}
@@ -245,7 +245,7 @@ func ConfigModuleDependencyMetricsEnable(enabled bool) ConfigOption {
 // indicating which modules should be excluded from the dependency report.
 func ConfigModuleDependencyMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ModuleDependencyMetrics.IgnoredPrefixes = prefixes
+		cfg.ModuleDependencyMetrics.IgnoredPrefixes = prefix
 	}
 }
 
