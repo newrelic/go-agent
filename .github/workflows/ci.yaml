@@ -52,6 +52,8 @@ jobs:
             dirs: _integrations/nrecho
             pin: github.com/labstack/echo@v3.3.10
           - go-version: 1.13.x
+            dirs: _integrations/nrgin/v1
+          - go-version: 1.13.x
             dirs: _integrations/nrgorilla/v1
           - go-version: 1.13.x
             dirs: _integrations/nrlogrus
