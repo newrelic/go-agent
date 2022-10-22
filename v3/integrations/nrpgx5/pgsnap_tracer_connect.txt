@@ -1,0 +1,16 @@
+F {"Type":"Parse","Name":"stmtcache_8","Query":"INSERT INTO mytable(name) VALUES ($1)","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_8"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[1043]}
+B {"Type":"NoData"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_8","ParameterFormatCodes":[0],"Parameters":[{"text":"myname is"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"INSERT 0 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Terminate"}

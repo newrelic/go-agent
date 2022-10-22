@@ -1,0 +1,96 @@
+F {"Type":"Parse","Name":"stmtcache_1","Query":"SELECT id, name, timestamp FROM mytable LIMIT $1","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_1"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[20]}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":0},{"Name":"name","TableOID":16551,"TableAttributeNumber":2,"DataTypeOID":1043,"DataTypeSize":-1,"TypeModifier":-1,"Format":0},{"Name":"timestamp","TableOID":16551,"TableAttributeNumber":3,"DataTypeOID":1184,"DataTypeSize":8,"TypeModifier":-1,"Format":0}]}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_1","ParameterFormatCodes":[1],"Parameters":[{"binary":"0000000000000002"}],"ResultFormatCodes":[1,0,1]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":1},{"Name":"name","TableOID":16551,"TableAttributeNumber":2,"DataTypeOID":1043,"DataTypeSize":-1,"TypeModifier":-1,"Format":0},{"Name":"timestamp","TableOID":16551,"TableAttributeNumber":3,"DataTypeOID":1184,"DataTypeSize":8,"TypeModifier":-1,"Format":1}]}
+B {"Type":"DataRow","Values":[{"binary":"00000001"},{"text":"Adrian"},{"binary":"00028ec50f7a0c27"}]}
+B {"Type":"DataRow","Values":[{"binary":"00000002"},{"text":"Magdalena"},{"binary":"00028ec50f7a0c27"}]}
+B {"Type":"CommandComplete","CommandTag":"SELECT 2"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_2","Query":"SELECT id, name, timestamp FROM mytable","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_2"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[]}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":0},{"Name":"name","TableOID":16551,"TableAttributeNumber":2,"DataTypeOID":1043,"DataTypeSize":-1,"TypeModifier":-1,"Format":0},{"Name":"timestamp","TableOID":16551,"TableAttributeNumber":3,"DataTypeOID":1184,"DataTypeSize":8,"TypeModifier":-1,"Format":0}]}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_2","ParameterFormatCodes":null,"Parameters":[],"ResultFormatCodes":[1,0,1]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":1},{"Name":"name","TableOID":16551,"TableAttributeNumber":2,"DataTypeOID":1043,"DataTypeSize":-1,"TypeModifier":-1,"Format":0},{"Name":"timestamp","TableOID":16551,"TableAttributeNumber":3,"DataTypeOID":1184,"DataTypeSize":8,"TypeModifier":-1,"Format":1}]}
+B {"Type":"DataRow","Values":[{"binary":"00000001"},{"text":"Adrian"},{"binary":"00028ec50f7a0c27"}]}
+B {"Type":"DataRow","Values":[{"binary":"00000002"},{"text":"Magdalena"},{"binary":"00028ec50f7a0c27"}]}
+B {"Type":"DataRow","Values":[{"binary":"00000003"},{"text":"Someone"},{"binary":"00028ec50f7a0c27"}]}
+B {"Type":"CommandComplete","CommandTag":"SELECT 3"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_3","Query":"INSERT INTO mytable(name) VALUES ($1)","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_3"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[1043]}
+B {"Type":"NoData"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_3","ParameterFormatCodes":[0],"Parameters":[{"text":"myname is"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"INSERT 0 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_4","Query":"UPDATE mytable set name = $2 WHERE id = $1","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_4"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[23,1043]}
+B {"Type":"NoData"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_4","ParameterFormatCodes":[1,0],"Parameters":[{"binary":"00000001"},{"text":"myname is"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"UPDATE 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_5","Query":"DELETE FROM mytable WHERE id = $1","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_5"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[23]}
+B {"Type":"NoData"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_5","ParameterFormatCodes":[1],"Parameters":[{"binary":"00000004"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"DELETE 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Query","String":"SELECT 1"}
+B {"Type":"RowDescription","Fields":[{"Name":"?column?","TableOID":0,"TableAttributeNumber":0,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":0}]}
+B {"Type":"DataRow","Values":[{"text":"1"}]}
+B {"Type":"CommandComplete","CommandTag":"SELECT 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_6","Query":"SELECT * FROM non_existent_table","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_6"}
+F {"Type":"Sync"}
+B {"Type":"ErrorResponse","Severity":"ERROR","SeverityUnlocalized":"ERROR","Code":"42P01","Message":"relation \"non_existent_table\" does not exist","Detail":"","Hint":"","Position":15,"InternalPosition":0,"InternalQuery":"","Where":"","SchemaName":"","TableName":"","ColumnName":"","DataTypeName":"","ConstraintName":"","File":"parse_relation.c","Line":1384,"Routine":"parserOpenTable","UnknownFields":null}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Parse","Name":"stmtcache_7","Query":"INSERT INTO non_existent_table(name) VALUES ($1)","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_7"}
+F {"Type":"Sync"}
+B {"Type":"ErrorResponse","Severity":"ERROR","SeverityUnlocalized":"ERROR","Code":"42P01","Message":"relation \"non_existent_table\" does not exist","Detail":"","Hint":"","Position":13,"InternalPosition":0,"InternalQuery":"","Where":"","SchemaName":"","TableName":"","ColumnName":"","DataTypeName":"","ConstraintName":"","File":"parse_relation.c","Line":1384,"Routine":"parserOpenTable","UnknownFields":null}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Terminate"}
