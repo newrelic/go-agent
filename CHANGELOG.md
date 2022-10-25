@@ -1,3 +1,30 @@
+## 3.20.0
+
+### Added
+* The Module Dependency Metrics feature was added. This collects the list of modules imported into your application, to aid in management of your application dependencies, enabling easier vulnerability detection and response, etc.
+   * This feature is enabled by default, but may be disabled by explicitly including `ConfigModuleDependencyMetricsEnable(false)` in your application, or setting the equivalent environment variable or `Config` field direclty.
+   * Modules may be explicitly excluded from the report via the `ConfigModuleDependencyMetricsIgnoredPrefixes` option.
+   * Excluded module names may be redacted via the `ConfigModuleDependencyMetricsRedactIgnoredPrefixes` option. This is enabled by default.
+
+### Changed
+* Changed the following names to be consistent with their usage and other related identifier names. The old names remain for backward compatibility, but new code should use the new names.
+   * `ConfigCodeLevelMetricsIgnoredPrefix` -> `ConfigCodeLevelMetricsIgnoredPrefixes`
+   * `ConfigCodeLevelMetricsPathPrefix` -> `ConfigCodeLevelMetricsPathPrefixes`
+   * `NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX` -> `NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIXES`
+   * `NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX` -> `NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIXES`
+
+* When excluding information reported from CodeLevelMetrics via the `IgnoredPrefixes` or `PathPrefixes` configuration fields (e.g., by specifying `ConfigCodeLevelMetricsIgnoredPrefixes` or `ConfigCodeLevelMetricsPathPrefixes`), the names of the ignored prefixes and the configured path prefixes may now be redacted from the agent configuration information sent to New Relic.
+   * This redaction is enabled by default, but may be disabled by supplying a `false` value to `ConfigCodeLevelMetricsRedactPathPrefixes` or `ConfigCodeLevelMetricsRedactIgnoredPrefixes`, or by setting the corresponding `Config` fields or environment variables to `false`.
+
+### Fixed
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.19.2
 
 ### Changed
