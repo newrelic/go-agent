@@ -1,10 +1,23 @@
 ## 3.20.0
 
+**PLEASE READ** this changelog carefully before upgrading to this version of the go agent. There are a few notable default behaviors that have been changed, and may result in an unexpected increase in the data collected from your application if not payed attention to.
+
 ### Added
 * The Module Dependency Metrics feature was added. This collects the list of modules imported into your application, to aid in management of your application dependencies, enabling easier vulnerability detection and response, etc.
    * This feature is enabled by default, but may be disabled by explicitly including `ConfigModuleDependencyMetricsEnable(false)` in your application, or setting the equivalent environment variable or `Config` field direclty.
    * Modules may be explicitly excluded from the report via the `ConfigModuleDependencyMetricsIgnoredPrefixes` option.
    * Excluded module names may be redacted via the `ConfigModuleDependencyMetricsRedactIgnoredPrefixes` option. This is enabled by default.
+* Application Log Forwarding will now be **ENABLED** by default
+   * In order to make the application log forwarding exeperience feel as automatic as possible, log forwarding has been enabled by default in the go agent. This means that in order to use application log forwarding, you no longer need to modify any config options in your application, you just need to set up a logcontext-v2 plugin with your logger of choice. This can be disabled by setting `ConfigAppLogForwardingEnabled(false)` in your application. This can also be disabled in the New Relic UI by following [this](https://docs.newrelic.com/docs/logs/logs-context/disable-automatic-logging/#solution) documentation. If you are using a logcontext-v2 extension, but are choosing to forward your logs manually, please be sure to disable application log forwarding when you upgrade.
+   * Environment variables have been added for all application logging config options:
+   	* `NEW_RELIC_APPLICATION_LOGGING_ENABLED`
+	* `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED`
+	* `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED`
+	* `NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED`
+	* `NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED`
+* Custom Event Limit Increase
+   * This version increases the **DEFAULT** limit of custom events from 10,000 events per minute to 30,000 events per minute. In the scenario that custom events were being limited, this change will allow more custom events to be sent to New Relic. There is also a new configurable maximum limit of 100,000 events per minute. To change the limits, set `ConfigCustomInsightsEventsMaxSamplesStored(limit)` to the limit you want in your application. To learn more about the change and how to determine if custom events are being dropped, see our Explorers Hub [post](https://discuss.newrelic.com/t/send-more-custom-events-with-the-latest-apm-agents/190497).
+   * New config option `ConfigCustomInsightsEventsEnabled(false)` can be used to disable the collection of custom events in your application.
 
 ### Changed
 * Changed the following names to be consistent with their usage and other related identifier names. The old names remain for backward compatibility, but new code should use the new names.
@@ -17,6 +30,7 @@
    * This redaction is enabled by default, but may be disabled by supplying a `false` value to `ConfigCodeLevelMetricsRedactPathPrefixes` or `ConfigCodeLevelMetricsRedactIgnoredPrefixes`, or by setting the corresponding `Config` fields or environment variables to `false`.
 
 ### Fixed
+* [#583](https://github.com/newrelic/go-agent/issues/583): fixed a bug in zerologWriter where comma separated fields in log message confused the JSON parser and could cause panics.
 
 ### Support Statement
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
