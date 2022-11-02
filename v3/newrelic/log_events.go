@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
+	"github.com/newrelic/go-agent/v3/internal/logcontext"
 )
 
 type commonAttributes struct {
@@ -145,7 +146,7 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 		return nil, nil
 	}
 
-	estimate := averageLogSizeEstimate * len(events.logs)
+	estimate := logcontext.AverageLogSizeEstimate * len(events.logs)
 	buf := bytes.NewBuffer(make([]byte, 0, estimate))
 
 	if events.numSeen == 0 {

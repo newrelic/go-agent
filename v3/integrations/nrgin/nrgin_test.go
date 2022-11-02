@@ -45,8 +45,9 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  txnName,
-		IsWeb: true,
+		Name:          txnName,
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -72,8 +73,9 @@ func TestRouterGroup(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  txnName,
-		IsWeb: true,
+		Name:          txnName,
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -100,8 +102,9 @@ func TestAnonymousHandler(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  txnName,
-		IsWeb: true,
+		Name:          txnName,
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -139,9 +142,11 @@ func TestMultipleWriteHeader(t *testing.T) {
 	}
 	// Error metrics test the 500 response code capture.
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          txnName,
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -175,9 +180,11 @@ func TestContextTransaction(t *testing.T) {
 		t.Error("wrong response code", response.Code)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      txnName,
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          txnName,
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -264,6 +271,11 @@ func TestStatusCodes(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"name":             txnName,
 			"nr.apdexPerfZone": internal.MatchAnything,
+			"sampled":          false,
+			// Note: "*" is a wildcard value
+			"guid":     "*",
+			"traceId":  "*",
+			"priority": "*",
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
@@ -313,7 +325,13 @@ func TestNoResponseBody(t *testing.T) {
 		Intrinsics: map[string]interface{}{
 			"name":             txnName,
 			"nr.apdexPerfZone": internal.MatchAnything,
+			"sampled":          false,
+			// Note: "*" is a wildcard value
+			"guid":     "*",
+			"traceId":  "*",
+			"priority": "*",
 		},
+
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
 			"httpResponseCode": expectCode,
@@ -346,8 +364,9 @@ func TestRouteWithParams(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  txnName,
-		IsWeb: true,
+		Name:          txnName,
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -369,7 +388,8 @@ func TestMiddlewareOldNaming(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  txnName,
-		IsWeb: true,
+		Name:          txnName,
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }

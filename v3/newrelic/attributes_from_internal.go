@@ -52,6 +52,10 @@ var (
 		AttributeMessageExchangeType:        destNone,
 		AttributeMessageReplyTo:             destNone,
 		AttributeMessageCorrelationID:       destNone,
+		AttributeCodeFunction:               usualDests,
+		AttributeCodeNamespace:              usualDests,
+		AttributeCodeFilepath:               usualDests,
+		AttributeCodeLineno:                 usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,
@@ -263,11 +267,21 @@ func (a *attributes) GetAgentValue(id string, d destinationSet) (string, interfa
 // otherVal should be populated.  Since most agent attribute values are strings,
 // stringVal exists to avoid allocations.
 func (attr agentAttributes) Add(id string, stringVal string, otherVal interface{}) {
-	if "" != stringVal || otherVal != nil {
+	if stringVal != "" || otherVal != nil {
 		attr[id] = agentAttributeValue{
 			stringVal: truncateStringValueIfLong(stringVal),
 			otherVal:  otherVal,
 		}
+	}
+}
+
+//
+// Remove is used to remove agent attributes.
+// It is not an error if the attribute wasn't present to begin with.
+//
+func (attr agentAttributes) Remove(id string) {
+	if _, ok := attr[id]; ok {
+		delete(attr, id)
 	}
 }
 

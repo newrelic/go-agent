@@ -34,6 +34,7 @@ func newTestLogger(out io.Writer) *logrus.Logger {
 }
 
 func validateOutput(t *testing.T, out *bytes.Buffer, expected map[string]interface{}) {
+
 	var actual map[string]interface{}
 	if err := json.Unmarshal(out.Bytes(), &actual); nil != err {
 		t.Fatal("failed to unmarshal log output:", err)
@@ -151,6 +152,7 @@ func TestLogDistributedTracingDisabled(t *testing.T) {
 		"message":     "Hello World!",
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
+		"trace.id":    matchAnything,
 	})
 }
 
@@ -286,6 +288,7 @@ func TestEntryError(t *testing.T) {
 		"message":     "Hello World!",
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
+		"trace.id":    matchAnything,
 	})
 }
 
@@ -307,6 +310,7 @@ func TestWithCustomField(t *testing.T) {
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
 		"zip":         "zap",
+		"trace.id":    matchAnything,
 	})
 }
 

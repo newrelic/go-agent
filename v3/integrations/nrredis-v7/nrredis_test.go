@@ -43,6 +43,8 @@ func TestPing(t *testing.T) {
 		{Name: "Datastore/Redis/all", Forced: nil},
 		{Name: "Datastore/Redis/allOther", Forced: nil},
 		{Name: "Datastore/operation/Redis/ping", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Forced: nil},
 		{Name: "Datastore/operation/Redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
 	})
 }
@@ -74,6 +76,8 @@ func TestPingWithOptionsAndAddress(t *testing.T) {
 		{Name: "Datastore/instance/Redis/myhost/myport", Forced: nil},
 		{Name: "Datastore/operation/Redis/ping", Forced: nil},
 		{Name: "Datastore/operation/Redis/ping", Scope: "OtherTransaction/Go/txnName", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Forced: nil},
 	})
 }
 

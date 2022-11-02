@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func init() { internal.TrackUsage("integration", "logcontext", "zerolog") }
+func init() { internal.TrackUsage("integration", "logcontext-v2", "zerolog") }
 
 type NewRelicHook struct {
 	App     *newrelic.Application
@@ -22,9 +22,7 @@ func (h NewRelicHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	}
 
 	logLevel := ""
-	if level == zerolog.NoLevel {
-		logLevel = newrelic.LogSeverityUnknown
-	} else {
+	if level != zerolog.NoLevel {
 		logLevel = level.String()
 	}
 

@@ -6,6 +6,9 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal/logcontext"
+	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 )
 
 func TestWriteJSON(t *testing.T) {
@@ -179,7 +182,7 @@ func BenchmarkWriteJSON(b *testing.B) {
 	data := LogData{
 		Timestamp: 123456,
 		Severity:  "INFO",
-		Message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytese.",
+		Message:   "This is a log message that represents an estimate for how long the average log message is. The average log payload is 700 bytes.",
 	}
 
 	event, err := data.toLogEvent()
@@ -187,12 +190,126 @@ func BenchmarkWriteJSON(b *testing.B) {
 		b.Fail()
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 0, averageLogSizeEstimate))
+	buf := bytes.NewBuffer(make([]byte, 0, logcontext.AverageLogSizeEstimate))
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		event.WriteJSON(buf)
+	}
+}
+
+var (
+	host, _ = sysinfo.Hostname()
+)
+
+func TestEnrichLogFromApp(t *testing.T) {
+	testApp := newTestApp(
+		sampleEverythingReplyFn,
+		func(cfg *Config) {
+			cfg.Enabled = false
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.LocalDecorating.Enabled = true
+		},
+	)
+	buf := bytes.NewBuffer([]byte{})
+	EnrichLog(buf, FromApp(testApp.Application))
+
+	state, err := testApp.app.getState()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		Hostname:   host,
+		EntityGUID: state.Reply.EntityGUID,
+		EntityName: testApp.app.config.AppName,
+	})
+}
+
+func TestEnrichLogFromAppDisabled(t *testing.T) {
+	testApp := newTestApp(
+		sampleEverythingReplyFn,
+		func(cfg *Config) {
+			cfg.Enabled = false
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.LocalDecorating.Enabled = false
+		},
+	)
+	buf := bytes.NewBuffer([]byte{})
+	EnrichLog(buf, FromApp(testApp.Application))
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		DecorationDisabled: true,
+	})
+}
+
+func TestEnrichLogFromTxn(t *testing.T) {
+	testApp := newTestApp(
+		sampleEverythingReplyFn,
+		func(cfg *Config) {
+			cfg.Enabled = false
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.LocalDecorating.Enabled = true
+		},
+	)
+	buf := bytes.NewBuffer([]byte{})
+	txn := testApp.Application.StartTransaction("test transaction")
+	defer txn.End()
+	EnrichLog(buf, FromTxn(txn))
+
+	state, err := testApp.app.getState()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		Hostname:   host,
+		EntityGUID: state.Reply.EntityGUID,
+		EntityName: testApp.app.config.AppName,
+		TraceID:    txn.GetLinkingMetadata().TraceID,
+		SpanID:     txn.GetLinkingMetadata().SpanID,
+	})
+}
+
+func TestEnrichLogFromTxnDisabled(t *testing.T) {
+	testApp := newTestApp(
+		sampleEverythingReplyFn,
+		func(cfg *Config) {
+			cfg.Enabled = false
+			cfg.ApplicationLogging.Enabled = true
+			cfg.ApplicationLogging.Forwarding.Enabled = false
+			cfg.ApplicationLogging.LocalDecorating.Enabled = false
+		},
+	)
+	buf := bytes.NewBuffer([]byte{})
+	txn := testApp.Application.StartTransaction("test transaction")
+	defer txn.End()
+	EnrichLog(buf, FromTxn(txn))
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		DecorationDisabled: true,
+	})
+}
+
+func BenchmarkAppendLinkingMetadata(b *testing.B) {
+	buf := bytes.NewBuffer([]byte("test log message"))
+	md := linkingMetadata{
+		traceID:    "testTraceID",
+		spanID:     "testSpanID",
+		entityGUID: "testEntityGUID",
+		hostname:   "testHostname",
+		entityName: "testEntityName",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for n := 0; n < b.N; n++ {
+		md.appendLinkingMetadata(buf)
 	}
 }

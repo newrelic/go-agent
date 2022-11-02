@@ -131,10 +131,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"ApplicationLogging": {
-				"Enabled":true,
+				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
+				},
+				"LocalDecorating":{
+					"Enabled": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -145,6 +148,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -185,6 +189,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -236,11 +241,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"high_security":false,
 		"labels":[{"label_type":"zip","label_value":"zap"}],
 		"environment":[
+			["runtime.NumCPU",8],
 			["runtime.Compiler","comp"],
 			["runtime.GOARCH","arch"],
 			["runtime.GOOS","goos"],
 			["runtime.Version","vers"],
-			["runtime.NumCPU",8]
+			["Modules", null]
 		],
 		"identifier":"my appname",
 		"utilization":{
@@ -296,6 +302,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	}
 	out := standardizeNumbers(string(js))
 	if out != expect {
+		t.Error(expect)
 		t.Error(out)
 	}
 }
@@ -320,8 +327,11 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"ApplicationLogging": {
 				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
+				},
+				"LocalDecorating":{
+					"Enabled": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -336,6 +346,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -376,6 +387,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"Labels":null,
 			"Logger":null,
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -424,11 +436,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"app_name":["my appname"],
 		"high_security":false,
 		"environment":[
+			["runtime.NumCPU",8],
 			["runtime.Compiler","comp"],
 			["runtime.GOARCH","arch"],
 			["runtime.GOOS","goos"],
 			["runtime.Version","vers"],
-			["runtime.NumCPU",8]
+			["Modules", null]
 		],
 		"identifier":"my appname",
 		"utilization":{
@@ -812,5 +825,101 @@ func TestConfigurableMaxCustomEvents(t *testing.T) {
 	result := cfg.maxCustomEvents()
 	if result != expected {
 		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
+	}
+}
+
+func TestCLMScopeLabels(t *testing.T) {
+	for i, tc := range []struct {
+		L  []string
+		LL string
+		V  CodeLevelMetricsScope
+		OK bool
+	}{
+		{V: AllCLM, OK: true},
+		{L: []string{"all"}, LL: "all", V: AllCLM, OK: true},
+		{L: []string{"transactions"}, LL: "transactions", V: TransactionCLM, OK: true},
+		{L: []string{"transaction"}, LL: "transaction", V: TransactionCLM, OK: true},
+		{L: []string{"txn"}, LL: "txn", V: TransactionCLM, OK: true},
+		{L: []string{"all", "txn"}, LL: "all,txn", V: AllCLM, OK: true},
+		{L: []string{"undefined"}, LL: "undefined", OK: false},
+	} {
+		s, ok := CodeLevelMetricsScopeLabelToValue(tc.L...)
+		if ok != tc.OK {
+			t.Errorf("#%d for \"%v\" expected ok=%v", i, tc.L, tc.OK)
+		}
+		if s != tc.V {
+			t.Errorf("#%d for \"%v\" expected output %v, but got %v", i, tc.L, tc.V, s)
+		}
+
+		ss, ok := CodeLevelMetricsScopeLabelListToValue(tc.LL)
+		if ok != tc.OK {
+			t.Errorf("#%d for \"%v\" expected ok=%v", i, tc.L, tc.OK)
+		}
+		if ss != tc.V {
+			t.Errorf("#%d for \"%v\" expected output %v, but got %v", i, tc.L, tc.V, ss)
+		}
+	}
+}
+
+func TestCLMJsonMarshalling(t *testing.T) {
+	var s CodeLevelMetricsScope
+
+	for i, tc := range []struct {
+		S CodeLevelMetricsScope
+		J string
+		E bool
+	}{
+		{S: AllCLM, J: `"all"`},
+		{S: TransactionCLM, J: `"transaction"`},
+		{S: 0x500, E: true},
+	} {
+		s = tc.S
+		j, err := json.Marshal(s)
+		if err != nil {
+			if !tc.E {
+				t.Errorf("#%d generated unexpected error %v", i, err)
+			}
+		} else {
+			if tc.E {
+				t.Errorf("#%d was supposed to generate an error but didn't", i)
+			}
+			if tc.J != string(j) {
+				t.Errorf("#%d expected \"%v\" but got \"%v\"", i, tc.J, string(j))
+			}
+		}
+	}
+}
+
+func TestCLMJsonUnmarshalling(t *testing.T) {
+	var s CodeLevelMetricsScope
+
+	for i, tc := range []struct {
+		S CodeLevelMetricsScope
+		J string
+		E bool
+	}{
+		{S: AllCLM, J: `"all"`},
+		{S: TransactionCLM, J: `"transaction"`},
+		{S: TransactionCLM, J: `"transaction,"`},
+		{S: TransactionCLM, J: `"transaction,txn"`},
+		{S: AllCLM, J: `"transaction,all,txn"`},
+		{S: AllCLM, J: `""`},
+		{S: AllCLM, J: `null`},
+		{S: AllCLM, J: `"blorfl"`, E: true},
+	} {
+		err := json.Unmarshal([]byte(tc.J), &s)
+
+		if err != nil {
+			if !tc.E {
+				t.Errorf("#%d generated unexpected error %v", i, err)
+			}
+		} else {
+			if tc.E {
+				t.Errorf("#%d was supposed to generate an error but didn't", i)
+			}
+			if tc.S != s {
+				t.Errorf("#%d expected \"%v\" but got \"%v\"", i, tc.S, s)
+			}
+		}
 	}
 }

@@ -352,6 +352,169 @@ type Config struct {
 	// to indicate that setup has failed.  NewApplication will return this
 	// error if it is set.
 	Error error
+
+	// CodeLevelMetrics contains fields which control the collection and reporting
+	// of source code context information associated with telemetry data.
+	CodeLevelMetrics struct {
+		// Enabling CodeLevelMetrics will include source code context information
+		// as attributes. If this is disabled, no such metrics will be collected
+		// or reported.
+		Enabled bool
+		// RedactPathPrefixes, if true, will redact a non-nil list of PathPrefixes
+		// from the configuration data transmitted by the agent.
+		RedactPathPrefixes bool
+		// RedactIgnoredPrefixes, if true, will redact a non-nil list of IgnoredPrefixes
+		// from the configuration data transmitted by the agent.
+		RedactIgnoredPrefixes bool
+		// Scope is a combination of CodeLevelMetricsScope values OR-ed together
+		// to indicate which specific kinds of events will carry CodeLevelMetrics
+		// data. This allows the agent to spend resources on discovering the source
+		// code context data only where actually needed.
+		Scope CodeLevelMetricsScope
+		// PathPrefixes specifies a slice of filename patterns that describe the start of
+		// the project area. Any text before any of these patterns is ignored. Thus, if
+		// PathPrefixes is set to ["myproject/src", "otherproject/src"], then a function located in a file
+		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+		// pathname "myproject/src/foo.go". If this value is nil, the full path
+		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		// The first string in the slice which is found in a file pathname will be the one
+		// used to truncate that filename; if none of the strings in PathPrefixes are found
+		// anywhere in a file's pathname, the full path will be reported.
+		PathPrefixes []string
+		// PathPrefix specifies the filename pattern that describes the start of
+		// the project area. Any text before this pattern is ignored. Thus, if
+		// PathPrefix is set to "myproject/src", then a function located in a file
+		// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+		// pathname "myproject/src/foo.go". If this value is empty, the full path
+		// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+		//
+		// Deprecated: new code should use PathPrefixes instead (or better yet,
+		// use the ConfigCodeLevelMetricsPathPrefix option, which accepts any number
+		// of string parameters for backwards compatibility).
+		PathPrefix string
+		// IgnoredPrefix holds a single module path prefix to ignore when searching
+		// to find the calling function to be reported.
+		//
+		// Deprecated: new code should use IgnoredPrefixes instead (or better yet,
+		// use the ConfigCodeLevelMetricsIgnoredPrefix option, which accepts any number
+		// of string parameters for backwards compatibility).
+		IgnoredPrefix string
+		// IgnoredPrefixes specifies a slice of initial patterns to look for in fully-qualified
+		// function names to determine which functions to ignore while searching up
+		// through the call stack to find the application function to associate
+		// with telemetry data. The agent will look for the innermost caller whose name
+		// does not begin with one of these prefixes. If empty, it will ignore functions whose
+		// names look like they are internal to the agent itself.
+		IgnoredPrefixes []string
+	}
+
+	// ModuleDependencyMetrics controls reporting of the packages used to build the instrumented
+	// application, to help manage project dependencies.
+	ModuleDependencyMetrics struct {
+		// Enabled controls whether the module dependencies are collected and reported.
+		Enabled bool
+		// RedactIgnoredPrefixes, if true, redacts a non-nil list of IgnoredPrefixes from
+		// the configuration data transmitted by the agent.
+		RedactIgnoredPrefixes bool
+		// IgnoredPrefixes is a list of module path prefixes. Any module whose import pathname
+		// begins with one of these prefixes is excluded from the dependency reporting.
+		// This list of ignored prefixes itself is not reported outside the agent.
+		IgnoredPrefixes []string
+	}
+}
+
+// CodeLevelMetricsScope is a bit-encoded value. Each such value describes
+// a trace type for which code-level metrics are to be collected and
+// reported.
+type CodeLevelMetricsScope uint32
+
+// These constants specify the types of telemetry data to which we will
+// attach code level metric data.
+//
+// Currently, this includes
+//
+//	TransactionCLM            any kind of transaction
+//	AllCLM                    all kinds of telemetry data for which CLM is implemented (the default)
+//
+// The zero value of CodeLevelMetricsScope means "all types" as a convenience so that
+// new variables of this type provide the default expected behavior
+// rather than, say, turning off all code level metrics as a 0 bit value would otherwise imply.
+// Otherwise the numeric values of these constants are not to be relied
+// upon and are subject to change. Only use the named constant identifiers in
+// your code. We do not recommend saving the raw numeric value of these constants
+// to use later.
+const (
+	TransactionCLM CodeLevelMetricsScope = 1 << iota
+	AllCLM         CodeLevelMetricsScope = 0
+)
+
+// CodeLevelMetricsScopeLabelToValue accepts a number of string values representing
+// the possible scope restrictions available for the agent, returning the
+// CodeLevelMetricsScope value which represents the combination of all of the given
+// labels. This value is suitable to be presented to ConfigCodeLevelMetricsScope.
+//
+// It also returns a boolean flag; if true, it was able to understand all of the
+// provided labels; otherwise, one or more of the values were not recognized and
+// thus the returned CodeLevelMetricsScope value may be incomplete (although it
+// will represent any valid label strings passed, if any).
+//
+// Currently, this function recognizes the following labels:
+//
+//	for AllCLM: "all" (if this value appears anywhere in the list of strings, AllCLM will be returned)
+//	for TransactionCLM: "transaction", "transactions", "txn"
+func CodeLevelMetricsScopeLabelToValue(labels ...string) (CodeLevelMetricsScope, bool) {
+	var scope CodeLevelMetricsScope
+	ok := true
+
+	for _, label := range labels {
+		switch label {
+		case "":
+
+		case "all":
+			return AllCLM, true
+
+		case "transaction", "transactions", "txn":
+			scope |= TransactionCLM
+
+		default:
+			ok = false
+		}
+	}
+	return scope, ok
+}
+
+// UnmarshalText allows for a CodeLevelMetricsScope value to be read from a JSON
+// string (or other text encodings) whose value is a comma-separated list of scope labels.
+func (s *CodeLevelMetricsScope) UnmarshalText(b []byte) error {
+	var ok bool
+
+	if *s, ok = CodeLevelMetricsScopeLabelListToValue(string(b)); !ok {
+		return fmt.Errorf("invalid code level metrics scope label value")
+	}
+
+	return nil
+}
+
+// MarshalText allows for a CodeLevelMetrics value to be encoded into JSON strings and other
+// text encodings.
+func (s CodeLevelMetricsScope) MarshalText() ([]byte, error) {
+	if s == 0 || s == AllCLM {
+		return []byte("all"), nil
+	}
+
+	if (s & TransactionCLM) != 0 {
+		return []byte("transaction"), nil
+	}
+
+	return nil, fmt.Errorf("unrecognized bit pattern in CodeLevelMetricsScope value")
+}
+
+// CodeLevelMetricsScopeLabelListToValue is a convenience function which
+// is like CodeLevelMetricsScopeLabeltoValue except that it takes a single
+// string which contains comma-separated values instead of an already-broken-out
+// set of individual label strings.
+func CodeLevelMetricsScopeLabelListToValue(labels string) (CodeLevelMetricsScope, bool) {
+	return CodeLevelMetricsScopeLabelToValue(strings.Split(labels, ",")...)
 }
 
 // ApplicationLogging contains settings which control the capture and sending
@@ -373,6 +536,10 @@ type ApplicationLogging struct {
 	Metrics struct {
 		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
 		// Logging Metrics used in the Logs chart on the APM Summary page.
+		Enabled bool
+	}
+	LocalDecorating struct {
+		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
 }
@@ -443,9 +610,10 @@ func defaultConfig() Config {
 
 	// Application Logging Settings
 	c.ApplicationLogging.Enabled = true
-	c.ApplicationLogging.Forwarding.Enabled = false
+	c.ApplicationLogging.Forwarding.Enabled = true
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
+	c.ApplicationLogging.LocalDecorating.Enabled = false
 
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
@@ -472,6 +640,15 @@ func defaultConfig() Config {
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
+	// Code Level Metrics
+	c.CodeLevelMetrics.Enabled = false
+	c.CodeLevelMetrics.RedactPathPrefixes = true
+	c.CodeLevelMetrics.RedactIgnoredPrefixes = true
+	c.CodeLevelMetrics.Scope = AllCLM
+
+	// Module Dependency Metrics
+	c.ModuleDependencyMetrics.Enabled = true
+	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
 	return c
 }
 
@@ -638,12 +815,12 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	c.Logger = nil
 
 	js, err := json.Marshal(c)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	fields := make(map[string]interface{})
 	err = json.Unmarshal(js, &fields)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	// The License field is not simply ignored by adding the `json:"-"` tag
@@ -655,6 +832,28 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	// Browser monitoring support.
 	if c.BrowserMonitoring.Enabled {
 		fields[`browser_monitoring.loader`] = "rum"
+	}
+
+	// Protect privacy for restricted fields
+	if clmConfig, ok := fields["CodeLevelMetrics"]; ok {
+		if clmMap, ok := clmConfig.(map[string]interface{}); ok {
+			if c.CodeLevelMetrics.RedactIgnoredPrefixes && c.CodeLevelMetrics.IgnoredPrefixes != nil {
+				delete(clmMap, "IgnoredPrefixes")
+				delete(clmMap, "IgnoredPrefix")
+			}
+			if c.CodeLevelMetrics.RedactPathPrefixes && c.CodeLevelMetrics.PathPrefixes != nil {
+				delete(clmMap, "PathPrefixes")
+				delete(clmMap, "PathPrefix")
+			}
+		}
+	}
+
+	if mdmConfig, ok := fields["ModuleDependencyMetrics"]; ok {
+		if mdmMap, ok := mdmConfig.(map[string]interface{}); ok {
+			if c.ModuleDependencyMetrics.RedactIgnoredPrefixes && c.ModuleDependencyMetrics.IgnoredPrefixes != nil {
+				delete(mdmMap, "IgnoredPrefixes")
+			}
+		}
 	}
 
 	return json.Marshal(fields)
@@ -809,7 +1008,7 @@ func newInternalConfig(cfg Config, getenv func(string) string, environ []string)
 }
 
 func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) ([]byte, error) {
-	env := newEnvironment()
+	env := newEnvironment(&c)
 	util := utilization.Gather(utilization.Config{
 		DetectAWS:         c.Utilization.DetectAWS,
 		DetectAzure:       c.Utilization.DetectAzure,

@@ -45,6 +45,14 @@ func TestConfigFromEnvironment(t *testing.T) {
 			return "456"
 		case "NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE":
 			return "98765"
+		case "NEW_RELIC_CODE_LEVEL_METRICS_SCOPE":
+			return "all"
+		case "NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX":
+			return "/foo/bar,/spam/spam/spam/frotz"
+		case "NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX":
+			return "/a/b,/c/d"
+		case "NEW_RELIC_APPLICATION_LOGGING_ENABLED":
+			return "false"
 		}
 		return ""
 	})
@@ -66,12 +74,20 @@ func TestConfigFromEnvironment(t *testing.T) {
 	expect.InfiniteTracing.TraceObserver.Host = "myhost.com"
 	expect.InfiniteTracing.TraceObserver.Port = 456
 	expect.InfiniteTracing.SpanEvents.QueueSize = 98765
+	expect.CodeLevelMetrics.Scope = AllCLM
+	expect.CodeLevelMetrics.PathPrefixes = []string{"/foo/bar", "/spam/spam/spam/frotz"}
+	expect.CodeLevelMetrics.IgnoredPrefixes = []string{"/a/b", "/c/d"}
+
+	expect.ApplicationLogging.Enabled = false
+	expect.ApplicationLogging.Forwarding.Enabled = true
+	expect.ApplicationLogging.Metrics.Enabled = true
+	expect.ApplicationLogging.LocalDecorating.Enabled = false
 
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
 
 	if !reflect.DeepEqual(expect, cfg) {
-		t.Error(cfg)
+		t.Errorf("%+v", cfg)
 	}
 }
 

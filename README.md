@@ -14,7 +14,7 @@ Go is a compiled language, and doesn’t use a virtual machine. This means that 
 
 ### Compatibility and Requirements
 
-For the latest version of the agent, Go 1.7+ is required, due to the use of `context.Context`.
+For the latest version of the agent, Go 1.17+ is required.
 
 Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
@@ -101,13 +101,21 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
 
-#### Logging
+#### Agent Logging
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
 | [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
 | [uber-go/zap](https://github.com/uber-go/zap) | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap) | Send agent log messages to Zap |
+
+#### Logs in Context
+
+| Project | Integration Package |  |
+| ------------- | ------------- | - |
+| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/logcontext-v2/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus) | Send data collected from Logrus log messages to New Relic |
+| [log](https://pkg.go.dev/log) | [v3/integrations/logcontext-v2/logWriter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/logcontext-v2/logWriter) | Send data collected from the standard library logger log messages to New Relic |
+| [rs/zerolog](https://github.com/rs/zerolog) | [v3/integrations/logcontext-v2/zerologWriter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/logcontext-v2/zerologWriter) | Send data collected from zerolog log messages to New Relic |
 
 #### AWS
 

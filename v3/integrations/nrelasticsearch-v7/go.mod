@@ -5,6 +5,6 @@ module github.com/newrelic/go-agent/v3/integrations/nrelasticsearch-v7
 go 1.11
 
 require (
-	github.com/elastic/go-elasticsearch/v7 v7.5.0
-	github.com/newrelic/go-agent/v3 v3.0.0
+	github.com/elastic/go-elasticsearch/v7 v7.17.0
+	github.com/newrelic/go-agent/v3 v3.17.0
 )

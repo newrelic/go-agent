@@ -266,7 +266,7 @@ const (
 )
 
 // MockConnectReplyEventLimits sets up a mock connect reply to test event limits
-// Currently only verifies custom insights events
+// currently only verifies custom insights events
 func (r *ConnectReply) MockConnectReplyEventLimits(limits *RequestEventLimits) {
 	r.SetSampleEverything()
 

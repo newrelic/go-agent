@@ -28,12 +28,43 @@ import (
 //	}
 //
 // The WrapHandle function is safe to call if app is nil.
-func WrapHandle(app *Application, pattern string, handler http.Handler) (string, http.Handler) {
+//
+// WrapHandle accepts zero or more TraceOption functions to allow additional options to be
+// manually added to the transaction trace generated, in the same fashion as StartTransaction
+// does. For example, this can be used to control code level metrics generated for this transaction.
+func WrapHandle(app *Application, pattern string, handler http.Handler, options ...TraceOption) (string, http.Handler) {
 	if app == nil {
 		return pattern, handler
 	}
+
+	// add the wrapped function to the trace options as the source code reference point
+	// (but only if we know we're collecting CLM for this transaction and the user didn't already
+	// specify a different code location explicitly).
+	cache := NewCachedCodeLocation()
+
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txn := app.StartTransaction(r.Method + " " + pattern)
+		var tOptions *traceOptSet
+		var txnOptionList []TraceOption
+
+		if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
+			tOptions = resolveCLMTraceOptions(options)
+			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+				// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
+				if tOptions.LocationOverride == nil {
+					if loc, err := cache.FunctionLocation(handler, handler.ServeHTTP); err == nil {
+						WithCodeLocation(loc)(tOptions)
+					}
+				}
+			}
+		}
+		if tOptions == nil {
+			// we weren't able to curate the options above, so pass whatever we were given downstream
+			txnOptionList = options
+		} else {
+			txnOptionList = append(txnOptionList, withPreparedOptions(tOptions))
+		}
+
+		txn := app.StartTransaction(r.Method+" "+pattern, txnOptionList...)
 		defer txn.End()
 
 		w = txn.SetWebResponse(w)
@@ -68,8 +99,15 @@ func WrapHandle(app *Application, pattern string, handler http.Handler) (string,
 //	}))
 //
 // The WrapHandleFunc function is safe to call if app is nil.
-func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request)) (string, func(http.ResponseWriter, *http.Request)) {
-	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler))
+//
+// WrapHandleFunc accepts zero or more TraceOption functions to allow additional options to be
+// manually added to the transaction trace generated, in the same fashion as StartTransaction
+// does. For example, this can be used to control code level metrics generated for this transaction.
+func WrapHandleFunc(app *Application, pattern string, handler func(http.ResponseWriter, *http.Request), options ...TraceOption) (string, func(http.ResponseWriter, *http.Request)) {
+	// add the wrapped function to the trace options as the source code reference point
+	// (to the beginning of the option list, so that the user can override this)
+
+	p, h := WrapHandle(app, pattern, http.HandlerFunc(handler), options...)
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 

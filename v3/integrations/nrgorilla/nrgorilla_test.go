@@ -36,8 +36,9 @@ func TestBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET /alpha",
-		IsWeb: true,
+		Name:          "GET /alpha",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -57,8 +58,9 @@ func TestSubrouterRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "GET /users/add",
-		IsWeb: true,
+		Name:          "GET /users/add",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -77,8 +79,9 @@ func TestNamedRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:  "special-name-route",
-		IsWeb: true,
+		Name:          "special-name-route",
+		IsWeb:         true,
+		UnknownCaller: true,
 	})
 }
 
@@ -108,9 +111,11 @@ func TestRouteNotFound(t *testing.T) {
 	}
 	// Error metrics test the 500 response code capture.
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "NotFoundHandler",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "NotFoundHandler",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
@@ -153,9 +158,11 @@ func TestMiddlewareBasicRoute(t *testing.T) {
 		t.Error("wrong response body", respBody)
 	}
 	app.ExpectTxnMetrics(t, internal.WantTxn{
-		Name:      "GET /alpha",
-		IsWeb:     true,
-		NumErrors: 1,
+		Name:          "GET /alpha",
+		IsWeb:         true,
+		NumErrors:     1,
+		UnknownCaller: true,
+		ErrorByCaller: true,
 	})
 }
 
