@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
+	"unicode"
 
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrwriter"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -51,22 +53,33 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 	// For this iteration of the tool, the entire log gets captured as the message
 	data := newrelic.LogData{}
 	data.Message = string(log)
+	data.Timestamp = time.Now().UnixMilli()
 
 	for i := 0; i < len(log)-1; {
 		// get key; always a string field
-		key, keyEnd := getStringField(log, i)
-
-		// find index where value starts
-		valStart := getValueIndex(log, keyEnd)
-		valEnd := valStart
+		key, valStart := getKey(log, i)
+		var next int
 
 		// NOTE: depending on the key, the type of field the value is can differ
 		switch key {
 		case zerolog.LevelFieldName:
-			data.Severity, valEnd = getStringField(log, valStart)
+			data.Severity, next = getStringValue(log, valStart+1)
+		case zerolog.ErrorStackFieldName:
+			_, next = getStackTrace(log, valStart)
+		default:
+			if i >= len(log)-1 {
+				return data
+			}
+			// TODO: once we update the logging spec to support custom attributes, capture these
+			if isStringValue(log, valStart) {
+				_, next = getStringValue(log, valStart+1)
+			} else if isNumberValue(log, valStart) {
+				_, next = getNumberValue(log, valStart)
+			} else {
+				return data
+			}
 		}
 
-		next := nextKeyIndex(log, valEnd)
 		if next == -1 {
 			return data
 		}
@@ -76,34 +89,21 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 	return data
 }
 
-func getValueIndex(p []byte, indx int) int {
-	// Find the index where the value begins
-	for i := indx; i < len(p)-1; i++ {
-		if p[i] == ':' {
-			return i + 1
-		}
-	}
-
-	return -1
+func isStringValue(p []byte, indx int) bool {
+	return p[indx] == '"'
 }
 
-func nextKeyIndex(p []byte, indx int) int {
-	// Find the index where the key begins
-	for i := indx; i < len(p)-1; i++ {
-		if p[i] == ',' {
-			return i + 1
-		}
-	}
-
-	return -1
+func isNumberValue(p []byte, indx int) bool {
+	return unicode.IsDigit(rune(p[indx]))
 }
 
-func getStringField(p []byte, indx int) (string, int) {
+// zerolog keys are always JSON strings
+func getKey(p []byte, indx int) (string, int) {
 	value := strings.Builder{}
 	i := indx
 
 	// find start of string field
-	for ; i < len(p)-1; i++ {
+	for ; i < len(p); i++ {
 		if p[i] == '"' {
 			i += 1
 			break
@@ -111,14 +111,76 @@ func getStringField(p []byte, indx int) (string, int) {
 	}
 
 	// parse value of string field
-	for ; i < len(p)-1; i++ {
-		if p[i] == '"' {
-			return value.String(), i + 1
+	for ; i < len(p); i++ {
+		if p[i] == '"' && i+1 < len(p) && p[i+1] == ':' {
+			return value.String(), i + 2
 		} else {
 			value.WriteByte(p[i])
 		}
-
 	}
 
 	return "", -1
+}
+
+func isEOL(p []byte, i int) bool {
+	return p[i] == '}' && i+2 == len(p)
+}
+
+func getStringValue(p []byte, indx int) (string, int) {
+	value := strings.Builder{}
+
+	// parse value of string field
+	for i := indx; i < len(p); i++ {
+		if p[i] == '"' && i+1 < len(p) {
+			if p[i+1] == ',' && i+2 < len(p) && p[i+2] == '"' {
+				return value.String(), i + 2
+			} else if isEOL(p, i+1) {
+				return value.String(), -1
+			}
+		}
+		value.WriteByte(p[i])
+	}
+
+	return "", -1
+}
+
+func getNumberValue(p []byte, indx int) (string, int) {
+	value := strings.Builder{}
+
+	// parse value of string field
+	for i := indx; i < len(p); i++ {
+		if p[i] == ',' && i+1 < len(p) && p[i+1] == '"' {
+			return value.String(), i + 1
+		} else if isEOL(p, i) {
+			return value.String(), -1
+		} else {
+			value.WriteByte(p[i])
+		}
+	}
+
+	return "", -1
+}
+
+func getStackTrace(p []byte, indx int) (string, int) {
+	value := strings.Builder{}
+
+	// parse value of string field
+	for i := indx; i < len(p); i++ {
+		if p[i] == ']' {
+			value.WriteByte(p[i])
+
+			if i+1 < len(p) {
+				if isEOL(p, i+1) {
+					return value.String(), -1
+				}
+				if p[i+1] == ',' && i+2 < len(p) && p[i+2] == '"' {
+					return value.String(), i + 2
+				}
+			}
+		} else {
+			value.WriteByte(p[i])
+		}
+	}
+
+	return value.String(), -1
 }
