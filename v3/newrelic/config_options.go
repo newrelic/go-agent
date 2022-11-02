@@ -99,6 +99,38 @@ func ConfigCodeLevelMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
 	}
 }
 
+// ConfigCodeLevelMetricsRedactIgnoredPrefixes controls whether the names
+// of ignored modules should be redacted from the agent configuration data
+// reported and visible in the New Relic UI. Since one of the reasons these
+// modules may be excluded is to preserve confidentiality of module or
+// directory names, the default behavior (if this option is set to true)
+// is to redact those names from the configuration data so that the only thing
+// reported is that some list of unnamed modules were excluded from reporting.
+// If this is set to false, then the names of the ignored modules will be
+// listed in the configuration data, although those modules will still be ignored
+// by Code Level Metrics.
+func ConfigCodeLevelMetricsRedactIgnoredPrefixes(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.RedactIgnoredPrefixes = enabled
+	}
+}
+
+// ConfigCodeLevelMetricsRedactPathPrefixes controls whether the names
+// of source code parent directories should be redacted from the agent configuration data
+// reported and visible in the New Relic UI. Since one of the reasons these
+// path prefixes may be excluded is to preserve confidentiality of
+// directory names, the default behavior (if this option is set to true)
+// is to redact those names from the configuration data so that the only thing
+// reported is that some list of unnamed path prefixes were removed from reported pathnames.
+// If this is set to false, then the names of the removed path prefixes will be
+// listed in the configuration data, although those strings will still be removed from pathnames
+// reported by Code Level Metrics.
+func ConfigCodeLevelMetricsRedactPathPrefixes(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CodeLevelMetrics.RedactPathPrefixes = enabled
+	}
+}
+
 // ConfigCodeLevelMetricsScope narrows the scope of where code level
 // metrics are to be used. By default, if CodeLevelMetrics are enabled,
 // they apply everywhere the agent currently supports them. To narrow
@@ -235,6 +267,38 @@ func ConfigInfoLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewLogger(w))
 }
 
+// ConfigModuleDependencyMetricsEnabled controls whether the agent collects and reports
+// the list of modules compiled into the instrumented application.
+func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ModuleDependencyMetrics.Enabled = enabled
+	}
+}
+
+// ConfigModuleDependencyMetricsIgnoredPrefixes sets the list of module path prefix strings
+// indicating which modules should be excluded from the dependency report.
+func ConfigModuleDependencyMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ModuleDependencyMetrics.IgnoredPrefixes = prefix
+	}
+}
+
+// ConfigModuleDependencyMetricsRedactIgnoredPrefixes controls whether the names
+// of ignored module path prefixes should be redacted from the agent configuration data
+// reported and visible in the New Relic UI. Since one of the reasons these
+// modules may be excluded is to preserve confidentiality of module or
+// directory names, the default behavior (if this option is set to true)
+// is to redact those names from the configuration data so that the only thing
+// reported is that some list of unnamed modules were excluded from reporting.
+// If this is set to false, then the names of the ignored modules will be
+// listed in the configuration data, although those modules will still be ignored
+// by Module Dependency Metrics.
+func ConfigModuleDependencyMetricsRedactIgnoredPrefixes(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ModuleDependencyMetrics.RedactIgnoredPrefixes = enabled
+	}
+}
+
 // ConfigDebugLogger populates the config with a Logger at debug level.
 func ConfigDebugLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewDebugLogger(w))
@@ -242,31 +306,34 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//  NEW_RELIC_APP_NAME                                sets AppName
-//  NEW_RELIC_ATTRIBUTES_EXCLUDE                      sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//  NEW_RELIC_ATTRIBUTES_INCLUDE                      sets Attributes.Include using a comma-separated list
-//  NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              sets CodeLevelMetrics.Enabled
-//  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
-//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          sets CodeLevelMetrics.PathPrefixes using a comma-separated list	(deprecated)
-//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIXES        sets CodeLevelMetrics.PathPrefixes using a comma-separated list
-//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list (deprecated)
-//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIXES     sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
-//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             sets DistributedTracer.Enabled using strconv.ParseBool
-//  NEW_RELIC_ENABLED                                 sets Enabled using strconv.ParseBool
-//  NEW_RELIC_HIGH_SECURITY                           sets HighSecurity using strconv.ParseBool
-//  NEW_RELIC_HOST                                    sets Host
-//  NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
-//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    sets InfiniteTracing.TraceObserver.Host
-//  NEW_RELIC_LABELS                                  sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//  NEW_RELIC_LICENSE_KEY                             sets License
-//  NEW_RELIC_LOG                                     sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//  NEW_RELIC_LOG_LEVEL                               controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               sets HostDisplayName
-//  NEW_RELIC_SECURITY_POLICIES_TOKEN                 sets SecurityPoliciesToken
-//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            sets Utilization.BillingHostname
-//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          sets Utilization.LogicalProcessors using strconv.Atoi
-//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               sets Utilization.TotalRAMMIB using strconv.Atoi
+//  NEW_RELIC_APP_NAME                                   sets AppName
+//  NEW_RELIC_ATTRIBUTES_EXCLUDE                         sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//  NEW_RELIC_ATTRIBUTES_INCLUDE                         sets Attributes.Include using a comma-separated list
+//  NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          sets ModuleDependencyMetrics.Enabled
+//  NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES sets ModuleDependencyMetrics.IgnoredPrefixes
+//  NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
+//  NEW_RELIC_CODE_LEVEL_METRICS_ENABLED                 sets CodeLevelMetrics.Enabled
+//  NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                   sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//  NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX             sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//  NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
+//  NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX          sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
+//  NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
+//  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED                sets DistributedTracer.Enabled using strconv.ParseBool
+//  NEW_RELIC_ENABLED                                    sets Enabled using strconv.ParseBool
+//  NEW_RELIC_HIGH_SECURITY                              sets HighSecurity using strconv.ParseBool
+//  NEW_RELIC_HOST                                       sets Host
+//  NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE    sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
+//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT       sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//  NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST       sets InfiniteTracing.TraceObserver.Host
+//  NEW_RELIC_LABELS                                     sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//  NEW_RELIC_LICENSE_KEY                                sets License
+//  NEW_RELIC_LOG                                        sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//  NEW_RELIC_LOG_LEVEL                                  controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//  NEW_RELIC_PROCESS_HOST_DISPLAY_NAME                  sets HostDisplayName
+//  NEW_RELIC_SECURITY_POLICIES_TOKEN                    sets SecurityPoliciesToken
+//  NEW_RELIC_UTILIZATION_BILLING_HOSTNAME               sets Utilization.BillingHostname
+//  NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS             sets Utilization.LogicalProcessors using strconv.Atoi
+//  NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB                  sets Utilization.TotalRAMMIB using strconv.Atoi
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -306,7 +373,11 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
 		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
+		assignBool(&cfg.ModuleDependencyMetrics.Enabled, "NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED")
+		assignBool(&cfg.ModuleDependencyMetrics.RedactIgnoredPrefixes, "NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES")
 		assignBool(&cfg.CodeLevelMetrics.Enabled, "NEW_RELIC_CODE_LEVEL_METRICS_ENABLED")
+		assignBool(&cfg.CodeLevelMetrics.RedactPathPrefixes, "NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES")
+		assignBool(&cfg.CodeLevelMetrics.RedactIgnoredPrefixes, "NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES")
 		assignBool(&cfg.DistributedTracer.Enabled, "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED")
 		assignBool(&cfg.Enabled, "NEW_RELIC_ENABLED")
 		assignBool(&cfg.HighSecurity, "NEW_RELIC_HIGH_SECURITY")
@@ -353,6 +424,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			cfg.CodeLevelMetrics.PathPrefixes = strings.Split(env, ",")
 		} else if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX"); env != "" {
 			cfg.CodeLevelMetrics.PathPrefixes = strings.Split(env, ",")
+		}
+
+		if env := getenv("NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES"); env != "" {
+			cfg.ModuleDependencyMetrics.IgnoredPrefixes = strings.Split(env, ",")
 		}
 
 		if env := getenv("NEW_RELIC_LOG"); env != "" {
