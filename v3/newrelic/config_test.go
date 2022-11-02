@@ -131,9 +131,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"ApplicationLogging": {
-				"Enabled":true,
+				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
@@ -148,7 +148,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -189,6 +189,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -240,11 +241,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"high_security":false,
 		"labels":[{"label_type":"zip","label_value":"zap"}],
 		"environment":[
+			["runtime.NumCPU",8],
 			["runtime.Compiler","comp"],
 			["runtime.GOARCH","arch"],
 			["runtime.GOOS","goos"],
 			["runtime.Version","vers"],
-			["runtime.NumCPU",8]
+			["Modules", null]
 		],
 		"identifier":"my appname",
 		"utilization":{
@@ -300,6 +302,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	}
 	out := standardizeNumbers(string(js))
 	if out != expect {
+		t.Error(expect)
 		t.Error(out)
 	}
 }
@@ -324,7 +327,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"ApplicationLogging": {
 				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
@@ -343,7 +346,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -384,6 +387,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"Labels":null,
 			"Logger":null,
+			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -432,11 +436,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"app_name":["my appname"],
 		"high_security":false,
 		"environment":[
+			["runtime.NumCPU",8],
 			["runtime.Compiler","comp"],
 			["runtime.GOARCH","arch"],
 			["runtime.GOOS","goos"],
 			["runtime.Version","vers"],
-			["runtime.NumCPU",8]
+			["Modules", null]
 		],
 		"identifier":"my appname",
 		"utilization":{

@@ -255,6 +255,33 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	return reply.SegmentTerms.apply(afterNameRules)
 }
 
+// RequestEventLimits sets limits for reservior testing
+type RequestEventLimits struct {
+	CustomEvents int
+}
+
+const (
+	// CustomEventHarvestsPerMinute is the number of times per minute custom events are harvested
+	CustomEventHarvestsPerMinute = 5
+)
+
+// MockConnectReplyEventLimits sets up a mock connect reply to test event limits
+// currently only verifies custom insights events
+func (r *ConnectReply) MockConnectReplyEventLimits(limits *RequestEventLimits) {
+	r.SetSampleEverything()
+
+	r.EventData.Limits.CustomEvents = uintPtr(uint(limits.CustomEvents) / (60 / CustomEventHarvestsPerMinute))
+
+	// The mock server will be limited to a maximum of 100,000 events per minute
+	if limits.CustomEvents > 100000 {
+		r.EventData.Limits.CustomEvents = uintPtr(uint(100000) / (60 / CustomEventHarvestsPerMinute))
+	}
+
+	if limits.CustomEvents <= 0 {
+		r.EventData.Limits.CustomEvents = uintPtr(uint(0) / (60 / CustomEventHarvestsPerMinute))
+	}
+}
+
 // SetSampleEverything is used for testing to ensure span events get saved.
 func (r *ConnectReply) SetSampleEverything() {
 	// These constants are not large enough to sample everything forever,
