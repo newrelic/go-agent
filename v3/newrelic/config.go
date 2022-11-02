@@ -610,7 +610,7 @@ func defaultConfig() Config {
 
 	// Application Logging Settings
 	c.ApplicationLogging.Enabled = true
-	c.ApplicationLogging.Forwarding.Enabled = false
+	c.ApplicationLogging.Forwarding.Enabled = true
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false

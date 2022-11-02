@@ -131,9 +131,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AppName":"my appname",
 			"ApplicationLogging": {
-				"Enabled":true,
+				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
@@ -327,7 +327,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"ApplicationLogging": {
 				"Enabled": true,
 				"Forwarding": {
-					"Enabled": false,
+					"Enabled": true,
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
