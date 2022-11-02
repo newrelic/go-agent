@@ -10,45 +10,44 @@
 // you can set the tracer in the pgx.Config like this
 // ```go
 // import (
-// 	"context"
 // 	"github.com/jackc/pgx/v5"
 // 	"github.com/newrelic/go-agent/v3/integrations/nrpgx5"
+// 	"github.com/newrelic/go-agent/v3/newrelic"
 // )
 //
 // func main() {
-// 	config, err := pgx.ParseConfig("postgres://user:password@localhost:5432/database")
+// 	cfg, err := pgx.ParseConfig("postgres://postgres:postgres@localhost:5432")
 // 	if err != nil {
 // 		panic(err)
-//  }
-//
-//  cfg.Tracer = nrpgx5.NewTracer()
-//  conn, err := pgx.ConnectConfig(context.Background(), cfg)
-//  if err != nil {
-//  	panic(err)
 // 	}
-// }
+//
+// 	cfg.Tracer = nrpgx5.NewTracer()
+// 	conn, err := pgx.ConnectConfig(context.Background(), cfg)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// ...
 // ```
 // or you can set the tracer in the pgxpool.Config like this
 // ```go
 // import (
-// 	"context"
-// 	"github.com/jackc/pgx/v5"
 // 	"github.com/jackc/pgx/v5/pgxpool"
 // 	"github.com/newrelic/go-agent/v3/integrations/nrpgx5"
+// 	"github.com/newrelic/go-agent/v3/newrelic"
 // )
 //
 // func main() {
-// 	config, err := pgxpool.ParseConfig("postgres://user:password@localhost:5432/database")
+// 	cfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5432")
 // 	if err != nil {
 // 		panic(err)
-//  }
-//
-//  cfg.ConnConfig.Tracer = nrpgx5.NewTracer()
-//  conn, err := pgxpool.ConnectConfig(context.Background(), cfg)
-//  if err != nil {
-//  	panic(err)
 // 	}
-// }
+//
+// 	cfg.ConnConfig.Tracer = nrpgx5.NewTracer()
+// 	db, err := pgxpool.NewWithConfig(context.Background(), cfg)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// ...
 // ```
 
 package nrpgx5
