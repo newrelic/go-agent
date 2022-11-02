@@ -73,7 +73,21 @@ func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 // In agent version 3.18.0 (only), this took a single string parameter.
 // It now takes a variable number of parameters, preserving the old call semantics
 // for backward compatibility while allowing for multiple IgnoredPrefix values now.
+//
+// Deprecated: New code should use ConfigCodeLevelmetricsIgnoredPrefixes instead,
+// so the naming of this function is consistent with other related identifiers and
+// the fact that multiple such prefixes are now used.
 func ConfigCodeLevelMetricsIgnoredPrefix(prefix ...string) ConfigOption {
+	return ConfigCodeLevelMetricsIgnoredPrefixes(prefix...)
+}
+
+// ConfigCodeLevelMetricsIgnoredPrefixes alters the way the Code Level Metrics
+// collection code searches for the right function to report for a given
+// telemetry trace. It will find the innermost function whose name does NOT
+// begin with any of the strings given here. By default (or if no paramters are given),
+// it will ignore functions whose names imply that the function is part of
+// the agent itself.
+func ConfigCodeLevelMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CodeLevelMetrics.IgnoredPrefixes = prefix
 
@@ -148,7 +162,27 @@ func ConfigCodeLevelMetricsScope(scope CodeLevelMetricsScope) ConfigOption {
 // In agent versions 3.18.0 and 3.18.1, this took a single string parameter.
 // It now takes a variable number of parameters, preserving the old call semantics
 // for backward compatibility while allowing for multiple PathPrefix values now.
+//
+// Deprecated: New code should use ConfigCodeLevelMetricsPathPrefixes instead,
+// so the naming of this function is consistent with other related identifiers
+// and the fact that multiple such prefixes are now used.
 func ConfigCodeLevelMetricsPathPrefix(prefix ...string) ConfigOption {
+	return ConfigCodeLevelMetricsPathPrefixes(prefix...)
+}
+
+// ConfigCodeLevelMetricsPathPrefixes specifies the filename pattern(s) that describe(s) the start of
+// the project area(s). When reporting a source filename for Code Level Metrics, and any of the
+// values in the path prefix list are found in the source filename, anything before that prefix
+// is discarded from the file pathname. This will be based on the first value in the prefix list
+// that is found in the pathname.
+//
+// For example, if
+// the path prefix list is set to ["myproject/src", "myproject/extra"], then a function located in a file
+// called "/usr/local/src/myproject/src/foo.go" will be reported with the
+// pathname "myproject/src/foo.go". If this value is empty or none of the prefix strings
+// are found in a file's pathname, the full path
+// will be reported (e.g., "/usr/local/src/myproject/src/foo.go").
+func ConfigCodeLevelMetricsPathPrefixes(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CodeLevelMetrics.PathPrefixes = prefix
 
@@ -380,11 +414,15 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			}
 		}
 
-		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX"); env != "" {
+		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIXES"); env != "" {
+			cfg.CodeLevelMetrics.IgnoredPrefixes = strings.Split(env, ",")
+		} else if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX"); env != "" {
 			cfg.CodeLevelMetrics.IgnoredPrefixes = strings.Split(env, ",")
 		}
 
-		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX"); env != "" {
+		if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIXES"); env != "" {
+			cfg.CodeLevelMetrics.PathPrefixes = strings.Split(env, ",")
+		} else if env := getenv("NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX"); env != "" {
 			cfg.CodeLevelMetrics.PathPrefixes = strings.Split(env, ",")
 		}
 
