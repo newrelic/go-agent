@@ -120,24 +120,50 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 // To see segments and spans for all AWS invocations, call AppendMiddlewares
 // with the AWS Config `apiOptions` and provide nil for `txn`. For example:
 //
-//  awsConfig, err := config.LoadDefaultConfig(ctx)
-//  if err != nil {
-//      log.Fatal(err)
-//  }
-//  nraws.AppendMiddlewares(&awsConfig.APIOptions, nil)
+//	awsConfig, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
+//		// Instrument all new AWS clients with New Relic
+//		nrawssdk.AppendMiddlewares(&o.APIOptions, nil)
+//		return nil
+//	})
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
-// If do not want the transaction to be retrived from the context, you can
+// If do not want the transaction to be retrieved from the context, you can
 // explicitly set `txn`. For example:
 //
-//  awsConfig, err := config.LoadDefaultConfig(ctx)
-//  if err != nil {
-//      log.Fatal(err)
-//  }
+//	txn := loadNewRelicTransaction()
+//	awsConfig, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
+//		// Instrument all new AWS clients with New Relic
+//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn)
+//		return nil
+//	})
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
-//  ...
+// The middleware can also be added later, per AWS service call using
+// the `optFns` parameter. For example:
 //
-//  txn := loadNewRelicTransaction()
-//  nraws.AppendMiddlewares(&awsConfig.APIOptions, txn)
+//	awsConfig, err := config.LoadDefaultConfig(ctx)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	...
+//
+//	s3Client := s3.NewFromConfig(awsConfig)
+//
+//	...
+//
+//	txn := loadNewRelicTransaction()
+//	output, err := s3Client.ListBuckets(ctx, nil, func(o *config.LoadOptions) error {
+//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn)
+//		return nil
+//	})
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
 	m := nrMiddleware{txn: txn}
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
