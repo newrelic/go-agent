@@ -157,7 +157,7 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 //	...
 //
 //	txn := loadNewRelicTransaction()
-//	output, err := s3Client.ListBuckets(ctx, nil, func(o *config.LoadOptions) error {
+//	output, err := s3Client.ListBuckets(ctx, nil, func(o *s3.Options) error {
 //		nrawssdk.AppendMiddlewares(&o.APIOptions, txn)
 //		return nil
 //	})
