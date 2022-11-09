@@ -114,7 +114,9 @@ func Middleware(app *newrelic.Application) iris.Handler {
 // it sets the option for naming the transaction using
 // the registered route path instead of the method + handler name.
 //
-// Defaults to false.
+//	router := iris.New()
+//	// Add the nriris middleware before other middlewares or routes:
+//	router.Use(nriris.MiddlewareWithFullPath(app))
 func MiddlewareWithFullPath(app *newrelic.Application) iris.Handler {
 	return middleware(app, true)
 }
