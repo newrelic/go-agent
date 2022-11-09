@@ -202,6 +202,9 @@ jobs:
             extratesting: go get -u google.golang.org/grpc@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrmicro
+          - go-version: 1.19.x
+            dirs: v3/integrations/nriris
+            extratesting: go get -u github.com/kataras/iris/v12@master
             # As of Dec 2019, there is a race condition in when using go-micro@master
             # in their logging system.  Instead, we'll test against the latest
             # released version.
