@@ -117,8 +117,6 @@ func MiddlewareWithFullPath(app *newrelic.Application) iris.Handler {
 	return middleware(app, true)
 }
 
-var UseFullPath = false
-
 func middleware(app *newrelic.Application, useFullPath bool) iris.Handler {
 	return func(ctx iris.Context) {
 		if app != nil {
@@ -158,4 +156,15 @@ func middleware(app *newrelic.Application, useFullPath bool) iris.Handler {
 		}
 		ctx.Next()
 	}
+}
+
+// GetTransaction returns the current request's newrelic Transaction.
+func GetTransaction(ctx iris.Context) *newrelic.Transaction {
+	if v := ctx.Values().Get(TransactionContextKey); v != nil {
+		if t, ok := v.(*newrelic.Transaction); ok {
+			return t
+		}
+	}
+
+	return nil
 }
