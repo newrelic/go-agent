@@ -24,7 +24,9 @@ import (
 	"github.com/kataras/iris/v12/context"
 )
 
-func init() { internal.TrackUsage("integration", "framework", "iris") }
+func init() {
+	internal.TrackUsage("integration", "framework", "iris")
+}
 
 // headerResponseWriter gives the transaction access to response headers and the
 // response code.
@@ -85,13 +87,13 @@ var TransactionContextKey = "newRelicTransaction"
 
 // Transaction returns the transaction stored inside the context, or nil if not
 // found.
-func Transaction(c Context) *newrelic.Transaction {
-	if v := c.Value(TransactionContextKey); nil != v {
+func Transaction(ctx Context) *newrelic.Transaction {
+	if v := ctx.Value(TransactionContextKey); nil != v {
 		if txn, ok := v.(*newrelic.Transaction); ok {
 			return txn
 		}
 	}
-	if v := c.Value(internal.TransactionContextKey); nil != v {
+	if v := ctx.Value(internal.TransactionContextKey); nil != v {
 		if txn, ok := v.(*newrelic.Transaction); ok {
 			return txn
 		}
@@ -156,15 +158,4 @@ func middleware(app *newrelic.Application, useFullPath bool) iris.Handler {
 		}
 		ctx.Next()
 	}
-}
-
-// GetTransaction returns the current request's newrelic Transaction.
-func GetTransaction(ctx iris.Context) *newrelic.Transaction {
-	if v := ctx.Values().Get(TransactionContextKey); v != nil {
-		if t, ok := v.(*newrelic.Transaction); ok {
-			return t
-		}
-	}
-
-	return nil
 }
