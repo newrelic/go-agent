@@ -188,9 +188,8 @@ jobs:
           - go-version: 1.17.x
             dirs: v3/integrations/nrpq
             extratesting: go get -u github.com/lib/pq@master
-          - go-version: 1.17.x
+          - go-version: 1.18.x
             dirs: v3/integrations/nrpgx5
-            extratesting: go get -u github.com/jackc/pgx/v5@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrpq/example/sqlx
           - go-version: 1.17.x
