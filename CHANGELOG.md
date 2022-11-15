@@ -1,3 +1,25 @@
+## 3.20.1
+
+### Added
+* New integration `nrpgx5` v1.0.0 to instrument `github.com/jackc/pgx/v5`. 
+
+### Changed
+
+* Changed the following `TraceOption` function to be consistent with their usage and other related identifier names. The old names remain for backward compatibility, but new code should use the new names. 
+   * `WithIgnoredPrefix` -> `WithIgnoredPrefixes`
+   * `WithPathPrefix` -> `WithPathPrefixes`
+* Implemented better handling of Code Level Metrics reporting when the data (e.g., function names) are excessively long, so that those attributes are suppressed rather than being reported with truncated names. Specifically:
+   * Attributes with values longer than 255 characters are dropped.
+   * No CLM attributes at all will be attached to a trace if the `code.function` attribute is empty or is longer than 255 characters.
+   * No CLM attributes at all will be attached to a trace if both `code.namespace` and `code.filepath` are longer than 255 characters.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.20.0
 
 **PLEASE READ** these changes, and verify your config settings to ensure your application behaves how you intend it to. This release changes some default behaviors in the go agent.

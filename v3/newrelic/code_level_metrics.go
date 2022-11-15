@@ -129,7 +129,32 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 //
 // If no prefix strings are passed here, the configured defaults will be used.
 //
+// Deprecated: New code should use WithIgnoredPrefixes instead.
+//
 func WithIgnoredPrefix(prefix ...string) TraceOption {
+	return func(o *traceOptSet) {
+		o.IgnoredPrefixes = prefix
+	}
+}
+
+//
+// WithIgnoredPrefixes indicates that the code location reported
+// for Code Level Metrics should be the first function in the
+// call stack that does not begin with the given string (or any of the given strings if more than one are given). This
+// string is matched against the entire fully-qualified function
+// name, which includes the name of the package the function
+// comes from. By default, the Go Agent tries to take the first
+// function on the call stack that doesn't seem to be internal to
+// the agent itself, but you can control this behavior using
+// this option.
+//
+// If all functions in the call stack begin with this prefix,
+// the outermost one will be used anyway, since we didn't find
+// anything better on the way to the bottom of the stack.
+//
+// If no prefix strings are passed here, the configured defaults will be used.
+//
+func WithIgnoredPrefixes(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.IgnoredPrefixes = prefix
 	}
@@ -141,7 +166,21 @@ func WithIgnoredPrefix(prefix ...string) TraceOption {
 // or more path prefixes to use for this trace only.
 // If no strings are given, the configured defaults will be used.
 //
+// Deprecated: New code should use WithPathPrefixes instead.
+//
 func WithPathPrefix(prefix ...string) TraceOption {
+	return func(o *traceOptSet) {
+		o.PathPrefixes = prefix
+	}
+}
+
+//
+// WithPathPrefixes overrides the list of source code path prefixes
+// used to trim source file pathnames, providing a new set of one
+// or more path prefixes to use for this trace only.
+// If no strings are given, the configured defaults will be used.
+//
+func WithPathPrefixes(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.PathPrefixes = prefix
 	}
@@ -573,8 +612,18 @@ func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string,
 		function = location.Function[ns+1:]
 	}
 
-	setAttr(AttributeCodeLineno, "", location.LineNo)
-	setAttr(AttributeCodeNamespace, namespace, nil)
-	setAttr(AttributeCodeFilepath, location.FilePath, nil)
-	setAttr(AttributeCodeFunction, function, nil)
+	// Impose data value size limits.
+	// Report no field over 255 characters in length.
+	// Report no CLM data at all if the function name is empty or >255 chars.
+	// Report no CLM data at all if both namespace and file path are >255 chars.
+	if function != "" && len(function) <= 255 && (len(namespace) <= 255 || len(location.FilePath) <= 255) {
+		setAttr(AttributeCodeLineno, "", location.LineNo)
+		setAttr(AttributeCodeFunction, function, nil)
+		if len(namespace) <= 255 {
+			setAttr(AttributeCodeNamespace, namespace, nil)
+		}
+		if len(location.FilePath) <= 255 {
+			setAttr(AttributeCodeFilepath, location.FilePath, nil)
+		}
+	}
 }
