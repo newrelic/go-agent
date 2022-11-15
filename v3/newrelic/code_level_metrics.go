@@ -612,8 +612,18 @@ func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string,
 		function = location.Function[ns+1:]
 	}
 
-	setAttr(AttributeCodeLineno, "", location.LineNo)
-	setAttr(AttributeCodeNamespace, namespace, nil)
-	setAttr(AttributeCodeFilepath, location.FilePath, nil)
-	setAttr(AttributeCodeFunction, function, nil)
+	// Impose data value size limits.
+	// Report no field over 255 characters in length.
+	// Report no CLM data at all if the function name is empty or >255 chars.
+	// Report no CLM data at all if both namespace and file path are >255 chars.
+	if function != "" && len(function) <= 255 && (len(namespace) <= 255 || len(location.FilePath) <= 255) {
+		setAttr(AttributeCodeLineno, "", location.LineNo)
+		setAttr(AttributeCodeFunction, function, nil)
+		if len(namespace) <= 255 {
+			setAttr(AttributeCodeNamespace, namespace, nil)
+		}
+		if len(location.FilePath) <= 255 {
+			setAttr(AttributeCodeFilepath, location.FilePath, nil)
+		}
+	}
 }

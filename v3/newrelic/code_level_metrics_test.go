@@ -1,9 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
-// SPDX-License-Identifier: Apache-2.0
 
 package newrelic
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -252,4 +252,107 @@ func skipCCached(t *testing.T) {
 
 func TestCLMSkipCached(t *testing.T) {
 	skipACached(t)
+}
+
+func attributeMapMatchesCLM(expected, actual map[string]interface{}) error {
+	for k, v := range expected {
+		actualValue, present := actual[k]
+		if !present {
+			return fmt.Errorf("Expected field \"%s\" was not present in output", k)
+		}
+
+		switch value := v.(type) {
+		case int:
+			act, ok := actualValue.(int)
+			if !ok {
+				return fmt.Errorf("Expected value %v for %s was actually %v of type %T, not int",
+					v, k, actualValue, actualValue)
+			}
+
+			if act != value {
+				return fmt.Errorf("Expected %s value %v but got %v", k, value, act)
+			}
+
+		case string:
+			act, ok := actualValue.(string)
+			if !ok {
+				return fmt.Errorf("Expected value %v for %s was actually %v of type %T, not string",
+					v, k, actualValue, actualValue)
+			}
+
+			if act != value {
+				return fmt.Errorf("Expected %s value %v but got %v", k, value, act)
+			}
+
+		default:
+			return fmt.Errorf("Test case does not consider expected value %v for type %T", k, v)
+		}
+	}
+
+	if len(expected) != len(actual) {
+		return fmt.Errorf("expected %d fields, got %d", len(expected), len(actual))
+	}
+
+	return nil
+}
+
+func TestLongCLMNames(t *testing.T) {
+	for i, testData := range []struct {
+		loc      CodeLocation
+		expected map[string]interface{}
+	}{
+		//0
+		{CodeLocation{42, "main.aFunction", "/usr/local/foo.go"},
+			map[string]interface{}{
+				AttributeCodeLineno:    42,
+				AttributeCodeFunction:  "aFunction",
+				AttributeCodeNamespace: "main",
+				AttributeCodeFilepath:  "/usr/local/foo.go",
+			}},
+		//1
+		{CodeLocation{42, "main.aFunction", "/usr/local/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo/foo.go"},
+			map[string]interface{}{
+				AttributeCodeLineno:    42,
+				AttributeCodeFunction:  "aFunction",
+				AttributeCodeNamespace: "main",
+			}},
+		//2
+		{CodeLocation{42, "main.aFunctionLoremipsumdolorsitamet.consecteturadipiscingelit.seddoeiusmodtemporincididuntutlaboreetdoloremagnaaliqua.Utenimadminimveniamquisnostrudexercitationullamcolaborisnisiutaliquipexeacommodoconsequat.Duisauteiruredolorinreprehenderitinvoluptatevelitessecillumdoloreeufugiatnullapariatur.Excepteursintoccaecatcupidatatnonproidentsuntinculpaquiofficiadeseruntmollitanimidestlaborum", "/usr/local/foo.go"},
+			map[string]interface{}{
+				AttributeCodeLineno:   42,
+				AttributeCodeFunction: "Excepteursintoccaecatcupidatatnonproidentsuntinculpaquiofficiadeseruntmollitanimidestlaborum",
+				AttributeCodeFilepath: "/usr/local/foo.go",
+			}},
+		//3
+		{CodeLocation{42, "mainaFunctionLoremipsumdolorsitametconsecteturadipiscingelitseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliquaUtenimadminimveniamquisnostrudexercitationullamcolaborisnisiutaliquipexeacommodoconsequatDuisauteiruredolorinreprehenderitinvoluptatevelitessecillumdoloreeufugiatnullapariaturExcepteursintoccaecatcupidatatnonproidentsuntinculpaquiofficiadeseruntmollitanimidestlaborum", "/usr/local/foo.go"},
+			map[string]interface{}{}},
+		//4
+		{CodeLocation{42, "", "/usr/local/foo.go"},
+			map[string]interface{}{}},
+		//5
+		{CodeLocation{42, "mainmainaFunctionLoremipsumdolorsitametconsecteturadipiscingelitseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliquaUtenimadminimveniamquisnostrudexercitationullamcolaborisnisiutaliquipexeacommodoconsequatDuisauteiruredolorinreprehenderitinvoluptatevelitessecillumdoloreeufugiatnullapariaturExcepteursintoccaecatcupidatatnonproidentsuntinculpaquiofficiadeseruntmollitanimidestlaborum.aFunction", "/usr/local/foo.go"},
+			map[string]interface{}{
+				AttributeCodeLineno:   42,
+				AttributeCodeFunction: "aFunction",
+				AttributeCodeFilepath: "/usr/local/foo.go",
+			}},
+		//6
+		{CodeLocation{42, "mainmainaFunctionLoremipsumdolorsitametconsecteturadipiscingelitseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliquaUtenimadminimveniamquisnostrudexercitationullamcolaborisnisiutaliquipexeacommodoconsequatDuisauteiruredolorinreprehenderitinvoluptatevelitessecillumdoloreeufugiatnullapariaturExcepteursintoccaecatcupidatatnonproidentsuntinculpaquiofficiadeseruntmollitanimidestlaborum.aFunction", "/usr/local/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafoo.go"},
+			map[string]interface{}{}},
+	} {
+		actual := make(map[string]interface{})
+		reportCodeLevelMetrics(traceOptSet{
+			LocationOverride: &testData.loc,
+			PathPrefixes:     []string{"xyzzy"},
+		}, nil, func(k, s string, v interface{}) {
+			if v == nil {
+				actual[k] = s
+			} else {
+				actual[k] = v
+			}
+		})
+		if err := attributeMapMatchesCLM(testData.expected, actual); err != nil {
+			t.Errorf("testcase %d: %v", i, err)
+		}
+	}
 }
