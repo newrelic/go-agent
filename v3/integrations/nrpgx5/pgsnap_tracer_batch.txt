@@ -1,0 +1,40 @@
+F {"Type":"Parse","Name":"stmtcache_9","Query":"INSERT INTO mytable(name) VALUES ($1)","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_9"}
+F {"Type":"Parse","Name":"stmtcache_10","Query":"SELECT id FROM mytable ORDER by id DESC LIMIT 1","ParameterOIDs":null}
+F {"Type":"Describe","ObjectType":"S","Name":"stmtcache_10"}
+F {"Type":"Sync"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[1043]}
+B {"Type":"NoData"}
+B {"Type":"ParseComplete"}
+B {"Type":"ParameterDescription","ParameterOIDs":[]}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":0}]}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_9","ParameterFormatCodes":[0],"Parameters":[{"text":"name a"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_9","ParameterFormatCodes":[0],"Parameters":[{"text":"name b"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_9","ParameterFormatCodes":[0],"Parameters":[{"text":"name c"}],"ResultFormatCodes":[]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Bind","DestinationPortal":"","PreparedStatement":"stmtcache_10","ParameterFormatCodes":null,"Parameters":[],"ResultFormatCodes":[1]}
+F {"Type":"Describe","ObjectType":"P","Name":""}
+F {"Type":"Execute","Portal":"","MaxRows":0}
+F {"Type":"Sync"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"INSERT 0 1"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"INSERT 0 1"}
+B {"Type":"BindComplete"}
+B {"Type":"NoData"}
+B {"Type":"CommandComplete","CommandTag":"INSERT 0 1"}
+B {"Type":"BindComplete"}
+B {"Type":"RowDescription","Fields":[{"Name":"id","TableOID":16551,"TableAttributeNumber":1,"DataTypeOID":23,"DataTypeSize":4,"TypeModifier":-1,"Format":1}]}
+B {"Type":"DataRow","Values":[{"binary":"00000008"}]}
+B {"Type":"CommandComplete","CommandTag":"SELECT 1"}
+B {"Type":"ReadyForQuery","TxStatus":"I"}
+F {"Type":"Terminate"}
