@@ -27,7 +27,7 @@ func NewRouter(app *newrelic.Application) *chi.Mux {
 func (nrapp NewRelicApp)addNewRelicContext(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// start newrelic transaction
-		txn := nrapp.app.StartTransaction("("+r.Method+")"+r.URL.RequestURI())
+		txn := nrapp.app.StartTransaction(r.Method+r.URL.RequestURI())
 		defer txn.End()
 
 		txn.SetWebRequestHTTP(r)
