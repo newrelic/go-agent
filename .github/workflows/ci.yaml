@@ -244,6 +244,9 @@ jobs:
           - go-version: 1.17.x
             dirs: v3/integrations/nrmssql
             extratesting: go get -u github.com/denisenkom/go-mssqldb@master
+          - go-version: 1.19.x
+            dirs: v3/integrations/nrchi
+            extratesting: go get -u github.com/go-chi/chi@master
 
     steps:
     - name: Install Go

@@ -1,3 +1,9 @@
+// Copyright 2022 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package nrchi instruments https://github.com/go-chi/chi applications.
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrchi/example/main.go
 package nrchi
 
 import (
