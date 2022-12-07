@@ -63,21 +63,35 @@ func (bc *betterCAT) SetTraceAndTxnIDs(traceID string) {
 
 // txnData contains the recorded data of a transaction.
 type txnData struct {
-	txnEvent
-	IsWeb          bool
-	Name           string    // Work in progress name.
-	Errors         txnErrors // Lazily initialized.
-	Stop           time.Time
-	ApdexThreshold time.Duration
+	IsWeb              bool
+	SlowQueriesEnabled bool
+	noticeErrors       bool // If errors are not expected or ignored, then true
+	expectedErrors     bool
 
 	stamp           segmentStamp
 	threadIDCounter uint64
 
+	Name       string // Work in progress name.
+	rootSpanID string
+
+	txnEvent
+	TxnTrace txnTrace
+
+	Stop               time.Time
+	ApdexThreshold     time.Duration
+	SlowQueryThreshold time.Duration
+
+	SlowQueries *slowQueries
+
+	// These better CAT supportability fields are left outside of
+	// TxnEvent.BetterCAT to minimize the size of transaction event memory.
+	DistributedTracingSupport distributedTracingSupport
+
 	TraceIDGenerator        *internal.TraceIDGenerator
 	ShouldCollectSpanEvents func() bool
 	ShouldCreateSpanGUID    func() bool
-	rootSpanID              string
 	rootSpanErrData         *errorData
+	Errors                  txnErrors // Lazily initialized.
 	SpanEvents              []*spanEvent
 	logs                    logEventHeap
 
@@ -85,16 +99,6 @@ type txnData struct {
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 	messageSegments   map[internal.MessageMetricKey]*metricData
-
-	TxnTrace txnTrace
-
-	SlowQueriesEnabled bool
-	SlowQueryThreshold time.Duration
-	SlowQueries        *slowQueries
-
-	// These better CAT supportability fields are left outside of
-	// TxnEvent.BetterCAT to minimize the size of transaction event memory.
-	DistributedTracingSupport distributedTracingSupport
 }
 
 func (t *txnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {
@@ -320,9 +324,19 @@ const (
 	datastoreOperationUnknown = "other"
 )
 
+// NoticeErrors indicates whether the errors collected count towards error/ metrics
+func (t *txnData) NoticeErrors() bool {
+	return t.noticeErrors
+}
+
 // HasErrors indicates whether the transaction had errors.
 func (t *txnData) HasErrors() bool {
 	return len(t.Errors) > 0
+}
+
+// HasExpectedErrors is a special case where the txn has errors but we dont increment error metrics
+func (t *txnData) HasExpectedErrors() bool {
+	return t.expectedErrors
 }
 
 func (t *txnData) time(now time.Time) segmentTime {

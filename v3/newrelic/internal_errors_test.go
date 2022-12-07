@@ -636,7 +636,7 @@ func TestErrorClass(t *testing.T) {
 	}
 
 	for idx, tc := range testcases {
-		data, err := errDataFromError(tc.Error)
+		data, err := errDataFromError(tc.Error, false)
 		if err != nil {
 			t.Errorf("testcase %d: got error: %v", idx, err)
 			continue

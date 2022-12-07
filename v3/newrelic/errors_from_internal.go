@@ -61,6 +61,7 @@ type errorData struct {
 	Msg             string
 	Klass           string
 	SpanID          string
+	Expect          bool
 }
 
 // txnError combines error data with information about a transaction.  txnError is used for
@@ -113,7 +114,7 @@ func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	buf.WriteString(`"intrinsics"`)
 	buf.WriteByte(':')
-	intrinsicsJSON(&h.txnEvent, buf)
+	intrinsicsJSON(&h.txnEvent, buf, h.errorData.Expect)
 	if nil != h.Stack {
 		buf.WriteByte(',')
 		buf.WriteString(`"stack_trace"`)
@@ -152,7 +153,7 @@ func mergeTxnErrors(errors *harvestErrors, errs txnErrors, txnEvent txnEvent) {
 }
 
 func (errors harvestErrors) Data(agentRunID string, harvestStart time.Time) ([]byte, error) {
-	if 0 == len(errors) {
+	if len(errors) == 0 {
 		return nil, nil
 	}
 	estimate := 1024 * len(errors)

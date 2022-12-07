@@ -43,14 +43,12 @@ func (txn *Transaction) End() {
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
 
-//
 // SetOption allows the setting of some transaction TraceOption parameters
 // after the transaction has already been started, such as specifying a new
 // source code location for code-level metrics.
 //
 // The set of options should be the complete set you wish to have in effect,
 // just as if you were calling StartTransaction now with the same set of options.
-//
 func (txn *Transaction) SetOption(options ...TraceOption) {
 	if txn == nil || txn.thread == nil || txn.thread.txn == nil {
 		return
@@ -94,14 +92,14 @@ func (txn *Transaction) SetName(name string) {
 // NoticeError examines whether the error implements the following optional
 // methods:
 //
-//   // StackTrace records a stack trace
-//   StackTrace() []uintptr
+//	// StackTrace records a stack trace
+//	StackTrace() []uintptr
 //
-//   // ErrorClass sets the error's class
-//   ErrorClass() string
+//	// ErrorClass sets the error's class
+//	ErrorClass() string
 //
-//   // ErrorAttributes sets the errors attributes
-//   ErrorAttributes() map[string]interface{}
+//	// ErrorAttributes sets the errors attributes
+//	ErrorAttributes() map[string]interface{}
 //
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
@@ -113,7 +111,44 @@ func (txn *Transaction) NoticeError(err error) {
 	if nil == txn.thread {
 		return
 	}
-	txn.thread.logAPIError(txn.thread.NoticeError(err), "notice error", nil)
+	txn.thread.logAPIError(txn.thread.NoticeError(err, false), "notice error", nil)
+}
+
+// NoticeExpectedError records an error that was expected to occur. Errors recoreded with this
+// method will not trigger any error alerts or count towards your error metrics.
+// The Transaction saves the first five errors.
+// For more control over the recorded error fields, see the
+// newrelic.Error type.
+//
+// In certain situations, using this method may result in an error being
+// recorded twice.  Errors are automatically recorded when
+// Transaction.WriteHeader receives a status code at or above 400 or strictly
+// below 100 that is not in the IgnoreStatusCodes configuration list.  This
+// method is unaffected by the IgnoreStatusCodes configuration list.
+//
+// NoticeExpectedError examines whether the error implements the following optional
+// methods:
+//
+//	// StackTrace records a stack trace
+//	StackTrace() []uintptr
+//
+//	// ErrorClass sets the error's class
+//	ErrorClass() string
+//
+//	// ErrorAttributes sets the errors attributes
+//	ErrorAttributes() map[string]interface{}
+//
+// The newrelic.Error type, which implements these methods, is the recommended
+// way to directly control the recorded error's message, class, stacktrace,
+// and attributes.
+func (txn *Transaction) NoticeExpectedError(err error) {
+	if nil == txn {
+		return
+	}
+	if nil == txn.thread {
+		return
+	}
+	txn.thread.logAPIError(txn.thread.NoticeError(err, true), "notice error", nil)
 }
 
 // AddAttribute adds a key value pair to the transaction event, errors,
@@ -309,13 +344,11 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
 }
 
-//
 // AcceptDistributedTraceHeadersFromJSON works just like AcceptDistributedTraceHeaders(), except
 // that it takes the header data as a JSON string à la DistributedTraceHeadersFromJSON(). Additionally
 // (unlike AcceptDistributedTraceHeaders()) it returns an error if it was unable to successfully
 // convert the JSON string to http headers. There is no guarantee that the header data found in JSON
 // is correct beyond conforming to the expected types and syntax.
-//
 func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, jsondata string) error {
 	hdrs, err := DistributedTraceHeadersFromJSON(jsondata)
 	if err != nil {
@@ -325,7 +358,6 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, j
 	return nil
 }
 
-//
 // DistributedTraceHeadersFromJSON takes a set of distributed trace headers as a JSON-encoded string
 // and emits a http.Header value suitable for passing on to the
 // txn.AcceptDistributedTraceHeaders() function.
@@ -336,27 +368,33 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, j
 // languages which may natively handle these header values as JSON strings.
 //
 // For example, given the input string
-//   `{"traceparent": "frob", "tracestate": "blorfl", "newrelic": "xyzzy"}`
+//
+//	`{"traceparent": "frob", "tracestate": "blorfl", "newrelic": "xyzzy"}`
+//
 // This will emit an http.Header value with headers "traceparent", "tracestate", and "newrelic".
 // Specifically:
-//   http.Header{
-//     "Traceparent": {"frob"},
-//     "Tracestate": {"blorfl"},
-//     "Newrelic": {"xyzzy"},
-//   }
+//
+//	http.Header{
+//	  "Traceparent": {"frob"},
+//	  "Tracestate": {"blorfl"},
+//	  "Newrelic": {"xyzzy"},
+//	}
 //
 // The JSON string must be a single object whose values may be strings or arrays of strings.
 // These are translated directly to http headers with singleton or multiple values.
 // In the case of multiple string values, these are translated to a multi-value HTTP
 // header. For example:
-//   `{"traceparent": "12345", "colors": ["red", "green", "blue"]}`
-// which produces
-//   http.Header{
-//     "Traceparent": {"12345"},
-//     "Colors": {"red", "green", "blue"},
-//   }
-// (Note that the HTTP headers are capitalized.)
 //
+//	`{"traceparent": "12345", "colors": ["red", "green", "blue"]}`
+//
+// which produces
+//
+//	http.Header{
+//	  "Traceparent": {"12345"},
+//	  "Colors": {"red", "green", "blue"},
+//	}
+//
+// (Note that the HTTP headers are capitalized.)
 func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err error) {
 	var raw interface{}
 	hdrs = http.Header{}
