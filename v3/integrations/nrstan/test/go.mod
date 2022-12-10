@@ -6,9 +6,9 @@ module github.com/newrelic/go-agent/v3/integrations/nrstan/test
 go 1.13
 
 require (
-	github.com/nats-io/nats-streaming-server v0.24.1
-	github.com/nats-io/stan.go v0.10.2
-	github.com/newrelic/go-agent/v3 v3.4.0
+	github.com/nats-io/nats-streaming-server v0.24.3
+	github.com/nats-io/stan.go v0.10.3
+	github.com/newrelic/go-agent/v3 v3.18.2
 	github.com/newrelic/go-agent/v3/integrations/nrstan v0.0.0
 )
 
