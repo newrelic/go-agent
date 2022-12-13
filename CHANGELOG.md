@@ -1,3 +1,20 @@
+## 3.20.2
+
+### Added
+* New `NoticeExpectedError()` method allows you to capture errors that you are expecting to handle, without triggering alerts
+
+### Fixed
+* More defensive harvest cycle code that will avoid crashing even in the event of a panic.
+* Update `nats-server` version to avoid known zip-slip exploit
+* Update `labstack/echo` version to mitigate known open redirect exploit
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.20.1
 
 ### Added
