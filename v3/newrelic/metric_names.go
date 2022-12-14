@@ -187,8 +187,8 @@ func (r rollupMetric) webOrOther(isWeb bool) string {
 }
 
 var (
-	errorsRollupMetric = newRollupMetric("Errors/")
-
+	errorsRollupMetric         = newRollupMetric("Errors/")
+	expectedErrorsRollupMetric = newRollupMetric("ErrorsExpected/")
 	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_segment.md
 	// source.datanerd.us/agents/agent-specs/blob/master/APIs/external_cat.md
 	// source.datanerd.us/agents/agent-specs/blob/master/Cross-Application-Tracing-PORTED.md

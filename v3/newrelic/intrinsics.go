@@ -7,13 +7,17 @@ import (
 	"bytes"
 )
 
+const (
+	expectErrorAttr = "error.expected"
+)
+
 func addOptionalStringField(w *jsonFieldsWriter, key, value string) {
 	if value != "" {
 		w.stringField(key, value)
 	}
 }
 
-func intrinsicsJSON(e *txnEvent, buf *bytes.Buffer) {
+func intrinsicsJSON(e *txnEvent, buf *bytes.Buffer, expect bool) {
 	w := jsonFieldsWriter{buf: buf}
 
 	buf.WriteByte('{')
@@ -25,6 +29,10 @@ func intrinsicsJSON(e *txnEvent, buf *bytes.Buffer) {
 		w.stringField("traceId", e.BetterCAT.TraceID)
 		w.writerField("priority", e.BetterCAT.Priority)
 		w.boolField("sampled", e.BetterCAT.Sampled)
+	}
+
+	if expect {
+		w.stringField(expectErrorAttr, "true")
 	}
 
 	if e.CrossProcess.Used() {

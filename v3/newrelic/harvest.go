@@ -327,10 +327,14 @@ func createTxnMetrics(args *txnData, metrics *metricTable) {
 	}
 
 	// Error Metrics
-	if args.HasErrors() {
+	if args.NoticeErrors() {
 		metrics.addSingleCount(errorsRollupMetric.all, forced)
 		metrics.addSingleCount(errorsRollupMetric.webOrOther(args.IsWeb), forced)
 		metrics.addSingleCount(errorsPrefix+args.FinalName, forced)
+	}
+
+	if args.HasExpectedErrors() {
+		metrics.addSingleCount(expectedErrorsRollupMetric.all, forced)
 	}
 
 	// Queueing Metrics
