@@ -366,7 +366,7 @@ func headersJustWritten(thd *thread, code int, hdr http.Header) {
 	if txn.appRun.responseCodeIsError(code) {
 		e := txnErrorFromResponseCode(time.Now(), code)
 		e.Stack = getStackTrace()
-		thd.noticeErrorInternal(e)
+		thd.noticeErrorInternal(e, false)
 	}
 }
 
@@ -425,7 +425,7 @@ func (thd *thread) End(recovered interface{}) error {
 	if nil != recovered {
 		e := txnErrorFromPanic(time.Now(), recovered)
 		e.Stack = getStackTrace()
-		thd.noticeErrorInternal(e)
+		thd.noticeErrorInternal(e, false)
 		log.Println(string(debug.Stack()))
 	}
 
@@ -447,7 +447,7 @@ func (thd *thread) End(recovered interface{}) error {
 	txn.ApdexThreshold = internal.CalculateApdexThreshold(txn.Reply, txn.FinalName)
 
 	if txn.getsApdex() {
-		if txn.HasErrors() {
+		if txn.HasErrors() && txn.NoticeErrors() {
 			txn.Zone = apdexFailing
 		} else {
 			txn.Zone = calculateApdexZone(txn.ApdexThreshold, txn.Duration)
@@ -461,7 +461,7 @@ func (thd *thread) End(recovered interface{}) error {
 			"name":          txn.FinalName,
 			"duration_ms":   txn.Duration.Seconds() * 1000.0,
 			"ignored":       txn.ignore,
-			"app_connected": "" != txn.Reply.RunID,
+			"app_connected": txn.Reply.RunID != "",
 		})
 	}
 
@@ -559,10 +559,16 @@ const (
 	securityPolicyErrorMsg = "message removed by security policy"
 )
 
-func (thd *thread) noticeErrorInternal(err errorData) error {
+func (thd *thread) noticeErrorInternal(err errorData, expect bool) error {
 	txn := thd.txn
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsDisabled
+	}
+
+	if !expect {
+		thd.noticeErrors = true
+	} else {
+		thd.expectedErrors = true
 	}
 
 	if nil == txn.Errors {
@@ -643,12 +649,13 @@ func errorAttributesMethod(err error) map[string]interface{} {
 	return nil
 }
 
-func errDataFromError(input error) (data errorData, err error) {
+func errDataFromError(input error, expect bool) (data errorData, err error) {
 	cause := errorCause(input)
 
 	data = errorData{
-		When: time.Now(),
-		Msg:  input.Error(),
+		When:   time.Now(),
+		Msg:    input.Error(),
+		Expect: expect,
 	}
 
 	if c := errorClassMethod(input); "" != c {
@@ -700,7 +707,7 @@ func errDataFromError(input error) (data errorData, err error) {
 	return data, nil
 }
 
-func (thd *thread) NoticeError(input error) error {
+func (thd *thread) NoticeError(input error, expect bool) error {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
@@ -713,7 +720,7 @@ func (thd *thread) NoticeError(input error) error {
 		return errNilError
 	}
 
-	data, err := errDataFromError(input)
+	data, err := errDataFromError(input, expect)
 	if nil != err {
 		return err
 	}
@@ -722,7 +729,7 @@ func (thd *thread) NoticeError(input error) error {
 		data.ExtraAttributes = nil
 	}
 
-	return thd.noticeErrorInternal(data)
+	return thd.noticeErrorInternal(data, expect)
 }
 
 func (txn *txn) SetName(name string) error {

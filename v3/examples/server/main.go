@@ -31,6 +31,13 @@ func noticeError(w http.ResponseWriter, r *http.Request) {
 	txn.NoticeError(errors.New("my error message"))
 }
 
+func noticeExpectedError(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "noticing an error")
+
+	txn := newrelic.FromContext(r.Context())
+	txn.NoticeExpectedError(errors.New("my expected error message"))
+}
+
 func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "noticing an error")
 
@@ -273,6 +280,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error", noticeError))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_expected_error", noticeExpectedError))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/notice_error_with_attributes", noticeErrorWithAttributes))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/custom_event", customEvent))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/set_name", setName))

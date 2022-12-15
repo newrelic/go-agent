@@ -5,6 +5,7 @@ package jsonx
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"testing"
 )
@@ -25,6 +26,30 @@ func TestAppendFloat(t *testing.T) {
 	err = AppendFloat(buf, math.Inf(-1))
 	if err == nil {
 		t.Error("AppendFloat(-Inf) should return an error")
+	}
+}
+
+func TestAppendFloat32(t *testing.T) {
+	buf := &bytes.Buffer{}
+
+	err := AppendFloat32(buf, float32(math.NaN()))
+	if err == nil {
+		t.Error("AppendFloat(NaN) should return an error")
+	}
+
+	err = AppendFloat32(buf, float32(math.Inf(1)))
+	if err == nil {
+		t.Error("AppendFloat(+Inf) should return an error")
+	}
+
+	err = AppendFloat32(buf, float32(math.Inf(-1)))
+	if err == nil {
+		t.Error("AppendFloat(-Inf) should return an error")
+	}
+
+	err = AppendFloat32(buf, float32(12.5))
+	if err != nil {
+		t.Error("AppendFloat(12.5) should not return an error")
 	}
 }
 
@@ -166,6 +191,15 @@ var encodeStringTests = []struct {
 	{"\\", `"\\"`},
 	{`"`, `"\""`},
 	{"the\u2028quick\t\nbrown\u2029fox", `"the\u2028quick\t\nbrown\u2029fox"`},
+
+	//extra edge cases
+	{string([]byte{237, 159, 193}), `"\ufffd\ufffd\ufffd"`},                            // invalid utf8
+	{string([]byte{55, 237, 159, 193, 55}), `"7\ufffd\ufffd\ufffd7"`},                  // invalid utf8 surrounded by valid utf8
+	{`abcdefghijklmnopqrstuvwxyz1234567890`, `"abcdefghijklmnopqrstuvwxyz1234567890"`}, // alphanumeric
+	{"'", `"'"`},
+	{``, `""`},
+	{`\`, `"\\"`},
+	{fmt.Sprintf("%c", rune(65533)), fmt.Sprintf("\"%c\"", rune(65533))}, // invalid rune utf8 symbol (valid utf8)
 }
 
 func TestAppendString(t *testing.T) {
@@ -181,6 +215,41 @@ func TestAppendString(t *testing.T) {
 	}
 }
 
+func TestAppendStringArray(t *testing.T) {
+	buf := &bytes.Buffer{}
+
+	var encodeStringArrayTests = []struct {
+		in  []string
+		out string
+	}{
+		{
+			in: []string{
+				"hi",
+				"foo",
+			},
+			out: `["hi","foo"]`,
+		},
+		{
+			in: []string{
+				"foo",
+			},
+			out: `["foo"]`,
+		},
+		{
+			in:  []string{},
+			out: `[]`,
+		},
+	}
+
+	for _, tt := range encodeStringArrayTests {
+		buf.Reset()
+
+		AppendStringArray(buf, tt.in...)
+		if got := buf.String(); got != tt.out {
+			t.Errorf("AppendString(%q) = %#q, want %#q", tt.in, got, tt.out)
+		}
+	}
+}
 func BenchmarkAppendString(b *testing.B) {
 	buf := &bytes.Buffer{}
 

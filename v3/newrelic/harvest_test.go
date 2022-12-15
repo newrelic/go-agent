@@ -771,6 +771,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	webName := "WebTransaction/zip/zap"
 	backgroundName := "OtherTransaction/zip/zap"
 	args := &txnData{}
+	args.noticeErrors = true
 	args.Duration = 123 * time.Second
 	args.TotalTime = 150 * time.Second
 	args.ApdexThreshold = 2 * time.Second
@@ -803,6 +804,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.FinalName = webName
 	args.IsWeb = true
 	args.Errors = nil
+	args.noticeErrors = false
 	args.Zone = apdexTolerating
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -821,6 +823,7 @@ func TestCreateTxnMetrics(t *testing.T) {
 	args.FinalName = backgroundName
 	args.IsWeb = false
 	args.Errors = txnErrors
+	args.noticeErrors = true
 	args.Zone = apdexNone
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -838,9 +841,32 @@ func TestCreateTxnMetrics(t *testing.T) {
 		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
 	})
 
+	// Verify expected errors metrics
+	args.FinalName = backgroundName
+	args.IsWeb = false
+	args.Errors = txnErrors
+	args.noticeErrors = false
+	args.expectedErrors = true
+	args.Zone = apdexNone
+	metrics = newMetricTable(100, time.Now())
+	createTxnMetrics(args, metrics)
+	expectMetrics(t, metrics, []internal.WantMetric{
+		{Name: backgroundName, Scope: "", Forced: true, Data: []float64{1, 123, 0, 123, 123, 123 * 123}},
+		{Name: backgroundRollup, Scope: "", Forced: true, Data: []float64{1, 123, 0, 123, 123, 123 * 123}},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: []float64{1, 150, 150, 150, 150, 150 * 150}},
+		{Name: "OtherTransactionTotalTime/zip/zap", Scope: "", Forced: false, Data: []float64{1, 150, 150, 150, 150, 150 * 150}},
+		{Name: "ErrorsExpected/all", Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: []float64{1, 123, 123, 123, 123, 123 * 123}},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: []float64{1, 0, 0, 0, 0, 0}},
+	})
+
 	args.FinalName = backgroundName
 	args.IsWeb = false
 	args.Errors = nil
+	args.noticeErrors = false
+	args.expectedErrors = false
 	args.Zone = apdexNone
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -889,6 +915,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	args.FinalName = webName
 	args.IsWeb = true
 	args.Errors = txnErrors
+	args.noticeErrors = true
 	args.Zone = apdexTolerating
 	metrics := newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -908,6 +935,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	args.FinalName = webName
 	args.IsWeb = true
 	args.Errors = nil
+	args.noticeErrors = false
 	args.Zone = apdexTolerating
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -924,6 +952,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	args.FinalName = backgroundName
 	args.IsWeb = false
 	args.Errors = txnErrors
+	args.noticeErrors = true
 	args.Zone = apdexNone
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)
@@ -940,6 +969,7 @@ func TestCreateTxnMetricsOldCAT(t *testing.T) {
 	args.FinalName = backgroundName
 	args.IsWeb = false
 	args.Errors = nil
+	args.noticeErrors = false
 	args.Zone = apdexNone
 	metrics = newMetricTable(100, time.Now())
 	createTxnMetrics(args, metrics)

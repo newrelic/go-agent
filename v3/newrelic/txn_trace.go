@@ -281,7 +281,7 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 	userAttributesJSON(trace.Attrs, buf, destTxnTrace, nil)
 	buf.WriteByte(',')
 	buf.WriteString(`"intrinsics":`)
-	intrinsicsJSON(&trace.txnEvent, buf)
+	intrinsicsJSON(&trace.txnEvent, buf, false)
 	buf.WriteByte('}')
 
 	// If the trace string pool is used, end another array here.
