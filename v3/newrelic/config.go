@@ -766,7 +766,7 @@ func copyConfigReferenceFields(cfg Config) Config {
 			cp.Labels[key] = val
 		}
 	}
-	if nil != cfg.ErrorCollector.IgnoreStatusCodes {
+	if cfg.ErrorCollector.IgnoreStatusCodes != nil {
 		ignored := make([]int, len(cfg.ErrorCollector.IgnoreStatusCodes))
 		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
 		cp.ErrorCollector.IgnoreStatusCodes = ignored

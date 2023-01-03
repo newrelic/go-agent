@@ -42,7 +42,6 @@ func TestResponseCodeIsError(t *testing.T) {
 				tc.Code, tc.IsError, is)
 		}
 	}
-
 }
 
 func TestCrossAppTracingEnabled(t *testing.T) {
@@ -331,7 +330,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 	}
 	result := newAppRun(config{Config: defaultConfig()}, h).MaxTxnEvents()
 	if result != 15 {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, result)
 	}
 }
 
@@ -350,7 +349,7 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = expected
 	result := newAppRun(cfg, reply).MaxTxnEvents()
 	if result != expected {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", expected, result)
 	}
 }
 

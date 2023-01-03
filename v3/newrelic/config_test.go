@@ -676,11 +676,11 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	for _, tc := range testcases {
 		// mimic file/environment precedence of other agents
 		configKey := tc.ConfigFileKey
-		if "" != tc.EnvKey {
+		if tc.EnvKey != "" {
 			configKey = tc.EnvKey
 		}
 		overrideHost := tc.ConfigOverrideHost
-		if "" != tc.EnvOverrideHost {
+		if tc.EnvOverrideHost != "" {
 			overrideHost = tc.EnvOverrideHost
 		}
 

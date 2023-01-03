@@ -35,6 +35,8 @@ type appRun struct {
 	// flexible harvest periods.  This field is created once at appRun
 	// creation.
 	harvestConfig harvestConfig
+
+	ignoreErrorCodesCache map[int]bool
 }
 
 const (
@@ -43,10 +45,11 @@ const (
 
 func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	run := &appRun{
-		Reply:           reply,
-		AttributeConfig: createAttributeConfig(config, reply.SecurityPolicies.AttributesInclude.Enabled()),
-		Config:          config,
-		rulesCache:      newRulesCache(txnNameCacheLimit),
+		Reply:                 reply,
+		AttributeConfig:       createAttributeConfig(config, reply.SecurityPolicies.AttributesInclude.Enabled()),
+		Config:                config,
+		rulesCache:            newRulesCache(txnNameCacheLimit),
+		ignoreErrorCodesCache: make(map[int]bool),
 	}
 
 	// Overwrite local settings with any server-side-config settings
@@ -54,16 +57,16 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	// function is a value and not a pointer: We do not want to change the
 	// input Config with values particular to this connection.
 
-	if v := run.Reply.ServerSideConfig.TransactionTracerEnabled; nil != v {
+	if v := run.Reply.ServerSideConfig.TransactionTracerEnabled; v != nil {
 		run.Config.TransactionTracer.Enabled = *v
 	}
-	if v := run.Reply.ServerSideConfig.ErrorCollectorEnabled; nil != v {
+	if v := run.Reply.ServerSideConfig.ErrorCollectorEnabled; v != nil {
 		run.Config.ErrorCollector.Enabled = *v
 	}
-	if v := run.Reply.ServerSideConfig.CrossApplicationTracerEnabled; nil != v {
+	if v := run.Reply.ServerSideConfig.CrossApplicationTracerEnabled; v != nil {
 		run.Config.CrossApplicationTracer.Enabled = *v
 	}
-	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; nil != v {
+	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; v != nil {
 		switch val := v.(type) {
 		case float64:
 			run.Config.TransactionTracer.Threshold.IsApdexFailing = false
@@ -74,11 +77,16 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 			}
 		}
 	}
-	if v := run.Reply.ServerSideConfig.TransactionTracerStackTraceThreshold; nil != v {
+	if v := run.Reply.ServerSideConfig.TransactionTracerStackTraceThreshold; v != nil {
 		run.Config.TransactionTracer.Segments.StackTraceThreshold = internal.FloatSecondsToDuration(*v)
 	}
-	if v := run.Reply.ServerSideConfig.ErrorCollectorIgnoreStatusCodes; nil != v {
+	if v := run.Reply.ServerSideConfig.ErrorCollectorIgnoreStatusCodes; v != nil {
 		run.Config.ErrorCollector.IgnoreStatusCodes = v
+	}
+	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
+		for _, errorCode := range run.Config.ErrorCollector.IgnoreStatusCodes {
+			run.ignoreErrorCodesCache[errorCode] = true
+		}
 	}
 
 	if !run.Reply.CollectErrorEvents {
@@ -171,12 +179,7 @@ func (run *appRun) responseCodeIsError(code int) bool {
 	if code < 400 && code >= 100 {
 		return false
 	}
-	for _, ignoreCode := range run.Config.ErrorCollector.IgnoreStatusCodes {
-		if code == ignoreCode {
-			return false
-		}
-	}
-	return true
+	return !run.ignoreErrorCodesCache[code]
 }
 
 func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration {
@@ -253,11 +256,11 @@ func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {
 }
 
 func (run *appRun) createTransactionName(input string, isWeb bool) string {
-	if name := run.rulesCache.find(input, isWeb); "" != name {
+	if name := run.rulesCache.find(input, isWeb); name != "" {
 		return name
 	}
 	name := internal.CreateFullTxnName(input, run.Reply, isWeb)
-	if "" != name {
+	if name != "" {
 		// Note that we  don't cache situations where the rules say
 		// ignore.  It would increase complication (we would need to
 		// disambiguate not-found vs ignore).  Also, the ignore code

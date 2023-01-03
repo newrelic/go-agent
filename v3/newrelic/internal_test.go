@@ -678,8 +678,7 @@ func TestResponseCode404Filtered(t *testing.T) {
 
 func TestResponseCodeCustomFilter(t *testing.T) {
 	cfgFn := func(cfg *Config) {
-		cfg.ErrorCollector.IgnoreStatusCodes =
-			append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
+		cfg.ErrorCollector.IgnoreStatusCodes = []int{405}
 		cfg.DistributedTracer.Enabled = false
 	}
 	app := testApp(nil, cfgFn, t)
@@ -790,7 +789,7 @@ func TestResponseCodeAfterWrite(t *testing.T) {
 
 	txn.End()
 
-	if out := w.Body.String(); "zap" != out {
+	if out := w.Body.String(); out != "zap" {
 		t.Error(out)
 	}
 
