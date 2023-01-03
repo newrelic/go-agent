@@ -55,6 +55,7 @@ type rpmControls struct {
 	License string
 	Client  *http.Client
 	Logger  logger.Logger
+	Writer  *gzip.Writer
 }
 
 // rpmResponse contains a NR endpoint response.
@@ -136,11 +137,10 @@ func rpmURL(cmd rpmCmd, cs rpmControls) string {
 	return u.String()
 }
 
-func compress(b []byte) (*bytes.Buffer, error) {
+func compress(b []byte, w *gzip.Writer) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
-	w := gzip.NewWriter(&buf)
+	w.Reset(&buf)
 	_, err := w.Write(b)
-	w.Close()
 
 	if nil != err {
 		return nil, err
@@ -150,7 +150,7 @@ func compress(b []byte) (*bytes.Buffer, error) {
 }
 
 func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmResponse {
-	compressed, err := compress(cmd.Data)
+	compressed, err := compress(cmd.Data, cs.Writer)
 	if nil != err {
 		return rpmResponse{Err: err}
 	}
