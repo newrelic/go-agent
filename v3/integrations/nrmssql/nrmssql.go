@@ -4,7 +4,7 @@
 //go:build go1.10
 // +build go1.10
 
-// Package nrmssql instruments github.com/denisenkom/go-mssqldb.
+// Package nrmssql instruments github.com/microsoft/go-mssqldb.
 //
 // Use this package to instrument your MSSQL calls without having to manually
 // create DatastoreSegments.  This is done in a two step process:
