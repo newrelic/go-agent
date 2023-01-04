@@ -44,6 +44,29 @@ func TestResponseCodeIsError(t *testing.T) {
 	}
 }
 
+func TestResponseCodeIsExpected(t *testing.T) {
+	cfg := config{Config: defaultConfig()}
+	cfg.ErrorCollector.ExpectStatusCodes = []int{400, 503, 504}
+	run := newAppRun(cfg, internal.ConnectReplyDefaults())
+
+	for _, tc := range []struct {
+		Code    int
+		IsError bool
+	}{
+		{Code: 0, IsError: false}, // gRPC
+		{Code: 1, IsError: false}, // gRPC
+		{Code: 400, IsError: true},
+		{Code: 404, IsError: false},
+		{Code: 503, IsError: true},
+		{Code: 504, IsError: true},
+	} {
+		if is := run.responseCodeIsExpected(tc.Code); is != tc.IsError {
+			t.Errorf("responseCodeIsError for %d, wanted=%v got=%v",
+				tc.Code, tc.IsError, is)
+		}
+	}
+}
+
 func TestCrossAppTracingEnabled(t *testing.T) {
 	// CAT should NOT be enabled by default.
 	cfg := config{Config: defaultConfig()}

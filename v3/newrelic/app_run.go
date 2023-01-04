@@ -36,7 +36,9 @@ type appRun struct {
 	// creation.
 	harvestConfig harvestConfig
 
+	// Error code caches for faster lookups O(1)
 	ignoreErrorCodesCache map[int]bool
+	expectErrorCodesCache map[int]bool
 }
 
 const (
@@ -50,6 +52,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		Config:                config,
 		rulesCache:            newRulesCache(txnNameCacheLimit),
 		ignoreErrorCodesCache: make(map[int]bool),
+		expectErrorCodesCache: make(map[int]bool),
 	}
 
 	// Overwrite local settings with any server-side-config settings
@@ -86,6 +89,15 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
 		for _, errorCode := range run.Config.ErrorCollector.IgnoreStatusCodes {
 			run.ignoreErrorCodesCache[errorCode] = true
+		}
+	}
+
+	if v := run.Reply.ServerSideConfig.ErrorCollectorExpectStatusCodes; v != nil {
+		run.Config.ErrorCollector.ExpectStatusCodes = v
+	}
+	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
+		for _, errorCode := range run.Config.ErrorCollector.ExpectStatusCodes {
+			run.expectErrorCodesCache[errorCode] = true
 		}
 	}
 
@@ -180,6 +192,10 @@ func (run *appRun) responseCodeIsError(code int) bool {
 		return false
 	}
 	return !run.ignoreErrorCodesCache[code]
+}
+
+func (run *appRun) responseCodeIsExpected(code int) bool {
+	return run.expectErrorCodesCache[code]
 }
 
 func (run *appRun) txnTraceThreshold(apdexThreshold time.Duration) time.Duration {
