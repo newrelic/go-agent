@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/logger"
@@ -52,10 +53,10 @@ type rpmCmd struct {
 // rpmControls contains fields which will be the same for all calls made
 // by the same application.
 type rpmControls struct {
-	License string
-	Client  *http.Client
-	Logger  logger.Logger
-	Writer  *gzip.Writer
+	License        string
+	Client         *http.Client
+	Logger         logger.Logger
+	GzipWriterPool *sync.Pool
 }
 
 // rpmResponse contains a NR endpoint response.
@@ -137,10 +138,14 @@ func rpmURL(cmd rpmCmd, cs rpmControls) string {
 	return u.String()
 }
 
-func compress(b []byte, w *gzip.Writer) (*bytes.Buffer, error) {
+func compress(b []byte, gzipWriterPool *sync.Pool) (*bytes.Buffer, error) {
+	w := gzipWriterPool.Get().(*gzip.Writer)
+	defer gzipWriterPool.Put(w)
+
 	var buf bytes.Buffer
 	w.Reset(&buf)
 	_, err := w.Write(b)
+	w.Close()
 
 	if nil != err {
 		return nil, err
@@ -150,7 +155,7 @@ func compress(b []byte, w *gzip.Writer) (*bytes.Buffer, error) {
 }
 
 func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmResponse {
-	compressed, err := compress(cmd.Data, cs.Writer)
+	compressed, err := compress(cmd.Data, cs.GzipWriterPool)
 	if nil != err {
 		return rpmResponse{Err: err}
 	}

@@ -434,7 +434,11 @@ func newApp(c config) *app {
 				Timeout:   collectorTimeout,
 			},
 			Logger: c.Logger,
-			Writer: gzip.NewWriter(nil),
+			GzipWriterPool: &sync.Pool{
+				New: func() any {
+					return gzip.NewWriter(io.Discard)
+				},
+			},
 		},
 	}
 
