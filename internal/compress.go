@@ -6,11 +6,15 @@ package internal
 import (
 	"bytes"
 	"compress/gzip"
+	"sync"
 )
 
-func compress(b []byte) (*bytes.Buffer, error) {
+func compress(b []byte, gzipWriterPool *sync.Pool) (*bytes.Buffer, error) {
+	w := gzipWriterPool.Get().(*gzip.Writer)
+	defer gzipWriterPool.Put(w)
+
 	var buf bytes.Buffer
-	w := gzip.NewWriter(&buf)
+	w.Reset(&buf)
 	_, err := w.Write(b)
 	w.Close()
 

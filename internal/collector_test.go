@@ -4,13 +4,16 @@
 package internal
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -157,6 +160,11 @@ func TestUrl(t *testing.T) {
 		Client:       nil,
 		Logger:       nil,
 		AgentVersion: "1",
+		GzipWriterPool: &sync.Pool{
+			New: func() any {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 
 	out := rpmURL(cmd, cs)
@@ -515,6 +523,11 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 				}),
 			},
 			Logger: logger.ShimLogger{IsDebugEnabled: true},
+			GzipWriterPool: &sync.Pool{
+				New: func() any {
+					return gzip.NewWriter(io.Discard)
+				},
+			},
 		}
 	}
 
