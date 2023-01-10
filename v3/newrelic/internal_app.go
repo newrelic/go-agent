@@ -435,7 +435,7 @@ func newApp(c config) *app {
 			},
 			Logger: c.Logger,
 			GzipWriterPool: &sync.Pool{
-				New: func() any {
+				New: func() interface{} {
 					return gzip.NewWriter(io.Discard)
 				},
 			},

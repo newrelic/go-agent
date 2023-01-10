@@ -161,7 +161,7 @@ func TestUrl(t *testing.T) {
 		Logger:       nil,
 		AgentVersion: "1",
 		GzipWriterPool: &sync.Pool{
-			New: func() any {
+			New: func() interface{} {
 				return gzip.NewWriter(io.Discard)
 			},
 		},
@@ -524,7 +524,7 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 			},
 			Logger: logger.ShimLogger{IsDebugEnabled: true},
 			GzipWriterPool: &sync.Pool{
-				New: func() any {
+				New: func() interface{} {
 					return gzip.NewWriter(io.Discard)
 				},
 			},
