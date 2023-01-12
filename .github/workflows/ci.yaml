@@ -97,7 +97,6 @@ jobs:
             extratesting: go get -u github.com/mattn/go-sqlite3@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrsnowflake
-            extratesting: go get -u github.com/snowflakedb/gosnowflake@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrgrpc
             extratesting: go get -u google.golang.org/grpc@master
