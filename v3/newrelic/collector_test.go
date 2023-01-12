@@ -4,13 +4,16 @@
 package newrelic
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,6 +108,11 @@ func TestCollectorRequest(t *testing.T) {
 			}),
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	resp := collectorRequest(cmd, cs)
 	if nil != resp.Err {
@@ -131,6 +139,11 @@ func TestCollectorBadRequest(t *testing.T) {
 			}),
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	u := ":" // bad url
 	resp := collectorRequestInternal(u, cmd, cs)
@@ -154,6 +167,11 @@ func TestCollectorTimeout(t *testing.T) {
 			Timeout: time.Nanosecond, // force a timeout
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	u := "https://example.com"
 	resp := collectorRequestInternal(u, cmd, cs)
@@ -174,6 +192,11 @@ func TestUrl(t *testing.T) {
 		License: "123abc",
 		Client:  nil,
 		Logger:  nil,
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 
 	out := rpmURL(cmd, cs)
@@ -235,6 +258,11 @@ func testConnectHelper(cm connectMock) (*internal.ConnectReply, rpmResponse) {
 		License: "12345",
 		Client:  &http.Client{Transport: cm},
 		Logger:  logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 
 	return connectAttempt(cm.config, cs)
@@ -403,6 +431,11 @@ func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
 			}),
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	resp := collectorRequest(cmd, cs)
 	if nil == resp.Err {
@@ -439,6 +472,11 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 				}),
 			},
 			Logger: logger.ShimLogger{IsDebugEnabled: true},
+			GzipWriterPool: &sync.Pool{
+				New: func() interface{} {
+					return gzip.NewWriter(io.Discard)
+				},
+			},
 		}
 	}
 
