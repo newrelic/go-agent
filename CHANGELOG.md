@@ -1,3 +1,19 @@
+## 3.20.3
+
+Please note that the v2 go agent is no longer supported according to our EOL policy. 
+
+### Fixed
+* Performance Improvements for compression
+* nrsnowflake updated to golang 1.17 versions of packages
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
+
 ## 3.20.2
 
 ### Added
