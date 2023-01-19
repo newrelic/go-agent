@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/internal/logger"
@@ -50,10 +51,11 @@ type RpmCmd struct {
 // RpmControls contains fields which will be the same for all calls made
 // by the same application.
 type RpmControls struct {
-	License      string
-	Client       *http.Client
-	Logger       logger.Logger
-	AgentVersion string
+	License        string
+	Client         *http.Client
+	Logger         logger.Logger
+	AgentVersion   string
+	GzipWriterPool *sync.Pool
 }
 
 // RPMResponse contains a NR endpoint response.
@@ -131,7 +133,7 @@ func rpmURL(cmd RpmCmd, cs RpmControls) string {
 }
 
 func collectorRequestInternal(url string, cmd RpmCmd, cs RpmControls) RPMResponse {
-	compressed, err := compress(cmd.Data)
+	compressed, err := compress(cmd.Data, cs.GzipWriterPool)
 	if nil != err {
 		return RPMResponse{Err: err}
 	}

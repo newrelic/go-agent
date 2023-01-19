@@ -4,13 +4,16 @@
 package internal
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/newrelic/go-agent/internal/crossagent"
@@ -111,6 +114,11 @@ func TestCollectorRequest(t *testing.T) {
 		},
 		Logger:       logger.ShimLogger{IsDebugEnabled: true},
 		AgentVersion: "agent_version",
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	resp := CollectorRequest(cmd, cs)
 	if nil != resp.Err {
@@ -138,6 +146,11 @@ func TestCollectorBadRequest(t *testing.T) {
 		},
 		Logger:       logger.ShimLogger{IsDebugEnabled: true},
 		AgentVersion: "agent_version",
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	u := ":" // bad url
 	resp := collectorRequestInternal(u, cmd, cs)
@@ -157,6 +170,11 @@ func TestUrl(t *testing.T) {
 		Client:       nil,
 		Logger:       nil,
 		AgentVersion: "1",
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 
 	out := rpmURL(cmd, cs)
@@ -236,6 +254,11 @@ func testConnectHelper(cm connectMock) (*ConnectReply, RPMResponse) {
 		Client:       &http.Client{Transport: cm},
 		Logger:       logger.ShimLogger{IsDebugEnabled: true},
 		AgentVersion: "1",
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 
 	return ConnectAttempt(config, "", false, cs)
@@ -479,6 +502,11 @@ func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
 			}),
 		},
 		Logger: logger.ShimLogger{IsDebugEnabled: true},
+		GzipWriterPool: &sync.Pool{
+			New: func() interface{} {
+				return gzip.NewWriter(io.Discard)
+			},
+		},
 	}
 	resp := CollectorRequest(cmd, cs)
 	if nil == resp.Err {
@@ -515,6 +543,11 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 				}),
 			},
 			Logger: logger.ShimLogger{IsDebugEnabled: true},
+			GzipWriterPool: &sync.Pool{
+				New: func() interface{} {
+					return gzip.NewWriter(io.Discard)
+				},
+			},
 		}
 	}
 

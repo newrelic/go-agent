@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -433,6 +434,11 @@ func newApp(c config) *app {
 				Timeout:   collectorTimeout,
 			},
 			Logger: c.Logger,
+			GzipWriterPool: &sync.Pool{
+				New: func() interface{} {
+					return gzip.NewWriter(io.Discard)
+				},
+			},
 		},
 	}
 
