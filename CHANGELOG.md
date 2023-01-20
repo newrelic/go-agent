@@ -1,5 +1,6 @@
 ## 3.20.3
 
+
 Please note that the v2 go agent is no longer supported according to our EOL policy. 
 
 ### Fixed
