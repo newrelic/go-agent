@@ -1,6 +1,6 @@
 ## TEST PUSH
 
-This is a test push. Solving CLA issues
+This is a test push. Solving CLA issues.
 
 
 ## 3.20.3
