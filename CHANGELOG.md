@@ -1,6 +1,5 @@
-## TEST PUSH
+## IS CLA correctly configured now?
 
-This is a test push. Solving CLA issues.
 
 
 ## 3.20.3
