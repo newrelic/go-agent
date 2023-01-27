@@ -43,7 +43,7 @@ const (
 	// always find the dynamic value, e.g. run.MaxSpanEvents(), instead of this value.
 	defaultMaxSpanEvents = 2000
 
-	errorEventMessageLimit = 4096
+	errorEventMessageLengthLimit = 4096
 	// attributes
 	attributeKeyLengthLimit   = 255
 	attributeValueLengthLimit = 255
