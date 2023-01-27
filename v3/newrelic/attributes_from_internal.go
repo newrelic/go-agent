@@ -340,8 +340,8 @@ func truncateStringValueIfLong(val string) string {
 }
 
 func truncateStringMessageIfLong(message string) string {
-	if len(message) > errorEventMessageLimit {
-		return stringLengthByteLimit(message, errorEventMessageLimit)
+	if len(message) > errorEventMessageLengthLimit {
+		return stringLengthByteLimit(message, errorEventMessageLengthLimit)
 	}
 	return message
 }
