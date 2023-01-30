@@ -227,10 +227,6 @@ matrix:
     env:
       - DIRS=v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
       - EXTRATESTING="go get -u github.com/graphql-go/graphql@master"
-  - go: "1.19"
-    env:
-      - DIRS=v3/integrations/nriris
-      - EXTRATESTING="go get -u github.com/kataras/iris/v12@master"
 # Skip the install step. Don't `go get` dependencies.
 install: true
 
