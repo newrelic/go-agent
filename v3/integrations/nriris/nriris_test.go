@@ -92,7 +92,7 @@ func TestAnonymousHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	txnName := "GET " + pkg + ".TestAnonymousHandler.func1"
+	txnName := "GET " + pkg + ".TestAnonymousHandler"
 
 	response := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/anon", nil)
