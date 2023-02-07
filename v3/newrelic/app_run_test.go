@@ -67,6 +67,18 @@ func TestResponseCodeIsExpected(t *testing.T) {
 	}
 }
 
+func BenchmarkResponseCodeIsExpectedHit(b *testing.B) {
+	cfg := config{Config: defaultConfig()}
+	cfg.ErrorCollector.ExpectStatusCodes = []int{400, 503, 504}
+	run := newAppRun(cfg, internal.ConnectReplyDefaults())
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for n := 0; n < b.N; n++ {
+		run.responseCodeIsExpected(400)
+	}
+}
+
 func TestCrossAppTracingEnabled(t *testing.T) {
 	// CAT should NOT be enabled by default.
 	cfg := config{Config: defaultConfig()}
@@ -390,7 +402,7 @@ func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
 	result := newAppRun(cfg, h).MaxTxnEvents()
 	if result != internal.MaxTxnEvents {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
+		t.Errorf(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
 	}
 }
 

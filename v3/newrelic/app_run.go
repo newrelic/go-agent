@@ -6,6 +6,7 @@ package newrelic
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -39,6 +40,7 @@ type appRun struct {
 	// Error code caches for faster lookups O(1)
 	ignoreErrorCodesCache map[int]bool
 	expectErrorCodesCache map[int]bool
+	mu                    sync.RWMutex
 }
 
 const (
@@ -87,18 +89,22 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		run.Config.ErrorCollector.IgnoreStatusCodes = v
 	}
 	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
+		run.mu.Lock()
 		for _, errorCode := range run.Config.ErrorCollector.IgnoreStatusCodes {
 			run.ignoreErrorCodesCache[errorCode] = true
 		}
+		run.mu.Unlock()
 	}
 
 	if v := run.Reply.ServerSideConfig.ErrorCollectorExpectStatusCodes; v != nil {
 		run.Config.ErrorCollector.ExpectStatusCodes = v
 	}
 	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
+		run.mu.Lock()
 		for _, errorCode := range run.Config.ErrorCollector.ExpectStatusCodes {
 			run.expectErrorCodesCache[errorCode] = true
 		}
+		run.mu.Unlock()
 	}
 
 	if !run.Reply.CollectErrorEvents {
@@ -191,10 +197,14 @@ func (run *appRun) responseCodeIsError(code int) bool {
 	if code < 400 && code >= 100 {
 		return false
 	}
+	run.mu.RLock()
+	defer run.mu.RUnlock()
 	return !run.ignoreErrorCodesCache[code]
 }
 
 func (run *appRun) responseCodeIsExpected(code int) bool {
+	run.mu.RLock()
+	defer run.mu.RUnlock()
 	return run.expectErrorCodesCache[code]
 }
 
