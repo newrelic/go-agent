@@ -621,7 +621,7 @@ func defaultConfig() Config {
 
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
-	c.DistributedTracer.ReservoirLimit = defaultMaxSpanEvents
+	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
@@ -721,6 +721,16 @@ func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
+// maxSpanEvents returns the configured maximum number of Span Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxSpanEvents() int {
+	configured := c.DistributedTracer.ReservoirLimit
+	if configured < 0 || configured > internal.MaxSpanEvents {
+		return internal.MaxSpanEvents
 	}
 	return configured
 }
