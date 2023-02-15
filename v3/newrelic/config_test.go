@@ -163,7 +163,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -272,10 +272,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"custom_event_data": %d,
 				"log_event_data": %d,
 				"error_event_data": 100,
-				"span_event_data": 2000
+				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -361,7 +361,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -458,10 +458,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"custom_event_data": %d,
 				"log_event_data": %d,
 				"error_event_data": 100,
-				"span_event_data": 2000
+				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)

@@ -167,7 +167,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/AnalyticEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents * internal.MaxCustomEvents}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 100, 100, 100, 100, 100 * 100}},
-		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 2000, 2000, 2000, 2000, 2000 * 2000}},
+		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents * internal.MaxSpanEvents}},
 		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10000, 10000, 10000, 10000, 10000 * 10000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
