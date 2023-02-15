@@ -187,7 +187,7 @@ func TestZeroReportPeriod(t *testing.T) {
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxLogEvents:    internal.MaxLogEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   defaultMaxSpanEvents,
+		maxSpanEvents:   internal.MaxSpanEvents,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,

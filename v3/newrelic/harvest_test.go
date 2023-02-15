@@ -997,7 +997,7 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if cp := h.ErrorEvents.capacity(); cp != internal.MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
 	}
-	if cp := h.SpanEvents.capacity(); cp != defaultMaxSpanEvents {
+	if cp := h.SpanEvents.capacity(); cp != internal.MaxSpanEvents {
 		t.Error("wrong span event capacity", cp)
 	}
 }
