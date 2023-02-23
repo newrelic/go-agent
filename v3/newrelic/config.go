@@ -725,16 +725,6 @@ func (c Config) maxTxnEvents() int {
 	return configured
 }
 
-// maxSpanEvents returns the configured maximum number of Span Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxSpanEvents() int {
-	configured := c.DistributedTracer.ReservoirLimit
-	if configured < 0 || configured > internal.MaxSpanEvents {
-		return internal.MaxSpanEvents
-	}
-	return configured
-}
-
 // maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
 // and is less than the default maximum; otherwise it returns the default max.
 func (c Config) maxCustomEvents() int {
