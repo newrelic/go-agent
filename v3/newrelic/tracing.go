@@ -413,7 +413,9 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
-	t.SpanEvents = append(t.SpanEvents, e)
+	if len(t.SpanEvents) < internal.MaxSpanEvents {
+		t.SpanEvents = append(t.SpanEvents, e)
+	}
 }
 
 var (
