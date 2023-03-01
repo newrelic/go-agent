@@ -199,6 +199,14 @@ func ConfigCodeLevelMetricsPathPrefixes(prefix ...string) ConfigOption {
 	}
 }
 
+// ConfigModuleDependencyMetricsIgnoredPrefixes sets the ErrorFingerprintingCallback function
+// to a function defined by the user.
+func ConfigErrorFingerprintingCallback(callbackFunction ErrorGroupCallback) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.ErrorGroupCallback = callbackFunction
+	}
+}
+
 // ConfigAppLogForwardingEnabled enables or disables the collection
 // of logs from a user's application by the agent
 // Defaults: enabled=false

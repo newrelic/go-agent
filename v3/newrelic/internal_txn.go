@@ -258,6 +258,11 @@ func (thd *thread) StoreLog(log *logEvent) {
 	txn.Lock()
 	defer txn.Unlock()
 
+	//	might want to refactor to return errAlreadyEnded
+	if txn.finished {
+		return
+	}
+
 	if txn.logs == nil {
 		txn.logs = make(logEventHeap, 0, internal.MaxLogEvents)
 	}
@@ -289,7 +294,6 @@ func (txn *txn) shouldSaveTrace() bool {
 }
 
 func (txn *txn) MergeIntoHarvest(h *harvest) {
-
 	var priority priority
 	if txn.BetterCAT.Enabled {
 		priority = txn.BetterCAT.Priority
@@ -314,19 +318,24 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.TxnEvents.AddTxnEvent(alloc, priority)
 	}
 
+	// pass the callback func down the chain
+	txn.txnEvent.errGroupCallback = txn.Config.ErrorCollector.ErrorGroupCallback
+
 	if txn.Reply.CollectErrors {
 		mergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.txnEvent)
 	}
 
 	if txn.Config.ErrorCollector.CaptureEvents {
 		for _, e := range txn.Errors {
+			e.applyErrorGroup(&txn.txnEvent)
 			errEvent := &errorEvent{
 				errorData: *e,
 				txnEvent:  txn.txnEvent,
 			}
-			// Since the stack trace is not used in error events, remove the reference
+			// Since the stack trace and raw error object is not used in error events, remove the reference
 			// to minimize memory.
 			errEvent.Stack = nil
+			errEvent.RawError = nil
 			h.ErrorEvents.Add(errEvent, priority)
 		}
 	}
@@ -367,7 +376,7 @@ func headersJustWritten(thd *thread, code int, hdr http.Header) {
 		e := txnErrorFromResponseCode(time.Now(), code)
 		e.Stack = getStackTrace()
 		expect := txn.appRun.responseCodeIsExpected(code)
-		thd.noticeErrorInternal(e, expect)
+		thd.noticeErrorInternal(e, nil, expect)
 	}
 }
 
@@ -426,7 +435,7 @@ func (thd *thread) End(recovered interface{}) error {
 	if nil != recovered {
 		e := txnErrorFromPanic(time.Now(), recovered)
 		e.Stack = getStackTrace()
-		thd.noticeErrorInternal(e, false)
+		thd.noticeErrorInternal(e, nil, false)
 		log.Println(string(debug.Stack()))
 	}
 
@@ -560,7 +569,7 @@ const (
 	securityPolicyErrorMsg = "message removed by security policy"
 )
 
-func (thd *thread) noticeErrorInternal(err errorData, expect bool) error {
+func (thd *thread) noticeErrorInternal(errData errorData, err error, expect bool) error {
 	txn := thd.txn
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsDisabled
@@ -576,19 +585,15 @@ func (thd *thread) noticeErrorInternal(err errorData, expect bool) error {
 		txn.Errors = newTxnErrors(maxTxnErrors)
 	}
 
-	if txn.Config.HighSecurity {
-		err.Msg = highSecurityErrorMsg
-	}
-
-	if !txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled() {
-		err.Msg = securityPolicyErrorMsg
-	}
+	errData.RawError = err
+	errData.scrubErrorForHighSecurity(txn)
 
 	if txn.shouldCollectSpanEvents() {
-		err.SpanID = txn.CurrentSpanIdentifier(thd.thread)
-		addErrorAttrs(thd, err)
+		errData.SpanID = txn.CurrentSpanIdentifier(thd.thread)
+		addErrorAttrs(thd, errData)
 	}
-	txn.Errors.Add(err)
+
+	txn.Errors.Add(errData)
 	txn.txnData.txnEvent.HasError = true //mark transaction as having an error
 	return nil
 }
@@ -730,7 +735,7 @@ func (thd *thread) NoticeError(input error, expect bool) error {
 		data.ExtraAttributes = nil
 	}
 
-	return thd.noticeErrorInternal(data, expect)
+	return thd.noticeErrorInternal(data, input, expect)
 }
 
 func (txn *txn) SetName(name string) error {

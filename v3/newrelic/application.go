@@ -114,7 +114,6 @@ func (app *Application) RecordLog(logEvent LogData) {
 // as needed in the background (and will continue attempting to connect
 // if it wasn't immediately successful, all while allowing your application
 // to proceed with its primary function).
-//
 func (app *Application) WaitForConnection(timeout time.Duration) error {
 	if nil == app {
 		return nil
