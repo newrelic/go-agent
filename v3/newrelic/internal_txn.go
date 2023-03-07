@@ -321,13 +321,21 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 	// pass the callback func down the chain
 	txn.txnEvent.errGroupCallback = txn.Config.ErrorCollector.ErrorGroupCallback
 
+	hs := &highSecuritySettings{txn.Config.HighSecurity, txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled()}
+
+	if (txn.Reply.CollectErrors || txn.Config.ErrorCollector.CaptureEvents) && txn.Config.ErrorCollector.ErrorGroupCallback != nil {
+		for _, e := range txn.Errors {
+			e.applyErrorGroup(&txn.txnEvent)
+		}
+	}
+
 	if txn.Reply.CollectErrors {
-		mergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.txnEvent)
+		mergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.txnEvent, hs)
 	}
 
 	if txn.Config.ErrorCollector.CaptureEvents {
 		for _, e := range txn.Errors {
-			e.applyErrorGroup(&txn.txnEvent)
+			e.scrubErrorForHighSecurity(hs)
 			errEvent := &errorEvent{
 				errorData: *e,
 				txnEvent:  txn.txnEvent,
@@ -490,8 +498,9 @@ func (thd *thread) End(recovered interface{}) error {
 
 		if txn.rootSpanErrData != nil {
 			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
-			root.AgentAttributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)
+			root.AgentAttributes.addString(SpanAttributeErrorMessage, scrubbedErrorMessage(txn.rootSpanErrData.Msg, txn))
 		}
+
 		if p := txn.BetterCAT.Inbound; nil != p {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
@@ -586,7 +595,6 @@ func (thd *thread) noticeErrorInternal(errData errorData, err error, expect bool
 	}
 
 	errData.RawError = err
-	errData.scrubErrorForHighSecurity(txn)
 
 	if txn.shouldCollectSpanEvents() {
 		errData.SpanID = txn.CurrentSpanIdentifier(thd.thread)
@@ -613,7 +621,7 @@ func addErrorAttrs(t *thread, err errorData) {
 		t.thread.RemoveErrorSpanAttribute(attr)
 	}
 	t.thread.AddAgentSpanAttribute(SpanAttributeErrorClass, err.Klass)
-	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, err.Msg)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, scrubbedErrorMessage(err.Msg, t.txn))
 }
 
 var (

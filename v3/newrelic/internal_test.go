@@ -843,6 +843,38 @@ func TestResponseCodeErrorWithErrorGroupCallback(t *testing.T) {
 	app.ExpectMetrics(t, webErrorMetrics)
 }
 
+func TestResponseCodeErrorGroupCallbackWithHighSecurity(t *testing.T) {
+	errorGroupFunc := func(e ErrorInfo) string {
+		if e.Error != nil {
+			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
+		}
+		AssertStringEqual(t, "ErrorInfo.TransactionName", `WebTransaction/Go/hello`, e.TransactionName)
+		AssertStringEqual(t, "ErrorInfo.Message", "Bad Request", e.Message)
+		AssertStringEqual(t, "ErrorInfo.Class", "400", e.Class)
+		return "testGroup"
+	}
+
+	app := testApp(
+		nil,
+		func(cfg *Config) {
+			cfg.DistributedTracer.Enabled = false
+			cfg.ErrorCollector.ErrorGroupCallback = errorGroupFunc
+			cfg.DistributedTracer.Enabled = true
+			cfg.HighSecurity = true
+		},
+		t,
+	)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequestHTTP(helloRequest)
+
+	rw.WriteHeader(http.StatusBadRequest)   // 400
+	rw.WriteHeader(http.StatusUnauthorized) // 401
+
+	txn.End()
+}
+
 func TestResponseCode404Filtered(t *testing.T) {
 	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
 	w := newCompatibleResponseRecorder()
