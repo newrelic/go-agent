@@ -6,6 +6,7 @@ package newrelic
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -138,9 +139,11 @@ type compatibleResponseRecorder struct {
 }
 
 func newCompatibleResponseRecorder() *compatibleResponseRecorder {
-	return &compatibleResponseRecorder{
+	recorder := compatibleResponseRecorder{
 		ResponseRecorder: httptest.NewRecorder(),
 	}
+
+	return &recorder
 }
 
 func (rw *compatibleResponseRecorder) Header() http.Header {
@@ -534,10 +537,6 @@ func TestErrorWithCallback(t *testing.T) {
 			t.Error("expected error stack trace to not be empty")
 		}
 
-		if e.isWebTransaction {
-			t.Error("expected error to not be part of a web txn")
-		}
-
 		AssertStringEqual(t, "ErrorInfo.TransactionName", `OtherTransaction/Go/hello`, e.TransactionName)
 		AssertStringEqual(t, "ErrorInfo.Message", "this is a test error", e.Message)
 		AssertStringEqual(t, "ErrorInfo.Class", "test class", e.Class)
@@ -790,7 +789,7 @@ func AssertStringEqual(t *testing.T, field string, expect string, actual string)
 	}
 }
 
-func TestResponseCodeErrorWithErrorGroupCallback(t *testing.T) {
+func TestResponseCodeErrorWithCallback(t *testing.T) {
 	errorGroupFunc := func(e ErrorInfo) string {
 		if e.Error != nil {
 			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
@@ -798,6 +797,13 @@ func TestResponseCodeErrorWithErrorGroupCallback(t *testing.T) {
 		AssertStringEqual(t, "ErrorInfo.TransactionName", `WebTransaction/Go/hello`, e.TransactionName)
 		AssertStringEqual(t, "ErrorInfo.Message", "Bad Request", e.Message)
 		AssertStringEqual(t, "ErrorInfo.Class", "400", e.Class)
+
+		val, ok := e.GetTransactionUserAttribute("test")
+		if !ok {
+			t.Errorf("expected attribute \"test\" to be found in txn attributes")
+		} else {
+			AssertStringEqual(t, "User Txn Attribute \"test\"", "test value", fmt.Sprint(val))
+		}
 		return "testGroup"
 	}
 
@@ -811,6 +817,7 @@ func TestResponseCodeErrorWithErrorGroupCallback(t *testing.T) {
 	)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
+	txn.AddAttribute("test", "test value")
 	rw := txn.SetWebResponse(w)
 	txn.SetWebRequestHTTP(helloRequest)
 
@@ -843,7 +850,7 @@ func TestResponseCodeErrorWithErrorGroupCallback(t *testing.T) {
 	app.ExpectMetrics(t, webErrorMetrics)
 }
 
-func TestResponseCodeErrorGroupCallbackWithHighSecurity(t *testing.T) {
+func TestErrorGroupCallbackWithHighSecurity(t *testing.T) {
 	errorGroupFunc := func(e ErrorInfo) string {
 		if e.Error != nil {
 			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
@@ -851,6 +858,15 @@ func TestResponseCodeErrorGroupCallbackWithHighSecurity(t *testing.T) {
 		AssertStringEqual(t, "ErrorInfo.TransactionName", `WebTransaction/Go/hello`, e.TransactionName)
 		AssertStringEqual(t, "ErrorInfo.Message", "Bad Request", e.Message)
 		AssertStringEqual(t, "ErrorInfo.Class", "400", e.Class)
+		AssertStringEqual(t, "Request URI", "/hello", e.GetRequestURI())
+		AssertStringEqual(t, "Request Method", "GET", e.GetRequestMethod())
+		AssertStringEqual(t, "Response Code", "400", e.GetHttpResponseCode())
+
+		_, ok := e.GetTransactionUserAttribute("test")
+		if ok {
+			t.Errorf("attributes can not be recorded during high security mode")
+		}
+
 		return "testGroup"
 	}
 
@@ -866,6 +882,8 @@ func TestResponseCodeErrorGroupCallbackWithHighSecurity(t *testing.T) {
 	)
 	w := newCompatibleResponseRecorder()
 	txn := app.StartTransaction("hello")
+	// you may not record user attributes with high security enabled
+	txn.AddAttribute("test", "test value")
 	rw := txn.SetWebResponse(w)
 	txn.SetWebRequestHTTP(helloRequest)
 

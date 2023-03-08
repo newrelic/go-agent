@@ -11,10 +11,9 @@ const (
 // All fields are either safe to access coppies of internal agent data, or protected from direct
 // access with methods and can not manipulate or distort any agent data.
 type ErrorInfo struct {
-	errAttributes    map[string]interface{}
-	txnAttributes    *attributes
-	stackTrace       stackTrace
-	isWebTransaction bool
+	errAttributes map[string]interface{}
+	txnAttributes *attributes
+	stackTrace    stackTrace
 
 	// TransactionName is the formatted name of a transaction that is equivilent to how it appears in
 	// the New Relic UI. For example, user defined transactions will be named `OtherTransaction/Go/yourTxnName`.
@@ -78,10 +77,6 @@ func (e *ErrorInfo) GetStackTraceFrames() []StacktraceFrame {
 // GetRequestURI returns the URI of the http request made during the parent transaction of this error. If no web request occured,
 // this will return an empty string.
 func (e *ErrorInfo) GetRequestURI() string {
-	if !e.isWebTransaction {
-		return ""
-	}
-
 	val, ok := e.txnAttributes.Agent[AttributeRequestURI]
 	if !ok {
 		return ""
@@ -93,10 +88,6 @@ func (e *ErrorInfo) GetRequestURI() string {
 // GetRequestMethod will return the HTTP method used to make a web request if one occured during the parent transaction
 // of this error. If no web request occured, then an empty string will be returned.
 func (e *ErrorInfo) GetRequestMethod() string {
-	if !e.isWebTransaction {
-		return ""
-	}
-
 	val, ok := e.txnAttributes.Agent[AttributeRequestMethod]
 	if !ok {
 		return ""
@@ -108,11 +99,17 @@ func (e *ErrorInfo) GetRequestMethod() string {
 // GetHttpResponseCode will return the HTTP response code that resulted from the web request made in the parent transaction of
 // this error. If no web request occured, then an empty string will be returned.
 func (e *ErrorInfo) GetHttpResponseCode() string {
-	if !e.isWebTransaction {
+	val, ok := e.txnAttributes.Agent[AttributeResponseCode]
+	if !ok {
 		return ""
 	}
 
-	val, ok := e.txnAttributes.Agent[AttributeResponseCode]
+	code := val.stringVal
+	if code != "" {
+		return code
+	}
+
+	val, ok = e.txnAttributes.Agent[AttributeResponseCodeDeprecated]
 	if !ok {
 		return ""
 	}
