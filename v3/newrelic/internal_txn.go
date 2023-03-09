@@ -651,10 +651,10 @@ func errorAttributesMethod(err error) map[string]interface{} {
 
 func errDataFromError(input error, expect bool) (data errorData, err error) {
 	cause := errorCause(input)
-
+	validatedErrorMsg := truncateStringMessageIfLong(input.Error())
 	data = errorData{
 		When:   time.Now(),
-		Msg:    input.Error(),
+		Msg:    validatedErrorMsg,
 		Expect: expect,
 	}
 
