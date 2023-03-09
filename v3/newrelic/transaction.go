@@ -169,6 +169,20 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
 }
 
+// SetUserID is used to track the user that a transaction, and all data that is recorded as a subset of that transaction,
+// belong to or interact with. This will propogate an attribute containing this information to all events that are
+// a child of this transaction, like errors and spans.
+func (txn *Transaction) SetUserID(userID string) {
+	if nil == txn {
+		return
+	}
+	if nil == txn.thread {
+		return
+	}
+
+	txn.thread.logAPIError(txn.thread.AddUserID(userID), "set user ID", nil)
+}
+
 // RecordLog records the data from a single log line.
 // This consumes a LogData object that should be configured
 // with data taken from a logging framework.

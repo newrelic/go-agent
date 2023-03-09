@@ -545,6 +545,17 @@ func (thd *thread) End(recovered interface{}) error {
 	return nil
 }
 
+func (txn *txn) AddUserID(userID string) error {
+	txn.Lock()
+	defer txn.Unlock()
+
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	return addAgentAttribute(txn.Attrs, AttributeUserID, userID)
+}
+
 func (txn *txn) AddAttribute(name string, value interface{}) error {
 	txn.Lock()
 	defer txn.Unlock()

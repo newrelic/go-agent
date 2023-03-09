@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -387,6 +388,22 @@ func validateFloat(v float64, key string) error {
 			val: v,
 		}
 	}
+	return nil
+}
+
+// addAgentAttribute adds an agent attribute.
+func addAgentAttribute(a *attributes, key, value string) error {
+	val, err := validateUserAttribute(key, value)
+	if nil != err {
+		return err
+	}
+
+	strVal, ok := val.(string)
+	if !ok {
+		return errors.New("validated agent attribute was not returned as a string")
+	}
+
+	a.Agent.Add(key, strVal, nil)
 	return nil
 }
 
