@@ -101,6 +101,11 @@ type Config struct {
 		// greater than or equal to 400 or less than 100 -- with the exception
 		// of 0, 5, and 404 -- are turned into errors.
 		IgnoreStatusCodes []int
+		// ExpectStatusCodes controls which http response codes should
+		// impact your error metrics, apdex score and alerts. Expected errors will
+		// be silently captured without impacting any of those. Note that setting an error
+		// code as Ignored will prevent it from being collected, even if its expected.
+		ExpectStatusCodes []int
 		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
 		// RecordPanics controls whether or not a deferred
@@ -621,7 +626,7 @@ func defaultConfig() Config {
 
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
-	c.DistributedTracer.ReservoirLimit = defaultMaxSpanEvents
+	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
@@ -679,16 +684,16 @@ func (c Config) validate() error {
 			return errLicenseLen
 		}
 	}
-	if "" == c.AppName && c.Enabled && !c.ServerlessMode.Enabled {
+	if c.AppName == "" && c.Enabled && !c.ServerlessMode.Enabled {
 		return errAppNameMissing
 	}
-	if c.HighSecurity && "" != c.SecurityPoliciesToken {
+	if c.HighSecurity && c.SecurityPoliciesToken != "" {
 		return errHighSecurityWithSecurityPolicies
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
-	if "" != c.InfiniteTracing.TraceObserver.Host && c.ServerlessMode.Enabled {
+	if c.InfiniteTracing.TraceObserver.Host != "" && c.ServerlessMode.Enabled {
 		return errInfTracingServerless
 	}
 
@@ -697,7 +702,7 @@ func (c Config) validate() error {
 
 func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	configHost := c.InfiniteTracing.TraceObserver.Host
-	if "" == configHost {
+	if configHost == "" {
 		// This is the only instance from which we can return nil, nil.
 		// If the user requests use of a trace observer, we must either provide
 		// them with a valid observerURL _or_ alert them to the failure to do so.
@@ -766,7 +771,7 @@ func copyConfigReferenceFields(cfg Config) Config {
 			cp.Labels[key] = val
 		}
 	}
-	if nil != cfg.ErrorCollector.IgnoreStatusCodes {
+	if cfg.ErrorCollector.IgnoreStatusCodes != nil {
 		ignored := make([]int, len(cfg.ErrorCollector.IgnoreStatusCodes))
 		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
 		cp.ErrorCollector.IgnoreStatusCodes = ignored
@@ -1030,7 +1035,7 @@ var (
 )
 
 func (c config) preconnectHost() string {
-	if "" != c.Host {
+	if c.Host != "" {
 		return c.Host
 	}
 	m := preconnectRegionLicenseRegex.FindStringSubmatch(c.License)

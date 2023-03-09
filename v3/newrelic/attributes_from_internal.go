@@ -339,6 +339,13 @@ func truncateStringValueIfLong(val string) string {
 	return val
 }
 
+func truncateStringMessageIfLong(message string) string {
+	if len(message) > errorEventMessageLengthLimit {
+		return stringLengthByteLimit(message, errorEventMessageLengthLimit)
+	}
+	return message
+}
+
 // validateUserAttribute validates a user attribute.
 func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 	if str, ok := val.(string); ok {

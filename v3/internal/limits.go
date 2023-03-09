@@ -25,4 +25,7 @@ const (
 	// MaxErrorEvents is the maximum number of Error Events that can be captured
 	// per 60-second harvest cycle
 	MaxErrorEvents = 100
+	// MaxSpanEvents is the maximum number of Spans Events that can be captured
+	// per 60-second harvest cycle
+	MaxSpanEvents = 1000
 )
