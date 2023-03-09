@@ -126,7 +126,6 @@ jobs:
             # nrzap only supports the two most recent minor go releases
           - go-version: 1.17.x
             dirs: v3/integrations/nrzap
-            extratesting: go get -u go.uber.org/zap@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrhttprouter
             extratesting: go get -u github.com/julienschmidt/httprouter@master
