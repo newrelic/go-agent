@@ -86,6 +86,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels["zip"] = "zap"
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
+	cfg.ErrorCollector.ExpectStatusCodes = append(cfg.ErrorCollector.ExpectStatusCodes, 500)
 	cfg.Attributes.Include = append(cfg.Attributes.Include, "1")
 	cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, "2")
 	cfg.TransactionEvents.Attributes.Include = append(cfg.TransactionEvents.Attributes.Include, "3")
@@ -170,6 +171,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
 				"Enabled":true,
+				"ExpectStatusCodes":[500],
 				"IgnoreStatusCodes":[0,5,404,405],
 				"RecordPanics":false
 			},
@@ -368,6 +370,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"CaptureEvents":true,
 				"Enabled":true,
+				"ExpectStatusCodes":null,
 				"IgnoreStatusCodes":null,
 				"RecordPanics":false
 			},
@@ -480,7 +483,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: true,
 	}
-	if err := c.validate(); nil != err {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 	c = Config{
@@ -496,7 +499,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: false,
 	}
-	if err := c.validate(); nil != err {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 	c = Config{
@@ -676,11 +679,11 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	for _, tc := range testcases {
 		// mimic file/environment precedence of other agents
 		configKey := tc.ConfigFileKey
-		if "" != tc.EnvKey {
+		if tc.EnvKey != "" {
 			configKey = tc.EnvKey
 		}
 		overrideHost := tc.ConfigOverrideHost
-		if "" != tc.EnvOverrideHost {
+		if tc.EnvOverrideHost != "" {
 			overrideHost = tc.EnvOverrideHost
 		}
 
