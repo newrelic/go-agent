@@ -141,7 +141,7 @@ jobs:
             extratesting: go get -u github.com/graphql-go/graphql@master
           - go-version: 1.17.x
             dirs: v3/integrations/nrmssql
-            extratesting: go get -u github.com/microsoft/go-mssqldb@master
+            extratesting: go get -u github.com/microsoft/go-mssqldb@main
 
     steps:
     - name: Install Go
