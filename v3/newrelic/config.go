@@ -621,7 +621,7 @@ func defaultConfig() Config {
 
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
-	c.DistributedTracer.ReservoirLimit = defaultMaxSpanEvents
+	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
