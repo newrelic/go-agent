@@ -117,6 +117,17 @@ func (e *ErrorInfo) GetHttpResponseCode() string {
 	return val.stringVal
 }
 
+// GetEnduserID will return the User ID set for the parent transaction of this error. It will return empty string
+// if none was set.
+func (e *ErrorInfo) GetEnduserID() string {
+	val, ok := e.txnAttributes.Agent[AttributeUserID]
+	if !ok {
+		return ""
+	}
+
+	return val.stringVal
+}
+
 // ErrorGroupCallback is a user defined callback function that takes an error as an input
 // and returns a string that will be applied to an error to put it in an error group.
 //
