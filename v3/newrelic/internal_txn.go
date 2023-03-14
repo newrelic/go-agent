@@ -318,12 +318,10 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.TxnEvents.AddTxnEvent(alloc, priority)
 	}
 
-	// pass the callback func down the chain
-	txn.txnEvent.errGroupCallback = txn.Config.ErrorCollector.ErrorGroupCallback
-
 	hs := &highSecuritySettings{txn.Config.HighSecurity, txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled()}
 
 	if (txn.Reply.CollectErrors || txn.Config.ErrorCollector.CaptureEvents) && txn.Config.ErrorCollector.ErrorGroupCallback != nil {
+		txn.txnEvent.errGroupCallback = txn.Config.ErrorCollector.ErrorGroupCallback
 		for _, e := range txn.Errors {
 			e.applyErrorGroup(&txn.txnEvent)
 		}
@@ -548,12 +546,12 @@ func (thd *thread) End(recovered interface{}) error {
 func (txn *txn) AddUserID(userID string) error {
 	txn.Lock()
 	defer txn.Unlock()
-
 	if txn.finished {
 		return errAlreadyEnded
 	}
 
-	return addAgentAttribute(txn.Attrs, AttributeUserID, userID)
+	txn.Attrs.Agent.Add(AttributeUserID, userID, nil)
+	return nil
 }
 
 func (txn *txn) AddAttribute(name string, value interface{}) error {

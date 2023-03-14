@@ -199,14 +199,6 @@ func ConfigCodeLevelMetricsPathPrefixes(prefix ...string) ConfigOption {
 	}
 }
 
-// ConfigModuleDependencyMetricsIgnoredPrefixes sets the ErrorFingerprintingCallback function
-// to a function defined by the user.
-func ConfigErrorFingerprintingCallback(callbackFunction ErrorGroupCallback) ConfigOption {
-	return func(cfg *Config) {
-		cfg.ErrorCollector.ErrorGroupCallback = callbackFunction
-	}
-}
-
 // ConfigAppLogForwardingEnabled enables or disables the collection
 // of logs from a user's application by the agent
 // Defaults: enabled=false
@@ -293,6 +285,17 @@ func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
 func ConfigModuleDependencyMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.ModuleDependencyMetrics.IgnoredPrefixes = prefix
+	}
+}
+
+// ConfigSetErrorGroupCallbackFunction set a callback function of type ErrorGroupCallback that will
+// be invoked against errors at harvest time. This function overrides the default grouping behavior
+// of errors into a custom, user defined group when set. Setting this may have performance implications
+// for your application depending on the contents of the callback function. Do not set this if you want
+// the default error grouping behavior to be executed.
+func ConfigSetErrorGroupCallbackFunction(callback ErrorGroupCallback) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.ErrorGroupCallback = callback
 	}
 }
 

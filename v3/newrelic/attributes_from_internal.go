@@ -5,7 +5,6 @@ package newrelic
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -57,6 +56,7 @@ var (
 		AttributeCodeNamespace:              usualDests,
 		AttributeCodeFilepath:               usualDests,
 		AttributeCodeLineno:                 usualDests,
+		AttributeUserID:                     usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,
@@ -391,22 +391,6 @@ func validateFloat(v float64, key string) error {
 	return nil
 }
 
-// addAgentAttribute adds an agent attribute.
-func addAgentAttribute(a *attributes, key, value string) error {
-	val, err := validateUserAttribute(key, value)
-	if nil != err {
-		return err
-	}
-
-	strVal, ok := val.(string)
-	if !ok {
-		return errors.New("validated agent attribute was not returned as a string")
-	}
-
-	a.Agent.Add(key, strVal, nil)
-	return nil
-}
-
 // addUserAttribute adds a user attribute.
 func addUserAttribute(a *attributes, key string, val interface{}, d destinationSet) error {
 	val, err := validateUserAttribute(key, val)
@@ -479,6 +463,7 @@ func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet, add
 		buf.WriteString("{}")
 		return
 	}
+
 	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('{')
 	for id, val := range a.Agent {
@@ -499,7 +484,6 @@ func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet, add
 	}
 
 	buf.WriteByte('}')
-
 }
 
 func userAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet, extraAttributes map[string]interface{}) {

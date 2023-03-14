@@ -117,9 +117,9 @@ func (e *ErrorInfo) GetHttpResponseCode() string {
 	return val.stringVal
 }
 
-// GetEnduserID will return the User ID set for the parent transaction of this error. It will return empty string
+// GetUserID will return the User ID set for the parent transaction of this error. It will return empty string
 // if none was set.
-func (e *ErrorInfo) GetEnduserID() string {
+func (e *ErrorInfo) GetUserID() string {
 	val, ok := e.txnAttributes.Agent[AttributeUserID]
 	if !ok {
 		return ""

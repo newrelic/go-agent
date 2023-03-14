@@ -123,10 +123,11 @@ type Config struct {
 		// example function:
 		//
 		// func ErrorGroupCallback(errorInfo newrelic.ErrorInfo) string {
-		// 		if errorInfo.IsWeb && errorInfo.Class == "403" {
-		//			return "client misconfigured example-group"
+		//		if errorInfo.Class == "403" && errorInfo.GetUserId() == "example user" {
+		//			return "customer X payment issue"
 		// 		}
 		//
+		//		// returning empty string causes default error grouping behavior
 		//		return ""
 		// }
 		ErrorGroupCallback `json:"-"`
