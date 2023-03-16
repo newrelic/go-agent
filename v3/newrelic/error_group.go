@@ -8,7 +8,7 @@ const (
 )
 
 // ErrorInfo contains info for user defined callbacks that are relevant to an error.
-// All fields are either safe to access coppies of internal agent data, or protected from direct
+// All fields are either safe to access copies of internal agent data, or protected from direct
 // access with methods and can not manipulate or distort any agent data.
 type ErrorInfo struct {
 	errAttributes map[string]interface{}
