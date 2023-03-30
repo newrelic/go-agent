@@ -1,3 +1,21 @@
+## 3.21.0
+
+### Added
+* New Errors inbox features:
+  * User tracking: You can now see the number of users impacted by an error group. Identify the end user with the setUser method.
+  * Error fingerprint: Are your error occurrences grouped poorly? Set your own error fingerprint via a callback function.
+* Ability to disable reporting parameterized query in nrpgx-5
+
+### Fixed
+* Improved test coverage for gRPC integration, nrgrpc
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.20.4
 
 ### Fixed

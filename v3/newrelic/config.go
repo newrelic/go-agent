@@ -113,6 +113,24 @@ type Config struct {
 		// as errors, and then re-panic them.  By default, this is
 		// set to false.
 		RecordPanics bool
+		// ErrorGroupCallback is a user defined callback function that takes an error as an input
+		// and returns a string that will be applied to an error to put it in an error group.
+		//
+		// If no error group is identified for a given error, this function should return an empty string.
+		// If an ErrorGroupCallbeck is defined, it will be executed against every error the go agent notices that
+		// is not ignored.
+		//
+		// example function:
+		//
+		// func ErrorGroupCallback(errorInfo newrelic.ErrorInfo) string {
+		//		if errorInfo.Class == "403" && errorInfo.GetUserId() == "example user" {
+		//			return "customer X payment issue"
+		// 		}
+		//
+		//		// returning empty string causes default error grouping behavior
+		//		return ""
+		// }
+		ErrorGroupCallback `json:"-"`
 	}
 
 	// TransactionTracer controls the capture of transaction traces.

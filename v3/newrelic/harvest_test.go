@@ -509,7 +509,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 
 	ers := newTxnErrors(10)
 	ers.Add(errorData{When: time.Now(), Msg: "msg", Klass: "klass", Stack: getStackTrace()})
-	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{FinalName: "finalName", Attrs: nil})
+	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{FinalName: "finalName", Attrs: nil}, nil)
 
 	h.TxnTraces.Witness(harvestTrace{
 		txnEvent: txnEvent{
@@ -612,7 +612,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{
 		FinalName: "finalName",
 		Attrs:     nil,
-	})
+	}, nil)
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 
 	if start1 != h.Metrics.metricPeriodStart {

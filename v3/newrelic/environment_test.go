@@ -73,9 +73,9 @@ func TestModuleDependency(t *testing.T) {
 	// of modules to at least check that the various options work.
 	expectedModules := make(map[string]*debug.Module)
 	mockedModuleList := []*debug.Module{
-		&debug.Module{Path: "example/path/to/module", Version: "v1.2.3"},
-		&debug.Module{Path: "github.com/another/module", Version: "v0.1.2"},
-		&debug.Module{Path: "some/development/module", Version: "(develop)"},
+		{Path: "example/path/to/module", Version: "v1.2.3"},
+		{Path: "github.com/another/module", Version: "v0.1.2"},
+		{Path: "some/development/module", Version: "(develop)"},
 	}
 	for _, module := range mockedModuleList {
 		expectedModules[module.Path] = module

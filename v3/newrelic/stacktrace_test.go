@@ -37,7 +37,7 @@ func TestLongStackTraceLimitsFrames(t *testing.T) {
 }
 
 func TestManyStackTraceFramesLimitsOutput(t *testing.T) {
-	frames := make([]stacktraceFrame, maxStackTraceFrames+20)
+	frames := make([]StacktraceFrame, maxStackTraceFrames+20)
 	expect := `[
 	{},{},{},{},{},{},{},{},{},{},
 	{},{},{},{},{},{},{},{},{},{},
@@ -60,7 +60,7 @@ func TestManyStackTraceFramesLimitsOutput(t *testing.T) {
 
 func TestStacktraceFrames(t *testing.T) {
 	// This stacktrace taken from Go 1.13
-	inputFrames := []stacktraceFrame{
+	inputFrames := []StacktraceFrame{
 		{
 			File: "/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/internal/stacktrace.go",
 			Name: "github.com/newrelic/go-agent/v3/internal.GetStackTrace",
