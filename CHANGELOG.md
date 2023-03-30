@@ -4,7 +4,6 @@
 * New Errors inbox features:
   * User tracking: You can now see the number of users impacted by an error group. Identify the end user with the setUser method.
   * Error fingerprint: Are your error occurrences grouped poorly? Set your own error fingerprint via a callback function.
-* Automatically instrument Redis 9 code using the new instrumentation package nrredis-v9.
 * Ability to disable reporting parameterized query in nrpgx-5
 
 ### Fixed
