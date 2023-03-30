@@ -258,6 +258,11 @@ func (thd *thread) StoreLog(log *logEvent) {
 	txn.Lock()
 	defer txn.Unlock()
 
+	//	might want to refactor to return errAlreadyEnded
+	if txn.finished {
+		return
+	}
+
 	if txn.logs == nil {
 		txn.logs = make(logEventHeap, 0, internal.MaxLogEvents)
 	}
@@ -289,7 +294,6 @@ func (txn *txn) shouldSaveTrace() bool {
 }
 
 func (txn *txn) MergeIntoHarvest(h *harvest) {
-
 	var priority priority
 	if txn.BetterCAT.Enabled {
 		priority = txn.BetterCAT.Priority
@@ -314,19 +318,30 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 		h.TxnEvents.AddTxnEvent(alloc, priority)
 	}
 
+	hs := &highSecuritySettings{txn.Config.HighSecurity, txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled()}
+
+	if (txn.Reply.CollectErrors || txn.Config.ErrorCollector.CaptureEvents) && txn.Config.ErrorCollector.ErrorGroupCallback != nil {
+		txn.txnEvent.errGroupCallback = txn.Config.ErrorCollector.ErrorGroupCallback
+		for _, e := range txn.Errors {
+			e.applyErrorGroup(&txn.txnEvent)
+		}
+	}
+
 	if txn.Reply.CollectErrors {
-		mergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.txnEvent)
+		mergeTxnErrors(&h.ErrorTraces, txn.Errors, txn.txnEvent, hs)
 	}
 
 	if txn.Config.ErrorCollector.CaptureEvents {
 		for _, e := range txn.Errors {
+			e.scrubErrorForHighSecurity(hs)
 			errEvent := &errorEvent{
 				errorData: *e,
 				txnEvent:  txn.txnEvent,
 			}
-			// Since the stack trace is not used in error events, remove the reference
+			// Since the stack trace and raw error object is not used in error events, remove the reference
 			// to minimize memory.
 			errEvent.Stack = nil
+			errEvent.RawError = nil
 			h.ErrorEvents.Add(errEvent, priority)
 		}
 	}
@@ -367,7 +382,7 @@ func headersJustWritten(thd *thread, code int, hdr http.Header) {
 		e := txnErrorFromResponseCode(time.Now(), code)
 		e.Stack = getStackTrace()
 		expect := txn.appRun.responseCodeIsExpected(code)
-		thd.noticeErrorInternal(e, expect)
+		thd.noticeErrorInternal(e, nil, expect)
 	}
 }
 
@@ -426,7 +441,7 @@ func (thd *thread) End(recovered interface{}) error {
 	if nil != recovered {
 		e := txnErrorFromPanic(time.Now(), recovered)
 		e.Stack = getStackTrace()
-		thd.noticeErrorInternal(e, false)
+		thd.noticeErrorInternal(e, nil, false)
 		log.Println(string(debug.Stack()))
 	}
 
@@ -481,8 +496,9 @@ func (thd *thread) End(recovered interface{}) error {
 
 		if txn.rootSpanErrData != nil {
 			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
-			root.AgentAttributes.addString(SpanAttributeErrorMessage, txn.rootSpanErrData.Msg)
+			root.AgentAttributes.addString(SpanAttributeErrorMessage, scrubbedErrorMessage(txn.rootSpanErrData.Msg, txn))
 		}
+
 		if p := txn.BetterCAT.Inbound; nil != p {
 			root.ParentID = txn.BetterCAT.Inbound.ID
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
@@ -527,6 +543,17 @@ func (thd *thread) End(recovered interface{}) error {
 	return nil
 }
 
+func (txn *txn) AddUserID(userID string) error {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	txn.Attrs.Agent.Add(AttributeUserID, userID, nil)
+	return nil
+}
+
 func (txn *txn) AddAttribute(name string, value interface{}) error {
 	txn.Lock()
 	defer txn.Unlock()
@@ -560,7 +587,7 @@ const (
 	securityPolicyErrorMsg = "message removed by security policy"
 )
 
-func (thd *thread) noticeErrorInternal(err errorData, expect bool) error {
+func (thd *thread) noticeErrorInternal(errData errorData, err error, expect bool) error {
 	txn := thd.txn
 	if !txn.Config.ErrorCollector.Enabled {
 		return errorsDisabled
@@ -576,19 +603,14 @@ func (thd *thread) noticeErrorInternal(err errorData, expect bool) error {
 		txn.Errors = newTxnErrors(maxTxnErrors)
 	}
 
-	if txn.Config.HighSecurity {
-		err.Msg = highSecurityErrorMsg
-	}
-
-	if !txn.Reply.SecurityPolicies.AllowRawExceptionMessages.Enabled() {
-		err.Msg = securityPolicyErrorMsg
-	}
+	errData.RawError = err
 
 	if txn.shouldCollectSpanEvents() {
-		err.SpanID = txn.CurrentSpanIdentifier(thd.thread)
-		addErrorAttrs(thd, err)
+		errData.SpanID = txn.CurrentSpanIdentifier(thd.thread)
+		addErrorAttrs(thd, errData)
 	}
-	txn.Errors.Add(err)
+
+	txn.Errors.Add(errData)
 	txn.txnData.txnEvent.HasError = true //mark transaction as having an error
 	return nil
 }
@@ -608,7 +630,7 @@ func addErrorAttrs(t *thread, err errorData) {
 		t.thread.RemoveErrorSpanAttribute(attr)
 	}
 	t.thread.AddAgentSpanAttribute(SpanAttributeErrorClass, err.Klass)
-	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, err.Msg)
+	t.thread.AddAgentSpanAttribute(SpanAttributeErrorMessage, scrubbedErrorMessage(err.Msg, t.txn))
 }
 
 var (
@@ -730,7 +752,7 @@ func (thd *thread) NoticeError(input error, expect bool) error {
 		data.ExtraAttributes = nil
 	}
 
-	return thd.noticeErrorInternal(data, expect)
+	return thd.noticeErrorInternal(data, input, expect)
 }
 
 func (txn *txn) SetName(name string) error {

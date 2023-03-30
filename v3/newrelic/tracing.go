@@ -35,6 +35,7 @@ type txnEvent struct {
 	externalDuration   time.Duration
 	datastoreCallCount uint64
 	datastoreDuration  time.Duration
+	errGroupCallback   ErrorGroupCallback
 }
 
 // betterCAT stores the transaction's priority and all fields related

@@ -56,6 +56,7 @@ var (
 		AttributeCodeNamespace:              usualDests,
 		AttributeCodeFilepath:               usualDests,
 		AttributeCodeLineno:                 usualDests,
+		AttributeUserID:                     usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,
@@ -457,11 +458,12 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	}
 }
 
-func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
+func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet, additionalAttributes ...map[string]string) {
 	if a == nil {
 		buf.WriteString("{}")
 		return
 	}
+
 	w := jsonFieldsWriter{buf: buf}
 	buf.WriteByte('{')
 	for id, val := range a.Agent {
@@ -473,8 +475,15 @@ func agentAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet) {
 			}
 		}
 	}
-	buf.WriteByte('}')
 
+	// Add additional agent attributes to json
+	for _, additionalAttribute := range additionalAttributes {
+		for id, val := range additionalAttribute {
+			w.stringField(id, val)
+		}
+	}
+
+	buf.WriteByte('}')
 }
 
 func userAttributesJSON(a *attributes, buf *bytes.Buffer, d destinationSet, extraAttributes map[string]interface{}) {

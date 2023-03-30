@@ -39,7 +39,13 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	userAttributesJSON(e.Attrs, buf, destError, e.errorData.ExtraAttributes)
 	buf.WriteByte(',')
-	agentAttributesJSON(e.Attrs, buf, destError)
+
+	if e.ErrorGroup != "" {
+		agentAttributesJSON(e.Attrs, buf, destError, map[string]string{AttributeErrorGroupName: e.ErrorGroup})
+	} else {
+		agentAttributesJSON(e.Attrs, buf, destError)
+	}
+
 	buf.WriteByte(']')
 }
 

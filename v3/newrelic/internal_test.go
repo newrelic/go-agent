@@ -5,6 +5,8 @@ package newrelic
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -137,9 +139,11 @@ type compatibleResponseRecorder struct {
 }
 
 func newCompatibleResponseRecorder() *compatibleResponseRecorder {
-	return &compatibleResponseRecorder{
+	recorder := compatibleResponseRecorder{
 		ResponseRecorder: httptest.NewRecorder(),
 	}
+
+	return &recorder
 }
 
 func (rw *compatibleResponseRecorder) Header() http.Header {
@@ -491,6 +495,84 @@ func TestSetName(t *testing.T) {
 	app.ExpectMetrics(t, backgroundMetrics)
 }
 
+type advancedError struct {
+	error
+}
+
+func (e *advancedError) Error() string {
+	return e.error.Error()
+}
+
+func (e *advancedError) ErrorClass() string {
+	return "test class"
+}
+
+func (e *advancedError) ErrorAttributes() map[string]interface{} {
+	return map[string]interface{}{
+		"testKey": "test val",
+	}
+}
+
+func TestErrorWithCallback(t *testing.T) {
+	errorGroupFunc := func(e ErrorInfo) string {
+		if e.Error == nil {
+			t.Error("expected ErrorInfo.Error not be nil")
+		}
+		if e.Expected {
+			t.Error("error should not be expected")
+		}
+
+		val, ok := e.GetErrorAttribute("testKey")
+		if !ok || val != "test val" {
+			t.Error("error should successfully look up user provided attribute: \"testKey\":\"test val\"")
+		}
+
+		val, ok = e.GetTransactionUserAttribute("txnAttribute")
+		if !ok || val != "test txn attr" {
+			t.Error("error should successfully look up user provided attribute: \"testKey\":\"test txn attr\"")
+		}
+
+		stackTrace := e.GetStackTraceFrames()
+		if len(stackTrace) == 0 {
+			t.Error("expected error stack trace to not be empty")
+		}
+
+		AssertStringEqual(t, "ErrorInfo.TransactionName", `OtherTransaction/Go/hello`, e.TransactionName)
+		AssertStringEqual(t, "ErrorInfo.Message", "this is a test error", e.Message)
+		AssertStringEqual(t, "ErrorInfo.Class", "test class", e.Class)
+
+		return "testGroup"
+	}
+
+	app := testApp(
+		nil,
+		func(cfg *Config) {
+			cfg.DistributedTracer.Enabled = false
+			enableRecordPanics(cfg)
+			cfg.ErrorCollector.ErrorGroupCallback = errorGroupFunc
+		},
+		t,
+	)
+
+	txn := app.StartTransaction("hello")
+	txn.AddAttribute("txnAttribute", "test txn attr")
+	txn.NoticeError(&advancedError{errors.New("this is a test error")})
+	txn.End()
+
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "this is a test error",
+		Klass:   "test class",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "test class",
+			"error.message":   "this is a test error",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+}
+
 func deferEndPanic(txn *Transaction, panicMe interface{}) (r interface{}) {
 	defer func() {
 		r = recover()
@@ -546,6 +628,51 @@ func TestPanicError(t *testing.T) {
 		},
 	}})
 	app.ExpectMetrics(t, backgroundErrorMetrics)
+}
+
+func TestPanicErrorWithCallback(t *testing.T) {
+	errorGroupFunc := func(e ErrorInfo) string {
+		if e.Error != nil {
+			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
+		}
+		AssertStringEqual(t, "ErrorInfo.TransactionName", `OtherTransaction/Go/hello`, e.TransactionName)
+		AssertStringEqual(t, "ErrorInfo.Message", "my msg", e.Message)
+		AssertStringEqual(t, "ErrorInfo.Class", PanicErrorClass, e.Class)
+		return "testGroup"
+	}
+
+	app := testApp(
+		nil,
+		func(cfg *Config) {
+			cfg.DistributedTracer.Enabled = false
+			enableRecordPanics(cfg)
+			cfg.ErrorCollector.ErrorGroupCallback = errorGroupFunc
+		},
+		t,
+	)
+
+	txn := app.StartTransaction("hello")
+
+	e := myError{}
+	r := deferEndPanic(txn, e)
+	if r != e {
+		t.Error("panic not propagated", r)
+	}
+
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "OtherTransaction/Go/hello",
+		Msg:     "my msg",
+		Klass:   panicErrorKlass,
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     panicErrorKlass,
+			"error.message":   "my msg",
+			"transactionName": "OtherTransaction/Go/hello",
+		},
+	}})
+	app.ExpectMetrics(t, backgroundErrorMetrics)
+
 }
 
 func TestPanicString(t *testing.T) {
@@ -654,6 +781,116 @@ func TestResponseCodeError(t *testing.T) {
 		}),
 	}})
 	app.ExpectMetrics(t, webErrorMetrics)
+}
+
+func AssertStringEqual(t *testing.T, field string, expect string, actual string) {
+	if expect != actual {
+		t.Errorf("incorrect value for %s; expected: %s got: %s", field, expect, actual)
+	}
+}
+
+func TestResponseCodeErrorWithCallback(t *testing.T) {
+	errorGroupFunc := func(e ErrorInfo) string {
+		if e.Error != nil {
+			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
+		}
+		AssertStringEqual(t, "ErrorInfo.TransactionName", `WebTransaction/Go/hello`, e.TransactionName)
+		AssertStringEqual(t, "ErrorInfo.Message", "Bad Request", e.Message)
+		AssertStringEqual(t, "ErrorInfo.Class", "400", e.Class)
+
+		val, ok := e.GetTransactionUserAttribute("test")
+		if !ok {
+			t.Errorf("expected attribute \"test\" to be found in txn attributes")
+		} else {
+			AssertStringEqual(t, "User Txn Attribute \"test\"", "test value", fmt.Sprint(val))
+		}
+		return "testGroup"
+	}
+
+	app := testApp(
+		nil,
+		func(cfg *Config) {
+			cfg.DistributedTracer.Enabled = false
+			cfg.ErrorCollector.ErrorGroupCallback = errorGroupFunc
+		},
+		t,
+	)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello")
+	txn.AddAttribute("test", "test value")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequestHTTP(helloRequest)
+
+	rw.WriteHeader(http.StatusBadRequest)   // 400
+	rw.WriteHeader(http.StatusUnauthorized) // 401
+
+	txn.End()
+
+	if http.StatusBadRequest != w.Code {
+		t.Error(w.Code)
+	}
+
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/hello",
+		Msg:     "Bad Request",
+		Klass:   "400",
+	}})
+	app.ExpectErrorEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"error.class":     "400",
+			"error.message":   "Bad Request",
+			"transactionName": "WebTransaction/Go/hello",
+		},
+		AgentAttributes: mergeAttributes(helloRequestAttributes, map[string]interface{}{
+			"httpResponseCode":      "400",
+			"http.statusCode":       "400",
+			AttributeErrorGroupName: "testGroup",
+		}),
+	}})
+	app.ExpectMetrics(t, webErrorMetrics)
+}
+
+func TestErrorGroupCallbackWithHighSecurity(t *testing.T) {
+	errorGroupFunc := func(e ErrorInfo) string {
+		if e.Error != nil {
+			t.Errorf("expected ErrorInfo.Error to be nil, but got %v", e.Error)
+		}
+		AssertStringEqual(t, "ErrorInfo.TransactionName", `WebTransaction/Go/hello`, e.TransactionName)
+		AssertStringEqual(t, "ErrorInfo.Message", "Bad Request", e.Message)
+		AssertStringEqual(t, "ErrorInfo.Class", "400", e.Class)
+		AssertStringEqual(t, "Request URI", "/hello", e.GetRequestURI())
+		AssertStringEqual(t, "Request Method", "GET", e.GetRequestMethod())
+		AssertStringEqual(t, "Response Code", "400", e.GetHttpResponseCode())
+
+		_, ok := e.GetTransactionUserAttribute("test")
+		if ok {
+			t.Errorf("attributes can not be recorded during high security mode")
+		}
+
+		return "testGroup"
+	}
+
+	app := testApp(
+		nil,
+		func(cfg *Config) {
+			cfg.DistributedTracer.Enabled = false
+			cfg.ErrorCollector.ErrorGroupCallback = errorGroupFunc
+			cfg.DistributedTracer.Enabled = true
+			cfg.HighSecurity = true
+		},
+		t,
+	)
+	w := newCompatibleResponseRecorder()
+	txn := app.StartTransaction("hello")
+	// you may not record user attributes with high security enabled
+	txn.AddAttribute("test", "test value")
+	rw := txn.SetWebResponse(w)
+	txn.SetWebRequestHTTP(helloRequest)
+
+	rw.WriteHeader(http.StatusBadRequest)   // 400
+	rw.WriteHeader(http.StatusUnauthorized) // 401
+
+	txn.End()
 }
 
 func TestResponseCode404Filtered(t *testing.T) {
