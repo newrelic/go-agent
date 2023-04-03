@@ -51,7 +51,7 @@ func NewHook(opts *redis.Options) redis.Hook {
 		return h
 	}
 	if host, port, err := net.SplitHostPort(opts.Addr); err == nil {
-		if host != "" {
+		if host == "" {
 			host = "localhost"
 		}
 		h.segment.Host = host
