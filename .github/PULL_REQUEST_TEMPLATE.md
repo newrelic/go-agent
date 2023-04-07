@@ -1,5 +1,6 @@
 <!--
-Thank you for submitting a Pull Request.
+Thank you for submitting a Pull Request. When your code is ready to review, please 
+assign @newrelic/go-reviewers as a reviewer of your pull request.
 
 This code is leveraged to monitor critical services. Please consider the following:
 * Tests are required.
@@ -9,7 +10,6 @@ This code is leveraged to monitor critical services. Please consider the followi
 * For new integration packages, follow the [Writing a New Integration
   Package](https://github.com/newrelic/go-agent/wiki/Writing-a-New-Integration-Package)
   checklist.
-
 -->
 
 ## Links
