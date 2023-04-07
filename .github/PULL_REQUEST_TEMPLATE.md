@@ -1,5 +1,6 @@
 <!--
-Thank you for submitting a Pull Request.
+Thank you for submitting a Pull Request. When your code is ready to review, please 
+assign @newrelic/go-reviewers as a reviewer of your pull request.
 
 This code is leveraged to monitor critical services. Please consider the following:
 * Tests are required.
