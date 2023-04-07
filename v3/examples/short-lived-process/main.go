@@ -13,7 +13,7 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Short Lived App"),
+		newrelic.ConfigAppName("Short Lived"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
