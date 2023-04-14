@@ -7,7 +7,7 @@ on: pull_request
 
 jobs:
   go-agent-v3:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     env:
       # Required when using older versions of Go that do not support gomod.
       GOPATH: ${{ github.workspace }}
@@ -168,7 +168,7 @@ jobs:
   go-agent-arm64:
     # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
     # Graviton instances
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
     # if one test fails, do not abort the rest
       fail-fast: false
