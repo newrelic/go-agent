@@ -7,7 +7,8 @@
 * Ability to disable reporting parameterized query in nrpgx-5
 
 ### Fixed
-* Improved test coverage for gRPC integration, nrgrpc
+* Improved test coverage for gRPC
+ integration, nrgrpc
 
 ### Support Statement
 New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
