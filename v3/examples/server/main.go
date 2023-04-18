@@ -17,7 +17,7 @@ import (
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "hello")
+	io.WriteString(w, "hello test")
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
