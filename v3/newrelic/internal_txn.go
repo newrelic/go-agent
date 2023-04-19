@@ -841,6 +841,9 @@ func endDatastore(s *DatastoreSegment) error {
 	if !txn.Config.DatastoreTracer.QueryParameters.Enabled {
 		s.QueryParameters = nil
 	}
+	if !txn.Config.DatastoreTracer.ParameterizedQuery.Enabled {
+		s.ParameterizedQuery = ""
+	}
 	if txn.Reply.SecurityPolicies.RecordSQL.IsSet() {
 		s.QueryParameters = nil
 		if !txn.Reply.SecurityPolicies.RecordSQL.Enabled() {
