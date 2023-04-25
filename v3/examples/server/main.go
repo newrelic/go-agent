@@ -17,7 +17,7 @@ import (
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "hello")
+	io.WriteString(w, "hello world")
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
@@ -321,5 +321,5 @@ func main() {
 		io.WriteString(w, "A background log message was recorded")
 	})
 
-	http.ListenAndServe(":6000", nil)
+	http.ListenAndServe(":8000", nil)
 }
