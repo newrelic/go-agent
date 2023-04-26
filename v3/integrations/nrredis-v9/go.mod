@@ -8,4 +8,3 @@ require (
 	github.com/newrelic/go-agent/v3 v3.20.4
 	github.com/redis/go-redis/v9 v9.0.2
 )
-
