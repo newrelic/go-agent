@@ -1,3 +1,19 @@
+## 3.21.1
+
+### Added
+* nrredis-v9: automatic instrumentation for Go redis v9
+
+### Fixed
+* Agent now requires Go version 1.18 or higher.
+* Removed support for Go version 1.17. This version of Go is outside of the support window.
+
+### Support Statement
+New Relic recommends that you upgrade the agent regularly to ensure that you’re getting the latest features and performance benefits. Additionally, older releases will no longer be supported when they reach end-of-life.
+
+We also recommend using the latest version of the Go language. At minimum, you should at least be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go Agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go Agent and third-party components.
+
 ## 3.21.0
 
 ### Added
