@@ -19,7 +19,7 @@ jobs:
         include:
           - go-version: 1.18.x
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.18.x
+          - go-version: 1.19.x
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.20.x
             dirs: v3/newrelic,v3/internal,v3/examples
@@ -91,6 +91,9 @@ jobs:
           - go-version: 1.18.x
             dirs: v3/integrations/nrredis-v7
             extratesting: go get -u github.com/go-redis/redis/v7@master
+          - go-version: 1.18.x
+            dirs: v3/integrations/nrredis-v9
+            extratesting: go get -u github.com/redis/go-redis/v9@master
           - go-version: 1.18.x
             dirs: v3/integrations/nrsqlite3
             extratesting: go get -u github.com/mattn/go-sqlite3@master
