@@ -5,6 +5,6 @@ module github.com/newrelic/go-agent/v3/integrations/nrnats
 go 1.17
 
 require (
-	github.com/nats-io/nats.go v1.17.0
+	github.com/nats-io/nats.go v1.24.0
 	github.com/newrelic/go-agent/v3 v3.18.2
 )
