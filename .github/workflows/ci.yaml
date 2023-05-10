@@ -36,7 +36,6 @@ jobs:
             extratesting: go get -u github.com/rs/zerolog@master
           - go-version: 1.18.x
             dirs: v3/integrations/logcontext-v2/nrzap
-            extratesting: go get -u go.uber.org/zap@master
           - go-version: 1.18.x
             dirs: v3/integrations/logcontext-v2/nrwriter
           - go-version: 1.18.x
