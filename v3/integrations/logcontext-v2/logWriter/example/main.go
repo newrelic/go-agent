@@ -13,6 +13,7 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("log writer example"),
 		newrelic.ConfigFromEnvironment(),
+
 		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
