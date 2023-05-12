@@ -870,7 +870,7 @@ func (thd *thread) NewGoroutine() *Transaction {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
-
+	thd.txn.IsAsyncOperation = true
 	if txn.finished {
 		// If the transaction has finished, return the same thread.
 		return newTransaction(thd)

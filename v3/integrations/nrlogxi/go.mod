@@ -11,4 +11,5 @@ require (
 	// 'v1', at commit aebf8a7d67ab, is the only logxi release.
 	github.com/mgutz/logxi v0.0.0-20161027140823-aebf8a7d67ab
 	github.com/newrelic/go-agent/v3 v3.0.0
+	github.com/stretchr/testify v1.8.2 // indirect
 )

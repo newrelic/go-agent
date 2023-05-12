@@ -100,6 +100,7 @@ type txnData struct {
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 	messageSegments   map[internal.MessageMetricKey]*metricData
+	IsAsyncOperation  bool // Used to track whether there is an async operation started on the transaction
 }
 
 func (t *txnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {
@@ -248,7 +249,7 @@ func (m *spanAttributeMap) addAgentAttrs(attrs agentAttributes) {
 	}
 }
 
-func addAttr(m *spanAttributeMap, key string, val interface{}) {
+func addAttr(m *spanAttributeMap, key string, val any) {
 	switch v := val.(type) {
 	case string:
 		m.addString(key, v)
@@ -357,7 +358,7 @@ func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 }
 
 // AddUserSpanAttribute allows custom attributes to be added to spans.
-func (thread *tracingThread) AddUserSpanAttribute(key string, val interface{}) {
+func (thread *tracingThread) AddUserSpanAttribute(key string, val any) {
 	if len(thread.stack) > 0 {
 		userAttributes := &thread.stack[len(thread.stack)-1].userAttributes
 		userAttributes.addUserAttrs(map[string]userAttribute{
@@ -565,7 +566,7 @@ func endExternalSegment(p endExternalParams) error {
 		appData, err = t.CrossProcess.ParseAppData(hdr)
 		if err != nil {
 			if p.Logger.DebugEnabled() {
-				p.Logger.Debug("failure to parse cross application response header", map[string]interface{}{
+				p.Logger.Debug("failure to parse cross application response header", map[string]any{
 					"err":    err.Error(),
 					"header": hdr,
 				})
@@ -699,7 +700,7 @@ type endDatastoreParams struct {
 	Collection         string
 	Operation          string
 	ParameterizedQuery string
-	QueryParameters    map[string]interface{}
+	QueryParameters    map[string]any
 	Host               string
 	PortPathOrID       string
 	Database           string
