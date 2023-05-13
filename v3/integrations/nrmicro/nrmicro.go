@@ -245,6 +245,8 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 		URL:       u,
 		Method:    req.Method(),
 		Transport: newrelic.TransportHTTP,
+		Body:      req.Body,
+		Type:      "HTTP",
 	}
 	txn.SetWebRequest(webReq)
 

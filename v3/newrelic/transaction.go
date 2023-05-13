@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -242,12 +241,12 @@ func reqBody(req *http.Request) []byte {
 	requestBuffer := make([]byte, 0)
 	bodyReader := io.TeeReader(req.Body, &bodyBuffer)
 
-	if bodyReader != nil {
-		reqBuffer, err := ioutil.ReadAll(bodyReader)
+	if bodyReader != nil && req.Body != nil {
+		reqBuffer, err := io.ReadAll(bodyReader)
 		if err == nil {
 			requestBuffer = reqBuffer
 		}
-		r := ioutil.NopCloser(bytes.NewBuffer(requestBuffer))
+		r := io.NopCloser(bytes.NewBuffer(requestBuffer))
 		req.Body = r
 	}
 	return bytes.TrimRight(requestBuffer, "\x00")
