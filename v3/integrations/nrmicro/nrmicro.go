@@ -227,6 +227,9 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 
 func startWebTransaction(ctx context.Context, app *newrelic.Application, req server.Request) *newrelic.Transaction {
 	var hdrs http.Header
+	var unencodedBody []byte
+	var err error
+
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
 		for k, v := range md {
@@ -240,12 +243,16 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 		Path:   req.Endpoint(),
 	}
 
+	if unencodedBody, err = req.Read(); err != nil {
+		unencodedBody = nil
+	}
+
 	webReq := newrelic.WebRequest{
 		Header:    hdrs,
 		URL:       u,
 		Method:    req.Method(),
 		Transport: newrelic.TransportHTTP,
-		Body:      req.Body,
+		Body:      unencodedBody,
 		Type:      "HTTP",
 	}
 	txn.SetWebRequest(webReq)

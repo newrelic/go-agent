@@ -68,9 +68,22 @@ type DatastoreSegment struct {
 	// and Transaction Trace segments.
 	DatabaseName string
 
-	// SecureAgentEvent is used when vulnerability scanning is enabled to
+	// secureAgentEvent is used when vulnerability scanning is enabled to
 	// record security-related information about the datastore operations.
-	SecureAgentEvent any
+	secureAgentEvent any
+}
+
+// SetSecureAgentEvent allows integration packages to set the secureAgentEvent
+// for this datastore segment. That field is otherwise unexported and not available
+// for other manipulation.
+func (ds *DatastoreSegment) SetSecureAgentEvent(event any) {
+	ds.secureAgentEvent = event
+}
+
+// GetSecureAgentEvent retrieves the secureAgentEvent previously stored by
+// a SetSecureAgentEvent method.
+func (ds *DatastoreSegment) GetSecureAgentEvent() any {
+	return ds.secureAgentEvent
 }
 
 // ExternalSegment instruments external calls.  StartExternalSegment is the
@@ -106,9 +119,9 @@ type ExternalSegment struct {
 	// precedence over the status code set on the Response.
 	statusCode *int
 
-	// secureAgentevent records security information when vulnerability
+	// secureAgentEvent records security information when vulnerability
 	// scanning is enabled.
-	secureAgentevent any
+	secureAgentEvent any
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -158,7 +171,7 @@ func (s *Segment) End() {
 		return
 	}
 	if s.Name == "async" {
-		SecureAgent.SendEvent("NEW_GOROUTINE_END", "")
+		secureAgent.SendEvent("NEW_GOROUTINE_END", "")
 	}
 	if err := endBasic(s); err != nil {
 		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
@@ -221,7 +234,7 @@ func (s *ExternalSegment) End() {
 	}
 
 	if (s.statusCode != nil && *s.statusCode != 404) || (s.Response != nil && s.Response.StatusCode != 404) {
-		SecureAgent.SendExitEvent(s.secureAgentevent, nil)
+		secureAgent.SendExitEvent(s.secureAgentEvent, nil)
 	}
 
 }
@@ -303,14 +316,14 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 		StartTime: txn.StartSegmentNow(),
 		Request:   request,
 	}
-	s.secureAgentevent = SecureAgent.SendEvent("OUTBOUND", request)
+	s.secureAgentEvent = secureAgent.SendEvent("OUTBOUND", request)
 	if request != nil && request.Header != nil {
 		for key, values := range s.outboundHeaders() {
 			for _, value := range values {
 				request.Header.Set(key, value)
 			}
 		}
-		SecureAgent.DistributedTraceHeaders(request, s.secureAgentevent)
+		secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
 	}
 
 	return s

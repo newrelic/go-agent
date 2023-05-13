@@ -193,6 +193,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Logger":"*logger.logFile",
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
+			"SecureAgent":{"Present":false},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
 				"AccountID":"",
@@ -392,6 +393,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Logger":null,
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
 			"RuntimeSampler":{"Enabled":true},
+			"SecureAgent":{"Present":false},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
 				"AccountID":"",

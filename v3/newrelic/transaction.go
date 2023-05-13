@@ -40,10 +40,10 @@ func (txn *Transaction) End() {
 		r = recover()
 	}
 	if txn.thread.IsWeb {
-		SecureAgent.SendEvent("INBOUND_END", "")
+		secureAgent.SendEvent("INBOUND_END", "")
 	}
 	if txn.thread.IsAsyncOperation {
-		SecureAgent.SendEvent("NEW_GOROUTINE_TR_END", txn)
+		secureAgent.SendEvent("NEW_GOROUTINE_TR_END", txn)
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
@@ -261,7 +261,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if txn == nil || txn.thread == nil {
 		return
 	}
-	SecureAgent.SendEvent("INBOUND", r)
+	secureAgent.SendEvent("INBOUND", r)
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
 
@@ -316,7 +316,7 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
 	if name == "async" {
-		SecureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn)
+		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn)
 	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
@@ -500,7 +500,7 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 		return nil
 	}
 	newTxn := txn.thread.NewGoroutine()
-	SecureAgent.SendEvent("NEW_GOROUTINE", newTxn)
+	secureAgent.SendEvent("NEW_GOROUTINE", newTxn)
 	return newTxn
 }
 

@@ -444,6 +444,16 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+
+	// SecureAgent indicates whether the vulnerability scanning capabilities are active
+	// in the agent. This is not user-settable; it is internally set when the nrsecureagent
+	// initializes and registers itself with the agent and hooks into it.
+	SecureAgent struct {
+		// Present is true if there is a security agent present and hooked in to the application
+		// so that it will try to perform vulnerability detection if it is enabled (which is done
+		// as part of the nrsecureagent's local configuration, not here).
+		Present bool
+	}
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes

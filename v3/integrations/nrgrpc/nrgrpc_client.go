@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -43,8 +43,12 @@ func getDummyRequest(method, target string) (request *http.Request) {
 // headers to the outgoing grpc metadata in the context.
 func startClientSegment(ctx context.Context, method, target string) (*newrelic.ExternalSegment, context.Context) {
 	var seg *newrelic.ExternalSegment
+	var req *http.Request
+
 	if txn := newrelic.FromContext(ctx); txn != nil {
-		req := getDummyRequest(method, target)
+		if newrelic.IsSecurityAgentPresent() {
+			req = getDummyRequest(method, target)
+		}
 		seg = newrelic.StartExternalSegment(txn, req)
 
 		method = strings.TrimPrefix(method, "/")
@@ -64,9 +68,11 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 					md.Set(k, v)
 				}
 			}
-			for k := range req.Header {
-				if v := req.Header.Get(k); v != "" {
-					md.Set(k, v)
+			if newrelic.IsSecurityAgentPresent() {
+				for k := range req.Header {
+					if v := req.Header.Get(k); v != "" {
+						md.Set(k, v)
+					}
 				}
 			}
 			ctx = metadata.NewOutgoingContext(ctx, md)

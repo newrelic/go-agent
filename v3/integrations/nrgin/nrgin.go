@@ -19,7 +19,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "gin", "v1") }
@@ -60,13 +60,17 @@ func (w *replacementResponseWriter) WriteHeader(code int) {
 
 func (w *replacementResponseWriter) Write(data []byte) (int, error) {
 	w.flushHeader()
-	w.replacement.Write(data)
+	if newrelic.IsSecurityAgentPresent() {
+		w.replacement.Write(data)
+	}
 	return w.ResponseWriter.Write(data)
 }
 
 func (w *replacementResponseWriter) WriteString(s string) (int, error) {
 	w.flushHeader()
-	w.replacement.Write([]byte(s))
+	if newrelic.IsSecurityAgentPresent() {
+		w.replacement.Write([]byte(s))
+	}
 	return w.ResponseWriter.WriteString(s)
 }
 

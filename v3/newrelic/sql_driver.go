@@ -45,14 +45,14 @@ func InstrumentSQLConnector(connector driver.Connector, bld SQLDriverSegmentBuil
 }
 
 func sendSecureEventSQL(query, args any) any {
-	return SecureAgent.SendEvent("SQL", query, args)
+	return secureAgent.SendEvent("SQL", query, args)
 }
 func sendSecureEventSQLPrepare(query, obj any) {
-	SecureAgent.SendEvent("SQL_PREPARE", query, fmt.Sprintf("%p", obj))
+	secureAgent.SendEvent("SQL_PREPARE", query, fmt.Sprintf("%p", obj))
 
 }
 func sendSecureEventSQLPrepareArgs(args, obj any) any {
-	return SecureAgent.SendEvent("SQL_PREPARE_ARGS", args, fmt.Sprintf("%p", obj))
+	return secureAgent.SendEvent("SQL_PREPARE_ARGS", args, fmt.Sprintf("%p", obj))
 }
 
 func (bld SQLDriverSegmentBuilder) useDSN(dsn string) SQLDriverSegmentBuilder {
@@ -180,7 +180,7 @@ func (w *wrapConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.T
 func (w *wrapConn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	secureAgentevent := sendSecureEventSQL(query, args)
 	result, err := w.original.(driver.Execer).Exec(query, args)
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -193,7 +193,7 @@ func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -210,7 +210,7 @@ func (w *wrapConn) Ping(ctx context.Context) error {
 func (w *wrapConn) Query(query string, args []driver.Value) (driver.Rows, error) {
 	secureAgentevent := sendSecureEventSQL(query, args)
 	result, err := w.original.(driver.Queryer).Query(query, args)
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -223,7 +223,7 @@ func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 
@@ -243,14 +243,14 @@ func (w *wrapStmt) NumInput() int {
 func (w *wrapStmt) Exec(args []driver.Value) (driver.Result, error) {
 	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
 	result, err := w.original.Exec(args)
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
 func (w *wrapStmt) Query(args []driver.Value) (driver.Rows, error) {
 	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
 	result, err := w.original.Query(args)
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -270,7 +270,7 @@ func (w *wrapStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (d
 	segment := w.bld.startSegment(ctx)
 	result, err := w.original.(driver.StmtExecContext).ExecContext(ctx, args)
 	segment.End()
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -280,7 +280,7 @@ func (w *wrapStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (
 	segment := w.bld.startSegment(ctx)
 	rows, err := w.original.(driver.StmtQueryContext).QueryContext(ctx, args)
 	segment.End()
-	SecureAgent.SendExitEvent(secureAgentevent, err)
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 

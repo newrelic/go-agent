@@ -10,9 +10,12 @@ import (
 	"strconv"
 
 	securityAgent "github.com/newrelic/csec-go-agent"
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"gopkg.in/yaml.v2"
 )
+
+func init() { internal.TrackUsage("integration", "secureagent") }
 
 type SecurityConfig struct {
 	securityAgent.SecurityAgentConfig
@@ -52,7 +55,7 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 	}
 
 	secureAgent := securityAgent.InitSecurityAgent(c.Security, appConfig.AppName, appConfig.License, appConfig.Logger.DebugEnabled())
-	newrelic.InitSecurityAgent(secureAgent)
+	app.RegisterSecurityAgent(secureAgent)
 	return nil
 }
 

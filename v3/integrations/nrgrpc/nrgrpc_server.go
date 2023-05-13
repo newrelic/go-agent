@@ -309,7 +309,7 @@ func UnaryServerInterceptor(app *newrelic.Application, options ...HandlerOption)
 
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		txn := startTransaction(ctx, app, info.FullMethod)
-		newrelic.SecureAgent.SendEvent("GRPC", req)
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req)
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
@@ -330,7 +330,7 @@ func (s wrappedServerStream) Context() context.Context {
 }
 
 func (s wrappedServerStream) RecvMsg(msg any) error {
-	newrelic.SecureAgent.SendEvent("GRPC", msg)
+	newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg)
 	return s.ServerStream.RecvMsg(msg)
 }
 

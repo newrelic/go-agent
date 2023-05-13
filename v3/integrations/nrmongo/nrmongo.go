@@ -36,7 +36,7 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 )
@@ -96,18 +96,18 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 	if txn == nil {
 		return
 	}
-	secureAgentevent := newrelic.SecureAgent.SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
+	secureAgentEvent := newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
 	host, port := calcHostAndPort(e.ConnectionID)
 	sgmt := newrelic.DatastoreSegment{
-		StartTime:        txn.StartSegmentNow(),
-		Product:          newrelic.DatastoreMongoDB,
-		Collection:       collName(e),
-		Operation:        e.CommandName,
-		Host:             host,
-		PortPathOrID:     port,
-		DatabaseName:     e.DatabaseName,
-		SecureAgentEvent: secureAgentevent,
+		StartTime:    txn.StartSegmentNow(),
+		Product:      newrelic.DatastoreMongoDB,
+		Collection:   collName(e),
+		Operation:    e.CommandName,
+		Host:         host,
+		PortPathOrID: port,
+		DatabaseName: e.DatabaseName,
 	}
+	sgmt.SetSecureAgentEvent(secureAgentEvent)
 	m.addSgmt(e, &sgmt)
 }
 
@@ -125,7 +125,7 @@ func (m *mongoMonitor) addSgmt(e *event.CommandStartedEvent, sgmt *newrelic.Data
 
 func (m *mongoMonitor) succeeded(ctx context.Context, e *event.CommandSucceededEvent) {
 	if sgmt := m.getSgmt(e.RequestID); sgmt != nil {
-		newrelic.SecureAgent.SendExitEvent(sgmt.SecureAgentEvent, nil)
+		newrelic.GetSecurityAgentInterface().SendExitEvent(sgmt.GetSecureAgentEvent(), nil)
 	}
 	m.endSgmtIfExists(e.RequestID)
 	if m.origCommMon != nil && m.origCommMon.Succeeded != nil {
