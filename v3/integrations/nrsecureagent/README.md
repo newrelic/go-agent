@@ -1,4 +1,4 @@
-# v3/integrations/nrsecurityagent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent)
+# v3/integrations/nrsecureagent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecureagent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecureagent)
 
 This integration allows you to have the New Relic security agent analyze your application for potentially exploitable vulnerabilities.
 
@@ -55,4 +55,4 @@ You can also use environment variables or in-app configuration functions to set 
 configuration values.
 
 For more information, see
-[godocs](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent).
+[godocs](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecureagent).
