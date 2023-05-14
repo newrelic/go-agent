@@ -43,7 +43,6 @@ type securityAgent interface {
 func (app *Application) RegisterSecurityAgent(s securityAgent) {
 	if app != nil && app.app != nil && s != nil {
 		secureAgent = s
-		app.app.config.Config.SecureAgent.Present = true
 	}
 }
 
