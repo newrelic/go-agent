@@ -42,9 +42,6 @@ func (txn *Transaction) End() {
 	if txn.thread.IsWeb {
 		secureAgent.SendEvent("INBOUND_END", "")
 	}
-	if txn.thread.IsAsyncOperation {
-		secureAgent.SendEvent("NEW_GOROUTINE_TR_END", txn)
-	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
 

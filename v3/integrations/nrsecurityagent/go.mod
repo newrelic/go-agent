@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrsecureagent
+module github.com/newrelic/go-agent/v3/integrations/nrsecurityagent
 
 go 1.18
 
@@ -33,4 +33,5 @@ require (
 replace (
 	github.com/newrelic/csec-go-agent v0.0.1 => ../../../../csec-go-agent
 	github.com/newrelic/go-agent/v3 v3.22.0 => ../..
+	github.com/newrelic/go-agent/v3/integrations/nrsqlite3 => ../nrsqlite3
 )
