@@ -1,7 +1,7 @@
 // Copyright 2022 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package nrsecureagent
+package nrsecurityagent
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func init() { internal.TrackUsage("integration", "secureagent") }
+func init() { internal.TrackUsage("integration", "securityagent") }
 
 type SecurityConfig struct {
 	securityAgent.SecurityAgentConfig

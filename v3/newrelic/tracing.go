@@ -100,7 +100,6 @@ type txnData struct {
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 	messageSegments   map[internal.MessageMetricKey]*metricData
-	IsAsyncOperation  bool // Used to track whether there is an async operation started on the transaction
 }
 
 func (t *txnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {

@@ -315,8 +315,9 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	if name == "async" {
-		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn)
+	if txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
+		// async segment start
+		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.csecData)
 	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
@@ -500,7 +501,9 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 		return nil
 	}
 	newTxn := txn.thread.NewGoroutine()
-	secureAgent.SendEvent("NEW_GOROUTINE", newTxn)
+	if newTxn.thread != nil && newTxn.thread.csecData == nil {
+		newTxn.thread.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
+	}
 	return newTxn
 }
 

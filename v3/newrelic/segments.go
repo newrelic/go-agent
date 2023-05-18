@@ -170,9 +170,12 @@ func (s *Segment) End() {
 	if s == nil {
 		return
 	}
-	if s.Name == "async" {
+
+	if s.StartTime.thread != nil && s.StartTime.thread.thread != nil && s.StartTime.thread.thread.threadID > 0 {
+		// async thread
 		secureAgent.SendEvent("NEW_GOROUTINE_END", "")
 	}
+
 	if err := endBasic(s); err != nil {
 		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
 			"name": s.Name,
