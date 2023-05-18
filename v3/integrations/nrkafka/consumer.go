@@ -34,7 +34,6 @@ func NewConsumerHandler(app *newrelic.Application, topic string, clientID string
 
 func (cw *ConsumerWrapper) Consume(ctx context.Context, handler *ConsumerHandler) error {
 	txn := newrelic.FromContext(ctx)
-
 	consume := cw.consumerGroup.Consume(ctx, []string{handler.topic}, handler)
 	if consume != nil {
 		txn.Application().RecordCustomMetric("MessageBroker/Kafka/Heartbeat/Fail", 1.0)
@@ -44,7 +43,6 @@ func (cw *ConsumerWrapper) Consume(ctx context.Context, handler *ConsumerHandler
 
 // Setup is ran at the beginning of a new session
 func (ch *ConsumerHandler) Setup(_ sarama.ConsumerGroupSession) error {
-
 	// Record session timeout/poll timeout intervals
 	ch.app.RecordCustomMetric("MessageBroker/Kafka/Heartbeat/SessionTimeout", ch.saramaConfig.Consumer.Group.Session.Timeout.Seconds())
 	ch.app.RecordCustomMetric("MessageBroker/Kafka/Heartbeat/PollTimeout", ch.saramaConfig.Consumer.Group.Heartbeat.Interval.Seconds())
@@ -59,14 +57,13 @@ func (ch *ConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 
 func ClaimIngestion(ch *ConsumerHandler, session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) {
 	// if txn exists, make claims segments of that txn otherwise create a new one
-
 	txn := ch.txn
 	if ch.txn == nil {
 		txn = ch.app.StartTransaction("kafkaconsumer")
 	}
 	ctx := newrelic.NewContext(context.Background(), txn)
-
 	segment := txn.StartSegment("Message/Kafka/Topic/Consume/Named/" + ch.topic)
+
 	// Deserialized key/value
 	deserializeKeySegment := txn.StartSegment("MessageBroker/Kafka/Topic/Named/" + ch.topic + "/Deserialization/Key")
 	key := string(message.Key)
@@ -80,15 +77,14 @@ func ClaimIngestion(ch *ConsumerHandler, session sarama.ConsumerGroupSession, me
 	segment.End()
 
 	session.MarkMessage(message, "")
+
 	// Heartbeat metric to log a new message received successfully
 	txn.Application().RecordCustomMetric("MessageBroker/Kafka/Heartbeat/Receive", 1.0)
 	txn.End()
 
 }
 
-// Check context if txn is already in process
 func (ch *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-
 	for message := range claim.Messages() {
 		ClaimIngestion(ch, session, message)
 	}
@@ -97,7 +93,6 @@ func (ch *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 
 func (ch *ConsumerHandler) processMessage(ctx context.Context, message *sarama.ConsumerMessage, key string, value string) {
 	txn := newrelic.FromContext(ctx)
-
 	messageHandlingSegment := txn.StartSegment("Message/Kafka/Topic/Consume/Named/" + ch.topic + "/MessageProcessing/")
 	ch.messageHandler(ctx, message)
 	byteCount := float64(len(message.Value))

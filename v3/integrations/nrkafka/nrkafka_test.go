@@ -76,7 +76,6 @@ func TestProducerSetHeaders(t *testing.T) {
 }
 
 // Custom message handler that controls what happens when a new message is received by the consumer
-// Note: delay is present only to simulate handling of message
 func messageHandler(ctx context.Context, msg *sarama.ConsumerMessage) {
 	log.Printf("received message %v\n", string(msg.Key))
 }
@@ -101,7 +100,7 @@ func TestConsumerClaimIngestion(t *testing.T) {
 	}
 
 	mockSession := new(MockConsumerGroupSession)
-	// Create new kafka consumer handler
+
 	ch := NewConsumerHandler(app.Application, kafkaTopicName, config.ClientID, config, messageHandler)
 	ClaimIngestion(ch, mockSession, msg)
 
