@@ -33,7 +33,7 @@ func main() {
 
 	txn := app.StartTransaction("nrzap example transaction")
 	txnCore, err := nrzap.WrapTransactionCore(core, txn)
-	if err != nil && err != nrzap.ErrNilApp {
+	if err != nil && err != nrzap.ErrNilTxn {
 		panic(err)
 	}
 
