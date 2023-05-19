@@ -2,7 +2,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrpgx
 
 // As of Dec 2019, go 1.11 is the earliest version of Go tested by lib/pq:
 // https://github.com/lib/pq/blob/master/.travis.yml
-go 1.11
+go 1.18
 
 require (
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
