@@ -4,17 +4,15 @@
 package nrnats
 
 import (
+	"github.com/nats-io/nats-server/test"
+	nats "github.com/nats-io/nats.go"
+	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"os"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/nats-io/nats-server/test"
-	nats "github.com/nats-io/nats.go"
-	"github.com/newrelic/go-agent/v3/integrations/nrnats"
-	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func TestMain(m *testing.M) {
@@ -45,7 +43,7 @@ func TestStartPublishSegmentNilTxn(t *testing.T) {
 	}
 	defer nc.Close()
 
-	nrnats.StartPublishSegment(nil, nc, "mysubject").End()
+	StartPublishSegment(nil, nc, "mysubject").End()
 }
 
 func TestStartPublishSegmentNilConn(t *testing.T) {
@@ -53,7 +51,7 @@ func TestStartPublishSegmentNilConn(t *testing.T) {
 	// metrics
 	app := testApp()
 	txn := app.StartTransaction("testing")
-	nrnats.StartPublishSegment(txn, nil, "mysubject").End()
+	StartPublishSegment(txn, nil, "mysubject").End()
 	txn.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -75,7 +73,7 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 	}
 	defer nc.Close()
 
-	nrnats.StartPublishSegment(txn, nc, "mysubject").End()
+	StartPublishSegment(txn, nc, "mysubject").End()
 	txn.End()
 
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -135,7 +133,7 @@ func TestSubWrapperWithNilApp(t *testing.T) {
 		t.Fatal("Error connecting to NATS server", err)
 	}
 	wg := sync.WaitGroup{}
-	nc.Subscribe("subject1", nrnats.SubWrapper(nil, func(msg *nats.Msg) {
+	nc.Subscribe("subject1", SubWrapper(nil, func(msg *nats.Msg) {
 		wg.Done()
 	}))
 	wg.Add(1)
@@ -150,7 +148,7 @@ func TestSubWrapper(t *testing.T) {
 	}
 	wg := sync.WaitGroup{}
 	app := testApp()
-	nc.QueueSubscribe("subject2", "queue1", WgWrapper(&wg, nrnats.SubWrapper(app.Application, func(msg *nats.Msg) {})))
+	nc.QueueSubscribe("subject2", "queue1", WgWrapper(&wg, SubWrapper(app.Application, func(msg *nats.Msg) {})))
 	wg.Add(1)
 	nc.Request("subject2", []byte("data"), time.Second)
 	wg.Wait()
@@ -201,7 +199,7 @@ func TestStartPublishSegmentNaming(t *testing.T) {
 	for _, tc := range testCases {
 		app := testApp()
 		txn := app.StartTransaction("testing")
-		nrnats.StartPublishSegment(txn, nc, tc.subject).End()
+		StartPublishSegment(txn, nc, tc.subject).End()
 		txn.End()
 
 		app.ExpectMetrics(t, []internal.WantMetric{
