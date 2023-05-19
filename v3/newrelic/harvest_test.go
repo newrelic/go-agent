@@ -167,7 +167,7 @@ func TestCreateFinalMetrics(t *testing.T) {
 		{Name: "Supportability/EventHarvest/AnalyticEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000, 10 * 1000 * 10 * 1000}},
 		{Name: "Supportability/EventHarvest/CustomEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents, internal.MaxCustomEvents * internal.MaxCustomEvents}},
 		{Name: "Supportability/EventHarvest/ErrorEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 100, 100, 100, 100, 100 * 100}},
-		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 2000, 2000, 2000, 2000, 2000 * 2000}},
+		{Name: "Supportability/EventHarvest/SpanEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxSpanEvents * internal.MaxSpanEvents}},
 		{Name: "Supportability/EventHarvest/LogEventData/HarvestLimit", Scope: "", Forced: true, Data: []float64{1, 10000, 10000, 10000, 10000, 10000 * 10000}},
 		{Name: "Supportability/Go/Version/" + Version, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
 		{Name: "Supportability/Go/Runtime/Version/" + goVersionSimple, Scope: "", Forced: true, Data: []float64{1, 0, 0, 0, 0, 0}},
@@ -509,7 +509,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 
 	ers := newTxnErrors(10)
 	ers.Add(errorData{When: time.Now(), Msg: "msg", Klass: "klass", Stack: getStackTrace()})
-	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{FinalName: "finalName", Attrs: nil})
+	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{FinalName: "finalName", Attrs: nil}, nil)
 
 	h.TxnTraces.Witness(harvestTrace{
 		txnEvent: txnEvent{
@@ -612,7 +612,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	mergeTxnErrors(&h.ErrorTraces, ers, txnEvent{
 		FinalName: "finalName",
 		Attrs:     nil,
-	})
+	}, nil)
 	h.SpanEvents.addEventPopulated(&sampleSpanEvent)
 
 	if start1 != h.Metrics.metricPeriodStart {
@@ -997,7 +997,7 @@ func TestNewHarvestSetsDefaultValues(t *testing.T) {
 	if cp := h.ErrorEvents.capacity(); cp != internal.MaxErrorEvents {
 		t.Error("wrong error event capacity", cp)
 	}
-	if cp := h.SpanEvents.capacity(); cp != defaultMaxSpanEvents {
+	if cp := h.SpanEvents.capacity(); cp != internal.MaxSpanEvents {
 		t.Error("wrong span event capacity", cp)
 	}
 }

@@ -35,6 +35,7 @@ type txnEvent struct {
 	externalDuration   time.Duration
 	datastoreCallCount uint64
 	datastoreDuration  time.Duration
+	errGroupCallback   ErrorGroupCallback
 }
 
 // betterCAT stores the transaction's priority and all fields related
@@ -413,7 +414,7 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
-	if len(t.SpanEvents) < defaultMaxSpanEvents {
+	if len(t.SpanEvents) < internal.MaxSpanEvents {
 		t.SpanEvents = append(t.SpanEvents, e)
 	}
 }

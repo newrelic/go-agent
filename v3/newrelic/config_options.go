@@ -288,6 +288,17 @@ func ConfigModuleDependencyMetricsIgnoredPrefixes(prefix ...string) ConfigOption
 	}
 }
 
+// ConfigSetErrorGroupCallbackFunction set a callback function of type ErrorGroupCallback that will
+// be invoked against errors at harvest time. This function overrides the default grouping behavior
+// of errors into a custom, user defined group when set. Setting this may have performance implications
+// for your application depending on the contents of the callback function. Do not set this if you want
+// the default error grouping behavior to be executed.
+func ConfigSetErrorGroupCallbackFunction(callback ErrorGroupCallback) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.ErrorGroupCallback = callback
+	}
+}
+
 // ConfigModuleDependencyMetricsRedactIgnoredPrefixes controls whether the names
 // of ignored module path prefixes should be redacted from the agent configuration data
 // reported and visible in the New Relic UI. Since one of the reasons these

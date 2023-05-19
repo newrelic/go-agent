@@ -68,8 +68,9 @@ func init() {
 
 type (
 	Tracer struct {
-		BaseSegment newrelic.DatastoreSegment
-		ParseQuery  func(segment *newrelic.DatastoreSegment, query string)
+		BaseSegment         newrelic.DatastoreSegment
+		ParseQuery          func(segment *newrelic.DatastoreSegment, query string)
+		SendQueryParameters bool
 	}
 
 	nrPgxSegmentType string
@@ -83,7 +84,8 @@ const (
 
 func NewTracer() *Tracer {
 	return &Tracer{
-		ParseQuery: sqlparse.ParseQuery,
+		ParseQuery:          sqlparse.ParseQuery,
+		SendQueryParameters: true,
 	}
 }
 
@@ -109,7 +111,9 @@ func (t *Tracer) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.T
 	segment := t.BaseSegment
 	segment.StartTime = newrelic.FromContext(ctx).StartSegmentNow()
 	segment.ParameterizedQuery = data.SQL
-	segment.QueryParameters = t.getQueryParameters(data.Args)
+	if t.SendQueryParameters {
+		segment.QueryParameters = t.getQueryParameters(data.Args)
+	}
 
 	// fill Operation and Collection
 	t.ParseQuery(&segment, data.SQL)

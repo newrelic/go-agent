@@ -86,6 +86,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels["zip"] = "zap"
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
+	cfg.ErrorCollector.ExpectStatusCodes = append(cfg.ErrorCollector.ExpectStatusCodes, 500)
 	cfg.Attributes.Include = append(cfg.Attributes.Include, "1")
 	cfg.Attributes.Exclude = append(cfg.Attributes.Exclude, "2")
 	cfg.TransactionEvents.Attributes.Include = append(cfg.TransactionEvents.Attributes.Include, "3")
@@ -163,13 +164,14 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":["6"],"Include":["5"]},
 				"CaptureEvents":true,
 				"Enabled":true,
+				"ExpectStatusCodes":[500],
 				"IgnoreStatusCodes":[0,5,404,405],
 				"RecordPanics":false
 			},
@@ -272,10 +274,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"custom_event_data": %d,
 				"log_event_data": %d,
 				"error_event_data": 100,
-				"span_event_data": 2000
+				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -361,13 +363,14 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":2000},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
 				"CaptureEvents":true,
 				"Enabled":true,
+				"ExpectStatusCodes":null,
 				"IgnoreStatusCodes":null,
 				"RecordPanics":false
 			},
@@ -458,10 +461,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"custom_event_data": %d,
 				"log_event_data": %d,
 				"error_event_data": 100,
-				"span_event_data": 2000
+				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
@@ -480,7 +483,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: true,
 	}
-	if err := c.validate(); nil != err {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 	c = Config{
@@ -496,7 +499,7 @@ func TestValidate(t *testing.T) {
 		AppName: "my app",
 		Enabled: false,
 	}
-	if err := c.validate(); nil != err {
+	if err := c.validate(); err != nil {
 		t.Error(err)
 	}
 	c = Config{
@@ -676,11 +679,11 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	for _, tc := range testcases {
 		// mimic file/environment precedence of other agents
 		configKey := tc.ConfigFileKey
-		if "" != tc.EnvKey {
+		if tc.EnvKey != "" {
 			configKey = tc.EnvKey
 		}
 		overrideHost := tc.ConfigOverrideHost
-		if "" != tc.EnvOverrideHost {
+		if tc.EnvOverrideHost != "" {
 			overrideHost = tc.EnvOverrideHost
 		}
 

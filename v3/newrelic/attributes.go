@@ -52,6 +52,10 @@ const (
 	AttributeCodeFilepath = "code.filepath"
 	// AttributeCodeLineno contains the Code Level Metrics source file line number name.
 	AttributeCodeLineno = "code.lineno"
+	// AttributeErrorGroupName contains the error group name set by the user defined callback function.
+	AttributeErrorGroupName = "error.group.name"
+	// AttributeUserID tracks the user a transaction and its child events are impacting
+	AttributeUserID = "enduser.id"
 )
 
 // Attributes destined for Errors and Transaction Traces:

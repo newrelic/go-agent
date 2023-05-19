@@ -100,6 +100,7 @@ type ConnectReply struct {
 		TransactionTracerStackTraceThreshold *float64    `json:"transaction_tracer.stack_trace_threshold"`
 		ErrorCollectorEnabled                *bool       `json:"error_collector.enabled"`
 		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
+		ErrorCollectorExpectStatusCodes      []int       `json:"error_collector.expected_status_codes"`
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
 	} `json:"agent_config"`
 

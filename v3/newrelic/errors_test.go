@@ -238,7 +238,7 @@ func TestErrorsLifecycle(t *testing.T) {
 			Priority: 0.5,
 		},
 		TotalTime: 2 * time.Second,
-	})
+	}, nil)
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
 		t.Error(err)
@@ -344,7 +344,7 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	mergeTxnErrors(&he, ers, txnEvent{
 		FinalName: "WebTransaction/Go/hello",
 		Attrs:     attr,
-	})
+	}, nil)
 
 	b.ReportAllocs()
 	b.ResetTimer()
