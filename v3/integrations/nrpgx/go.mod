@@ -10,5 +10,6 @@ require (
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/newrelic/go-agent/v3 v3.3.0
 	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 )
