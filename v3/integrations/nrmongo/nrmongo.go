@@ -36,7 +36,8 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 )
 
@@ -95,6 +96,7 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 	if txn == nil {
 		return
 	}
+	secureAgentEvent := newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
 	host, port := calcHostAndPort(e.ConnectionID)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:    txn.StartSegmentNow(),
@@ -105,6 +107,7 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 		PortPathOrID: port,
 		DatabaseName: e.DatabaseName,
 	}
+	sgmt.SetSecureAgentEvent(secureAgentEvent)
 	m.addSgmt(e, &sgmt)
 }
 
@@ -121,6 +124,9 @@ func (m *mongoMonitor) addSgmt(e *event.CommandStartedEvent, sgmt *newrelic.Data
 }
 
 func (m *mongoMonitor) succeeded(ctx context.Context, e *event.CommandSucceededEvent) {
+	if sgmt := m.getSgmt(e.RequestID); sgmt != nil {
+		newrelic.GetSecurityAgentInterface().SendExitEvent(sgmt.GetSecureAgentEvent(), nil)
+	}
 	m.endSgmtIfExists(e.RequestID)
 	if m.origCommMon != nil && m.origCommMon.Succeeded != nil {
 		m.origCommMon.Succeeded(ctx, e)
@@ -147,6 +153,12 @@ func (m *mongoMonitor) getAndRemoveSgmt(id int64) *newrelic.DatastoreSegment {
 	}
 	return sgmt
 }
+func (m *mongoMonitor) getSgmt(id int64) *newrelic.DatastoreSegment {
+	m.Lock()
+	defer m.Unlock()
+	sgmt := m.segmentMap[id]
+	return sgmt
+}
 
 func calcHostAndPort(connID string) (host string, port string) {
 	// FindStringSubmatch either returns nil or an array of the size # of submatches + 1 (in this case 3)
@@ -156,4 +168,13 @@ func calcHostAndPort(connID string) (host string, port string) {
 		port = addressParts[2]
 	}
 	return
+}
+
+func getJsonQuery(q interface{}) []byte {
+	map_json, err := bson.MarshalExtJSON(q, true, true)
+	if err != nil {
+		return []byte("")
+	} else {
+		return map_json
+	}
 }

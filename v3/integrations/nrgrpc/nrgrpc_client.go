@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -32,12 +32,24 @@ func getURL(method, target string) *url.URL {
 	}
 }
 
+func getDummyRequest(method, target string) (request *http.Request) {
+	request = &http.Request{}
+	request.URL = getURL(method, target)
+	request.Header = http.Header{}
+	return request
+}
+
 // startClientSegment starts an ExternalSegment and adds Distributed Trace
 // headers to the outgoing grpc metadata in the context.
 func startClientSegment(ctx context.Context, method, target string) (*newrelic.ExternalSegment, context.Context) {
 	var seg *newrelic.ExternalSegment
-	if txn := newrelic.FromContext(ctx); nil != txn {
-		seg = newrelic.StartExternalSegment(txn, nil)
+	var req *http.Request
+
+	if txn := newrelic.FromContext(ctx); txn != nil {
+		if newrelic.IsSecurityAgentPresent() {
+			req = getDummyRequest(method, target)
+		}
+		seg = newrelic.StartExternalSegment(txn, req)
 
 		method = strings.TrimPrefix(method, "/")
 		seg.Host = getURL(method, target).Host
@@ -54,6 +66,13 @@ func startClientSegment(ctx context.Context, method, target string) (*newrelic.E
 			for k := range hdrs {
 				if v := hdrs.Get(k); v != "" {
 					md.Set(k, v)
+				}
+			}
+			if newrelic.IsSecurityAgentPresent() {
+				for k := range req.Header {
+					if v := req.Header.Get(k); v != "" {
+						md.Set(k, v)
+					}
 				}
 			}
 			ctx = metadata.NewOutgoingContext(ctx, md)

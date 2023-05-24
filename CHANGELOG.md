@@ -1,3 +1,8 @@
+## 3.22.0-preview.1 (unreleased)
+This is a limited preview of the 3.21.1 Go APM Agent with 
+a new integration package `nrsecurityagent` that enables vulnerability
+testing.
+
 ## 3.21.1
 
 ### Added

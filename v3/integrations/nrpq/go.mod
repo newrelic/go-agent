@@ -9,7 +9,6 @@ require (
 	github.com/lib/pq v1.1.0
 	// v3.3.0 includes the new location of ParseQuery
 	github.com/newrelic/go-agent/v3 v3.3.0
-	google.golang.org/grpc v1.27.0 // indirect
 )
 
 replace github.com/newrelic/go-agent/v3 v3.3.0 => ../../../v3
