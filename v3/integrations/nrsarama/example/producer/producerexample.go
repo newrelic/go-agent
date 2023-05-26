@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	nrkafkaproducer "github.com/newrelic/go-agent/v3/integrations/nrkafka"
+	nrsaramaproducer "github.com/newrelic/go-agent/v3/integrations/nrsarama"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -47,7 +47,7 @@ func main() {
 	// Start new transaction
 	txn := app.StartTransaction("kafkaproducer")
 
-	kw := nrkafkaproducer.NewProducerWrapper(producer, txn)
+	kw := nrsaramaproducer.NewProducerWrapper(producer, txn)
 	topic := "topicName"
 	// Generate and send multiple messages
 	numMessages := 10

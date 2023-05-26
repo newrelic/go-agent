@@ -1,4 +1,4 @@
-package nrkafka
+package nrsarama
 
 import (
 	"context"
@@ -80,7 +80,7 @@ func messageHandler(ctx context.Context, msg *sarama.ConsumerMessage) {
 	log.Printf("received message %v\n", string(msg.Key))
 }
 
-func TestConsumerClaimIngestion(t *testing.T) {
+func TestConsumerHandlerFromApp(t *testing.T) {
 	app := integrationsupport.NewBasicTestApp()
 
 	// Setup sarama config, including session timeout/heartbeat intervals
@@ -101,7 +101,7 @@ func TestConsumerClaimIngestion(t *testing.T) {
 
 	mockSession := new(MockConsumerGroupSession)
 
-	ch := NewConsumerHandler(app.Application, kafkaTopicName, config.ClientID, config, messageHandler)
+	ch := NewConsumerHandlerFromApp(app.Application, kafkaTopicName, config.ClientID, config, messageHandler)
 	ClaimIngestion(ch, mockSession, msg)
 
 	app.ExpectMetrics(t, []internal.WantMetric{
@@ -123,4 +123,50 @@ func TestConsumerClaimIngestion(t *testing.T) {
 		{Name: "Custom/Message/Kafka/Topic/Consume/Named/topicName"},
 		{Name: "OtherTransactionTotalTime"},
 	})
+}
+
+func TestConsumerHandlerFromTxn(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+
+	// Setup sarama config, including session timeout/heartbeat intervals
+	config := sarama.NewConfig()
+	config.ClientID = "CustomClientID"
+	config.Consumer.Group.Session.Timeout = 10 * time.Second
+	config.Consumer.Group.Heartbeat.Interval = 3 * time.Second
+
+	kafkaTopicName := "topicName"
+	keyEncoded := sarama.ByteEncoder("key")
+	encodedValue := sarama.ByteEncoder("value")
+	msg := &sarama.ConsumerMessage{
+		Topic:   "topic",
+		Key:     keyEncoded,
+		Value:   encodedValue,
+		Headers: []*sarama.RecordHeader{},
+	}
+
+	mockSession := new(MockConsumerGroupSession)
+	txn := app.StartTransaction("kafkaconsumer")
+	ch := NewConsumerHandlerFromTxn(txn, kafkaTopicName, config.ClientID, config, messageHandler)
+	ClaimIngestion(ch, mockSession, msg)
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransactionTotalTime/Go/kafkaconsumer"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all"},
+		{Name: "Custom/MessageBroker/Kafka/Topic/Named/topicName/Deserialization/Key", Scope: "OtherTransaction/Go/kafkaconsumer", Forced: false, Data: nil},
+		{Name: "Custom/Message/Kafka/Topic/Consume/Named/topicName/MessageProcessing/", Scope: "OtherTransaction/Go/kafkaconsumer"},
+		{Name: "Custom/MessageBroker/Kafka/Topic/Named/topicName/Deserialization/Value", Scope: "OtherTransaction/Go/kafkaconsumer", Forced: false, Data: nil},
+		{Name: "Custom/Message/Kafka/Topic/Consume/Named/topicName", Scope: "OtherTransaction/Go/kafkaconsumer"},
+		{Name: "OtherTransaction/all"},
+		{Name: "Custom/MessageBroker/Kafka/Heartbeat/Receive"},
+		{Name: "OtherTransaction/Go/kafkaconsumer"},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther"},
+		{Name: "Custom/MessageBroker/Kafka/Topic/Named/topicName/Deserialization/Key"},
+		{Name: "Custom/Message/Kafka/Topic/Named/topicName/Received/Bytes"},
+		{Name: "Custom/MessageBroker/Kafka/Topic/Named/topicName/Deserialization/Value"},
+		{Name: "Custom/Message/Kafka/Topic/Consume/Named/topicName/MessageProcessing/"},
+		{Name: "Custom/Message/Kafka/Topic/Named/topicName/Received/Messages"},
+		{Name: "Custom/Message/Kafka/Topic/Consume/Named/topicName"},
+		{Name: "OtherTransactionTotalTime"},
+	})
+
 }

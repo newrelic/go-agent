@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	nrkafkaconsumer "github.com/newrelic/go-agent/v3/integrations/nrkafka"
+	nrsaramaconsumer "github.com/newrelic/go-agent/v3/integrations/nrsarama"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -54,7 +54,7 @@ func main() {
 	kafkaTopicName := "topicName"
 
 	// Create new kafka consumer handler
-	handler := nrkafkaconsumer.NewConsumerHandler(app, kafkaTopicName, config.ClientID, config, messageHandler)
+	handler := nrsaramaconsumer.NewConsumerHandler(app, kafkaTopicName, config.ClientID, config, messageHandler)
 
 	for {
 		err := consumerGroup.Consume(context.Background(), []string{kafkaTopicName}, handler)

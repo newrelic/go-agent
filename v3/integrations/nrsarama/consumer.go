@@ -1,12 +1,16 @@
-package nrkafka
+package nrsarama
 
 import (
 	"context"
 	"net/http"
 
 	"github.com/Shopify/sarama"
+	"github.com/newrelic/go-agent/v3/internal"
+
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
+
+func init() { internal.TrackUsage("integration", "messagebroker", "saramaconsumer") }
 
 type ConsumerWrapper struct {
 	consumerGroup sarama.ConsumerGroup
@@ -22,9 +26,22 @@ type ConsumerHandler struct {
 }
 
 // NOTE: Creates and ends one transaction per claim consumed
-func NewConsumerHandler(app *newrelic.Application, topic string, clientID string, saramaConfig *sarama.Config, messageHandler func(ctx context.Context, message *sarama.ConsumerMessage)) *ConsumerHandler {
+
+// NewConsumerHandlerFromApp takes in a new relic application and creates a transaction using it
+func NewConsumerHandlerFromApp(app *newrelic.Application, topic string, clientID string, saramaConfig *sarama.Config, messageHandler func(ctx context.Context, message *sarama.ConsumerMessage)) *ConsumerHandler {
 	return &ConsumerHandler{
 		app:            app,
+		topic:          topic,
+		messageHandler: messageHandler,
+		saramaConfig:   saramaConfig,
+		clientID:       clientID,
+	}
+}
+
+// NewConsumerHandlerFromTxn takes in a new relic transaction. No application instance is required
+func NewConsumerHandlerFromTxn(txn *newrelic.Transaction, topic string, clientID string, saramaConfig *sarama.Config, messageHandler func(ctx context.Context, message *sarama.ConsumerMessage)) *ConsumerHandler {
+	return &ConsumerHandler{
+		txn:            txn,
 		topic:          topic,
 		messageHandler: messageHandler,
 		saramaConfig:   saramaConfig,
