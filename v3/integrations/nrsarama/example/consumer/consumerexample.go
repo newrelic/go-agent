@@ -53,9 +53,10 @@ func main() {
 	}
 	kafkaTopicName := "topicName"
 
-	// Create new kafka consumer handler
-	handler := nrsaramaconsumer.NewConsumerHandler(app, kafkaTopicName, config.ClientID, config, messageHandler)
-
+	// Create new kafka consumer handler (using an application instance)
+	// Alternatively, you can create a transaction, use the function NewConsumerHandlerFromTxn, and not have to pass in an app instance at all
+	// If an application instance is passed in, the default transaction name will be "kafkaconsumer"
+	handler := nrsaramaconsumer.NewConsumerHandlerFromApp(app, kafkaTopicName, config.ClientID, config, messageHandler)
 	for {
 		err := consumerGroup.Consume(context.Background(), []string{kafkaTopicName}, handler)
 		if nil != err {
