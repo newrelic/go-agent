@@ -93,7 +93,7 @@ func main() {
 	err = nrsecurityagent.InitSecurityAgent(
 		app,
 		nrsecurityagent.ConfigSecurityMode("IAST"),
-		nrsecurityagent.ConfigSecurityValidatorServiceEndPointUrl("wss://csec-staging.nr-data.net"),
+		nrsecurityagent.ConfigSecurityValidatorServiceEndPointUrl("wss://csec.nr-data.net"),
 		nrsecurityagent.ConfigSecurityEnable(true),
 	)
 	if err != nil {
