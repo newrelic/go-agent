@@ -54,7 +54,7 @@ for dir in $DIRS; do
 
 
   # generate coverprofile
-  go test  ./... -race -coverprofile=coverage.out -covermode=atomic
+  go test  ./... -coverprofile=coverage.out -covermode=count -coverpkg= ./...
   
   # Test again against the latest version of the dependencies to ensure that
   # our instrumentation is up to date.  TODO: Perhaps it is possible to
