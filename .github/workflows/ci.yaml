@@ -168,8 +168,6 @@ jobs:
         PIN: ${{ matrix.pin }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      ignore: 
-        - "v3/newrelic/sql_driver_optional_methods.go"
 
   go-agent-arm64:
     # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
