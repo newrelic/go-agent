@@ -53,7 +53,7 @@ for dir in $DIRS; do
   verify_go_fmt
 
   # generate coverprofile
-  go test -v -coverprofile=coverage.txt ./...
+  go test -v -coverprofile=coverage.txt
 
   
   # Test again against the latest version of the dependencies to ensure that
