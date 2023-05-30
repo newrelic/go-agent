@@ -3,10 +3,13 @@ package nrzap
 import (
 	"errors"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+func init() { internal.TrackUsage("integration", "logcontext-v2", "zap") }
 
 // NewRelicZapCore implements zap.Core
 type NewRelicZapCore struct {
