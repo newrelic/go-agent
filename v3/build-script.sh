@@ -52,9 +52,9 @@ for dir in $DIRS; do
   go vet ./...
   verify_go_fmt
 
-  # generate coverprofile
-  go test -v -coverprofile=coverage.txt
 
+  # generate coverprofile
+  go test  ./... -race -coverprofile=coverage.out -covermode=atomic
   
   # Test again against the latest version of the dependencies to ensure that
   # our instrumentation is up to date.  TODO: Perhaps it is possible to
