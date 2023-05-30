@@ -51,6 +51,10 @@ for dir in $DIRS; do
   go test -race -benchtime=1ms -bench=. ./...
   go vet ./...
   verify_go_fmt
+
+  # generate coverprofile
+  go test -v -coverprofile=coverage.txt ./...
+
   
   # Test again against the latest version of the dependencies to ensure that
   # our instrumentation is up to date.  TODO: Perhaps it is possible to

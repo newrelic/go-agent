@@ -169,6 +169,9 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
+      with:
+          file: ./coverage.txt
+
 
   go-agent-arm64:
     # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
