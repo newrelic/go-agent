@@ -10,7 +10,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func init() { internal.TrackUsage("integration", "messagebroker", "saramaproducer") }
+func init() { internal.TrackUsage("integration", "messagebroker", "saramakafka") }
 
 type ProducerWrapper struct {
 	producer sarama.SyncProducer

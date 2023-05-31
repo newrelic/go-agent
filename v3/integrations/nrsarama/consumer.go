@@ -10,7 +10,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func init() { internal.TrackUsage("integration", "messagebroker", "saramaconsumer") }
+func init() { internal.TrackUsage("integration", "messagebroker", "saramakafka") }
 
 type ConsumerWrapper struct {
 	consumerGroup sarama.ConsumerGroup
@@ -68,9 +68,7 @@ func (ch *ConsumerHandler) Setup(_ sarama.ConsumerGroupSession) error {
 }
 
 // Cleanup is ran at the end of a new session
-func (ch *ConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
-	return nil
-}
+func (ch *ConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 
 func ClaimIngestion(ch *ConsumerHandler, session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) {
 	// if txn exists, make claims segments of that txn otherwise create a new one
