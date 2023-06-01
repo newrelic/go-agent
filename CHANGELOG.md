@@ -1,3 +1,6 @@
+## 3.22.1
+ * Corrects an error in the release process for 3.22.0.
+
 ## 3.22.0
 
  ### Added
