@@ -1,6 +1,12 @@
 ## 3.22.1
  * Corrects an error in the release process for 3.22.0.
 
+### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.22.0
 
  ### Added
