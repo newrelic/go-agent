@@ -1,3 +1,26 @@
+## 3.22.0
+
+ ### Added
+ * New Apache Kafka integration nrsarama that instruments the Sarama library https://github.com/Shopify/sarama
+ * New logs in context integration logcontext-v2/nrzap that instruments the zap logging framework https://github.com/uber-go/zap
+ * Integration tests created for the nrlogrus and nrzapintegrations
+ * Updated integration tests for nrlogxi
+
+ ### Security Fixes
+ * Bumped sys package to v0.1.0 in the nrmssql integration
+ * Bumped net package to v0.7.0 in the nrgrpc, nrmssql , and nrnats integrations
+ * Bumped aws-sdk-go package to v1.34.0 in the nrawssdk-v1 integration
+ * Bumped text  package to v0.3.8 in the nrnats,  and nrpgx integrations
+ * Bumped gin package to v1.9.0 in the nrgin integration
+ * Bumped crypto package to v0.1.0 in the nrpgx  integration
+ * Fixed integration tests in nrnats package not correctly showing code coverage
+
+ ### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.21.1
 
 ### Added
