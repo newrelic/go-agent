@@ -33,7 +33,7 @@ func defaultSecurityConfig() SecurityConfig {
 	return cfg
 }
 
-// InitSecurityAgent initializes the nrsecureagent integration package from user-supplied
+// InitSecurityAgent initializes the nrsecurityagent integration package from user-supplied
 // configuration values.
 func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 	if app == nil {
@@ -62,10 +62,10 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 }
 
 // ConfigOption functions are used to programmatically provide configuration values to the
-// nrsecureagent integration package.
+// nrsecurityagent integration package.
 type ConfigOption func(*SecurityConfig)
 
-// ConfigSecurityFromYaml directs the nrsecureagent integration to read an external
+// ConfigSecurityFromYaml directs the nrsecurityagent integration to read an external
 // YAML-formatted file to obtain its configuration values.
 //
 // The path to this file must be provided by setting the environment variable NEW_RELIC_SECURITY_CONFIG_PATH.
@@ -90,7 +90,7 @@ func ConfigSecurityFromYaml() ConfigOption {
 	}
 }
 
-// ConfigSecurityFromEnvironment directs the nrsecureagent integration to obtain all of its
+// ConfigSecurityFromEnvironment directs the nrsecurityagent integration to obtain all of its
 // configuration information from environment variables:
 //
 //	NEW_RELIC_SECURITY_ENABLED					(boolean)
