@@ -54,8 +54,10 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 		return fmt.Errorf("Newrelic application value cannot be read; did you call newrelic.NewApplication?")
 	}
 
-	secureAgent := securityAgent.InitSecurityAgent(c.Security, appConfig.AppName, appConfig.License, appConfig.Logger.DebugEnabled())
-	app.RegisterSecurityAgent(secureAgent)
+	if !appConfig.HighSecurity {
+		secureAgent := securityAgent.InitSecurityAgent(c.Security, appConfig.AppName, appConfig.License, appConfig.Logger.DebugEnabled())
+		app.RegisterSecurityAgent(secureAgent)
+	}
 	return nil
 }
 
@@ -91,12 +93,11 @@ func ConfigSecurityFromYaml() ConfigOption {
 // ConfigSecurityFromEnvironment directs the nrsecureagent integration to obtain all of its
 // configuration information from environment variables:
 //
-//		NEW_RELIC_SECURITY_ENABLED					(boolean)
-//		NEW_RELIC_SECURITY_VALIDATOR_SERVICE_URL    provides URL for the security validator service
-//		NEW_RELIC_SECURITY_MODE						scanning mode: "IAST" for now
-//		NEW_RELIC_SECURITY_AGENT_ENABLED			(boolean)
-//		NEW_RELIC_SECURITY_DETECTION_RXSS_ENABLED	(boolean)
-//
+//	NEW_RELIC_SECURITY_ENABLED					(boolean)
+//	NEW_RELIC_SECURITY_VALIDATOR_SERVICE_URL    provides URL for the security validator service
+//	NEW_RELIC_SECURITY_MODE						scanning mode: "IAST" for now
+//	NEW_RELIC_SECURITY_AGENT_ENABLED			(boolean)
+//	NEW_RELIC_SECURITY_DETECTION_RXSS_ENABLED	(boolean)
 func ConfigSecurityFromEnvironment() ConfigOption {
 	return func(cfg *SecurityConfig) {
 		assignBool := func(field *bool, name string) {

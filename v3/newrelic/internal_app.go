@@ -290,6 +290,7 @@ func (app *app) process() {
 				app.Error("application disconnected", map[string]interface{}{
 					"app": app.config.AppName,
 				})
+				secureAgent.DeactivateSecurity()
 			} else if resp.IsRestartException() {
 				app.Info("application restarted", map[string]interface{}{
 					"app": app.config.AppName,
