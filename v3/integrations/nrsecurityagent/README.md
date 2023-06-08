@@ -10,7 +10,7 @@ This integration allows you to have the New Relic security agent analyze your ap
 This is not yet publicly released on github, so you will need to add a `replace` statement to your application's `go.mod` file to point the go toolchain to the location where you downloaded and unpacked the preview version of this integration and the agent. At minimum:
 ```
 replace (
-    github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => {YOUR_PATH}/go-agent/v3/integrations/nrsecureagent
+    github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => {YOUR_PATH}/go-agent/v3/integrations/nrsecurityagent
     github.com/newrelic/go-agent/v3 => {YOUR_PATH}/go-agent/v3
     github.com/newrelic/csec-go-agent => {YOUR_PATH}/csec-go-agent
 )
