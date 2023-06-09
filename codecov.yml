@@ -1,2 +1,2 @@
-  ignore: 
-    - "v3/newrelic/sql_driver_optional_methods.go"
+ignore:
+    - "**/sql_driver_optional_methods.go"
