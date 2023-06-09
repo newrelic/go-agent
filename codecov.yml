@@ -1,2 +1,0 @@
-ignore:
-    - "**/sql_driver_optional_methods.go"
