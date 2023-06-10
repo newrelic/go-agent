@@ -49,18 +49,22 @@ NEW_RELIC_SECURITY_CONFIG_PATH={YOUR_PATH}/myappsecurity.yaml
 The YAML file should have these contents (adjust as needed for your application):
 ```
 enabled: true
-    mode: IAST
-  validator_service_url: wss://csec.nr-data.net
-  agent:
+
+ # NR security provides two modes IAST and RASP
+ # Default is IAST
+mode: IAST
+
+ # New Relic’s SaaS connection URLs
+validator_service_url: wss://csec-staging.nr-data.net
+
+ # Following category of security events
+ # can be disabled from generating.
+detection:
+  rxss:
     enabled: true
-  detection:
-    rci:
-      enabled: true
-    rxss:
-      enabled: true
-    deserialization:
-      enabled: true
 ```
+
+**Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false.
 
 ## Instrument security-sensitive areas in your application
 If you are using the `nrgin`, `nrgrpc`, `nrmicro`, and/or `nrmongo` integrations, they now contain code to support security analysis of the data they handle.

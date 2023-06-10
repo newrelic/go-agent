@@ -33,6 +33,17 @@ func defaultSecurityConfig() SecurityConfig {
 	return cfg
 }
 
+// To completely disable security set NEW_RELIC_SECURITY_AGENT_ENABLED env to false.
+// If env is set to false,the security module is not loaded
+func isSecurityAgentEnabled() bool {
+	if env := os.Getenv("NEW_RELIC_SECURITY_AGENT_ENABLED"); env != "" {
+		if b, err := strconv.ParseBool("false"); nil == err {
+			return b
+		}
+	}
+	return true
+}
+
 // InitSecurityAgent initializes the nrsecurityagent integration package from user-supplied
 // configuration values.
 func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
@@ -53,8 +64,7 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 	if !isValid {
 		return fmt.Errorf("Newrelic application value cannot be read; did you call newrelic.NewApplication?")
 	}
-
-	if !appConfig.HighSecurity {
+	if !appConfig.HighSecurity && isSecurityAgentEnabled() {
 		secureAgent := securityAgent.InitSecurityAgent(c.Security, appConfig.AppName, appConfig.License, appConfig.Logger.DebugEnabled())
 		app.RegisterSecurityAgent(secureAgent)
 	}
