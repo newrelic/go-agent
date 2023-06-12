@@ -12,7 +12,6 @@ import (
 	securityAgent "github.com/newrelic/csec-go-agent"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"gopkg.in/yaml.v2"
 )
 
 func init() { internal.TrackUsage("integration", "securityagent") }
@@ -37,7 +36,7 @@ func defaultSecurityConfig() SecurityConfig {
 // If env is set to false,the security module is not loaded
 func isSecurityAgentEnabled() bool {
 	if env := os.Getenv("NEW_RELIC_SECURITY_AGENT_ENABLED"); env != "" {
-		if b, err := strconv.ParseBool("false"); nil == err {
+		if b, err := strconv.ParseBool("false"); err == nil {
 			return b
 		}
 	}
