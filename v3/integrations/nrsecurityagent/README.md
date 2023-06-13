@@ -64,6 +64,9 @@ detection:
     enabled: true
 ```
 
+* Based on additional packages imported by the user application, add suitable instrumentation package imports. 
+  For more information, see https://github.com/newrelic/csec-go-agent#instrumentation-packages
+
 **Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false.
 
 ## Instrument security-sensitive areas in your application
