@@ -12,6 +12,7 @@ import (
 	securityAgent "github.com/newrelic/csec-go-agent"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"gopkg.in/yaml.v2"
 )
 
 func init() { internal.TrackUsage("integration", "securityagent") }
