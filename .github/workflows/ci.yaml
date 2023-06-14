@@ -168,6 +168,8 @@ jobs:
         EXTRATESTING: ${{ matrix.extratesting }}
         PIN: ${{ matrix.pin }}
     - name: Upload coverage to Codecov
+      # Upload codecov report even if some tests fail
+      if: success() || failure()
       uses: codecov/codecov-action@v3
 
   go-agent-arm64:
