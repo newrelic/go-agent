@@ -900,9 +900,9 @@ func TestTrObsOKSendBackoffNo(t *testing.T) {
 	for i := 0; i < 200; i++ {
 		to.consumeSpan(&spanEvent{})
 	}
-	// If the default backoff of 15 seconds is used, the second span will not
+	// If the default backoff of 30 seconds is used, the second span will not
 	// be received in time.
-	if !s.DidSpansArrive(t, 2, 8*time.Second) {
+	if !s.DidSpansArrive(t, 2, 16*time.Second) {
 		t.Error("server did not receive 2 spans")
 	}
 }
