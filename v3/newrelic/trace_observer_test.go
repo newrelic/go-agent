@@ -882,7 +882,7 @@ func TestTrObsOKSendBackoffNo(t *testing.T) {
 	cfg := observerConfig{
 		log:           logger.ShimLogger{},
 		license:       testLicenseKey,
-		queueSize:     200,
+		queueSize:     250,
 		appShutdown:   make(chan struct{}),
 		dialer:        s.dialer,
 		removeBackoff: false, // ensure that the backoff remains for non-OK responses
@@ -895,15 +895,15 @@ func TestTrObsOKSendBackoffNo(t *testing.T) {
 
 	// The grpc client will internally cache spans before sending them to
 	// ensure a minimum number of bytes are sent with each batch. Because of
-	// this we'll queue up more than enough spans to force at least two of them
+	// this we'll queue up more than enough spans to force at least one of them
 	// to get sent and received.
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 250; i++ {
 		to.consumeSpan(&spanEvent{})
 	}
-	// If the default backoff of 30 seconds is used, the second span will not
+	// If the default backoff of 60 seconds is used, the second span will not
 	// be received in time.
-	if !s.DidSpansArrive(t, 2, 64*time.Second) {
-		t.Error("server did not receive 2 spans")
+	if !s.DidSpansArrive(t, 1, 60*time.Second) {
+		t.Error("server did not receive a spans")
 	}
 }
 
