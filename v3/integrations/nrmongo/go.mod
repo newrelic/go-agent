@@ -10,4 +10,3 @@ require (
 	go.mongodb.org/mongo-driver v1.10.2
 )
 
-replace github.com/newrelic/go-agent/v3 v3.22.0 => ../..

@@ -1,6 +1,6 @@
 # v3/integrations/nrsecurityagent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent)
 
-This integration allows you to have the New Relic security agent analyze your application for potentially exploitable vulnerabilities.
+The New Relic security agent analyzes your application for potentially exploitable vulnerabilities.
 
 **DO NOT** use this integration in your production environment. It is intended only for use in your development and testing phases. Since it will attempt to actually find and exploit vulnerabilities in your code, it may cause data loss or crash the application. Therefore it should only be used with test data in a non-production environment that does not connect to any production services.
 
