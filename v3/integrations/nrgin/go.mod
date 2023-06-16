@@ -8,5 +8,3 @@ require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/newrelic/go-agent/v3 v3.22.0
 )
-
-replace github.com/newrelic/go-agent/v3 v3.22.0 => ../..

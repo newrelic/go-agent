@@ -10,5 +10,3 @@ require (
 	// v1.15.0 is the earliest version of grpc using modules.
 	google.golang.org/grpc v1.54.0
 )
-
-replace github.com/newrelic/go-agent/v3 v3.22.0 => ../..
