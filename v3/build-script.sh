@@ -51,7 +51,14 @@ for dir in $DIRS; do
   go test -race -benchtime=1ms -bench=. ./...
   go vet ./...
   verify_go_fmt
-  
+
+
+  # generate coverprofile
+  go test  ./... -coverprofile=coverage.out -covermode=count -coverpkg= ./...
+
+  # Remove sql_driver_optional_methods from coverage.out file if it exists
+  sed -i '/sql_driver_optional_methods/d' coverage.out
+
   # Test again against the latest version of the dependencies to ensure that
   # our instrumentation is up to date.  TODO: Perhaps it is possible to
   # upgrade all go.mod dependencies to latest master with a go command.
