@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrpgx5
 
-go 1.17
+go 1.18
 
 require (
 	github.com/egon12/pgsnap v0.0.0-20221022154027-2847f0124ed8

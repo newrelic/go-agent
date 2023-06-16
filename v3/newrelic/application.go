@@ -17,7 +17,7 @@ type Application struct {
 
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string, opts ...TraceOption) *Transaction {
-	if nil == app {
+	if app == nil {
 		return nil
 	}
 	return app.app.StartTransaction(name, opts...)
@@ -36,10 +36,7 @@ func (app *Application) StartTransaction(name string, opts ...TraceOption) *Tran
 //
 // An error is logged if eventType or params is invalid.
 func (app *Application) RecordCustomEvent(eventType string, params map[string]interface{}) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
+	if app == nil || app.app == nil {
 		return
 	}
 	err := app.app.RecordCustomEvent(eventType, params)
@@ -59,10 +56,7 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-data/collect-custom-metrics
 // for more information on custom events.
 func (app *Application) RecordCustomMetric(name string, value float64) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
+	if app == nil || app.app == nil {
 		return
 	}
 	err := app.app.RecordCustomMetric(name, value)
@@ -83,10 +77,7 @@ func (app *Application) RecordCustomMetric(name string, value float64) {
 // as well as log metrics depending on how your application is
 // configured.
 func (app *Application) RecordLog(logEvent LogData) {
-	if nil == app {
-		return
-	}
-	if nil == app.app {
+	if app == nil || app.app == nil {
 		return
 	}
 	err := app.app.RecordLog(&logEvent)
@@ -115,7 +106,7 @@ func (app *Application) RecordLog(logEvent LogData) {
 // if it wasn't immediately successful, all while allowing your application
 // to proceed with its primary function).
 func (app *Application) WaitForConnection(timeout time.Duration) error {
-	if nil == app {
+	if app == nil || app.app == nil {
 		return nil
 	}
 	return app.app.WaitForConnection(timeout)
@@ -131,12 +122,27 @@ func (app *Application) WaitForConnection(timeout time.Duration) error {
 // If Infinite Tracing is enabled, Shutdown will block until all queued span
 // events have been sent to the Trace Observer or the timeout has been reached.
 func (app *Application) Shutdown(timeout time.Duration) {
-	if nil == app {
+	if app == nil || app.app == nil {
 		return
 	}
 	app.app.Shutdown(timeout)
 }
 
+// Config returns a copy of the application's configuration data in case
+// that information is needed (but since it is a copy, this function cannot
+// be used to alter the application's configuration).
+//
+// If the Config data could be copied from the application successfully,
+// a boolean true value is returned as the second return value.  If it is
+// false, then the Config data returned is the standard default configuration.
+// This usually occurs if the Application is not yet fully initialized.
+//
+func (app *Application) Config() (Config, bool) {
+	if app == nil || app.app == nil {
+		return defaultConfig(), false
+	}
+	return app.app.config.Config, true
+}
 func newApplication(app *app) *Application {
 	return &Application{
 		app:     app,
@@ -157,15 +163,15 @@ func newApplication(app *app) *Application {
 func NewApplication(opts ...ConfigOption) (*Application, error) {
 	c := defaultConfig()
 	for _, fn := range opts {
-		if nil != fn {
+		if fn != nil {
 			fn(&c)
-			if nil != c.Error {
+			if c.Error != nil {
 				return nil, c.Error
 			}
 		}
 	}
 	cfg, err := newInternalConfig(c, os.Getenv, os.Environ())
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return newApplication(newApp(cfg)), nil
