@@ -66,6 +66,7 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 		URL:       url,
 		Method:    method,
 		Transport: newrelic.TransportHTTP,
+		Type:      "gRPC",
 	}
 	txn := app.StartTransaction(method)
 	txn.SetWebRequest(webReq)
@@ -293,7 +294,7 @@ func reportInterceptorStatus(ctx context.Context, txn *newrelic.Transaction, han
 //
 func UnaryServerInterceptor(app *newrelic.Application, options ...HandlerOption) grpc.UnaryServerInterceptor {
 	if app == nil {
-		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 			return handler(ctx, req)
 		}
 	}
@@ -306,8 +307,9 @@ func UnaryServerInterceptor(app *newrelic.Application, options ...HandlerOption)
 		option(localHandlerMap)
 	}
 
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		txn := startTransaction(ctx, app, info.FullMethod)
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req)
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
@@ -325,6 +327,11 @@ type wrappedServerStream struct {
 func (s wrappedServerStream) Context() context.Context {
 	ctx := s.ServerStream.Context()
 	return newrelic.NewContext(ctx, s.txn)
+}
+
+func (s wrappedServerStream) RecvMsg(msg any) error {
+	newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg)
+	return s.ServerStream.RecvMsg(msg)
 }
 
 func newWrappedServerStream(stream grpc.ServerStream, txn *newrelic.Transaction) grpc.ServerStream {
@@ -346,7 +353,7 @@ func newWrappedServerStream(stream grpc.ServerStream, txn *newrelic.Transaction)
 //
 func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption) grpc.StreamServerInterceptor {
 	if app == nil {
-		return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 			return handler(srv, ss)
 		}
 	}
@@ -359,7 +366,7 @@ func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption
 		option(localHandlerMap)
 	}
 
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		txn := startTransaction(ss.Context(), app, info.FullMethod)
 		defer txn.End()
 

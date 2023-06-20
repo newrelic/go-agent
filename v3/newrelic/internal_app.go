@@ -278,6 +278,7 @@ func (app *app) process() {
 
 			close(app.shutdownComplete)
 			app.setObserver(nil)
+			secureAgent.DeactivateSecurity()
 			return
 		case resp := <-app.collectorErrorChan:
 			run = nil
@@ -289,6 +290,7 @@ func (app *app) process() {
 				app.Error("application disconnected", map[string]interface{}{
 					"app": app.config.AppName,
 				})
+				secureAgent.DeactivateSecurity()
 			} else if resp.IsRestartException() {
 				app.Info("application restarted", map[string]interface{}{
 					"app": app.config.AppName,
@@ -321,6 +323,7 @@ func (app *app) process() {
 				"run": run.Reply.RunID.String(),
 			})
 			processConnectMessages(run, app)
+			secureAgent.RefreshState(getLinkedMetaData(app))
 		}
 	}
 }

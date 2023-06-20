@@ -1,6 +1,7 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.10
 // +build go1.10
 
 package newrelic
@@ -8,6 +9,7 @@ package newrelic
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"time"
 )
 
@@ -42,15 +44,26 @@ func InstrumentSQLConnector(connector driver.Connector, bld SQLDriverSegmentBuil
 	return &wrapConnector{original: connector, bld: bld}
 }
 
+func sendSecureEventSQL(query, args any) any {
+	return secureAgent.SendEvent("SQL", query, args)
+}
+func sendSecureEventSQLPrepare(query, obj any) {
+	secureAgent.SendEvent("SQL_PREPARE", query, fmt.Sprintf("%p", obj))
+
+}
+func sendSecureEventSQLPrepareArgs(args, obj any) any {
+	return secureAgent.SendEvent("SQL_PREPARE_ARGS", args, fmt.Sprintf("%p", obj))
+}
+
 func (bld SQLDriverSegmentBuilder) useDSN(dsn string) SQLDriverSegmentBuilder {
-	if f := bld.ParseDSN; nil != f {
+	if f := bld.ParseDSN; f != nil {
 		f(&bld.BaseSegment, dsn)
 	}
 	return bld
 }
 
 func (bld SQLDriverSegmentBuilder) useQuery(query string) SQLDriverSegmentBuilder {
-	if f := bld.ParseQuery; nil != f {
+	if f := bld.ParseQuery; f != nil {
 		f(&bld.BaseSegment, query)
 	}
 	return bld
@@ -111,7 +124,7 @@ func (w *wrapDriver) OpenConnector(name string) (driver.Connector, error) {
 
 func (w *wrapConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	original, err := w.original.Connect(ctx)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return optionalMethodsConn(&wrapConn{
@@ -128,7 +141,7 @@ func (w *wrapConnector) Driver() driver.Driver {
 }
 
 func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query string) (driver.Stmt, error) {
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 	return optionalMethodsStmt(&wrapStmt{
@@ -139,12 +152,14 @@ func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query
 
 func (w *wrapConn) Prepare(query string) (driver.Stmt, error) {
 	original, err := w.original.Prepare(query)
+	sendSecureEventSQLPrepare(query, original)
 	return prepare(original, err, w.bld, query)
 }
 
 // PrepareContext implements ConnPrepareContext.
 func (w *wrapConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	original, err := w.original.(driver.ConnPrepareContext).PrepareContext(ctx, query)
+	sendSecureEventSQLPrepare(query, original)
 	return prepare(original, err, w.bld, query)
 }
 
@@ -163,17 +178,22 @@ func (w *wrapConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.T
 
 // Exec implements Execer.
 func (w *wrapConn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	return w.original.(driver.Execer).Exec(query, args)
+	secureAgentevent := sendSecureEventSQL(query, args)
+	result, err := w.original.(driver.Execer).Exec(query, args)
+	secureAgent.SendExitEvent(secureAgentevent, err)
+	return result, err
 }
 
 // ExecContext implements ExecerContext.
 func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	secureAgentevent := sendSecureEventSQL(query, args)
 	startTime := time.Now()
 	result, err := w.original.(driver.ExecerContext).ExecContext(ctx, query, args)
 	if err != driver.ErrSkip {
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -188,17 +208,22 @@ func (w *wrapConn) Ping(ctx context.Context) error {
 }
 
 func (w *wrapConn) Query(query string, args []driver.Value) (driver.Rows, error) {
-	return w.original.(driver.Queryer).Query(query, args)
+	secureAgentevent := sendSecureEventSQL(query, args)
+	result, err := w.original.(driver.Queryer).Query(query, args)
+	secureAgent.SendExitEvent(secureAgentevent, err)
+	return result, err
 }
 
 // QueryContext implements QueryerContext.
 func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	secureAgentevent := sendSecureEventSQL(query, args)
 	startTime := time.Now()
 	rows, err := w.original.(driver.QueryerContext).QueryContext(ctx, query, args)
 	if err != driver.ErrSkip {
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 
@@ -216,11 +241,17 @@ func (w *wrapStmt) NumInput() int {
 }
 
 func (w *wrapStmt) Exec(args []driver.Value) (driver.Result, error) {
-	return w.original.Exec(args)
+	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
+	result, err := w.original.Exec(args)
+	secureAgent.SendExitEvent(secureAgentevent, err)
+	return result, err
 }
 
 func (w *wrapStmt) Query(args []driver.Value) (driver.Rows, error) {
-	return w.original.Query(args)
+	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+	result, err := w.original.Query(args)
+	secureAgent.SendExitEvent(secureAgentevent, err)
+	return result, err
 }
 
 // ColumnConverter implements ColumnConverter.
@@ -235,17 +266,21 @@ func (w *wrapStmt) CheckNamedValue(v *driver.NamedValue) error {
 
 // ExecContext implements StmtExecContext.
 func (w *wrapStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
 	segment := w.bld.startSegment(ctx)
 	result, err := w.original.(driver.StmtExecContext).ExecContext(ctx, args)
 	segment.End()
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
 // QueryContext implements StmtQueryContext.
 func (w *wrapStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
 	segment := w.bld.startSegment(ctx)
 	rows, err := w.original.(driver.StmtQueryContext).QueryContext(ctx, args)
 	segment.End()
+	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 
