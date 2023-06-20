@@ -80,10 +80,6 @@ func main() {
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigCodeLevelMetricsEnabled(true),
 		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
-		func(config *newrelic.Config) {
-			config.Host = "staging-collector.newrelic.com"
-
-		},
 	)
 	if err != nil {
 		fmt.Println(err)
