@@ -1,5 +1,12 @@
 ## 3.23.0
- * Adds the nrsecurityagent integration for performing Interactive Application Security Testing (IAST) of your application.
+### Added
+ * Adds the `nrsecurityagent` integration for performing Interactive Application Security Testing (IAST) of your application.
+ * This action increments the version numbers of the following integrations:
+   * `nrgin` v1.2.0
+   * `nrgrpc` v1.4.0
+   * `nrmicro` v1.2.0
+   * `nrmongo` v1.2.0
+   * `nrsqlite3` v1.2.0
 
  To learn how to use IAST with the New Relic Go Agent, [check out our documentation](https://docs.newrelic.com/docs/iast/use-iast/).
 
