@@ -4,18 +4,10 @@ The New Relic security agent analyzes your application for potentially exploitab
 
 **DO NOT** use this integration in your production environment. It is intended only for use in your development and testing phases. Since it will attempt to actually find and exploit vulnerabilities in your code, it may cause data loss or crash the application. Therefore it should only be used with test data in a non-production environment that does not connect to any production services.
 
-# Special Note for this Preview Version
-**Please read the following carefully before proceeding.**
 
-This is not yet publicly released on github, so you will need to add a `replace` statement to your application's `go.mod` file to point the go toolchain to the location where you downloaded and unpacked the preview version of this integration and the agent. At minimum:
-```
-replace (
-    github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => {YOUR_PATH}/go-agent/v3/integrations/nrsecurityagent
-    github.com/newrelic/go-agent/v3 => {YOUR_PATH}/go-agent/v3
-    github.com/newrelic/csec-go-agent => {YOUR_PATH}/csec-go-agent
-)
-```
-Additionally, add `replace` lines for each integration you are using so they are taken from the preview version of the agent and not downloaded from the latest public release.
+## Learn More About IAST
+
+ To learn how to use IAST with the New Relic Go Agent, [check out our documentation](https://docs.newrelic.com/docs/iast/use-iast/).
 
 ## Setup Instructions
 
@@ -55,7 +47,7 @@ enabled: true
 mode: IAST
 
  # New Relic’s SaaS connection URLs
-validator_service_url: wss://csec-staging.nr-data.net
+validator_service_url: wss://csec.nr-data.net
 
  # Following category of security events
  # can be disabled from generating.
@@ -67,7 +59,7 @@ detection:
 * Based on additional packages imported by the user application, add suitable instrumentation package imports. 
   For more information, see https://github.com/newrelic/csec-go-agent#instrumentation-packages
 
-**Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false.
+**Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false. (Otherwise, there are some security hooks will already be in place before any of the other configuration settings can be taken into account. This environment variable setting will prevent that from happening.)
 
 ## Instrument security-sensitive areas in your application
 If you are using the `nrgin`, `nrgrpc`, `nrmicro`, and/or `nrmongo` integrations, they now contain code to support security analysis of the data they handle.
@@ -84,4 +76,3 @@ Generate traffic against your application for the IAST agent to detect vulnerabi
 
 For more information, see
 [godocs](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent).
-**(note that link will only be live once this feature is fully released to the public)**

@@ -1,3 +1,15 @@
+## 3.23.0
+ * Adds the nrsecurityagent integration for performing Interactive Application Security Testing (IAST) of your application.
+
+ To learn how to use IAST with the New Relic Go Agent, [check out our documentation](https://docs.newrelic.com/docs/iast/use-iast/).
+
+### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.22.1
  * Corrects an error in the release process for 3.22.0.
 
