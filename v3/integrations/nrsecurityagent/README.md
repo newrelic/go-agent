@@ -59,7 +59,7 @@ detection:
 * Based on additional packages imported by the user application, add suitable instrumentation package imports. 
   For more information, see https://github.com/newrelic/csec-go-agent#instrumentation-packages
 
-**Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false. (Otherwise, there are some security hooks will already be in place before any of the other configuration settings can be taken into account. This environment variable setting will prevent that from happening.)
+**Note**: To completely disable security, set `NEW_RELIC_SECURITY_AGENT_ENABLED` env to false. (Otherwise, there are some security hooks that will already be in place before any of the other configuration settings can be taken into account. This environment variable setting will prevent that from happening.)
 
 ## Instrument security-sensitive areas in your application
 If you are using the `nrgin`, `nrgrpc`, `nrmicro`, and/or `nrmongo` integrations, they now contain code to support security analysis of the data they handle.
