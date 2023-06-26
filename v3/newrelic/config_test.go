@@ -159,6 +159,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
 				"QueryParameters":{"Enabled":true},
+				"RawQuery":{"Enabled":false},
 				"SlowQuery":{
 					"Enabled":true,
 					"Threshold":10000000
@@ -358,6 +359,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
 				"QueryParameters":{"Enabled":true},
+				"RawQuery":{"Enabled":false},
 				"SlowQuery":{
 					"Enabled":true,
 					"Threshold":10000000
