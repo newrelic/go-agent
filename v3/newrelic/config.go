@@ -316,6 +316,10 @@ type Config struct {
 		QueryParameters struct {
 			Enabled bool
 		}
+		RawQuery struct {
+			Enabled bool
+		}
+
 		// SlowQuery controls the capture of slow query traces.  Slow
 		// query traces show you instances of your slowest datastore
 		// segments.
@@ -653,6 +657,7 @@ func defaultConfig() Config {
 	c.DatastoreTracer.QueryParameters.Enabled = true
 	c.DatastoreTracer.SlowQuery.Enabled = true
 	c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
+	c.DatastoreTracer.RawQuery.Enabled = false
 
 	c.ServerlessMode.ApdexThreshold = 500 * time.Millisecond
 	c.ServerlessMode.Enabled = false

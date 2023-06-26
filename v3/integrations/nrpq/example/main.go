@@ -37,6 +37,7 @@ func main() {
 		newrelic.ConfigAppName("PostgreSQL App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigDatastoreRawQuery(true),
 	)
 	if nil != err {
 		panic(err)
