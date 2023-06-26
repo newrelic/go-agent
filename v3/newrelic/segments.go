@@ -67,6 +67,23 @@ type DatastoreSegment struct {
 	// being executed.  This becomes the db.instance attribute on Span events
 	// and Transaction Trace segments.
 	DatabaseName string
+
+	// secureAgentEvent is used when vulnerability scanning is enabled to
+	// record security-related information about the datastore operations.
+	secureAgentEvent any
+}
+
+// SetSecureAgentEvent allows integration packages to set the secureAgentEvent
+// for this datastore segment. That field is otherwise unexported and not available
+// for other manipulation.
+func (ds *DatastoreSegment) SetSecureAgentEvent(event any) {
+	ds.secureAgentEvent = event
+}
+
+// GetSecureAgentEvent retrieves the secureAgentEvent previously stored by
+// a SetSecureAgentEvent method.
+func (ds *DatastoreSegment) GetSecureAgentEvent() any {
+	return ds.secureAgentEvent
 }
 
 // ExternalSegment instruments external calls.  StartExternalSegment is the
@@ -101,6 +118,10 @@ type ExternalSegment struct {
 	// statusCode is the status code for the response.  This value takes
 	// precedence over the status code set on the Response.
 	statusCode *int
+
+	// secureAgentEvent records security information when vulnerability
+	// scanning is enabled.
+	secureAgentEvent any
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -149,6 +170,12 @@ func (s *Segment) End() {
 	if s == nil {
 		return
 	}
+
+	if s.StartTime.thread != nil && s.StartTime.thread.thread != nil && s.StartTime.thread.thread.threadID > 0 {
+		// async thread
+		secureAgent.SendEvent("NEW_GOROUTINE_END", "")
+	}
+
 	if err := endBasic(s); err != nil {
 		s.StartTime.thread.logAPIError(err, "end segment", map[string]interface{}{
 			"name": s.Name,
@@ -208,6 +235,11 @@ func (s *ExternalSegment) End() {
 		}
 		s.StartTime.thread.logAPIError(err, "end external segment", extraDetails)
 	}
+
+	if (s.statusCode != nil && *s.statusCode != 404) || (s.Response != nil && s.Response.StatusCode != 404) {
+		secureAgent.SendExitEvent(s.secureAgentEvent, nil)
+	}
+
 }
 
 // AddAttribute adds a key value pair to the current MessageProducerSegment.
@@ -287,13 +319,14 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 		StartTime: txn.StartSegmentNow(),
 		Request:   request,
 	}
-
+	s.secureAgentEvent = secureAgent.SendEvent("OUTBOUND", request)
 	if request != nil && request.Header != nil {
 		for key, values := range s.outboundHeaders() {
 			for _, value := range values {
 				request.Header.Set(key, value)
 			}
 		}
+		secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
 	}
 
 	return s
