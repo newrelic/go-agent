@@ -25,6 +25,8 @@ jobs:
             dirs: v3/newrelic,v3/internal,v3/examples
 
           # v3 integrations
+          - go-version: 1.19.x
+            dirs: v3/integrations/nrsarama
           - go-version: 1.18.x
             dirs: v3/integrations/logcontext/nrlogrusplugin
             extratesting: go get -u github.com/sirupsen/logrus@master
@@ -70,7 +72,6 @@ jobs:
             dirs: v3/integrations/nrgraphgophers
           - go-version: 1.18.x
             dirs: v3/integrations/nrlogrus
-            extratesting: go get -u github.com/sirupsen/logrus@master
           - go-version: 1.18.x
             dirs: v3/integrations/nrlogxi
             extratesting: go get -u github.com/mgutz/logxi@master
