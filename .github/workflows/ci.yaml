@@ -179,7 +179,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - go-version: 1.17.10
           - go-version: 1.18.6
           - go-version: 1.19.1
     steps:
