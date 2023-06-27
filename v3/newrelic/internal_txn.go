@@ -40,6 +40,10 @@ type txn struct {
 
 	mainThread   tracingThread
 	asyncThreads []*tracingThread
+
+	// csecData is used to propagate HTTP request context in async apps,
+	// when NewGoroutine is called.
+	csecData any
 }
 
 type thread struct {
@@ -870,7 +874,6 @@ func (thd *thread) NewGoroutine() *Transaction {
 	txn := thd.txn
 	txn.Lock()
 	defer txn.Unlock()
-
 	if txn.finished {
 		// If the transaction has finished, return the same thread.
 		return newTransaction(thd)

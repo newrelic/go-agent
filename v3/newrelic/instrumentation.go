@@ -111,6 +111,20 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
+//
+// WrapListen wraps an HTTP endpoint reference passed to functions like http.ListenAndServe,
+// which causes security scanning to be done for that incoming endpoint when vulnerability
+// scanning is enabled. It returns the endpoint string, so you can replace a call like
+//
+//      http.ListenAndServe(":8000", nil)
+// with
+//      http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
+//
+func WrapListen(endpoint string) string {
+	secureAgent.SendEvent("APP_INFO", endpoint)
+	return endpoint
+}
+
 // NewRoundTripper creates an http.RoundTripper to instrument external requests
 // and add distributed tracing headers.  The http.RoundTripper returned creates
 // an external segment before delegating to the original http.RoundTripper
