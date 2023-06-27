@@ -54,7 +54,7 @@ for dir in $DIRS; do
 
 
   # generate coverprofile
-  go test  ./... -coverprofile=coverage.out -covermode=count -coverpkg= ./...
+  go test  ./... -race -coverprofile=coverage.out -covermode=atomic -coverpkg= ./...
 
   # Remove sql_driver_optional_methods from coverage.out file if it exists
   sed -i '/sql_driver_optional_methods/d' coverage.out
