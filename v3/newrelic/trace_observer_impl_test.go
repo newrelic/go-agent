@@ -1,7 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.9
 // +build go1.9
+
 // This build tag is necessary because Infinite Tracing is only supported for Go version 1.9 and up
 
 package newrelic
@@ -211,6 +213,20 @@ func (s *expectServer) DidSpansArrive(t *testing.T, expected int, timeout time.D
 		case <-ticker.C:
 			t.Logf("INFO: Waited for %d spans but received %d\n", expected, rcvd)
 			return false
+		}
+	}
+}
+
+func (s *expectServer) DidSpansArriveNoTimeout(t *testing.T, expected int) bool {
+	t.Helper()
+	var rcvd int
+	for {
+		select {
+		case <-s.spansReceivedChan:
+			rcvd++
+			if rcvd >= expected {
+				return true
+			}
 		}
 	}
 }
