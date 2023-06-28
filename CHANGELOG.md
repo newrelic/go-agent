@@ -1,3 +1,19 @@
+## 3.23.1
+
+## Added
+* Added newrelic.ConfigDatastoreRawQuery(true) configuration option to allow raw SQL queries to appear in new relic dashboards
+* Added license file to nrsecurityagent integration
+* Added enriched serverless debug logging for faster debugging
+
+## Fixed
+* Removed timeouts on two tests in trace_observer_test.go
+* Bumped nrnats test to go1.19
+* Bumped graphql-go to v1.3.0 in the nrgraphgophers integration
+
+We recommend updating to the latest agent version as soon as it's available. If you can't upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.23.0
 ### Added
  * Adds the `nrsecurityagent` integration for performing Interactive Application Security Testing (IAST) of your application.
