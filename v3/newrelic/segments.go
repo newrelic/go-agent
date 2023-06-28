@@ -52,6 +52,9 @@ type DatastoreSegment struct {
 	// ParameterizedQuery may be set to the query being performed.  It must
 	// not contain any raw parameters, only placeholders.
 	ParameterizedQuery string
+	// RawQuery stores the original raw query
+	RawQuery string
+
 	// QueryParameters may be used to provide query parameters.  Care should
 	// be taken to only provide parameters which are not sensitive.
 	// QueryParameters are ignored in high security mode. The keys must contain
@@ -310,7 +313,6 @@ func StartSegment(txn *Transaction, name string) *Segment {
 //
 // Using the same http.Client for all of your external requests?  Check out
 // NewRoundTripper: You may not need to use StartExternalSegment at all!
-//
 func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegment {
 	if nil == txn {
 		txn = transactionFromRequestContext(request)

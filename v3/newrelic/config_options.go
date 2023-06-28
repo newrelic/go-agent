@@ -68,6 +68,14 @@ func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigDatastoreRawQuery replaces a parameterized query in datastores
+// with the full raw query
+func ConfigDatastoreRawQuery(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.DatastoreTracer.RawQuery.Enabled = enabled
+	}
+}
+
 // ConfigCodeLevelMetricsIgnoredPrefix alters the way the Code Level Metrics
 // collection code searches for the right function to report for a given
 // telemetry trace. It will find the innermost function whose name does NOT
