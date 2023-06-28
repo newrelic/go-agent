@@ -111,6 +111,7 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 	if len(harvestPayloads) == 0 {
 		// The harvest may not contain any data if the serverless
 		// transaction was ignored.
+		sh.logger.Debug("go agent serverless harvest contained no payload data", nil)
 		return
 	}
 
@@ -156,5 +157,7 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 		return
 	}
 
+	// log json data to stdout if the agent is in debug mode to help troubleshoot lambda issues
+	sh.logger.Debug("harvest data: " + string(js), nil)
 	fmt.Fprintln(writer, string(js))
 }
