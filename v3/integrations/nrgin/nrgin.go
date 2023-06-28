@@ -144,6 +144,14 @@ func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
 	return middleware(app, false)
 }
 
+func WrapRouter(engine *gin.Engine) {
+	if engine != nil {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method)
+		}
+	}
+}
 func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {

@@ -71,7 +71,6 @@ func WithSkipper(skipper Skipper) ConfigOption {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.MiddlewareWithConfig(nrecho.Config{App: app}))
-//
 func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.HandlerFunc) echo.HandlerFunc {
 	if app == nil {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -128,6 +127,14 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			}
 
 			return
+		}
+	}
+}
+func WrapRouter(engine *echo.Echo) {
+	if engine != nil {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method)
 		}
 	}
 }

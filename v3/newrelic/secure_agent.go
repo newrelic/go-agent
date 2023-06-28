@@ -4,18 +4,15 @@ import (
 	"net/http"
 )
 
-//
 // secureAgent is a global interface point for the nrsecureagent's hooks into the go agent.
 // The default value for this is a noOpSecurityAgent value, which has null definitions for
 // the methods. The Go compiler is expected to optimize away all the securityAgent method
 // calls in this case, effectively removing the hooks from the running agent.
 //
 // If the nrsecureagent integration was initialized, it will register a real securityAgent
-// value in the securityAgent varialble instead, thus "activating" the hooks.
-//
+// value in the securityAgent variable instead, thus "activating" the hooks.
 var secureAgent securityAgent = noOpSecurityAgent{}
 
-//
 // GetSecurityAgentInterface returns the securityAgent value
 // which provides the working interface to the installed
 // security agent (or to a no-op interface if none were
@@ -23,10 +20,9 @@ var secureAgent securityAgent = noOpSecurityAgent{}
 //
 // Packages which need to make calls to secureAgent's methods
 // may obtain the secureAgent value by calling this function.
-// This avoids exposing the variable itself so it's not
+// This avoids exposing the variable itself, so it's not
 // writable externally and also sets up for the future if this
 // ends up not being a global variable later.
-//
 func GetSecurityAgentInterface() securityAgent {
 	return secureAgent
 }
@@ -86,11 +82,9 @@ func (t noOpSecurityAgent) DistributedTraceHeaders(hdrs *http.Request, secureAge
 func (t noOpSecurityAgent) SendExitEvent(secureAgentevent any, err error) {
 }
 
-//
 // IsSecurityAgentPresent returns true if there's an actual security agent hooked in to the
 // Go APM agent, whether or not it's enabled or operating in any particular mode. It returns
 // false only if the hook-in interface for those functions is a No-Op will null functionality.
-//
 func IsSecurityAgentPresent() bool {
 	_, isNoOp := secureAgent.(noOpSecurityAgent)
 	return !isNoOp

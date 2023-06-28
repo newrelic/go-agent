@@ -111,3 +111,22 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 		})
 	}
 }
+func WrapRouter(router *mux.Router) {
+	if router != nil {
+		router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+			path, err1 := route.GetPathTemplate()
+			if err1 != nil {
+				return nil
+			}
+			methods, _ := route.GetMethods()
+			if len(methods) == 0 {
+				newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, "*")
+			} else {
+				for _, method := range methods {
+					newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method)
+				}
+			}
+			return nil
+		})
+	}
+}

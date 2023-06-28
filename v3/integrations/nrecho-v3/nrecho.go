@@ -51,9 +51,7 @@ func transactionName(c echo.Context) string {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
-//
 func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
-
 	if nil == app {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
 			return next
@@ -90,6 +88,15 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 			}
 
 			return
+		}
+	}
+}
+
+func WrapRouter(engine *echo.Echo) {
+	if engine != nil {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method)
 		}
 	}
 }

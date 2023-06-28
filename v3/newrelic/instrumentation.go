@@ -12,11 +12,11 @@ import (
 // WrapHandle instruments http.Handler handlers with Transactions.  To
 // instrument this code:
 //
-//    http.Handle("/foo", myHandler)
+//	http.Handle("/foo", myHandler)
 //
 // Perform this replacement:
 //
-//    http.Handle(newrelic.WrapHandle(app, "/foo", myHandler))
+//	http.Handle(newrelic.WrapHandle(app, "/foo", myHandler))
 //
 // WrapHandle adds the Transaction to the request's context.  Access it using
 // FromContext to add attributes, create segments, or notice errors:
@@ -41,7 +41,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	// (but only if we know we're collecting CLM for this transaction and the user didn't already
 	// specify a different code location explicitly).
 	cache := NewCachedCodeLocation()
-
+	secureAgent.SendEvent("API_END_POINTS", pattern, "*")
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tOptions *traceOptSet
 		var txnOptionList []TraceOption
@@ -111,15 +111,15 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
-//
 // WrapListen wraps an HTTP endpoint reference passed to functions like http.ListenAndServe,
 // which causes security scanning to be done for that incoming endpoint when vulnerability
 // scanning is enabled. It returns the endpoint string, so you can replace a call like
 //
-//      http.ListenAndServe(":8000", nil)
-// with
-//      http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
+//	http.ListenAndServe(":8000", nil)
 //
+// with
+//
+//	http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
 func WrapListen(endpoint string) string {
 	secureAgent.SendEvent("APP_INFO", endpoint)
 	return endpoint
