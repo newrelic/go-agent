@@ -1363,3 +1363,17 @@ func (txn *txn) IsSampled() bool {
 
 	return txn.lazilyCalculateSampled()
 }
+
+func (txn *txn) getCsecData() any {
+	txn.Lock()
+	defer txn.Unlock()
+	return txn.csecData
+}
+
+func (txn *txn) setCsecData() {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.csecData == nil {
+		txn.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
+	}
+}
