@@ -44,6 +44,9 @@ func (app *Application) RegisterSecurityAgent(s securityAgent) {
 	if app != nil && app.app != nil && s != nil {
 		secureAgent = s
 	}
+	if app.app.run != nil {
+		secureAgent.RefreshState(getLinkedMetaData(app.app))
+	}
 }
 
 func getLinkedMetaData(app *app) map[string]string {
