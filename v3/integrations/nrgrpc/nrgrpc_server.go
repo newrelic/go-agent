@@ -43,6 +43,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod string) *newrelic.Transaction {
@@ -309,7 +310,13 @@ func UnaryServerInterceptor(app *newrelic.Application, options ...HandlerOption)
 
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		txn := startTransaction(ctx, app, info.FullMethod)
-		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req)
+
+		message, ok := req.(proto.Message)
+		messageType := ""
+		if ok {
+			messageType = string(message.ProtoReflect().Descriptor().FullName())
+		}
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req, messageType)
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
@@ -330,7 +337,13 @@ func (s wrappedServerStream) Context() context.Context {
 }
 
 func (s wrappedServerStream) RecvMsg(msg any) error {
-	newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg)
+	message, ok := msg.(proto.Message)
+	messageType := ""
+	if ok {
+		messageType = string(message.ProtoReflect().Descriptor().FullName())
+	}
+
+	newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg, messageType)
 	return s.ServerStream.RecvMsg(msg)
 }
 
@@ -369,7 +382,7 @@ func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		txn := startTransaction(ss.Context(), app, info.FullMethod)
 		defer txn.End()
-
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC_INFO", info.IsClientStream, info.IsServerStream)
 		err := handler(srv, newWrappedServerStream(ss, txn))
 		reportInterceptorStatus(ss.Context(), txn, localHandlerMap, err)
 		return err
