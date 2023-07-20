@@ -311,8 +311,11 @@ func UnaryServerInterceptor(app *newrelic.Application, options ...HandlerOption)
 
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		txn := startTransaction(ctx, app, info.FullMethod)
-		messageType := getMessageType(req)
-		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req, messageType)
+
+		if newrelic.IsSecurityAgentPresent() {
+			messageType, version := getMessageType(req)
+			newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req, messageType, version)
+		}
 		defer txn.End()
 
 		ctx = newrelic.NewContext(ctx, txn)
@@ -333,9 +336,10 @@ func (s wrappedServerStream) Context() context.Context {
 }
 
 func (s wrappedServerStream) RecvMsg(msg any) error {
-
-	messageType := getMessageType(msg)
-	newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg, messageType)
+	if newrelic.IsSecurityAgentPresent() {
+		messageType, version := getMessageType(msg)
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg, messageType, version)
+	}
 	return s.ServerStream.RecvMsg(msg)
 }
 
@@ -380,8 +384,9 @@ func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption
 	}
 }
 
-func getMessageType(req any) string {
+func getMessageType(req any) (string, string) {
 	messageType := ""
+	version := "v2"
 	messagev2, ok := req.(protoV2.Message)
 	if ok {
 		messageType = string(messagev2.ProtoReflect().Descriptor().FullName())
@@ -389,8 +394,8 @@ func getMessageType(req any) string {
 		messagev1, ok := req.(protoV1.Message)
 		if ok {
 			messageType = string(protoV1.MessageReflect(messagev1).Descriptor().FullName())
-			return messageType
+			version = "v1"
 		}
 	}
-	return messageType
+	return messageType, version
 }
