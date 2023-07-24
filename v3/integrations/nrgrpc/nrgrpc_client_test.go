@@ -619,6 +619,6 @@ func TestClientSecurityAgentEnabled(t *testing.T) {
 		nrsecurityagent.ConfigSecurityEnable(true),
 	)
 	if err != nil {
-		t.Fatal("Could not setup the nrsecurityagent")
+		t.Fatal("Could not setup the nrsecurityagent", err)
 	}
 }
