@@ -155,6 +155,106 @@ func TestWithCustomStatusHandler(t *testing.T) {
 	Configure(WithStatusHandler(codes.OK, OKInterceptorStatusHandler))
 }
 
+func TestWithInfoStatusHandler(t *testing.T) {
+	app := testApp()
+	Configure(WithStatusHandler(codes.OK, InfoInterceptorStatusHandler))
+
+	s, conn := newTestServerAndConn(t, app.Application)
+	defer s.Stop()
+	defer conn.Close()
+
+	client := testapp.NewTestApplicationClient(conn)
+	txn := app.StartTransaction("client")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	_, err := client.DoUnaryUnary(ctx, &testapp.Message{})
+	if err != nil {
+		t.Fatal("unable to call client DoUnaryUnary", err)
+	}
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
+		{Name: "Custom/DoUnaryUnary", Scope: "WebTransaction/Go/TestApplication/DoUnaryUnary", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Supportability/TraceContext/Accept/Success", Scope: "", Forced: true, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/all", Scope: "", Forced: false, Data: nil},
+		{Name: "TransportDuration/App/123/456/HTTP/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/TestApplication/DoUnaryUnary", Scope: "", Forced: false, Data: nil},
+	})
+	app.ExpectTxnEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"guid":                     internal.MatchAnything,
+			"name":                     "WebTransaction/Go/TestApplication/DoUnaryUnary",
+			"nr.apdexPerfZone":         internal.MatchAnything,
+			"parent.account":           123,
+			"parent.app":               456,
+			"parent.transportDuration": internal.MatchAnything,
+			"parent.transportType":     "HTTP",
+			"parent.type":              "App",
+			"parentId":                 internal.MatchAnything,
+			"parentSpanId":             internal.MatchAnything,
+			"priority":                 internal.MatchAnything,
+			"sampled":                  internal.MatchAnything,
+			"traceId":                  internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{
+			"grpcStatusLevel":   "info",
+			"grpcStatusCode":    "OK",
+			"grpcStatusMessage": internal.MatchAnything,
+		},
+		AgentAttributes: map[string]interface{}{
+			"httpResponseCode":            0,
+			"http.statusCode":             0,
+			"request.headers.contentType": "application/grpc",
+			"request.method":              "TestApplication/DoUnaryUnary",
+			"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
+		},
+	}})
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"category": "generic",
+				"name":     "Custom/DoUnaryUnary",
+				"parentId": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"category":         "generic",
+				"name":             "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"transaction.name": "WebTransaction/Go/TestApplication/DoUnaryUnary",
+				"nr.entryPoint":    true,
+				"parentId":         internal.MatchAnything,
+				"trustedParentId":  internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"grpcStatusLevel": "info",
+				"grpcStatusCode":  "OK",
+			},
+			AgentAttributes: map[string]interface{}{
+				"httpResponseCode":            0,
+				"http.statusCode":             0,
+				"parent.account":              "123",
+				"parent.app":                  "456",
+				"parent.transportDuration":    internal.MatchAnything,
+				"parent.transportType":        "HTTP",
+				"parent.type":                 "App",
+				"request.headers.contentType": "application/grpc",
+				"request.method":              "TestApplication/DoUnaryUnary",
+				"request.uri":                 "grpc://bufnet/TestApplication/DoUnaryUnary",
+			},
+		},
+	})
+	Configure(WithStatusHandler(codes.OK, OKInterceptorStatusHandler))
+}
 func TestUnaryServerInterceptor(t *testing.T) {
 	app := testApp()
 
