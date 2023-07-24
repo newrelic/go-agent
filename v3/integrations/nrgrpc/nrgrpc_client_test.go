@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
+	"github.com/newrelic/go-agent/v3/integrations/nrsecurityagent"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -608,4 +609,16 @@ func TestClientStreamingError(t *testing.T) {
 			}},
 		},
 	}})
+}
+
+func TestClientSecurityAgentEnabled(t *testing.T) {
+	app := testApp()
+	err := nrsecurityagent.InitSecurityAgent(app.Application,
+		nrsecurityagent.ConfigSecurityMode("IAST"),
+		nrsecurityagent.ConfigSecurityValidatorServiceEndPointUrl("wss://csec.nr-data.net"),
+		nrsecurityagent.ConfigSecurityEnable(true),
+	)
+	if err != nil {
+		t.Fatal("Could not setup the nrsecurityagent")
+	}
 }
