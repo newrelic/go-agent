@@ -31,6 +31,9 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	if e.SpanID != "" {
 		w.stringField("spanId", e.SpanID)
 	}
+	if e.Expect {
+		w.stringField("error.expected", "true")
+	}
 
 	sharedTransactionIntrinsics(&e.txnEvent, &w)
 	sharedBetterCATIntrinsics(&e.txnEvent, &w)
