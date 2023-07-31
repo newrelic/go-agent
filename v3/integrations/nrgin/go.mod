@@ -5,7 +5,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrgin
 go 1.19
 
 require (
-	github.com/gin-gonic/gin v1.9.0
+	github.com/gin-gonic/gin v1.9.1
 	github.com/newrelic/go-agent/v3 v3.23.0
 )
 
