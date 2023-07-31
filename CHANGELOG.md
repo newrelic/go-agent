@@ -1,3 +1,28 @@
+## 3.24.0
+
+### Added
+* Turned Code Level Metrics on by default
+* Added new test case to check if the nrsecurityagent is enabled in the gRPC integration
+* Added new test case for InfoInterceptorStatusHandler function in the gRPC integration
+* Added Name() method for Transaction values to get the current transaction name.
+
+
+### Fixed
+* Bumped gin from 1.9.0 to 1.9.1
+* Bumped gosnowflake from 1.6.16 to 1.6.19
+* Bumped nrsecurityagent to 1.1.0 with improved reporting of gRPC protocol versions.
+* Fixed a bug where expected errors weren't being properly marked as expected on new relic dashboards
+
+### Support statement
+
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+
+We recommend updating to the latest agent version as soon as it's available. If you can't upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+
 ## 3.23.1
 
 ## Added
