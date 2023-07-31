@@ -377,7 +377,9 @@ func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		txn := startTransaction(ss.Context(), app, info.FullMethod)
 		defer txn.End()
-		newrelic.GetSecurityAgentInterface().SendEvent("GRPC_INFO", info.IsClientStream, info.IsServerStream)
+		if newrelic.IsSecurityAgentPresent() {
+			newrelic.GetSecurityAgentInterface().SendEvent("GRPC_INFO", info.IsClientStream, info.IsServerStream)
+		}
 		err := handler(srv, newWrappedServerStream(ss, txn))
 		reportInterceptorStatus(ss.Context(), txn, localHandlerMap, err)
 		return err
