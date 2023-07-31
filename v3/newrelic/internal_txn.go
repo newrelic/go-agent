@@ -771,6 +771,12 @@ func (txn *txn) SetName(name string) error {
 	return nil
 }
 
+func (txn *txn) GetName() string {
+	txn.Lock()
+	defer txn.Unlock()
+	return txn.Name
+}
+
 func (txn *txn) Ignore() error {
 	txn.Lock()
 	defer txn.Unlock()
@@ -1362,4 +1368,18 @@ func (txn *txn) IsSampled() bool {
 	}
 
 	return txn.lazilyCalculateSampled()
+}
+
+func (txn *txn) getCsecData() any {
+	txn.Lock()
+	defer txn.Unlock()
+	return txn.csecData
+}
+
+func (txn *txn) setCsecData() {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.csecData == nil {
+		txn.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
+	}
 }

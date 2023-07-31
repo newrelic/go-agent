@@ -75,6 +75,19 @@ func (txn *Transaction) SetName(name string) {
 	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
 }
 
+// Name returns the name currently set for the transaction, as, e.g. by a call to SetName.
+// If unable to do so (such as due to a nil transaction pointer), the empty string is returned.
+func (txn *Transaction) Name() string {
+	// This is called Name rather than GetName to be consistent with the prevailing naming
+	// conventions for the Go language, even though the underlying internal call must be called
+	// something else (like GetName) because there's already a Name struct member.
+
+	if txn == nil || txn.thread == nil {
+		return ""
+	}
+	return txn.thread.GetName()
+}
+
 // NoticeError records an error.  The Transaction saves the first five
 // errors.  For more control over the recorded error fields, see the
 // newrelic.Error type.
@@ -312,9 +325,9 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	if txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
+	if IsSecurityAgentPresent() && txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
 		// async segment start
-		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.csecData)
+		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
 	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
@@ -498,8 +511,8 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 		return nil
 	}
 	newTxn := txn.thread.NewGoroutine()
-	if newTxn.thread != nil && newTxn.thread.csecData == nil {
-		newTxn.thread.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
+	if IsSecurityAgentPresent() && newTxn.thread != nil {
+		newTxn.thread.setCsecData()
 	}
 	return newTxn
 }

@@ -55,6 +55,7 @@ func BenchmarkTraceSegmentWithDefer(b *testing.B) {
 		ConfigAppName("my app"),
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil != err {
 		b.Fatal(err)
@@ -75,6 +76,7 @@ func BenchmarkTraceSegmentNoDefer(b *testing.B) {
 		ConfigAppName("my app"),
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil != err {
 		b.Fatal(err)
@@ -96,6 +98,7 @@ func BenchmarkTraceSegmentZeroSegmentThreshold(b *testing.B) {
 		ConfigAppName("my app"),
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 		func(cfg *Config) {
 			cfg.TransactionTracer.Segments.Threshold = 0
 		},
@@ -120,6 +123,7 @@ func BenchmarkDatastoreSegment(b *testing.B) {
 		ConfigAppName("my app"),
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil != err {
 		b.Fatal(err)
@@ -146,6 +150,7 @@ func BenchmarkExternalSegment(b *testing.B) {
 		ConfigAppName("my app"),
 		ConfigLicense(sampleLicense),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil != err {
 		b.Fatal(err)
