@@ -284,6 +284,10 @@ func TestStatusCodes(t *testing.T) {
 			"request.method":               "GET",
 			"request.uri":                  "/err",
 			"response.headers.contentType": "text/plain; charset=utf-8",
+			"code.function":                internal.MatchAnything,
+			"code.namespace":               internal.MatchAnything,
+			"code.filepath":                internal.MatchAnything,
+			"code.lineno":                  internal.MatchAnything,
 		},
 	}})
 }
@@ -338,6 +342,10 @@ func TestNoResponseBody(t *testing.T) {
 			"http.statusCode":  expectCode,
 			"request.method":   "GET",
 			"request.uri":      "/nobody",
+			"code.function":    internal.MatchAnything,
+			"code.namespace":   internal.MatchAnything,
+			"code.filepath":    internal.MatchAnything,
+			"code.lineno":      internal.MatchAnything,
 		},
 	}})
 }
