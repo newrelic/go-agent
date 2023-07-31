@@ -95,6 +95,7 @@ func newTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) exp
 		},
 		ConfigAppName(sampleAppName),
 		ConfigLicense(testLicenseKey),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 
 	app, err := NewApplication(cfgFn...)
