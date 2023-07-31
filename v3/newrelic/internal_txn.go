@@ -771,6 +771,12 @@ func (txn *txn) SetName(name string) error {
 	return nil
 }
 
+func (txn *txn) GetName() string {
+	txn.Lock()
+	defer txn.Unlock()
+	return txn.Name
+}
+
 func (txn *txn) Ignore() error {
 	txn.Lock()
 	defer txn.Unlock()
