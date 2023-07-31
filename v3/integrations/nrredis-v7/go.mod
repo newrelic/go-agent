@@ -6,5 +6,5 @@ go 1.11
 
 require (
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
-	github.com/newrelic/go-agent/v3 v3.17.0
+	github.com/newrelic/go-agent/v3 v3.24.0
 )
