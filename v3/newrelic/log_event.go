@@ -193,25 +193,16 @@ func (md *linkingMetadata) appendLinkingMetadata(buf *bytes.Buffer) {
 	addDynamicSpacing(buf)
 
 	buf.WriteString("NR-LINKING|")
-	if md.traceID != "" && md.spanID != "" {
-		buf.WriteString(md.entityGUID)
-		buf.WriteByte('|')
-		buf.WriteString(md.hostname)
-		buf.WriteByte('|')
-		buf.WriteString(md.traceID)
-		buf.WriteByte('|')
-		buf.WriteString(md.spanID)
-		buf.WriteByte('|')
-		buf.WriteString(md.entityName)
-		buf.WriteByte('|')
-	} else {
-		buf.WriteString(md.entityGUID)
-		buf.WriteByte('|')
-		buf.WriteString(md.hostname)
-		buf.WriteByte('|')
-		buf.WriteString(md.entityName)
-		buf.WriteByte('|')
-	}
+	buf.WriteString(md.entityGUID)
+	buf.WriteByte('|')
+	buf.WriteString(md.hostname)
+	buf.WriteByte('|')
+	buf.WriteString(md.traceID)
+	buf.WriteByte('|')
+	buf.WriteString(md.spanID)
+	buf.WriteByte('|')
+	buf.WriteString(md.entityName)
+	buf.WriteByte('|')
 }
 
 func addDynamicSpacing(buf *bytes.Buffer) {
