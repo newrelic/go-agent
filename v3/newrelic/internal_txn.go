@@ -1379,7 +1379,7 @@ func (txn *txn) getCsecData() any {
 func (txn *txn) setCsecData() {
 	txn.Lock()
 	defer txn.Unlock()
-	if txn.csecData == nil {
+	if txn.csecData == nil && IsSecurityAgentPresent() {
 		txn.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
 	}
 }

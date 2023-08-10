@@ -121,7 +121,9 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 //      http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
 //
 func WrapListen(endpoint string) string {
-	secureAgent.SendEvent("APP_INFO", endpoint)
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("APP_INFO", endpoint)
+	}
 	return endpoint
 }
 

@@ -12,10 +12,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func TestBasicRoute(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -61,7 +62,7 @@ func TestBasicRoute(t *testing.T) {
 }
 
 func TestSkipper(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	skipper := func(c echo.Context) bool {
@@ -144,7 +145,7 @@ func TestNilApp(t *testing.T) {
 }
 
 func TestTransactionContext(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -174,7 +175,7 @@ func TestTransactionContext(t *testing.T) {
 }
 
 func TestNotFoundHandler(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -194,7 +195,7 @@ func TestNotFoundHandler(t *testing.T) {
 }
 
 func TestMethodNotAllowedHandler(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -219,7 +220,7 @@ func TestMethodNotAllowedHandler(t *testing.T) {
 }
 
 func TestReturnsHTTPError(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -261,7 +262,7 @@ func TestReturnsHTTPError(t *testing.T) {
 }
 
 func TestReturnsError(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))
@@ -303,7 +304,7 @@ func TestReturnsError(t *testing.T) {
 }
 
 func TestResponseCode(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 
 	e := echo.New()
 	e.Use(Middleware(app.Application))

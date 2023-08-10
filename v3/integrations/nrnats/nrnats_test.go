@@ -4,15 +4,16 @@
 package nrnats
 
 import (
+	"os"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/nats-io/nats-server/test"
 	nats "github.com/nats-io/nats.go"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
-	"os"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 }
 
 func testApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.ConfigFullTraces, cfgFn)
+	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.ConfigFullTraces, cfgFn, newrelic.ConfigCodeLevelMetricsEnabled(false))
 }
 
 var cfgFn = func(cfg *newrelic.Config) {
