@@ -39,7 +39,7 @@ func (txn *Transaction) End() {
 		// not any nested call!
 		r = recover()
 	}
-	if txn.thread.IsWeb {
+	if txn.thread.IsWeb && IsSecurityAgentPresent() {
 		secureAgent.SendEvent("INBOUND_END", "")
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
@@ -271,7 +271,9 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if txn == nil || txn.thread == nil {
 		return
 	}
-	secureAgent.SendEvent("INBOUND", r)
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("INBOUND", r)
+	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
 
