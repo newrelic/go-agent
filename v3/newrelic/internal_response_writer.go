@@ -30,7 +30,9 @@ func (rw *replacementResponseWriter) Write(b []byte) (n int, err error) {
 
 	headersJustWritten(rw.thd, http.StatusOK, hdr)
 
-	secureAgent.SendEvent("INBOUND_WRITE", string(b), hdr)
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("INBOUND_WRITE", string(b), hdr)
+	}
 	return
 }
 
