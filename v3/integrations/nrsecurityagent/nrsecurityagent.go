@@ -37,7 +37,7 @@ func defaultSecurityConfig() SecurityConfig {
 // If env is set to false,the security module is not loaded
 func isSecurityAgentEnabled() bool {
 	if env := os.Getenv("NEW_RELIC_SECURITY_AGENT_ENABLED"); env != "" {
-		if b, err := strconv.ParseBool("false"); err == nil {
+		if b, err := strconv.ParseBool(env); err == nil {
 			return b
 		}
 	}
