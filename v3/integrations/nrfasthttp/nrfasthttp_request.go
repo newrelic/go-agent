@@ -45,7 +45,7 @@ func NRHandler(app *newrelic.Application, original fasthttp.RequestHandler) fast
 		original(ctx)
 		// Set Web Response
 		seg := txn.StartSegment("fasthttp-set-response")
-		resp := fasthttpWrapperResponse{ctx: ctx, txn: txn}
+		resp := fasthttpWrapperResponse{ctx: ctx}
 		txn.SetWebResponse(resp)
 		seg.End()
 	}
