@@ -352,6 +352,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if txn == nil || txn.thread == nil {
 		return
 	}
+
 	txn.thread.CreateDistributedTracePayload(hdrs)
 }
 
@@ -587,6 +588,11 @@ func (tt TransportType) toString() string {
 		return string(TransportUnknown)
 	}
 }
+
+const (
+	RabbitMQMessageBrokerLibrary = "RabbitMQ"
+	ExchangeDestinationType      = "Exchange"
+)
 
 // WebRequest is used to provide request information to Transaction.SetWebRequest.
 type WebRequest struct {
