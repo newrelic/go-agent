@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/valyala/fasthttp"
 )
 
 func myErrorHandler(w http.ResponseWriter, req *http.Request) {
@@ -16,6 +17,37 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 	// Ensure that the transaction is added to the request's context.
 	txn := FromContext(req.Context())
 	txn.NoticeError(myError{})
+}
+
+func TestWrapHandleFastHTTPFunc(t *testing.T) {
+	app := testApp(nil, ConfigDistributedTracerEnabled(true), t)
+
+	// Define your handler
+	handler := func(ctx *fasthttp.RequestCtx) {
+		ctx.WriteString("Hello World")
+	}
+
+	_, wrappedHandler := WrapHandleFuncFastHTTP(app.Application, "/hello", handler)
+
+	if wrappedHandler == nil {
+		t.Error("Error when creating a wrapped handler")
+	}
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.Header.SetMethod("GET")
+	ctx.Request.SetRequestURI("/hello")
+	wrappedHandler(ctx)
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
+		{Name: "WebTransactionTotalTime/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
+		{Name: "Apdex/Go/GET /hello", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+	})
 }
 
 func TestWrapHandleFunc(t *testing.T) {
