@@ -19,15 +19,16 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 	txn.NoticeError(myError{})
 }
 
+func myErrorHandlerFastHTTP(ctx *fasthttp.RequestCtx) {
+	ctx.WriteString("noticing an error")
+	txn := ctx.UserValue("transaction").(*Transaction)
+	txn.NoticeError(myError{})
+}
+
 func TestWrapHandleFastHTTPFunc(t *testing.T) {
 	app := testApp(nil, ConfigDistributedTracerEnabled(true), t)
 
-	// Define your handler
-	handler := func(ctx *fasthttp.RequestCtx) {
-		ctx.WriteString("Hello World")
-	}
-
-	_, wrappedHandler := WrapHandleFuncFastHTTP(app.Application, "/hello", handler)
+	_, wrappedHandler := WrapHandleFuncFastHTTP(app.Application, "/hello", myErrorHandlerFastHTTP)
 
 	if wrappedHandler == nil {
 		t.Error("Error when creating a wrapped handler")
@@ -36,6 +37,11 @@ func TestWrapHandleFastHTTPFunc(t *testing.T) {
 	ctx.Request.Header.SetMethod("GET")
 	ctx.Request.SetRequestURI("/hello")
 	wrappedHandler(ctx)
+	app.ExpectErrors(t, []internal.WantError{{
+		TxnName: "WebTransaction/Go/GET /hello",
+		Msg:     "my msg",
+		Klass:   "newrelic.myError",
+	}})
 
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: nil},
@@ -47,6 +53,11 @@ func TestWrapHandleFastHTTPFunc(t *testing.T) {
 		{Name: "Apdex/Go/GET /hello", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
+		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: singleCount},
+		{Name: "Errors/WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: singleCount},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
 	})
 }
 
