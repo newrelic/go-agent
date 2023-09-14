@@ -89,6 +89,8 @@ func NewCommandMonitor(original *event.CommandMonitor) *event.CommandMonitor {
 }
 
 func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent) {
+	var secureAgentEvent any
+
 	if m.origCommMon != nil && m.origCommMon.Started != nil {
 		m.origCommMon.Started(ctx, e)
 	}
@@ -96,7 +98,10 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 	if txn == nil {
 		return
 	}
-	secureAgentEvent := newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
+	if newrelic.IsSecurityAgentPresent() {
+		secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
+	}
+
 	host, port := calcHostAndPort(e.ConnectionID)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:    txn.StartSegmentNow(),
@@ -107,7 +112,9 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 		PortPathOrID: port,
 		DatabaseName: e.DatabaseName,
 	}
-	sgmt.SetSecureAgentEvent(secureAgentEvent)
+	if newrelic.IsSecurityAgentPresent() {
+		sgmt.SetSecureAgentEvent(secureAgentEvent)
+	}
 	m.addSgmt(e, &sgmt)
 }
 
@@ -124,9 +131,10 @@ func (m *mongoMonitor) addSgmt(e *event.CommandStartedEvent, sgmt *newrelic.Data
 }
 
 func (m *mongoMonitor) succeeded(ctx context.Context, e *event.CommandSucceededEvent) {
-	if sgmt := m.getSgmt(e.RequestID); sgmt != nil {
+	if sgmt := m.getSgmt(e.RequestID); sgmt != nil && newrelic.IsSecurityAgentPresent() {
 		newrelic.GetSecurityAgentInterface().SendExitEvent(sgmt.GetSecureAgentEvent(), nil)
 	}
+
 	m.endSgmtIfExists(e.RequestID)
 	if m.origCommMon != nil && m.origCommMon.Succeeded != nil {
 		m.origCommMon.Succeeded(ctx, e)

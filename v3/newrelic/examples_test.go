@@ -22,6 +22,7 @@ func Example() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example Application"),
 		newrelic.ConfigLicense("__YOUR_NEW_RELIC_LICENSE_KEY__"),
+		newrelic.ConfigCodeLevelMetricsEnabled(false),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
 	if nil != err {

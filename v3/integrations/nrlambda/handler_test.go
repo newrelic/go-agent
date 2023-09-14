@@ -26,7 +26,7 @@ func testApp(getenv func(string) string, t *testing.T) *newrelic.Application {
 	}
 	cfg := newConfigInternal(getenv)
 
-	app, err := newrelic.NewApplication(cfg)
+	app, err := newrelic.NewApplication(cfg, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	if nil != err {
 		t.Fatal(err)
 	}
