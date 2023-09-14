@@ -348,14 +348,20 @@ func StartExternalSegmentFastHTTP(txn *Transaction, ctx *fasthttp.RequestCtx) *E
 		StartTime: txn.StartSegmentNow(),
 		Request:   request,
 	}
-	s.secureAgentEvent = secureAgent.SendEvent("OUTBOUND", request)
+	if IsSecurityAgentPresent() {
+		s.secureAgentEvent = secureAgent.SendEvent("OUTBOUND", request)
+	}
+
 	if request != nil && request.Header != nil {
 		for key, values := range s.outboundHeaders() {
 			for _, value := range values {
 				request.Header.Set(key, value)
 			}
 		}
-		secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
+
+		if IsSecurityAgentPresent() {
+			secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
+		}
 	}
 
 	return s

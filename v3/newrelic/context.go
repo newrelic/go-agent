@@ -60,5 +60,9 @@ func transactionFromRequestContextFastHTTP(ctx *fasthttp.RequestCtx) *Transactio
 		txn := ctx.UserValue("transaction").(*Transaction)
 		return txn
 	}
-	return txn
+
+	if txn != nil {
+		return txn
+	}
+	return nil
 }
