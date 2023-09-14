@@ -5,18 +5,41 @@ package newrelic
 
 import (
 	"net/http"
+
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
+
+type fasthttpWrapperResponse struct {
+	ctx *fasthttp.RequestCtx
+}
+
+func (rw fasthttpWrapperResponse) Header() http.Header {
+	hdrs := http.Header{}
+	rw.ctx.Request.Header.VisitAll(func(key, value []byte) {
+		hdrs.Add(string(key), string(value))
+	})
+	return hdrs
+}
+
+func (rw fasthttpWrapperResponse) Write(b []byte) (int, error) {
+	return rw.ctx.Write(b)
+}
+
+func (rw fasthttpWrapperResponse) WriteHeader(code int) {
+	rw.ctx.SetStatusCode(code)
+}
 
 // instrumentation.go contains helpers built on the lower level api.
 
 // WrapHandle instruments http.Handler handlers with Transactions.  To
 // instrument this code:
 //
-//    http.Handle("/foo", myHandler)
+//	http.Handle("/foo", myHandler)
 //
 // Perform this replacement:
 //
-//    http.Handle(newrelic.WrapHandle(app, "/foo", myHandler))
+//	http.Handle(newrelic.WrapHandle(app, "/foo", myHandler))
 //
 // WrapHandle adds the Transaction to the request's context.  Access it using
 // FromContext to add attributes, create segments, or notice errors:
@@ -76,6 +99,56 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	})
 }
 
+func WrapHandleFastHTTP(app *Application, pattern string, handler fasthttp.RequestHandler, options ...TraceOption) (string, fasthttp.RequestHandler) {
+	if app == nil {
+		return pattern, handler
+	}
+
+	// add the wrapped function to the trace options as the source code reference point
+	// (but only if we know we're collecting CLM for this transaction and the user didn't already
+	// specify a different code location explicitly).
+	cache := NewCachedCodeLocation()
+
+	return pattern, func(ctx *fasthttp.RequestCtx) {
+		var tOptions *traceOptSet
+		var txnOptionList []TraceOption
+
+		if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
+			tOptions = resolveCLMTraceOptions(options)
+			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+				// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
+				if tOptions.LocationOverride == nil {
+					if loc, err := cache.FunctionLocation(handler); err == nil {
+						WithCodeLocation(loc)(tOptions)
+					}
+				}
+			}
+		}
+		if tOptions == nil {
+			// we weren't able to curate the options above, so pass whatever we were given downstream
+			txnOptionList = options
+		} else {
+			txnOptionList = append(txnOptionList, withPreparedOptions(tOptions))
+		}
+
+		method := string(ctx.Method())
+		path := string(ctx.Path())
+		txn := app.StartTransaction(method+" "+path, txnOptionList...)
+		ctx.SetUserValue("transaction", txn)
+		defer txn.End()
+		r := &http.Request{}
+		fasthttpadaptor.ConvertRequest(ctx, r, true)
+		resp := fasthttpWrapperResponse{ctx: ctx}
+
+		txn.SetWebResponse(resp)
+		txn.SetWebRequestHTTP(r)
+
+		r = RequestWithTransactionContext(r, txn)
+
+		handler(ctx)
+	}
+}
+
 // WrapHandleFunc instruments handler functions using Transactions.  To
 // instrument this code:
 //
@@ -111,15 +184,23 @@ func WrapHandleFunc(app *Application, pattern string, handler func(http.Response
 	return p, func(w http.ResponseWriter, r *http.Request) { h.ServeHTTP(w, r) }
 }
 
-//
+func WrapHandleFuncFastHTTP(app *Application, pattern string, handler func(*fasthttp.RequestCtx), options ...TraceOption) (string, func(*fasthttp.RequestCtx)) {
+	// add the wrapped function to the trace options as the source code reference point
+	// (to the beginning of the option list, so that the user can override this)
+
+	p, h := WrapHandleFastHTTP(app, pattern, fasthttp.RequestHandler(handler), options...)
+	return p, func(ctx *fasthttp.RequestCtx) { h(ctx) }
+}
+
 // WrapListen wraps an HTTP endpoint reference passed to functions like http.ListenAndServe,
 // which causes security scanning to be done for that incoming endpoint when vulnerability
 // scanning is enabled. It returns the endpoint string, so you can replace a call like
 //
-//      http.ListenAndServe(":8000", nil)
-// with
-//      http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
+//	http.ListenAndServe(":8000", nil)
 //
+// with
+//
+//	http.ListenAndServe(newrelic.WrapListen(":8000"), nil)
 func WrapListen(endpoint string) string {
 	if IsSecurityAgentPresent() {
 		secureAgent.SendEvent("APP_INFO", endpoint)
