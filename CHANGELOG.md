@@ -4,6 +4,8 @@
       * Added newrelic.WrapHandleFuncFastHTTP() and newrelic.StartExternalSegmentFastHTTP() functions to instrument fasthttp context and create wrapped handlers. These functions work similarly to the existing ones for net/http
       * Added client-fasthttp and server-fasthttp examples to help get started with FastHTTP integration
 
+### Fixed
+ * Corrected a bug where the security agent failed to correctly parse the `NEW_RELIC_SECURITY_AGENT_ENABLED` environment variable.
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
@@ -15,13 +17,14 @@ See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol
  * Performance improvement around calls to security agent. In some cases, unnecessary setup operations were being performed even if there was no security agent present to use that. These are now conditional on the security agent being present in the application (note that this will enable the setup code if the security agent is *present* in the application, regardless of whether it's currently enabled to run). This affects:
     * Base agent code (updated to v3.24.1)
     * `nrmongo` integration (updated to v1.1.1)
+ * Resolved a race condition caused by the above-mentioned calls to the security agent.
 
  * Fixed unit tests for integrations which were failing because code level metrics are enabled by default now:
     * `nrawssdk-v1` (updated to v1.1.2)
     * `nrawssdk-v2` (updated to v1.2.2)
     * `nrecho-v3` (updated to v1.0.2)
     * `nrecho-v4` (updated to v1.0.4)
-    * `nrhttprouter` (updated to 
+    * `nrhttprouter` (updated to v1.0.2)
     * `nrlambda` (updated to v1.2.2)
     * `nrnats` (updated to v1.1.5)
     * `nrredis-v8` (updated to v1.0.1)
