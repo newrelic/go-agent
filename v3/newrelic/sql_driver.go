@@ -47,10 +47,11 @@ func InstrumentSQLConnector(connector driver.Connector, bld SQLDriverSegmentBuil
 func sendSecureEventSQL(query, args any) any {
 	return secureAgent.SendEvent("SQL", query, args)
 }
+
 func sendSecureEventSQLPrepare(query, obj any) {
 	secureAgent.SendEvent("SQL_PREPARE", query, fmt.Sprintf("%p", obj))
-
 }
+
 func sendSecureEventSQLPrepareArgs(args, obj any) any {
 	return secureAgent.SendEvent("SQL_PREPARE_ARGS", args, fmt.Sprintf("%p", obj))
 }
@@ -152,14 +153,18 @@ func prepare(original driver.Stmt, err error, bld SQLDriverSegmentBuilder, query
 
 func (w *wrapConn) Prepare(query string) (driver.Stmt, error) {
 	original, err := w.original.Prepare(query)
-	sendSecureEventSQLPrepare(query, original)
+	if IsSecurityAgentPresent() {
+		sendSecureEventSQLPrepare(query, original)
+	}
 	return prepare(original, err, w.bld, query)
 }
 
 // PrepareContext implements ConnPrepareContext.
 func (w *wrapConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	original, err := w.original.(driver.ConnPrepareContext).PrepareContext(ctx, query)
-	sendSecureEventSQLPrepare(query, original)
+	if IsSecurityAgentPresent() {
+		sendSecureEventSQLPrepare(query, original)
+	}
 	return prepare(original, err, w.bld, query)
 }
 
@@ -178,22 +183,36 @@ func (w *wrapConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.T
 
 // Exec implements Execer.
 func (w *wrapConn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	secureAgentevent := sendSecureEventSQL(query, args)
-	result, err := w.original.(driver.Execer).Exec(query, args)
-	secureAgent.SendExitEvent(secureAgentevent, err)
+	var err error
+	var result driver.Result
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQL(query, args)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
+	result, err = w.original.(driver.Execer).Exec(query, args)
 	return result, err
 }
 
 // ExecContext implements ExecerContext.
 func (w *wrapConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	secureAgentevent := sendSecureEventSQL(query, args)
+	var err error
+	var result driver.Result
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQL(query, args)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
 	startTime := time.Now()
-	result, err := w.original.(driver.ExecerContext).ExecContext(ctx, query, args)
+	result, err = w.original.(driver.ExecerContext).ExecContext(ctx, query, args)
 	if err != driver.ErrSkip {
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
@@ -208,22 +227,36 @@ func (w *wrapConn) Ping(ctx context.Context) error {
 }
 
 func (w *wrapConn) Query(query string, args []driver.Value) (driver.Rows, error) {
-	secureAgentevent := sendSecureEventSQL(query, args)
-	result, err := w.original.(driver.Queryer).Query(query, args)
-	secureAgent.SendExitEvent(secureAgentevent, err)
+	var err error
+	var result driver.Rows
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQL(query, args)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
+	result, err = w.original.(driver.Queryer).Query(query, args)
 	return result, err
 }
 
 // QueryContext implements QueryerContext.
 func (w *wrapConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	secureAgentevent := sendSecureEventSQL(query, args)
+	var rows driver.Rows
+	var err error
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQL(query, args)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
 	startTime := time.Now()
-	rows, err := w.original.(driver.QueryerContext).QueryContext(ctx, query, args)
+	rows, err = w.original.(driver.QueryerContext).QueryContext(ctx, query, args)
 	if err != driver.ErrSkip {
 		seg := w.bld.useQuery(query).startSegmentAt(ctx, startTime)
 		seg.End()
 	}
-	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 
@@ -241,16 +274,30 @@ func (w *wrapStmt) NumInput() int {
 }
 
 func (w *wrapStmt) Exec(args []driver.Value) (driver.Result, error) {
-	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
-	result, err := w.original.Exec(args)
-	secureAgent.SendExitEvent(secureAgentevent, err)
+	var result driver.Result
+	var err error
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
+	result, err = w.original.Exec(args)
 	return result, err
 }
 
 func (w *wrapStmt) Query(args []driver.Value) (driver.Rows, error) {
-	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
-	result, err := w.original.Query(args)
-	secureAgent.SendExitEvent(secureAgentevent, err)
+	var result driver.Rows
+	var err error
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
+	result, err = w.original.Query(args)
 	return result, err
 }
 
@@ -266,21 +313,35 @@ func (w *wrapStmt) CheckNamedValue(v *driver.NamedValue) error {
 
 // ExecContext implements StmtExecContext.
 func (w *wrapStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+	var result driver.Result
+	var err error
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
 	segment := w.bld.startSegment(ctx)
-	result, err := w.original.(driver.StmtExecContext).ExecContext(ctx, args)
+	result, err = w.original.(driver.StmtExecContext).ExecContext(ctx, args)
 	segment.End()
-	secureAgent.SendExitEvent(secureAgentevent, err)
 	return result, err
 }
 
 // QueryContext implements StmtQueryContext.
 func (w *wrapStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+	var rows driver.Rows
+	var err error
+
+	if IsSecurityAgentPresent() {
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		defer func() {
+			secureAgent.SendExitEvent(secureAgentevent, err)
+		}()
+	}
 	segment := w.bld.startSegment(ctx)
-	rows, err := w.original.(driver.StmtQueryContext).QueryContext(ctx, args)
+	rows, err = w.original.(driver.StmtQueryContext).QueryContext(ctx, args)
 	segment.End()
-	secureAgent.SendExitEvent(secureAgentevent, err)
 	return rows, err
 }
 

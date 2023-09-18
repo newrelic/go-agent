@@ -31,7 +31,7 @@ func TestMethodFunctions(t *testing.T) {
 	}
 
 	for _, md := range methodFuncs {
-		app := integrationsupport.NewBasicTestApp()
+		app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 		router := New(app.Application)
 		md.Fn(router)("/hello/:name", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			// Test that the Transaction is used as the response writer.
@@ -75,7 +75,7 @@ func TestGetNoApplication(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	router := New(app.Application)
 
 	router.Handle("GET", "/hello/:name", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -126,7 +126,7 @@ func TestHandle(t *testing.T) {
 }
 
 func TestHandler(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	router := New(app.Application)
 
 	router.Handler("GET", "/hello/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +195,7 @@ func TestHandlerMissingApplication(t *testing.T) {
 }
 
 func TestHandlerFunc(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	router := New(app.Application)
 
 	router.HandlerFunc("GET", "/hello/", func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func TestHandlerFunc(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	router := New(app.Application)
 
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +292,7 @@ func TestNotFoundMissingApplication(t *testing.T) {
 }
 
 func TestNotFoundNotSet(t *testing.T) {
-	app := integrationsupport.NewBasicTestApp()
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	router := New(app.Application)
 
 	response := httptest.NewRecorder()

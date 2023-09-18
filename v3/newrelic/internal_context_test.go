@@ -60,7 +60,6 @@ func TestExternalSegmentFastHTTP(t *testing.T) {
 		{Name: "OtherTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
-
 }
 
 func TestStartExternalSegmentNilTransaction(t *testing.T) {

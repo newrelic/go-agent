@@ -235,7 +235,7 @@ func TestCollName(t *testing.T) {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces)
+	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces, newrelic.ConfigCodeLevelMetricsEnabled(false))
 }
 
 var replyFn = func(reply *internal.ConnectReply) {

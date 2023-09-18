@@ -31,6 +31,7 @@ func testApp(t *testing.T) *newrelic.Application {
 		newrelic.ConfigLicense("0123456789012345678901234567890123456789"),
 		newrelic.ConfigEnabled(false),
 		newrelic.ConfigDistributedTracerEnabled(true),
+		newrelic.ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil != err {
 		t.Fatal(err)
