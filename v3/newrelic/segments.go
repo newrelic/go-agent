@@ -5,6 +5,9 @@ package newrelic
 
 import (
 	"net/http"
+
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -329,6 +332,36 @@ func StartExternalSegment(txn *Transaction, request *http.Request) *ExternalSegm
 				request.Header.Set(key, value)
 			}
 		}
+		if IsSecurityAgentPresent() {
+			secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
+		}
+	}
+
+	return s
+}
+
+func StartExternalSegmentFastHTTP(txn *Transaction, ctx *fasthttp.RequestCtx) *ExternalSegment {
+	if nil == txn {
+		txn = transactionFromRequestContextFastHTTP(ctx)
+	}
+	request := &http.Request{}
+
+	fasthttpadaptor.ConvertRequest(ctx, request, true)
+	s := &ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		Request:   request,
+	}
+	if IsSecurityAgentPresent() {
+		s.secureAgentEvent = secureAgent.SendEvent("OUTBOUND", request)
+	}
+
+	if request != nil && request.Header != nil {
+		for key, values := range s.outboundHeaders() {
+			for _, value := range values {
+				request.Header.Set(key, value)
+			}
+		}
+
 		if IsSecurityAgentPresent() {
 			secureAgent.DistributedTraceHeaders(request, s.secureAgentEvent)
 		}
