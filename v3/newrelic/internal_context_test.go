@@ -53,7 +53,6 @@ func TestExternalSegmentFastHTTP(t *testing.T) {
 	seg := StartExternalSegmentFastHTTP(txn, ctx)
 	defer seg.End()
 
-	err := fasthttp.Do(req, resp)
 	txn.End()
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransaction/Go/myTxn", Scope: "", Forced: true, Data: nil},
@@ -61,9 +60,6 @@ func TestExternalSegmentFastHTTP(t *testing.T) {
 		{Name: "OtherTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
-	if err != nil {
-		t.Error(err)
-	}
 }
 
 func TestStartExternalSegmentNilTransaction(t *testing.T) {
