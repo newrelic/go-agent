@@ -1,13 +1,16 @@
-## 3.25.1
- * Corrects an error in the release process for 3.25.0.
-### Support statement
+## 3.26.0
+### Added
+ * Extended implementation of the `nrpgx5` integration (now v1.2.0). This instruments Postgres database operations using the `jackc/pgx/v5` library, including the direct access mode of operation as opposed to requiring code to use the library compatibly with the standard `database/sql` library.
 
+### Corrections
+ * See below for revised release notes for the 3.25.1 and the retracted 3.25.0 releases. We have clarified what was released at those versions; see also the revised notes for 3.22.0 and 3.22.1 for the same reason.
+
+### Support statement
  We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
 
  See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
-
-## 3.25.0
+## 3.25.1
 ### Added
    * Added Support for FastHTTP package
       * Added newrelic.WrapHandleFuncFastHTTP() and newrelic.StartExternalSegmentFastHTTP() functions to instrument fasthttp context and create wrapped handlers. These functions work similarly to the existing ones for net/http
@@ -15,6 +18,15 @@
 
 ### Fixed
  * Corrected a bug where the security agent failed to correctly parse the `NEW_RELIC_SECURITY_AGENT_ENABLED` environment variable.
+
+### Support statement
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.25.0 (retracted)
+This release was retracted due to an error in the release process which caused the wrong git commit to be tagged.
+Since the erroneous `v3.25.0` tag was already visible publicly and may already have been picked up by the Go language infrastructure, we retracted the incorrect 3.25.0 version and released the changes intended for 3.25.0 as version 3.25.1, so users of the Go Agent library will reliably get the correct code.
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
@@ -111,16 +123,6 @@ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent
 
 
 ## 3.22.1
- * Corrects an error in the release process for 3.22.0.
-
-### Support statement
-
- We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-
- See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
-
-## 3.22.0
-
  ### Added
  * New Apache Kafka integration nrsarama that instruments the Sarama library https://github.com/Shopify/sarama
  * New logs in context integration logcontext-v2/nrzap that instruments the zap logging framework https://github.com/uber-go/zap
@@ -135,6 +137,16 @@ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent
  * Bumped gin package to v1.9.0 in the nrgin integration
  * Bumped crypto package to v0.1.0 in the nrpgx  integration
  * Fixed integration tests in nrnats package not correctly showing code coverage
+ * Corrects an error in the release process for 3.22.0.
+
+### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.22.0 (retracted)
+This release has been retracted due to an error in the release process which caused it to be incorrectly created. Instead, release 3.22.1 was issued with the changes intended for 3.22.0.
 
  ### Support statement
 
