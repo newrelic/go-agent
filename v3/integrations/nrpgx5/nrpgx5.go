@@ -63,6 +63,7 @@ const (
 	querySegmentKey   nrPgxSegmentType = "nrPgx5Segment"
 	prepareSegmentKey nrPgxSegmentType = "prepareNrPgx5Segment"
 	batchSegmentKey   nrPgxSegmentType = "batchNrPgx5Segment"
+	querySecurityKey  nrPgxSegmentType = "nrPgx5SecurityToken"
 )
 
 type TracerOption func(*Tracer)
@@ -143,8 +144,8 @@ func (t *Tracer) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.T
 	// fill Operation and Collection
 	t.ParseQuery(&segment, data.SQL)
 	if newrelic.IsSecurityAgentPresent() {
-		sa := newrelic.GetSecurityAgentInterface()
-		defer sa.SendExitEvent(sa.SendEvent("SQL", data.SQL, data.Args), nil) // TODO: need to refine this so the call to SendExitEvent happens in TraceQueryEnd without running afoul of any runtime issues caused by multiple parallel database operations. For now this allows us to have the functionality required as the top priority.
+		stoken := newrelic.GetSecurityAgentInterface().SendEvent("SQL", data.SQL, data.Args)
+		ctx = context.WithValue(ctx, querySecurityKey, stoken)
 	}
 
 	return context.WithValue(ctx, querySegmentKey, &segment)
@@ -156,6 +157,12 @@ func (t *Tracer) TraceQueryEnd(ctx context.Context, conn *pgx.Conn, data pgx.Tra
 	segment, ok := ctx.Value(querySegmentKey).(*newrelic.DatastoreSegment)
 	if !ok {
 		return
+	}
+	if newrelic.IsSecurityAgentPresent() {
+		if stoken := ctx.Value(querySecurityKey); stoken != nil {
+			newrelic.GetSecurityAgentInterface().SendExitEvent(stoken, nil)
+			ctx = context.WithValue(ctx, querySecurityKey, nil)
+		}
 	}
 	segment.End()
 }
