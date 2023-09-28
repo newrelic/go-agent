@@ -1,3 +1,6 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package nrpgx5 instruments https://github.com/jackc/pgx/v5.
 //
 // Use this package to instrument your PostgreSQL calls using the pgx
@@ -14,25 +17,25 @@
 // For example:
 //
 //    import (
-//    	"github.com/jackc/pgx/v5"
-// 	   "github.com/newrelic/go-agent/v3/integrations/nrpgx5"
-//    	"github.com/newrelic/go-agent/v3/newrelic"
+//       "github.com/jackc/pgx/v5"
+//       "github.com/newrelic/go-agent/v3/integrations/nrpgx5"
+//       "github.com/newrelic/go-agent/v3/newrelic"
 //    )
 //
 //    func main() {
-// 	   cfg, err := pgx.ParseConfig("postgres://postgres:postgres@localhost:5432") // OR pgxpools.ParseConfig(...)
-// 	   if err != nil {
-//        panic(err)
-//     }
+//       cfg, err := pgx.ParseConfig("postgres://postgres:postgres@localhost:5432") // OR pgxpools.ParseConfig(...)
+//       if err != nil {
+//          panic(err)
+//       }
 //
-// 	   cfg.Tracer = nrpgx5.NewTracer()
-//     conn, err := pgx.ConnectConfig(context.Background(), cfg)
-//     if err != nil {
-//        panic(err)
-//     }
+//       cfg.Tracer = nrpgx5.NewTracer()
+//       conn, err := pgx.ConnectConfig(context.Background(), cfg)
+//       if err != nil {
+//          panic(err)
+//       }
+//    }
 //
 // See the programs in the example directory for working examples of each use case.
-
 package nrpgx5
 
 import (
