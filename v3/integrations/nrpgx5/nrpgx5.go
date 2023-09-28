@@ -65,10 +65,48 @@ const (
 	batchSegmentKey   nrPgxSegmentType = "batchNrPgx5Segment"
 )
 
-func NewTracer() *Tracer {
-	return &Tracer{
+type TracerOption func(*Tracer)
+
+// NewTracer creates a new value which implements pgx.BatchTracer, pgx.ConnectTracer, pgx.PrepareTracer, and pgx.QueryTracer.
+// This value will be used to facilitate instrumentation of the database operations performed.
+// When establishing a connection to the database, the recommended usage is to do something like the following:
+//    cfg, err := pgx.ParseConfig("...")
+//    if err != nil { ... }
+//    cfg.Tracer = nrpgx5.NewTracer()
+//    conn, err := pgx.ConnectConfig(context.Background(), cfg)
+//
+// If you do not wish to have SQL query parameters included in the telemetry data, add the WithQueryParameters
+// option, like so:
+//    cfg.Tracer = nrpgx5.NewTracer(nrpgx5.WithQueryParameters(false))
+//
+// (The default is to collect query parameters, but you can explicitly select this by passing true to WithQueryParameters.)
+//
+// Note that query parameters may nevertheless be suppressed from the telemetry data due to agent configuration,
+// agent feature set, or policy independint of whether it's enabled here.
+func NewTracer(o ...TracerOption) *Tracer {
+	t := &Tracer{
 		ParseQuery:          sqlparse.ParseQuery,
 		SendQueryParameters: true,
+	}
+
+	for _, opt := range o {
+		opt(t)
+	}
+
+	return t
+}
+
+// WithQueryParameters is an option which may be passed to a call to NewTracer. It controls
+// whether or not to include the SQL query parameters in the telemetry data collected as part of
+// instrumenting database operations.
+//
+// By default this is enabled. To disable it, call NewTracer as NewTracer(WithQueryParameters(false)).
+//
+// Note that query parameters may nevertheless be suppressed from the telemetry data due to agent configuration,
+// agent feature set, or policy independint of whether it's enabled here.
+func WithQueryParameters(enabled bool) TracerOption {
+	return func(t *Tracer) {
+		t.SendQueryParameters = enabled
 	}
 }
 
