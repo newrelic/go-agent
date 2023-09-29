@@ -5,7 +5,7 @@ go 1.19
 
 require (
 	github.com/go-redis/redis/v8 v8.4.0
-	github.com/newrelic/go-agent/v3 v3.24.1
+	github.com/newrelic/go-agent/v3 v3.26.0
 )
 
 
