@@ -116,7 +116,7 @@ jobs:
             # If we are using the latest released version to test, we need to use a newer version of go
           - go-version: 1.19.x
             dirs: v3/integrations/nrnats
-            extratesting: go get -u github.com/nats-io/nats.go/@master
+            extratesting: go get -u github.com/nats-io/nats.go@master
             goproxy: direct
           - go-version: 1.19.x
             dirs: v3/integrations/nrstan
