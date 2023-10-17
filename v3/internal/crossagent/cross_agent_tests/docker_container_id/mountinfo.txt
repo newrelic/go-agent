@@ -1,0 +1,21 @@
+787 677 0:205 / / rw,relatime master:211 - overlay overlay rw,lowerdir=/var/lib/docker/overlay2/l/4LWPEJQQP4ZTPKM5BERIGWX63N:/var/lib/docker/overlay2/l/TFA7XS7THOIUG2XOSPD63ZTVCW:/var/lib/docker/overlay2/l/LU2GER2CKIEZEN3O3ZM7MMN7FE:/var/lib/docker/overlay2/l/C56BBR5IUNPYU7VFQYBD7B6TRV:/var/lib/docker/overlay2/l/3H5SWJGWS5HFV3EVBSXW3Z5EWP:/var/lib/docker/overlay2/l/FZSKODSSYVKREFDR7EOHUS4C52:/var/lib/docker/overlay2/l/X4HBP5ZZCMRNDQROSJCS3FPJXN:/var/lib/docker/overlay2/l/YXPJDSIAVYL3AQXJOMJKC2UBQ7:/var/lib/docker/overlay2/l/S3H6KC6FPHLB4YMN24TNILEUIG:/var/lib/docker/overlay2/l/Y3UADAXTZUWRMXPRAFLWZEHC4O,upperdir=/var/lib/docker/overlay2/88a9371f4db27c41c3013cea0af17d1a51d8a591a659dafe0ee4f4f5aa07ea34/diff,workdir=/var/lib/docker/overlay2/88a9371f4db27c41c3013cea0af17d1a51d8a591a659dafe0ee4f4f5aa07ea34/work
+788 787 0:208 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
+789 787 0:209 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
+790 789 0:210 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666
+791 787 0:211 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs ro
+792 791 0:33 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw
+793 789 0:207 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw
+794 789 0:212 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=65536k
+795 787 254:1 /docker/containers/ec807d5258c06c355c07e2acb700f9029d820afe5836d6a7e19764773dc790f5/resolv.conf /etc/resolv.conf rw,relatime - ext4 /dev/vda1 rw
+796 787 254:1 /docker/containers/ec807d5258c06c355c07e2acb700f9029d820afe5836d6a7e19764773dc790f5/hostname /etc/hostname rw,relatime - ext4 /dev/vda1 rw
+797 787 254:1 /docker/containers/ec807d5258c06c355c07e2acb700f9029d820afe5836d6a7e19764773dc790f5/hosts /etc/hosts rw,relatime - ext4 /dev/vda1 rw
+678 788 0:208 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw
+679 788 0:208 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw
+680 788 0:208 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw
+681 788 0:208 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw
+682 788 0:208 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw
+683 788 0:209 /null /proc/kcore rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
+684 788 0:209 /null /proc/keys rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
+685 788 0:209 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
+686 788 0:209 /null /proc/sched_debug rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
+687 791 0:213 / /sys/firmware ro,relatime - tmpfs tmpfs ro
