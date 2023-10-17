@@ -200,7 +200,7 @@ jobs:
         install: |
           DEBIAN_FRONTEND=noninteractive apt-get -qq update
           DEBIAN_FRONTEND=noninteractive apt-get -qq install -y wget build-essential
-          wget -nv https://golang.org/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
+          wget -nv https://go.dev/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
           rm -rf /usr/local/go
           tar -C /usr/local -xzf go${{ matrix.go-version }}.linux-arm64.tar.gz
         run: |
