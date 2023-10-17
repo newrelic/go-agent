@@ -168,6 +168,7 @@ jobs:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
         PIN: ${{ matrix.pin }}
+        GOPROXY: ${{ matrix.goproxy }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
