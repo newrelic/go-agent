@@ -44,7 +44,7 @@ for dir in $DIRS; do
   go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
 
   # manage dependencies
-  if [[ "$goproxy" -eq "direct" ]]; then
+  if [ "$goproxy" = "direct" ]; then
     GOPROXY=direct go mod tidy -go=$shortVersion -compat=$shortVersion
   else
     go mod tidy -go=$shortVersion -compat=$shortVersion
