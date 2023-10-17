@@ -137,7 +137,6 @@ jobs:
             dirs: v3/integrations/nrb3
           - go-version: 1.19.x
             dirs: v3/integrations/nrmongo
-            extratesting: go get -u go.mongodb.org/mongo-driver@master
           - go-version: 1.19.x
             dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
             extratesting: go get -u github.com/graphql-go/graphql@master
