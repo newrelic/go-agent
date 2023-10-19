@@ -14,6 +14,8 @@ const (
 	RabbitMQLibrary = "RabbitMQ"
 )
 
+func init() { internal.TrackUsage("integration", "messagebroker", "nramqp") }
+
 func creatProducerSegment(exchange, key string) *newrelic.MessageProducerSegment {
 	s := newrelic.MessageProducerSegment{
 		Library:         RabbitMQLibrary,
