@@ -352,6 +352,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 	if txn == nil || txn.thread == nil {
 		return
 	}
+
 	txn.thread.CreateDistributedTracePayload(hdrs)
 }
 

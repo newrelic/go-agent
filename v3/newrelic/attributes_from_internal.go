@@ -49,6 +49,7 @@ var (
 		AttributeAWSLambdaEventSourceARN:    usualDests,
 		AttributeMessageRoutingKey:          usualDests,
 		AttributeMessageQueueName:           usualDests,
+		AttributeMessageHeaders:             usualDests,
 		AttributeMessageExchangeType:        destNone,
 		AttributeMessageReplyTo:             destNone,
 		AttributeMessageCorrelationID:       destNone,
