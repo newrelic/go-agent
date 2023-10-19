@@ -1,3 +1,18 @@
+## 3.27.0
+### Added
+ * Added Support for getting Container ID's from cgroup v2 docker containers
+ * A new instrumentation package for RabbitMQ with distributed tracing support: nramqp
+
+### Fixed
+ * Unit tests repairs and improvements
+ * Removed deprecated V2 code from the repository. The support timeframe for this code has expired and is no longer recommended for use.
+ * Bumped github.com/graphql-go/graphql from 0.7.9 to 0.8.1
+
+### Support statement
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.26.0
 ### Added
  * Extended implementation of the `nrpgx5` integration (now v1.2.0). This instruments Postgres database operations using the `jackc/pgx/v5` library, including the direct access mode of operation as opposed to requiring code to use the library compatibly with the standard `database/sql` library.
