@@ -246,20 +246,14 @@ func serverName(r *http.Request) string {
 	return ""
 }
 
-func reqBody(req *http.Request) []byte {
-	var bodyBuffer bytes.Buffer
-	requestBuffer := make([]byte, 0)
-	bodyReader := io.TeeReader(req.Body, &bodyBuffer)
-
-	if bodyReader != nil && req.Body != nil {
-		reqBuffer, err := io.ReadAll(bodyReader)
-		if err == nil {
-			requestBuffer = reqBuffer
-		}
-		r := io.NopCloser(bytes.NewBuffer(requestBuffer))
-		req.Body = r
+func reqBody(req *http.Request) *bytes.Buffer {
+	if IsSecurityAgentPresent() {
+		buf := &bytes.Buffer{}
+		tee := io.TeeReader(req.Body, buf)
+		req.Body = io.NopCloser(tee)
+		return buf
 	}
-	return bytes.TrimRight(requestBuffer, "\x00")
+	return nil
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -607,7 +601,7 @@ type WebRequest struct {
 
 	// The following fields are needed for the secure agent's vulnerability
 	// detection features.
-	Body          []byte
+	Body          *bytes.Buffer
 	ServerName    string
 	Type          string
 	RemoteAddress string
@@ -633,7 +627,7 @@ func (webrequest WebRequest) GetHost() string {
 	return webrequest.Host
 }
 
-func (webrequest WebRequest) GetBody() []byte {
+func (webrequest WebRequest) GetBody() *bytes.Buffer {
 	return webrequest.Body
 }
 
