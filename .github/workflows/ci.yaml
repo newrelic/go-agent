@@ -199,7 +199,7 @@ jobs:
       id: runcmd
       with:
         arch: aarch64
-        distro: ubuntu20.04
+        distro: ubuntu22.04
         githubToken: ${{ github.token }}
         install: |
           DEBIAN_FRONTEND=noninteractive apt-get -qq update
