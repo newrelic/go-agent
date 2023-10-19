@@ -118,7 +118,8 @@ jobs:
             # If we are using the latest released version to test, we need to use a newer version of go
           - go-version: 1.19.x
             dirs: v3/integrations/nrnats
-            extratesting: go get -u github.com/nats-io/nats.go/@master
+            extratesting: go get -u github.com/nats-io/nats.go
+            goproxy: direct
           - go-version: 1.19.x
             dirs: v3/integrations/nrstan
             extratesting: go get -u github.com/nats-io/stan.go/@master
@@ -139,7 +140,6 @@ jobs:
             dirs: v3/integrations/nrb3
           - go-version: 1.19.x
             dirs: v3/integrations/nrmongo
-            extratesting: go get -u go.mongodb.org/mongo-driver@master
           - go-version: 1.19.x
             dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
             extratesting: go get -u github.com/graphql-go/graphql@master
@@ -149,7 +149,7 @@ jobs:
 
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
 
@@ -170,6 +170,7 @@ jobs:
         DIRS: ${{ matrix.dirs }}
         EXTRATESTING: ${{ matrix.extratesting }}
         PIN: ${{ matrix.pin }}
+        GOPROXY: ${{ matrix.goproxy }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
@@ -203,7 +204,7 @@ jobs:
         install: |
           DEBIAN_FRONTEND=noninteractive apt-get -qq update
           DEBIAN_FRONTEND=noninteractive apt-get -qq install -y wget build-essential
-          wget -nv https://golang.org/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
+          wget -nv https://go.dev/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
           rm -rf /usr/local/go
           tar -C /usr/local -xzf go${{ matrix.go-version }}.linux-arm64.tar.gz
         run: |
