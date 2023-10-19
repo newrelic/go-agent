@@ -589,11 +589,6 @@ func (tt TransportType) toString() string {
 	}
 }
 
-const (
-	RabbitMQMessageBrokerLibrary = "RabbitMQ"
-	ExchangeDestinationType      = "Exchange"
-)
-
 // WebRequest is used to provide request information to Transaction.SetWebRequest.
 type WebRequest struct {
 	// Header may be nil if you don't have any headers or don't want to
