@@ -1,0 +1,56 @@
+name: agent-rpm-version
+run-name: Updating Go Agent version
+
+on: release
+
+jobs:
+    update-core-configuration:
+        name: Update target core configuration
+        runs-on: ubuntu-latest
+        steps:
+            - name: Get Latest Agent Release Version
+              run: |
+                VERSION="$(curl -s https://api.github.com/repos/newrelic/go-agent/releases | jq -r 'first(.[].tag_name | select(test("^v[0-9]")))' | sed 's/^v//')"
+                echo "AGENT-VERSION=$VERSION" >> $GITHUB_ENV
+            - name: Generate Payload
+              run: |
+                echo "PAYLOAD={\"system_configuration\":{\"key\":\"go_agent_version\",\"value\":\"${{ env.AGENT-VERSION }}\"}}" >> $GITHUB_ENV
+            - name: Generate Content-Type
+              run: |
+                echo "CONTENT-TYPE='Content-Type: application/json'" >> $GITHUB_ENV
+            - name: Update Staging system configuration page
+              run: |
+                curl -X POST 'https://staging-api.newrelic.com/v2/system_configuration.json' \
+                -H "X-Api-Key:${{ secrets.CORE_CONFIGURATION_API_KEY_STAGING }}" -i \
+                -H "${{ env.CONTENT-TYPE }}" \
+                -d "${{ env.PAYLOAD }}"
+
+            - name: Update Production system configuration page
+              run: |
+                curl -X POST 'https://api.newrelic.com/v2/system_configuration.json' \
+                -H "X-Api-Key:${{ secrets.CORE_CONFIGURATION_API_KEY_PRODUCTION }}" -i \
+                -H "${{ env.CONTENT-TYPE }}" \
+                -d "${{ env.PAYLOAD }}" 
+
+            - name: Verify Staging system configuration update
+              run: |
+                STAGING_VERSION=$(curl -X GET 'https://staging-api.newrelic.com/v2/system_configuration.json' \
+                -H "X-Api-Key:${{ secrets.CORE_CONFIGURATION_API_KEY_STAGING }}" \
+                -H "${{ env.CONTENT-TYPE }}" | jq ".system_configurations | from_entries | .go_agent_version")
+
+                if [ "${{ env.AGENT-VERSION }}" != "$STAGING_VERSION" ]; then
+                    echo "Staging version mismatch: $STAGING_VERSION"
+                    exit 1
+                fi
+
+            - name: Verify Production system configuration update
+              run: |
+                PROD_VERSION=$(curl -X GET 'https://api.newrelic.com/v2/system_configuration.json' \
+                -H "X-Api-Key:${{ secrets.CORE_CONFIGURATION_API_KEY_PRODUCTION }}" \
+                -H "${{ env.CONTENT-TYPE }}" | jq ".system_configurations | from_entries | .go_agent_version")
+
+                if [ "${{ env.AGENT-VERSION }}" != "$PROD_VERSION" ]; then
+                    echo "Production version mismatch: $PROD_VERSION"
+                    exit 1
+                fi
+          
