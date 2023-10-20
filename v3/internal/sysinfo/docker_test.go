@@ -33,7 +33,11 @@ func TestDockerIDCrossAgent(t *testing.T) {
 
 		got, _ := parseDockerID(bytes.NewReader(input))
 		if got != test.ID {
-			t.Errorf("%s != %s", got, test.ID)
+			mountInfoAttempt, _ := parseDockerIDMountInfo(bytes.NewReader(input))
+			if mountInfoAttempt != test.ID {
+				t.Errorf("MountInfo Attempt: %s != %s", mountInfoAttempt, test.ID)
+				t.Errorf("Traditional Attempt: %s != %s", got, test.ID)
+			}
 		}
 	}
 }

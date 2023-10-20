@@ -1,5 +1,10 @@
 [
   {
+    "filename": "mountinfo.txt",
+    "containerId": "ec807d5258c06c355c07e2acb700f9029d820afe5836d6a7e19764773dc790f5",
+    "expectedMetrics": null
+  },
+  {
     "filename": "docker-0.9.1.txt",
     "containerId": "f37a7e4d17017e7bf774656b19ca4360c6cdc4951c86700a464101d0d9ce97ee",
     "expectedMetrics": null
