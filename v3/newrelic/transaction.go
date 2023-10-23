@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -246,9 +245,9 @@ func serverName(r *http.Request) string {
 	return ""
 }
 
-func reqBody(req *http.Request) *bytes.Buffer {
+func reqBody(req *http.Request) io.Writer {
 	if IsSecurityAgentPresent() {
-		buf := &bytes.Buffer{}
+		buf := &BodyBuffer{buf: make([]byte, 0, secureAgent.RequestBodyReadLimit())}
 		tee := io.TeeReader(req.Body, buf)
 		req.Body = io.NopCloser(tee)
 		return buf
@@ -601,7 +600,7 @@ type WebRequest struct {
 
 	// The following fields are needed for the secure agent's vulnerability
 	// detection features.
-	Body          *bytes.Buffer
+	Body          io.Writer
 	ServerName    string
 	Type          string
 	RemoteAddress string
@@ -627,7 +626,8 @@ func (webrequest WebRequest) GetHost() string {
 	return webrequest.Host
 }
 
-func (webrequest WebRequest) GetBody() *bytes.Buffer {
+func (webrequest WebRequest) GetBody() interface{} {
+	fmt.Println("webrequest.Body", webrequest.Body)
 	return webrequest.Body
 }
 
