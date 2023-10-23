@@ -98,7 +98,8 @@ func IsSecurityAgentPresent() bool {
 }
 
 type BodyBuffer struct {
-	buf []byte
+	buf             []byte
+	isDataTruncated bool
 }
 
 func (b *BodyBuffer) Write(p []byte) (int, error) {
@@ -106,6 +107,7 @@ func (b *BodyBuffer) Write(p []byte) (int, error) {
 		b.buf = append(b.buf, p...)
 		return len(p), nil
 	} else {
+		b.isDataTruncated = true
 		return 0, nil
 	}
 }
@@ -117,10 +119,10 @@ func (b *BodyBuffer) Len() int {
 	return len(b.buf)
 
 }
-func (b *BodyBuffer) String() string {
+func (b *BodyBuffer) String() (string, bool) {
 	if b == nil {
-		return ""
+		return "", false
 	}
-	return string(b.buf)
+	return string(b.buf), b.isDataTruncated
 
 }

@@ -627,7 +627,6 @@ func (webrequest WebRequest) GetHost() string {
 }
 
 func (webrequest WebRequest) GetBody() interface{} {
-	fmt.Println("webrequest.Body", webrequest.Body)
 	return webrequest.Body
 }
 
