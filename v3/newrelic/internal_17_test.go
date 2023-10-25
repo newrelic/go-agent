@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/valyala/fasthttp"
 )
 
 func myErrorHandler(w http.ResponseWriter, req *http.Request) {
@@ -17,48 +16,6 @@ func myErrorHandler(w http.ResponseWriter, req *http.Request) {
 	// Ensure that the transaction is added to the request's context.
 	txn := FromContext(req.Context())
 	txn.NoticeError(myError{})
-}
-
-func myErrorHandlerFastHTTP(ctx *fasthttp.RequestCtx) {
-	ctx.WriteString("noticing an error")
-	txn := ctx.UserValue("transaction").(*Transaction)
-	txn.NoticeError(myError{})
-}
-
-func TestWrapHandleFastHTTPFunc(t *testing.T) {
-	app := testApp(nil, ConfigDistributedTracerEnabled(true), t)
-
-	_, wrappedHandler := WrapHandleFuncFastHTTP(app.Application, "/hello", myErrorHandlerFastHTTP)
-
-	if wrappedHandler == nil {
-		t.Error("Error when creating a wrapped handler")
-	}
-	ctx := &fasthttp.RequestCtx{}
-	ctx.Request.Header.SetMethod("GET")
-	ctx.Request.SetRequestURI("/hello")
-	wrappedHandler(ctx)
-	app.ExpectErrors(t, []internal.WantError{{
-		TxnName: "WebTransaction/Go/GET /hello",
-		Msg:     "my msg",
-		Klass:   "newrelic.myError",
-	}})
-
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransaction", Scope: "", Forced: true, Data: nil},
-		{Name: "WebTransactionTotalTime/Go/GET /hello", Scope: "", Forced: false, Data: nil},
-		{Name: "WebTransactionTotalTime", Scope: "", Forced: true, Data: nil},
-		{Name: "HttpDispatcher", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex", Scope: "", Forced: true, Data: nil},
-		{Name: "Apdex/Go/GET /hello", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
-		{Name: "Errors/all", Scope: "", Forced: true, Data: singleCount},
-		{Name: "Errors/allWeb", Scope: "", Forced: true, Data: singleCount},
-		{Name: "Errors/WebTransaction/Go/GET /hello", Scope: "", Forced: true, Data: singleCount},
-		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
-		{Name: "ErrorsByCaller/Unknown/Unknown/Unknown/Unknown/allWeb", Scope: "", Forced: false, Data: nil},
-	})
 }
 
 func TestWrapHandleFunc(t *testing.T) {

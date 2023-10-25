@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/valyala/fasthttp"
 )
 
 func TestWrapHandlerContext(t *testing.T) {
@@ -35,30 +34,6 @@ func TestWrapHandlerContext(t *testing.T) {
 		{Name: "Apdex/Go/GET myTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/mySegment", Scope: "", Forced: false, Data: nil},
 		{Name: "Custom/mySegment", Scope: scope, Forced: false, Data: nil},
-	})
-}
-func TestExternalSegmentFastHTTP(t *testing.T) {
-	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
-	txn := app.StartTransaction("myTxn")
-
-	req := fasthttp.AcquireRequest()
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseRequest(req)
-	defer fasthttp.ReleaseResponse(resp)
-
-	req.SetRequestURI("http://localhost:8080/hello")
-	req.Header.SetMethod("GET")
-
-	ctx := &fasthttp.RequestCtx{}
-	seg := StartExternalSegmentFastHTTP(txn, ctx)
-	defer seg.End()
-
-	txn.End()
-	app.ExpectMetrics(t, []internal.WantMetric{
-		{Name: "OtherTransaction/Go/myTxn", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
-		{Name: "OtherTransactionTotalTime/Go/myTxn", Scope: "", Forced: false, Data: nil},
-		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 	})
 }
 
