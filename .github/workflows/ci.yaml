@@ -21,7 +21,7 @@ jobs:
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: 1.20.x
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.21.x
+          - go-version: 1.21.3
             dirs: v3/newrelic,v3/internal,v3/examples
 
           # v3 integrations
