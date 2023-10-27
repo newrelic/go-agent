@@ -626,7 +626,7 @@ func (webrequest WebRequest) GetHost() string {
 	return webrequest.Host
 }
 
-func (webrequest WebRequest) GetBody() interface{} {
+func (webrequest WebRequest) GetBody() any {
 	return webrequest.Body
 }
 

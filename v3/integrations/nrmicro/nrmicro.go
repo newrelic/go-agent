@@ -5,6 +5,7 @@ package nrmicro
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,9 +16,11 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/server"
 
+	protoV1 "github.com/golang/protobuf/proto"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	protoV2 "google.golang.org/protobuf/proto"
 )
 
 type nrWrapper struct {
@@ -162,7 +165,19 @@ func HandlerWrapper(app *newrelic.Application) server.HandlerWrapper {
 		return func(ctx context.Context, req server.Request, rsp interface{}) error {
 			txn := startWebTransaction(ctx, app, req)
 			defer txn.End()
-			err := fn(newrelic.NewContext(ctx, txn), req, rsp)
+			if req.Body() != nil && newrelic.IsSecurityAgentPresent() {
+				messageType, version := getMessageType(req.Body())
+				newrelic.GetSecurityAgentInterface().SendEvent("GRPC", req.Body(), messageType, version)
+			}
+
+			nrrsp := rsp
+			if req.Stream() && newrelic.IsSecurityAgentPresent() {
+				if stream, ok := rsp.(server.Stream); ok {
+					nrrsp = wrappedServerStream{stream}
+				}
+			}
+
+			err := fn(newrelic.NewContext(ctx, txn), req, nrrsp)
 			var code int
 			if err != nil {
 				if t, ok := err.(*errors.Error); ok {
@@ -227,9 +242,6 @@ func SubscriberWrapper(app *newrelic.Application) server.SubscriberWrapper {
 
 func startWebTransaction(ctx context.Context, app *newrelic.Application, req server.Request) *newrelic.Transaction {
 	var hdrs http.Header
-	var unencodedBody []byte
-	var err error
-
 	if md, ok := metadata.FromContext(ctx); ok {
 		hdrs = make(http.Header, len(md))
 		for k, v := range md {
@@ -242,20 +254,58 @@ func startWebTransaction(ctx context.Context, app *newrelic.Application, req ser
 		Host:   req.Service(),
 		Path:   req.Endpoint(),
 	}
-
-	if unencodedBody, err = req.Read(); err != nil {
-		unencodedBody = nil
-	}
-
 	webReq := newrelic.WebRequest{
 		Header:    hdrs,
 		URL:       u,
 		Method:    req.Method(),
 		Transport: newrelic.TransportHTTP,
-		Body:      unencodedBody,
-		Type:      "HTTP",
+		Type:      "micro",
 	}
 	txn.SetWebRequest(webReq)
 
 	return txn
+}
+
+type wrappedServerStream struct {
+	stream server.Stream
+}
+
+func (s wrappedServerStream) Context() context.Context {
+	return s.stream.Context()
+}
+func (s wrappedServerStream) Request() server.Request {
+	return s.stream.Request()
+}
+func (s wrappedServerStream) Send(msg any) error {
+	return s.stream.Send(msg)
+}
+func (s wrappedServerStream) Recv(msg any) error {
+	err := s.stream.Recv(msg)
+	if err != io.EOF {
+		messageType, version := getMessageType(msg)
+		newrelic.GetSecurityAgentInterface().SendEvent("GRPC", msg, messageType, version)
+	}
+	return err
+}
+func (s wrappedServerStream) Error() error {
+	return s.stream.Error()
+}
+func (s wrappedServerStream) Close() error {
+	return s.stream.Close()
+}
+
+func getMessageType(req any) (string, string) {
+	messageType := ""
+	version := "v2"
+	messagev2, ok := req.(protoV2.Message)
+	if ok {
+		messageType = string(messagev2.ProtoReflect().Descriptor().FullName())
+	} else {
+		messagev1, ok := req.(protoV1.Message)
+		if ok {
+			messageType = string(protoV1.MessageReflect(messagev1).Descriptor().FullName())
+			version = "v1"
+		}
+	}
+	return messageType, version
 }
