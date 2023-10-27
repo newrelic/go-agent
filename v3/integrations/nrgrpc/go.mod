@@ -7,12 +7,11 @@ require (
 	// because all dependencies were removed in this version.
 	github.com/golang/protobuf v1.5.3
 	github.com/newrelic/go-agent/v3 v3.26.0
-	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.2.0
+	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.1.0
 	// v1.15.0 is the earliest version of grpc using modules.
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.28.1
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..
-replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../integrations/nrsecurityagent
+replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../../integrations/nrsecurityagent
