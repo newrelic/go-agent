@@ -103,7 +103,7 @@ type BodyBuffer struct {
 }
 
 func (b *BodyBuffer) Write(p []byte) (int, error) {
-	if l := len(b.buf); len(p) <= cap(b.buf)-l {
+	if l := len(b.buf); len(p) <= secureAgent.RequestBodyReadLimit()-l {
 		b.buf = append(b.buf, p...)
 		return len(p), nil
 	} else {

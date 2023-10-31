@@ -247,7 +247,7 @@ func serverName(r *http.Request) string {
 
 func reqBody(req *http.Request) io.Writer {
 	if IsSecurityAgentPresent() {
-		buf := &BodyBuffer{buf: make([]byte, 0, secureAgent.RequestBodyReadLimit())}
+		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
 		tee := io.TeeReader(req.Body, buf)
 		req.Body = io.NopCloser(tee)
 		return buf
