@@ -37,6 +37,12 @@ func StartExternalSegment(txn *newrelic.Transaction, ctx *fasthttp.RequestCtx) *
 		if newrelic.IsSecurityAgentPresent() {
 			newrelic.GetSecurityAgentInterface().DistributedTraceHeaders(request, secureAgentEvent)
 		}
+
+		for k, values := range request.Header {
+			for _, value := range values {
+				ctx.Request.Header.Set(k, value)
+			}
+		}
 	}
 
 	return s
