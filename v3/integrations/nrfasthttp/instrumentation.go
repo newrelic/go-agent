@@ -28,6 +28,7 @@ func (rw fasthttpWrapperResponse) WriteHeader(code int) {
 	rw.ctx.SetStatusCode(code)
 }
 
+// WrapHandleFunc wrapps a fasthttp handler function for automatic instrumentation
 func WrapHandleFunc(app *newrelic.Application, pattern string, handler func(*fasthttp.RequestCtx), options ...newrelic.TraceOption) (string, func(*fasthttp.RequestCtx)) {
 	// add the wrapped function to the trace options as the source code reference point
 	// (to the beginning of the option list, so that the user can override this)
@@ -36,6 +37,7 @@ func WrapHandleFunc(app *newrelic.Application, pattern string, handler func(*fas
 	return p, func(ctx *fasthttp.RequestCtx) { h(ctx) }
 }
 
+// WrapHandle wraps a fasthttp request handler for automatic instrumentation
 func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.RequestHandler, options ...newrelic.TraceOption) (string, fasthttp.RequestHandler) {
 	if app == nil {
 		return pattern, handler

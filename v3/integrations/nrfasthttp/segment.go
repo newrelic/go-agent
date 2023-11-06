@@ -8,6 +8,9 @@ import (
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
+// StartExternalSegment automatically creates and fills out a New Relic external segment for a given
+// fasthttp request object. This function will accept either a fasthttp.Request or a fasthttp.RequestContext
+// object as the request argument.
 func StartExternalSegment(txn *newrelic.Transaction, request any) *newrelic.ExternalSegment {
 	var secureAgentEvent any
 
@@ -93,6 +96,7 @@ func StartExternalSegment(txn *newrelic.Transaction, request any) *newrelic.Exte
 	return nil
 }
 
+// FromContext extracts a transaction pointer from a fasthttp.RequestContext object
 func FromContext(ctx *fasthttp.RequestCtx) *newrelic.Transaction {
 	return transactionFromRequestContext(ctx)
 }
