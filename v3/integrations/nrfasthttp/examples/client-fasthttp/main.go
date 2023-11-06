@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/newrelic/go-agent/v3/integrations/nrfasthttp"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/valyala/fasthttp"
 )
@@ -20,8 +21,7 @@ func doRequest(txn *newrelic.Transaction) error {
 	req.SetRequestURI("http://localhost:8080/hello")
 	req.Header.SetMethod("GET")
 
-	ctx := &fasthttp.RequestCtx{}
-	seg := newrelic.StartExternalSegmentFastHTTP(txn, ctx)
+	seg := nrfasthttp.StartExternalSegment(txn, req)
 	defer seg.End()
 
 	err := fasthttp.Do(req, resp)
