@@ -13,87 +13,56 @@ import (
 // object as the request argument.
 func StartExternalSegment(txn *newrelic.Transaction, request any) *newrelic.ExternalSegment {
 	var secureAgentEvent any
+	var ctx *fasthttp.RequestCtx
 
-	switch request.(type) {
-	// preserve prior functionality
+	switch reqObject := request.(type) {
+
 	case *fasthttp.RequestCtx:
-		ctx := request.(*fasthttp.RequestCtx)
-
-		if nil == txn {
-			txn = transactionFromRequestContext(ctx)
-		}
-		request := &http.Request{}
-
-		fasthttpadaptor.ConvertRequest(ctx, request, true)
-		s := &newrelic.ExternalSegment{
-			StartTime: txn.StartSegmentNow(),
-			Request:   request,
-		}
-
-		if newrelic.IsSecurityAgentPresent() {
-			secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("OUTBOUND", request)
-			s.SetSecureAgentEvent(secureAgentEvent)
-		}
-
-		if request != nil && request.Header != nil {
-			for key, values := range s.GetOutboundHeaders() {
-				for _, value := range values {
-					request.Header.Set(key, value)
-				}
-			}
-
-			if newrelic.IsSecurityAgentPresent() {
-				newrelic.GetSecurityAgentInterface().DistributedTraceHeaders(request, secureAgentEvent)
-			}
-
-			for k, values := range request.Header {
-				for _, value := range values {
-					ctx.Request.Header.Set(k, value)
-				}
-			}
-		}
-
-		return s
+		ctx = reqObject
 
 	case *fasthttp.Request:
-		req := request.(*fasthttp.Request)
-		request := &http.Request{}
+		ctx = &fasthttp.RequestCtx{}
+		reqObject.CopyTo(&ctx.Request)
 
-		// it is ok to copy req here because we are not using its methods, just copying it into an http object
-		// for data collection
-		fasthttpadaptor.ConvertRequest(&fasthttp.RequestCtx{Request: *req}, request, true)
-		s := &newrelic.ExternalSegment{
-			StartTime: txn.StartSegmentNow(),
-			Request:   request,
+	default:
+		return nil
+	}
+
+	if nil == txn {
+		txn = transactionFromRequestContext(ctx)
+	}
+	req := &http.Request{}
+
+	fasthttpadaptor.ConvertRequest(ctx, req, true)
+	s := &newrelic.ExternalSegment{
+		StartTime: txn.StartSegmentNow(),
+		Request:   req,
+	}
+
+	if newrelic.IsSecurityAgentPresent() {
+		secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("OUTBOUND", request)
+		s.SetSecureAgentEvent(secureAgentEvent)
+	}
+
+	if request != nil && req.Header != nil {
+		for key, values := range s.GetOutboundHeaders() {
+			for _, value := range values {
+				req.Header.Set(key, value)
+			}
 		}
 
 		if newrelic.IsSecurityAgentPresent() {
-			secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("OUTBOUND", request)
-			s.SetSecureAgentEvent(secureAgentEvent)
+			newrelic.GetSecurityAgentInterface().DistributedTraceHeaders(req, secureAgentEvent)
 		}
 
-		if request != nil && request.Header != nil {
-			for key, values := range s.GetOutboundHeaders() {
-				for _, value := range values {
-					request.Header.Set(key, value)
-				}
-			}
-
-			if newrelic.IsSecurityAgentPresent() {
-				newrelic.GetSecurityAgentInterface().DistributedTraceHeaders(request, secureAgentEvent)
-			}
-
-			for k, values := range request.Header {
-				for _, value := range values {
-					req.Header.Set(k, value)
-				}
+		for k, values := range req.Header {
+			for _, value := range values {
+				ctx.Request.Header.Set(k, value)
 			}
 		}
-
-		return s
 	}
 
-	return nil
+	return s
 }
 
 // FromContext extracts a transaction pointer from a fasthttp.RequestContext object
