@@ -28,6 +28,11 @@ func (rw fasthttpWrapperResponse) WriteHeader(code int) {
 	rw.ctx.SetStatusCode(code)
 }
 
+func (rw fasthttpWrapperResponse) Body() string {
+	body := rw.ctx.Response.Body()
+	return string(body)
+}
+
 // WrapHandleFunc wrapps a fasthttp handler function for automatic instrumentation
 func WrapHandleFunc(app *newrelic.Application, pattern string, handler func(*fasthttp.RequestCtx), options ...newrelic.TraceOption) (string, func(*fasthttp.RequestCtx)) {
 	// add the wrapped function to the trace options as the source code reference point
@@ -61,8 +66,9 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 		txn.SetWebResponse(resp)
 		txn.SetWebRequestHTTP(r)
 
-		//		r = newrelic.RequestWithTransactionContext(r, txn)
-
+		if newrelic.IsSecurityAgentPresent() {
+			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_WRITE", resp.Body(), resp.Header())
+		}
 		handler(ctx)
 	}
 }
