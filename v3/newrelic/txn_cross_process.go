@@ -53,19 +53,26 @@ type txnCrossProcess struct {
 	ReferringPathHash   string
 	ReferringTxnGUID    string
 	Synthetics          *cat.SyntheticsHeader
+	SyntheticsInfo      *cat.SyntheticsInfo
 
 	// The encoded synthetics header received as part of the request headers, if
 	// any. By storing this here, we avoid needing to marshal the invariant
 	// Synthetics struct above each time an external segment is created.
 	SyntheticsHeader string
+
+	// The encoded synthetics info header received as part of the request headers, if
+	// any. By storing this here, we avoid needing to marshal the invariant
+	// Synthetics struct above each time an external segment is created.
+	SyntheticsInfoHeader string
 }
 
 // crossProcessMetadata represents the metadata that must be transmitted with
 // an external request for CAT to work.
 type crossProcessMetadata struct {
-	ID         string
-	TxnData    string
-	Synthetics string
+	ID             string
+	TxnData        string
+	Synthetics     string
+	SyntheticsInfo string
 }
 
 // Init initialises a txnCrossProcess based on the given application connect
@@ -247,6 +254,11 @@ func (txp *txnCrossProcess) handleInboundRequestHeaders(metadata crossProcessMet
 		if err := txp.handleInboundRequestEncodedSynthetics(metadata.Synthetics); err != nil {
 			return err
 		}
+		if metadata.SyntheticsInfo != "" {
+			if err := txp.handleInboundRequestEncodedSyntheticsInfo(metadata.SyntheticsInfo); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -333,6 +345,36 @@ func (txp *txnCrossProcess) handleInboundRequestSynthetics(raw []byte) error {
 		txp.SetSynthetics(true)
 		txp.setRequireGUID()
 		txp.Synthetics = synthetics
+	}
+
+	return nil
+}
+
+func (txp *txnCrossProcess) handleInboundRequestEncodedSyntheticsInfo(encoded string) error {
+	raw, err := deobfuscate(encoded, txp.EncodingKey)
+	if err != nil {
+		return err
+	}
+
+	if err := txp.handleInboundRequestSyntheticsInfo(raw); err != nil {
+		return err
+	}
+
+	txp.SyntheticsInfoHeader = encoded
+	return nil
+}
+
+func (txp *txnCrossProcess) handleInboundRequestSyntheticsInfo(raw []byte) error {
+	synthetics := &cat.SyntheticsInfo{}
+	if err := json.Unmarshal(raw, synthetics); err != nil {
+		return err
+	}
+
+	// The specced behaviour here if the account isn't trusted is to disable the
+	// synthetics handling, but not CAT in general, so we won't return an error
+	// here.
+	if txp.IsSynthetics() {
+		txp.SyntheticsInfo = synthetics
 	}
 
 	return nil

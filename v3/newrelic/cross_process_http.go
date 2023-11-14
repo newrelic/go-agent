@@ -64,6 +64,11 @@ func metadataToHTTPHeader(metadata crossProcessMetadata) http.Header {
 
 	if metadata.Synthetics != "" {
 		header.Add(cat.NewRelicSyntheticsName, metadata.Synthetics)
+
+		// This header will only be present when the `X-NewRelic-Synthetics` header is present
+		if metadata.SyntheticsInfo != "" {
+
+		}
 	}
 
 	return header
