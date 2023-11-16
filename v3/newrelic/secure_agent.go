@@ -106,6 +106,10 @@ func (b *BodyBuffer) Write(p []byte) (int, error) {
 	if l := len(b.buf); len(p) <= secureAgent.RequestBodyReadLimit()-l {
 		b.buf = append(b.buf, p...)
 		return len(p), nil
+	} else if l := len(b.buf); secureAgent.RequestBodyReadLimit()-l > 1 {
+		end := secureAgent.RequestBodyReadLimit() - l
+		b.buf = append(b.buf, p[:end-1]...)
+		return end, nil
 	} else {
 		b.isDataTruncated = true
 		return 0, nil
