@@ -245,7 +245,7 @@ func serverName(r *http.Request) string {
 	return ""
 }
 
-func reqBody(req *http.Request) io.Writer {
+func reqBody(req *http.Request) *BodyBuffer {
 	if IsSecurityAgentPresent() {
 		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
 		tee := io.TeeReader(req.Body, buf)
@@ -600,7 +600,7 @@ type WebRequest struct {
 
 	// The following fields are needed for the secure agent's vulnerability
 	// detection features.
-	Body          io.Writer
+	Body          *BodyBuffer
 	ServerName    string
 	Type          string
 	RemoteAddress string
@@ -626,8 +626,18 @@ func (webrequest WebRequest) GetHost() string {
 	return webrequest.Host
 }
 
-func (webrequest WebRequest) GetBody() any {
-	return webrequest.Body
+func (webrequest WebRequest) GetBody() []byte {
+	if webrequest.Body == nil {
+		return make([]byte, 0)
+	}
+	return webrequest.Body.read()
+}
+
+func (webrequest WebRequest) IsDataTruncated() bool {
+	if webrequest.Body == nil {
+		return false
+	}
+	return webrequest.Body.isBodyTruncated()
 }
 
 func (webrequest WebRequest) GetServerName() string {

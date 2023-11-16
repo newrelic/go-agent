@@ -119,6 +119,20 @@ func (b *BodyBuffer) Len() int {
 	return len(b.buf)
 
 }
+
+func (b *BodyBuffer) read() []byte {
+	if b == nil {
+		return make([]byte, 0)
+	}
+	return b.buf
+}
+
+func (b *BodyBuffer) isBodyTruncated() bool {
+	if b == nil {
+		return false
+	}
+	return b.isDataTruncated
+}
 func (b *BodyBuffer) String() (string, bool) {
 	if b == nil {
 		return "", false
