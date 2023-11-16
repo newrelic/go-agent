@@ -9,7 +9,8 @@ import (
 	"os"
 	"time"
 
-	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrfasthttp"
+	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"github.com/valyala/fasthttp"
 )
@@ -39,8 +40,8 @@ func main() {
 	if err := app.WaitForConnection(5 * time.Second); nil != err {
 		fmt.Println(err)
 	}
-	_, helloRoute := newrelic.WrapHandleFuncFastHTTP(app, "/hello", index)
-	_, errorRoute := newrelic.WrapHandleFuncFastHTTP(app, "/error", noticeError)
+	_, helloRoute := nrfasthttp.WrapHandleFunc(app, "/hello", index)
+	_, errorRoute := nrfasthttp.WrapHandleFunc(app, "/error", noticeError)
 	handler := func(ctx *fasthttp.RequestCtx) {
 		path := string(ctx.Path())
 		method := string(ctx.Method())
