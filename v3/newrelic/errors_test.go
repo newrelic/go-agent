@@ -375,7 +375,7 @@ func TestErrorsLifecycle(t *testing.T) {
    ]
 ]`)
 	if string(js) != expect {
-		t.Error(string(js), "expect: ", expect)
+		t.Error("actual: ", string(js), "expect: ", expect)
 	}
 }
 
