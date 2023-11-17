@@ -28,6 +28,8 @@ jobs:
           - go-version: 1.19.x
             dirs: v3/integrations/nramqp
           - go-version: 1.19.x
+            dirs: v3/integrations/nrfasthttp
+          - go-version: 1.19.x
             dirs: v3/integrations/nrsarama
           - go-version: 1.19.x
             dirs: v3/integrations/logcontext/nrlogrusplugin

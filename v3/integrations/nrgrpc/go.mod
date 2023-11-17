@@ -9,9 +9,9 @@ require (
 	github.com/newrelic/go-agent/v3 v3.26.0
 	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.1.0
 	// v1.15.0 is the earliest version of grpc using modules.
-	google.golang.org/grpc v1.54.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/grpc v1.56.3
+	google.golang.org/protobuf v1.30.0
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..
+replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../../integrations/nrsecurityagent

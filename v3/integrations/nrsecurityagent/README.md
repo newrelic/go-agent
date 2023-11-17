@@ -54,6 +54,8 @@ validator_service_url: wss://csec.nr-data.net
 detection:
   rxss:
     enabled: true
+request:
+  body_limit:1
 ```
 
 * Based on additional packages imported by the user application, add suitable instrumentation package imports. 
