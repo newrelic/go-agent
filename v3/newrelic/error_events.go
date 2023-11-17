@@ -32,7 +32,7 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 		w.stringField("spanId", e.SpanID)
 	}
 	if e.Expect {
-		w.stringField("error.expected", "true")
+		w.boolField(expectErrorAttr, true)
 	}
 
 	sharedTransactionIntrinsics(&e.txnEvent, &w)

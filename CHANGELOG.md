@@ -1,3 +1,18 @@
+## 3.28.0
+### Fixed
+* Bumped gRPC from 1.54.0 -> 1.56.3 in the following packages /v3/integrations/nrgrpc, /v3/, /v3/integrations/nrgrpc
+* Bumped golang.org/x/net from 0.8.0 -> 0.17.0 in package /v3/integrations/nrgraphqlgo
+* Fixed issue where nrfasthttp would not properly register security agent headers
+* Move fasthttp instrumentation into a new integration package, nrfasthttp
+* Fixed issue where usage of io.ReadAll() was causing a memory leak
+
+### Support statement
+
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.27.0
 ### Added
  * Added Support for getting Container ID's from cgroup v2 docker containers

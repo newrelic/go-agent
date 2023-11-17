@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -246,20 +245,14 @@ func serverName(r *http.Request) string {
 	return ""
 }
 
-func reqBody(req *http.Request) []byte {
-	var bodyBuffer bytes.Buffer
-	requestBuffer := make([]byte, 0)
-	bodyReader := io.TeeReader(req.Body, &bodyBuffer)
-
-	if bodyReader != nil && req.Body != nil {
-		reqBuffer, err := io.ReadAll(bodyReader)
-		if err == nil {
-			requestBuffer = reqBuffer
-		}
-		r := io.NopCloser(bytes.NewBuffer(requestBuffer))
-		req.Body = r
+func reqBody(req *http.Request) *BodyBuffer {
+	if IsSecurityAgentPresent() {
+		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
+		tee := io.TeeReader(req.Body, buf)
+		req.Body = io.NopCloser(tee)
+		return buf
 	}
-	return bytes.TrimRight(requestBuffer, "\x00")
+	return nil
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -607,7 +600,7 @@ type WebRequest struct {
 
 	// The following fields are needed for the secure agent's vulnerability
 	// detection features.
-	Body          []byte
+	Body          *BodyBuffer
 	ServerName    string
 	Type          string
 	RemoteAddress string
@@ -634,7 +627,17 @@ func (webrequest WebRequest) GetHost() string {
 }
 
 func (webrequest WebRequest) GetBody() []byte {
-	return webrequest.Body
+	if webrequest.Body == nil {
+		return make([]byte, 0)
+	}
+	return webrequest.Body.read()
+}
+
+func (webrequest WebRequest) IsDataTruncated() bool {
+	if webrequest.Body == nil {
+		return false
+	}
+	return webrequest.Body.isBodyTruncated()
 }
 
 func (webrequest WebRequest) GetServerName() string {

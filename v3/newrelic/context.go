@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/valyala/fasthttp"
 )
 
 // NewContext returns a new context.Context that carries the provided
@@ -52,17 +51,4 @@ func transactionFromRequestContext(req *http.Request) *Transaction {
 		txn = FromContext(req.Context())
 	}
 	return txn
-}
-
-func transactionFromRequestContextFastHTTP(ctx *fasthttp.RequestCtx) *Transaction {
-	var txn *Transaction
-	if nil != ctx {
-		txn := ctx.UserValue("transaction").(*Transaction)
-		return txn
-	}
-
-	if txn != nil {
-		return txn
-	}
-	return nil
 }
