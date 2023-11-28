@@ -134,14 +134,15 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 
 func obfuscateLicenseKeyCollectorRequest(responseErrorString string) string {
 	licenseKeyIndex := strings.Index(responseErrorString, "?license_key=")
+	licenseKeyRedacted := "?license_key=**REDACTED**"
 	if licenseKeyIndex == -1 {
 		licenseKeyIndex = strings.Index(responseErrorString, "&license_key=")
 		if licenseKeyIndex == -1 {
 			return responseErrorString
 		}
-	}
 
-	licenseKeyRedacted := "license_key=**REDACTED**"
+		licenseKeyRedacted = "&license_key=**REDACTED**"
+	}
 
 	marshalFormatIndex := strings.Index(responseErrorString[licenseKeyIndex:], "&")
 	if marshalFormatIndex == -1 {

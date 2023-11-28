@@ -16,12 +16,12 @@ func TestObfuscateLicenseKey(t *testing.T) {
 	msg := `message:time="2023-11-23T01:50:51Z" level=warning msg="harvest failure" cmd=span_event_data component=newrelic error="Post \"https://staging-collector.newrelic.com/agent_listener/invoke_raw_method?license_key=EXAMPLEKEY&marshal_format=json&method=span_event_data&protocol_version=17&run_id=BdQyjRYxA1GKeaX2LBhF9RhBVAwAc3RlZWx5LWdsaW50KQEXAMPLE\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)" retain_data=true`
 
 	if obfuscateLicenseKeyCollectorRequest(msg) != `message:time="2023-11-23T01:50:51Z" level=warning msg="harvest failure" cmd=span_event_data component=newrelic error="Post \"https://staging-collector.newrelic.com/agent_listener/invoke_raw_method?license_key=**REDACTED**&marshal_format=json&method=span_event_data&protocol_version=17&run_id=BdQyjRYxA1GKeaX2LBhF9RhBVAwAc3RlZWx5LWdsaW50KQEXAMPLE\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)" retain_data=true` {
-		t.Error("obfuscation error")
+		t.Errorf("obfuscation error: %s", msg)
 	}
 
 	msg2 := `message:time="2023-11-23T01:50:51Z" level=warning msg="harvest failure" cmd=span_event_data component=newrelic error="Post \"https://staging-collector.newrelic.com/agent_listener/invoke_raw_method?license_key=EXAMPLEKEY&method=span_event_data&protocol_version=17&run_id=BdQyjRYxA1GKeaX2LBhF9RhBVAwAc3RlZWx5LWdsaW50KQEXAMPLE\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)" retain_data=true`
 	if obfuscateLicenseKeyCollectorRequest(msg2) != `message:time="2023-11-23T01:50:51Z" level=warning msg="harvest failure" cmd=span_event_data component=newrelic error="Post \"https://staging-collector.newrelic.com/agent_listener/invoke_raw_method?license_key=**REDACTED**&method=span_event_data&protocol_version=17&run_id=BdQyjRYxA1GKeaX2LBhF9RhBVAwAc3RlZWx5LWdsaW50KQEXAMPLE\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)" retain_data=true` {
-		t.Error("obfuscation error")
+		t.Errorf("obfuscation error: %s", msg2)
 	}
 }
 
