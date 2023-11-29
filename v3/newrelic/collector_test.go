@@ -60,18 +60,18 @@ func TestCollectorResponseCodeError(t *testing.T) {
 		{code: 999999, success: false, disconnect: false, restart: false, saveHarvestData: false},
 	}
 	for _, tc := range testcases {
-		resp := newRPMResponse(tc.code)
-		if tc.success != (nil == resp.Err) {
-			t.Error("error", tc.code, tc.success, resp.Err)
+		resp := newRPMResponse(nil).AddStatusCode(tc.code)
+		if tc.success != (nil == resp.GetError()) {
+			t.Error("error", tc.code, tc.success, resp.GetError())
 		}
 		if tc.disconnect != resp.IsDisconnect() {
-			t.Error("disconnect", tc.code, tc.disconnect, resp.Err)
+			t.Error("disconnect", tc.code, tc.disconnect, resp.GetError())
 		}
 		if tc.restart != resp.IsRestartException() {
-			t.Error("restart", tc.code, tc.restart, resp.Err)
+			t.Error("restart", tc.code, tc.restart, resp.GetError())
 		}
 		if tc.saveHarvestData != resp.ShouldSaveHarvestData() {
-			t.Error("save harvest data", tc.code, tc.saveHarvestData, resp.Err)
+			t.Error("save harvest data", tc.code, tc.saveHarvestData, resp.GetError())
 		}
 	}
 }
@@ -115,8 +115,8 @@ func TestCollectorRequest(t *testing.T) {
 		},
 	}
 	resp := collectorRequest(cmd, cs)
-	if nil != resp.Err {
-		t.Error(resp.Err)
+	if nil != resp.GetError() {
+		t.Error(resp.GetError())
 	}
 }
 
@@ -147,7 +147,7 @@ func TestCollectorBadRequest(t *testing.T) {
 	}
 	u := ":" // bad url
 	resp := collectorRequestInternal(u, cmd, cs)
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Error("missing expected error")
 	}
 }
@@ -175,7 +175,7 @@ func TestCollectorTimeout(t *testing.T) {
 	}
 	u := "https://example.com"
 	resp := collectorRequestInternal(u, cmd, cs)
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Error("missing expected error")
 	}
 	if !resp.ShouldSaveHarvestData() {
@@ -253,7 +253,7 @@ func (m connectMock) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func (m connectMock) CancelRequest(req *http.Request) {}
 
-func testConnectHelper(cm connectMock) (*internal.ConnectReply, rpmResponse) {
+func testConnectHelper(cm connectMock) (*internal.ConnectReply, *rpmResponse) {
 	cs := rpmControls{
 		License: "12345",
 		Client:  &http.Client{Transport: cm},
@@ -273,8 +273,8 @@ func TestConnectAttemptSuccess(t *testing.T) {
 		redirect: endpointResult{response: makeResponse(200, redirectBody)},
 		connect:  endpointResult{response: makeResponse(200, connectBody)},
 	})
-	if nil == run || nil != resp.Err {
-		t.Fatal(run, resp.Err)
+	if nil == run || nil != resp.GetError() {
+		t.Fatal(run, resp.GetError())
 	}
 	if run.Collector != "special_collector" {
 		t.Error(run.Collector)
@@ -292,7 +292,7 @@ func TestConnectClientError(t *testing.T) {
 	if nil != run {
 		t.Fatal(run)
 	}
-	if resp.Err == nil {
+	if resp.GetError() == nil {
 		t.Fatal("missing expected error")
 	}
 }
@@ -305,7 +305,7 @@ func TestConnectAttemptDisconnectOnRedirect(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 	if !resp.IsDisconnect() {
@@ -321,7 +321,7 @@ func TestConnectAttemptDisconnectOnConnect(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 	if !resp.IsDisconnect() {
@@ -337,7 +337,7 @@ func TestConnectAttemptBadSecurityPolicies(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 	if !resp.IsDisconnect() {
@@ -353,7 +353,7 @@ func TestConnectAttemptInvalidJSON(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 }
@@ -366,7 +366,7 @@ func TestConnectAttemptCollectorNotString(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 }
@@ -379,7 +379,7 @@ func TestConnectAttempt401(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 	if !resp.IsRestartException() {
@@ -395,7 +395,7 @@ func TestConnectAttemptOtherReturnCode(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Fatal("missing error")
 	}
 }
@@ -408,8 +408,8 @@ func TestConnectAttemptMissingRunID(t *testing.T) {
 	if nil != run {
 		t.Error(run)
 	}
-	if errMissingAgentRunID != resp.Err {
-		t.Fatal("wrong error", resp.Err)
+	if errMissingAgentRunID != resp.GetError() {
+		t.Fatal("wrong error", resp.GetError())
 	}
 }
 
@@ -438,7 +438,7 @@ func TestCollectorRequestRespectsMaxPayloadSize(t *testing.T) {
 		},
 	}
 	resp := collectorRequest(cmd, cs)
-	if nil == resp.Err {
+	if nil == resp.GetError() {
 		t.Error("response should have contained error")
 	}
 	if resp.ShouldSaveHarvestData() {
@@ -482,8 +482,8 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 
 	for _, test := range testcases {
 		reply, resp := connectAttempt(config{}, controls(test.replyBody))
-		if nil != resp.Err {
-			t.Error("resp returned unexpected error:", resp.Err)
+		if nil != resp.GetError() {
+			t.Error("resp returned unexpected error:", resp.GetError())
 		}
 		if test.expectedMaxPayloadSize != reply.MaxPayloadSizeInBytes {
 			t.Errorf("incorrect MaxPayloadSizeInBytes: expected=%d actual=%d",
