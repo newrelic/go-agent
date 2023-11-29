@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -103,7 +102,7 @@ func TestCollectorRequest(t *testing.T) {
 				testField("zip", r.Header.Get("zip"), "zap")
 				return &http.Response{
 					StatusCode: 200,
-					Body:       ioutil.NopCloser(strings.NewReader("body")),
+					Body:       io.NopCloser(strings.NewReader("body")),
 				}, nil
 			}),
 		},
@@ -134,7 +133,7 @@ func TestCollectorBadRequest(t *testing.T) {
 			Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: 200,
-					Body:       ioutil.NopCloser(strings.NewReader("body")),
+					Body:       io.NopCloser(strings.NewReader("body")),
 				}, nil
 			}),
 		},
@@ -224,7 +223,7 @@ const (
 func makeResponse(code int, body string) *http.Response {
 	return &http.Response{
 		StatusCode: code,
-		Body:       ioutil.NopCloser(strings.NewReader(body)),
+		Body:       io.NopCloser(strings.NewReader(body)),
 	}
 }
 
@@ -467,7 +466,7 @@ func TestConnectReplyMaxPayloadSize(t *testing.T) {
 				Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 					return &http.Response{
 						StatusCode: 200,
-						Body:       ioutil.NopCloser(strings.NewReader(replyBody)),
+						Body:       io.NopCloser(strings.NewReader(replyBody)),
 					}, nil
 				}),
 			},
