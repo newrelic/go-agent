@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -64,32 +64,78 @@ type rpmControls struct {
 // Agent Behavior Summary:
 //
 // on connect/preconnect:
-//     410 means shutdown
-//     200, 202 mean success (start run)
-//     all other response codes and errors mean try after backoff
+//
+//	410 means shutdown
+//	200, 202 mean success (start run)
+//	all other response codes and errors mean try after backoff
 //
 // on harvest:
-//     410 means shutdown
-//     401, 409 mean restart run
-//     408, 429, 500, 503 mean save data for next harvest
-//     all other response codes and errors discard the data and continue the current harvest
+//
+//	410 means shutdown
+//	401, 409 mean restart run
+//	408, 429, 500, 503 mean save data for next harvest
+//	all other response codes and errors discard the data and continue the current harvest
 type rpmResponse struct {
 	statusCode int
 	body       []byte
 	// Err indicates whether or not the call was successful: newRPMResponse
 	// should be used to avoid mismatch between statusCode and Err.
-	Err                      error
+	err                      error
 	disconnectSecurityPolicy bool
 	// forceSaveHarvestData overrides the status code and forces a save of data
 	forceSaveHarvestData bool
 }
 
-func newRPMResponse(statusCode int) rpmResponse {
-	var err error
-	if statusCode != 200 && statusCode != 202 {
-		err = fmt.Errorf("response code: %d", statusCode)
+// please create all rpmResponses this way
+func newRPMResponse(err error) *rpmResponse {
+	if err == nil {
+		return &rpmResponse{}
 	}
-	return rpmResponse{statusCode: statusCode, Err: err}
+
+	// remove url from errors to avoid sensitive data leaks
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		ue.URL = "**REDACTED-URL**"
+	}
+
+	return &rpmResponse{
+		err: err,
+	}
+}
+
+// AddStatusCode adds an http error status code to the rpm response. This can overwrite the error
+// string stored in the rpm response if the code is an error code.
+func (resp *rpmResponse) AddStatusCode(statusCode int) *rpmResponse {
+	resp.statusCode = statusCode
+	if statusCode != 200 && statusCode != 202 {
+		resp.err = fmt.Errorf("response code: %d", statusCode)
+	}
+
+	return resp
+}
+
+// SetError overwrites the existing response error
+func (resp *rpmResponse) SetError(err error) *rpmResponse {
+	resp.err = err
+	return resp
+}
+
+// AddBody adds a byte slice containing an http response body
+func (resp *rpmResponse) AddBody(body []byte) *rpmResponse {
+	resp.body = body
+	return resp
+}
+
+// ForceSaveHarvestData overrides the status code and forces a save of data
+func (resp *rpmResponse) ForceSaveHarvestData() *rpmResponse {
+	resp.forceSaveHarvestData = true
+	return resp
+}
+
+// DisconnectSecurityPolicy sets disconnectSecurityPolicy to true in the rpm response
+func (resp *rpmResponse) DisconnectSecurityPolicy() *rpmResponse {
+	resp.disconnectSecurityPolicy = true
+	return resp
 }
 
 // IsDisconnect indicates that the agent should disconnect.
@@ -101,6 +147,10 @@ func (resp rpmResponse) IsDisconnect() bool {
 func (resp rpmResponse) IsRestartException() bool {
 	return resp.statusCode == 401 ||
 		resp.statusCode == 409
+}
+
+func (resp rpmResponse) GetError() error {
+	return resp.err
 }
 
 // ShouldSaveHarvestData indicates that the agent should save the data and try
@@ -154,19 +204,19 @@ func compress(b []byte, gzipWriterPool *sync.Pool) (*bytes.Buffer, error) {
 	return &buf, nil
 }
 
-func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmResponse {
+func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) *rpmResponse {
 	compressed, err := compress(cmd.Data, cs.GzipWriterPool)
 	if nil != err {
-		return rpmResponse{Err: err}
+		return newRPMResponse(err)
 	}
 
 	if l := compressed.Len(); l > cmd.MaxPayloadSize {
-		return rpmResponse{Err: fmt.Errorf("Payload size for %s too large: %d greater than %d", cmd.Name, l, cmd.MaxPayloadSize)}
+		return newRPMResponse(fmt.Errorf("Payload size for %s too large: %d greater than %d", cmd.Name, l, cmd.MaxPayloadSize))
 	}
 
 	req, err := http.NewRequest("POST", url, compressed)
 	if nil != err {
-		return rpmResponse{Err: err}
+		return newRPMResponse(err)
 	}
 
 	req.Header.Add("Accept-Encoding", "identity, deflate")
@@ -179,32 +229,28 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) rpmRespons
 
 	resp, err := cs.Client.Do(req)
 	if err != nil {
-		return rpmResponse{
-			forceSaveHarvestData: true,
-			Err:                  err,
-		}
+		return newRPMResponse(err).ForceSaveHarvestData()
 	}
 
 	defer resp.Body.Close()
 
-	r := newRPMResponse(resp.StatusCode)
+	r := newRPMResponse(nil).AddStatusCode(resp.StatusCode)
 
 	// Read the entire response, rather than using resp.Body as input to json.NewDecoder to
 	// avoid the issue described here:
 	// https://github.com/google/go-github/pull/317
 	// https://ahmetalpbalkan.com/blog/golang-json-decoder-pitfalls/
 	// Also, collector JSON responses are expected to be quite small.
-	body, err := ioutil.ReadAll(resp.Body)
-	if nil == r.Err {
-		r.Err = err
+	body, err := io.ReadAll(resp.Body)
+	if r.GetError() == nil {
+		r.SetError(err)
 	}
-	r.body = body
-
+	r.AddBody(body)
 	return r
 }
 
 // collectorRequest makes a request to New Relic.
-func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
+func collectorRequest(cmd rpmCmd, cs rpmControls) *rpmResponse {
 	url := rpmURL(cmd, cs)
 	urlWithoutLicense := removeLicenseFromURL(url)
 
@@ -219,7 +265,7 @@ func collectorRequest(cmd rpmCmd, cs rpmControls) rpmResponse {
 	resp := collectorRequestInternal(url, cmd, cs)
 
 	if cs.Logger.DebugEnabled() {
-		if err := resp.Err; err != nil {
+		if err := resp.GetError(); err != nil {
 			cs.Logger.Debug("rpm failure", map[string]interface{}{
 				"command":  cmd.Name,
 				"url":      urlWithoutLicense,
@@ -266,13 +312,13 @@ var (
 )
 
 // connectAttempt tries to connect an application.
-func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmResponse) {
+func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, *rpmResponse) {
 	preconnectData, err := json.Marshal([]preconnectRequest{{
 		SecurityPoliciesToken: config.SecurityPoliciesToken,
 		HighSecurity:          config.HighSecurity,
 	}})
 	if nil != err {
-		return nil, rpmResponse{Err: fmt.Errorf("unable to marshal preconnect data: %v", err)}
+		return nil, newRPMResponse(fmt.Errorf("unable to marshal preconnect data: %v", err))
 	}
 
 	call := rpmCmd{
@@ -283,7 +329,7 @@ func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmR
 	}
 
 	resp := collectorRequest(call, cs)
-	if nil != resp.Err {
+	if resp.GetError() != nil {
 		return nil, resp
 	}
 
@@ -292,16 +338,17 @@ func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmR
 	}
 	err = json.Unmarshal(resp.body, &preconnect)
 	if nil != err {
-		// Certain security policy errors must be treated as a disconnect.
-		return nil, rpmResponse{
-			Err:                      fmt.Errorf("unable to process preconnect reply: %v", err),
-			disconnectSecurityPolicy: internal.IsDisconnectSecurityPolicyError(err),
+		resp := newRPMResponse(fmt.Errorf("unable to process preconnect reply: %v", err))
+		if internal.IsDisconnectSecurityPolicyError(err) {
+			resp.DisconnectSecurityPolicy()
 		}
+		// Certain security policy errors must be treated as a disconnect.
+		return nil, resp
 	}
 
 	js, err := config.createConnectJSON(preconnect.Preconnect.SecurityPolicies.PointerIfPopulated())
 	if nil != err {
-		return nil, rpmResponse{Err: fmt.Errorf("unable to create connect data: %v", err)}
+		return nil, newRPMResponse(fmt.Errorf("unable to create connect data: %v", err))
 	}
 
 	call.Collector = preconnect.Preconnect.Collector
@@ -309,19 +356,19 @@ func connectAttempt(config config, cs rpmControls) (*internal.ConnectReply, rpmR
 	call.Name = cmdConnect
 
 	resp = collectorRequest(call, cs)
-	if nil != resp.Err {
+	if resp.GetError() != nil {
 		return nil, resp
 	}
 
 	reply, err := internal.UnmarshalConnectReply(resp.body, preconnect.Preconnect)
 	if nil != err {
-		return nil, rpmResponse{Err: err}
+		return nil, newRPMResponse(err)
 	}
 
 	// Note:  This should never happen.  It would mean the collector
 	// response is malformed.  This exists merely as extra defensiveness.
 	if "" == reply.RunID {
-		return nil, rpmResponse{Err: errMissingAgentRunID}
+		return nil, newRPMResponse(errMissingAgentRunID)
 	}
 
 	return reply, resp
