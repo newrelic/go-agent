@@ -211,6 +211,7 @@ func TestSlowQueriesBetterCAT(t *testing.T) {
 		FinalName: "WebTransaction/Go/hello",
 		Duration:  3 * time.Second,
 		Attrs:     attr,
+		TxnID:     "my-txn-id",
 		BetterCAT: betterCAT{
 			Enabled:  true,
 			TxnID:    "txn-id",

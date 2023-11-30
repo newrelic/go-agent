@@ -124,6 +124,8 @@ func (h *tracedError) WriteJSON(buf *bytes.Buffer) {
 		h.Stack.WriteJSON(buf)
 	}
 	buf.WriteByte('}')
+	buf.WriteByte(',')
+	jsonx.AppendString(buf, h.txnEvent.TxnID)
 
 	buf.WriteByte(']')
 }
