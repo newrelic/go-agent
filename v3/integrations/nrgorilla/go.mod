@@ -7,7 +7,7 @@ go 1.19
 require (
 	// v1.7.0 is the earliest version of Gorilla using modules.
 	github.com/gorilla/mux v1.7.0
-	github.com/newrelic/go-agent/v3 v3.26.0
+	github.com/newrelic/go-agent/v3 v3.28.1
 )
 
 
