@@ -22,6 +22,7 @@ type WantError struct {
 	TxnName         string
 	Msg             string
 	Klass           string
+	GUID            string
 	UserAttributes  map[string]interface{}
 	AgentAttributes map[string]interface{}
 }
