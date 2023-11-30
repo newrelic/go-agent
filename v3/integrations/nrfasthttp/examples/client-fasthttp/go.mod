@@ -9,4 +9,5 @@ require (
 )
 
 replace github.com/newrelic/go-agent/v3/integrations/nrfasthttp v1.0.0 => ../../
+
 replace github.com/newrelic/go-agent/v3 => ../../../..

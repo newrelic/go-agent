@@ -9,7 +9,6 @@ require (
 	github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo v1.0.0
 )
 
-
 replace github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo => ../
 
 replace github.com/newrelic/go-agent/v3 => ../../..
