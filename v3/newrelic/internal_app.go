@@ -121,7 +121,7 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 		if resp.Err != nil {
 			app.Warn("harvest failure", map[string]interface{}{
 				"cmd":         cmd,
-				"error":       resp.Err.Error(),
+				"error":       obfuscateLicenseKeyCollectorRequest(resp.Err.Error()),
 				"retain_data": resp.ShouldSaveHarvestData(),
 			})
 		}
@@ -130,6 +130,17 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 			app.Consume(run.Reply.RunID, p)
 		}
 	}
+}
+
+func obfuscateLicenseKeyCollectorRequest(responseErrorString string) string {
+	licenseKeyIndex := strings.Index(responseErrorString, "license_key=")
+	marshalFormatIndex := strings.Index(responseErrorString, "&marshal_format=")
+
+	if licenseKeyIndex == -1 || marshalFormatIndex == -1 {
+		return responseErrorString
+	}
+
+	return responseErrorString[0:licenseKeyIndex] + "license_key=**REDACTED**" + responseErrorString[marshalFormatIndex:]
 }
 
 func (app *app) connectRoutine() {

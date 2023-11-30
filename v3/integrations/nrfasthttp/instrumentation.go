@@ -2,15 +2,16 @@ package nrfasthttp
 
 import (
 	"net/http"
-
 	"github.com/newrelic/go-agent/v3/internal"
-
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
+
 func init() { internal.TrackUsage("integration", "framework", "fasthttp") }
+
+
 
 type fasthttpWrapperResponse struct {
 	ctx *fasthttp.RequestCtx
