@@ -20,6 +20,15 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
+func TestURLErrorRedaction(t *testing.T) {
+	_, err := http.Get("http://notexist.example/sensitive?sensitive=very")
+	rpm := newRPMResponse(err)
+
+	if strings.Contains(rpm.GetError().Error(), "http://notexist.example/sensitive?sensitive=very") {
+		t.Error("Sensitive URL should have been removed from the error struct, but were not")
+	}
+}
+
 func TestCollectorResponseCodeError(t *testing.T) {
 	testcases := []struct {
 		code            int

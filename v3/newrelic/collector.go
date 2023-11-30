@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"sync"
 
@@ -87,10 +86,6 @@ type rpmResponse struct {
 	forceSaveHarvestData bool
 }
 
-var (
-	errorURLRegexp = regexp.MustCompile("\\\".*\\\"")
-)
-
 // please create all rpmResponses this way
 func newRPMResponse(err error) *rpmResponse {
 	if err == nil {
@@ -98,11 +93,11 @@ func newRPMResponse(err error) *rpmResponse {
 	}
 
 	// remove url from errors to avoid sensitive data leaks
-	switch err.(type) {
-	case *url.Error:
-		errStr := errorURLRegexp.ReplaceAllString(err.Error(), "**REDACTED-URL**")
-		err = errors.New(errStr)
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		ue.URL = "**REDACTED-URL**"
 	}
+
 	return &rpmResponse{
 		err: err,
 	}
