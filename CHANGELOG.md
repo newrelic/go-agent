@@ -1,6 +1,6 @@
 ## 3.28.1
 ### Added
-Added Supportability Metrics to `nrfasthttp` (brings `nrfasthttp` version to v1.0.1).
+Added to `nrfasthttp` (brings `nrfasthttp` version to v1.0.1).
 Always Link Transaction IDs to traces regardless of whether Distributed Tracing is enabled or not
 ### Fixed
 Fixed an issue where `nil` `Request.Body` could be set to non-`nil` `request.Body` with zero length when the security agent is enabled
