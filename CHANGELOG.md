@@ -1128,7 +1128,7 @@ feedback that you would like to pass along, please open up an issue
 [here](https://github.com/newrelic/go-agent/issues/new) and be sure to include
 the label `3.0`.
   * For normal (non-3.0) issues/questions we request that you report them via
-   our [support site](http://support.newrelic.com/) or our
+   our [support site](https://support.newrelic.com/) or our
    [community forum](https://discuss.newrelic.com). Please only report
    questions related to the 3.0 pre-release directly via GitHub.
 
@@ -1162,7 +1162,7 @@ include:
 ### Bug Fixes
 
 * Fixed an issue in the
-  [`nrhttprouter`](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  [`nrhttprouter`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
   integration where the transaction was not being added to the requests
   context.  This resulted in an inability to access the transaction from within
   an
@@ -1208,7 +1208,7 @@ package.
   // (see https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing)
   txn := currentTxn()
 
-  req, err := http.NewRequest("GET", "http://example.com", nil)
+  req, err := http.NewRequest("GET", "https://example.com", nil)
   if nil != err {
       log.Fatalln(err)
   }
@@ -1384,9 +1384,9 @@ It can be configured as follows:
 ### New Features
 
 * Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in
-  the new [_integrations/nrhttprouter](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
+  the new [_integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
 
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
   * [Example](_integrations/nrhttprouter/example/main.go)
 
 * Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap) in
@@ -1469,7 +1469,7 @@ package.  This package supports instrumentation for servers, clients, publishers
 * Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. This can be useful when you want to create a web transaction but don't have an `http.Request` object. Here's an example of creating a static `WebRequest` and using it to mark a transaction as a web transaction:
   ```go
   hdrs := http.Headers{}
-  u, _ := url.Parse("http://example.com")
+  u, _ := url.Parse("https://example.com")
   webReq := newrelic.NewStaticWebRequest(hdrs, u, "GET", newrelic.TransportHTTP)
   txn := app.StartTransaction("My-Transaction", nil, nil)
   txn.SetWebRequest(webReq)
@@ -1701,8 +1701,8 @@ package.  This package supports instrumentation for servers and clients.
   When using these SDKs, a segment will be created for each out going request.
   For DynamoDB calls, these will be Datastore segments and for all others they
   will be External segments.
-  * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
-  * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
+  * [v1 Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
+  * [v2 Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
 * Added span event and transaction trace segment attribute configuration.  You
   may control which attributes are captured in span events and transaction trace
@@ -1801,7 +1801,7 @@ txn.Application().RecordCustomEvent("customerOrder", map[string]interface{}{
 
 * Added support for [Echo](https://echo.labstack.com) in the new `nrecho`
   package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho)
   * [Example](_integrations/nrecho/example/main.go)
 
 * Introduced `Transaction.SetWebResponse(http.ResponseWriter)` method which sets
@@ -1864,7 +1864,7 @@ transactions.  Example use:
 ```go
 client := &http.Client{}
 client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
-request, _ := http.NewRequest("GET", "http://example.com", nil)
+request, _ := http.NewRequest("GET", "https://example.com", nil)
 request = newrelic.RequestWithTransactionContext(request, txn)
 resp, err := client.Do(request)
 ```
@@ -2027,7 +2027,7 @@ txn.NoticeError(newrelic.Error{
 
 * Added support for [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin)
   in the new `nrgin` package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
   * [Example](examples/_gin/main.go)
 
 ## 1.8.0
@@ -2040,9 +2040,9 @@ txn.NoticeError(newrelic.Error{
 
 ## 1.7.0
 
-* Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`
+* Added support for [gorilla/mux](https://github.com/gorilla/mux) in the new `nrgorilla`
   package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
   * [Example](examples/_gorilla/main.go)
 
 ## 1.6.0
