@@ -415,7 +415,7 @@ func TestHarvestErrorEventsReady(t *testing.T) {
 	})
 	h.ErrorEvents.Add(&errorEvent{
 		errorData: errorData{Klass: "klass", Msg: "msg", When: time.Now()},
-		txnEvent:  txnEvent{FinalName: "finalName", Duration: 1 * time.Second},
+		txnEvent:  txnEvent{FinalName: "finalName", Duration: 1 * time.Second, TxnID: "txn-guid-id"},
 	}, 0)
 	ready := h.Ready(now.Add(10 * time.Second))
 	payloads := ready.Payloads(true)
@@ -544,6 +544,7 @@ func TestHarvestMetricsTracesReady(t *testing.T) {
 		TxnName: "finalName",
 		Msg:     "msg",
 		Klass:   "klass",
+		GUID:    "error-guid-id",
 	}})
 	expectErrors(t, h.ErrorTraces, []internal.WantError{})
 

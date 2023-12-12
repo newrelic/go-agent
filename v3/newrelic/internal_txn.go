@@ -118,11 +118,13 @@ func newTxn(app *app, run *appRun, name string, opts ...TraceOption) *thread {
 	if !txnOpts.SuppressCLM && run.Config.CodeLevelMetrics.Enabled && (txnOpts.DemandCLM || run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
 		reportCodeLevelMetrics(txnOpts, run, txn.Attrs.Agent.Add)
 	}
+	txn.TraceIDGenerator = run.Reply.TraceIDGenerator
+	traceID := txn.TraceIDGenerator.GenerateTraceID()
+	txn.SetTransactionID(traceID)
 
 	if run.Config.DistributedTracer.Enabled {
 		txn.BetterCAT.Enabled = true
-		txn.TraceIDGenerator = run.Reply.TraceIDGenerator
-		txn.BetterCAT.SetTraceAndTxnIDs(txn.TraceIDGenerator.GenerateTraceID())
+		txn.BetterCAT.SetTraceAndTxnIDs(traceID)
 		txn.BetterCAT.Priority = newPriorityFromRandom(txn.TraceIDGenerator.Float32)
 		txn.ShouldCollectSpanEvents = txn.shouldCollectSpanEvents
 		txn.ShouldCreateSpanGUID = txn.shouldCreateSpanGUID
@@ -523,7 +525,7 @@ func (thd *thread) End(recovered interface{}) error {
 		// segments occur.
 		for _, evt := range txn.SpanEvents {
 			evt.TraceID = txn.BetterCAT.TraceID
-			evt.TransactionID = txn.BetterCAT.TxnID
+			evt.TransactionID = txn.TxnID
 			evt.Sampled = txn.BetterCAT.Sampled
 			evt.Priority = txn.BetterCAT.Priority
 		}
@@ -1144,7 +1146,7 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	p.Priority = txn.BetterCAT.Priority
 	p.Timestamp.Set(txn.Reply.DistributedTraceTimestampGenerator())
 	p.TrustedAccountKey = txn.Reply.TrustedAccountKey
-	p.TransactionID = txn.BetterCAT.TxnID // Set the transaction ID to the transaction guid.
+	p.TransactionID = txn.TxnID // Set the transaction ID to the transaction guid.
 	if nil != txn.BetterCAT.Inbound {
 		p.NonTrustedTraceState = txn.BetterCAT.Inbound.NonTrustedTraceState
 		p.OriginalTraceState = txn.BetterCAT.Inbound.OriginalTraceState

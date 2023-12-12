@@ -246,7 +246,7 @@ func serverName(r *http.Request) string {
 }
 
 func reqBody(req *http.Request) *BodyBuffer {
-	if IsSecurityAgentPresent() {
+	if IsSecurityAgentPresent() && req.Body != nil && req.Body != http.NoBody {
 		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
 		tee := io.TeeReader(req.Body, buf)
 		req.Body = io.NopCloser(tee)
