@@ -448,6 +448,8 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+	// Security is used to post security configuration on UI.
+	Security interface{} `json:"Security,omitempty"`
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes

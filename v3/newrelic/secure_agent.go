@@ -46,6 +46,13 @@ func (app *Application) RegisterSecurityAgent(s securityAgent) {
 	}
 }
 
+func (app *Application) UpdateSecurityConfig(s interface{}) {
+	if app == nil || app.app == nil {
+		return
+	}
+	app.app.config.Config.Security = s
+}
+
 func getLinkedMetaData(app *app) map[string]string {
 	runningAppData := make(map[string]string)
 	if app != nil && app.run != nil {
