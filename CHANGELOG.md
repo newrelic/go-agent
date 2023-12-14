@@ -1,3 +1,15 @@
+## 3.29.0
+### Added
+ * Security agent integration `nrsecurityagent` now reports security configuraiton information along with the overall Go Agent configuration values. (Updates `nrsecurityagent` to v1.2.0.)
+ * Code-Level Metrics collection efficiency enhancement allows user callback function for as-needed (and just-in-time) evaluation of custom code locations rather than up-front location overrides, via the `WithCodeLocationCallback` CLM option. Deprecates `WithCodeLocation` option (although the latter function is still supported for compatibility with existing code).
+ * Added extended synthetics support for new `X-Newrelic-Synthetics-Info` HTTP headers.
+ * Documentation fixes.
+ * Removed deprecated `ROADMAP.md` file.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.28.1
 ### Added
 Added Supportability Metrics to `nrfasthttp` (brings `nrfasthttp` version to v1.0.1).
