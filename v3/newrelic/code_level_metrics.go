@@ -90,6 +90,7 @@ type traceOptSet struct {
 	DemandCLM        bool
 	IgnoredPrefixes  []string
 	PathPrefixes     []string
+	LocationCallback func() *CodeLocation
 }
 
 //
@@ -106,9 +107,27 @@ type TraceOption func(*traceOptSet)
 // This is probably a value previously obtained by calling
 // ThisCodeLocation().
 //
+// Deprecated: This function requires the caller to do the work
+// up-front to calculate the code location, which may be a waste
+// of effort if code level metrics happens to be disabled. Instead,
+// use the WithCodeLocationCallback function.
+//
 func WithCodeLocation(loc *CodeLocation) TraceOption {
 	return func(o *traceOptSet) {
 		o.LocationOverride = loc
+	}
+}
+
+//
+// WithCodeLocationCallback adds a callback function which the agent
+// will call if it needs to report the code location with an explicit
+// value provided by the caller. This will only be called if code
+// level metrics is enabled, saving unnecessary work if those metrics
+// are not enabled.
+//
+func WithCodeLocationCallback(locf func() *CodeLocation) TraceOption {
+	return func(o *traceOptSet) {
+		o.LocationCallback = locf
 	}
 }
 
@@ -385,6 +404,9 @@ func withPreparedOptions(newOptions *traceOptSet) TraceOption {
 			if newOptions.LocationOverride != nil {
 				o.LocationOverride = newOptions.LocationOverride
 			}
+			if newOptions.LocationCallback != nil {
+				o.LocationCallback = newOptions.LocationCallback
+			}
 			o.SuppressCLM = newOptions.SuppressCLM
 			o.DemandCLM = newOptions.DemandCLM
 			if newOptions.IgnoredPrefixes != nil {
@@ -542,9 +564,16 @@ func resolveCLMTraceOptions(options []TraceOption) *traceOptSet {
 
 func reportCodeLevelMetrics(tOpts traceOptSet, run *appRun, setAttr func(string, string, interface{})) {
 	var location CodeLocation
+	var locationp *CodeLocation
 
-	if tOpts.LocationOverride != nil {
-		location = *tOpts.LocationOverride
+	if tOpts.LocationCallback != nil {
+		locationp = tOpts.LocationCallback()
+	} else {
+		locationp = tOpts.LocationOverride
+	}
+
+	if locationp != nil {
+		location = *locationp
 	} else {
 		pcs := make([]uintptr, 20)
 		depth := runtime.Callers(2, pcs)
