@@ -125,6 +125,13 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 // level metrics is enabled, saving unnecessary work if those metrics
 // are not enabled.
 //
+// If the callback function value passed here is nil, then no callback
+// function will be used (same as if this function were never called).
+// If the callback function itself returns nil instead of a pointer to
+// a CodeLocation, then it is assumed the callback function was not able
+// to determine the code location, and the CLM reporting code's normal
+// method for determining the code location is used instead.
+//
 func WithCodeLocationCallback(locf func() *CodeLocation) TraceOption {
 	return func(o *traceOptSet) {
 		o.LocationCallback = locf
