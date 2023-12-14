@@ -43,9 +43,10 @@ func httpHeaderToMetadata(header http.Header) crossProcessMetadata {
 	}
 
 	return crossProcessMetadata{
-		ID:         header.Get(cat.NewRelicIDName),
-		TxnData:    header.Get(cat.NewRelicTxnName),
-		Synthetics: header.Get(cat.NewRelicSyntheticsName),
+		ID:             header.Get(cat.NewRelicIDName),
+		TxnData:        header.Get(cat.NewRelicTxnName),
+		Synthetics:     header.Get(cat.NewRelicSyntheticsName),
+		SyntheticsInfo: header.Get(cat.NewRelicSyntheticsInfo),
 	}
 }
 
@@ -64,6 +65,11 @@ func metadataToHTTPHeader(metadata crossProcessMetadata) http.Header {
 
 	if metadata.Synthetics != "" {
 		header.Add(cat.NewRelicSyntheticsName, metadata.Synthetics)
+
+		// This header will only be present when the `X-NewRelic-Synthetics` header is present
+		if metadata.SyntheticsInfo != "" {
+			header.Add(cat.NewRelicSyntheticsInfo, metadata.SyntheticsInfo)
+		}
 	}
 
 	return header
