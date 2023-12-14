@@ -81,7 +81,7 @@ func ExampleNewRoundTripper() {
 	// requests done by this client with external segments.
 	client.Transport = newrelic.NewRoundTripper(client.Transport)
 
-	request, _ := http.NewRequest("GET", "http://example.com", nil)
+	request, _ := http.NewRequest("GET", "https://example.com", nil)
 
 	// Be sure to add the current Transaction to each request's context so
 	// the Transport has access to it.
@@ -160,7 +160,7 @@ func ExampleError() {
 func ExampleExternalSegment() {
 	txn := currentTransaction()
 	client := &http.Client{}
-	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	request, _ := http.NewRequest("GET", "https://www.example.com", nil)
 	segment := newrelic.StartExternalSegment(txn, request)
 	response, _ := client.Do(request)
 	segment.Response = response
@@ -186,7 +186,7 @@ func ExampleExternalSegment_url() {
 func ExampleStartExternalSegment() {
 	txn := currentTransaction()
 	client := &http.Client{}
-	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	request, _ := http.NewRequest("GET", "https://www.example.com", nil)
 	segment := newrelic.StartExternalSegment(txn, request)
 	response, _ := client.Do(request)
 	segment.Response = response
@@ -195,7 +195,7 @@ func ExampleStartExternalSegment() {
 
 func ExampleStartExternalSegment_context() {
 	txn := currentTransaction()
-	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	request, _ := http.NewRequest("GET", "https://www.example.com", nil)
 
 	// If the transaction is added to the request's context then it does not
 	// need to be provided as a parameter to StartExternalSegment.
@@ -214,7 +214,7 @@ func doSendRequest(*http.Request) int { return 418 }
 // http.Response and still want to record the response status code.
 func ExampleExternalSegment_SetStatusCode() {
 	txn := currentTransaction()
-	request, _ := http.NewRequest("GET", "http://www.example.com", nil)
+	request, _ := http.NewRequest("GET", "https://www.example.com", nil)
 	segment := newrelic.StartExternalSegment(txn, request)
 	statusCode := doSendRequest(request)
 	segment.SetStatusCode(statusCode)
@@ -234,7 +234,7 @@ func ExampleTransaction_SetWebRequest() {
 
 func ExampleTransaction_SetWebRequestHTTP() {
 	app := getApp()
-	inboundRequest, _ := http.NewRequest("GET", "http://example.com", nil)
+	inboundRequest, _ := http.NewRequest("GET", "https://example.com", nil)
 	txn := app.StartTransaction("My-Transaction")
 	// Mark transaction as a web transaction, record attributes based on the
 	// inbound request, and read any available distributed tracing headers.
