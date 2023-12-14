@@ -65,6 +65,7 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 	if !isValid {
 		return fmt.Errorf("Newrelic application value cannot be read; did you call newrelic.NewApplication?")
 	}
+	app.UpdateSecurityConfig(c.Security)
 	if !appConfig.HighSecurity && isSecurityAgentEnabled() {
 		secureAgent := securityAgent.InitSecurityAgent(c.Security, appConfig.AppName, appConfig.License, appConfig.Logger.DebugEnabled())
 		app.RegisterSecurityAgent(secureAgent)
