@@ -255,7 +255,8 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -267,7 +268,8 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -292,9 +294,10 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				ID:         mustObfuscate(`1#1`, "foo"),
-				TxnData:    mustObfuscate(`["00000000",false,"00000000","b95be233"]`, "foo"),
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				ID:             mustObfuscate(`1#1`, "foo"),
+				TxnData:        mustObfuscate(`["00000000",false,"00000000","b95be233"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -319,9 +322,10 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				ID:         mustObfuscate(`1#1`, "foo"),
-				TxnData:    mustObfuscate(`["00000000",false,"abcdefgh","cbec2654"]`, "foo"),
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				ID:             mustObfuscate(`1#1`, "foo"),
+				TxnData:        mustObfuscate(`["00000000",false,"abcdefgh","cbec2654"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 	} {

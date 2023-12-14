@@ -95,6 +95,7 @@ func (txp *txnCrossProcess) CreateCrossProcessMetadata(txnName, appName string) 
 	// outbound request headers.
 	if txp.IsSynthetics() {
 		metadata.Synthetics = txp.SyntheticsHeader
+		metadata.SyntheticsInfo = txp.SyntheticsInfoHeader
 	}
 
 	if txp.Enabled {
@@ -149,7 +150,7 @@ func (txp *txnCrossProcess) IsSynthetics() bool {
 	// pointer should be sufficient to determine if this is a synthetics
 	// transaction. Nevertheless, it's convenient to have the Type field be
 	// non-zero if any CAT behaviour has occurred.
-	return 0 != (txp.Type&txnCrossProcessSynthetics) && nil != txp.Synthetics
+	return (txp.Type&txnCrossProcessSynthetics) != 0 && txp.Synthetics != nil
 }
 
 // ParseAppData decodes the given appData value.
