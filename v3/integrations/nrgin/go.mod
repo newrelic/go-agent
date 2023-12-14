@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/newrelic/go-agent/v3 v3.28.1
+	github.com/newrelic/go-agent/v3 v3.29.0
 )
 
 
