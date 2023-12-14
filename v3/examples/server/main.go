@@ -159,7 +159,7 @@ func message(w http.ResponseWriter, r *http.Request) {
 
 func external(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	req, _ := http.NewRequest("GET", "https://example.com", nil)
 
 	// Using StartExternalSegment is recommended because it does distributed
 	// tracing header setup, but if you don't have an *http.Request and
@@ -193,7 +193,7 @@ func roundtripper(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	client.Transport = newrelic.NewRoundTripper(client.Transport)
 
-	request, _ := http.NewRequest("GET", "http://example.com", nil)
+	request, _ := http.NewRequest("GET", "https://example.com", nil)
 	// Since the transaction is already added to the inbound request's
 	// context by WrapHandleFunc, we just need to copy the context from the
 	// inbound request to the external request.
