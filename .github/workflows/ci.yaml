@@ -87,7 +87,7 @@ jobs:
             fi
           else
             echo "Directory /app/$dir does not exist."
-          ficd
+          fi
         done
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
