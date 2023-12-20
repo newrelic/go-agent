@@ -1,5 +1,4 @@
-name: Go Agent CI - Dockerized
-
+name: Go Agent CI
 on: pull_request
 env:
   # Specifies which go version to run integration tests on
@@ -71,18 +70,18 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: "go-agent"
-   
-    - name: Build Docker Image
-      run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
-    - name: Run Tests in Docker
+    - name: Set up Codecov environment variables
+      run: ci_env=`bash <(curl -s https://codecov.io/env)`
+
+    - name: Set up Docker container and run tests
       run: |
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run $ci_env -e CI=true -e GOPROXY=direct go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             else
-              docker run go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run $ci_env -e CI=true go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             fi
           else
             echo "Directory /app/$dir does not exist."
