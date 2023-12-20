@@ -1,225 +1,143 @@
-# Copyright 2020 New Relic Corporation. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-
-name: Go Agent CI
+name: Go Agent CI - Dockerized
 
 on: pull_request
+env:
+  # Specifies which go version to run integration tests on
+  INTEGRATION_TESTS_GO_VERSION: 1.21.5
 
 jobs:
   go-agent-v3:
     runs-on: ubuntu-latest
-    env:
-      # Required when using older versions of Go that do not support gomod.
-      GOPATH: ${{ github.workspace }}
-
     strategy:
       # if one test fails, do not abort the rest
       fail-fast: false
       matrix:
         include:
-          - go-version: 1.19.x
+            # Core Tests on 3 most recent major Go versions
+          - go-version: 1.19.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.20.x
+          - go-version: 1.20.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.21.x
+          - go-version: 1.21.0
             dirs: v3/newrelic,v3/internal,v3/examples
 
-          # v3 integrations
-          - go-version: 1.19.x
-            dirs: v3/integrations/nramqp
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrfasthttp
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrsarama
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext/nrlogrusplugin
-              #            extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/nrlogrus
-              #            extratesting: go get -u github.com/sirupsen/logrus@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/nrzerolog
-            extratesting: go get -u github.com/rs/zerolog@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/nrzap
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/nrwriter
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/zerologWriter
-            extratesting: go get -u github.com/rs/zerolog@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext-v2/logWriter
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrawssdk-v1
-            extratesting: go get -u github.com/aws/aws-sdk-go@main
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrawssdk-v2
-            extratesting: go get -u github.com/aws/aws-sdk-go-v2@main
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrecho-v3
-            # Test against the latest v3 Echo:
-            extratesting: go get -u github.com/labstack/echo@v3
-            # go/new/http no longer stable under go 1.18.x
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrecho-v4
-            extratesting: go get -u github.com/labstack/echo/v4@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrelasticsearch-v7
-            extratesting: go get -u github.com/elastic/go-elasticsearch/v7@7.x
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrgin
-            extratesting: go get -u github.com/gin-gonic/gin@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrgorilla
-            extratesting: go get -u github.com/gorilla/mux@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrgraphgophers
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrlogrus
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrlogxi
-            extratesting: go get -u github.com/mgutz/logxi@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrpkgerrors
-            extratesting: go get -u github.com/pkg/errors@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrlambda
-            extratesting: go get -u github.com/aws/aws-lambda-go@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrmysql
-            extratesting: go get -u github.com/go-sql-driver/mysql@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrpq
-            extratesting: go get -u github.com/lib/pq@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrpgx5
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrpq/example/sqlx
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrredis-v7
-            extratesting: go get -u github.com/go-redis/redis/v7@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrredis-v9
-            extratesting: go get -u github.com/redis/go-redis/v9@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrsqlite3
-            extratesting: go get -u github.com/mattn/go-sqlite3@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrsnowflake
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrgrpc
-            extratesting: go get -u google.golang.org/grpc@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrmicro
-            # As of Dec 2019, there is a race condition in when using go-micro@master
-            # in their logging system.  Instead, we'll test against the latest
-            # released version.
-            # As of Jan 2019, it is impossible to go get the latest micro version.
-            # As of June 2020, confirmed errors still result
-            # extratesting: go get -u github.com/micro/go-micro@latest
-            # If we are using the latest released version to test, we need to use a newer version of go
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrnats
-            extratesting: go get -u github.com/nats-io/nats.go
+            # Integration Tests on highest Supported Go Version
+          - dirs: v3/integrations/nramqp
+          - dirs: v3/integrations/nrfasthttp
+          - dirs: v3/integrations/nrsarama
+          - dirs: v3/integrations/logcontext/nrlogrusplugin
+          - dirs: v3/integrations/logcontext-v2/nrlogrus
+          - dirs: v3/integrations/logcontext-v2/nrzerolog
+          - dirs: v3/integrations/logcontext-v2/nrzap
+          - dirs: v3/integrations/logcontext-v2/nrwriter
+          - dirs: v3/integrations/logcontext-v2/zerologWriter
+          - dirs: v3/integrations/logcontext-v2/logWriter
+          - dirs: v3/integrations/nrawssdk-v1
+          - dirs: v3/integrations/nrawssdk-v2
+          - dirs: v3/integrations/nrecho-v3
+          - dirs: v3/integrations/nrecho-v4
+          - dirs: v3/integrations/nrelasticsearch-v7
+          - dirs: v3/integrations/nrgin
+          - dirs: v3/integrations/nrgorilla
+          - dirs: v3/integrations/nrgraphgophers
+          - dirs: v3/integrations/nrlogrus
+          - dirs: v3/integrations/nrlogxi
+          - dirs: v3/integrations/nrpkgerrors
+          - dirs: v3/integrations/nrlambda
+          - dirs: v3/integrations/nrmysql
+          - dirs: v3/integrations/nrpq
+          - dirs: v3/integrations/nrpgx5
+          - dirs: v3/integrations/nrpq/example/sqlx
+          - dirs: v3/integrations/nrredis-v7
+          - dirs: v3/integrations/nrredis-v9
+          - dirs: v3/integrations/nrsqlite3
+          - dirs: v3/integrations/nrsnowflake
+          - dirs: v3/integrations/nrgrpc
+          - dirs: v3/integrations/nrmicro
+          - dirs: v3/integrations/nrnats
             goproxy: direct
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrstan
-            extratesting: go get -u github.com/nats-io/stan.go/@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrstan/test
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrstan/examples
-          - go-version: 1.19.x
-            dirs: v3/integrations/logcontext
-            extratesting: go get -u github.com/sirupsen/logrus@master
-            # nrzap only supports the two most recent minor go releases
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrzap
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrhttprouter
-            extratesting: go get -u github.com/julienschmidt/httprouter@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrb3
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrmongo
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
-            extratesting: go get -u github.com/graphql-go/graphql@master
-          - go-version: 1.19.x
-            dirs: v3/integrations/nrmssql
-            extratesting: go get -u github.com/microsoft/go-mssqldb@main
-
+          - dirs: v3/integrations/nrstan
+          - dirs: v3/integrations/nrstan/test
+          - dirs: v3/integrations/nrstan/examples
+          - dirs: v3/integrations/logcontext
+          - dirs: v3/integrations/nrzap
+          - dirs: v3/integrations/nrhttprouter
+          - dirs: v3/integrations/nrb3
+          - dirs: v3/integrations/nrmongo
+          - dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
+          - dirs: v3/integrations/nrmssql
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ matrix.go-version }}
-
     - name: Checkout Code
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
       with:
-        # Required when using older versions of Go that do not support gomod.
-        # Note the required presence of the /go-agent/ directory at the
-        # beginning of this path.  It is required in order to match the
-        # ${{ github.workspace }} used by the GOPATH env var.  pwd when cloning
-        # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
-        # returns <something/go-agent/go-agent/.
-        path: ./go-agent/src/github.com/newrelic/go-agent
+        path: "go-agent"
+   
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
 
-    - name: Run Tests
-      run: bash v3/build-script.sh
-      env:
-        DIRS: ${{ matrix.dirs }}
-        EXTRATESTING: ${{ matrix.extratesting }}
-        PIN: ${{ matrix.pin }}
-        GOPROXY: ${{ matrix.goproxy }}
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Build Docker Image
+      run: |
+        docker buildx create --use
+        docker buildx build --platform linux/amd64 -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests --load
+
+    - name: Run Tests in Docker
+      run: |
+        IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
+        for dir in "${DIRS[@]}"; do
+          if [ -d "go-agent/$dir" ]; then
+            docker run go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+          else
+            echo "Directory /app/$dir does not exist."
+          fi
+        done
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
-  go-agent-arm64:
-    # Run all unit tests on aarch64 emulator to ensure compatibility with AWS
-    # Graviton instances
+  # Arm64 tests
+  go-agent-v3-arm64:
     runs-on: ubuntu-latest
     strategy:
-    # if one test fails, do not abort the rest
+      # if one test fails, do not abort the rest
       fail-fast: false
       matrix:
         include:
-          - go-version: 1.19.x
+            # Core Tests on 3 most recent major Go versions
+          - go-version: 1.19.0
+            dirs: v3/newrelic,v3/internal,v3/examples
+          - go-version: 1.20.0
+            dirs: v3/newrelic,v3/internal,v3/examples
+          - go-version: 1.21.0
+            dirs: v3/newrelic,v3/internal,v3/examples
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout Code
+      uses: actions/checkout@v2
       with:
-        # Required when using older versions of Go that do not support gomod.
-        # Note the required presence of the /go-agent/ directory at the
-        # beginning of this path.  It is required in order to match the
-        # ${{ github.workspace }} used by the GOPATH env var.  pwd when cloning
-        # the repo is <something>/go-agent/ whereas ${{ github.workspace }}
-        # returns <something/go-agent/go-agent/.
-        path: ./go-agent/src/github.com/newrelic/go-agent
-    - uses: uraimo/run-on-arch-action@v2.0.5
-      name: Run Tests
-      id: runcmd
-      with:
-        arch: aarch64
-        distro: ubuntu20.04
-        githubToken: ${{ github.token }}
-        install: |
-          DEBIAN_FRONTEND=noninteractive apt-get -qq update
-          DEBIAN_FRONTEND=noninteractive apt-get -qq install -y wget build-essential
-          wget -nv https://go.dev/dl/go${{ matrix.go-version }}.linux-arm64.tar.gz
-          rm -rf /usr/local/go
-          tar -C /usr/local -xzf go${{ matrix.go-version }}.linux-arm64.tar.gz
-        run: |
-          export PATH=$PATH:/usr/local/go/bin
-          go version
-          cd v3/newrelic
-          go mod download github.com/golang/protobuf
-          go get -t
-          echo ==== v3/newrelic tests ====
-          go test ./...
-          cd ../internal
-          echo ==== v3/internal tests ====
-          go test ./...
-          cd ../examples
-          echo ==== v3/examples tests ====
-          go test ./...
+        path: "go-agent"
+   
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Build Docker Image
+      run: |
+        docker buildx create --use
+        docker buildx build --platform linux/arm64 -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-arm64 --load
+    - name: Run Tests in Docker
+      run: |
+        IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
+        for dir in "${DIRS[@]}"; do
+          if [ -d "go-agent/$dir" ]; then
+            docker run go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir"
+          else
+            echo "Directory /app/$dir does not exist."
+          fi
+        done
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
