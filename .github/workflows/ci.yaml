@@ -80,9 +80,9 @@ jobs:
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir"
+              docker run -e GOPROXY=direct go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             else
-              docker run go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir"
+              docker run go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             fi
           else
             echo "Directory /app/$dir does not exist."
