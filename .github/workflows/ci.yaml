@@ -72,17 +72,8 @@ jobs:
       with:
         path: "go-agent"
    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
     - name: Build Docker Image
-      run: |
-        docker buildx create --use
-        docker buildx build --platform linux/amd64 -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests --load
-
+      run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
     - name: Run Tests in Docker
       run: |
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
