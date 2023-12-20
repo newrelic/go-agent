@@ -75,16 +75,19 @@ jobs:
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
     - name: Run Tests in Docker
-      run: |
-        IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
-        for dir in "${DIRS[@]}"; do
-          if [ -d "go-agent/$dir" ]; then
-            docker run go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
-          else
-            echo "Directory /app/$dir does not exist."
-          fi
-        done
-
+        run: |
+          IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
+          for dir in "${DIRS[@]}"; do
+            if [ -d "go-agent/$dir" ]; then
+              if [[ "$dir" == *"nrnats"* ]]; then
+                docker run -e GOPROXY=direct go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              else
+                docker run go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              fi
+            else
+              echo "Directory /app/$dir does not exist."
+            fi
+          done
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
