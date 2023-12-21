@@ -87,18 +87,14 @@ jobs:
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run $ci_env -e GOPROXY=direct -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run $ci_env -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage" 
             else
-              docker run -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             fi
           else
             echo "Directory /app/$dir does not exist."
           fi
         done
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        files: ${{ github.workspace }}/coverage-reports/*
 
   # Arm64 tests
   go-agent-v3-arm64:
@@ -138,7 +134,7 @@ jobs:
           if [ -d "go-agent/$dir" ]; then
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
-            docker run -v "$coverage_dir:/coverage" go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir" "/coverage"
           else
             echo "Directory /app/$dir does not exist."
           fi
