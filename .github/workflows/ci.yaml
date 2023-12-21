@@ -87,7 +87,7 @@ jobs:
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run $ci_env -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage" 
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             else
               docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             fi

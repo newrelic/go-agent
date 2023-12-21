@@ -4,7 +4,6 @@ export PATH=$PATH:/usr/local/go/bin
 # Test directory is passed in as an argument
 TEST_DIR=$1
 COVERAGE_DIR=$2
-CODECOV_TOKEN=$3
 COVERAGE_FILE="$COVERAGE_DIR/coverage.out"
 
 echo "Coverage profile will be created at $COVERAGE_FILE"
