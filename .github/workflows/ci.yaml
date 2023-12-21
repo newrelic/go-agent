@@ -70,8 +70,13 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: "go-agent"
+   
+    - name: Create a directory for code coverage reports
+      run: mkdir -p ${{ github.workspace }}/coverage-reports
+
     - name: Set up Codecov environment variables
       run: ci_env=`bash <(curl -s https://codecov.io/env)`
+   
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
 
@@ -80,17 +85,23 @@ jobs:
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
+            coverage_dir="${{ github.workspace }}/coverage-reports/"
+            mkdir -p "$coverage_dir"
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run $ci_env -e CI=true -e GOPROXY=direct go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run $ci_env -e CI=true -e GOPROXY=direct -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             else
-              docker run $ci_env -e CI=true go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run $ci_env -e CI=true -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             fi
           else
             echo "Directory /app/$dir does not exist."
           fi
         done
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+      with:
+        files: ${{ github.workspace }}/coverage-reports/*
+
 
   # Arm64 tests
   go-agent-v3-arm64:
@@ -133,6 +144,3 @@ jobs:
             echo "Directory /app/$dir does not exist."
           fi
         done
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3

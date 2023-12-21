@@ -21,9 +21,9 @@ cd $TEST_DIR
 
 go mod tidy
 # Run Tests and Create Cover Profile for Code Coverage
-go test -race -benchtime=1ms -bench=. -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+go test -race -benchtime=1ms -bench=. -coverprofile=/coverage/coverage.out -covermode=atomic -coverpkg=./... ./...
 go vet ./...
 verify_go_fmt
 
 # Remove sql_driver_optional_methods from coverage.out file if it exists
-sed -i '/sql_driver_optional_methods/d' coverage.out
+sed -i '/sql_driver_optional_methods/d' /coverage/coverage.out
