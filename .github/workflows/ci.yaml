@@ -54,7 +54,6 @@ jobs:
           - dirs: v3/integrations/nrgrpc
           - dirs: v3/integrations/nrmicro
           - dirs: v3/integrations/nrnats
-            goproxy: direct
           - dirs: v3/integrations/nrstan
           - dirs: v3/integrations/nrstan/test
           - dirs: v3/integrations/nrstan/examples
@@ -139,7 +138,7 @@ jobs:
           if [ -d "go-agent/$dir" ]; then
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
-            docker run -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            docker run -v "$coverage_dir:/coverage" go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir" "/coverage"
           else
             echo "Directory /app/$dir does not exist."
           fi
