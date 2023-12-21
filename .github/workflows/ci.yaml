@@ -70,11 +70,6 @@ jobs:
       with:
         path: "go-agent"
    
-    - name: Check Workspace directory
-      run: ls 
-
-    - name: Set up Codecov environment variables
-      run: ci_env=`bash <(curl -s https://codecov.io/env)`
    
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
@@ -84,8 +79,10 @@ jobs:
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
+            # Create Coverage Report Directory for CodeCov
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
+            # Special case for nrnats, which requires direct module proxying
             if [[ "$dir" == *"nrnats"* ]]; then
               docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             else

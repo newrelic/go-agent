@@ -8,6 +8,7 @@ COVERAGE_FILE="$COVERAGE_DIR/coverage.out"
 
 echo "Coverage profile will be created at $COVERAGE_FILE"
 
+# Function for checking Go Code Formatting
 verify_go_fmt() {
   needsFMT=$(gofmt -d .)
   if [ ! -z "$needsFMT" ]; then
@@ -16,8 +17,9 @@ verify_go_fmt() {
     # exit 1
   fi
 }
+
+# Replace go-agent with local pull
 cd go-agent/v3
-# replace go-agent with local pull
 go mod edit -replace github.com/newrelic/go-agent/v3="$pwd"/v3
 cd ../
 cd $TEST_DIR
@@ -27,7 +29,7 @@ go mod tidy
 go test -race -benchtime=1ms -bench=. -coverprofile="$COVERAGE_FILE" -covermode=atomic -coverpkg=./... ./...
 go vet ./...
 verify_go_fmt
-echo "Coverage Profile Created at $COVERAGE_FILE"
+
 # Remove sql_driver_optional_methods from coverage.out file if it exists
 sed -i '/sql_driver_optional_methods/d' "$COVERAGE_FILE"
 
