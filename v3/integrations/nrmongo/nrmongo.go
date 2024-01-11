@@ -33,6 +33,7 @@ package nrmongo
 import (
 	"context"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -99,7 +100,14 @@ func (m *mongoMonitor) started(ctx context.Context, e *event.CommandStartedEvent
 		return
 	}
 	if newrelic.IsSecurityAgentPresent() {
-		secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), e.CommandName)
+		commandName := e.CommandName
+		if strings.ToLower(commandName) == "findandmodify" {
+			value, ok := e.Command.Lookup("remove").BooleanOK()
+			if ok && value {
+				commandName = "delete"
+			}
+		}
+		secureAgentEvent = newrelic.GetSecurityAgentInterface().SendEvent("MONGO", getJsonQuery(e.Command), commandName)
 	}
 
 	host, port := calcHostAndPort(e.ConnectionID)
