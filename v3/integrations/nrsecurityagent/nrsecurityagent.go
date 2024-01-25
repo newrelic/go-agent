@@ -163,9 +163,9 @@ func ConfigSecurityValidatorServiceEndPointUrl(url string) ConfigOption {
 }
 
 // ConfigSecurityDetectionDisableRxss is used to enable or disable RXSS validation.
-func ConfigSecurityDetectionDisableRxss(isEnabled bool) ConfigOption {
+func ConfigSecurityDetectionDisableRxss(isDisable bool) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Detection.Rxss.Enabled = isEnabled
+		cfg.Security.Detection.Rxss.Enabled = !isDisable
 	}
 }
 

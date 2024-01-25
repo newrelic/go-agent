@@ -8,7 +8,7 @@ require (
 	// v3.1.0 is the earliest v3 version of Echo that works with modules due
 	// to the github.com/rsc/letsencrypt import of v3.0.0.
 	github.com/labstack/echo v3.1.0+incompatible
-	github.com/newrelic/go-agent/v3 v3.29.0
+	github.com/newrelic/go-agent/v3 v3.29.1
 )
 
 

@@ -43,6 +43,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 	protoV2 "google.golang.org/protobuf/proto"
 )
@@ -62,13 +63,20 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 
 	target := hdrs.Get(":authority")
 	url := getURL(method, target)
+	transport := newrelic.TransportHTTP
+
+	p, ok := peer.FromContext(ctx)
+	if ok && p != nil && p.AuthInfo != nil && p.AuthInfo.AuthType() == "tls" {
+		transport = newrelic.TransportHTTPS
+	}
 
 	webReq := newrelic.WebRequest{
-		Header:    hdrs,
-		URL:       url,
-		Method:    method,
-		Transport: newrelic.TransportHTTP,
-		Type:      "gRPC",
+		Header:     hdrs,
+		URL:        url,
+		Method:     method,
+		Transport:  transport,
+		Type:       "gRPC",
+		ServerName: target,
 	}
 	txn := app.StartTransaction(method)
 	txn.SetWebRequest(webReq)
