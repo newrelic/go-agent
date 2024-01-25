@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.24.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.27.10
 	github.com/aws/smithy-go v1.13.3
-	github.com/newrelic/go-agent/v3 v3.29.0
+	github.com/newrelic/go-agent/v3 v3.29.1
 )
 
 
