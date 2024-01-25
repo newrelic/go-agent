@@ -292,7 +292,7 @@ func (w *wrapStmt) Query(args []driver.Value) (driver.Rows, error) {
 	var err error
 
 	if IsSecurityAgentPresent() {
-		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
 		defer func() {
 			secureAgent.SendExitEvent(secureAgentevent, err)
 		}()
@@ -317,7 +317,7 @@ func (w *wrapStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (d
 	var err error
 
 	if IsSecurityAgentPresent() {
-		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
 		defer func() {
 			secureAgent.SendExitEvent(secureAgentevent, err)
 		}()
@@ -334,7 +334,7 @@ func (w *wrapStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (
 	var err error
 
 	if IsSecurityAgentPresent() {
-		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w)
+		secureAgentevent := sendSecureEventSQLPrepareArgs(args, w.original)
 		defer func() {
 			secureAgent.SendExitEvent(secureAgentevent, err)
 		}()
