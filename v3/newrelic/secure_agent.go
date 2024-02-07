@@ -34,12 +34,23 @@ type securityAgent interface {
 	IsSecurityActive() bool
 	DistributedTraceHeaders(hdrs *http.Request, secureAgentevent any)
 	SendExitEvent(any, error)
+	RequestBodyReadLimit() int
 }
 
 func (app *Application) RegisterSecurityAgent(s securityAgent) {
 	if app != nil && app.app != nil && s != nil {
 		secureAgent = s
+		if app.app.run != nil {
+			secureAgent.RefreshState(getLinkedMetaData(app.app))
+		}
 	}
+}
+
+func (app *Application) UpdateSecurityConfig(s interface{}) {
+	if app == nil || app.app == nil {
+		return
+	}
+	app.app.config.Config.Security = s
 }
 
 func getLinkedMetaData(app *app) map[string]string {
@@ -81,6 +92,9 @@ func (t noOpSecurityAgent) DistributedTraceHeaders(hdrs *http.Request, secureAge
 
 func (t noOpSecurityAgent) SendExitEvent(secureAgentevent any, err error) {
 }
+func (t noOpSecurityAgent) RequestBodyReadLimit() int {
+	return 300 * 1000
+}
 
 // IsSecurityAgentPresent returns true if there's an actual security agent hooked in to the
 // Go APM agent, whether or not it's enabled or operating in any particular mode. It returns
@@ -88,4 +102,52 @@ func (t noOpSecurityAgent) SendExitEvent(secureAgentevent any, err error) {
 func IsSecurityAgentPresent() bool {
 	_, isNoOp := secureAgent.(noOpSecurityAgent)
 	return !isNoOp
+}
+
+type BodyBuffer struct {
+	buf             []byte
+	isDataTruncated bool
+}
+
+func (b *BodyBuffer) Write(p []byte) (int, error) {
+	if l := len(b.buf); len(p) <= secureAgent.RequestBodyReadLimit()-l {
+		b.buf = append(b.buf, p...)
+		return len(p), nil
+	} else if l := len(b.buf); secureAgent.RequestBodyReadLimit()-l > 1 {
+		end := secureAgent.RequestBodyReadLimit() - l
+		b.buf = append(b.buf, p[:end-1]...)
+		return end, nil
+	} else {
+		b.isDataTruncated = true
+		return 0, nil
+	}
+}
+
+func (b *BodyBuffer) Len() int {
+	if b == nil {
+		return 0
+	}
+	return len(b.buf)
+
+}
+
+func (b *BodyBuffer) read() []byte {
+	if b == nil {
+		return make([]byte, 0)
+	}
+	return b.buf
+}
+
+func (b *BodyBuffer) isBodyTruncated() bool {
+	if b == nil {
+		return false
+	}
+	return b.isDataTruncated
+}
+func (b *BodyBuffer) String() (string, bool) {
+	if b == nil {
+		return "", false
+	}
+	return string(b.buf), b.isDataTruncated
+
 }

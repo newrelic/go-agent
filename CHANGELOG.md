@@ -1,7 +1,200 @@
-## 3.22.0-preview.1 (unreleased)
-This is a limited preview of the 3.21.1 Go APM Agent with 
-a new integration package `nrsecurityagent` that enables vulnerability
-testing.
+## 3.28.1
+### Added
+Added Supportability Metrics to `nrfasthttp` (brings `nrfasthttp` version to v1.0.1).
+Always Link Transaction IDs to traces regardless of whether Distributed Tracing is enabled or not
+### Fixed
+Fixed an issue where `nil` `Request.Body` could be set to non-`nil` `request.Body` with zero length when the security agent is enabled
+### Security
+More Secure URL Redaction
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
+## 3.28.0
+### Fixed
+* Bumped gRPC from 1.54.0 -> 1.56.3 in the following packages /v3/integrations/nrgrpc, /v3/, /v3/integrations/nrgrpc
+* Bumped golang.org/x/net from 0.8.0 -> 0.17.0 in package /v3/integrations/nrgraphqlgo
+* Fixed issue where nrfasthttp would not properly register security agent headers
+* Move fasthttp instrumentation into a new integration package, nrfasthttp
+* Fixed issue where usage of io.ReadAll() was causing a memory leak
+
+### Support statement
+
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.27.0
+### Added
+ * Added Support for getting Container ID's from cgroup v2 docker containers
+ * A new instrumentation package for RabbitMQ with distributed tracing support: nramqp
+
+### Fixed
+ * Unit tests repairs and improvements
+ * Removed deprecated V2 code from the repository. The support timeframe for this code has expired and is no longer recommended for use.
+ * Bumped github.com/graphql-go/graphql from 0.7.9 to 0.8.1
+
+### Support statement
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.26.0
+### Added
+ * Extended implementation of the `nrpgx5` integration (now v1.2.0). This instruments Postgres database operations using the `jackc/pgx/v5` library, including the direct access mode of operation as opposed to requiring code to use the library compatibly with the standard `database/sql` library.
+
+### Corrections
+ * See below for revised release notes for the 3.25.1 and the retracted 3.25.0 releases. We have clarified what was released at those versions; see also the revised notes for 3.22.0 and 3.22.1 for the same reason.
+
+### Support statement
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.25.1
+### Added
+   * Added Support for FastHTTP package
+      * Added newrelic.WrapHandleFuncFastHTTP() and newrelic.StartExternalSegmentFastHTTP() functions to instrument fasthttp context and create wrapped handlers. These functions work similarly to the existing ones for net/http
+      * Added client-fasthttp and server-fasthttp examples to help get started with FastHTTP integration
+
+### Fixed
+ * Corrected a bug where the security agent failed to correctly parse the `NEW_RELIC_SECURITY_AGENT_ENABLED` environment variable.
+
+### Support statement
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.25.0 (retracted)
+This release was retracted due to an error in the release process which caused the wrong git commit to be tagged.
+Since the erroneous `v3.25.0` tag was already visible publicly and may already have been picked up by the Go language infrastructure, we retracted the incorrect 3.25.0 version and released the changes intended for 3.25.0 as version 3.25.1, so users of the Go Agent library will reliably get the correct code.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+We recommend updating to the latest agent version as soon as it’s available. If you can’t upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.24.1
+### Fixed
+ * Performance improvement around calls to security agent. In some cases, unnecessary setup operations were being performed even if there was no security agent present to use that. These are now conditional on the security agent being present in the application (note that this will enable the setup code if the security agent is *present* in the application, regardless of whether it's currently enabled to run). This affects:
+    * Base agent code (updated to v3.24.1)
+    * `nrmongo` integration (updated to v1.1.1)
+ * Resolved a race condition caused by the above-mentioned calls to the security agent.
+
+ * Fixed unit tests for integrations which were failing because code level metrics are enabled by default now:
+    * `nrawssdk-v1` (updated to v1.1.2)
+    * `nrawssdk-v2` (updated to v1.2.2)
+    * `nrecho-v3` (updated to v1.0.2)
+    * `nrecho-v4` (updated to v1.0.4)
+    * `nrhttprouter` (updated to v1.0.2)
+    * `nrlambda` (updated to v1.2.2)
+    * `nrnats` (updated to v1.1.5)
+    * `nrredis-v8` (updated to v1.0.1)
+
+
+### Changed
+ * Updated all integration `go.mod` files to reflect supported Go language versions.
+
+### Support statement
+
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+
+We recommend updating to the latest agent version as soon as it's available. If you can't upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.24.0
+
+### Added
+* Turned Code Level Metrics on by default
+* Added new test case to check if the nrsecurityagent is enabled in the gRPC integration
+* Added new test case for InfoInterceptorStatusHandler function in the gRPC integration
+* Added Name() method for Transaction values to get the current transaction name.
+
+
+### Fixed
+* Bumped gin from 1.9.0 to 1.9.1
+* Bumped gosnowflake from 1.6.16 to 1.6.19
+* Bumped nrsecurityagent to 1.1.0 with improved reporting of gRPC protocol versions.
+* Fixed a bug where expected errors weren't being properly marked as expected on new relic dashboards
+
+### Support statement
+
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+
+We recommend updating to the latest agent version as soon as it's available. If you can't upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+
+## 3.23.1
+
+## Added
+* Added newrelic.ConfigDatastoreRawQuery(true) configuration option to allow raw SQL queries to appear in new relic dashboards
+* Added license file to nrsecurityagent integration
+* Added enriched serverless debug logging for faster debugging
+
+## Fixed
+* Removed timeouts on two tests in trace_observer_test.go
+* Bumped nrnats test to go1.19
+* Bumped graphql-go to v1.3.0 in the nrgraphgophers integration
+
+We recommend updating to the latest agent version as soon as it's available. If you can't upgrade to the latest version, update your agents to a version no more than 90 days old. Read more about keeping agents up to date. (https://docs.newrelic.com/docs/new-relic-solutions/new-relic-one/install-configure/update-new-relic-agent/)
+
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.23.0
+### Added
+ * Adds the `nrsecurityagent` integration for performing Interactive Application Security Testing (IAST) of your application.
+ * This action increments the version numbers of the following integrations:
+   * `nrgin` v1.2.0
+   * `nrgrpc` v1.4.0
+   * `nrmicro` v1.2.0
+   * `nrmongo` v1.2.0
+   * `nrsqlite3` v1.2.0
+
+ To learn how to use IAST with the New Relic Go Agent, [check out our documentation](https://docs.newrelic.com/docs/iast/use-iast/).
+
+### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves (i.e., Go versions 1.19 and later are supported).
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.22.1
+ ### Added
+ * New Apache Kafka integration nrsarama that instruments the Sarama library https://github.com/Shopify/sarama
+ * New logs in context integration logcontext-v2/nrzap that instruments the zap logging framework https://github.com/uber-go/zap
+ * Integration tests created for the nrlogrus and nrzapintegrations
+ * Updated integration tests for nrlogxi
+
+ ### Security Fixes
+ * Bumped sys package to v0.1.0 in the nrmssql integration
+ * Bumped net package to v0.7.0 in the nrgrpc, nrmssql , and nrnats integrations
+ * Bumped aws-sdk-go package to v1.34.0 in the nrawssdk-v1 integration
+ * Bumped text  package to v0.3.8 in the nrnats,  and nrpgx integrations
+ * Bumped gin package to v1.9.0 in the nrgin integration
+ * Bumped crypto package to v0.1.0 in the nrpgx  integration
+ * Fixed integration tests in nrnats package not correctly showing code coverage
+ * Corrects an error in the release process for 3.22.0.
+
+### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.22.0 (retracted)
+This release has been retracted due to an error in the release process which caused it to be incorrectly created. Instead, release 3.22.1 was issued with the changes intended for 3.22.0.
+
+ ### Support statement
+
+ We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+
+ See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.21.1
 

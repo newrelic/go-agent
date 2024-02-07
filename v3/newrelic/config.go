@@ -316,6 +316,10 @@ type Config struct {
 		QueryParameters struct {
 			Enabled bool
 		}
+		RawQuery struct {
+			Enabled bool
+		}
+
 		// SlowQuery controls the capture of slow query traces.  Slow
 		// query traces show you instances of your slowest datastore
 		// segments.
@@ -444,6 +448,8 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+	// Security is used to post security configuration on UI.
+	Security interface{} `json:"Security,omitempty"`
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes
@@ -653,6 +659,7 @@ func defaultConfig() Config {
 	c.DatastoreTracer.QueryParameters.Enabled = true
 	c.DatastoreTracer.SlowQuery.Enabled = true
 	c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
+	c.DatastoreTracer.RawQuery.Enabled = false
 
 	c.ServerlessMode.ApdexThreshold = 500 * time.Millisecond
 	c.ServerlessMode.Enabled = false
@@ -664,7 +671,7 @@ func defaultConfig() Config {
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	// Code Level Metrics
-	c.CodeLevelMetrics.Enabled = false
+	c.CodeLevelMetrics.Enabled = true
 	c.CodeLevelMetrics.RedactPathPrefixes = true
 	c.CodeLevelMetrics.RedactIgnoredPrefixes = true
 	c.CodeLevelMetrics.Scope = AllCLM

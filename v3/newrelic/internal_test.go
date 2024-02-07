@@ -207,6 +207,7 @@ func TestNewApplicationNil(t *testing.T) {
 		ConfigAppName("appname"),
 		ConfigLicense("wrong length"),
 		ConfigEnabled(false),
+		ConfigCodeLevelMetricsEnabled(false),
 	)
 	if nil == err {
 		t.Error("error expected when license key is short")
@@ -266,6 +267,7 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 	app, err := NewApplication(
 		ConfigAppName("my app"),
 		ConfigLicense(testLicenseKey),
+		ConfigCodeLevelMetricsEnabled(false),
 		cfgfn,
 		func(cfg *Config) {
 			cfg.Logger = lg

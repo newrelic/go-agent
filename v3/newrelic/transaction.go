@@ -4,7 +4,6 @@
 package newrelic
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,7 +38,7 @@ func (txn *Transaction) End() {
 		// not any nested call!
 		r = recover()
 	}
-	if txn.thread.IsWeb {
+	if txn.thread.IsWeb && IsSecurityAgentPresent() {
 		secureAgent.SendEvent("INBOUND_END", "")
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
@@ -73,6 +72,19 @@ func (txn *Transaction) SetName(name string) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
+}
+
+// Name returns the name currently set for the transaction, as, e.g. by a call to SetName.
+// If unable to do so (such as due to a nil transaction pointer), the empty string is returned.
+func (txn *Transaction) Name() string {
+	// This is called Name rather than GetName to be consistent with the prevailing naming
+	// conventions for the Go language, even though the underlying internal call must be called
+	// something else (like GetName) because there's already a Name struct member.
+
+	if txn == nil || txn.thread == nil {
+		return ""
+	}
+	return txn.thread.GetName()
 }
 
 // NoticeError records an error.  The Transaction saves the first five
@@ -233,20 +245,14 @@ func serverName(r *http.Request) string {
 	return ""
 }
 
-func reqBody(req *http.Request) []byte {
-	var bodyBuffer bytes.Buffer
-	requestBuffer := make([]byte, 0)
-	bodyReader := io.TeeReader(req.Body, &bodyBuffer)
-
-	if bodyReader != nil && req.Body != nil {
-		reqBuffer, err := io.ReadAll(bodyReader)
-		if err == nil {
-			requestBuffer = reqBuffer
-		}
-		r := io.NopCloser(bytes.NewBuffer(requestBuffer))
-		req.Body = r
+func reqBody(req *http.Request) *BodyBuffer {
+	if IsSecurityAgentPresent() && req.Body != nil && req.Body != http.NoBody {
+		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
+		tee := io.TeeReader(req.Body, buf)
+		req.Body = io.NopCloser(tee)
+		return buf
 	}
-	return bytes.TrimRight(requestBuffer, "\x00")
+	return nil
 }
 
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
@@ -258,7 +264,9 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 	if txn == nil || txn.thread == nil {
 		return
 	}
-	secureAgent.SendEvent("INBOUND", r)
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("INBOUND", r)
+	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
 
@@ -312,9 +320,9 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	if txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
+	if IsSecurityAgentPresent() && txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
 		// async segment start
-		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.csecData)
+		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
 	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
@@ -498,8 +506,8 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 		return nil
 	}
 	newTxn := txn.thread.NewGoroutine()
-	if newTxn.thread != nil && newTxn.thread.csecData == nil {
-		newTxn.thread.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
+	if IsSecurityAgentPresent() && newTxn.thread != nil {
+		newTxn.thread.setCsecData()
 	}
 	return newTxn
 }
@@ -592,7 +600,7 @@ type WebRequest struct {
 
 	// The following fields are needed for the secure agent's vulnerability
 	// detection features.
-	Body          []byte
+	Body          *BodyBuffer
 	ServerName    string
 	Type          string
 	RemoteAddress string
@@ -619,7 +627,17 @@ func (webrequest WebRequest) GetHost() string {
 }
 
 func (webrequest WebRequest) GetBody() []byte {
-	return webrequest.Body
+	if webrequest.Body == nil {
+		return make([]byte, 0)
+	}
+	return webrequest.Body.read()
+}
+
+func (webrequest WebRequest) IsDataTruncated() bool {
+	if webrequest.Body == nil {
+		return false
+	}
+	return webrequest.Body.isBodyTruncated()
 }
 
 func (webrequest WebRequest) GetServerName() string {

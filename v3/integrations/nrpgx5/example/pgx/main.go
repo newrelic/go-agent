@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	cfg.Tracer = nrpgx5.NewTracer()
+	cfg.Tracer = nrpgx5.NewTracer(nrpgx5.WithQueryParameters(true))
 	conn, err := pgx.ConnectConfig(context.Background(), cfg)
 	if err != nil {
 		panic(err)
@@ -46,6 +46,15 @@ func main() {
 		log.Println(err)
 	}
 
+	var a, b int
+	rows, _ := conn.Query(ctx, "select n, n*2 from generate_series(1, $1) n", 3)
+	_, err = pgx.ForEachRow(rows, []any{&a, &b}, func() error {
+		fmt.Printf("%v %v\n", a, b)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
 	txn.End()
 	app.Shutdown(5 * time.Second)
 

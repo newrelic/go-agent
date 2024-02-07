@@ -112,16 +112,16 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 
 		if resp.IsDisconnect() || resp.IsRestartException() {
 			select {
-			case app.collectorErrorChan <- resp:
+			case app.collectorErrorChan <- *resp:
 			case <-app.shutdownStarted:
 			}
 			return
 		}
 
-		if resp.Err != nil {
+		if resp.GetError() != nil {
 			app.Warn("harvest failure", map[string]interface{}{
 				"cmd":         cmd,
-				"error":       resp.Err.Error(),
+				"error":       resp.GetError().Error(),
 				"retain_data": resp.ShouldSaveHarvestData(),
 			})
 		}
@@ -147,15 +147,15 @@ func (app *app) connectRoutine() {
 
 		if resp.IsDisconnect() {
 			select {
-			case app.collectorErrorChan <- resp:
+			case app.collectorErrorChan <- *resp:
 			case <-app.shutdownStarted:
 			}
 			return
 		}
 
-		if nil != resp.Err {
+		if nil != resp.GetError() {
 			app.Warn("application connect failure", map[string]interface{}{
-				"error": resp.Err.Error(),
+				"error": resp.GetError().Error(),
 			})
 		}
 
@@ -286,7 +286,7 @@ func (app *app) process() {
 			app.setState(nil, nil)
 
 			if resp.IsDisconnect() {
-				app.setState(nil, resp.Err)
+				app.setState(nil, resp.GetError())
 				app.Error("application disconnected", map[string]interface{}{
 					"app": app.config.AppName,
 				})
@@ -593,7 +593,7 @@ func (app *app) RecordCustomMetric(name string, value float64) error {
 	if math.IsInf(value, 0) {
 		return errMetricInf
 	}
-	if "" == name {
+	if name == "" {
 		return errMetricNameEmpty
 	}
 	run, _ := app.getState()
@@ -641,7 +641,7 @@ func (app *app) Consume(id internal.AgentRunID, data harvestable) {
 		return
 	}
 
-	if "" == id {
+	if id == "" {
 		return
 	}
 

@@ -149,7 +149,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -159,6 +159,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
 				"QueryParameters":{"Enabled":true},
+				"RawQuery":{"Enabled":false},
 				"SlowQuery":{
 					"Enabled":true,
 					"Threshold":10000000
@@ -348,7 +349,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Enabled":true
 			},
-			"CodeLevelMetrics":{"Enabled":false,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
+			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
 				"Enabled":true,
@@ -358,6 +359,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"DatabaseNameReporting":{"Enabled":true},
 				"InstanceReporting":{"Enabled":true},
 				"QueryParameters":{"Enabled":true},
+				"RawQuery":{"Enabled":false},
 				"SlowQuery":{
 					"Enabled":true,
 					"Threshold":10000000

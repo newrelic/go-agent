@@ -127,6 +127,8 @@ const (
 	AttributeMessageReplyTo = "message.replyTo"
 	// The application-generated identifier used in RPC configurations.
 	AttributeMessageCorrelationID = "message.correlationId"
+	// The headers of the message without CAT keys/values
+	AttributeMessageHeaders = "message.headers"
 )
 
 // Attributes destined for Span Events. These attributes appear only on Span
