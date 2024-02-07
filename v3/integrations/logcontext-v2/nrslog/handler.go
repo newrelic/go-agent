@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
+// NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context
 type NRHandler struct {
 	handler slog.Handler
 	w       *LogWriter
@@ -15,7 +16,7 @@ type NRHandler struct {
 	txn     *newrelic.Transaction
 }
 
-// TextHandler creates a wrapped slog TextHandler, enabling it to both automatically capture logs
+// TextHandler creates a wrapped Slog TextHandler, enabling it to both automatically capture logs
 // and to enrich logs locally depending on your logs in context configuration in your New Relic
 // application.
 func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) NRHandler {
@@ -26,7 +27,7 @@ func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptio
 	return wrappedHandler
 }
 
-// JSONHandler creates a wrapped slog JSONHandler, enabling it to both automatically capture logs
+// JSONHandler creates a wrapped Slog JSONHandler, enabling it to both automatically capture logs
 // and to enrich logs locally depending on your logs in context configuration in your New Relic
 // application.
 func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) NRHandler {
@@ -37,7 +38,7 @@ func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptio
 	return wrappedHandler
 }
 
-// WithTransaction creates a new slog Logger object to be used for logging within a given transaction.
+// WithTransaction creates a new Slog Logger object to be used for logging within a given transaction.
 func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logger {
 	if txn == nil {
 		return logger
@@ -53,7 +54,7 @@ func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logge
 	}
 }
 
-// WithTransaction creates a new slog Logger object to be used for logging within a given transaction it its found
+// WithTransaction creates a new Slog Logger object to be used for logging within a given transaction it its found
 // in a context.
 func WithContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	if ctx == nil {
@@ -73,13 +74,14 @@ func WrapHandler(app *newrelic.Application, handler slog.Handler) NRHandler {
 	}
 }
 
+// addWriter is an internal helper function to append an io.Writer to the NRHandler object
 func (h *NRHandler) addWriter(w *LogWriter) {
 	h.w = w
 }
 
 // WithTransaction returns a new handler that is configured to capture log data
 // and attribute it to a specific transaction.
-func (h NRHandler) WithTransaction(txn *newrelic.Transaction) NRHandler {
+func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) NRHandler {
 	handler := NRHandler{
 		handler: h.handler,
 		app:     h.app,

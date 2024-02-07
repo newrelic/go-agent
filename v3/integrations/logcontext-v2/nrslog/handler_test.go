@@ -2,6 +2,7 @@ package nrslog
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"testing"
 
@@ -80,6 +81,47 @@ func TestHandlerTransactions(t *testing.T) {
 	txninfo := txn.GetLinkingMetadata()
 
 	txnLogger := WithTransaction(txn, log)
+	txnLogger.Info(message)
+
+	backgroundMsg := "this is a background message"
+	log.Debug(backgroundMsg)
+	txn.End()
+
+	/*
+		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+			EntityGUID: integrationsupport.TestEntityGUID,
+			Hostname:   host,
+			EntityName: integrationsupport.SampleAppName,
+		}) */
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			SpanID:    txninfo.SpanID,
+			TraceID:   txninfo.TraceID,
+		},
+	})
+}
+
+func TestHandlerTransactionCtx(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	out := bytes.NewBuffer([]byte{})
+	message := "Hello World!"
+
+	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
+	log := slog.New(handler)
+
+	txn := app.Application.StartTransaction("my txn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	txninfo := txn.GetLinkingMetadata()
+
+	txnLogger := WithContext(ctx, log)
 	txnLogger.Info(message)
 
 	backgroundMsg := "this is a background message"
