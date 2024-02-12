@@ -71,7 +71,6 @@ func WithSkipper(skipper Skipper) ConfigOption {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.MiddlewareWithConfig(nrecho.Config{App: app}))
-//
 func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.HandlerFunc) echo.HandlerFunc {
 	if app == nil {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -124,6 +123,9 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 					txn.SetWebResponse(nil).WriteHeader(httperr.Code)
 				} else {
 					txn.SetWebResponse(nil).WriteHeader(http.StatusInternalServerError)
+				}
+				if newrelic.IsSecurityAgentPresent() {
+					newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Response().Header())
 				}
 			}
 

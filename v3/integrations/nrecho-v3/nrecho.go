@@ -51,7 +51,6 @@ func transactionName(c echo.Context) string {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
-//
 func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
 
 	if nil == app {
@@ -86,6 +85,9 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 					txn.SetWebResponse(nil).WriteHeader(httperr.Code)
 				} else {
 					txn.SetWebResponse(nil).WriteHeader(http.StatusInternalServerError)
+				}
+				if newrelic.IsSecurityAgentPresent() {
+					newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Response().Header())
 				}
 			}
 

@@ -108,6 +108,9 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 			w = txn.SetWebResponse(w)
 			r = newrelic.RequestWithTransactionContext(r, txn)
 			next.ServeHTTP(w, r)
+			if newrelic.IsSecurityAgentPresent() {
+				newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header())
+			}
 		})
 	}
 }
