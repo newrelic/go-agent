@@ -159,4 +159,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	r.Router.ServeHTTP(w, req)
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header())
+	}
 }
