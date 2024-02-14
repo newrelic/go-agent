@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -128,12 +129,11 @@ func TestHandlerTransactionCtx(t *testing.T) {
 	log.Debug(backgroundMsg)
 	txn.End()
 
-	/*
-		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-			EntityGUID: integrationsupport.TestEntityGUID,
-			Hostname:   host,
-			EntityName: integrationsupport.SampleAppName,
-		}) */
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
@@ -171,13 +171,6 @@ func TestHandlerTransactionsAndBackground(t *testing.T) {
 	log.Warn(messageBackground)
 	txn.End()
 
-	/*
-		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-			EntityGUID: integrationsupport.TestEntityGUID,
-			Hostname:   host,
-			EntityName: integrationsupport.SampleAppName,
-		}) */
-
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
 			Severity:  slog.LevelInfo.String(),
@@ -197,4 +190,71 @@ func TestHandlerTransactionsAndBackground(t *testing.T) {
 			TraceID:   txninfo.TraceID,
 		},
 	})
+}
+
+func TestWithAttributes(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(false),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	out := bytes.NewBuffer([]byte{})
+	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
+	log := slog.New(handler)
+	message := "Hello World!"
+	log = log.With(slog.String("string key", "val"), slog.Int("int key", 1))
+
+	log.Info(message)
+
+	log1 := string(out.String())
+
+	txn := app.StartTransaction("hi")
+	txnLog := WithTransaction(txn, log)
+	txnLog.Info(message)
+	txn.End()
+
+	log2 := string(out.String())
+
+	attrString := `"string key"=val "int key"=1`
+	if !strings.Contains(log1, attrString) {
+		t.Errorf("expected %s to contain %s", log1, attrString)
+	}
+
+	if !strings.Contains(log2, attrString) {
+		t.Errorf("expected %s to contain %s", log2, attrString)
+	}
+
+}
+
+func TestWithGroup(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(false),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	out := bytes.NewBuffer([]byte{})
+	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
+	log := slog.New(handler)
+	message := "Hello World!"
+	log = log.With(slog.Group("test group", slog.String("string key", "val")))
+	log = log.WithGroup("test group")
+
+	log.Info(message)
+
+	log1 := string(out.String())
+
+	txn := app.StartTransaction("hi")
+	txnLog := WithTransaction(txn, log)
+	txnLog.Info(message)
+	txn.End()
+
+	log2 := string(out.String())
+
+	attrString := `"test group.string key"=val`
+	if !strings.Contains(log1, attrString) {
+		t.Errorf("expected %s to contain %s", log1, attrString)
+	}
+
+	if !strings.Contains(log2, attrString) {
+		t.Errorf("expected %s to contain %s", log2, attrString)
+	}
+
 }

@@ -2,7 +2,6 @@ package nrslog
 
 import (
 	"bytes"
-	"context"
 	"io"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -34,17 +33,6 @@ func (b *LogWriter) DebugLogging(enabled bool) {
 
 // WithTransaction duplicates the current NewRelicWriter and sets the transaction to txn
 func (b *LogWriter) WithTransaction(txn *newrelic.Transaction) LogWriter {
-	return LogWriter{
-		out:   b.out,
-		app:   b.app,
-		debug: b.debug,
-		txn:   txn,
-	}
-}
-
-// WithTransaction duplicates the current NewRelicWriter and sets the transaction to the transaction parsed from ctx
-func (b *LogWriter) WithContext(ctx context.Context) LogWriter {
-	txn := newrelic.FromContext(ctx)
 	return LogWriter{
 		out:   b.out,
 		app:   b.app,

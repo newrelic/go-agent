@@ -40,7 +40,7 @@ func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptio
 
 // WithTransaction creates a new Slog Logger object to be used for logging within a given transaction.
 func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logger {
-	if txn == nil {
+	if txn == nil || logger == nil {
 		return logger
 	}
 
@@ -88,8 +88,11 @@ func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) NRHandler {
 		txn:     txn,
 	}
 
-	writer := h.w.WithTransaction(txn)
-	handler.addWriter(&writer)
+	if h.w != nil {
+		writer := h.w.WithTransaction(txn)
+		handler.addWriter(&writer)
+	}
+
 	return handler
 }
 
