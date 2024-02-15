@@ -7,7 +7,7 @@ require (
 	// v1.5.0 is the first mysql version to support gomod
 	github.com/go-sql-driver/mysql v1.6.0
 	// v3.3.0 includes the new location of ParseQuery
-	github.com/newrelic/go-agent/v3 v3.29.1
+	github.com/newrelic/go-agent/v3 v3.30.0
 )
 
 

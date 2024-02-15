@@ -1,7 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.9
 // +build go1.9
+
 // This build tag is necessary because GRPC/ProtoBuf libraries only support Go version 1.9 and up.
 
 package newrelic
@@ -184,10 +186,11 @@ func newDialOptions(cfg observerConfig) []grpc.DialOption {
 func (to *gRPCtraceObserver) connectToTraceObserver() {
 	conn, err := grpc.Dial(to.endpoint.host, to.dialOptions...)
 	if nil != err {
+		errMsg := strings.Replace(err.Error(), to.license, "--REDACTED_LICENSE_KEY--", -1)
 		// this error is unrecoverable and will not be retried
 		to.log.Error("trace observer unable to dial grpc endpoint", map[string]interface{}{
 			"host": to.endpoint.host,
-			"err":  err.Error(),
+			"err":  errMsg,
 		})
 		return
 	}
