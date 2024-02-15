@@ -1,3 +1,15 @@
+## 3.30.0
+### Added
+ * Updated the depencency on nrsecurityagent to 1.0.0.
+ * Added new integration, logcontext-v2/nrslog, which instruments logging via the new slog library.
+
+### Fixed
+ * Redacts license keys from error reporting.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.29.1
 ### Added
  * Added Dockerized Unit Tests for Github Actions (internal build support)
