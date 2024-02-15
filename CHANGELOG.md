@@ -1,3 +1,14 @@
+## 3.29.1
+### Added
+ * Added Dockerized Unit Tests for Github Actions (internal build support)
+
+### Fixes
+ * Updated version of New Relic Security Agent (enables bug fixes released in that agent code for use with the Go Agent).
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.29.0
 ### Added
  * Security agent integration `nrsecurityagent` now reports security configuraiton information along with the overall Go Agent configuration values. (Updates `nrsecurityagent` to v1.2.0.)
