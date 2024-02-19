@@ -120,10 +120,10 @@ func WrapRouter(router *mux.Router) {
 			}
 			methods, _ := route.GetMethods()
 			if len(methods) == 0 {
-				newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, "*")
+				newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, "*", internal.HandlerName(route.GetHandler()))
 			} else {
 				for _, method := range methods {
-					newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method)
+					newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(route.GetHandler()))
 				}
 			}
 			return nil
