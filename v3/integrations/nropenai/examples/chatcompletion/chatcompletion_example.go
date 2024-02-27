@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -55,14 +53,6 @@ func main() {
 	}
 	// Create Chat Completion
 	resp := nropenai.NRCreateChatCompletion(client, req, app)
-	// Convert resp to pretty JSON format
-	prettyJSON, err := json.MarshalIndent(resp, "", "    ")
-	if err != nil {
-		log.Fatal("Failed to generate JSON", err)
-	}
-
-	// Print JSON
-	fmt.Println("Resp: ", string(prettyJSON))
 	fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
 
 	// Shutdown Application
