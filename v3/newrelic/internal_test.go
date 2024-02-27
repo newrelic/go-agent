@@ -289,6 +289,27 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 	}
 }
 
+func TestRecordLLMFeedbackEventSuccess(t *testing.T) {
+	app := testApp(nil, nil, t)
+	app.RecordLlmFeedbackEvent("traceid", "5", "informative", "message", validParams)
+	app.expectNoLoggedErrors(t)
+	app.ExpectCustomEvents(t, []internal.WantEvent{{
+		Intrinsics: map[string]interface{}{
+			"type":      "LlmFeedbackMessage",
+			"timestamp": internal.MatchAnything,
+		},
+		UserAttributes: map[string]interface{}{
+			"trace_id":      "traceid",
+			"rating":        "5",
+			"category":      "informative",
+			"message":       "message",
+			"ingest_source": "Go",
+			"zip":           1,
+			"zap":           2,
+		},
+	}})
+}
+
 func TestRecordCustomEventSuccess(t *testing.T) {
 	app := testApp(nil, nil, t)
 	app.RecordCustomEvent("myType", validParams)
