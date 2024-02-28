@@ -5,11 +5,16 @@ package nropenai
 
 import (
 	"context"
+	"errors"
 	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sashabaranov/go-openai"
+)
+
+var (
+	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled.")
 )
 
 // Wrapper for OpenAI Configuration
@@ -222,12 +227,18 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	chatCompletionMessageSpan.End()
 }
 
-func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest, app *newrelic.Application) ChatCompletionResponseWrapper {
+func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest, app *newrelic.Application) (ChatCompletionResponseWrapper, error) {
+	config, _ := app.Config()
+	resp := ChatCompletionResponseWrapper{}
+	// If AI Monitoring is disabled, do not start a transaction
+	if !config.AIMonitoring.Enabled {
+		return resp, errAIMonitoringDisabled
+	}
 	// Start NR Transaction
 	txn := app.StartTransaction("OpenAIChatCompletion")
-	resp := NRCreateChatCompletionSummary(txn, app, cw, req)
+	resp = NRCreateChatCompletionSummary(txn, app, cw, req)
 
-	return resp
+	return resp, nil
 }
 
 // If multiple messages are sent, only the first message is used
@@ -244,9 +255,15 @@ func GetInput(any interface{}) any {
 	return any
 
 }
-func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) openai.EmbeddingResponse {
-	EmbeddingsData := map[string]interface{}{}
-	uuid := uuid.New()
+func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) (openai.EmbeddingResponse, error) {
+	config, _ := app.Config()
+
+	resp := openai.EmbeddingResponse{}
+
+	// If AI Monitoring is disabled, do not start a transaction
+	if !config.AIMonitoring.Enabled {
+		return resp, errAIMonitoringDisabled
+	}
 
 	// Start NR Transaction
 	txn := app.StartTransaction("OpenAIEmbedding")
@@ -254,6 +271,8 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
 	transactionID := traceID[:16]
+	EmbeddingsData := map[string]interface{}{}
+	uuid := uuid.New()
 
 	embeddingSpan := txn.StartSegment("Llm/completion/OpenAI/CreateEmbedding")
 	resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
@@ -304,5 +323,5 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 
 	app.RecordCustomEvent("LlmEmbedding", EmbeddingsData)
 	txn.End()
-	return resp
+	return resp, nil
 }

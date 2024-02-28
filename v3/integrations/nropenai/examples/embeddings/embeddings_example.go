@@ -16,6 +16,8 @@ func main() {
 		newrelic.ConfigAppName("Basic OpenAI App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		// Enable AI Monitoring
+		newrelic.ConfigAIMonitoringEnabled(true),
 	)
 	if nil != err {
 		panic(err)
@@ -45,7 +47,13 @@ func main() {
 		Model:          openai.AdaEmbeddingV2,
 		EncodingFormat: openai.EmbeddingEncodingFormatFloat,
 	}
-	nropenai.NRCreateEmbedding(client, embeddingReq, app)
+	resp, err := nropenai.NRCreateEmbedding(client, embeddingReq, app)
+	if err != nil {
+		fmt.Println("Unable to create embedding: ", err)
+	} else {
+		fmt.Println("Embedding Created!")
+		fmt.Println(resp.Usage.PromptTokens)
+	}
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)
 }

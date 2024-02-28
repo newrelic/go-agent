@@ -16,6 +16,9 @@ func main() {
 		newrelic.ConfigAppName("Basic OpenAI App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		// Enable AI Monitoring
+		// NOTE - If High Security Mode is enabled, AI Monitoring will always be disabled
+		newrelic.ConfigAIMonitoringEnabled(true),
 	)
 	if nil != err {
 		panic(err)
@@ -52,8 +55,13 @@ func main() {
 		},
 	}
 	// Create Chat Completion
-	resp := nropenai.NRCreateChatCompletion(client, req, app)
-	fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
+	resp, err := nropenai.NRCreateChatCompletion(client, req, app)
+
+	if err != nil {
+		fmt.Println("Unable to create chat completion: ", err)
+	} else {
+		fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
+	}
 
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)
