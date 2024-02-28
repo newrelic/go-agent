@@ -46,10 +46,6 @@ func main() {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "What is 1+2?",
-			},
-			{
-				Role:    openai.ChatMessageRoleUser,
 				Content: "What is 8*5",
 			},
 		},
@@ -58,10 +54,10 @@ func main() {
 	resp, err := nropenai.NRCreateChatCompletion(client, req, app)
 
 	if err != nil {
-		fmt.Println("Unable to create chat completion: ", err)
-	} else {
-		fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
+		panic(err)
 	}
+
+	fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
 
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)

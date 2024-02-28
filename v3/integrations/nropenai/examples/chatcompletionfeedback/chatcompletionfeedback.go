@@ -57,12 +57,11 @@ func main() {
 	resp, err := nropenai.NRCreateChatCompletion(client, req, app)
 
 	if err != nil {
-		fmt.Println("Unable to create chat completion: ", err)
-	} else {
-		// Print the contents of the message
-		fmt.Println("Message Response: ", resp.ChatCompletionResponse.Choices[0].Message.Content)
-		SendFeedback(app, resp)
+		panic(err)
 	}
+	// Print the contents of the message
+	fmt.Println("Message Response: ", resp.ChatCompletionResponse.Choices[0].Message.Content)
+	SendFeedback(app, resp)
 
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)

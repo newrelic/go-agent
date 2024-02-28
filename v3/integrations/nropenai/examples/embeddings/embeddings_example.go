@@ -49,11 +49,11 @@ func main() {
 	}
 	resp, err := nropenai.NRCreateEmbedding(client, embeddingReq, app)
 	if err != nil {
-		fmt.Println("Unable to create embedding: ", err)
-	} else {
-		fmt.Println("Embedding Created!")
-		fmt.Println(resp.Usage.PromptTokens)
+		panic(err)
 	}
+
+	fmt.Println("Embedding Created!")
+	fmt.Println(resp.Usage.PromptTokens)
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)
 }
