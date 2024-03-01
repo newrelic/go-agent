@@ -243,6 +243,15 @@ type Config struct {
 			Enabled bool
 		}
 	}
+
+	// AIMonitoring controls the behavior of AI monitoring features.
+	AIMonitoring struct {
+		Enabled bool
+		// Indicates whether streams will be instrumented
+		Streaming struct {
+			Enabled bool
+		}
+	}
 	// CrossApplicationTracer controls behavior relating to cross application
 	// tracing (CAT).  In the case where CrossApplicationTracer and
 	// DistributedTracer are both enabled, DistributedTracer takes precedence.

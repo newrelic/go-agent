@@ -48,9 +48,9 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	}
 }
 
-// RecordLlmFeedbackEvent adds a Llm Feedback event.
+// RecordLlmFeedbackEvent adds a LLM Feedback event.
 // An error is logged if eventType or params is invalid.
-func (app *Application) RecordLlmFeedbackEvent(trace_id string, rating any, category string, message string, metadata map[string]interface{}) {
+func (app *Application) RecordLLMFeedbackEvent(trace_id string, rating any, category string, message string, metadata map[string]interface{}) {
 	if app == nil || app.app == nil {
 		return
 	}
