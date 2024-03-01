@@ -32,11 +32,10 @@ func main() {
 	client := nropenai.NRNewClientWithConfig(cfg)
 
 	// Add any custom attributes
-
-	client.CustomAttributes = map[string]interface{}{
+	client.AddCustomAttributes(map[string]interface{}{
 		"llm.foo": "bar",
 		"ll.pi":   3.14,
-	}
+	})
 
 	// GPT Request
 	req := openai.ChatCompletionRequest{
@@ -50,7 +49,7 @@ func main() {
 			},
 		},
 	}
-	// Create Chat Completion
+	// NRCreateChatCompletion returns a wrapped version of openai.ChatCompletionResponse
 	resp, err := nropenai.NRCreateChatCompletion(client, req, app)
 
 	if err != nil {

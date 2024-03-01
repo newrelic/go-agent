@@ -53,7 +53,7 @@ func main() {
 			},
 		},
 	}
-	// Create Chat Completion
+	// NRCreateChatCompletion returns a wrapped version of openai.ChatCompletionResponse
 	resp, err := nropenai.NRCreateChatCompletion(client, req, app)
 
 	if err != nil {

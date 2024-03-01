@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -14,8 +15,13 @@ import (
 )
 
 var (
-	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled.")
+	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled")
 )
+
+type OpenAIClient interface {
+	CreateChatCompletion(ctx context.Context, request openai.ChatCompletionRequest) (response openai.ChatCompletionResponse, err error)
+	CreateEmbeddings(ctx context.Context, conv openai.EmbeddingRequestConverter) (res openai.EmbeddingResponse, err error)
+}
 
 // Wrapper for OpenAI Configuration
 type ConfigWrapper struct {
@@ -25,10 +31,30 @@ type ConfigWrapper struct {
 
 // Wrapper for OpenAI Client with Custom Attributes that can be set for all LLM Events
 type ClientWrapper struct {
-	Client             *openai.Client
+	Client             OpenAIClient
 	LicenseKeyLastFour string
 	// Set of Custom Attributes that get tied to all LLM Events
 	CustomAttributes map[string]interface{}
+}
+
+// Adds Custom Attributes to the ClientWrapper
+func (cw *ClientWrapper) AddCustomAttributes(attributes map[string]interface{}) {
+	if cw.CustomAttributes == nil {
+		cw.CustomAttributes = make(map[string]interface{})
+	}
+
+	for key, value := range attributes {
+		if strings.HasPrefix(key, "llm.") {
+			cw.CustomAttributes[key] = value
+		}
+	}
+}
+
+func AppendCustomAttributesToEvent(cw *ClientWrapper, data map[string]interface{}) map[string]interface{} {
+	for k, v := range cw.CustomAttributes {
+		data[k] = v
+	}
+	return data
 }
 
 // Wrapper for ChatCompletionResponse that is returned from NRCreateChatCompletion. It also includes the TraceID of the transaction for linking a chat response with it's feedback
@@ -77,21 +103,6 @@ func NRNewClientWithConfig(config *ConfigWrapper) *ClientWrapper {
 	}
 }
 
-func AddCustomAttributes(cw *ClientWrapper, attributes map[string]interface{}) {
-	for key, value := range attributes {
-		if len(key) >= 4 && key[:4] == "llm." {
-			cw.CustomAttributes[key] = value
-		}
-	}
-}
-
-func AppendCustomAttributesToEvent(cw *ClientWrapper, data map[string]interface{}) map[string]interface{} {
-	for k, v := range cw.CustomAttributes {
-		data[k] = v
-	}
-	return data
-}
-
 func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Application, cw *ClientWrapper, req openai.ChatCompletionRequest) ChatCompletionResponseWrapper {
 	// Get App Config for setting App Name Attribute
 	appConfig, configErr := app.Config()
@@ -129,13 +140,16 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		})
 	}
 
+	// ratelimitLimitTokensUsageBased, ratelimitResetTokensUsageBased, and ratelimitRemainingTokensUsageBased are not in the response
 	// Request Headers
 	ChatCompletionSummaryData["request.temperature"] = req.Temperature
 	ChatCompletionSummaryData["request.max_tokens"] = req.MaxTokens
 	ChatCompletionSummaryData["request.model"] = req.Model
+	ChatCompletionSummaryData["model"] = req.Model
 
 	// Response Data
 	ChatCompletionSummaryData["response.model"] = resp.Model
+	ChatCompletionSummaryData["request_id"] = resp.ID
 	ChatCompletionSummaryData["response.organization"] = resp.Header().Get("Openai-Organization")
 	ChatCompletionSummaryData["response.number_of_messages"] = len(resp.Choices)
 	ChatCompletionSummaryData["response.usage.total_tokens"] = resp.Usage.TotalTokens
@@ -153,11 +167,8 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["response.headers.ratelimitRemainingTokens"] = resp.Header().Get("X-Ratelimit-Remaining-Tokens")
 	ChatCompletionSummaryData["response.headers.ratelimitRemainingRequests"] = resp.Header().Get("X-Ratelimit-Remaining-Requests")
 
-	// ratelimitLimitTokensUsageBased, ratelimitResetTokensUsageBased, and ratelimitRemainingTokensUsageBased are not in the response
-
 	// New Relic Attributes
 	ChatCompletionSummaryData["id"] = uuid.String()
-	ChatCompletionSummaryData["request_id"] = resp.ID
 	ChatCompletionSummaryData["span_id"] = spanID
 	ChatCompletionSummaryData["transaction_id"] = transactionID
 	ChatCompletionSummaryData["trace_id"] = traceID
@@ -165,7 +176,6 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["vendor"] = "OpenAI"
 	ChatCompletionSummaryData["ingest_source"] = "Go"
 	ChatCompletionSummaryData["appName"] = appConfig.AppName
-	ChatCompletionSummaryData["model"] = req.Model
 
 	// Record any custom attributes if they exist
 	ChatCompletionSummaryData = AppendCustomAttributesToEvent(cw, ChatCompletionSummaryData)
