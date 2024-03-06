@@ -76,7 +76,7 @@ func errorClass(e error) string {
 }
 
 var (
-	errNilError = errors.New("nil error")
+	errNilError = errors.New("nil")
 )
 
 // Wrap wraps a pkg/errors error so that when noticed by
