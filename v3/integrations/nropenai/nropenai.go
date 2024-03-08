@@ -197,6 +197,13 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
 	transactionID := traceID[:16]
+	appCfg, err := app.Config()
+	if !err {
+		txn.NoticeError(newrelic.Error{
+			Class:   "OpenAIError",
+			Message: "Error getting app config",
+		})
+	}
 
 	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
 	for i, choice := range resp.Choices {
@@ -210,7 +217,11 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 
 		// Response Data
 		ChatCompletionMessageData["response.model"] = resp.Model
-		ChatCompletionMessageData["content"] = choice.Message.Content
+
+		if appCfg.AIMonitoring.RecordContent.Enabled {
+			ChatCompletionMessageData["content"] = choice.Message.Content
+		}
+
 		ChatCompletionMessageData["role"] = choice.Message.Role
 
 		// Request Headers
@@ -267,10 +278,9 @@ func GetInput(any interface{}) any {
 }
 func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) (openai.EmbeddingResponse, error) {
 	config, _ := app.Config()
-
 	resp := openai.EmbeddingResponse{}
 
-	// If AI Monitoring is disabled, do not start a transaction
+	// If AI Monitoring is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled {
 		return resp, errAIMonitoringDisabled
 	}
@@ -302,7 +312,9 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	}
 
 	// Request Data
-	EmbeddingsData["input"] = GetInput(req.Input)
+	if config.AIMonitoring.RecordContent.Enabled {
+		EmbeddingsData["input"] = GetInput(req.Input)
+	}
 	EmbeddingsData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
 	EmbeddingsData["request.model"] = string(req.Model)
 

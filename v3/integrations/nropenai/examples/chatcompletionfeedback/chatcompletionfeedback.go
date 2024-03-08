@@ -22,7 +22,7 @@ func SendFeedback(app *newrelic.Application, resp nropenai.ChatCompletionRespons
 		"pi":  3.14,
 	}
 
-	app.RecordLlmFeedbackEvent(trace_id, rating, category, message, customMetadata)
+	app.RecordLLMFeedbackEvent(trace_id, rating, category, message, customMetadata)
 }
 
 func main() {
