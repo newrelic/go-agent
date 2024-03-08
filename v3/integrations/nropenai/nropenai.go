@@ -251,9 +251,11 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest, app *newrelic.Application) (ChatCompletionResponseWrapper, error) {
 	config, _ := app.Config()
 	resp := ChatCompletionResponseWrapper{}
-	// If AI Monitoring is disabled, do not start a transaction
+	// If AI Monitoring is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled {
-		return resp, errAIMonitoringDisabled
+		chatresp, err := cw.Client.CreateChatCompletion(context.Background(), req)
+		resp.ChatCompletionResponse = chatresp
+		return resp, err
 	}
 	// Start NR Transaction
 	txn := app.StartTransaction("OpenAIChatCompletion")
@@ -282,7 +284,8 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled {
-		return resp, errAIMonitoringDisabled
+		resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
+		return resp, err
 	}
 
 	// Start NR Transaction
