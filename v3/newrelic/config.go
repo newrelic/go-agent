@@ -242,6 +242,9 @@ type Config struct {
 		Streaming struct {
 			Enabled bool
 		}
+		RecordContent struct {
+			Enabled bool
+		}
 	}
 
 	// CrossApplicationTracer controls behavior relating to cross application
@@ -677,6 +680,7 @@ func defaultConfig() Config {
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 	c.AIMonitoring.Enabled = false
 	c.AIMonitoring.Streaming.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = true
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 

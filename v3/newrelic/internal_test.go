@@ -291,7 +291,7 @@ func testApp(replyfn func(*internal.ConnectReply), cfgfn func(*Config), t testin
 
 func TestRecordLLMFeedbackEventSuccess(t *testing.T) {
 	app := testApp(nil, nil, t)
-	app.RecordLlmFeedbackEvent("traceid", "5", "informative", "message", validParams)
+	app.RecordLLMFeedbackEvent("traceid", "5", "informative", "message", validParams)
 	app.expectNoLoggedErrors(t)
 	app.ExpectCustomEvents(t, []internal.WantEvent{{
 		Intrinsics: map[string]interface{}{

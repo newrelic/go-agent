@@ -246,6 +246,12 @@ func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	}
 }
 
+func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.RecordContent.Enabled = enabled
+	}
+}
+
 // ConfigAppLogMetricsEnabled enables or disables the collection of metrics
 // data for logs seen by an instrumented logging framework
 // default: true
