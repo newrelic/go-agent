@@ -242,13 +242,7 @@ type Config struct {
 		Streaming struct {
 			Enabled bool
 		}
-	}
-
-	// AIMonitoring controls the behavior of AI monitoring features.
-	AIMonitoring struct {
-		Enabled bool
-		// Indicates whether streams will be instrumented
-		Streaming struct {
+		RecordContent struct {
 			Enabled bool
 		}
 	}
@@ -686,7 +680,11 @@ func defaultConfig() Config {
 
 	c.AIMonitoring.Enabled = false
 	c.AIMonitoring.Streaming.Enabled = true
+<<<<<<< HEAD
 
+=======
+	c.AIMonitoring.RecordContent.Enabled = true
+>>>>>>> AIEvents
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 

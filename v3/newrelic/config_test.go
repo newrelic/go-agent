@@ -132,6 +132,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"settings":{
 			"AIMonitoring": {
 				"Enabled": false,
+				"RecordContent": {
+					"Enabled": true
+				},
 				"Streaming": {
 					"Enabled": true
 				}
@@ -334,6 +337,9 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"settings":{
 			"AIMonitoring": {
 				"Enabled": false,
+				"RecordContent": {
+					"Enabled": true
+				},
 				"Streaming": {
 					"Enabled": true
 				}
