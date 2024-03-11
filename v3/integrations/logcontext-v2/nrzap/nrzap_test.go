@@ -68,7 +68,7 @@ func TestBackgroundLoggerSugared(t *testing.T) {
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
 			Severity:  zap.ErrorLevel.String(),
-			Message:   msg,
+			Message:   `this is a test error message{error 26 0  this is a test error} {test-key 15 0 test-val <nil>}`,
 			Timestamp: internal.MatchAnyUnixMilli,
 		},
 	})
