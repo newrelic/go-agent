@@ -680,11 +680,7 @@ func defaultConfig() Config {
 
 	c.AIMonitoring.Enabled = false
 	c.AIMonitoring.Streaming.Enabled = true
-<<<<<<< HEAD
-
-=======
 	c.AIMonitoring.RecordContent.Enabled = true
->>>>>>> AIEvents
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 

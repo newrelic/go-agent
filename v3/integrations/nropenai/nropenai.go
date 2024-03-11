@@ -5,21 +5,20 @@ package nropenai
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sashabaranov/go-openai"
 )
 
-var (
-	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled")
-)
+func init() { internal.TrackUsage("Go", "ML", "OpenAI", "1.20.2") }
 
 type OpenAIClient interface {
 	CreateChatCompletion(ctx context.Context, request openai.ChatCompletionRequest) (response openai.ChatCompletionResponse, err error)
+	CreateChatCompletionStream(ctx context.Context, request openai.ChatCompletionRequest) (stream *openai.ChatCompletionStream, err error)
 	CreateEmbeddings(ctx context.Context, conv openai.EmbeddingRequestConverter) (res openai.EmbeddingResponse, err error)
 }
 
@@ -35,32 +34,6 @@ type ClientWrapper struct {
 	LicenseKeyLastFour string
 	// Set of Custom Attributes that get tied to all LLM Events
 	CustomAttributes map[string]interface{}
-}
-
-// Adds Custom Attributes to the ClientWrapper
-func (cw *ClientWrapper) AddCustomAttributes(attributes map[string]interface{}) {
-	if cw.CustomAttributes == nil {
-		cw.CustomAttributes = make(map[string]interface{})
-	}
-
-	for key, value := range attributes {
-		if strings.HasPrefix(key, "llm.") {
-			cw.CustomAttributes[key] = value
-		}
-	}
-}
-
-func AppendCustomAttributesToEvent(cw *ClientWrapper, data map[string]interface{}) map[string]interface{} {
-	for k, v := range cw.CustomAttributes {
-		data[k] = v
-	}
-	return data
-}
-
-// Wrapper for ChatCompletionResponse that is returned from NRCreateChatCompletion. It also includes the TraceID of the transaction for linking a chat response with it's feedback
-type ChatCompletionResponseWrapper struct {
-	ChatCompletionResponse openai.ChatCompletionResponse
-	TraceID                string
 }
 
 func FormatAPIKey(apiKey string) string {
@@ -101,6 +74,68 @@ func NRNewClientWithConfig(config *ConfigWrapper) *ClientWrapper {
 		Client:             client,
 		LicenseKeyLastFour: config.LicenseKeyLastFour,
 	}
+}
+
+// Adds Custom Attributes to the ClientWrapper
+func (cw *ClientWrapper) AddCustomAttributes(attributes map[string]interface{}) {
+	if cw.CustomAttributes == nil {
+		cw.CustomAttributes = make(map[string]interface{})
+	}
+
+	for key, value := range attributes {
+		if strings.HasPrefix(key, "llm.") {
+			cw.CustomAttributes[key] = value
+		}
+	}
+}
+
+func AppendCustomAttributesToEvent(cw *ClientWrapper, data map[string]interface{}) map[string]interface{} {
+	for k, v := range cw.CustomAttributes {
+		data[k] = v
+	}
+	return data
+}
+
+// If multiple messages are sent, only the first message is used for the "content" field
+func GetInput(any interface{}) any {
+	v := reflect.ValueOf(any)
+	if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
+		if v.Len() > 0 {
+			// Return the first element
+			return v.Index(0).Interface()
+		}
+		// Input passed in is empty
+		return ""
+	}
+	return any
+
+}
+
+// Wrapper for ChatCompletionResponse that is returned from NRCreateChatCompletion. It also includes the TraceID of the transaction for linking a chat response with it's feedback
+type ChatCompletionResponseWrapper struct {
+	ChatCompletionResponse openai.ChatCompletionResponse
+	TraceID                string
+}
+
+// Wrapper for ChatCompletionStream that is returned from NRCreateChatCompletionStream
+type ChatCompletionStreamWrapper struct {
+	stream *openai.ChatCompletionStream
+}
+
+// Wrapper for Recv() method that calls the underlying stream's Recv() method
+func (w *ChatCompletionStreamWrapper) Recv() (openai.ChatCompletionStreamResponse, error) {
+	response, err := w.stream.Recv()
+
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+
+}
+
+func (w *ChatCompletionStreamWrapper) Close() {
+	w.stream.Close()
 }
 
 func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Application, cw *ClientWrapper, req openai.ChatCompletionRequest) ChatCompletionResponseWrapper {
@@ -264,20 +299,6 @@ func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest,
 	return resp, nil
 }
 
-// If multiple messages are sent, only the first message is used
-func GetInput(any interface{}) any {
-	v := reflect.ValueOf(any)
-	if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
-		if v.Len() > 0 {
-			// Return the first element
-			return v.Index(0).Interface()
-		}
-		// Input passed in is empty
-		return ""
-	}
-	return any
-
-}
 func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) (openai.EmbeddingResponse, error) {
 	config, _ := app.Config()
 	resp := openai.EmbeddingResponse{}
@@ -349,4 +370,35 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	app.RecordCustomEvent("LlmEmbedding", EmbeddingsData)
 	txn.End()
 	return resp, nil
+}
+
+func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req openai.ChatCompletionRequest, app *newrelic.Application) (*ChatCompletionStreamWrapper, error) {
+	config, _ := app.Config()
+	// If AI Monitoring OR AIMonitoring.Streaming is disabled, do not start a transaction but still perform the request
+	if !config.AIMonitoring.Enabled || !config.AIMonitoring.Streaming.Enabled {
+		stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		return &ChatCompletionStreamWrapper{stream: stream}, nil
+	}
+
+	txn := app.StartTransaction("OpenAIChatCompletionStream")
+
+	streamSpan := txn.StartSegment("Llm/completion/OpenAI/stream")
+	stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
+	streamSpan.End()
+
+	if err != nil {
+		txn.NoticeError(newrelic.Error{
+			Message: err.Error(),
+			Class:   "OpenAIError",
+		})
+		txn.End()
+		return nil, err
+	}
+
+	txn.End()
+	return &ChatCompletionStreamWrapper{stream: stream}, nil
+
 }
