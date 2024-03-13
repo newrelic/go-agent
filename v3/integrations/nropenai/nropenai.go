@@ -151,10 +151,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	// Get App Config for setting App Name Attribute
 	appConfig, configErr := app.Config()
 	if !configErr {
-		txn.NoticeError(newrelic.Error{
-			Class:   "OpenAIError",
-			Message: "Error getting app config",
-		})
+		appConfig.AppName = "Unknown"
 	}
 	uuid := uuid.New()
 	spanID := txn.GetTraceMetadata().SpanID
@@ -212,9 +209,9 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 				Message: err.Error(),
 				Class:   "OpenAIError",
 			})
+		} else {
+			ChatCompletionSummaryData["response.choices.finish_reason"] = string(finishReason)
 		}
-		ChatCompletionSummaryData["response.choices.finish_reason"] = string(finishReason)
-
 	}
 
 	// Response Headers
@@ -257,14 +254,10 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
 	transactionID := traceID[:16]
-	appCfg, err := app.Config()
-	if !err {
-		txn.NoticeError(newrelic.Error{
-			Class:   "OpenAIError",
-			Message: "Error getting app config",
-		})
+	appCfg, configErr := app.Config()
+	if !configErr {
+		appCfg.AppName = "Unknown"
 	}
-
 	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
 	for i, choice := range resp.Choices {
 		ChatCompletionMessageData := map[string]interface{}{}
@@ -311,7 +304,10 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 // NRCreateChatCompletion is a wrapper for the OpenAI CreateChatCompletion method.
 // If AI Monitoring is disabled, the wrapped function will still call the OpenAI CreateChatCompletion method and return the response with no New Relic instrumentation
 func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest, app *newrelic.Application) (ChatCompletionResponseWrapper, error) {
-	config, _ := app.Config()
+	config, cfgErr := app.Config()
+	if !cfgErr {
+		config.AppName = "Unknown"
+	}
 	resp := ChatCompletionResponseWrapper{}
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled {
@@ -333,7 +329,11 @@ func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest,
 // NRCreateEmbedding is a wrapper for the OpenAI CreateEmbedding method.
 // If AI Monitoring is disabled, the wrapped function will still call the OpenAI CreateEmbedding method and return the response with no New Relic instrumentation
 func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) (openai.EmbeddingResponse, error) {
-	config, _ := app.Config()
+	config, cfgErr := app.Config()
+	if !cfgErr {
+		config.AppName = "Unknown"
+	}
+
 	resp := openai.EmbeddingResponse{}
 
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
@@ -413,7 +413,10 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 }
 
 func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req openai.ChatCompletionRequest, app *newrelic.Application) (*ChatCompletionStreamWrapper, error) {
-	config, _ := app.Config()
+	config, cfgErr := app.Config()
+	if !cfgErr {
+		config.AppName = "Unknown"
+	}
 
 	// If AI Monitoring OR AIMonitoring.Streaming is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled || !config.AIMonitoring.Streaming.Enabled {

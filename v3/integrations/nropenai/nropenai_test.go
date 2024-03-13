@@ -92,6 +92,14 @@ func (m *MockOpenAIClient) CreateEmbeddings(ctx context.Context, conv openai.Emb
 	hdrs.Add("X-Ratelimit-Remaining-Tokens", "100")
 	hdrs.Add("X-Ratelimit-Remaining-Requests", "10000")
 	hdrs.Add("Openai-Organization", "user-123")
+	cv := conv.Convert()
+	if cv.Input == "testError" {
+		mockRespErr := openai.EmbeddingResponse{}
+		hdrs.Add("Status", "404")
+		hdrs.Add("Error-Code", "404")
+		mockRespErr.SetHeader(hdrs)
+		return mockRespErr, errors.New("test error")
+	}
 
 	MockResponse.SetHeader(hdrs)
 
@@ -99,6 +107,9 @@ func (m *MockOpenAIClient) CreateEmbeddings(ctx context.Context, conv openai.Emb
 }
 
 func (m *MockOpenAIClient) CreateChatCompletionStream(ctx context.Context, request openai.ChatCompletionRequest) (stream *openai.ChatCompletionStream, err error) {
+	if request.Messages[0].Content == "testError" {
+		return m.MockCreateChatCompletionStream, errors.New("test error")
+	}
 	return m.MockCreateChatCompletionStream, m.MockCreateChatCompletionErr
 }
 
@@ -472,6 +483,77 @@ func TestNRCreateEmbeddingAIMonitoringNotEnabled(t *testing.T) {
 	}
 
 }
+func TestNRCreateEmbeddingError(t *testing.T) {
+	mockClient := &MockOpenAIClient{}
+	cw := &ClientWrapper{
+		Client:             mockClient,
+		LicenseKeyLastFour: "sk-mnop",
+	}
+	embeddingReq := openai.EmbeddingRequest{
+		Input:          "testError",
+		Model:          openai.AdaEmbeddingV2,
+		EncodingFormat: openai.EmbeddingEncodingFormatFloat,
+	}
+
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+
+	_, err := NRCreateEmbedding(cw, embeddingReq, app.Application)
+	if err != nil {
+		t.Error(err)
+	}
+
+	app.ExpectCustomEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "LlmEmbedding",
+				"timestamp": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"ingest_source":                "Go",
+				"vendor":                       "OpenAI",
+				"id":                           internal.MatchAnything,
+				"transaction_id":               internal.MatchAnything,
+				"trace_id":                     internal.MatchAnything,
+				"span_id":                      internal.MatchAnything,
+				"duration":                     0,
+				"api_key_last_four_digits":     "sk-mnop",
+				"request.model":                "text-embedding-ada-002",
+				"response.headers.llmVersion":  "2020-10-01",
+				"response.organization":        "user-123",
+				"error":                        true,
+				"response.model":               "",
+				"response.usage.total_tokens":  0,
+				"response.usage.prompt_tokens": 0,
+				"input":                        "testError",
+				"response.headers.ratelimitRemainingTokens":   "100",
+				"response.headers.ratelimitRemainingRequests": "10000",
+				"response.headers.ratelimitResetTokens":       "100",
+				"response.headers.ratelimitResetRequests":     "10000",
+				"response.headers.ratelimitLimitTokens":       "100",
+				"response.headers.ratelimitLimitRequests":     "10000",
+			},
+		},
+	})
+
+	app.ExpectErrorEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":            "TransactionError",
+				"transactionName": "OtherTransaction/Go/OpenAIEmbedding",
+				"guid":            internal.MatchAnything,
+				"priority":        internal.MatchAnything,
+				"sampled":         internal.MatchAnything,
+				"traceId":         internal.MatchAnything,
+				"error.class":     "OpenAIError",
+				"error.message":   "test error",
+			},
+			UserAttributes: map[string]interface{}{
+				"error.code":   "404",
+				"http.status":  "404",
+				"embedding_id": internal.MatchAnything,
+			},
+		}})
+}
 
 func TestNRCreateStream(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
@@ -559,4 +641,44 @@ func TestNRCreateStreamAIMonitoringNotEnabled(t *testing.T) {
 	}
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 	app.ExpectTxnEvents(t, []internal.WantEvent{})
+}
+
+func TestNRCreateStreamError(t *testing.T) {
+	mockClient := &MockOpenAIClient{}
+	cw := &ClientWrapper{
+		Client:             mockClient,
+		LicenseKeyLastFour: "sk-mnop",
+	}
+	req := openai.ChatCompletionRequest{
+		Model:       openai.GPT3Dot5Turbo,
+		Temperature: 0,
+		MaxTokens:   1500,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: "testError",
+			},
+		},
+		Stream: true,
+	}
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	_, err := NRCreateChatCompletionStream(cw, context.Background(), req, app.Application)
+	if err.Error() != "test error" {
+		t.Error(err)
+	}
+
+	app.ExpectErrorEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":            "TransactionError",
+				"transactionName": "OtherTransaction/Go/OpenAIChatCompletionStream",
+				"guid":            internal.MatchAnything,
+				"priority":        internal.MatchAnything,
+				"sampled":         internal.MatchAnything,
+				"traceId":         internal.MatchAnything,
+				"error.class":     "OpenAIError",
+				"error.message":   "test error",
+			},
+		}})
+
 }
