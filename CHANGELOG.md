@@ -8,7 +8,7 @@
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.29.1
 ### Added
@@ -19,7 +19,7 @@ See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.29.0
 ### Added
@@ -31,7 +31,7 @@ See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.28.1
 ### Added
@@ -43,7 +43,7 @@ Fixed an issue where `nil` `Request.Body` could be set to non-`nil` `request.Bod
 More Secure URL Redaction
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.28.0
 ### Fixed
@@ -57,7 +57,7 @@ See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol
 
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
 
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 
 ## 3.27.0
