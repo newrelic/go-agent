@@ -5,8 +5,10 @@ package nropenai
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -15,6 +17,10 @@ import (
 )
 
 func init() { internal.TrackUsage("Go", "ML", "OpenAI", "1.20.2") }
+
+var (
+	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled")
+)
 
 type OpenAIClient interface {
 	CreateChatCompletion(ctx context.Context, request openai.ChatCompletionRequest) (response openai.ChatCompletionResponse, err error)
@@ -120,6 +126,7 @@ type ChatCompletionResponseWrapper struct {
 // Wrapper for ChatCompletionStream that is returned from NRCreateChatCompletionStream
 type ChatCompletionStreamWrapper struct {
 	stream *openai.ChatCompletionStream
+	txn    *newrelic.Transaction
 }
 
 // Wrapper for Recv() method that calls the underlying stream's Recv() method
@@ -138,6 +145,8 @@ func (w *ChatCompletionStreamWrapper) Close() {
 	w.stream.Close()
 }
 
+// NRCreateChatCompletionSummary captures the request and response data for a chat completion request and records a custom event in New Relic. It also captures the completion messages
+// With a call to NRCreateChatCompletionMessage
 func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Application, cw *ClientWrapper, req openai.ChatCompletionRequest) ChatCompletionResponseWrapper {
 	// Get App Config for setting App Name Attribute
 	appConfig, configErr := app.Config()
@@ -156,10 +165,13 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 
 	// Start span
 	chatCompletionSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletion")
+	// Track Total time taken for the chat completion or embedding call to complete in milliseconds
+	start := time.Now()
 	resp, err := cw.Client.CreateChatCompletion(
 		context.Background(),
 		req,
 	)
+	duration := time.Since(start).Milliseconds()
 	chatCompletionSpan.End()
 	if err != nil {
 		ChatCompletionSummaryData["error"] = true
@@ -181,8 +193,10 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["request.max_tokens"] = req.MaxTokens
 	ChatCompletionSummaryData["request.model"] = req.Model
 	ChatCompletionSummaryData["model"] = req.Model
+	ChatCompletionSummaryData["duration"] = duration
 
 	// Response Data
+	ChatCompletionSummaryData["response.number_of_messages"] = len(resp.Choices)
 	ChatCompletionSummaryData["response.model"] = resp.Model
 	ChatCompletionSummaryData["request_id"] = resp.ID
 	ChatCompletionSummaryData["response.organization"] = resp.Header().Get("Openai-Organization")
@@ -190,8 +204,18 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["response.usage.total_tokens"] = resp.Usage.TotalTokens
 	ChatCompletionSummaryData["response.usage.prompt_tokens"] = resp.Usage.PromptTokens
 	ChatCompletionSummaryData["response.usage.completion_tokens"] = resp.Usage.CompletionTokens
-	// TO:DO - Verify this is the correct method of getting FinishReason
-	// ChatCompletionSummaryData["response.choices.finish_reason"] = resp.Choices[0].FinishReason
+	if len(resp.Choices) > 0 {
+		finishReason, err := resp.Choices[0].FinishReason.MarshalJSON()
+		if err != nil {
+			ChatCompletionSummaryData["error"] = true
+			txn.NoticeError(newrelic.Error{
+				Message: err.Error(),
+				Class:   "OpenAIError",
+			})
+		}
+		ChatCompletionSummaryData["response.choices.finish_reason"] = string(finishReason)
+
+	}
 
 	// Response Headers
 	ChatCompletionSummaryData["response.headers.llmVersion"] = resp.Header().Get("Openai-Version")
@@ -228,6 +252,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	}
 }
 
+// NRCreateChatCompletionMessage captures the completion messages and records a custom event in New Relic for each message
 func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Application, resp openai.ChatCompletionResponse, uuid uuid.UUID, cw *ClientWrapper) {
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
@@ -283,6 +308,8 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	chatCompletionMessageSpan.End()
 }
 
+// NRCreateChatCompletion is a wrapper for the OpenAI CreateChatCompletion method.
+// If AI Monitoring is disabled, the wrapped function will still call the OpenAI CreateChatCompletion method and return the response with no New Relic instrumentation
 func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest, app *newrelic.Application) (ChatCompletionResponseWrapper, error) {
 	config, _ := app.Config()
 	resp := ChatCompletionResponseWrapper{}
@@ -290,7 +317,11 @@ func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest,
 	if !config.AIMonitoring.Enabled {
 		chatresp, err := cw.Client.CreateChatCompletion(context.Background(), req)
 		resp.ChatCompletionResponse = chatresp
-		return resp, err
+		if err != nil {
+
+			return resp, err
+		}
+		return resp, errAIMonitoringDisabled
 	}
 	// Start NR Transaction
 	txn := app.StartTransaction("OpenAIChatCompletion")
@@ -299,6 +330,8 @@ func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest,
 	return resp, nil
 }
 
+// NRCreateEmbedding is a wrapper for the OpenAI CreateEmbedding method.
+// If AI Monitoring is disabled, the wrapped function will still call the OpenAI CreateEmbedding method and return the response with no New Relic instrumentation
 func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newrelic.Application) (openai.EmbeddingResponse, error) {
 	config, _ := app.Config()
 	resp := openai.EmbeddingResponse{}
@@ -306,7 +339,11 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled {
 		resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
-		return resp, err
+		if err != nil {
+
+			return resp, err
+		}
+		return resp, errAIMonitoringDisabled
 	}
 
 	// Start NR Transaction
@@ -319,7 +356,9 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	uuid := uuid.New()
 
 	embeddingSpan := txn.StartSegment("Llm/completion/OpenAI/CreateEmbedding")
+	start := time.Now()
 	resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
+	duration := time.Since(start).Milliseconds()
 	embeddingSpan.End()
 
 	if err != nil {
@@ -341,6 +380,7 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	}
 	EmbeddingsData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
 	EmbeddingsData["request.model"] = string(req.Model)
+	EmbeddingsData["duration"] = duration
 
 	// Response Data
 	EmbeddingsData["response.model"] = string(resp.Model)
@@ -374,22 +414,32 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 
 func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req openai.ChatCompletionRequest, app *newrelic.Application) (*ChatCompletionStreamWrapper, error) {
 	config, _ := app.Config()
+
 	// If AI Monitoring OR AIMonitoring.Streaming is disabled, do not start a transaction but still perform the request
 	if !config.AIMonitoring.Enabled || !config.AIMonitoring.Streaming.Enabled {
 		stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
 		if err != nil {
-			return nil, err
+
+			return &ChatCompletionStreamWrapper{stream: stream}, err
 		}
-		return &ChatCompletionStreamWrapper{stream: stream}, nil
+		return &ChatCompletionStreamWrapper{stream: stream}, errAIMonitoringDisabled
 	}
 
 	txn := app.StartTransaction("OpenAIChatCompletionStream")
+	spanID := txn.GetTraceMetadata().SpanID
+	traceID := txn.GetTraceMetadata().TraceID
+	transactionID := traceID[:16]
+	StreamingData := map[string]interface{}{}
+	uuid := uuid.New()
 
 	streamSpan := txn.StartSegment("Llm/completion/OpenAI/stream")
+	start := time.Now()
 	stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
+	duration := time.Since(start).Milliseconds()
 	streamSpan.End()
 
 	if err != nil {
+		StreamingData["error"] = true
 		txn.NoticeError(newrelic.Error{
 			Message: err.Error(),
 			Class:   "OpenAIError",
@@ -398,7 +448,26 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 		return nil, err
 	}
 
+	// Request Data
+	StreamingData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
+	StreamingData["request.model"] = string(req.Model)
+	StreamingData["request.temperature"] = req.Temperature
+	StreamingData["request.max_tokens"] = req.MaxTokens
+	StreamingData["model"] = req.Model
+
+	StreamingData["duration"] = duration
+
+	// New Relic Attributes
+	StreamingData["id"] = uuid.String()
+	StreamingData["span_id"] = spanID
+	StreamingData["transaction_id"] = transactionID
+	StreamingData["trace_id"] = traceID
+	StreamingData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
+	StreamingData["vendor"] = "OpenAI"
+	StreamingData["ingest_source"] = "Go"
+	StreamingData["appName"] = config.AppName
+	app.RecordCustomEvent("LlmChatCompletionSummary", StreamingData)
 	txn.End()
-	return &ChatCompletionStreamWrapper{stream: stream}, nil
+	return &ChatCompletionStreamWrapper{stream: stream, txn: txn}, nil
 
 }

@@ -18,6 +18,7 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Basic OpenAI App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
 		// Enable AI Monitoring
 		// NOTE - If High Security Mode is enabled, AI Monitoring will always be disabled
 		newrelic.ConfigAIMonitoringEnabled(true),
@@ -34,9 +35,10 @@ func main() {
 	client := nropenai.NRNewClientWithConfig(cfg)
 
 	// Add any custom attributes
+	// NOTE: Attributes must start with "llm.", otherwise they will be ignored
 	client.AddCustomAttributes(map[string]interface{}{
 		"llm.foo": "bar",
-		"ll.pi":   3.14,
+		"llm.pi":  3.14,
 	})
 
 	// GPT Request

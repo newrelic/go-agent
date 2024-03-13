@@ -32,9 +32,10 @@ func main() {
 	client := nropenai.NRNewClientWithConfig(cfg)
 
 	// Add any custom attributes
+	// NOTE: Attributes must start with "llm.", otherwise they will be ignored
 	client.AddCustomAttributes(map[string]interface{}{
 		"llm.foo": "bar",
-		"ll.pi":   3.14,
+		"llm.pi":  3.14,
 	})
 
 	// GPT Request
