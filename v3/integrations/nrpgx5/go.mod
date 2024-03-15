@@ -8,6 +8,3 @@ require (
 	github.com/newrelic/go-agent/v3 v3.30.0
 	github.com/stretchr/testify v1.8.0
 )
-
-
-replace github.com/newrelic/go-agent/v3 => ../..
