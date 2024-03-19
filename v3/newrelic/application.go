@@ -48,6 +48,32 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 	}
 }
 
+// RecordLlmFeedbackEvent adds a LLM Feedback event.
+// An error is logged if eventType or params is invalid.
+func (app *Application) RecordLLMFeedbackEvent(trace_id string, rating any, category string, message string, metadata map[string]interface{}) {
+	if app == nil || app.app == nil {
+		return
+	}
+	CustomEventData := map[string]interface{}{
+		"trace_id":      trace_id,
+		"rating":        rating,
+		"category":      category,
+		"message":       message,
+		"ingest_source": "Go",
+	}
+	for k, v := range metadata {
+		CustomEventData[k] = v
+	}
+	// if rating is an int or string, record the event
+	err := app.app.RecordCustomEvent("LlmFeedbackMessage", CustomEventData)
+	if err != nil {
+		app.app.Error("unable to record custom event", map[string]interface{}{
+			"event-type": "LlmFeedbackMessage",
+			"reason":     err.Error(),
+		})
+	}
+}
+
 // RecordCustomMetric records a custom metric.  The metric name you
 // provide will be prefixed by "Custom/".  Custom metrics are not
 // currently supported in serverless mode.
@@ -136,7 +162,6 @@ func (app *Application) Shutdown(timeout time.Duration) {
 // a boolean true value is returned as the second return value.  If it is
 // false, then the Config data returned is the standard default configuration.
 // This usually occurs if the Application is not yet fully initialized.
-//
 func (app *Application) Config() (Config, bool) {
 	if app == nil || app.app == nil {
 		return defaultConfig(), false
