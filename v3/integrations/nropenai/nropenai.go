@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -16,7 +17,21 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-func init() { internal.TrackUsage("Go", "ML", "OpenAI", "1.20.2") }
+func init() {
+	// Get current go-openai version
+	info, ok := debug.ReadBuildInfo()
+	if info != nil && ok {
+		for _, module := range info.Deps {
+			if module != nil && strings.Contains(module.Path, "go-openai") {
+				internal.TrackUsage("Go", "ML", "OpenAI", module.Version)
+				return
+			}
+		}
+	}
+
+	internal.TrackUsage("Go", "ML", "OpenAI", "unknown")
+
+}
 
 var (
 	errAIMonitoringDisabled = errors.New("AI Monitoring is set to disabled or High Security Mode is enabled. Please enable AI Monitoring and ensure High Security Mode is disabled")
