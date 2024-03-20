@@ -6,6 +6,8 @@ package newrelic
 import (
 	"os"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 // Application represents your application.  All methods on Application are nil
@@ -13,6 +15,24 @@ import (
 type Application struct {
 	Private interface{}
 	app     *app
+}
+
+// IsAIMonitoringEnabled returns true if monitoring for the specified mode of the named integration is enabled.
+func (app *Application) IsAIMonitoringEnabled(integration string, streaming bool) bool {
+	if app == nil || app.app == nil || app.app.run == nil {
+		return false
+	}
+	aiconf := app.app.run.Config.AIMonitoring
+	if !aiconf.Enabled {
+		return false
+	}
+	if aiconf.IncludeOnly != nil && integration != "" && !slices.Contains(aiconf.IncludeOnly, integration) {
+		return false
+	}
+	if streaming && !aiconf.Streaming {
+		return false
+	}
+	return true
 }
 
 // StartTransaction begins a Transaction with the given name.

@@ -60,6 +60,40 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
+// ConfigAIMonitoringEnabled turns on or off the collection of AI Monitoring metrics.
+func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.Enabled = enabled
+	}
+}
+
+// ConfigAIMonitoringStreaming turns on or off the collection of AI Monitoring streaming mode metrics.
+func ConfigAIMonitoringStreaming(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.Streaming = enabled
+	}
+}
+
+// ConfigAIMonitoringIncludeOnly sets the list of specific AI integrations to enable, if not the entire list.
+// A nil slice of integration names means not to restrict which ones are enabled.
+func ConfigAIMonitoringIncludeOnly(integrations []string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.IncludeOnly = integrations
+	}
+}
+
+const (
+	AIMonitoringBedrock = "nrawsbedrock"
+)
+
+// ConfigAIMonitoringIncludeOnlyString is like ConfigAIMonitoringIncludeOnly except that it takes a single
+// comma-separated list of names.
+func ConfigAIMonitoringIncludeOnlyString(integrations string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.IncludeOnly = strings.Split(integrations, ",")
+	}
+}
+
 // ConfigCodeLevelMetricsEnabled turns on or off the collection of code
 // level metrics entirely.
 func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
@@ -363,6 +397,9 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
 //	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
 //		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//		NEW_RELIC_AI_MONITORING_STREAMING							sets AIMonitoring.Streaming
+//		NEW_RELIC_AI_MONITORING_INCLUDE_ONLY						sets AIMonitoring.IncludeOnly
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -426,6 +463,11 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
+		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
+		assignBool(&cfg.AIMonitoring.Streaming, "NEW_RELIC_AI_MONITORING_STREAMING")
+		if env := getenv("NEW_RELIC_AI_MONITORING_INCLUDE_ONLY"); env != "" {
+			cfg.AIMonitoring.IncludeOnly = strings.Split(env, ",")
+		}
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {

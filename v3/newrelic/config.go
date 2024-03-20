@@ -450,6 +450,17 @@ type Config struct {
 	}
 	// Security is used to post security configuration on UI.
 	Security interface{} `json:"Security,omitempty"`
+
+	// AIMonitoring controls instrumentation and reporting of AI model invocations and feedback.
+	AIMonitoring struct {
+		// Enabled controls whether any AI instrumentation is to be performed.
+		Enabled bool
+		// Streaming enables streaming mode instrumentation.
+		Streaming bool
+		// IncludeOnly is the list of specific integrations to enable. If empty, all integrations which
+		// were compiled into the application will be active whenever Enabled is true.
+		IncludeOnly []string
+	}
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes
@@ -679,6 +690,11 @@ func defaultConfig() Config {
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
 	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
+
+	// AI Monitoring
+	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Streaming = false
+	c.AIMonitoring.IncludeOnly = nil
 	return c
 }
 
