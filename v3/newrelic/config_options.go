@@ -270,6 +270,22 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled && !cfg.HighSecurity {
+			cfg.AIMonitoring.Enabled = true
+		} else {
+			cfg.AIMonitoring.Enabled = false
+		}
+	}
+}
+
+func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.RecordContent.Enabled = enabled
+	}
+}
+
 // ConfigAppLogMetricsEnabled enables or disables the collection of metrics
 // data for logs seen by an instrumented logging framework
 // default: true
