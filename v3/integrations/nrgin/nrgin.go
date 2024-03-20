@@ -144,6 +144,17 @@ func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
 	return middleware(app, false)
 }
 
+// WrapRouter extract api endpoints from the router instance passed to it
+// which is used to detect application URL mapping(api-endpoints) for provable security.
+// Skip if you are not using [nrsecurityagent](https://pkg.go.dev/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent).
+//  router := gin.Default()
+//  ....
+//  ....
+//  ....
+//
+//	nrgin.WrapRouter(router)
+//
+
 func WrapRouter(engine *gin.Engine) {
 	if engine != nil {
 		router := engine.Routes()
