@@ -63,6 +63,9 @@ type app struct {
 	// (disconnect, license exception, shutdown).
 	err error
 
+	// registered callback functions
+	llmTokenCountCallback func(string, string) int
+
 	serverless *serverlessHarvest
 }
 
