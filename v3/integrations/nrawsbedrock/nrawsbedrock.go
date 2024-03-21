@@ -59,7 +59,7 @@ func init() {
 			}
 		}
 	}
-	internal.TrackUsage("Go", "ML", "Bedrock", "unknown")
+	internal.TrackUsage("Go", "ML", "Bedrock", "0.0.0")
 }
 
 //
@@ -159,15 +159,22 @@ func CompleteStreamResponse()    {}
 // If the transaction is unable to be created or used, the Bedrock call will be made anyway, without instrumentation.
 //
 func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
+	return InvokeModelWithAttributes(app, brc, ctx, params, nil, optFns...)
+}
+
+//
+// InvokeModelWithAttributes is identical to InvokeModel except for the addition of the attrs parameter, which is a
+// map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
+// relating to this model invocation.
+//
+// Each key in the attrs map must begin with "llm."; if any of them do not, "llm." is automatically prepended to
+// the attribute key before the metrics are sent out.
+//
+// We recommend including at least "llm.conversation_id" in your attributes.
+//
+func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	var txn *newrelic.Transaction // the transaction to record in, or nil if we aren't instrumenting this time
 
-	// spanID := txn.GetTraceMetadata().SpanID
-	// traceID := txn.GetTraceMetadata().TraceID
-	// transactionID := traceID[:16]
-	// uuid := uuid.New()
-
-	// params: .Body []byte .ModelId *string .Accept *string ("application/json") .ContentType *string ("application/json")
-	// output: .Body []byte .ContentType *string .ResultMetadata middleware.Metadata (.Get(key any)->any|nil, .Has(key any)->bool, .Set(key, value any)
 	aiEnabled, recordContentEnabled := isEnabled(app, false)
 	if aiEnabled {
 		txn = newrelic.FromContext(ctx)
@@ -229,7 +236,7 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 		// record with our instrumentation
 
 		var requestData, responseData map[string]any
-		var inputString string
+		var inputString, outputString string
 
 		if params.Body != nil && json.Unmarshal(params.Body, &requestData) == nil {
 			if recordContentEnabled {
@@ -281,47 +288,85 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 
 				if s, ok := responseData["stop_reason"]; ok {
 					stopReason, _ = s.(string)
-				} else if rs, ok := responseData["results"]; ok {
+				}
+
+				if out, ok := responseData["completion"]; ok {
+					outputString, _ = out.(string)
+				}
+
+				// TODO only collecting last entry of these result sets
+				if rs, ok := responseData["results"]; ok {
 					if crs, ok := rs.([]map[string]any); ok {
 						for _, crv := range crs {
 							if reason, ok := crv["completionReason"]; ok {
 								stopReason, _ = reason.(string)
+							}
+							if out, ok := crv["outputText"]; ok {
+								outputString, _ = out.(string)
+							}
+						}
+					}
+				}
+				if rs, ok := responseData["completions"]; ok {
+					if crs, ok := rs.([]map[string]any); ok {
+						for _, crv := range crs {
+							if cdata, ok := crv["data"]; ok {
+								if cdatamap, ok := cdata.(map[string]string); ok {
+									if out, ok := cdatamap["text"]; ok {
+										outputString = out
+									}
+								}
+							}
+						}
+					}
+				}
+				if rs, ok := responseData["outputs"]; ok {
+					if crs, ok := rs.([]map[string]any); ok {
+						for _, crv := range crs {
+							if reason, ok := crv["stop_reason"]; ok {
+								stopReason, _ = reason.(string)
 								break
 							}
-						}
-					}
-				}
-				if stopReason == "" {
-					if rs, ok := responseData["outputs"]; ok {
-						if crs, ok := rs.([]map[string]any); ok {
-							for _, crv := range crs {
-								if reason, ok := crv["stop_reason"]; ok {
-									stopReason, _ = reason.(string)
-									break
-								}
+							if out, ok := crv["text"]; ok {
+								outputString, _ = out.(string)
 							}
 						}
 					}
 				}
-				if stopReason == "" {
-					if rs, ok := responseData["generations"]; ok {
-						if crs, ok := rs.([]map[string]any); ok {
-							for _, crv := range crs {
-								if reason, ok := crv["finish_reason"]; ok {
-									stopReason, _ = reason.(string)
-									break
-								}
+				if rs, ok := responseData["generations"]; ok {
+					if crs, ok := rs.([]map[string]any); ok {
+						for _, crv := range crs {
+							if reason, ok := crv["finish_reason"]; ok {
+								stopReason, _ = reason.(string)
+							}
+							if out, ok := crv["text"]; ok {
+								outputString, _ = out.(string)
 							}
 						}
+					}
+				}
+				if outputString == "" {
+					if out, ok := responseData["generation"]; ok {
+						outputString, _ = out.(string)
 					}
 				}
 			}
 		}
 
-		/* ESC		"llm.*" */
-		var userCount int
+		if attrs != nil {
+			for k, v := range attrs {
+				if strings.HasPrefix(k, "llm.") {
+					meta[k] = v
+				} else {
+					meta["llm."+k] = v
+				}
+			}
+		}
+
+		var userCount, outputCount int
 		if app.HasLLMTokenCountCallback() {
 			userCount, _ = app.InvokeLLMTokenCountCallback(*params.ModelId, inputString)
+			outputCount, _ = app.InvokeLLMTokenCountCallback(*params.ModelId, outputString)
 		}
 
 		if embedding {
@@ -336,6 +381,7 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 			if stopReason != "" {
 				meta["response.choices.finish_reason"] = stopReason
 			}
+			meta["response.number_of_messages"] = 2
 			app.RecordCustomEvent("LlmChatCompletionSummary", meta)
 			delete(meta, "duration")
 			if userCount > 0 {
@@ -344,12 +390,28 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 			if inputString != "" {
 				meta["content"] = inputString
 			}
-			/*
-			   C		"role"		//role of creator
-			   C		"sequence"	//0..
-			   C		"completion_id"	// id of S event that this is connected to
-			   C		"is_response"	// if result of chat completion and not input message
-			*/
+
+			// move the id field from the summary to completion_id in the messages
+			meta["completion_id"] = meta["id"]
+			delete(meta, "id")
+			delete(meta, "response.number_of_messages")
+			meta["sequence"] = 0
+			meta["role"] = "user"
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+
+			meta["sequence"] = 1
+			meta["role"] = "assistant"
+			meta["is_response"] = true
+			if outputString != "" {
+				meta["content"] = outputString
+			} else {
+				delete(meta, "content")
+			}
+			if outputCount > 0 {
+				meta["token_count"] = outputCount
+			} else {
+				delete(meta, "token_count")
+			}
 			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
 		}
 	}

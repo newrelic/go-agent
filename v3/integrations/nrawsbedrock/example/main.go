@@ -16,7 +16,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-const region = "us-east-2"
+const region = "us-east-1"
 
 func main() {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
@@ -32,7 +32,7 @@ func main() {
 		fmt.Println("no models found")
 	}
 	for _, modelSummary := range result.ModelSummaries {
-		fmt.Printf("Name: %30s | Provider: %20s | ID: %s\n", *modelSummary.ModelName, *modelSummary.ProviderName, *modelSummary.ModelId)
+		fmt.Printf("Name: %-30s | Provider: %-20s | ID: %s\n", *modelSummary.ModelName, *modelSummary.ProviderName, *modelSummary.ModelId)
 	}
 
 	// Create a New Relic application. This will look for your license key in an
@@ -58,17 +58,22 @@ func main() {
 	// Start recording a New Relic transaction
 	txn := app.StartTransaction("My sample transaction")
 
+	contentType := "application/json"
 	model := "amazon.titan-text-lite-v1"
 	//model := "amazon.titan-embed-g1-text-02"
 	//model := "amazon.titan-text-express-v1"
 	brc := bedrockruntime.NewFromConfig(sdkConfig)
 	//output, err := brc.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
 	output, err := nrawsbedrock.InvokeModel(app, brc, context.Background(), &bedrockruntime.InvokeModelInput{
+		ContentType: &contentType,
+		Accept:      &contentType,
 		Body: []byte(`{
 			"inputText": "What is your quest?",
 			"textGenerationConfig": {
 				"temperature": 0.5,
-				"maxTokenCount": 100
+				"maxTokenCount": 100,
+				"stopSequences": [],
+				"topP": 1
 			}
 		}`),
 		ModelId: &model,
