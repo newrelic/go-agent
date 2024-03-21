@@ -244,15 +244,9 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 }
 
 // ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
-// Note that if HighSecurity is enabled, AI Monitoring will automatically be disabled. In this
-// case you MUST enable HighSecurity BEFORE calling ConfigAIMonitoringEnabled.
 func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		if enabled && !cfg.HighSecurity {
-			cfg.AIMonitoring.Enabled = true
-		} else {
-			cfg.AIMonitoring.Enabled = false
-		}
+		cfg.AIMonitoring.Enabled = enabled
 	}
 }
 
@@ -460,9 +454,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
 		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
-		if cfg.HighSecurity {
-			cfg.AIMonitoring.Enabled = false
-		}
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
