@@ -26,6 +26,8 @@ func main() {
 	}
 	app.WaitForConnection(10 * time.Second)
 
+	// SetLLMTokenCountCallback allows for custom token counting, if left unset and if newrelic.ConfigAIMonitoringRecordContentEnabled()
+	// is disabled, no token counts will be reported
 	app.SetLLMTokenCountCallback(func(modelName string, content string) int {
 		var tokensPerMessage, tokensPerName int
 		switch modelName {
