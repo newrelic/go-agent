@@ -1069,7 +1069,7 @@ func (c config) createConnectJSON(securityPolicies *internal.SecurityPolicies) (
 }
 
 var (
-	preconnectHostDefault        = "collector.newrelic.com"
+	preconnectHostDefault        = "staging-collector.newrelic.com"
 	preconnectRegionLicenseRegex = regexp.MustCompile(`(^.+?)x`)
 )
 
