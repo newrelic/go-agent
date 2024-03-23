@@ -60,7 +60,7 @@ func init() {
 			}
 		}
 	}
-	internal.TrackUsage("Go", "ML", "Bedrock", "0.0.0")
+	internal.TrackUsage("Go", "ML", "Bedrock", "unknown")
 }
 
 //
@@ -70,6 +70,11 @@ func init() {
 // that streaming is disabled, but ONLY does so the first time we try. Since
 // we need to initialize the app and load options before we know if that one
 // gets sent, we have to wait until later on to report that.
+//
+// streaming indicates if you're asking if it's ok to instrument streaming calls.
+// The return values are two booleans: the first indicates if AI instrumentation
+// is enabled at all, the second tells if it is permitted to record request and
+// response data (as opposed to just metadata).
 //
 func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 	if app == nil {
@@ -93,13 +98,25 @@ func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 // are processed.
 type ResponseStream struct {
 	// The request parameters that started the invocation
-	ctx    context.Context
-	app    *newrelic.Application
-	client *bedrockruntime.Client
-	params *bedrockruntime.InvokeModelInput
+	ctx    context.Context                  //
+	app    *newrelic.Application            //
+	client *bedrockruntime.Client           //
+	params *bedrockruntime.InvokeModelInput //
 
 	// The model output
 	Response *bedrockruntime.InvokeModelWithResponseStreamOutput
+}
+
+type modelResultList struct {
+	output           string
+	completionReason string
+	tokenCount       int
+}
+
+type modelInputList struct {
+	input      string
+	role       string
+	tokenCount int
 }
 
 //
@@ -280,190 +297,342 @@ func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Cl
 			meta["error"] = true
 		}
 
-		// go fishing in the request and response JSON strings to find values we want to
-		// record with our instrumentation
-
-		var requestData, responseData map[string]any
-		var inputString, outputString string
-
-		if params.Body != nil && json.Unmarshal(params.Body, &requestData) == nil {
-			if recordContentEnabled {
-				if s, ok := requestData["inputText"]; ok {
-					inputString, _ = s.(string)
-				} else if s, ok := requestData["prompt"]; ok {
-					inputString, _ = s.(string)
-				} else if ss, ok := requestData["texts"]; ok {
-					if slist, ok := ss.([]string); ok {
-						inputString = strings.Join(slist, ",")
-					}
-				}
-			}
-
-			if cfg, ok := requestData["textGenerationConfig"]; ok {
-				if cfgMap, ok := cfg.(map[string]any); ok {
-					if t, ok := cfgMap["temperature"]; ok {
-						meta["request.temperature"] = t
-					}
-					if m, ok := cfgMap["maxTokenCount"]; ok {
-						meta["request.max_tokens"] = m
-					}
-				}
-			} else if t, ok := requestData["temperature"]; ok {
-				meta["request.temperature"] = t
-			}
-			if m, ok := requestData["max_tokens_to_sample"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["max_tokens"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["maxTokens"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["max_gen_len"]; ok {
-				meta["request.max_tokens"] = m
-			}
+		var modelInput, modelOutput []byte
+		if params != nil && params.Body != nil {
+			modelInput = params.Body
+		}
+		if output != nil && output.Body != nil {
+			modelOutput = output.Body
 		}
 
-		var stopReason string
-		if output != nil && output.Body != nil {
-			if json.Unmarshal(output.Body, &responseData) == nil {
-				if recordContentEnabled && inputString == "" {
-					if s, ok := responseData["prompt"]; ok {
-						inputString, _ = s.(string)
+		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, modelOutput, attrs)
+		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
+		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
+		// when reporting out each metric.
+
+		if embedding {
+			for _, theInput := range inputs {
+				if theInput.tokenCount > 0 {
+					meta["token_count"] = theInput.tokenCount
+				} else {
+					delete(meta, "token_count")
+				}
+				if recordContentEnabled && theInput.input != "" {
+					meta["input"] = theInput.input
+				} else {
+					delete(meta, "input")
+				}
+				app.RecordCustomEvent("LlmEmbedding", meta)
+			}
+		} else {
+			messageQty := len(inputs) + len(outputs)
+			messageSeq := 0
+			if systemMessage != "" {
+				messageQty++
+			}
+
+			meta["response.number_of_messages"] = messageQty
+			app.RecordCustomEvent("LlmChatCompletionSummary", meta)
+			delete(meta, "duration")
+			meta["completion_id"] = meta["id"]
+			delete(meta, "id")
+			delete(meta, "response.number_of_messages")
+
+			if systemMessage != "" {
+				meta["sequence"] = messageSeq
+				messageSeq++
+				meta["role"] = "system"
+				if recordContentEnabled {
+					meta["content"] = systemMessage
+				}
+				app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+			}
+
+			maxIterations := len(inputs)
+			if maxIterations < len(outputs) {
+				maxIterations = len(outputs)
+			}
+			for i := 0; i < maxIterations; i++ {
+				if i < len(inputs) {
+					meta["sequence"] = messageSeq
+					messageSeq++
+					if inputs[i].tokenCount > 0 {
+						meta["token_count"] = inputs[i].tokenCount
+					} else {
+						delete(meta, "token_count")
 					}
+					if recordContentEnabled {
+						meta["content"] = inputs[i].input
+					} else {
+						delete(meta, "content")
+					}
+					delete(meta, "is_response")
+					delete(meta, "response.choices.finish_reason")
+					meta["role"] = "user"
+					app.RecordCustomEvent("LlmChatCompletionMessage", meta)
 				}
-				if id, ok := responseData["id"]; ok {
-					meta["request_id"] = id
+				if i < len(outputs) {
+					meta["sequence"] = messageSeq
+					messageSeq++
+					if outputs[i].tokenCount > 0 {
+						meta["token_count"] = outputs[i].tokenCount
+					} else {
+						delete(meta, "token_count")
+					}
+					if recordContentEnabled {
+						meta["content"] = outputs[i].output
+					} else {
+						delete(meta, "content")
+					}
+					meta["role"] = "assistant"
+					meta["is_response"] = true
+					if outputs[i].completionReason != "" {
+						meta["response.choices.finish_reason"] = outputs[i].completionReason
+					} else {
+						delete(meta, "response.choices.finish_reason")
+					}
+					app.RecordCustomEvent("LlmChatCompletionMessage", meta)
 				}
+			}
+		}
+	}
+	return output, nil
+}
 
-				if s, ok := responseData["stop_reason"]; ok {
-					stopReason, _ = s.(string)
-				}
+func parseModelData(app *newrelic.Application, modelID string, meta map[string]any, modelInput, modelOutput []byte, attrs map[string]any) ([]modelInputList, []modelResultList, string) {
+	inputs := []modelInputList{}
+	outputs := []modelResultList{}
 
-				if out, ok := responseData["completion"]; ok {
-					outputString, _ = out.(string)
-				}
+	// Go fishing in the request and response JSON strings to find values we want to
+	// record with our instrumentation. Since each model can define its own set of
+	// expected input and output data formats, we either have to specifically define
+	// model-specific templates or try to heuristically find our values in the places
+	// we'd expect given the existing patterns shown in the model set we have today.
+	//
+	// This implementation takes the latter approach so as to be as flexible as possible
+	// and have a good chance to find the data we're looking for even in new models
+	// that follow the same general pattern as those models that came before them.
+	//
+	// Thanks to the fact that the input and output can be a JSON data structure
+	// of literally anything, there's a lot of type assertion shenanigans going on
+	// below, as we unmarshal the JSON into a map[string]any at the top level, and
+	// then explore the "any" values on the way down, asserting them to be the actual
+	// expected types as needed.
 
-				// TODO only collecting last entry of these result sets
-				if rs, ok := responseData["results"]; ok {
-					if crs, ok := rs.([]map[string]any); ok {
-						for _, crv := range crs {
-							if reason, ok := crv["completionReason"]; ok {
-								stopReason, _ = reason.(string)
-							}
-							if out, ok := crv["outputText"]; ok {
-								outputString, _ = out.(string)
-							}
+	var requestData, responseData map[string]any
+	var systemMessage string
+
+	if modelInput != nil && json.Unmarshal(modelInput, &requestData) == nil {
+		// if the input contains a messages list, we have multiple messages to record
+		if rs, ok := requestData["messages"]; ok {
+			if rss, ok := rs.([]any); ok {
+				for _, em := range rss {
+					if eachMessage, ok := em.(map[string]any); ok {
+						var role string
+						if r, ok := eachMessage["role"]; ok {
+							role, _ = r.(string)
 						}
-					}
-				}
-				if rs, ok := responseData["completions"]; ok {
-					if crs, ok := rs.([]map[string]any); ok {
-						for _, crv := range crs {
-							if cdata, ok := crv["data"]; ok {
-								if cdatamap, ok := cdata.(map[string]string); ok {
-									if out, ok := cdatamap["text"]; ok {
-										outputString = out
+						if cs, ok := eachMessage["content"]; ok {
+							if css, ok := cs.([]any); ok {
+								for _, ec := range css {
+									if eachContent, ok := ec.(map[string]any); ok {
+										if ty, ok := eachContent["type"]; ok {
+											if typ, ok := ty.(string); ok && typ == "text" {
+												if txt, ok := eachContent["text"]; ok {
+													if txts, ok := txt.(string); ok {
+														inputs = append(inputs, modelInputList{input: txts, role: role})
+													}
+												}
+											}
+										}
 									}
 								}
 							}
 						}
 					}
 				}
-				if rs, ok := responseData["outputs"]; ok {
-					if crs, ok := rs.([]map[string]any); ok {
-						for _, crv := range crs {
-							if reason, ok := crv["stop_reason"]; ok {
-								stopReason, _ = reason.(string)
-								break
-							}
-							if out, ok := crv["text"]; ok {
-								outputString, _ = out.(string)
-							}
-						}
-					}
-				}
-				if rs, ok := responseData["generations"]; ok {
-					if crs, ok := rs.([]map[string]any); ok {
-						for _, crv := range crs {
-							if reason, ok := crv["finish_reason"]; ok {
-								stopReason, _ = reason.(string)
-							}
-							if out, ok := crv["text"]; ok {
-								outputString, _ = out.(string)
-							}
-						}
-					}
-				}
-				if outputString == "" {
-					if out, ok := responseData["generation"]; ok {
-						outputString, _ = out.(string)
-					}
+			}
+		}
+		if sys, ok := requestData["system"]; ok {
+			systemMessage, _ = sys.(string)
+		}
+
+		// otherwise, look for what the single or multiple prompt input is called
+		var inputString string
+		if s, ok := requestData["inputText"]; ok {
+			inputString, _ = s.(string)
+		} else if s, ok := requestData["prompt"]; ok {
+			inputString, _ = s.(string)
+		} else if ss, ok := requestData["texts"]; ok {
+			if slist, ok := ss.([]string); ok {
+				for _, inpStr := range slist {
+					inputs = append(inputs, modelInputList{input: inpStr, role: "user"})
 				}
 			}
 		}
+		if inputString != "" {
+			inputs = append(inputs, modelInputList{input: inputString, role: "user"})
+		}
 
-		if attrs != nil {
-			for k, v := range attrs {
-				if strings.HasPrefix(k, "llm.") {
-					meta[k] = v
-				} else {
-					meta["llm."+k] = v
+		if cfg, ok := requestData["textGenerationConfig"]; ok {
+			if cfgMap, ok := cfg.(map[string]any); ok {
+				if t, ok := cfgMap["temperature"]; ok {
+					meta["request.temperature"] = t
+				}
+				if m, ok := cfgMap["maxTokenCount"]; ok {
+					meta["request.max_tokens"] = m
 				}
 			}
+		} else if t, ok := requestData["temperature"]; ok {
+			meta["request.temperature"] = t
 		}
-
-		var userCount, outputCount int
-		if app.HasLLMTokenCountCallback() {
-			userCount, _ = app.InvokeLLMTokenCountCallback(*params.ModelId, inputString)
-			outputCount, _ = app.InvokeLLMTokenCountCallback(*params.ModelId, outputString)
-		}
-
-		if embedding {
-			if userCount > 0 {
-				meta["token_count"] = userCount
-			}
-			if inputString != "" {
-				meta["input"] = inputString
-			}
-			app.RecordCustomEvent("LlmEmbedding", meta)
-		} else {
-			if stopReason != "" {
-				meta["response.choices.finish_reason"] = stopReason
-			}
-			meta["response.number_of_messages"] = 2
-			app.RecordCustomEvent("LlmChatCompletionSummary", meta)
-			delete(meta, "duration")
-			if userCount > 0 {
-				meta["token_count"] = userCount
-			}
-			if inputString != "" {
-				meta["content"] = inputString
-			}
-
-			// move the id field from the summary to completion_id in the messages
-			meta["completion_id"] = meta["id"]
-			delete(meta, "id")
-			delete(meta, "response.number_of_messages")
-			meta["sequence"] = 0
-			meta["role"] = "user"
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
-
-			meta["sequence"] = 1
-			meta["role"] = "assistant"
-			meta["is_response"] = true
-			if outputString != "" {
-				meta["content"] = outputString
-			} else {
-				delete(meta, "content")
-			}
-			if outputCount > 0 {
-				meta["token_count"] = outputCount
-			} else {
-				delete(meta, "token_count")
-			}
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		if m, ok := requestData["max_tokens_to_sample"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["max_tokens"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["maxTokens"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["max_gen_len"]; ok {
+			meta["request.max_tokens"] = m
 		}
 	}
-	return output, nil
+
+	var stopReason string
+	var outputString string
+	if modelOutput != nil {
+		if json.Unmarshal(modelOutput, &responseData) == nil {
+			if len(inputs) == 0 {
+				if s, ok := responseData["prompt"]; ok {
+					if inpStr, ok := s.(string); ok {
+						inputs = append(inputs, modelInputList{input: inpStr, role: "user"})
+					}
+				}
+			}
+			if id, ok := responseData["id"]; ok {
+				meta["request_id"] = id
+			}
+
+			if s, ok := responseData["stop_reason"]; ok {
+				stopReason, _ = s.(string)
+			}
+
+			if out, ok := responseData["completion"]; ok {
+				outputString, _ = out.(string)
+			}
+
+			if rs, ok := responseData["results"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crv := range crs {
+						if crvv, ok := crv.(map[string]any); ok {
+							var stopR, outputS string
+							if reason, ok := crvv["completionReason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crvv["outputText"]; ok {
+								outputS, _ = out.(string)
+								outputs = append(outputs, modelResultList{output: outputS, completionReason: stopR})
+							}
+						}
+					}
+				}
+			}
+			//modelResultList{output: completionReason:}
+			if rs, ok := responseData["completions"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crsv := range crs {
+						if crv, ok := crsv.(map[string]any); ok {
+							var outputR string
+
+							if cdata, ok := crv["finishReason"]; ok {
+								if cdatamap, ok := cdata.(map[string]any); ok {
+									if reason, ok := cdatamap["reason"]; ok {
+										outputR, _ = reason.(string)
+									}
+								}
+							}
+							if cdata, ok := crv["data"]; ok {
+								if cdatamap, ok := cdata.(map[string]any); ok {
+									if out, ok := cdatamap["text"]; ok {
+										if outS, ok := out.(string); ok {
+											outputs = append(outputs, modelResultList{output: outS, completionReason: outputR})
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if rs, ok := responseData["outputs"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crvv := range crs {
+						if crv, ok := crvv.(map[string]any); ok {
+							var stopR string
+							if reason, ok := crv["stop_reason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crv["text"]; ok {
+								if outS, ok := out.(string); ok {
+									outputs = append(outputs, modelResultList{output: outS, completionReason: stopR})
+								}
+							}
+						}
+					}
+				}
+			}
+			if rs, ok := responseData["generations"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crvv := range crs {
+						if crv, ok := crvv.(map[string]any); ok {
+							var stopR string
+							if reason, ok := crv["finish_reason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crv["text"]; ok {
+								if outS, ok := out.(string); ok {
+									outputs = append(outputs, modelResultList{output: outS, completionReason: stopR})
+								}
+							}
+						}
+					}
+				}
+			}
+			if outputString == "" {
+				if out, ok := responseData["generation"]; ok {
+					outputString, _ = out.(string)
+				}
+			}
+
+			if outputString != "" {
+				outputs = append(outputs, modelResultList{output: outputString, completionReason: stopReason})
+			}
+		}
+	}
+
+	if attrs != nil {
+		for k, v := range attrs {
+			if strings.HasPrefix(k, "llm.") {
+				meta[k] = v
+			} else {
+				meta["llm."+k] = v
+			}
+		}
+	}
+
+	if app.HasLLMTokenCountCallback() {
+		for i, _ := range inputs {
+			if inputs[i].input != "" {
+				inputs[i].tokenCount, _ = app.InvokeLLMTokenCountCallback(modelID, inputs[i].input)
+			}
+		}
+		for i, _ := range outputs {
+			if outputs[i].output != "" {
+				outputs[i].tokenCount, _ = app.InvokeLLMTokenCountCallback(modelID, outputs[i].output)
+			}
+		}
+	}
+
+	return inputs, outputs, systemMessage
 }
 
 /***
@@ -626,4 +795,36 @@ openai response headers include these but not always since they aren't always pr
 	ratelimitLimitTokensUsageBased
 	ratelimitResetTokensUsageBased
 	ratelimitRemainingTokensUsageBased
+
+
+	ModelResultList
+		Output
+		CompletionReason
+		TokenCount
+	ModelInputList
+		Role
+		Input
+
+amazon titan
+	out:
+		results[] outputText, completionReason
+	stream:
+		chunk/bytes/index, outputText, completionReason
+Claude
+	in:
+		messages[] role, content[] type='text', text
+		system: "system message"
+	out:
+		content[] type="text", text
+		stop_reason
+Cohere:
+	out:
+		generations[] finish_reason, id, text, index?
+		id
+		prompt
+Mistral
+	out:
+		outputs[] text, stop_reason
+
+
 ***/

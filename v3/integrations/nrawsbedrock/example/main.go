@@ -9,9 +9,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrock"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/newrelic/go-agent/v3/integrations/nrawsbedrock"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -22,17 +24,6 @@ func main() {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
 		panic(err)
-	}
-	bedrockClient := bedrock.NewFromConfig(sdkConfig)
-	result, err := bedrockClient.ListFoundationModels(context.TODO(), &bedrock.ListFoundationModelsInput{})
-	if err != nil {
-		panic(err)
-	}
-	if len(result.ModelSummaries) == 0 {
-		fmt.Println("no models found")
-	}
-	for _, modelSummary := range result.ModelSummaries {
-		fmt.Printf("Name: %-30s | Provider: %-20s | ID: %s\n", *modelSummary.ModelName, *modelSummary.ProviderName, *modelSummary.ModelId)
 	}
 
 	// Create a New Relic application. This will look for your license key in an
@@ -55,16 +46,43 @@ func main() {
 	// doesn't block or exit if there's an error.
 	app.WaitForConnection(5 * time.Second)
 
+	listModels(sdkConfig)
+
+	brc := bedrockruntime.NewFromConfig(sdkConfig)
+	simpleChatCompletion(app, brc)
+	//processedChatCompletionStream(app, brc)
+	manualChatCompletionStream(app, brc)
+
+	app.Shutdown(10 * time.Second)
+}
+
+func listModels(sdkConfig aws.Config) {
+	bedrockClient := bedrock.NewFromConfig(sdkConfig)
+	result, err := bedrockClient.ListFoundationModels(context.TODO(), &bedrock.ListFoundationModelsInput{})
+	if err != nil {
+		panic(err)
+	}
+	if len(result.ModelSummaries) == 0 {
+		fmt.Println("no models found")
+	}
+	for _, modelSummary := range result.ModelSummaries {
+		fmt.Printf("Name: %-30s | Provider: %-20s | ID: %s\n", *modelSummary.ModelName, *modelSummary.ProviderName, *modelSummary.ModelId)
+	}
+}
+
+func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client) {
 	// Start recording a New Relic transaction
-	txn := app.StartTransaction("My sample transaction")
+	txn := app.StartTransaction("demo-chat-completion")
 
 	contentType := "application/json"
 	model := "amazon.titan-text-lite-v1"
-	//model := "amazon.titan-embed-g1-text-02"
-	//model := "amazon.titan-text-express-v1"
-	brc := bedrockruntime.NewFromConfig(sdkConfig)
-	//output, err := brc.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
-	output, err := nrawsbedrock.InvokeModel(app, brc, context.Background(), &bedrockruntime.InvokeModelInput{
+	//
+	// without nrawsbedrock instrumentation, the call to invoke the model would be:
+	//    output, err := brc.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
+	//       ...
+	//    })
+	//
+	output, err := nrawsbedrock.InvokeModel(app, brc, newrelic.NewContext(context.Background(), txn), &bedrockruntime.InvokeModelInput{
 		ContentType: &contentType,
 		Accept:      &contentType,
 		Body: []byte(`{
@@ -78,17 +96,84 @@ func main() {
 		}`),
 		ModelId: &model,
 	})
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	} else {
-		fmt.Printf("%v\n", output)
-	}
 
-	// End the New Relic transaction
 	txn.End()
 
-	// Force all the harvests and shutdown. Like the app.WaitForConnection call
-	// above, this is for the purposes of this demo only and can be safely
-	// removed for longer-running processes.
-	app.Shutdown(10 * time.Second)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	fmt.Printf("Result: %v\n", string(output.Body))
+
+}
+
+//
+// This example shows a stream invocation where we let the nrawsbedrock integration retrieve
+// all the stream output for us.
+//
+func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
+	contentType := "application/json"
+	model := "anthropic.claude-v2"
+
+	err := nrawsbedrock.ProcessModelWithResponseStreamAttributes(app, brc, context.Background(), func(data []byte) error {
+		fmt.Printf(">>> Received %s\n", string(data))
+		return nil
+	}, &bedrockruntime.InvokeModelInput{
+		ModelId:     &model,
+		ContentType: &contentType,
+		Accept:      &contentType,
+		Body: []byte(`{
+			"Prompt": "Human: Tell me a story.\n\nAssistant:",
+			"MaxTokensToSample": 200,
+			"Temperature": 0.5,
+			"StopSequences": ["\n\nAssistant:"]
+		}`),
+	}, map[string]any{
+		"llm.what_is_this": "processed stream invocation",
+	})
+
+	if err != nil {
+		fmt.Printf("ERROR processing model: %v\n", err)
+	}
+}
+
+//
+// This example shows a stream invocation where we manually process the retrieval
+// of the stream output.
+//
+func manualChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
+	contentType := "application/json"
+	model := "anthropic.claude-v2"
+
+	output, err := nrawsbedrock.InvokeModelWithResponseStream(app, brc, context.Background(), &bedrockruntime.InvokeModelInput{
+		ModelId:     &model,
+		ContentType: &contentType,
+		Accept:      &contentType,
+		Body: []byte(`{
+			"prompt": "Human: Tell me a story.\n\nAssistant:",
+			"max_tokens_to_sample": 200,
+			"temperature": 0.5
+		}, map[string]any{
+			"llm.what_is_this": "manual stream invocation",
+		}`),
+	})
+
+	if err != nil {
+		fmt.Printf("ERROR processing model: %v\n", err)
+		return
+	}
+
+	stream := output.Response.GetStream()
+	for event := range stream.Events() {
+		switch v := event.(type) {
+		case *types.ResponseStreamMemberChunk:
+			fmt.Println("=====[event received]=====")
+			fmt.Println(string(v.Value.Bytes))
+			output.RecordEvent(v.Value.Bytes)
+		default:
+			fmt.Println("=====[unknown value received]=====")
+		}
+	}
+	output.Close()
+	stream.Close()
 }
