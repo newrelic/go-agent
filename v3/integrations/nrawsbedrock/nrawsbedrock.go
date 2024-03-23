@@ -51,11 +51,7 @@ func init() {
 	if info != nil && ok {
 		for _, module := range info.Deps {
 			if module != nil && strings.Contains(module.Path, "/aws/aws-sdk-go-v2/service/bedrockruntime") {
-				if len(module.Version) > 1 && module.Version[0] == 'v' {
-					internal.TrackUsage("Go", "ML", "Bedrock", module.Version[1:])
-				} else {
-					internal.TrackUsage("Go", "ML", "Bedrock", module.Version)
-				}
+				internal.TrackUsage("Go", "ML", "Bedrock", module.Version)
 				return
 			}
 		}
