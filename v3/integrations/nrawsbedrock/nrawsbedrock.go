@@ -15,10 +15,26 @@
 // Package nrawsbedrock instruments AI model invocation requests made by the
 // https://github.com/aws/aws-sdk-go-v2/service/bedrockruntime library.
 //
+// Specifically, this provides instrumentation for the InvokeModel and InvokeModelWithResponseStream
+// bedrock client API library functions.
+//
 // To use this integration, enable the New Relic AIMonitoring configuration options
 // in your application, import this integration, and use the model invocation calls
 // from this library in place of the corresponding ones from the AWS Bedrock
-// runtime library.
+// runtime library, as documented below.
+//
+// The relevant configuration options are passed to the NewApplication function and include
+//    ConfigAIMonitoringEnabled(true),  // enable (or disable if false) this integration
+//    ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
+//    ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
+//
+// Or, if ConfigFromEnvironment() is included in your configuration options, the above configuration
+// options may be specified using these environment variables, respectively:
+//    NEW_RELIC_AI_MONITORING_ENABLED=true
+//    NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
+//    NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
+// The values for these variables may be any form accepted by strconv.ParseBool (e.g., 1, t, T, true, TRUE, True,
+// 0, f, F, false, FALSE, or False).
 //
 // See example/main.go for a working sample.
 package nrawsbedrock
@@ -26,19 +42,24 @@ package nrawsbedrock
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-var reportStreamingDisabled func()
+var (
+	reportStreamingDisabled func()
+	ErrMissingResponseData  = errors.New("missing response data")
+)
 
 func init() {
 	reportStreamingDisabled = sync.OnceFunc(func() {
@@ -50,11 +71,7 @@ func init() {
 	if info != nil && ok {
 		for _, module := range info.Deps {
 			if module != nil && strings.Contains(module.Path, "/aws/aws-sdk-go-v2/service/bedrockruntime") {
-				if len(module.Version) > 1 && module.Version[0] == 'v' {
-					internal.TrackUsage("Go", "ML", "Bedrock", module.Version[1:])
-				} else {
-					internal.TrackUsage("Go", "ML", "Bedrock", module.Version)
-				}
+				internal.TrackUsage("Go", "ML", "Bedrock", module.Version)
 				return
 			}
 		}
@@ -69,6 +86,11 @@ func init() {
 // that streaming is disabled, but ONLY does so the first time we try. Since
 // we need to initialize the app and load options before we know if that one
 // gets sent, we have to wait until later on to report that.
+//
+// streaming indicates if you're asking if it's ok to instrument streaming calls.
+// The return values are two booleans: the first indicates if AI instrumentation
+// is enabled at all, the second tells if it is permitted to record request and
+// response data (as opposed to just metadata).
 //
 func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 	if app == nil {
@@ -92,57 +114,315 @@ func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 // are processed.
 type ResponseStream struct {
 	// The request parameters that started the invocation
-	ctx    context.Context
-	app    *newrelic.Application
-	client *bedrockruntime.Client
-	params *bedrockruntime.InvokeModelInput
+	ctx                  context.Context
+	app                  *newrelic.Application
+	client               *bedrockruntime.Client
+	params               *bedrockruntime.InvokeModelWithResponseStreamInput
+	attrs                map[string]any
+	recordContentEnabled bool
+	closeTxn             bool
+	txn                  *newrelic.Transaction
+	seg                  *newrelic.Segment
+	completionID         string
+	seq                  int
 
 	// The model output
-	response *bedrockruntime.InvokeModelWithResponseStreamOutput
+	Response *bedrockruntime.InvokeModelWithResponseStreamOutput
+}
+
+type modelResultList struct {
+	output           string
+	completionReason string
+	tokenCount       int
+}
+
+type modelInputList struct {
+	input      string
+	role       string
+	tokenCount int
 }
 
 //
-// InvokeModelWithResponseStream works as InvokeModel does, but the response is returned as a stream.
-// In summary, given a bedrockruntime.Client b, where you would normally call the AWS method
-//    b.InvokeModelWithResponseStream(c, p, f...)
+// InvokeModelWithResponseStream invokes a model but unlike the InvokeModel method, the data returned
+// is a stream of multiple events instead of a single response value.
+// This function is the analogue of the bedrockruntime library InvokeModelWithResponseStream function,
+// so that, given a bedrockruntime.Client b, where you would normally call the AWS method
+//    response, err := b.InvokeModelWithResponseStream(c, p, f...)
 // You instead invoke the New Relic InvokeModelWithResponseStream function as:
-//    nrbedrock.InvokeModelWithResponseStream(app, b, c, p, f...)
+//    rstream, err := nrbedrock.InvokeModelWithResponseStream(app, b, c, p, f...)
 // where app is your New Relic Application value.
+//
+// If using the bedrockruntime library directly, you would then process the response stream value
+// (the response variable in the above example), iterating over the provided channel where the stream
+// data appears until it is exhausted, and then calling Close() on the stream (see the bedrock API
+// documentation for details).
+//
+// When using the New Relic nrawsbedrock integration, this response value is available as
+// rstream.Response. You would perform the same operations as you would directly with the bedrock API
+// once you have that value.
+// Since this means control has passed back to your code for processing of the stream data, you need to
+// add instrumentation calls to your processing code:
+//    rstream.RecordEvent(content)   // for each event received from the stream
+//    rstream.Close()                // when you are finished and are going to close the stream
+//
+// However, see ProcessModelWithResponseStream for an easier alternative.
 //
 // Either start a transaction on your own and add it to the context c  passed into this function, or
 // a transaction will be started for you that lasts only for the duration of the model invocation.
 //
-// You may elect to have our function collect the stream's output for you, instrumenting the operations
-// along the way. To do this, pass a callback function with the invocation signature
-//    callback(app *newrelic.Application, txn *newrelic.Transaction, ctx context.Context, part []byte) error
-// This will be called for every event read from the response stream, allowing your application
-// to collect and use that streamed data as it arrives. If your callback function returns a non-nil error
-// value, the stream reading will terminate immediately.
-//
-// Alternatively, if a nil value is passed for the callback function, we will assume that you want to do all
-// the stream reading yourself. In that case you will need to make calls to the following functions as you
-// read data in order for the instrumentation to function correctly.
-//
-// RecordStreamResponseEvent(app, txn, ctx, part)
-// for every part read from the output stream.
-//
-// CompleteStreamResponse(app, txn, ctx)
-// after reading all of the stream data you will be reading. This finishes up the instrumentation
-// for the model invocation.
-//
-/*
-func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+	return InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
-func (s *ResponseStream) RecordEvent(data []byte) error {}
-func (s *ResponseStream) Close() error {}
+//
+// InvokeModelWithResponseStreamAttributes is identical to InvokeModelWithResponseStream except that
+// it adds the attrs parameter, which is a
+// map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
+// relating to this model invocation.
+//
+// Each key in the attrs map must begin with "llm."; if any of them do not, "llm." is automatically prepended to
+// the attribute key before the metrics are sent out.
+//
+// We recommend including at least "llm.conversation_id" in your attributes.
+//
+func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+	var aiEnabled bool
+	var err error
 
-func InvokeModelWithResponseStream(app *newrelic.Application, callback func(*newrelic.Application, *newrelic.Transaction, context.Context, []byte) error, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelWithResponseStreamOutput, error) {
+	resp := ResponseStream{
+		ctx:    ctx,
+		app:    app,
+		client: brc,
+		params: params,
+		attrs:  attrs,
+	}
+
+	aiEnabled, resp.recordContentEnabled = isEnabled(app, true)
+	if aiEnabled {
+		resp.txn = newrelic.FromContext(ctx)
+		if resp.txn == nil {
+			resp.txn = app.StartTransaction("InvokeModelWithResponseStream")
+			resp.closeTxn = true
+		}
+	}
+
+	if resp.txn != nil {
+		integrationsupport.AddAgentAttribute(resp.txn, "llm", "", true)
+		if params.ModelId != nil {
+			resp.seg = resp.txn.StartSegment("Llm/completion/Bedrock/InvokeModelWithResponseStream")
+		} else {
+			// we don't have a model!
+			resp.txn = nil
+		}
+	}
+
+	start := time.Now()
+	resp.Response, err = brc.InvokeModelWithResponseStream(ctx, params, optFns...)
+	duration := time.Since(start).Milliseconds()
+
+	if resp.txn != nil {
+		md := resp.txn.GetTraceMetadata()
+		resp.completionID = uuid.New().String()
+		meta := map[string]any{
+			"id":             resp.completionID,
+			"span_id":        md.SpanID,
+			"trace_id":       md.TraceID,
+			"request.model":  *params.ModelId,
+			"response.model": *params.ModelId,
+			"vendor":         "bedrock",
+			"ingest_source":  "Go",
+			"duration":       duration,
+		}
+
+		if err != nil {
+			resp.txn.NoticeError(newrelic.Error{
+				Message: err.Error(),
+				Class:   "BedrockError",
+				Attributes: map[string]any{
+					"completion_id": resp.completionID,
+				},
+			})
+			meta["error"] = true
+		}
+
+		var modelInput []byte
+		if params != nil && params.Body != nil {
+			modelInput = params.Body
+		}
+
+		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, nil, attrs)
+		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
+		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
+		// when reporting out each metric.
+
+		app.RecordCustomEvent("LlmChatCompletionSummary", meta)
+		delete(meta, "duration")
+		meta["completion_id"] = meta["id"]
+		delete(meta, "id")
+
+		if systemMessage != "" {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			meta["role"] = "system"
+			if resp.recordContentEnabled {
+				meta["content"] = systemMessage
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+
+		meta["role"] = "user"
+		for _, msg := range inputs {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			if msg.tokenCount > 0 {
+				meta["token_count"] = msg.tokenCount
+			} else {
+				delete(meta, "token_count")
+			}
+			if resp.recordContentEnabled {
+				meta["content"] = msg.input
+			} else {
+				delete(meta, "content")
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+		for _, msg := range outputs {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			if msg.tokenCount > 0 {
+				meta["token_count"] = msg.tokenCount
+			} else {
+				delete(meta, "token_count")
+			}
+			if resp.recordContentEnabled {
+				meta["content"] = msg.output
+			} else {
+				delete(meta, "content")
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+	}
+	return resp, nil
 }
 
-func RecordStreamResponseEvent() {}
-func CompleteStreamResponse()    {}
-*/
+//
+// RecordEvent records a single stream event as read from the data stream started by InvokeModelWithStreamResponse.
+//
+func (s *ResponseStream) RecordEvent(data []byte) error {
+	if s == nil || s.txn == nil || s.app == nil {
+		return nil
+	}
+	if s.params == nil || s.params.ModelId == nil {
+		return ErrMissingResponseData
+	}
+
+	md := s.txn.GetTraceMetadata()
+
+	meta := map[string]any{
+		"completion_id":  s.completionID,
+		"span_id":        md.SpanID,
+		"trace_id":       md.TraceID,
+		"request.model":  *s.params.ModelId,
+		"response.model": *s.params.ModelId,
+		"vendor":         "bedrock",
+		"ingest_source":  "Go",
+		"role":           "assistant",
+	}
+
+	_, outputs, _ := parseModelData(s.app, *s.params.ModelId, meta, s.params.Body, data, s.attrs)
+
+	for _, msg := range outputs {
+		meta["sequence"] = s.seq
+		s.seq++
+		if msg.tokenCount > 0 {
+			meta["token_count"] = msg.tokenCount
+		} else {
+			delete(meta, "token_count")
+		}
+		if s.recordContentEnabled {
+			meta["content"] = msg.output
+		} else {
+			delete(meta, "content")
+		}
+		s.app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+	}
+	return nil
+}
+
+//
+// Close finishes up the instrumentation for a response stream.
+//
+func (s *ResponseStream) Close() error {
+	if s == nil || s.txn == nil {
+		return nil
+	}
+
+	if s.seg != nil {
+		s.seg.End()
+	}
+	if s.closeTxn {
+		s.txn.End()
+	}
+	return nil
+}
+
+//
+// ProcessModelWithResponseStream works just like InvokeModelWithResponseStream, except that
+// it handles all the stream processing automatically for you. For each event received from
+// the response stream, it will invoke the callback function you pass into the function call
+// so that your application can act on the response data. When the stream is complete, the
+// ProcessModelWithResponseStream call will return.
+//
+// If your callback function returns an error, the processing of the response stream will
+// terminate at that point.
+//
+func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) error {
+	return ProcessModelWithResponseStreamAttributes(app, brc, ctx, callback, params, nil, optFns...)
+}
+
+//
+// ProcessModelWithResponseStreamAttributes is identical to ProcessModelWithResponseStream except that
+// it adds the attrs parameter, which is a
+// map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
+// relating to this model invocation.
+//
+// Each key in the attrs map must begin with "llm."; if any of them do not, "llm." is automatically prepended to
+// the attribute key before the metrics are sent out.
+//
+// We recommend including at least "llm.conversation_id" in your attributes.
+//
+func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
+	var err error
+	var userErr error
+
+	response, err := InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, attrs, optFns...)
+	if err != nil {
+		return err
+	}
+	if response.Response == nil {
+		return response.Close()
+	}
+
+	stream := response.Response.GetStream()
+	defer func() {
+		err = stream.Close()
+	}()
+
+	for event := range stream.Events() {
+		if v, ok := event.(*types.ResponseStreamMemberChunk); ok {
+			if userErr = callback(v.Value.Bytes); userErr != nil {
+				break
+			}
+			response.RecordEvent(v.Value.Bytes)
+		}
+	}
+
+	err = response.Close()
+	if userErr != nil {
+		return userErr
+	}
+	return err
+}
 
 //
 // InvokeModel provides an instrumented interface through which to call the AWS Bedrock InvokeModel function.
@@ -159,15 +439,22 @@ func CompleteStreamResponse()    {}
 // If the transaction is unable to be created or used, the Bedrock call will be made anyway, without instrumentation.
 //
 func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
+	return InvokeModelWithAttributes(app, brc, ctx, params, nil, optFns...)
+}
+
+//
+// InvokeModelWithAttributes is identical to InvokeModel except for the addition of the attrs parameter, which is a
+// map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
+// relating to this model invocation.
+//
+// Each key in the attrs map must begin with "llm."; if any of them do not, "llm." is automatically prepended to
+// the attribute key before the metrics are sent out.
+//
+// We recommend including at least "llm.conversation_id" in your attributes.
+//
+func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	var txn *newrelic.Transaction // the transaction to record in, or nil if we aren't instrumenting this time
 
-	// spanID := txn.GetTraceMetadata().SpanID
-	// traceID := txn.GetTraceMetadata().TraceID
-	// transactionID := traceID[:16]
-	// uuid := uuid.New()
-
-	// params: .Body []byte .ModelId *string .Accept *string ("application/json") .ContentType *string ("application/json")
-	// output: .Body []byte .ContentType *string .ResultMetadata middleware.Metadata (.Get(key any)->any|nil, .Has(key any)->bool, .Set(key, value any)
 	aiEnabled, recordContentEnabled := isEnabled(app, false)
 	if aiEnabled {
 		txn = newrelic.FromContext(ctx)
@@ -225,135 +512,342 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 			meta["error"] = true
 		}
 
-		// go fishing in the request and response JSON strings to find values we want to
-		// record with our instrumentation
-
-		var requestData, responseData map[string]any
-		var inputString string
-
-		if params.Body != nil && json.Unmarshal(params.Body, &requestData) == nil {
-			if recordContentEnabled {
-				if s, ok := requestData["inputText"]; ok {
-					inputString, _ = s.(string)
-				} else if s, ok := requestData["prompt"]; ok {
-					inputString, _ = s.(string)
-				} else if ss, ok := requestData["texts"]; ok {
-					if slist, ok := ss.([]string); ok {
-						inputString = strings.Join(slist, ",")
-					}
-				}
-			}
-
-			if cfg, ok := requestData["textGenerationConfig"]; ok {
-				if cfgMap, ok := cfg.(map[string]any); ok {
-					if t, ok := cfgMap["temperature"]; ok {
-						meta["request.temperature"] = t
-					}
-					if m, ok := cfgMap["maxTokenCount"]; ok {
-						meta["request.max_tokens"] = m
-					}
-				}
-			} else if t, ok := requestData["temperature"]; ok {
-				meta["request.temperature"] = t
-			}
-			if m, ok := requestData["max_tokens_to_sample"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["max_tokens"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["maxTokens"]; ok {
-				meta["request.max_tokens"] = m
-			} else if m, ok := requestData["max_gen_len"]; ok {
-				meta["request.max_tokens"] = m
-			}
+		var modelInput, modelOutput []byte
+		if params != nil && params.Body != nil {
+			modelInput = params.Body
 		}
-
-		var stopReason string
 		if output != nil && output.Body != nil {
-			if json.Unmarshal(output.Body, &responseData) == nil {
-				if recordContentEnabled && inputString == "" {
-					if s, ok := responseData["prompt"]; ok {
-						inputString, _ = s.(string)
-					}
-				}
-				if id, ok := responseData["id"]; ok {
-					meta["request_id"] = id
-				}
-
-				if s, ok := responseData["stop_reason"]; ok {
-					stopReason, _ = s.(string)
-				} else if rs, ok := responseData["results"]; ok {
-					if crs, ok := rs.([]map[string]any); ok {
-						for _, crv := range crs {
-							if reason, ok := crv["completionReason"]; ok {
-								stopReason, _ = reason.(string)
-								break
-							}
-						}
-					}
-				}
-				if stopReason == "" {
-					if rs, ok := responseData["outputs"]; ok {
-						if crs, ok := rs.([]map[string]any); ok {
-							for _, crv := range crs {
-								if reason, ok := crv["stop_reason"]; ok {
-									stopReason, _ = reason.(string)
-									break
-								}
-							}
-						}
-					}
-				}
-				if stopReason == "" {
-					if rs, ok := responseData["generations"]; ok {
-						if crs, ok := rs.([]map[string]any); ok {
-							for _, crv := range crs {
-								if reason, ok := crv["finish_reason"]; ok {
-									stopReason, _ = reason.(string)
-									break
-								}
-							}
-						}
-					}
-				}
-			}
+			modelOutput = output.Body
 		}
 
-		/* ESC		"llm.*" */
-		var userCount int
-		if app.HasLLMTokenCountCallback() {
-			userCount, _ = app.InvokeLLMTokenCountCallback(*params.ModelId, inputString)
-		}
+		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, modelOutput, attrs)
+		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
+		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
+		// when reporting out each metric.
 
 		if embedding {
-			if userCount > 0 {
-				meta["token_count"] = userCount
+			for _, theInput := range inputs {
+				if theInput.tokenCount > 0 {
+					meta["token_count"] = theInput.tokenCount
+				} else {
+					delete(meta, "token_count")
+				}
+				if recordContentEnabled && theInput.input != "" {
+					meta["input"] = theInput.input
+				} else {
+					delete(meta, "input")
+				}
+				app.RecordCustomEvent("LlmEmbedding", meta)
 			}
-			if inputString != "" {
-				meta["input"] = inputString
-			}
-			app.RecordCustomEvent("LlmEmbedding", meta)
 		} else {
-			if stopReason != "" {
-				meta["response.choices.finish_reason"] = stopReason
+			messageQty := len(inputs) + len(outputs)
+			messageSeq := 0
+			if systemMessage != "" {
+				messageQty++
 			}
+
+			meta["response.number_of_messages"] = messageQty
 			app.RecordCustomEvent("LlmChatCompletionSummary", meta)
 			delete(meta, "duration")
-			if userCount > 0 {
-				meta["token_count"] = userCount
+			meta["completion_id"] = meta["id"]
+			delete(meta, "id")
+			delete(meta, "response.number_of_messages")
+
+			if systemMessage != "" {
+				meta["sequence"] = messageSeq
+				messageSeq++
+				meta["role"] = "system"
+				if recordContentEnabled {
+					meta["content"] = systemMessage
+				}
+				app.RecordCustomEvent("LlmChatCompletionMessage", meta)
 			}
-			if inputString != "" {
-				meta["content"] = inputString
+
+			maxIterations := len(inputs)
+			if maxIterations < len(outputs) {
+				maxIterations = len(outputs)
 			}
-			/*
-			   C		"role"		//role of creator
-			   C		"sequence"	//0..
-			   C		"completion_id"	// id of S event that this is connected to
-			   C		"is_response"	// if result of chat completion and not input message
-			*/
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+			for i := 0; i < maxIterations; i++ {
+				if i < len(inputs) {
+					meta["sequence"] = messageSeq
+					messageSeq++
+					if inputs[i].tokenCount > 0 {
+						meta["token_count"] = inputs[i].tokenCount
+					} else {
+						delete(meta, "token_count")
+					}
+					if recordContentEnabled {
+						meta["content"] = inputs[i].input
+					} else {
+						delete(meta, "content")
+					}
+					delete(meta, "is_response")
+					delete(meta, "response.choices.finish_reason")
+					meta["role"] = "user"
+					app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+				}
+				if i < len(outputs) {
+					meta["sequence"] = messageSeq
+					messageSeq++
+					if outputs[i].tokenCount > 0 {
+						meta["token_count"] = outputs[i].tokenCount
+					} else {
+						delete(meta, "token_count")
+					}
+					if recordContentEnabled {
+						meta["content"] = outputs[i].output
+					} else {
+						delete(meta, "content")
+					}
+					meta["role"] = "assistant"
+					meta["is_response"] = true
+					if outputs[i].completionReason != "" {
+						meta["response.choices.finish_reason"] = outputs[i].completionReason
+					} else {
+						delete(meta, "response.choices.finish_reason")
+					}
+					app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+				}
+			}
 		}
 	}
 	return output, nil
+}
+
+func parseModelData(app *newrelic.Application, modelID string, meta map[string]any, modelInput, modelOutput []byte, attrs map[string]any) ([]modelInputList, []modelResultList, string) {
+	inputs := []modelInputList{}
+	outputs := []modelResultList{}
+
+	// Go fishing in the request and response JSON strings to find values we want to
+	// record with our instrumentation. Since each model can define its own set of
+	// expected input and output data formats, we either have to specifically define
+	// model-specific templates or try to heuristically find our values in the places
+	// we'd expect given the existing patterns shown in the model set we have today.
+	//
+	// This implementation takes the latter approach so as to be as flexible as possible
+	// and have a good chance to find the data we're looking for even in new models
+	// that follow the same general pattern as those models that came before them.
+	//
+	// Thanks to the fact that the input and output can be a JSON data structure
+	// of literally anything, there's a lot of type assertion shenanigans going on
+	// below, as we unmarshal the JSON into a map[string]any at the top level, and
+	// then explore the "any" values on the way down, asserting them to be the actual
+	// expected types as needed.
+
+	var requestData, responseData map[string]any
+	var systemMessage string
+
+	if modelInput != nil && json.Unmarshal(modelInput, &requestData) == nil {
+		// if the input contains a messages list, we have multiple messages to record
+		if rs, ok := requestData["messages"]; ok {
+			if rss, ok := rs.([]any); ok {
+				for _, em := range rss {
+					if eachMessage, ok := em.(map[string]any); ok {
+						var role string
+						if r, ok := eachMessage["role"]; ok {
+							role, _ = r.(string)
+						}
+						if cs, ok := eachMessage["content"]; ok {
+							if css, ok := cs.([]any); ok {
+								for _, ec := range css {
+									if eachContent, ok := ec.(map[string]any); ok {
+										if ty, ok := eachContent["type"]; ok {
+											if typ, ok := ty.(string); ok && typ == "text" {
+												if txt, ok := eachContent["text"]; ok {
+													if txts, ok := txt.(string); ok {
+														inputs = append(inputs, modelInputList{input: txts, role: role})
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if sys, ok := requestData["system"]; ok {
+			systemMessage, _ = sys.(string)
+		}
+
+		// otherwise, look for what the single or multiple prompt input is called
+		var inputString string
+		if s, ok := requestData["inputText"]; ok {
+			inputString, _ = s.(string)
+		} else if s, ok := requestData["prompt"]; ok {
+			inputString, _ = s.(string)
+		} else if ss, ok := requestData["texts"]; ok {
+			if slist, ok := ss.([]string); ok {
+				for _, inpStr := range slist {
+					inputs = append(inputs, modelInputList{input: inpStr, role: "user"})
+				}
+			}
+		}
+		if inputString != "" {
+			inputs = append(inputs, modelInputList{input: inputString, role: "user"})
+		}
+
+		if cfg, ok := requestData["textGenerationConfig"]; ok {
+			if cfgMap, ok := cfg.(map[string]any); ok {
+				if t, ok := cfgMap["temperature"]; ok {
+					meta["request.temperature"] = t
+				}
+				if m, ok := cfgMap["maxTokenCount"]; ok {
+					meta["request.max_tokens"] = m
+				}
+			}
+		} else if t, ok := requestData["temperature"]; ok {
+			meta["request.temperature"] = t
+		}
+		if m, ok := requestData["max_tokens_to_sample"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["max_tokens"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["maxTokens"]; ok {
+			meta["request.max_tokens"] = m
+		} else if m, ok := requestData["max_gen_len"]; ok {
+			meta["request.max_tokens"] = m
+		}
+	}
+
+	var stopReason string
+	var outputString string
+	if modelOutput != nil {
+		if json.Unmarshal(modelOutput, &responseData) == nil {
+			if len(inputs) == 0 {
+				if s, ok := responseData["prompt"]; ok {
+					if inpStr, ok := s.(string); ok {
+						inputs = append(inputs, modelInputList{input: inpStr, role: "user"})
+					}
+				}
+			}
+			if id, ok := responseData["id"]; ok {
+				meta["request_id"] = id
+			}
+
+			if s, ok := responseData["stop_reason"]; ok {
+				stopReason, _ = s.(string)
+			}
+
+			if out, ok := responseData["completion"]; ok {
+				outputString, _ = out.(string)
+			}
+
+			if rs, ok := responseData["results"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crv := range crs {
+						if crvv, ok := crv.(map[string]any); ok {
+							var stopR, outputS string
+							if reason, ok := crvv["completionReason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crvv["outputText"]; ok {
+								outputS, _ = out.(string)
+								outputs = append(outputs, modelResultList{output: outputS, completionReason: stopR})
+							}
+						}
+					}
+				}
+			}
+			//modelResultList{output: completionReason:}
+			if rs, ok := responseData["completions"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crsv := range crs {
+						if crv, ok := crsv.(map[string]any); ok {
+							var outputR string
+
+							if cdata, ok := crv["finishReason"]; ok {
+								if cdatamap, ok := cdata.(map[string]any); ok {
+									if reason, ok := cdatamap["reason"]; ok {
+										outputR, _ = reason.(string)
+									}
+								}
+							}
+							if cdata, ok := crv["data"]; ok {
+								if cdatamap, ok := cdata.(map[string]any); ok {
+									if out, ok := cdatamap["text"]; ok {
+										if outS, ok := out.(string); ok {
+											outputs = append(outputs, modelResultList{output: outS, completionReason: outputR})
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if rs, ok := responseData["outputs"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crvv := range crs {
+						if crv, ok := crvv.(map[string]any); ok {
+							var stopR string
+							if reason, ok := crv["stop_reason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crv["text"]; ok {
+								if outS, ok := out.(string); ok {
+									outputs = append(outputs, modelResultList{output: outS, completionReason: stopR})
+								}
+							}
+						}
+					}
+				}
+			}
+			if rs, ok := responseData["generations"]; ok {
+				if crs, ok := rs.([]any); ok {
+					for _, crvv := range crs {
+						if crv, ok := crvv.(map[string]any); ok {
+							var stopR string
+							if reason, ok := crv["finish_reason"]; ok {
+								stopR, _ = reason.(string)
+							}
+							if out, ok := crv["text"]; ok {
+								if outS, ok := out.(string); ok {
+									outputs = append(outputs, modelResultList{output: outS, completionReason: stopR})
+								}
+							}
+						}
+					}
+				}
+			}
+			if outputString == "" {
+				if out, ok := responseData["generation"]; ok {
+					outputString, _ = out.(string)
+				}
+			}
+
+			if outputString != "" {
+				outputs = append(outputs, modelResultList{output: outputString, completionReason: stopReason})
+			}
+		}
+	}
+
+	if attrs != nil {
+		for k, v := range attrs {
+			if strings.HasPrefix(k, "llm.") {
+				meta[k] = v
+			} else {
+				meta["llm."+k] = v
+			}
+		}
+	}
+
+	if app.HasLLMTokenCountCallback() {
+		for i, _ := range inputs {
+			if inputs[i].input != "" {
+				inputs[i].tokenCount, _ = app.InvokeLLMTokenCountCallback(modelID, inputs[i].input)
+			}
+		}
+		for i, _ := range outputs {
+			if outputs[i].output != "" {
+				outputs[i].tokenCount, _ = app.InvokeLLMTokenCountCallback(modelID, outputs[i].output)
+			}
+		}
+	}
+
+	return inputs, outputs, systemMessage
 }
 
 /***
@@ -516,4 +1010,36 @@ openai response headers include these but not always since they aren't always pr
 	ratelimitLimitTokensUsageBased
 	ratelimitResetTokensUsageBased
 	ratelimitRemainingTokensUsageBased
+
+
+	ModelResultList
+		Output
+		CompletionReason
+		TokenCount
+	ModelInputList
+		Role
+		Input
+
+amazon titan
+	out:
+		results[] outputText, completionReason
+	stream:
+		chunk/bytes/index, outputText, completionReason
+Claude
+	in:
+		messages[] role, content[] type='text', text
+		system: "system message"
+	out:
+		content[] type="text", text
+		stop_reason
+Cohere:
+	out:
+		generations[] finish_reason, id, text, index?
+		id
+		prompt
+Mistral
+	out:
+		outputs[] text, stop_reason
+
+
 ***/
