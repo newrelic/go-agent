@@ -552,18 +552,18 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 		return nil
 	}
 
+	if app.config.Config.HighSecurity {
+		return errHighSecurityEnabled
+	}
+
+	if !app.config.CustomInsightsEvents.Enabled {
+		return errCustomEventsDisabled
+	}
+
 	if eventType == "LlmEmbedding" || eventType == "LlmChatCompletionSummary" || eventType == "LlmChatCompletionMessage" {
 		event, e = createCustomEventUnlimitedSize(eventType, params, time.Now())
 	} else {
-		if app.config.Config.HighSecurity {
-			return errHighSecurityEnabled
-		}
-
-		if !app.config.CustomInsightsEvents.Enabled {
-			return errCustomEventsDisabled
-		}
-
-		event, e := createCustomEvent(eventType, params, time.Now())
+		event, e = createCustomEvent(eventType, params, time.Now())
 	}
 	if nil != e {
 		return e
