@@ -49,7 +49,7 @@ func main() {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "What is 8*5",
+				Content: "What is observability in software engineering?",
 			},
 		},
 	}
