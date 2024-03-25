@@ -75,7 +75,7 @@ func main() {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "Send example text",
+				Content: "What is Observability in Software Engineering?",
 			},
 		},
 	}
@@ -85,8 +85,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(resp.ChatCompletionResponse.Choices[0].Message.Content)
+	if len(resp.ChatCompletionResponse.Choices) == 0 {
+		fmt.Println("No choices returned")
+	}
 
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)

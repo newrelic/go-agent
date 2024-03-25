@@ -6,6 +6,7 @@ package nropenai
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"runtime/debug"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
+	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sashabaranov/go-openai"
 )
@@ -186,6 +188,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		}
 	}
 	// Start span
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
 	chatCompletionSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletion")
 	// Track Total time taken for the chat completion or embedding call to complete in milliseconds
 	start := time.Now()
@@ -202,8 +205,6 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 			Message: err.Error(),
 			Class:   "OpenAIError",
 			Attributes: map[string]interface{}{
-				"http.status":   resp.Header().Get("Status"),
-				"error.code":    resp.Header().Get("Error-Code"),
 				"completion_id": uuid.String(),
 			},
 		})
@@ -218,7 +219,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["duration"] = duration
 
 	// Response Data
-	ChatCompletionSummaryData["response.number_of_messages"] = len(resp.Choices)
+	ChatCompletionSummaryData["response.number_of_messages"] = len(resp.Choices) + len(req.Messages)
 	ChatCompletionSummaryData["response.model"] = resp.Model
 	ChatCompletionSummaryData["request_id"] = resp.ID
 	ChatCompletionSummaryData["response.organization"] = resp.Header().Get("Openai-Organization")
@@ -260,6 +261,8 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	// Record Custom Event
 	app.RecordCustomEvent("LlmChatCompletionSummary", ChatCompletionSummaryData)
 
+	// Capture request message
+	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw)
 	// Capture completion messages
 	NRCreateChatCompletionMessage(txn, app, resp, uuid, cw)
 	txn.End()
@@ -268,6 +271,48 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		ChatCompletionResponse: resp,
 		TraceID:                traceID,
 	}
+}
+func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic.Application, req openai.ChatCompletionRequest, uuid uuid.UUID, cw *ClientWrapper) {
+	spanID := txn.GetTraceMetadata().SpanID
+	traceID := txn.GetTraceMetadata().TraceID
+	appCfg, configErr := app.Config()
+	if !configErr {
+		appCfg.AppName = "Unknown"
+	}
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
+	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
+
+	ChatCompletionMessageData := map[string]interface{}{}
+	// if the response doesn't have an ID, use the UUID from the summary
+	ChatCompletionMessageData["id"] = uuid.String() + "-0"
+
+	// Response Data
+	ChatCompletionMessageData["response.model"] = req.Model
+
+	if appCfg.AIMonitoring.RecordContent.Enabled {
+		ChatCompletionMessageData["content"] = req.Messages[0].Content
+	}
+
+	ChatCompletionMessageData["role"] = req.Messages[0].Role
+
+	// New Relic Attributes
+	ChatCompletionMessageData["sequence"] = 0
+	ChatCompletionMessageData["vendor"] = "openai"
+	ChatCompletionMessageData["ingest_source"] = "go"
+	ChatCompletionMessageData["span_id"] = spanID
+	ChatCompletionMessageData["trace_id"] = traceID
+	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(req.Model, req.Messages[0].Content)
+
+	if contentCounted {
+		ChatCompletionMessageData["token_count"] = contentTokens
+	}
+
+	// If custom attributes are set, add them to the data
+	ChatCompletionMessageData = AppendCustomAttributesToEvent(cw, ChatCompletionMessageData)
+	chatCompletionMessageSpan.End()
+	// Record Custom Event for each message
+	app.RecordCustomEvent("LlmChatCompletionMessage", ChatCompletionMessageData)
+
 }
 
 // NRCreateChatCompletionMessage captures the completion messages and records a custom event in New Relic for each message
@@ -278,12 +323,13 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	if !configErr {
 		appCfg.AppName = "Unknown"
 	}
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
 	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
 	for i, choice := range resp.Choices {
 		ChatCompletionMessageData := map[string]interface{}{}
 		// if the response doesn't have an ID, use the UUID from the summary
 		if resp.ID == "" {
-			ChatCompletionMessageData["id"] = uuid.String()
+			ChatCompletionMessageData["id"] = uuid.String() + "-" + fmt.Sprint(i+1)
 		} else {
 			ChatCompletionMessageData["id"] = resp.ID
 		}
@@ -301,7 +347,7 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 		ChatCompletionMessageData["request_id"] = resp.Header().Get("X-Request-Id")
 
 		// New Relic Attributes
-		ChatCompletionMessageData["sequence"] = i
+		ChatCompletionMessageData["sequence"] = i + 1
 		ChatCompletionMessageData["vendor"] = "openai"
 		ChatCompletionMessageData["ingest_source"] = "go"
 		ChatCompletionMessageData["span_id"] = spanID
@@ -385,8 +431,9 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	traceID := txn.GetTraceMetadata().TraceID
 	EmbeddingsData := map[string]interface{}{}
 	uuid := uuid.New()
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
 
-	embeddingSpan := txn.StartSegment("Llm/completion/OpenAI/CreateEmbedding")
+	embeddingSpan := txn.StartSegment("Llm/embedding/OpenAI/CreateEmbedding")
 	start := time.Now()
 	resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
 	duration := time.Since(start).Milliseconds()
@@ -398,8 +445,6 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 			Message: err.Error(),
 			Class:   "OpenAIError",
 			Attributes: map[string]interface{}{
-				"http.status":  resp.Header().Get("Status"),
-				"error.code":   resp.Header().Get("Error-Code"),
 				"embedding_id": uuid.String(),
 			},
 		})
@@ -409,6 +454,8 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	if config.AIMonitoring.RecordContent.Enabled {
 		EmbeddingsData["input"] = GetInput(req.Input)
 	}
+
+	EmbeddingsData["request_id"] = resp.Header().Get("X-Request-Id")
 	EmbeddingsData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
 	EmbeddingsData["request.model"] = string(req.Model)
 	EmbeddingsData["duration"] = duration
@@ -471,7 +518,7 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 	traceID := txn.GetTraceMetadata().TraceID
 	StreamingData := map[string]interface{}{}
 	uuid := uuid.New()
-
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
 	streamSpan := txn.StartSegment("Llm/completion/OpenAI/stream")
 	start := time.Now()
 	stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
