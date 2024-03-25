@@ -61,8 +61,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer stream.Close()
-
 	fmt.Printf("Stream response: ")
 	for {
 		var response openai.ChatCompletionStreamResponse
@@ -78,6 +76,7 @@ func main() {
 
 		fmt.Printf(response.Choices[0].Delta.Content)
 	}
+	stream.Close()
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)
 }
