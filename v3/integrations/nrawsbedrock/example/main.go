@@ -32,7 +32,8 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppName("Example App"),
-		newrelic.ConfigDebugLogger(os.Stdout),
+		//		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigAIMonitoringEnabled(true),
 	)
@@ -50,7 +51,7 @@ func main() {
 
 	brc := bedrockruntime.NewFromConfig(sdkConfig)
 	simpleChatCompletion(app, brc)
-	//processedChatCompletionStream(app, brc)
+	processedChatCompletionStream(app, brc)
 	manualChatCompletionStream(app, brc)
 
 	app.Shutdown(10 * time.Second)
@@ -118,15 +119,14 @@ func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntim
 	err := nrawsbedrock.ProcessModelWithResponseStreamAttributes(app, brc, context.Background(), func(data []byte) error {
 		fmt.Printf(">>> Received %s\n", string(data))
 		return nil
-	}, &bedrockruntime.InvokeModelInput{
+	}, &bedrockruntime.InvokeModelWithResponseStreamInput{
 		ModelId:     &model,
 		ContentType: &contentType,
 		Accept:      &contentType,
 		Body: []byte(`{
-			"Prompt": "Human: Tell me a story.\n\nAssistant:",
-			"MaxTokensToSample": 200,
-			"Temperature": 0.5,
-			"StopSequences": ["\n\nAssistant:"]
+			"prompt": "Human: Tell me a story.\n\nAssistant:",
+			"max_tokens_to_sample": 200,
+			"temperature": 0.5
 		}`),
 	}, map[string]any{
 		"llm.what_is_this": "processed stream invocation",
@@ -145,7 +145,7 @@ func manualChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.C
 	contentType := "application/json"
 	model := "anthropic.claude-v2"
 
-	output, err := nrawsbedrock.InvokeModelWithResponseStream(app, brc, context.Background(), &bedrockruntime.InvokeModelInput{
+	output, err := nrawsbedrock.InvokeModelWithResponseStreamAttributes(app, brc, context.Background(), &bedrockruntime.InvokeModelWithResponseStreamInput{
 		ModelId:     &model,
 		ContentType: &contentType,
 		Accept:      &contentType,
@@ -153,10 +153,11 @@ func manualChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.C
 			"prompt": "Human: Tell me a story.\n\nAssistant:",
 			"max_tokens_to_sample": 200,
 			"temperature": 0.5
-		}, map[string]any{
-			"llm.what_is_this": "manual stream invocation",
-		}`),
-	})
+		}`)},
+		map[string]any{
+			"llm.what_is_this": "manual chat completion stream",
+		},
+	)
 
 	if err != nil {
 		fmt.Printf("ERROR processing model: %v\n", err)

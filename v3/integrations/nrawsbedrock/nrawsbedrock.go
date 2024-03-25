@@ -15,10 +15,26 @@
 // Package nrawsbedrock instruments AI model invocation requests made by the
 // https://github.com/aws/aws-sdk-go-v2/service/bedrockruntime library.
 //
+// Specifically, this provides instrumentation for the InvokeModel and InvokeModelWithResponseStream
+// bedrock client API library functions.
+//
 // To use this integration, enable the New Relic AIMonitoring configuration options
 // in your application, import this integration, and use the model invocation calls
 // from this library in place of the corresponding ones from the AWS Bedrock
-// runtime library.
+// runtime library, as documented below.
+//
+// The relevant configuration options are passed to the NewApplication function and include
+//    ConfigAIMonitoringEnabled(true),  // enable (or disable if false) this integration
+//    ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
+//    ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
+//
+// Or, if ConfigFromEnvironment() is included in your configuration options, the above configuration
+// options may be specified using these environment variables, respectively:
+//    NEW_RELIC_AI_MONITORING_ENABLED=true
+//    NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
+//    NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
+// The values for these variables may be any form accepted by strconv.ParseBool (e.g., 1, t, T, true, TRUE, True,
+// 0, f, F, false, FALSE, or False).
 //
 // See example/main.go for a working sample.
 package nrawsbedrock
@@ -26,20 +42,24 @@ package nrawsbedrock
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-var reportStreamingDisabled func()
+var (
+	reportStreamingDisabled func()
+	ErrMissingResponseData  = errors.New("missing response data")
+)
 
 func init() {
 	reportStreamingDisabled = sync.OnceFunc(func() {
@@ -94,10 +114,17 @@ func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 // are processed.
 type ResponseStream struct {
 	// The request parameters that started the invocation
-	ctx    context.Context                  //
-	app    *newrelic.Application            //
-	client *bedrockruntime.Client           //
-	params *bedrockruntime.InvokeModelInput //
+	ctx                  context.Context
+	app                  *newrelic.Application
+	client               *bedrockruntime.Client
+	params               *bedrockruntime.InvokeModelWithResponseStreamInput
+	attrs                map[string]any
+	recordContentEnabled bool
+	closeTxn             bool
+	txn                  *newrelic.Transaction
+	seg                  *newrelic.Segment
+	completionID         string
+	seq                  int
 
 	// The model output
 	Response *bedrockruntime.InvokeModelWithResponseStreamOutput
@@ -143,7 +170,7 @@ type modelInputList struct {
 // Either start a transaction on your own and add it to the context c  passed into this function, or
 // a transaction will be started for you that lasts only for the duration of the model invocation.
 //
-func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
 	return InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
@@ -158,22 +185,185 @@ func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntim
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
 //
-func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
-	return ResponseStream{}, fmt.Errorf("not implemented")
+func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+	var aiEnabled bool
+	var err error
+
+	resp := ResponseStream{
+		ctx:    ctx,
+		app:    app,
+		client: brc,
+		params: params,
+		attrs:  attrs,
+	}
+
+	aiEnabled, resp.recordContentEnabled = isEnabled(app, true)
+	if aiEnabled {
+		resp.txn = newrelic.FromContext(ctx)
+		if resp.txn == nil {
+			resp.txn = app.StartTransaction("InvokeModelWithResponseStream")
+			resp.closeTxn = true
+		}
+	}
+
+	if resp.txn != nil {
+		integrationsupport.AddAgentAttribute(resp.txn, "llm", "", true)
+		if params.ModelId != nil {
+			resp.seg = resp.txn.StartSegment("Llm/completion/Bedrock/InvokeModelWithResponseStream")
+		} else {
+			// we don't have a model!
+			resp.txn = nil
+		}
+	}
+
+	start := time.Now()
+	resp.Response, err = brc.InvokeModelWithResponseStream(ctx, params, optFns...)
+	duration := time.Since(start).Milliseconds()
+
+	if resp.txn != nil {
+		md := resp.txn.GetTraceMetadata()
+		resp.completionID = uuid.New().String()
+		meta := map[string]any{
+			"id":             resp.completionID,
+			"span_id":        md.SpanID,
+			"trace_id":       md.TraceID,
+			"request.model":  *params.ModelId,
+			"response.model": *params.ModelId,
+			"vendor":         "bedrock",
+			"ingest_source":  "Go",
+			"duration":       duration,
+		}
+
+		if err != nil {
+			resp.txn.NoticeError(newrelic.Error{
+				Message: err.Error(),
+				Class:   "BedrockError",
+				Attributes: map[string]any{
+					"completion_id": resp.completionID,
+				},
+			})
+			meta["error"] = true
+		}
+
+		var modelInput []byte
+		if params != nil && params.Body != nil {
+			modelInput = params.Body
+		}
+
+		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, nil, attrs)
+		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
+		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
+		// when reporting out each metric.
+
+		app.RecordCustomEvent("LlmChatCompletionSummary", meta)
+		delete(meta, "duration")
+		meta["completion_id"] = meta["id"]
+		delete(meta, "id")
+
+		if systemMessage != "" {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			meta["role"] = "system"
+			if resp.recordContentEnabled {
+				meta["content"] = systemMessage
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+
+		meta["role"] = "user"
+		for _, msg := range inputs {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			if msg.tokenCount > 0 {
+				meta["token_count"] = msg.tokenCount
+			} else {
+				delete(meta, "token_count")
+			}
+			if resp.recordContentEnabled {
+				meta["content"] = msg.input
+			} else {
+				delete(meta, "content")
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+		for _, msg := range outputs {
+			meta["sequence"] = resp.seq
+			resp.seq++
+			if msg.tokenCount > 0 {
+				meta["token_count"] = msg.tokenCount
+			} else {
+				delete(meta, "token_count")
+			}
+			if resp.recordContentEnabled {
+				meta["content"] = msg.output
+			} else {
+				delete(meta, "content")
+			}
+			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+		}
+	}
+	return resp, nil
 }
 
 //
 // RecordEvent records a single stream event as read from the data stream started by InvokeModelWithStreamResponse.
 //
 func (s *ResponseStream) RecordEvent(data []byte) error {
-	return fmt.Errorf("not implemented")
+	if s == nil || s.txn == nil || s.app == nil {
+		return nil
+	}
+	if s.params == nil || s.params.ModelId == nil {
+		return ErrMissingResponseData
+	}
+
+	md := s.txn.GetTraceMetadata()
+
+	meta := map[string]any{
+		"completion_id":  s.completionID,
+		"span_id":        md.SpanID,
+		"trace_id":       md.TraceID,
+		"request.model":  *s.params.ModelId,
+		"response.model": *s.params.ModelId,
+		"vendor":         "bedrock",
+		"ingest_source":  "Go",
+		"role":           "assistant",
+	}
+
+	_, outputs, _ := parseModelData(s.app, *s.params.ModelId, meta, s.params.Body, data, s.attrs)
+
+	for _, msg := range outputs {
+		meta["sequence"] = s.seq
+		s.seq++
+		if msg.tokenCount > 0 {
+			meta["token_count"] = msg.tokenCount
+		} else {
+			delete(meta, "token_count")
+		}
+		if s.recordContentEnabled {
+			meta["content"] = msg.output
+		} else {
+			delete(meta, "content")
+		}
+		s.app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+	}
+	return nil
 }
 
 //
 // Close finishes up the instrumentation for a response stream.
 //
 func (s *ResponseStream) Close() error {
-	return fmt.Errorf("not implemented")
+	if s == nil || s.txn == nil {
+		return nil
+	}
+
+	if s.seg != nil {
+		s.seg.End()
+	}
+	if s.closeTxn {
+		s.txn.End()
+	}
+	return nil
 }
 
 //
@@ -186,7 +376,7 @@ func (s *ResponseStream) Close() error {
 // If your callback function returns an error, the processing of the response stream will
 // terminate at that point.
 //
-func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) error {
+func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) error {
 	return ProcessModelWithResponseStreamAttributes(app, brc, ctx, callback, params, nil, optFns...)
 }
 
@@ -201,8 +391,37 @@ func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockrunti
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
 //
-func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
-	return fmt.Errorf("not implemented")
+func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
+	var err error
+	var userErr error
+
+	response, err := InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, attrs, optFns...)
+	if err != nil {
+		return err
+	}
+	if response.Response == nil {
+		return response.Close()
+	}
+
+	stream := response.Response.GetStream()
+	defer func() {
+		err = stream.Close()
+	}()
+
+	for event := range stream.Events() {
+		if v, ok := event.(*types.ResponseStreamMemberChunk); ok {
+			if userErr = callback(v.Value.Bytes); userErr != nil {
+				break
+			}
+			response.RecordEvent(v.Value.Bytes)
+		}
+	}
+
+	err = response.Close()
+	if userErr != nil {
+		return userErr
+	}
+	return err
 }
 
 //
