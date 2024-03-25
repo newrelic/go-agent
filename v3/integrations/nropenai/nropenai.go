@@ -333,8 +333,10 @@ func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UU
 	ChatCompletionMessageData["span_id"] = spanID
 	ChatCompletionMessageData["trace_id"] = traceID
 	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(sw.model, sw.responseStr)
-	if contentCounted {
-		ChatCompletionMessageData["token_count"] = contentTokens
+	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(sw.model, sw.role)
+
+	if (contentCounted && roleCounted) && app.HasLLMTokenCountCallback() {
+		ChatCompletionMessageData["token_count"] = contentTokens + roleTokens
 	}
 
 	// If custom attributes are set, add them to the data
@@ -376,7 +378,7 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 	ChatCompletionMessageData["trace_id"] = traceID
 	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(req.Model, req.Messages[0].Content)
 
-	if contentCounted {
+	if contentCounted && app.HasLLMTokenCountCallback() {
 		ChatCompletionMessageData["token_count"] = contentTokens
 	}
 
@@ -548,7 +550,8 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	// cast input as string
 	input := GetInput(req.Input).(string)
 	tokenCount, tokensCounted := app.InvokeLLMTokenCountCallback(string(resp.Model), input)
-	if tokensCounted {
+
+	if tokensCounted && app.HasLLMTokenCountCallback() {
 		EmbeddingsData["token_count"] = tokenCount
 	}
 
