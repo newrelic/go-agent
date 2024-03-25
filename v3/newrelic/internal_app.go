@@ -545,18 +545,26 @@ var (
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
+	var event *customEvent
+	var e error
+
 	if nil == app {
 		return nil
 	}
-	if app.config.Config.HighSecurity {
-		return errHighSecurityEnabled
-	}
 
-	if !app.config.CustomInsightsEvents.Enabled {
-		return errCustomEventsDisabled
-	}
+	if eventType == "LlmEmbedding" || eventType == "LlmChatCompletionSummary" || eventType == "LlmChatCompletionMessage" {
+		event, e = createCustomEventUnlimitedSize(eventType, params, time.Now())
+	} else {
+		if app.config.Config.HighSecurity {
+			return errHighSecurityEnabled
+		}
 
-	event, e := createCustomEvent(eventType, params, time.Now())
+		if !app.config.CustomInsightsEvents.Enabled {
+			return errCustomEventsDisabled
+		}
+
+		event, e := createCustomEvent(eventType, params, time.Now())
+	}
 	if nil != e {
 		return e
 	}

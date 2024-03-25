@@ -100,6 +100,32 @@ func createCustomEvent(eventType string, params map[string]interface{}, now time
 	}, nil
 }
 
+// CreateCustomEventUnlimitedSize creates a custom event without restricting string value length.
+func createCustomEventUnlimitedSize(eventType string, params map[string]interface{}, now time.Time) (*customEvent, error) {
+	if err := eventTypeValidate(eventType); err != nil {
+		return nil, err
+	}
+
+	if len(params) > customEventAttributeLimit {
+		return nil, errNumAttributes
+	}
+
+	truncatedParams := make(map[string]interface{})
+	for key, val := range params {
+		val, err := validateUserAttributeUnlimitedSize(key, val)
+		if err != nil {
+			return nil, err
+		}
+		truncatedParams[key] = val
+	}
+
+	return &customEvent{
+		eventType:       eventType,
+		timestamp:       now,
+		truncatedParams: truncatedParams,
+	}, nil
+}
+
 // MergeIntoHarvest implements Harvestable.
 func (e *customEvent) MergeIntoHarvest(h *harvest) {
 	h.CustomEvents.Add(e)
