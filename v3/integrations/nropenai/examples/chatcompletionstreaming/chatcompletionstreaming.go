@@ -13,6 +13,20 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
+// Simulates feedback being sent to New Relic. Feedback on a chat completion requires
+// having access to the ChatCompletionResponseWrapper which is returned by the NRCreateChatCompletion function.
+func SendFeedback(app *newrelic.Application, resp nropenai.ChatCompletionStreamWrapper) {
+	trace_id := resp.TraceID
+	rating := "5"
+	category := "informative"
+	message := "The response was concise yet thorough."
+	customMetadata := map[string]interface{}{
+		"foo": "bar",
+		"pi":  3.14,
+	}
+
+	app.RecordLLMFeedbackEvent(trace_id, rating, category, message, customMetadata)
+}
 func main() {
 	// Start New Relic Application
 	app, err := newrelic.NewApplication(
@@ -49,7 +63,7 @@ func main() {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "Say this is a test",
+				Content: "What is observability in software engineering?",
 			},
 		},
 		Stream: true,
@@ -61,7 +75,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer stream.Close()
 
 	fmt.Printf("Stream response: ")
 	for {
@@ -78,6 +91,8 @@ func main() {
 
 		fmt.Printf(response.Choices[0].Delta.Content)
 	}
+	stream.Close()
+	SendFeedback(app, *stream)
 	// Shutdown Application
 	app.Shutdown(5 * time.Second)
 }

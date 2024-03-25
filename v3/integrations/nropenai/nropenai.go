@@ -149,16 +149,36 @@ type ChatCompletionResponseWrapper struct {
 
 // Wrapper for ChatCompletionStream that is returned from NRCreateChatCompletionStream
 type ChatCompletionStreamWrapper struct {
-	stream *openai.ChatCompletionStream
-	txn    *newrelic.Transaction
+	app           *newrelic.Application
+	stream        *openai.ChatCompletionStream
+	streamResp    openai.ChatCompletionResponse
+	responseStr   string
+	uuid          string
+	txn           *newrelic.Transaction
+	cw            *ClientWrapper
+	role          string
+	model         string
+	StreamingData map[string]interface{}
+	isRoleAdded   bool
+	TraceID       string
 }
 
 // Wrapper for Recv() method that calls the underlying stream's Recv() method
 func (w *ChatCompletionStreamWrapper) Recv() (openai.ChatCompletionStreamResponse, error) {
 	response, err := w.stream.Recv()
-
 	if err != nil {
 		return response, err
+	}
+	if !w.isRoleAdded && (response.Choices[0].Delta.Role == "assistant" || response.Choices[0].Delta.Role == "user" || response.Choices[0].Delta.Role == "system") {
+		w.isRoleAdded = true
+		w.role = response.Choices[0].Delta.Role
+
+	}
+	if response.Choices[0].FinishReason != "stop" {
+		w.responseStr += response.Choices[0].Delta.Content
+		w.streamResp.ID = response.ID
+		w.streamResp.Model = response.Model
+		w.model = response.Model
 	}
 
 	return response, nil
@@ -166,6 +186,12 @@ func (w *ChatCompletionStreamWrapper) Recv() (openai.ChatCompletionStreamRespons
 }
 
 func (w *ChatCompletionStreamWrapper) Close() {
+	w.StreamingData["response.model"] = w.model
+	w.app.RecordCustomEvent("LlmChatCompletionSummary", w.StreamingData)
+
+	NRCreateChatCompletionMessageStream(w.app, uuid.MustParse(w.uuid), w, w.cw)
+
+	w.txn.End()
 	w.stream.Close()
 }
 
@@ -188,7 +214,8 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		}
 	}
 	// Start span
-	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
+	txn.AddAttribute("llm", true)
+
 	chatCompletionSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletion")
 	// Track Total time taken for the chat completion or embedding call to complete in milliseconds
 	start := time.Now()
@@ -272,6 +299,52 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		TraceID:                traceID,
 	}
 }
+
+func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UUID, sw *ChatCompletionStreamWrapper, cw *ClientWrapper) {
+
+	spanID := sw.txn.GetTraceMetadata().SpanID
+	traceID := sw.txn.GetTraceMetadata().TraceID
+
+	appCfg, configErr := app.Config()
+	if !configErr {
+		appCfg.AppName = "Unknown"
+	}
+	integrationsupport.AddAgentAttribute(sw.txn, "llm", "", true)
+	chatCompletionMessageSpan := sw.txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessageStream")
+
+	ChatCompletionMessageData := map[string]interface{}{}
+	// if the response doesn't have an ID, use the UUID from the summary
+
+	ChatCompletionMessageData["id"] = sw.streamResp.ID
+
+	// Response Data
+	ChatCompletionMessageData["request.model"] = sw.model
+
+	if appCfg.AIMonitoring.RecordContent.Enabled {
+		ChatCompletionMessageData["content"] = sw.responseStr
+	}
+
+	ChatCompletionMessageData["role"] = sw.role
+
+	// New Relic Attributes
+	ChatCompletionMessageData["sequence"] = 1
+	ChatCompletionMessageData["vendor"] = "openai"
+	ChatCompletionMessageData["ingest_source"] = "go"
+	ChatCompletionMessageData["span_id"] = spanID
+	ChatCompletionMessageData["trace_id"] = traceID
+	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(sw.model, sw.responseStr)
+	if contentCounted {
+		ChatCompletionMessageData["token_count"] = contentTokens
+	}
+
+	// If custom attributes are set, add them to the data
+	ChatCompletionMessageData = AppendCustomAttributesToEvent(cw, ChatCompletionMessageData)
+	chatCompletionMessageSpan.End()
+	// Record Custom Event for each message
+	app.RecordCustomEvent("LlmChatCompletionMessage", ChatCompletionMessageData)
+
+}
+
 func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic.Application, req openai.ChatCompletionRequest, uuid uuid.UUID, cw *ClientWrapper) {
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
@@ -373,6 +446,16 @@ func TokenCountingHelper(app *newrelic.Application, message openai.ChatCompletio
 	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(model, message.Content)
 	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(model, message.Role)
 	messageTokens, messageCounted := app.InvokeLLMTokenCountCallback(model, message.Name)
+	numTokens += contentTokens + roleTokens + messageTokens
+
+	return numTokens, (contentCounted && roleCounted && messageCounted)
+}
+
+func TokenCountingHelperStream(app *newrelic.Application, model string, content string, role string, messageName string) (numTokens int, tokensCounted bool) {
+
+	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(model, content)
+	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(model, role)
+	messageTokens, messageCounted := app.InvokeLLMTokenCountCallback(model, messageName)
 	numTokens += contentTokens + roleTokens + messageTokens
 
 	return numTokens, (contentCounted && roleCounted && messageCounted)
@@ -552,8 +635,8 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 	StreamingData["vendor"] = "OpenAI"
 	StreamingData["ingest_source"] = "Go"
 	StreamingData["appName"] = config.AppName
-	app.RecordCustomEvent("LlmChatCompletionSummary", StreamingData)
-	txn.End()
-	return &ChatCompletionStreamWrapper{stream: stream, txn: txn}, nil
+
+	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw)
+	return &ChatCompletionStreamWrapper{app: app, stream: stream, txn: txn, uuid: uuid.String(), cw: cw, StreamingData: StreamingData, TraceID: traceID}, nil
 
 }

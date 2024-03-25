@@ -16,6 +16,7 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Basic OpenAI App"),
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigDebugLogger(os.Stdout),
 		// Enable AI Monitoring
 		// NOTE - If High Security Mode is enabled, AI Monitoring will always be disabled
