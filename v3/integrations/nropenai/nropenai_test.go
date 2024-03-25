@@ -251,7 +251,7 @@ func TestNRCreateChatCompletion(t *testing.T) {
 				"request_id":                     "chatcmpl-123",
 				"request.model":                  "gpt-3.5-turbo",
 				"request.max_tokens":             150,
-				"response.number_of_messages":    1,
+				"response.number_of_messages":    2,
 				"response.headers.llmVersion":    "2020-10-01",
 				"response.organization":          "user-123",
 				"response.model":                 "gpt-3.5-turbo",
@@ -271,13 +271,31 @@ func TestNRCreateChatCompletion(t *testing.T) {
 			UserAttributes: map[string]interface{}{
 				"trace_id":       internal.MatchAnything,
 				"span_id":        internal.MatchAnything,
-				"id":             "chatcmpl-123",
+				"id":             internal.MatchAnything,
 				"sequence":       0,
+				"role":           "user",
+				"content":        "What is 8*5",
+				"vendor":         "OpenAI",
+				"ingest_source":  "Go",
+				"response.model": "gpt-3.5-turbo",
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "LlmChatCompletionMessage",
+				"timestamp": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"trace_id":       internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"id":             "chatcmpl-123",
+				"sequence":       1,
 				"role":           "assistant",
 				"content":        "\n\nHello there, how may I assist you today?",
 				"request_id":     "chatcmpl-123",
-				"vendor":         "openai",
-				"ingest_source":  "go",
+				"vendor":         "OpenAI",
+				"ingest_source":  "Go",
 				"response.model": "gpt-3.5-turbo",
 			},
 			AgentAttributes: map[string]interface{}{},
@@ -359,7 +377,7 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 				"request_id":                  "",
 				"request.model":               "gpt-3.5-turbo",
 				"request.max_tokens":          150,
-				"response.number_of_messages": 0,
+				"response.number_of_messages": 1,
 				"response.headers.llmVersion": "2020-10-01",
 				"response.organization":       "user-123",
 				"response.model":              "",
@@ -369,6 +387,23 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 				"response.headers.ratelimitResetRequests":     "10000",
 				"response.headers.ratelimitLimitTokens":       "100",
 				"response.headers.ratelimitLimitRequests":     "10000",
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "LlmChatCompletionMessage",
+				"timestamp": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"ingest_source":  "Go",
+				"vendor":         "OpenAI",
+				"id":             internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"content":        "testError",
+				"role":           "user",
+				"response.model": "gpt-3.5-turbo",
+				"sequence":       0,
 			},
 		},
 	})
@@ -385,11 +420,11 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 				"error.message":   "test error",
 			},
 			UserAttributes: map[string]interface{}{
-				"error.code":    "404",
-				"http.status":   "404",
 				"completion_id": internal.MatchAnything,
+				"llm":           true,
 			},
-		}})
+		},
+	})
 }
 func TestNRCreateEmbedding(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
@@ -425,6 +460,7 @@ func TestNRCreateEmbedding(t *testing.T) {
 				"trace_id":                    internal.MatchAnything,
 				"span_id":                     internal.MatchAnything,
 				"duration":                    0,
+				"request_id":                  "chatcmpl-123",
 				"api_key_last_four_digits":    "sk-mnop",
 				"request.model":               "text-embedding-ada-002",
 				"response.headers.llmVersion": "2020-10-01",
@@ -504,6 +540,7 @@ func TestNRCreateEmbeddingError(t *testing.T) {
 				"span_id":                     internal.MatchAnything,
 				"duration":                    0,
 				"api_key_last_four_digits":    "sk-mnop",
+				"request_id":                  "chatcmpl-123",
 				"request.model":               "text-embedding-ada-002",
 				"response.headers.llmVersion": "2020-10-01",
 				"response.organization":       "user-123",
@@ -533,8 +570,6 @@ func TestNRCreateEmbeddingError(t *testing.T) {
 				"error.message":   "test error",
 			},
 			UserAttributes: map[string]interface{}{
-				"error.code":   "404",
-				"http.status":  "404",
 				"embedding_id": internal.MatchAnything,
 			},
 		}})
@@ -566,36 +601,21 @@ func TestNRCreateStream(t *testing.T) {
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
 			Intrinsics: map[string]interface{}{
-				"type":      "LlmChatCompletionSummary",
+				"type":      "LlmChatCompletionMessage",
 				"timestamp": internal.MatchAnything,
 			},
 			UserAttributes: map[string]interface{}{
-				"ingest_source":            "Go",
-				"vendor":                   "OpenAI",
-				"model":                    "gpt-3.5-turbo",
-				"id":                       internal.MatchAnything,
-				"trace_id":                 internal.MatchAnything,
-				"span_id":                  internal.MatchAnything,
-				"appName":                  "my app",
-				"duration":                 0,
-				"request.temperature":      0,
-				"api_key_last_four_digits": "sk-mnop",
-				"request.max_tokens":       1500,
-				"request.model":            "gpt-3.5-turbo",
+				"trace_id":       internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"id":             internal.MatchAnything,
+				"sequence":       0,
+				"role":           "user",
+				"content":        "Say this is a test",
+				"vendor":         "OpenAI",
+				"ingest_source":  "Go",
+				"response.model": "gpt-3.5-turbo",
 			},
-		},
-	})
-	app.ExpectTxnEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "Transaction",
-				"name":      "OtherTransaction/Go/OpenAIChatCompletionStream",
-				"timestamp": internal.MatchAnything,
-				"traceId":   internal.MatchAnything,
-				"priority":  internal.MatchAnything,
-				"sampled":   internal.MatchAnything,
-				"guid":      internal.MatchAnything,
-			},
+			AgentAttributes: map[string]interface{}{},
 		},
 	})
 }
@@ -625,6 +645,7 @@ func TestNRCreateStreamAIMonitoringNotEnabled(t *testing.T) {
 	}
 	app.ExpectCustomEvents(t, []internal.WantEvent{})
 	app.ExpectTxnEvents(t, []internal.WantEvent{})
+
 }
 
 func TestNRCreateStreamError(t *testing.T) {
