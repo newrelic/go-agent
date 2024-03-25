@@ -119,12 +119,15 @@ type ResponseStream struct {
 	client               *bedrockruntime.Client
 	params               *bedrockruntime.InvokeModelWithResponseStreamInput
 	attrs                map[string]any
+	meta                 map[string]any
 	recordContentEnabled bool
 	closeTxn             bool
 	txn                  *newrelic.Transaction
 	seg                  *newrelic.Segment
 	completionID         string
 	seq                  int
+	output               strings.Builder
+	stopReason           string
 
 	// The model output
 	Response *bedrockruntime.InvokeModelWithResponseStreamOutput
@@ -192,6 +195,7 @@ func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bed
 	resp := ResponseStream{
 		ctx:    ctx,
 		app:    app,
+		meta:   map[string]any{},
 		client: brc,
 		params: params,
 		attrs:  attrs,
@@ -223,7 +227,7 @@ func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bed
 	if resp.txn != nil {
 		md := resp.txn.GetTraceMetadata()
 		resp.completionID = uuid.New().String()
-		meta := map[string]any{
+		resp.meta = map[string]any{
 			"id":             resp.completionID,
 			"span_id":        md.SpanID,
 			"trace_id":       md.TraceID,
@@ -242,66 +246,10 @@ func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bed
 					"completion_id": resp.completionID,
 				},
 			})
-			meta["error"] = true
-		}
-
-		var modelInput []byte
-		if params != nil && params.Body != nil {
-			modelInput = params.Body
-		}
-
-		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, nil, attrs)
-		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
-		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
-		// when reporting out each metric.
-
-		app.RecordCustomEvent("LlmChatCompletionSummary", meta)
-		delete(meta, "duration")
-		meta["completion_id"] = meta["id"]
-		delete(meta, "id")
-
-		if systemMessage != "" {
-			meta["sequence"] = resp.seq
-			resp.seq++
-			meta["role"] = "system"
-			if resp.recordContentEnabled {
-				meta["content"] = systemMessage
-			}
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
-		}
-
-		meta["role"] = "user"
-		for _, msg := range inputs {
-			meta["sequence"] = resp.seq
-			resp.seq++
-			if msg.tokenCount > 0 {
-				meta["token_count"] = msg.tokenCount
-			} else {
-				delete(meta, "token_count")
-			}
-			if resp.recordContentEnabled {
-				meta["content"] = msg.input
-			} else {
-				delete(meta, "content")
-			}
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
-		}
-		for _, msg := range outputs {
-			meta["sequence"] = resp.seq
-			resp.seq++
-			if msg.tokenCount > 0 {
-				meta["token_count"] = msg.tokenCount
-			} else {
-				delete(meta, "token_count")
-			}
-			if resp.recordContentEnabled {
-				meta["content"] = msg.output
-			} else {
-				delete(meta, "content")
-			}
-			app.RecordCustomEvent("LlmChatCompletionMessage", meta)
+			resp.meta["error"] = true
 		}
 	}
+
 	return resp, nil
 }
 
@@ -312,39 +260,16 @@ func (s *ResponseStream) RecordEvent(data []byte) error {
 	if s == nil || s.txn == nil || s.app == nil {
 		return nil
 	}
-	if s.params == nil || s.params.ModelId == nil {
+	if s.params == nil || s.params.ModelId == nil || s.meta == nil {
 		return ErrMissingResponseData
 	}
 
-	md := s.txn.GetTraceMetadata()
-
-	meta := map[string]any{
-		"completion_id":  s.completionID,
-		"span_id":        md.SpanID,
-		"trace_id":       md.TraceID,
-		"request.model":  *s.params.ModelId,
-		"response.model": *s.params.ModelId,
-		"vendor":         "bedrock",
-		"ingest_source":  "Go",
-		"role":           "assistant",
-	}
-
-	_, outputs, _ := parseModelData(s.app, *s.params.ModelId, meta, s.params.Body, data, s.attrs)
-
+	_, outputs, _ := parseModelData(s.app, *s.params.ModelId, s.meta, s.params.Body, data, s.attrs, false)
 	for _, msg := range outputs {
-		meta["sequence"] = s.seq
-		s.seq++
-		if msg.tokenCount > 0 {
-			meta["token_count"] = msg.tokenCount
-		} else {
-			delete(meta, "token_count")
+		s.output.WriteString(msg.output)
+		if msg.completionReason != "" {
+			s.stopReason = msg.completionReason
 		}
-		if s.recordContentEnabled {
-			meta["content"] = msg.output
-		} else {
-			delete(meta, "content")
-		}
-		s.app.RecordCustomEvent("LlmChatCompletionMessage", meta)
 	}
 	return nil
 }
@@ -353,9 +278,83 @@ func (s *ResponseStream) RecordEvent(data []byte) error {
 // Close finishes up the instrumentation for a response stream.
 //
 func (s *ResponseStream) Close() error {
-	if s == nil || s.txn == nil {
+	if s == nil || s.app == nil || s.txn == nil {
 		return nil
 	}
+	if s.params == nil || s.params.ModelId == nil || s.meta == nil {
+		return ErrMissingResponseData
+	}
+
+	var modelInput []byte
+	modelOutput := s.output.String()
+	if s.params != nil && s.params.Body != nil {
+		modelInput = s.params.Body
+	}
+
+	inputs, _, systemMessage := parseModelData(s.app, *s.params.ModelId, s.meta, modelInput, nil, s.attrs, true)
+	// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
+	// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
+	// when reporting out each metric.
+
+	otherQty := 0
+	if systemMessage != "" {
+		otherQty++
+	}
+	if modelOutput != "" {
+		otherQty++
+	}
+
+	if s.stopReason != "" {
+		s.meta["response.choices.finish_reason"] = s.stopReason
+	}
+	s.meta["response.number_of_messages"] = len(inputs) + otherQty
+
+	s.app.RecordCustomEvent("LlmChatCompletionSummary", s.meta)
+	delete(s.meta, "duration")
+	s.meta["completion_id"] = s.meta["id"]
+	delete(s.meta, "id")
+
+	if systemMessage != "" {
+		s.meta["sequence"] = s.seq
+		s.seq++
+		s.meta["role"] = "system"
+		if s.recordContentEnabled {
+			s.meta["content"] = systemMessage
+		}
+		s.app.RecordCustomEvent("LlmChatCompletionMessage", s.meta)
+	}
+
+	s.meta["role"] = "user"
+	for _, msg := range inputs {
+		s.meta["sequence"] = s.seq
+		s.seq++
+		if msg.tokenCount > 0 {
+			s.meta["token_count"] = msg.tokenCount
+		} else {
+			delete(s.meta, "token_count")
+		}
+		if s.recordContentEnabled {
+			s.meta["content"] = msg.input
+		} else {
+			delete(s.meta, "content")
+		}
+		s.app.RecordCustomEvent("LlmChatCompletionMessage", s.meta)
+	}
+
+	if s.app.HasLLMTokenCountCallback() {
+		if tc, _ := s.app.InvokeLLMTokenCountCallback(*s.params.ModelId, modelOutput); tc > 0 {
+			s.meta["token_count"] = tc
+		}
+	}
+	s.meta["role"] = "assistant"
+	s.meta["sequence"] = s.seq
+	s.seq++
+	if s.recordContentEnabled {
+		s.meta["content"] = modelOutput
+	} else {
+		delete(s.meta, "content")
+	}
+	s.app.RecordCustomEvent("LlmChatCompletionMessage", s.meta)
 
 	if s.seg != nil {
 		s.seg.End()
@@ -454,6 +453,7 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 //
 func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	var txn *newrelic.Transaction // the transaction to record in, or nil if we aren't instrumenting this time
+	var err error
 
 	aiEnabled, recordContentEnabled := isEnabled(app, false)
 	if aiEnabled {
@@ -520,7 +520,7 @@ func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Cl
 			modelOutput = output.Body
 		}
 
-		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, modelOutput, attrs)
+		inputs, outputs, systemMessage := parseModelData(app, *params.ModelId, meta, modelInput, modelOutput, attrs, true)
 		// To be more runtime efficient, we don't copy the maps or rebuild them for each kind of message.
 		// Instead, we build one map with most of the attributes common to all messages and then adjust as needed
 		// when reporting out each metric.
@@ -611,10 +611,10 @@ func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Cl
 			}
 		}
 	}
-	return output, nil
+	return output, err
 }
 
-func parseModelData(app *newrelic.Application, modelID string, meta map[string]any, modelInput, modelOutput []byte, attrs map[string]any) ([]modelInputList, []modelResultList, string) {
+func parseModelData(app *newrelic.Application, modelID string, meta map[string]any, modelInput, modelOutput []byte, attrs map[string]any, countTokens bool) ([]modelInputList, []modelResultList, string) {
 	inputs := []modelInputList{}
 	outputs := []modelResultList{}
 
@@ -834,7 +834,7 @@ func parseModelData(app *newrelic.Application, modelID string, meta map[string]a
 		}
 	}
 
-	if app.HasLLMTokenCountCallback() {
+	if countTokens && app.HasLLMTokenCountCallback() {
 		for i, _ := range inputs {
 			if inputs[i].input != "" {
 				inputs[i].tokenCount, _ = app.InvokeLLMTokenCountCallback(modelID, inputs[i].input)

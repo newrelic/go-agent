@@ -58,6 +58,7 @@ var (
 		AttributeCodeFilepath:               usualDests,
 		AttributeCodeLineno:                 usualDests,
 		AttributeUserID:                     usualDests,
+		AttributeLLM:                        usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,

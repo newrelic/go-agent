@@ -31,11 +31,12 @@ func main() {
 	// Distributed Tracing, but that's not required.
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigFromEnvironment(),
-		newrelic.ConfigAppName("Example App"),
-		//		newrelic.ConfigDebugLogger(os.Stdout),
-		newrelic.ConfigInfoLogger(os.Stdout),
+		newrelic.ConfigAppName("Example Bedrock App"),
+		newrelic.ConfigDebugLogger(os.Stdout),
+		//newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigAIMonitoringEnabled(true),
+		newrelic.ConfigAIMonitoringRecordContentEnabled(true),
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -50,6 +51,8 @@ func main() {
 	listModels(sdkConfig)
 
 	brc := bedrockruntime.NewFromConfig(sdkConfig)
+	simpleEmbedding(app, brc)
+	simpleChatCompletionError(app, brc)
 	simpleChatCompletion(app, brc)
 	processedChatCompletionStream(app, brc)
 	manualChatCompletionStream(app, brc)
@@ -58,6 +61,7 @@ func main() {
 }
 
 func listModels(sdkConfig aws.Config) {
+	fmt.Println("================================================== MODELS")
 	bedrockClient := bedrock.NewFromConfig(sdkConfig)
 	result, err := bedrockClient.ListFoundationModels(context.TODO(), &bedrock.ListFoundationModelsInput{})
 	if err != nil {
@@ -71,7 +75,72 @@ func listModels(sdkConfig aws.Config) {
 	}
 }
 
+func simpleChatCompletionError(app *newrelic.Application, brc *bedrockruntime.Client) {
+	fmt.Println("================================================== CHAT COMPLETION WITH ERROR")
+	// Start recording a New Relic transaction
+	txn := app.StartTransaction("demo-chat-completion-error")
+
+	contentType := "application/json"
+	model := "amazon.titan-text-lite-v1"
+	//
+	// without nrawsbedrock instrumentation, the call to invoke the model would be:
+	//    output, err := brc.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
+	//       ...
+	//    })
+	//
+	_, err := nrawsbedrock.InvokeModel(app, brc, newrelic.NewContext(context.Background(), txn), &bedrockruntime.InvokeModelInput{
+		ContentType: &contentType,
+		Accept:      &contentType,
+		Body: []byte(`{
+			"inputTexxt": "What is your quest?",
+			"textGenerationConfig": {
+				"temperature": 0.5,
+				"maxTokenCount": 100,
+				"stopSequences": [],
+				"topP": 1
+			}
+		}`),
+		ModelId: &model,
+	})
+
+	txn.End()
+
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+}
+
+func simpleEmbedding(app *newrelic.Application, brc *bedrockruntime.Client) {
+	fmt.Println("================================================== EMBEDDING")
+	// Start recording a New Relic transaction
+	contentType := "application/json"
+	model := "amazon.titan-embed-text-v1"
+	//
+	// without nrawsbedrock instrumentation, the call to invoke the model would be:
+	//    output, err := brc.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
+	//       ...
+	//    })
+	//
+	output, err := nrawsbedrock.InvokeModel(app, brc, context.Background(), &bedrockruntime.InvokeModelInput{
+		ContentType: &contentType,
+		Accept:      &contentType,
+		Body: []byte(`{
+			"inputText": "What is your quest?"
+		}`),
+		ModelId: &model,
+	})
+
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	if output != nil {
+		fmt.Printf("Result: %v\n", string(output.Body))
+	}
+}
+
 func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client) {
+	fmt.Println("================================================== COMPLETION")
 	// Start recording a New Relic transaction
 	txn := app.StartTransaction("demo-chat-completion")
 
@@ -83,6 +152,7 @@ func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client)
 	//       ...
 	//    })
 	//
+	app.SetLLMTokenCountCallback(func(model, data string) int { return 42 })
 	output, err := nrawsbedrock.InvokeModel(app, brc, newrelic.NewContext(context.Background(), txn), &bedrockruntime.InvokeModelInput{
 		ContentType: &contentType,
 		Accept:      &contentType,
@@ -99,13 +169,15 @@ func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client)
 	})
 
 	txn.End()
+	app.SetLLMTokenCountCallback(nil)
 
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 	}
 
-	fmt.Printf("Result: %v\n", string(output.Body))
-
+	if output != nil {
+		fmt.Printf("Result: %v\n", string(output.Body))
+	}
 }
 
 //
@@ -113,6 +185,7 @@ func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client)
 // all the stream output for us.
 //
 func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
+	fmt.Println("================================================== STREAM (PROCESSED)")
 	contentType := "application/json"
 	model := "anthropic.claude-v2"
 
@@ -142,6 +215,7 @@ func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntim
 // of the stream output.
 //
 func manualChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
+	fmt.Println("================================================== STREAM (MANUAL)")
 	contentType := "application/json"
 	model := "anthropic.claude-v2"
 
