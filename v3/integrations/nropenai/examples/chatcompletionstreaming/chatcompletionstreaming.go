@@ -10,6 +10,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/integrations/nropenai"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/pkoukk/tiktoken-go"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -41,7 +42,33 @@ func main() {
 		panic(err)
 	}
 	app.WaitForConnection(10 * time.Second)
+	// SetLLMTokenCountCallback allows for custom token counting, if left unset and if newrelic.ConfigAIMonitoringRecordContentEnabled()
+	// is disabled, no token counts will be reported
+	app.SetLLMTokenCountCallback(func(modelName string, content string) int {
+		var tokensPerMessage, tokensPerName int
+		switch modelName {
+		case "gpt-3.5-turbo-0613",
+			"gpt-3.5-turbo-16k-0613",
+			"gpt-4-0314",
+			"gpt-4-32k-0314",
+			"gpt-4-0613",
+			"gpt-4-32k-0613":
+			tokensPerMessage = 3
+			tokensPerName = 1
+		case "gpt-3.5-turbo-0301":
+			tokensPerMessage = 4
+			tokensPerName = -1
+		}
 
+		tkm, err := tiktoken.EncodingForModel(modelName)
+		if err != nil {
+			fmt.Println("error getting tokens", err)
+			return 0
+		}
+		token := tkm.Encode(content, nil, nil)
+		totalTokens := len(token) + tokensPerMessage + tokensPerName
+		return totalTokens
+	})
 	// OpenAI Config - Additionally, NRDefaultAzureConfig(apiKey, baseURL string) can be used for Azure
 	cfg := nropenai.NRDefaultConfig(os.Getenv("OPEN_AI_API_KEY"))
 
@@ -57,7 +84,7 @@ func main() {
 
 	// GPT Request
 	req := openai.ChatCompletionRequest{
-		Model:       openai.GPT3Dot5Turbo,
+		Model:       openai.GPT4,
 		Temperature: 0.7,
 		MaxTokens:   1500,
 		Messages: []openai.ChatCompletionMessage{

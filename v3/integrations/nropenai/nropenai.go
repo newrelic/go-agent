@@ -332,11 +332,15 @@ func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UU
 	ChatCompletionMessageData["ingest_source"] = "Go"
 	ChatCompletionMessageData["span_id"] = spanID
 	ChatCompletionMessageData["trace_id"] = traceID
-	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(sw.model, sw.responseStr)
-	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(sw.model, sw.role)
-
-	if (contentCounted && roleCounted) && app.HasLLMTokenCountCallback() {
-		ChatCompletionMessageData["token_count"] = contentTokens + roleTokens
+	tmpMessage := openai.ChatCompletionMessage{
+		Content: sw.responseStr,
+		Role:    sw.role,
+		// Name is not provided in the stream response, so we don't include it in token counting
+		Name: "",
+	}
+	tokenCount, tokensCounted := TokenCountingHelper(app, tmpMessage, sw.model)
+	if tokensCounted {
+		ChatCompletionMessageData["token_count"] = tokenCount
 	}
 
 	// If custom attributes are set, add them to the data
@@ -444,23 +448,16 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 }
 
 func TokenCountingHelper(app *newrelic.Application, message openai.ChatCompletionMessage, model string) (numTokens int, tokensCounted bool) {
-
 	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(model, message.Content)
 	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(model, message.Role)
-	messageTokens, messageCounted := app.InvokeLLMTokenCountCallback(model, message.Name)
+	var messageTokens int
+	if message.Name != "" {
+		messageTokens, _ = app.InvokeLLMTokenCountCallback(model, message.Name)
+
+	}
 	numTokens += contentTokens + roleTokens + messageTokens
 
-	return numTokens, (contentCounted && roleCounted && messageCounted)
-}
-
-func TokenCountingHelperStream(app *newrelic.Application, model string, content string, role string, messageName string) (numTokens int, tokensCounted bool) {
-
-	contentTokens, contentCounted := app.InvokeLLMTokenCountCallback(model, content)
-	roleTokens, roleCounted := app.InvokeLLMTokenCountCallback(model, role)
-	messageTokens, messageCounted := app.InvokeLLMTokenCountCallback(model, messageName)
-	numTokens += contentTokens + roleTokens + messageTokens
-
-	return numTokens, (contentCounted && roleCounted && messageCounted)
+	return numTokens, (contentCounted && roleCounted)
 }
 
 // NRCreateChatCompletion is a wrapper for the OpenAI CreateChatCompletion method.
