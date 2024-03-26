@@ -6,7 +6,6 @@ package nropenai
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"runtime/debug"
 	"strings"
@@ -224,7 +223,6 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 		req,
 	)
 	duration := time.Since(start).Milliseconds()
-	chatCompletionSpan.End()
 	if err != nil {
 		ChatCompletionSummaryData["error"] = true
 		// notice error with custom attributes
@@ -277,21 +275,20 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	ChatCompletionSummaryData["id"] = uuid.String()
 	ChatCompletionSummaryData["span_id"] = spanID
 	ChatCompletionSummaryData["trace_id"] = traceID
-	ChatCompletionSummaryData["api_key_last_four_digits"] = cw.LicenseKeyLastFour
 	ChatCompletionSummaryData["vendor"] = "OpenAI"
 	ChatCompletionSummaryData["ingest_source"] = "Go"
 	ChatCompletionSummaryData["appName"] = appConfig.AppName
-
 	// Record any custom attributes if they exist
 	ChatCompletionSummaryData = AppendCustomAttributesToEvent(cw, ChatCompletionSummaryData)
 
 	// Record Custom Event
 	app.RecordCustomEvent("LlmChatCompletionSummary", ChatCompletionSummaryData)
-
 	// Capture request message
-	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw)
+	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw, traceID, spanID)
 	// Capture completion messages
-	NRCreateChatCompletionMessage(txn, app, resp, uuid, cw)
+	NRCreateChatCompletionMessage(txn, app, resp, uuid, cw, traceID, spanID)
+	chatCompletionSpan.End()
+
 	txn.End()
 
 	return ChatCompletionResponseWrapper{
@@ -351,19 +348,18 @@ func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UU
 
 }
 
-func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic.Application, req openai.ChatCompletionRequest, uuid uuid.UUID, cw *ClientWrapper) {
-	spanID := txn.GetTraceMetadata().SpanID
-	traceID := txn.GetTraceMetadata().TraceID
+func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic.Application, req openai.ChatCompletionRequest, inputuuid uuid.UUID, cw *ClientWrapper, traceID string, spanID string) {
 	appCfg, configErr := app.Config()
+	newUUID := uuid.New()
+	newID := newUUID.String()
 	if !configErr {
 		appCfg.AppName = "Unknown"
 	}
 	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
-	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
 
 	ChatCompletionMessageData := map[string]interface{}{}
 	// if the response doesn't have an ID, use the UUID from the summary
-	ChatCompletionMessageData["id"] = uuid.String() + "-0"
+	ChatCompletionMessageData["id"] = newID
 
 	// Response Data
 	ChatCompletionMessageData["response.model"] = req.Model
@@ -372,7 +368,8 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 		ChatCompletionMessageData["content"] = req.Messages[0].Content
 	}
 
-	ChatCompletionMessageData["role"] = req.Messages[0].Role
+	ChatCompletionMessageData["role"] = "user"
+	ChatCompletionMessageData["completion_id"] = inputuuid.String()
 
 	// New Relic Attributes
 	ChatCompletionMessageData["sequence"] = 0
@@ -388,27 +385,23 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 
 	// If custom attributes are set, add them to the data
 	ChatCompletionMessageData = AppendCustomAttributesToEvent(cw, ChatCompletionMessageData)
-	chatCompletionMessageSpan.End()
 	// Record Custom Event for each message
 	app.RecordCustomEvent("LlmChatCompletionMessage", ChatCompletionMessageData)
 
 }
 
 // NRCreateChatCompletionMessage captures the completion messages and records a custom event in New Relic for each message
-func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Application, resp openai.ChatCompletionResponse, uuid uuid.UUID, cw *ClientWrapper) {
-	spanID := txn.GetTraceMetadata().SpanID
-	traceID := txn.GetTraceMetadata().TraceID
+func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Application, resp openai.ChatCompletionResponse, uuid uuid.UUID, cw *ClientWrapper, traceID string, spanID string) {
 	appCfg, configErr := app.Config()
 	if !configErr {
 		appCfg.AppName = "Unknown"
 	}
 	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
-	chatCompletionMessageSpan := txn.StartSegment("Llm/completion/OpenAI/CreateChatCompletionMessage")
 	for i, choice := range resp.Choices {
 		ChatCompletionMessageData := map[string]interface{}{}
 		// if the response doesn't have an ID, use the UUID from the summary
 		if resp.ID == "" {
-			ChatCompletionMessageData["id"] = uuid.String() + "-" + fmt.Sprint(i+1)
+			ChatCompletionMessageData["id"] = uuid.String()
 		} else {
 			ChatCompletionMessageData["id"] = resp.ID
 		}
@@ -420,6 +413,7 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 			ChatCompletionMessageData["content"] = choice.Message.Content
 		}
 
+		ChatCompletionMessageData["completion_id"] = uuid.String()
 		ChatCompletionMessageData["role"] = choice.Message.Role
 
 		// Request Headers
@@ -443,8 +437,6 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 		app.RecordCustomEvent("LlmChatCompletionMessage", ChatCompletionMessageData)
 
 	}
-
-	chatCompletionMessageSpan.End()
 }
 
 func TokenCountingHelper(app *newrelic.Application, message openai.ChatCompletionMessage, model string) (numTokens int, tokensCounted bool) {
@@ -614,7 +606,6 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 			Message: err.Error(),
 			Class:   "OpenAIError",
 		})
-		txn.End()
 		return nil, err
 	}
 
@@ -636,7 +627,7 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 	StreamingData["ingest_source"] = "Go"
 	StreamingData["appName"] = config.AppName
 
-	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw)
+	NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw, traceID, spanID)
 	return &ChatCompletionStreamWrapper{app: app, stream: stream, txn: txn, uuid: uuid.String(), cw: cw, StreamingData: StreamingData, TraceID: traceID}, nil
 
 }
