@@ -39,6 +39,7 @@ func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptio
 }
 
 // WithTransaction creates a new Slog Logger object to be used for logging within a given transaction.
+// Calling this function with a logger having underlying TransactionFromContextHandler handler is a no-op.
 func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logger {
 	if txn == nil || logger == nil {
 		return logger
@@ -56,6 +57,7 @@ func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logge
 
 // WithTransaction creates a new Slog Logger object to be used for logging within a given transaction it its found
 // in a context.
+// Calling this function with a logger having underlying TransactionFromContextHandler handler is a no-op.
 func WithContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	if ctx == nil {
 		return logger
@@ -180,4 +182,51 @@ func (h NRHandler) WithGroup(name string) slog.Handler {
 		app:     h.app,
 		txn:     h.txn,
 	}
+}
+
+// NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context.
+// New Relic transaction value is taken from context. It cannot be set directly.
+// This serves as a quality of life improvement for cases where slog.Default global instance is
+// referenced, allowing to use slog methods directly and maintaining New Relic instrumentation.
+type TransactionFromContextHandler struct {
+	NRHandler
+}
+
+// WithTransactionFromContext creates a wrapped NRHandler, enabling it to automatically reference New Relic
+// transaction from context.
+func WithTransactionFromContext(handler NRHandler) TransactionFromContextHandler {
+	return TransactionFromContextHandler{handler}
+}
+
+// Handle handles the Record.
+// It will only be called when Enabled returns true.
+// The Context argument is as for Enabled and NewRelic transaction.
+// Canceling the context should not affect record processing.
+// (Among other things, log messages may be necessary to debug a
+// cancellation-related problem.)
+//
+// Handle methods that produce output should observe the following rules:
+//   - If r.Time is the zero time, ignore the time.
+//   - If r.PC is zero, ignore it.
+//   - Attr's values should be resolved.
+//   - If an Attr's key and value are both the zero value, ignore the Attr.
+//     This can be tested with attr.Equal(Attr{}).
+//   - If a group's key is empty, inline the group's Attrs.
+//   - If a group has no Attrs (even if it has a non-empty key),
+//     ignore it.
+func (h TransactionFromContextHandler) Handle(ctx context.Context, record slog.Record) error {
+	data := newrelic.LogData{
+		Severity:  record.Level.String(),
+		Timestamp: record.Time.UnixMilli(),
+		Message:   record.Message,
+	}
+
+	if txn := newrelic.FromContext(ctx); txn != nil {
+		txn.RecordLog(data)
+		return h.NRHandler.WithTransaction(txn).Handle(ctx, record)
+	}
+
+	h.app.RecordLog(data)
+
+	return h.handler.Handle(ctx, record)
 }
