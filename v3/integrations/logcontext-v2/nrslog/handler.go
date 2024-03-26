@@ -215,18 +215,9 @@ func WithTransactionFromContext(handler NRHandler) TransactionFromContextHandler
 //   - If a group has no Attrs (even if it has a non-empty key),
 //     ignore it.
 func (h TransactionFromContextHandler) Handle(ctx context.Context, record slog.Record) error {
-	data := newrelic.LogData{
-		Severity:  record.Level.String(),
-		Timestamp: record.Time.UnixMilli(),
-		Message:   record.Message,
-	}
-
 	if txn := newrelic.FromContext(ctx); txn != nil {
-		txn.RecordLog(data)
 		return h.NRHandler.WithTransaction(txn).Handle(ctx, record)
 	}
 
-	h.app.RecordLog(data)
-
-	return h.handler.Handle(ctx, record)
+	return h.NRHandler.Handle(ctx, record)
 }
