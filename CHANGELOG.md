@@ -9,6 +9,10 @@
  * Added nil error check in wrap function. Fixes [Issue #862](https://github.com/newrelic/go-agent/issues/862).
  * `WrapBackgroundCore` background logger was not sending logs to New Relic. Fixes [Issue #859](https://github.com/newrelic/go-agent/issues/859).
  * Corrected pgx5 integration example which caused a race condition. Thanks to @WillAbides! Fixes [Issue #855](https://github.com/newrelic/go-agent/issues/855).
+ * Updated third-party library versions due to reported security or other supportability issues:
+    * `github.com/jackc/pgx/v5` to 5.5.4 in `nrpgx5` integration
+    * `google.gopang.org/protobuf` to 1.33.0 in `nrmicro` and `nrgrpc` integrations
+    * `github.com/jackc/pgx/v4` to 4.18.2 in `nrpgx` integration
 
 ### AI Monitoring Configuration
 New configuration options are available specific to AI monitoring. These settings include:
