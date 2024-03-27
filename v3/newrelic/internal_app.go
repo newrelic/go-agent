@@ -63,6 +63,9 @@ type app struct {
 	// (disconnect, license exception, shutdown).
 	err error
 
+	// registered callback functions
+	llmTokenCountCallback func(string, string) int
+
 	serverless *serverlessHarvest
 }
 
@@ -542,9 +545,13 @@ var (
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.
 func (app *app) RecordCustomEvent(eventType string, params map[string]interface{}) error {
+	var event *customEvent
+	var e error
+
 	if nil == app {
 		return nil
 	}
+
 	if app.config.Config.HighSecurity {
 		return errHighSecurityEnabled
 	}
@@ -553,7 +560,11 @@ func (app *app) RecordCustomEvent(eventType string, params map[string]interface{
 		return errCustomEventsDisabled
 	}
 
-	event, e := createCustomEvent(eventType, params, time.Now())
+	if eventType == "LlmEmbedding" || eventType == "LlmChatCompletionSummary" || eventType == "LlmChatCompletionMessage" {
+		event, e = createCustomEventUnlimitedSize(eventType, params, time.Now())
+	} else {
+		event, e = createCustomEvent(eventType, params, time.Now())
+	}
 	if nil != e {
 		return e
 	}

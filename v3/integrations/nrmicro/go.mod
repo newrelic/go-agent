@@ -5,10 +5,10 @@ module github.com/newrelic/go-agent/v3/integrations/nrmicro
 go 1.19
 
 require (
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/micro/go-micro v1.8.0
 	github.com/newrelic/go-agent/v3 v3.30.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 

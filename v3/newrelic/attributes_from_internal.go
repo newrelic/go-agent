@@ -58,6 +58,7 @@ var (
 		AttributeCodeFilepath:               usualDests,
 		AttributeCodeLineno:                 usualDests,
 		AttributeUserID:                     usualDests,
+		AttributeLLM:                        usualDests,
 
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,
@@ -354,6 +355,36 @@ func validateUserAttribute(key string, val interface{}) (interface{}, error) {
 		val = interface{}(truncateStringValueIfLong(str))
 	}
 
+	switch v := val.(type) {
+	case string, bool,
+		uint8, uint16, uint32, uint64, int8, int16, int32, int64,
+		uint, int, uintptr:
+	case float32:
+		if err := validateFloat(float64(v), key); err != nil {
+			return nil, err
+		}
+	case float64:
+		if err := validateFloat(v, key); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errInvalidAttributeType{
+			key: key,
+			val: val,
+		}
+	}
+
+	// Attributes whose keys are excessively long are dropped rather than
+	// truncated to avoid worrying about the application of configuration to
+	// truncated values or performing the truncation after configuration.
+	if len(key) > attributeKeyLengthLimit {
+		return nil, invalidAttributeKeyErr{key: key}
+	}
+	return val, nil
+}
+
+// validateUserAttributeUnlimitedSize validates a user attribute without truncating string values.
+func validateUserAttributeUnlimitedSize(key string, val interface{}) (interface{}, error) {
 	switch v := val.(type) {
 	case string, bool,
 		uint8, uint16, uint32, uint64, int8, int16, int32, int64,
