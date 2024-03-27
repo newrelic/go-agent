@@ -255,6 +255,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 
 	if len(resp.Choices) > 0 {
 		finishReason, err := resp.Choices[0].FinishReason.MarshalJSON()
+
 		if err != nil {
 			ChatCompletionSummaryData["error"] = true
 			txn.NoticeError(newrelic.Error{
@@ -262,7 +263,16 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 				Class:   "OpenAIError",
 			})
 		} else {
-			ChatCompletionSummaryData["response.choices.finish_reason"] = string(finishReason)
+			s := string(finishReason)
+			if len(s) > 0 && s[0] == '"' {
+				s = s[1:]
+			}
+			if len(s) > 0 && s[len(s)-1] == '"' {
+				s = s[:len(s)-1]
+			}
+
+			// strip quotes from the finish reason before setting it
+			ChatCompletionSummaryData["response.choices.finish_reason"] = s
 		}
 	}
 
