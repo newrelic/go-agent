@@ -587,6 +587,26 @@ func TestGetName(t *testing.T) {
 	}
 }
 
+func TestIgnoreTransaction(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+		reply.EntityGUID = "entities-are-guid"
+		reply.TraceIDGenerator = internal.NewTraceIDGenerator(12345)
+	}
+	cfgfn := func(cfg *Config) {
+		cfg.AppName = "app-name"
+		cfg.DistributedTracer.Enabled = true
+	}
+	app := testApp(replyfn, cfgfn, t)
+	txn := app.StartTransaction("hello")
+	txn.Ignore()
+	txn.SetName("hello世界")
+	txn.NoticeError(errors.New("hi"))
+	txn.End()
+
+	app.ExpectTxnTraces(t, []internal.WantTxnTrace{})
+}
+
 func TestEmptyTransaction(t *testing.T) {
 	txn := &Transaction{}
 
