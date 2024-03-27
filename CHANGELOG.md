@@ -11,7 +11,7 @@
  * Corrected pgx5 integration example which caused a race condition. Thanks to @WillAbides! Fixes [Issue #855](https://github.com/newrelic/go-agent/issues/855).
 
 ### AI Monitoring Configuration
-New configuration options are available specific to [AI monitoring](<ng agent config docs>). These settings include:
+New configuration options are available specific to AI monitoring. These settings include:
    * `AIMonitoring.Enabled`, configured via `ConfigAIMonitoring.Enabled(`_bool_`)` [default `false`]
    * `AIMonitoring.Streaming.Enabled`, configured via `ConfigAIMonitoringStreamingEnabled(`_bool_`)` [default `true`]
    * `AIMonitoring.Content.Enabled`, configured via `ConfigAIMonitoringContentEnabled(`_bool_`)` [default `true`]
