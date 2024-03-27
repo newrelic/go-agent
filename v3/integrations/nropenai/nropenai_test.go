@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -113,21 +114,10 @@ func (m *MockOpenAIClient) CreateChatCompletionStream(ctx context.Context, reque
 	return m.MockCreateChatCompletionStream, m.MockCreateChatCompletionErr
 }
 
-func TestFormatAPIKey(t *testing.T) {
-	dummyAPIKey := "sk-12345678900abcdefghijklmnop"
-	formattedKey := FormatAPIKey(dummyAPIKey)
-	if formattedKey != "sk-mnop" {
-		t.Errorf("Formatted API key is incorrect: expected: %s actual: %s", "sk-mnop", formattedKey)
-
-	}
-}
 func TestDefaultConfig(t *testing.T) {
 	dummyAPIKey := "sk-12345678900abcdefghijklmnop"
 	cfg := NRDefaultConfig(dummyAPIKey)
 	// Default Values
-	if cfg.LicenseKeyLastFour != "sk-mnop" {
-		t.Errorf("API Key is incorrect: expected: %s actual: %s", "sk-mnop", cfg.LicenseKeyLastFour)
-	}
 	if cfg.Config.OrgID != "" {
 		t.Errorf("OrgID is incorrect: expected: %s actual: %s", "", cfg.Config.OrgID)
 	}
@@ -142,47 +132,12 @@ func TestDefaultConfigAzure(t *testing.T) {
 	baseURL := "https://azure-base-url.com"
 	cfg := NRDefaultAzureConfig(dummyAPIKey, baseURL)
 	// Default Values
-	if cfg.LicenseKeyLastFour != "sk-mnop" {
-		t.Errorf("API Key is incorrect: expected: %s actual: %s", "sk-mnop", cfg.LicenseKeyLastFour)
-	}
 	if cfg.Config.BaseURL != baseURL {
 		t.Errorf("baseURL is incorrect: expected: %s actual: %s", baseURL, cfg.Config.BaseURL)
 	}
 	// Default Value set by openai package
 	if cfg.Config.APIType != openai.APITypeAzure {
 		t.Errorf("API Type is incorrect: expected: %s actual: %s", openai.APITypeAzure, cfg.Config.APIType)
-	}
-}
-
-func TestNRNewClient(t *testing.T) {
-	dummyAPIKey := "sk-12345678900abcdefghijklmnop"
-	client := NRNewClient(dummyAPIKey)
-	if client.LicenseKeyLastFour != "sk-mnop" {
-		t.Errorf("API Key is incorrect: expected: %s actual: %s", "sk-mnop", client.LicenseKeyLastFour)
-	}
-}
-
-func TestNRNewClientWithConfigs(t *testing.T) {
-	// Regular Config
-	dummyAPIKey := "sk-12345678900abcdefghijklmnop"
-	cfg := NRDefaultConfig(dummyAPIKey)
-	client := NRNewClientWithConfig(cfg)
-	if client.LicenseKeyLastFour != "sk-mnop" {
-		t.Errorf("API Key is incorrect: expected: %s actual: %s", "sk-mnop", client.LicenseKeyLastFour)
-	}
-	// Azure Config
-	baseURL := "https://azure-base-url.com"
-	azureCfg := NRDefaultAzureConfig(dummyAPIKey, baseURL)
-	azureClient := NRNewClientWithConfig(azureCfg)
-	if azureClient.LicenseKeyLastFour != "sk-mnop" {
-		t.Errorf("API Key is incorrect: expected: %s actual: %s", "sk-mnop", azureClient.LicenseKeyLastFour)
-	}
-	if azureCfg.Config.BaseURL != baseURL {
-		t.Errorf("baseURL is incorrect: expected: %s actual: %s", baseURL, azureCfg.Config.BaseURL)
-	}
-	// Default Value set by openai package
-	if azureCfg.Config.APIType != openai.APITypeAzure {
-		t.Errorf("API Type is incorrect: expected: %s actual: %s", openai.APITypeAzure, azureCfg.Config.APIType)
 	}
 }
 
@@ -208,8 +163,7 @@ func TestAddCustomAttributesIncorrectPrefix(t *testing.T) {
 func TestNRCreateChatCompletion(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -238,16 +192,14 @@ func TestNRCreateChatCompletion(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{
 				"ingest_source":                  "Go",
-				"vendor":                         "OpenAI",
+				"vendor":                         "openai",
 				"model":                          "gpt-3.5-turbo",
 				"id":                             internal.MatchAnything,
 				"trace_id":                       internal.MatchAnything,
 				"span_id":                        internal.MatchAnything,
-				"appName":                        "my app",
 				"duration":                       0,
 				"response.choices.finish_reason": internal.MatchAnything,
 				"request.temperature":            0,
-				"api_key_last_four_digits":       "sk-mnop",
 				"request_id":                     "chatcmpl-123",
 				"request.model":                  "gpt-3.5-turbo",
 				"request.max_tokens":             150,
@@ -269,13 +221,14 @@ func TestNRCreateChatCompletion(t *testing.T) {
 				"timestamp": internal.MatchAnything,
 			},
 			UserAttributes: map[string]interface{}{
+				"completion_id":  internal.MatchAnything,
 				"trace_id":       internal.MatchAnything,
 				"span_id":        internal.MatchAnything,
 				"id":             internal.MatchAnything,
 				"sequence":       0,
 				"role":           "user",
 				"content":        "What is 8*5",
-				"vendor":         "OpenAI",
+				"vendor":         "openai",
 				"ingest_source":  "Go",
 				"response.model": "gpt-3.5-turbo",
 			},
@@ -289,13 +242,15 @@ func TestNRCreateChatCompletion(t *testing.T) {
 			UserAttributes: map[string]interface{}{
 				"trace_id":       internal.MatchAnything,
 				"span_id":        internal.MatchAnything,
+				"completion_id":  internal.MatchAnything,
 				"id":             "chatcmpl-123",
 				"sequence":       1,
 				"role":           "assistant",
 				"content":        "\n\nHello there, how may I assist you today?",
 				"request_id":     "chatcmpl-123",
-				"vendor":         "OpenAI",
+				"vendor":         "openai",
 				"ingest_source":  "Go",
+				"is_response":    true,
 				"response.model": "gpt-3.5-turbo",
 			},
 			AgentAttributes: map[string]interface{}{},
@@ -307,8 +262,7 @@ func TestNRCreateChatCompletion(t *testing.T) {
 func TestNRCreateChatCompletionAIMonitoringNotEnabled(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -337,8 +291,7 @@ func TestNRCreateChatCompletionAIMonitoringNotEnabled(t *testing.T) {
 func TestNRCreateChatCompletionError(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -365,15 +318,13 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 			UserAttributes: map[string]interface{}{
 				"error":                       true,
 				"ingest_source":               "Go",
-				"vendor":                      "OpenAI",
+				"vendor":                      "openai",
 				"model":                       "gpt-3.5-turbo",
 				"id":                          internal.MatchAnything,
 				"trace_id":                    internal.MatchAnything,
 				"span_id":                     internal.MatchAnything,
-				"appName":                     "my app",
 				"duration":                    0,
 				"request.temperature":         0,
-				"api_key_last_four_digits":    "sk-mnop",
 				"request_id":                  "",
 				"request.model":               "gpt-3.5-turbo",
 				"request.max_tokens":          150,
@@ -395,8 +346,9 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 				"timestamp": internal.MatchAnything,
 			},
 			UserAttributes: map[string]interface{}{
+				"completion_id":  internal.MatchAnything,
 				"ingest_source":  "Go",
-				"vendor":         "OpenAI",
+				"vendor":         "openai",
 				"id":             internal.MatchAnything,
 				"trace_id":       internal.MatchAnything,
 				"span_id":        internal.MatchAnything,
@@ -429,8 +381,7 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 func TestNRCreateEmbedding(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	embeddingReq := openai.EmbeddingRequest{
 		Input: []string{
@@ -455,13 +406,12 @@ func TestNRCreateEmbedding(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{
 				"ingest_source":               "Go",
-				"vendor":                      "OpenAI",
+				"vendor":                      "openai",
 				"id":                          internal.MatchAnything,
 				"trace_id":                    internal.MatchAnything,
 				"span_id":                     internal.MatchAnything,
 				"duration":                    0,
 				"request_id":                  "chatcmpl-123",
-				"api_key_last_four_digits":    "sk-mnop",
 				"request.model":               "text-embedding-ada-002",
 				"response.headers.llmVersion": "2020-10-01",
 				"response.organization":       "user-123",
@@ -482,8 +432,7 @@ func TestNRCreateEmbedding(t *testing.T) {
 func TestNRCreateEmbeddingAIMonitoringNotEnabled(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	embeddingReq := openai.EmbeddingRequest{
 		Input: []string{
@@ -510,8 +459,7 @@ func TestNRCreateEmbeddingAIMonitoringNotEnabled(t *testing.T) {
 func TestNRCreateEmbeddingError(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	embeddingReq := openai.EmbeddingRequest{
 		Input:          "testError",
@@ -534,12 +482,11 @@ func TestNRCreateEmbeddingError(t *testing.T) {
 			},
 			UserAttributes: map[string]interface{}{
 				"ingest_source":               "Go",
-				"vendor":                      "OpenAI",
+				"vendor":                      "openai",
 				"id":                          internal.MatchAnything,
 				"trace_id":                    internal.MatchAnything,
 				"span_id":                     internal.MatchAnything,
 				"duration":                    0,
-				"api_key_last_four_digits":    "sk-mnop",
 				"request_id":                  "chatcmpl-123",
 				"request.model":               "text-embedding-ada-002",
 				"response.headers.llmVersion": "2020-10-01",
@@ -575,11 +522,56 @@ func TestNRCreateEmbeddingError(t *testing.T) {
 		}})
 }
 
+func TestNRCreateChatCompletionMessageStream(t *testing.T) {
+	mockStreamWrapper := ChatCompletionStreamWrapper{}
+	mockClient := &MockOpenAIClient{}
+	cw := &ClientWrapper{
+		Client: mockClient,
+	}
+
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	txn := app.StartTransaction("NRCreateChatCompletionMessageStream")
+	uuid := uuid.New()
+	mockStreamWrapper.txn = txn
+	mockStreamWrapper.finishReason = "stop"
+	mockStreamWrapper.uuid = uuid.String()
+	mockStreamWrapper.isError = false
+	mockStreamWrapper.responseStr = "Hello there, how may I assist you today?"
+	mockStreamWrapper.role = openai.ChatMessageRoleAssistant
+	mockStreamWrapper.model = "gpt-3.5-turbo"
+	mockStreamWrapper.sequence = 1
+
+	NRCreateChatCompletionMessageStream(app.Application, uuid, &mockStreamWrapper, cw, 1)
+	txn.End()
+
+	app.ExpectCustomEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "LlmChatCompletionMessage",
+				"timestamp": internal.MatchAnything,
+			},
+			UserAttributes: map[string]interface{}{
+				"completion_id": internal.MatchAnything,
+				"trace_id":      internal.MatchAnything,
+				"span_id":       internal.MatchAnything,
+				"id":            internal.MatchAnything,
+				"sequence":      2,
+				"role":          "assistant",
+				"content":       "Hello there, how may I assist you today?",
+				"vendor":        "openai",
+				"ingest_source": "Go",
+				"request.model": "gpt-3.5-turbo",
+				"is_response":   true,
+			},
+			AgentAttributes: map[string]interface{}{},
+		},
+	})
+
+}
 func TestNRCreateStream(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -605,13 +597,14 @@ func TestNRCreateStream(t *testing.T) {
 				"timestamp": internal.MatchAnything,
 			},
 			UserAttributes: map[string]interface{}{
+				"completion_id":  internal.MatchAnything,
 				"trace_id":       internal.MatchAnything,
 				"span_id":        internal.MatchAnything,
 				"id":             internal.MatchAnything,
 				"sequence":       0,
 				"role":           "user",
 				"content":        "Say this is a test",
-				"vendor":         "OpenAI",
+				"vendor":         "openai",
 				"ingest_source":  "Go",
 				"response.model": "gpt-3.5-turbo",
 			},
@@ -623,8 +616,7 @@ func TestNRCreateStream(t *testing.T) {
 func TestNRCreateStreamAIMonitoringNotEnabled(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -651,8 +643,7 @@ func TestNRCreateStreamAIMonitoringNotEnabled(t *testing.T) {
 func TestNRCreateStreamError(t *testing.T) {
 	mockClient := &MockOpenAIClient{}
 	cw := &ClientWrapper{
-		Client:             mockClient,
-		LicenseKeyLastFour: "sk-mnop",
+		Client: mockClient,
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
