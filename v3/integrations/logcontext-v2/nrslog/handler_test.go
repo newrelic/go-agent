@@ -258,3 +258,40 @@ func TestWithGroup(t *testing.T) {
 	}
 
 }
+
+func TestTransactionFromContextHandler(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	out := bytes.NewBuffer([]byte{})
+	message := "Hello World!"
+
+	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
+	log := slog.New(WithTransactionFromContext(handler))
+
+	txn := app.Application.StartTransaction("my txn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	txninfo := txn.GetLinkingMetadata()
+
+	log.InfoContext(ctx, message)
+
+	txn.End()
+
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			SpanID:    txninfo.SpanID,
+			TraceID:   txninfo.TraceID,
+		},
+	})
+}
