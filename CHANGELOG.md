@@ -3,6 +3,7 @@
  * Integration packages to instrument AI model invocations (see below).
     * New package nrawsbedrock v1.0.0 introduced to instrument calls to Amazon Bedrock Runtime Client API `InvokeModel` and `InvokeModelWithResponseStream` calls. Also provides a simple one-step method which invokes stream invocations and harvests the response stream data for you.
     * New package nropenai v1.0.0 introduced to instrument calls to OpenAI using `NRCreateChatCompletion`, `NRCreateChatCompletionStream`, and `NRCreateEmbedding` calls.
+    * Dockerfile in the `examples/server` sample app which facilitates the easy creation of a containerized ready-to-run sample app for situations where that makes testing easier.
 
 ### Fixed
  * `.Ignore` was not ignoring transaction. Fixes [Issue #845](https://github.com/newrelic/go-agent/issues/845).
