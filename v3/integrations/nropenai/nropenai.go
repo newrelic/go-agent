@@ -289,7 +289,7 @@ func NRCreateChatCompletionSummary(txn *newrelic.Transaction, app *newrelic.Appl
 	// Capture request message, returns a sequence of the messages already sent in the request. We will use that during the response message counting
 	sequence := NRCreateChatCompletionMessageInput(txn, app, req, uuid, cw)
 	// Capture completion messages
-	NRCreateChatCompletionMessage(txn, app, resp, uuid, cw, sequence)
+	NRCreateChatCompletionMessage(txn, app, resp, uuid, cw, sequence, req)
 	chatCompletionSpan.End()
 
 	txn.End()
@@ -349,7 +349,7 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 }
 
 // NRCreateChatCompletionMessage captures the completion response messages and records a custom event in New Relic for each message
-func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Application, resp openai.ChatCompletionResponse, uuid uuid.UUID, cw *ClientWrapper, sequence int) {
+func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Application, resp openai.ChatCompletionResponse, uuid uuid.UUID, cw *ClientWrapper, sequence int, req openai.ChatCompletionRequest) {
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
 	appCfg, _ := app.Config()
@@ -364,6 +364,9 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 		} else {
 			ChatCompletionMessageData["id"] = resp.ID
 		}
+
+		// Request Data
+		ChatCompletionMessageData["request.model"] = req.Model
 
 		// Response Data
 		ChatCompletionMessageData["response.model"] = resp.Model
