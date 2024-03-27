@@ -235,6 +235,17 @@ type Config struct {
 		DynoNamePrefixesToShorten []string
 	}
 
+	// AIMonitoring controls the behavior of AI monitoring features.
+	AIMonitoring struct {
+		Enabled bool
+		// Indicates whether streams will be instrumented
+		Streaming struct {
+			Enabled bool
+		}
+		RecordContent struct {
+			Enabled bool
+		}
+	}
 	// CrossApplicationTracer controls behavior relating to cross application
 	// tracing (CAT).  In the case where CrossApplicationTracer and
 	// DistributedTracer are both enabled, DistributedTracer takes precedence.
@@ -667,6 +678,9 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
+	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Streaming.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = true
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 

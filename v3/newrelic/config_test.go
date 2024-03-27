@@ -130,6 +130,15 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"agent_version":"0.2.2",
 		"host":"my-hostname",
 		"settings":{
+			"AIMonitoring": {
+				"Enabled": false,
+				"RecordContent": {
+					"Enabled": true
+				},
+				"Streaming": {
+					"Enabled": true
+				}
+			},
 			"AppName":"my appname",
 			"ApplicationLogging": {
 				"Enabled": true,
@@ -326,6 +335,15 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"agent_version":"0.2.2",
 		"host":"my-hostname",
 		"settings":{
+			"AIMonitoring": {
+				"Enabled": false,
+				"RecordContent": {
+					"Enabled": true
+				},
+				"Streaming": {
+					"Enabled": true
+				}
+			},
 			"AppName":"my appname",
 			"ApplicationLogging": {
 				"Enabled": true,

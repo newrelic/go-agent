@@ -15,6 +15,26 @@ type Application struct {
 	app     *app
 }
 
+/*
+// IsAIMonitoringEnabled returns true if monitoring for the specified mode of the named integration is enabled.
+func (app *Application) IsAIMonitoringEnabled(integration string, streaming bool) bool {
+	if app == nil || app.app == nil || app.app.run == nil {
+		return false
+	}
+	aiconf := app.app.run.Config.AIMonitoring
+	if !aiconf.Enabled {
+		return false
+	}
+	if aiconf.IncludeOnly != nil && integration != "" && !slices.Contains(aiconf.IncludeOnly, integration) {
+		return false
+	}
+	if streaming && !aiconf.Streaming {
+		return false
+	}
+	return true
+}
+*/
+
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if app == nil {
@@ -45,6 +65,69 @@ func (app *Application) RecordCustomEvent(eventType string, params map[string]in
 			"event-type": eventType,
 			"reason":     err.Error(),
 		})
+	}
+}
+
+// RecordLLMFeedbackEvent adds a LLM Feedback event.
+// An error is logged if eventType or params is invalid.
+func (app *Application) RecordLLMFeedbackEvent(trace_id string, rating any, category string, message string, metadata map[string]interface{}) {
+	if app == nil || app.app == nil {
+		return
+	}
+	CustomEventData := map[string]interface{}{
+		"trace_id":      trace_id,
+		"rating":        rating,
+		"category":      category,
+		"message":       message,
+		"ingest_source": "Go",
+	}
+	for k, v := range metadata {
+		CustomEventData[k] = v
+	}
+	// if rating is an int or string, record the event
+	err := app.app.RecordCustomEvent("LlmFeedbackMessage", CustomEventData)
+	if err != nil {
+		app.app.Error("unable to record custom event", map[string]interface{}{
+			"event-type": "LlmFeedbackMessage",
+			"reason":     err.Error(),
+		})
+	}
+}
+
+// InvokeLLMTokenCountCallback invokes the function registered previously as the callback
+// function to compute token counts to report for LLM transactions, if any. If there is
+// no current callback funtion, this simply returns a zero count and a false boolean value.
+// Otherwise, it returns the value returned by the callback and a true value.
+//
+// Although there's no harm in calling this method to invoke your callback function,
+// there is no need (or particular benefit) of doing so. This is called as needed internally
+// by the AI Monitoring integrations.
+func (app *Application) InvokeLLMTokenCountCallback(model, content string) (int, bool) {
+	if app == nil || app.app == nil || app.app.llmTokenCountCallback == nil {
+		return 0, false
+	}
+	return app.app.llmTokenCountCallback(model, content), true
+}
+
+// HasLLMTokenCountCallback returns true if there is currently a registered callback function
+// or false otherwise.
+func (app *Application) HasLLMTokenCountCallback() bool {
+	return app != nil && app.app != nil && app.app.llmTokenCountCallback != nil
+}
+
+// SetLLMTokenCountCallback registers a callback function which will be used by the AI Montoring
+// integration packages in cases where they are unable to determine the token counts directly.
+// You may call SetLLMTokenCountCallback multiple times. If you do, each call registers a new
+// callback function which replaces the previous one. Calling SetLLMTokenCountCallback(nil) removes
+// the callback function entirely.
+//
+// Your callback function will be passed two string parameters: model name and content. It must
+// return a single integer value which is the number of tokens to report. If it returns a value less
+// than or equal to zero, no token count report will be made (which includes the case where your
+// callback function was unable to determine the token count).
+func (app *Application) SetLLMTokenCountCallback(callbackFunction func(string, string) int) {
+	if app != nil && app.app != nil {
+		app.app.llmTokenCountCallback = callbackFunction
 	}
 }
 
@@ -136,7 +219,6 @@ func (app *Application) Shutdown(timeout time.Duration) {
 // a boolean true value is returned as the second return value.  If it is
 // false, then the Config data returned is the standard default configuration.
 // This usually occurs if the Application is not yet fully initialized.
-//
 func (app *Application) Config() (Config, bool) {
 	if app == nil || app.app == nil {
 		return defaultConfig(), false

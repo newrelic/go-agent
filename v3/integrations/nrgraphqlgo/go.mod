@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/graphql-go/graphql v0.8.1
-	github.com/newrelic/go-agent/v3 v3.30.0
+	github.com/newrelic/go-agent/v3 v3.31.0
 )
 
 

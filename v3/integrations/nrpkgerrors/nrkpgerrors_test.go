@@ -57,6 +57,7 @@ func TestWrappedStackTrace(t *testing.T) {
 		{Error: theta(basicError{}), ExpectTopFrame: ""},
 		{Error: basicNRError(basicError{}), ExpectTopFrame: ""},
 		{Error: withAttributes(basicError{}), ExpectTopFrame: "", ExpectAttributes: map[string]interface{}{"testAttribute": 1, "foo": 2}},
+		{Error: nil, ExpectTopFrame: ""},
 	}
 
 	for idx, tc := range testcases {
@@ -117,6 +118,7 @@ func TestWrappedErrorClass(t *testing.T) {
 		{Error: alpha(basicError{}), ExpectClass: "nrpkgerrors.basicError"},
 		{Error: wrapWithClass(basicError{}, "zip"), ExpectClass: "zip"},
 		{Error: alpha(wrapWithClass(basicError{}, "zip")), ExpectClass: "nrpkgerrors.basicError"},
+		{Error: nil, ExpectClass: "*errors.fundamental"},
 	}
 
 	for idx, tc := range testcases {
