@@ -1,8 +1,14 @@
 ## 3.31.0
 ### Added
  * Integration packages to instrument AI model invocations (see below).
-    * New package nrawsbedrock v1.0.0 introduced to instrument calls to Amazon Bedrock Runtime Client API `InvokeModel` and `InvokeModelWithResponseStream` calls.
-    * New package nropenai v1.0.0 introduced to instrument OpenAI model invocations. 
+    * New package nrawsbedrock v1.0.0 introduced to instrument calls to Amazon Bedrock Runtime Client API `InvokeModel` and `InvokeModelWithResponseStream` calls. Also provides a simple one-step method which invokes stream invocations and harvests the response stream data for you.
+    * New package nropenai v1.0.0 introduced to instrument calls to OpenAI using `NRCreateChatCompletion`, `NRCreateChatCompletionStream`, and `NRCreateEmbedding` calls.
+
+### Fixed
+ * `.Ignore` was not ignoring transaction. Fixes [Issue #845](https://github.com/newrelic/go-agent/issues/845).
+ * Added nil error check in wrap function. Fixes [Issue #862](https://github.com/newrelic/go-agent/issues/862).
+ * `WrapBackgroundCore` background logger was not sending logs to New Relic. Fixes [Issue #859](https://github.com/newrelic/go-agent/issues/859).
+ * Corrected pgx5 integration example which caused a race condition. Thanks to @WillAbides! Fixes [Issue #855](https://github.com/newrelic/go-agent/issues/855).
 
 ### AI Monitoring Configuration
 New configuration options are available specific to [AI monitoring](<ng agent config docs>). These settings include:
