@@ -7,7 +7,7 @@ go 1.19
 require (
 	github.com/golang/protobuf v1.5.4
 	github.com/micro/go-micro v1.8.0
-	github.com/newrelic/go-agent/v3 v3.30.0
+	github.com/newrelic/go-agent/v3 v3.31.0
 	google.golang.org/protobuf v1.33.0
 )
 
