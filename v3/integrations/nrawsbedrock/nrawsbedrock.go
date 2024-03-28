@@ -28,11 +28,16 @@
 //    ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
 //    ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
 //
+// Currently, the following must also be set for AIM reporting to function correctly:
+//    ConfigCustomInsightsEventsEnabled(true) // (the default)
+//    ConfigHighSecurityEnabled(false) // (the default)
+//
 // Or, if ConfigFromEnvironment() is included in your configuration options, the above configuration
 // options may be specified using these environment variables, respectively:
 //    NEW_RELIC_AI_MONITORING_ENABLED=true
 //    NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
 //    NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
+//    NEW_RELIC_HIGH_SECURITY=false
 // The values for these variables may be any form accepted by strconv.ParseBool (e.g., 1, t, T, true, TRUE, True,
 // 0, f, F, false, FALSE, or False).
 //
