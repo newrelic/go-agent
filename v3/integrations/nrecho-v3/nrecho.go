@@ -51,9 +51,7 @@ func transactionName(c echo.Context) string {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.Middleware(app))
-//
 func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFunc {
-
 	if nil == app {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
 			return next
@@ -90,6 +88,26 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 			}
 
 			return
+		}
+	}
+}
+
+// WrapRouter extract api endpoints from the echo instance passed to it
+// which is used to detect application URL mapping(api-endpoints) for provable security.
+// Skip if you are not using [nrsecurityagent](https://pkg.go.dev/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent).
+//  e := echo.New()
+//  ....
+//  ....
+//  ....
+//
+//	nrecho.WrapRouter(e)
+//
+
+func WrapRouter(engine *echo.Echo) {
+	if engine != nil && newrelic.IsSecurityAgentPresent() {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, r.Name)
 		}
 	}
 }

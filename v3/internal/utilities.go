@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"runtime"
 	"time"
 )
 
@@ -25,4 +27,18 @@ func CompactJSONString(js string) string {
 		panic(fmt.Errorf("unable to compact JSON: %v", err))
 	}
 	return buf.String()
+}
+
+// HandlerName return name of a function.
+func HandlerName(h interface{}) string {
+	if h == nil {
+		return ""
+	}
+	t := reflect.ValueOf(h).Type()
+	if t.Kind() == reflect.Func {
+		if pointer := runtime.FuncForPC(reflect.ValueOf(h).Pointer()); pointer != nil {
+			return pointer.Name()
+		}
+	}
+	return ""
 }
