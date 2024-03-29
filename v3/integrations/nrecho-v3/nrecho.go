@@ -92,9 +92,10 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 	}
 }
 
-// WrapRouter extract api endpoints from the echo instance passed to it
+// WrapRouter extracts API endpoints from the echo instance passed to it
 // which is used to detect application URL mapping(api-endpoints) for provable security.
-// Skip if you are not using [nrsecurityagent](https://pkg.go.dev/github.com/newrelic/go-agent/v3/integrations/nrsecurityagent).
+// In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
+// but it may be enhanced to provide additional functionality in future releases.
 //  e := echo.New()
 //  ....
 //  ....

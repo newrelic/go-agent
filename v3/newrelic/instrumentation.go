@@ -43,7 +43,11 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	// (but only if we know we're collecting CLM for this transaction and the user didn't already
 	// specify a different code location explicitly).
 	cache := NewCachedCodeLocation()
-	secureAgent.SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+	}
+
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tOptions *traceOptSet
 		var txnOptionList []TraceOption

@@ -50,7 +50,9 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 	if app == nil {
 		return pattern, handler
 	}
-	newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+	}
 	// add the wrapped function to the trace options as the source code reference point
 	// (but only if we know we're collecting CLM for this transaction and the user didn't already
 	// specify a different code location explicitly).

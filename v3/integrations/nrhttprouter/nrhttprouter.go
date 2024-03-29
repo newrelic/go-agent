@@ -84,7 +84,9 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 		}
 	}
 	r.Router.Handle(method, path, handle)
-	newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(original))
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(original))
+	}
 }
 
 // DELETE replaces httprouter.Router.DELETE.
