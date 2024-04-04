@@ -28,11 +28,16 @@
 //    ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
 //    ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
 //
+// Currently, the following must also be set for AIM reporting to function correctly:
+//    ConfigCustomInsightsEventsEnabled(true) // (the default)
+//    ConfigHighSecurityEnabled(false) // (the default)
+//
 // Or, if ConfigFromEnvironment() is included in your configuration options, the above configuration
 // options may be specified using these environment variables, respectively:
 //    NEW_RELIC_AI_MONITORING_ENABLED=true
 //    NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
 //    NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
+//    NEW_RELIC_HIGH_SECURITY=false
 // The values for these variables may be any form accepted by strconv.ParseBool (e.g., 1, t, T, true, TRUE, True,
 // 0, f, F, false, FALSE, or False).
 //
@@ -110,13 +115,18 @@ func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 	return config.AIMonitoring.Enabled, config.AIMonitoring.RecordContent.Enabled
 }
 
+// Modeler is any type that can invoke Bedrock models (e.g., bedrockruntime.Client).
+type Modeler interface {
+	InvokeModel(context.Context, *bedrockruntime.InvokeModelInput, ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error)
+	InvokeModelWithResponseStream(context.Context, *bedrockruntime.InvokeModelWithResponseStreamInput, ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelWithResponseStreamOutput, error)
+}
+
 // ResponseStream tracks the model invocation throughout its lifetime until all stream events
 // are processed.
 type ResponseStream struct {
 	// The request parameters that started the invocation
 	ctx                  context.Context
 	app                  *newrelic.Application
-	client               *bedrockruntime.Client
 	params               *bedrockruntime.InvokeModelWithResponseStreamInput
 	attrs                map[string]any
 	meta                 map[string]any
@@ -173,7 +183,7 @@ type modelInputList struct {
 // Either start a transaction on your own and add it to the context c  passed into this function, or
 // a transaction will be started for you that lasts only for the duration of the model invocation.
 //
-func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+func InvokeModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
 	return InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
@@ -188,7 +198,7 @@ func InvokeModelWithResponseStream(app *newrelic.Application, brc *bedrockruntim
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
 //
-func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
+func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
 	var aiEnabled bool
 	var err error
 
@@ -196,7 +206,6 @@ func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc *bed
 		ctx:    ctx,
 		app:    app,
 		meta:   map[string]any{},
-		client: brc,
 		params: params,
 		attrs:  attrs,
 	}
@@ -375,7 +384,7 @@ func (s *ResponseStream) Close() error {
 // If your callback function returns an error, the processing of the response stream will
 // terminate at that point.
 //
-func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) error {
+func ProcessModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) error {
 	return ProcessModelWithResponseStreamAttributes(app, brc, ctx, callback, params, nil, optFns...)
 }
 
@@ -390,7 +399,7 @@ func ProcessModelWithResponseStream(app *newrelic.Application, brc *bedrockrunti
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
 //
-func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
+func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
 	var err error
 	var userErr error
 
@@ -437,7 +446,7 @@ func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc *be
 //
 // If the transaction is unable to be created or used, the Bedrock call will be made anyway, without instrumentation.
 //
-func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
+func InvokeModel(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	return InvokeModelWithAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
@@ -451,7 +460,7 @@ func InvokeModel(app *newrelic.Application, brc *bedrockruntime.Client, ctx cont
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
 //
-func InvokeModelWithAttributes(app *newrelic.Application, brc *bedrockruntime.Client, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
+func InvokeModelWithAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	var txn *newrelic.Transaction // the transaction to record in, or nil if we aren't instrumenting this time
 	var err error
 
