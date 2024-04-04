@@ -108,7 +108,7 @@ func WrapRouter(engine *echo.Echo) {
 	if engine != nil && newrelic.IsSecurityAgentPresent() {
 		router := engine.Routes()
 		for _, r := range router {
-			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, r.Name)
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, r.Handler)
 		}
 	}
 }
