@@ -252,6 +252,7 @@ func TestNRCreateChatCompletion(t *testing.T) {
 				"ingest_source":  "Go",
 				"is_response":    true,
 				"response.model": "gpt-3.5-turbo",
+				"request.model":  "gpt-3.5-turbo",
 			},
 			AgentAttributes: map[string]interface{}{},
 		},
