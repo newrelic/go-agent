@@ -111,3 +111,35 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 		})
 	}
 }
+
+// WrapRouter extracts API endpoints from the router object passed to it
+// which is used to detect application URL mapping(api-endpoints) for provable security.
+// In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
+// but it may be enhanced to provide additional functionality in future releases.
+//  r := mux.NewRouter()
+//  ....
+//  ....
+//  ....
+//
+//	nrgorilla.WrapRouter(router)
+//
+
+func WrapRouter(router *mux.Router) {
+	if router != nil && newrelic.IsSecurityAgentPresent() {
+		router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+			path, err1 := route.GetPathTemplate()
+			if err1 != nil {
+				return nil
+			}
+			methods, _ := route.GetMethods()
+			if len(methods) == 0 {
+				newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, "*", internal.HandlerName(route.GetHandler()))
+			} else {
+				for _, method := range methods {
+					newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(route.GetHandler()))
+				}
+			}
+			return nil
+		})
+	}
+}

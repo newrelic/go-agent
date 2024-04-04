@@ -8,33 +8,33 @@
 // httprouter.Router. Use an *nrhttprouter.Router in place of your
 // *httprouter.Router.  Example:
 //
-//   package main
+//	package main
 //
-//   import (
-//   	"fmt"
-//   	"net/http"
-//   	"os"
+//	import (
+//		"fmt"
+//		"net/http"
+//		"os"
 //
-//   	"github.com/julienschmidt/httprouter"
-//   	newrelic "github.com/newrelic/go-agent/v3/newrelic"
-//   	"github.com/newrelic/go-agent/v3/integrations/nrhttprouter"
-//   )
+//		"github.com/julienschmidt/httprouter"
+//		newrelic "github.com/newrelic/go-agent/v3/newrelic"
+//		"github.com/newrelic/go-agent/v3/integrations/nrhttprouter"
+//	)
 //
-//   func main() {
-//   	cfg := newrelic.NewConfig("httprouter App", os.Getenv("NEW_RELIC_LICENSE_KEY"))
-//   	app, _ := newrelic.NewApplication(cfg)
+//	func main() {
+//		cfg := newrelic.NewConfig("httprouter App", os.Getenv("NEW_RELIC_LICENSE_KEY"))
+//		app, _ := newrelic.NewApplication(cfg)
 //
-//   	// Create the Router replacement:
-//   	router := nrhttprouter.New(app)
+//		// Create the Router replacement:
+//		router := nrhttprouter.New(app)
 //
-//   	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-//   		w.Write([]byte("welcome\n"))
-//   	})
-//   	router.GET("/hello/:name", (w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-//   		w.Write([]byte(fmt.Sprintf("hello %s\n", ps.ByName("name"))))
-//   	})
-//   	http.ListenAndServe(":8000", router)
-//   }
+//		router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+//			w.Write([]byte("welcome\n"))
+//		})
+//		router.GET("/hello/:name", (w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+//			w.Write([]byte(fmt.Sprintf("hello %s\n", ps.ByName("name"))))
+//		})
+//		http.ListenAndServe(":8000", router)
+//	}
 //
 // Runnable example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrhttprouter/example/main.go
 package nrhttprouter
@@ -84,6 +84,9 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 		}
 	}
 	r.Router.Handle(method, path, handle)
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(original))
+	}
 }
 
 // DELETE replaces httprouter.Router.DELETE.
