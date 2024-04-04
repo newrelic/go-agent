@@ -11,6 +11,10 @@
  * Updated unit tests to check `Transaction.Ignore`
  * Updated `nrzap` unit tests to add background logger sugared test case.
 
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.31.0
 ### Added
  * Integration packages to instrument AI model invocations (see below).
