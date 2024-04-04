@@ -1,3 +1,20 @@
+## 3.32.0
+### Added
+ * Updates to support for the New Relic security agent to report API endpoints.
+    * Adds new wrapper function for the `nrecho`, `nrgin`, and `nrgorilla` integrations.
+ * Handler to take New Relic transaction data from context automatically when using `nrslog` integration (thanks, @adomaskizogian!) 
+
+### Fixed
+ * Adds missing license file to the `nropenai` integration.
+ * Changes `*bedrockruntime.Client` parameters in `nrawsbedrock` integration to use a more general interface type, allowing the use of custom types which extend the bedrock client type.
+ * Fixes `pgx5` pool example
+ * Updated unit tests to check `Transaction.Ignore`
+ * Updated `nrzap` unit tests to add background logger sugared test case.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.31.0
 ### Added
  * Integration packages to instrument AI model invocations (see below).

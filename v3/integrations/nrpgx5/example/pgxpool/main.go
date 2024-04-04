@@ -7,19 +7,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/newrelic/go-agent/v3/integrations/nrpgx5"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func main() {
-	cfg, err := pgxpool.ParseConfig("postgres://postgres:postgres@localhost:5432")
+func NewPgxPool(ctx context.Context, dbURL string) (*pgxpool.Pool, error) {
+	cfg, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	cfg.ConnConfig.Tracer = nrpgx5.NewTracer()
-	db, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	cfg.BeforeConnect = func(_ context.Context, config *pgx.ConnConfig) error {
+		config.Tracer = nrpgx5.NewTracer()
+		return nil
+	}
+
+	return pgxpool.NewWithConfig(ctx, cfg)
+}
+
+func main() {
+	db, err := NewPgxPool(context.Background(), "postgres://postgres:postgres@localhost:5432")
 	if err != nil {
 		panic(err)
 	}

@@ -43,6 +43,37 @@ func TestBackgroundLogger(t *testing.T) {
 	})
 }
 
+func TestBackgroundLoggerSugared(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), zapcore.AddSync(os.Stdout), zap.InfoLevel)
+
+	backgroundCore, err := WrapBackgroundCore(core, app.Application)
+	if err != nil && err != ErrNilApp {
+		t.Fatal(err)
+	}
+
+	logger := zap.New(backgroundCore).Sugar()
+
+	err = errors.New("this is a test error")
+	msg := "this is a test error message"
+
+	// for background logging:
+	logger.Error(msg, zap.Error(err), zap.String("test-key", "test-val"))
+	logger.Sync()
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  zap.ErrorLevel.String(),
+			Message:   `this is a test error message{error 26 0  this is a test error} {test-key 15 0 test-val <nil>}`,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+	})
+}
+
 func TestBackgroundLoggerNilApp(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),

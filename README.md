@@ -102,6 +102,14 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
 
+#### AI
+
+| Project | Integration Package |  |
+| ------------- | ------------- | - |
+| [sashabaranov/go-openai](https://github.com/sashabaranov/go-openai) | [v3/integrations/nropenai](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nropenai) | Send AI Monitoring Events with OpenAI |
+| [aws/aws-sdk-go-v2/tree/main/service/bedrockruntime](https://github.com/aws/aws-sdk-go-v2/tree/main/service/bedrockruntime) | [v3/integrations/nrawsbedrock](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawsbedrock) | Send AI Monitoring Events with AWS Bedrock |
+
+
 #### Agent Logging
 
 | Project | Integration Package |  |
