@@ -5,10 +5,12 @@ package newrelic
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -487,6 +489,54 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 		w.floatField(key, v)
 	default:
 		w.stringField(key, fmt.Sprintf("%T", v))
+	}
+}
+
+// This is capable of consuming maps and structs, but this is expensive.
+// If possible, pass them already stringified.
+func writeLogAttributeJSON(w *jsonFieldsWriter, key string, val any) {
+	switch v := val.(type) {
+	case string:
+		w.stringField(key, v)
+	case bool:
+		if v {
+			w.rawField(key, `true`)
+		} else {
+			w.rawField(key, `false`)
+		}
+	case uint8:
+		w.intField(key, int64(v))
+	case uint16:
+		w.intField(key, int64(v))
+	case uint32:
+		w.intField(key, int64(v))
+	case uint64:
+		w.intField(key, int64(v))
+	case uint:
+		w.intField(key, int64(v))
+	case uintptr:
+		w.intField(key, int64(v))
+	case int8:
+		w.intField(key, int64(v))
+	case int16:
+		w.intField(key, int64(v))
+	case int32:
+		w.intField(key, int64(v))
+	case int64:
+		w.intField(key, v)
+	case int:
+		w.intField(key, int64(v))
+	case float32:
+		w.floatField(key, float64(v))
+	case float64:
+		w.floatField(key, v)
+	default:
+		if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map {
+			bytes, _ := json.Marshal(v)
+			w.rawField(key, jsonString(bytes))
+		} else {
+			w.stringField(key, fmt.Sprintf("%T", v))
+		}
 	}
 }
 

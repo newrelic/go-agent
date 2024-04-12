@@ -19,6 +19,7 @@ const (
 )
 
 type logEvent struct {
+	atributes map[string]any
 	priority  priority
 	timestamp int64
 	severity  string
@@ -28,10 +29,14 @@ type logEvent struct {
 }
 
 // LogData contains data fields that are needed to generate log events.
+// Note: if you are passing a struct or map as an attribute, try to pass it as a string. The collector can parse that on New Relic's side.
+// This is preferable because the json.Marshal method used to create the string log JSON is less efficient than the tools built into
+// logging products for creating stringified json for complex objects and data structures.
 type LogData struct {
-	Timestamp int64  // Optional: Unix Millisecond Timestamp; A timestamp will be generated if unset
-	Severity  string // Optional: Severity of log being consumed
-	Message   string // Optional: Message of log being consumed; Maximum size: 32768 Bytes.
+	Timestamp  int64          // Optional: Unix Millisecond Timestamp; A timestamp will be generated if unset
+	Severity   string         // Optional: Severity of log being consumed
+	Message    string         // Optional: Message of log being consumed; Maximum size: 32768 Bytes.
+	Attributes map[string]any // Optional: a key value pair with a string key, and any value. This can be used for categorizing logs in the UI.
 }
 
 // writeJSON prepares JSON in the format expected by the collector.
@@ -51,6 +56,14 @@ func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 	w.needsComma = false
 	buf.WriteByte(',')
 	w.intField(logcontext.LogTimestampFieldName, e.timestamp)
+	if e.atributes != nil && len(e.atributes) > 0 {
+		buf.WriteString(`,"attributes":{`)
+		w := jsonFieldsWriter{buf: buf}
+		for key, val := range e.atributes {
+			writeLogAttributeJSON(&w, key, val)
+		}
+		buf.WriteByte('}')
+	}
 	buf.WriteByte('}')
 }
 
@@ -88,6 +101,7 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 		message:   data.Message,
 		severity:  data.Severity,
 		timestamp: data.Timestamp,
+		atributes: data.Attributes,
 	}
 
 	return event, nil
