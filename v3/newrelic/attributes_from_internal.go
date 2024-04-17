@@ -494,6 +494,7 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 
 // This is capable of consuming maps and structs, but this is expensive.
 // If possible, pass them already stringified.
+// note that other than the additional support for complex structs, this is a 1:1 clone of writeAgentAttributeValues()
 func writeLogAttributeJSON(w *jsonFieldsWriter, key string, val any) {
 	switch v := val.(type) {
 	case string:
@@ -531,9 +532,13 @@ func writeLogAttributeJSON(w *jsonFieldsWriter, key string, val any) {
 	case float64:
 		w.floatField(key, v)
 	default:
+		// attempt to construct a JSON string
 		if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map {
 			bytes, _ := json.Marshal(v)
-			w.rawField(key, jsonString(bytes))
+			if len(bytes) > 254 {
+				bytes = bytes[:254]
+			}
+			w.stringField(key, string(bytes))
 		} else {
 			w.stringField(key, fmt.Sprintf("%T", v))
 		}
