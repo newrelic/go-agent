@@ -61,7 +61,7 @@ func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 		buf.WriteString(`,"attributes":{`)
 		w := jsonFieldsWriter{buf: buf}
 		for key, val := range e.atributes {
-			writeLogAttributeJSON(&w, key, val)
+			writeAttributeValueJSON(&w, key, val)
 		}
 		buf.WriteByte('}')
 	}
