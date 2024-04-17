@@ -533,7 +533,7 @@ func writeLogAttributeJSON(w *jsonFieldsWriter, key string, val any) {
 		w.floatField(key, v)
 	default:
 		// attempt to construct a JSON string
-		if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map {
+		if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map || reflect.ValueOf(v).Kind() == reflect.Slice || reflect.ValueOf(v).Kind() == reflect.Array {
 			bytes, _ := json.Marshal(v)
 			if len(bytes) > 254 {
 				bytes = bytes[:254]

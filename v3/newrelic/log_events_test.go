@@ -89,8 +89,11 @@ func TestBasicLogEventWithAttributes(t *testing.T) {
 	}
 
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(5))
-	events.Add(sampleLogEvent(0.5, infoLevel, "message1", map[string]any{"one": 1, "two": "hi"}))
-	events.Add(sampleLogEvent(0.5, infoLevel, "message2", map[string]any{"complex": st, "map": map[string]string{"hi": "hello"}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message1", map[string]any{"two": "hi"}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message2", map[string]any{"struct": st}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message3", map[string]any{"map": map[string]string{"hi": "hello"}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message4", map[string]any{"slice": []string{"hi", "hello", "test"}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message5", map[string]any{"array": [2]int{1, 2}}))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -98,16 +101,19 @@ func TestBasicLogEventWithAttributes(t *testing.T) {
 	}
 
 	expected := commonJSON +
-		`{"level":"INFO","message":"message1","timestamp":123456,"attributes":{"one":1,"two":"hi"}},` +
-		`{"level":"INFO","message":"message2","timestamp":123456,"attributes":{"complex":{"A":"a","B":1,"C":{"D":"hello"}},"map":{"hi":"hello"}}}]}]`
+		`{"level":"INFO","message":"message1","timestamp":123456,"attributes":{"two":"hi"}},` +
+		`{"level":"INFO","message":"message2","timestamp":123456,"attributes":{"struct":"{\"A\":\"a\",\"B\":1,\"C\":{\"D\":\"hello\"}}"}},` +
+		`{"level":"INFO","message":"message3","timestamp":123456,"attributes":{"map":"{\"hi\":\"hello\"}"}},` +
+		`{"level":"INFO","message":"message4","timestamp":123456,"attributes":{"slice":"[\"hi\",\"hello\",\"test\"]"}},` +
+		`{"level":"INFO","message":"message5","timestamp":123456,"attributes":{"array":"[1,2]"}}]}]`
 
 	if string(json) != expected {
-		t.Error(string(json), expected)
+		t.Error("actual not equal to expected:\n", string(json), "\n", expected)
 	}
-	if events.numSeen != 2 {
+	if events.numSeen != 5 {
 		t.Error(events.numSeen)
 	}
-	if events.NumSaved() != 2 {
+	if events.NumSaved() != 5 {
 		t.Error(events.NumSaved())
 	}
 }
