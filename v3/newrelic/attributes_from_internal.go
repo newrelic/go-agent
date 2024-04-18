@@ -21,6 +21,9 @@ const (
 	// listed as span attributes to simplify code. It is not listed in the
 	// public attributes.go file for this reason to prevent confusion.
 	spanAttributeQueryParameters = "query_parameters"
+
+	// The collector can only allow attributes to be a maximum of 256 bytes
+	maxAttributeLengthBytes = 256
 )
 
 var (
@@ -454,6 +457,9 @@ func addUserAttribute(a *attributes, key string, val interface{}, d destinationS
 func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	switch v := val.(type) {
 	case string:
+		if len(v) > maxAttributeLengthBytes {
+			v = v[:maxAttributeLengthBytes]
+		}
 		w.stringField(key, v)
 	case bool:
 		if v {
@@ -489,10 +495,11 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 		w.floatField(key, v)
 	default:
 		// attempt to construct a JSON string
-		if reflect.ValueOf(v).Kind() == reflect.Struct || reflect.ValueOf(v).Kind() == reflect.Map || reflect.ValueOf(v).Kind() == reflect.Slice || reflect.ValueOf(v).Kind() == reflect.Array {
+		kind := reflect.ValueOf(v).Kind()
+		if kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice || kind == reflect.Array {
 			bytes, _ := json.Marshal(v)
-			if len(bytes) > 254 {
-				bytes = bytes[:254]
+			if len(bytes) > maxAttributeLengthBytes {
+				bytes = bytes[:maxAttributeLengthBytes]
 			}
 			w.stringField(key, string(bytes))
 		} else {
