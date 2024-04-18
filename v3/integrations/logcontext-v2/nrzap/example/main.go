@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -29,7 +30,7 @@ func main() {
 	}
 
 	backgroundLogger := zap.New(backgroundCore)
-	backgroundLogger.Info("this is a background log message")
+	backgroundLogger.Info("this is a background log message with fields test", zap.Any("foo", 3.14))
 
 	txn := app.StartTransaction("nrzap example transaction")
 	txnCore, err := nrzap.WrapTransactionCore(core, txn)
@@ -38,7 +39,14 @@ func main() {
 	}
 
 	txnLogger := zap.New(txnCore)
-	txnLogger.Info("this is a transaction log message")
+	txnLogger.Info("this is a transaction log message",
+		zap.String("region", "nr-east"),
+		zap.Int("int", 123),
+		zap.Duration("duration", 1*time.Second),
+	)
+
+	err = errors.New("this is an error")
+	txnLogger.Error("this is an error log message", zap.Error(err))
 
 	txn.End()
 
