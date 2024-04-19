@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"time"
+	"context"
 
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrslog"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -24,8 +25,9 @@ func main() {
 	log.Info("I am a log message")
 
 	txn := app.StartTransaction("example transaction")
-	txnLogger := nrslog.WithTransaction(txn, log)
-	txnLogger.Info("I am a log inside a transaction")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	
+	txnLogger.InfoContext(ctx, "I am a log inside a transaction")
 
 	// pretend to do some work
 	time.Sleep(500 * time.Millisecond)
