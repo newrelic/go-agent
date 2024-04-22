@@ -250,9 +250,9 @@ func expectLogEvent(v internal.Validator, actual logEvent, want internal.WantLog
 		return
 	}
 
-	if actual.atributes != nil && want.Attributes != nil {
+	if actual.attributes != nil && want.Attributes != nil {
 		for k, val := range want.Attributes {
-			actualVal, actualOk := actual.atributes[k]
+			actualVal, actualOk := actual.attributes[k]
 			if !actualOk {
 				v.Error(fmt.Sprintf("expected log attribute for key %v is missing", k))
 				return
