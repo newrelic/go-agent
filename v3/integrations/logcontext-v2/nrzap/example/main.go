@@ -39,10 +39,16 @@ func main() {
 		panic(err)
 	}
 	txnLogger := zap.New(txnCore)
-	txnLogger.Info("this is a transaction log message",
-		zap.String("region", "region-test-2"),
-		zap.Int("int", 123),
-		zap.Duration("duration", 200*time.Millisecond),
+	txnLogger.Info("this is a transaction log message with custom fields",
+		zap.String("zapstring", "region-test-2"),
+		zap.Int("zapint", 123),
+		zap.Duration("zapduration", 200*time.Millisecond),
+		zap.Bool("zapbool", true),
+		zap.Object("zapobject", zapcore.ObjectMarshalerFunc(func(enc zapcore.ObjectEncoder) error {
+			enc.AddString("foo", "bar")
+			return nil
+		})),
+
 		zap.Any("zapmap", map[string]any{"pi": 3.14, "duration": 2 * time.Second}),
 	)
 

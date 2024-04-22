@@ -257,21 +257,16 @@ func expectLogEvent(v internal.Validator, actual logEvent, want internal.WantLog
 				v.Error(fmt.Sprintf("expected log attribute for key %v is missing", k))
 				return
 			}
-			// TO:DO -- Correct handling of maps. Currently, we're just checking for the presences of a specific key
-			if k == "anyValue" {
-				// Special handling for map comparison
-				expectedMap, ok := val.(map[string]interface{})
-				if !ok {
-					v.Error(fmt.Sprintf("type assertion to map[string]interface{} failed for key %v", k))
-					return
-				}
-				actualMap, ok := actualVal.(map[string]interface{})
-				if !ok {
-					v.Error(fmt.Sprintf("type assertion to map[string]interface{} failed for actual value of key %v", k))
-					return
-				}
-				if !expectLogEventAttributesMaps(expectedMap, actualMap) {
-					v.Error(fmt.Sprintf("unexpected log attribute for key %v: got %v, want %v", k, actualMap, expectedMap))
+
+			// Check if both values are maps, and if so, compare them recursively
+			if expectedMap, ok := val.(map[string]interface{}); ok {
+				if actualMap, ok := actualVal.(map[string]interface{}); ok {
+					if !expectLogEventAttributesMaps(expectedMap, actualMap) {
+						v.Error(fmt.Sprintf("unexpected log attribute for key %v: got %v, want %v", k, actualMap, expectedMap))
+						return
+					}
+				} else {
+					v.Error(fmt.Sprintf("actual value for key %v is not a map", k))
 					return
 				}
 			}
@@ -280,7 +275,7 @@ func expectLogEvent(v internal.Validator, actual logEvent, want internal.WantLog
 
 }
 
-// Helper function that compares two maps for equality. This is used to compare the attribute fields of log events.
+// Helper function that compares two maps for equality. This is used to compare the attribute fields of log events expected vs received
 func expectLogEventAttributesMaps(a, b map[string]interface{}) bool {
 	if len(a) != len(b) {
 		return false
@@ -311,6 +306,7 @@ func expectLogEventAttributesMaps(a, b map[string]interface{}) bool {
 				if bv, ok := bv.(int64); !ok || v != bv {
 					return false
 				}
+			// if the type of the field is a map, recursively compare the maps
 			case map[string]interface{}:
 				if bv, ok := bv.(map[string]interface{}); !ok || !expectLogEventAttributesMaps(v, bv) {
 					return false
