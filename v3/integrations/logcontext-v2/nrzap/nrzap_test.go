@@ -1,10 +1,12 @@
 package nrzap
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
@@ -131,6 +133,9 @@ func TestTransactionLogger(t *testing.T) {
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
+			Attributes: map[string]interface{}{
+				"test-key": "test-val",
+			},
 			Severity:  zap.ErrorLevel.String(),
 			Message:   msg,
 			Timestamp: internal.MatchAnyUnixMilli,
@@ -140,6 +145,56 @@ func TestTransactionLogger(t *testing.T) {
 	})
 }
 
+func TestTransactionLoggerWithFields(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	txn := app.StartTransaction("test transaction")
+	txnMetadata := txn.GetTraceMetadata()
+
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), os.Stdout, zap.InfoLevel)
+	wrappedCore, err := WrapTransactionCore(core, txn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	logger := zap.New(wrappedCore)
+
+	msg := "this is a test info message"
+
+	// for background logging:
+	logger.Info(msg,
+		zap.String("region", "region-test-2"),
+		zap.Any("anyValue", map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second}),
+		zap.Duration("duration", 1*time.Second),
+		zap.Int("int", 123),
+		zap.Bool("bool", true),
+	)
+
+	logger.Sync()
+
+	// ensure txn gets written to an event and logs get released
+	txn.End()
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Attributes: map[string]interface{}{
+				"region":   "region-test-2",
+				"anyValue": map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second},
+				"duration": 1 * time.Second,
+				"int":      123,
+				"bool":     true,
+			},
+			Severity:  zap.InfoLevel.String(),
+			Message:   msg,
+			Timestamp: internal.MatchAnyUnixMilli,
+			TraceID:   txnMetadata.TraceID,
+			SpanID:    txnMetadata.SpanID,
+		},
+	})
+}
 func TestTransactionLoggerNilTxn(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
@@ -201,6 +256,39 @@ func BenchmarkZapBaseline(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		logger.Info("this is a test message")
+	}
+}
+
+func BenchmarkFieldConversion(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		convertField([]zap.Field{zap.String("test-key", "test-val")})
+	}
+}
+
+func BenchmarkFieldUnmarshalling(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+	fields := []zap.Field{zap.String("test-key", "test-val")}
+	for i := 0; i < b.N; i++ {
+		attributes := make(map[string]interface{})
+		for _, field := range fields {
+			jsonBytes, _ := json.Marshal(field.Interface)
+			attributes[field.Key] = jsonBytes
+		}
+	}
+}
+
+func BenchmarkZapWithAttribute(b *testing.B) {
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), zapcore.AddSync(io.Discard), zap.InfoLevel)
+	logger := zap.New(core)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		logger.Info("this is a test message", zap.Any("test-key", "test-val"))
 	}
 }
 

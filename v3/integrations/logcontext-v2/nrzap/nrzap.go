@@ -2,8 +2,6 @@ package nrzap
 
 import (
 	"errors"
-	"fmt"
-	"math"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -27,35 +25,19 @@ type newrelicApplicationState struct {
 	txn *newrelic.Transaction
 }
 
+// Helper function that converts zap fields to a map of string interface
 func convertField(fields []zap.Field) map[string]interface{} {
 	attributes := make(map[string]interface{})
 	for _, field := range fields {
-		switch field.Type {
-
-		case zapcore.BoolType:
-			attributes[field.Key] = field.Integer == 1
-		case zapcore.Float32Type:
-			attributes[field.Key] = math.Float32frombits(uint32(field.Integer))
-		case zapcore.Float64Type:
-			attributes[field.Key] = math.Float64frombits(uint64(field.Integer))
-		case zapcore.Int64Type, zapcore.Int32Type, zapcore.Int16Type, zapcore.Int8Type:
-			attributes[field.Key] = field.Integer
-		case zapcore.StringType:
-			attributes[field.Key] = field.String
-		case zapcore.Uint64Type, zapcore.Uint32Type, zapcore.Uint16Type, zapcore.Uint8Type:
-			attributes[field.Key] = uint64(field.Integer)
-		case zapcore.DurationType:
-			attributes[field.Key] = time.Duration(field.Integer)
-		case zapcore.TimeType:
-			attributes[field.Key] = time.Unix(0, field.Integer)
-		case zapcore.TimeFullType:
-			attributes[field.Key] = time.Unix(0, field.Integer).UTC()
-		case zapcore.ErrorType:
-			attributes[field.Key] = field.Interface.(error).Error()
-		case zapcore.BinaryType:
-			attributes[field.Key] = field.Interface
-		default:
-			attributes[field.Key] = fmt.Sprintf("%v", field.Interface)
+		enc := zapcore.NewMapObjectEncoder()
+		field.AddTo(enc)
+		for key, value := range enc.Fields {
+			// Format time.Duration values as strings
+			if durationVal, ok := value.(time.Duration); ok {
+				attributes[key] = durationVal.String()
+			} else {
+				attributes[key] = value
+			}
 		}
 	}
 	return attributes

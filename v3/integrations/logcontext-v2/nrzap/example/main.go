@@ -15,6 +15,7 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("nrzerolog example"),
 		newrelic.ConfigInfoLogger(os.Stdout),
+		newrelic.ConfigDebugLogger(os.Stdout),
 		newrelic.ConfigFromEnvironment(),
 	)
 	if err != nil {
@@ -37,15 +38,15 @@ func main() {
 	if err != nil && err != nrzap.ErrNilTxn {
 		panic(err)
 	}
-
 	txnLogger := zap.New(txnCore)
 	txnLogger.Info("this is a transaction log message",
-		zap.String("region", "nr-east"),
+		zap.String("region", "region-test-2"),
 		zap.Int("int", 123),
-		zap.Duration("duration", 1*time.Second),
+		zap.Duration("duration", 200*time.Millisecond),
+		zap.Any("zapmap", map[string]any{"pi": 3.14, "duration": 2 * time.Second}),
 	)
 
-	err = errors.New("this is an error")
+	err = errors.New("OW! an error occurred")
 	txnLogger.Error("this is an error log message", zap.Error(err))
 
 	txn.End()
