@@ -38,11 +38,11 @@ func loggingConfigEnabled(limit int) loggingConfig {
 
 func sampleLogEvent(priority priority, severity, message string, attributes map[string]any) *logEvent {
 	return &logEvent{
-		priority:  priority,
-		severity:  severity,
-		message:   message,
-		atributes: attributes,
-		timestamp: 123456,
+		priority:   priority,
+		severity:   severity,
+		message:    message,
+		attributes: attributes,
+		timestamp:  123456,
 	}
 }
 

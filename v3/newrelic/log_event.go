@@ -19,13 +19,13 @@ const (
 )
 
 type logEvent struct {
-	atributes map[string]any
-	priority  priority
-	timestamp int64
-	severity  string
-	message   string
-	spanID    string
-	traceID   string
+	attributes map[string]any
+	priority   priority
+	timestamp  int64
+	severity   string
+	message    string
+	spanID     string
+	traceID    string
 }
 
 // LogData contains data fields that are needed to generate log events.
@@ -57,10 +57,10 @@ func (e *logEvent) WriteJSON(buf *bytes.Buffer) {
 	w.needsComma = false
 	buf.WriteByte(',')
 	w.intField(logcontext.LogTimestampFieldName, e.timestamp)
-	if e.atributes != nil && len(e.atributes) > 0 {
+	if e.attributes != nil && len(e.attributes) > 0 {
 		buf.WriteString(`,"attributes":{`)
 		w := jsonFieldsWriter{buf: buf}
-		for key, val := range e.atributes {
+		for key, val := range e.attributes {
 			writeAttributeValueJSON(&w, key, val)
 		}
 		buf.WriteByte('}')
@@ -98,11 +98,11 @@ func (data *LogData) toLogEvent() (logEvent, error) {
 	data.Severity = strings.TrimSpace(data.Severity)
 
 	event := logEvent{
-		priority:  newPriority(),
-		message:   data.Message,
-		severity:  data.Severity,
-		timestamp: data.Timestamp,
-		atributes: data.Attributes,
+		priority:   newPriority(),
+		message:    data.Message,
+		severity:   data.Severity,
+		timestamp:  data.Timestamp,
+		attributes: data.Attributes,
 	}
 
 	return event, nil
