@@ -17,6 +17,8 @@ func main() {
 		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigDebugLogger(os.Stdout),
 		newrelic.ConfigFromEnvironment(),
+		// This is enabled by default. if disabled, the attributes will be marshalled at harvest time.
+		newrelic.ConfigZapAttributesEncoder(false),
 	)
 	if err != nil {
 		panic(err)
