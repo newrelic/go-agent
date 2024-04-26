@@ -28,7 +28,9 @@ func gatherAzure(util *Data, client *http.Client) error {
 	if err != nil {
 		// Only return the error here if it is unexpected to prevent
 		// warning customers who aren't running Azure about a timeout.
-		if _, ok := err.(unexpectedAzureErr); ok {
+		// If any of the other vendors have been detected, and we have an unauthorized error, we should not return the error
+		// If no vendors have been detected, we should return the error.
+		if _, ok := err.(unexpectedAzureErr); ok && !util.Vendors.AnySet() {
 			return err
 		}
 		return nil
@@ -59,8 +61,12 @@ func getAzure(client *http.Client) (*azure, error) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != 200 && response.StatusCode != 401 {
 		return nil, unexpectedAzureErr{e: fmt.Errorf("response code %d", response.StatusCode)}
+	}
+
+	if response.StatusCode == 401 {
+		return nil, unexpectedAzureErr{e: err}
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
