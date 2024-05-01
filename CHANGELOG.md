@@ -1,3 +1,21 @@
+## 3.33.0
+### Added
+- Support for Zap Field Attributes
+- Updated dependency on csec-go-agent in nrsecurityagent
+### Fixed
+- Fixed an issue where running containers on AWS would falsely flag Azure Utilization
+- Fixed a typo with nrecho-v3
+- Changed nrslog example to use a context driven handler
+
+These changes increment the affected integration package version numbers to:
+- nrsecurityagent v1.3.1
+- nrecho-v3 v1.1.1
+- logcontext-v2/nrslog v1.2.0
+- logcontext-v2/nrzap v1.2.0
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
 ## 3.32.0
 ### Added
  * Updates to support for the New Relic security agent to report API endpoints.
