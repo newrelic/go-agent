@@ -35,6 +35,22 @@ func handlerPointer(handler echo.HandlerFunc) uintptr {
 	return reflect.ValueOf(handler).Pointer()
 }
 
+func handlerName(router interface{}) string {
+	val := reflect.ValueOf(router)
+	if val.Kind() == reflect.Ptr { // for echo version v3.2.2+
+		val = val.Elem()
+	} else {
+		val = reflect.ValueOf(&router).Elem().Elem()
+	}
+	if name := val.FieldByName("Name"); name.IsValid() { // for echo version v3.2.2+
+		return name.String()
+	} else if handler := val.FieldByName("Handler"); handler.IsValid() {
+		return handler.String()
+	} else {
+		return ""
+	}
+}
+
 func transactionName(c echo.Context) string {
 	ptr := handlerPointer(c.Handler())
 	if ptr == handlerPointer(echo.NotFoundHandler) {
@@ -108,7 +124,7 @@ func WrapRouter(engine *echo.Echo) {
 	if engine != nil && newrelic.IsSecurityAgentPresent() {
 		router := engine.Routes()
 		for _, r := range router {
-			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, r.Handler)
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, handlerName(r))
 		}
 	}
 }

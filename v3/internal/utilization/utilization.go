@@ -3,7 +3,6 @@
 
 // Package utilization implements the Utilization spec, available at
 // https://source.datanerd.us/agents/agent-specs/blob/master/Utilization.md
-//
 package utilization
 
 import (
@@ -84,6 +83,9 @@ type vendors struct {
 	Kubernetes *kubernetes `json:"kubernetes,omitempty"`
 }
 
+func (v *vendors) AnySet() bool {
+	return v.AWS != nil || v.Azure != nil || v.GCP != nil || v.PCF != nil || v.Docker != nil || v.Kubernetes != nil
+}
 func (v *vendors) isEmpty() bool {
 	return nil == v || *v == vendors{}
 }

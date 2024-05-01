@@ -2,6 +2,8 @@ package nrzap
 
 import (
 	"errors"
+	"math"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -24,12 +26,79 @@ type newrelicApplicationState struct {
 	txn *newrelic.Transaction
 }
 
+// Helper function that converts zap fields to a map of string interface
+func convertFieldWithMapEncoder(fields []zap.Field) map[string]interface{} {
+	attributes := make(map[string]interface{})
+	for _, field := range fields {
+		enc := zapcore.NewMapObjectEncoder()
+		field.AddTo(enc)
+		for key, value := range enc.Fields {
+			// Format time.Duration values as strings
+			if durationVal, ok := value.(time.Duration); ok {
+				attributes[key] = durationVal.String()
+			} else {
+				attributes[key] = value
+			}
+		}
+	}
+	return attributes
+}
+
+func convertFieldsAtHarvestTime(fields []zap.Field) map[string]interface{} {
+	attributes := make(map[string]interface{})
+	for _, field := range fields {
+		if field.Interface != nil {
+
+			// Handles ErrorType fields
+			if field.Type == zapcore.ErrorType {
+				attributes[field.Key] = field.Interface.(error).Error()
+			} else {
+				// Handles all interface types
+				attributes[field.Key] = field.Interface
+			}
+
+		} else if field.String != "" { // Check if the field is a string and doesn't contain an interface
+			attributes[field.Key] = field.String
+
+		} else {
+			// Float Types
+			if field.Type == zapcore.Float32Type {
+				attributes[field.Key] = math.Float32frombits(uint32(field.Integer))
+				continue
+			} else if field.Type == zapcore.Float64Type {
+				attributes[field.Key] = math.Float64frombits(uint64(field.Integer))
+				continue
+			}
+			// Bool Type
+			if field.Type == zapcore.BoolType {
+				field.Interface = field.Integer == 1
+				attributes[field.Key] = field.Interface
+			} else {
+				// Integer Types
+				attributes[field.Key] = field.Integer
+
+			}
+		}
+	}
+	return attributes
+}
+
 // internal handler function to manage writing a log to the new relic application
 func (nr *newrelicApplicationState) recordLog(entry zapcore.Entry, fields []zap.Field) {
+	attributes := map[string]interface{}{}
+	cfg, _ := nr.app.Config()
+
+	// Check if the attributes should be frontloaded or marshalled at harvest time
+	if cfg.ApplicationLogging.ZapLogger.AttributesFrontloaded {
+		attributes = convertFieldWithMapEncoder(fields)
+	} else {
+		attributes = convertFieldsAtHarvestTime(fields)
+	}
 	data := newrelic.LogData{
-		Timestamp: entry.Time.UnixMilli(),
-		Severity:  entry.Level.String(),
-		Message:   entry.Message,
+		Timestamp:  entry.Time.UnixMilli(),
+		Severity:   entry.Level.String(),
+		Message:    entry.Message,
+		Attributes: attributes,
 	}
 
 	if nr.txn != nil {

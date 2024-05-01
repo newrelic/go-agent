@@ -302,6 +302,13 @@ func ConfigInfoLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewLogger(w))
 }
 
+// ConfigZapAttributesEncoder controls whether the agent will frontload the zap logger field attributes with the zapcore.NewMapObjectEncoder or marshal at harvest time
+func ConfigZapAttributesEncoder(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.ZapLogger.AttributesFrontloaded = enabled
+	}
+}
+
 // ConfigModuleDependencyMetricsEnabled controls whether the agent collects and reports
 // the list of modules compiled into the instrumented application.
 func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
