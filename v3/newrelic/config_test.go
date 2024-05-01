@@ -151,6 +151,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				},
 				"Metrics": {
 					"Enabled": true
+				},
+				"ZapLogger": {
+				  "AttributesFrontloaded": true
 				}
 			},
 			"Attributes":{"Enabled":true,"Exclude":["2"],"Include":["1"]},
@@ -356,6 +359,9 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				},
 				"Metrics": {
 					"Enabled": true
+				},
+				"ZapLogger": {
+				  "AttributesFrontloaded": true
 				}
 			},
 			"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
