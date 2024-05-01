@@ -582,6 +582,15 @@ type ApplicationLogging struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
+	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
+	// during log collection, slowing down the execution of the line of code that will write the log. If your
+	// application collects logs at a high frequency or volume, or it can not afford the slowdown of marshaling objects
+	// before sending them to new relic, we can marshal them asynchronously in the backend during harvests by setting
+	// this to false using ConfigZapAttributesEncoder(false).
+	ZapLogger struct {
+		// Toggles whether zap logger field attributes are frontloaded with the zapcore.NewMapObjectEncoder or marshalled at harvest time
+		AttributesFrontloaded bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -654,7 +663,7 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
-
+	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false

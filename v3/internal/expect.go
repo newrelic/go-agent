@@ -29,11 +29,12 @@ type WantError struct {
 
 // WantLog is a traced log event expectation
 type WantLog struct {
-	Severity  string
-	Message   string
-	SpanID    string
-	TraceID   string
-	Timestamp int64
+	Attributes map[string]interface{}
+	Severity   string
+	Message    string
+	SpanID     string
+	TraceID    string
+	Timestamp  int64
 }
 
 func uniquePointer() *struct{} {
