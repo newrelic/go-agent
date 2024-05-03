@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"os"
 	"strings"
 	"testing"
 
@@ -225,6 +226,45 @@ func TestWithAttributes(t *testing.T) {
 
 }
 
+func TestWithAttributesFromContext(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(false),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	log := slog.New(TextHandler(app.Application, os.Stdout, &slog.HandlerOptions{}))
+
+	log.Info("I am a log message")
+
+	txn := app.StartTransaction("example transaction")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	log.InfoContext(ctx, "I am a log inside a transaction with custom attributes!",
+		slog.String("foo", "bar"),
+		slog.Int("answer", 42),
+		slog.Any("some_map", map[string]interface{}{"a": 1.0, "b": 2}),
+	)
+
+	txn.End()
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   "I am a log message",
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   "I am a log inside a transaction with custom attributes!",
+			Timestamp: internal.MatchAnyUnixMilli,
+			Attributes: map[string]interface{}{
+				"foo":      "bar",
+				"answer":   42,
+				"some_map": map[string]interface{}{"a": 1.0, "b": 2},
+			},
+		},
+	})
+
+}
 func TestWithGroup(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(false),

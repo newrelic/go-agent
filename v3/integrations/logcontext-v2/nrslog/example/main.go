@@ -12,8 +12,10 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigFromEnvironment(),
-		newrelic.ConfigAppLogEnabled(true),
+		newrelic.ConfigAppName("Slog Logs In Context Example"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	if err != nil {
 		panic(err)
@@ -27,7 +29,11 @@ func main() {
 	txn := app.StartTransaction("example transaction")
 	ctx := newrelic.NewContext(context.Background(), txn)
 
-	log.InfoContext(ctx, "I am a log inside a transaction")
+	log.InfoContext(ctx, "I am a log inside a transaction with custom attributes!",
+		slog.String("foo", "bar"),
+		slog.Int("answer", 42),
+		slog.Any("some_map", map[string]interface{}{"a": 1.0, "b": 2}),
+	)
 
 	// pretend to do some work
 	time.Sleep(500 * time.Millisecond)
