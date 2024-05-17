@@ -102,7 +102,7 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			rw := c.Response().Writer
 			txn := config.App.StartTransaction(transactionName(c))
 			defer txn.End()
-
+			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, c.Path())
 			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)

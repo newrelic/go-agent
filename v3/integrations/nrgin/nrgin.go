@@ -171,6 +171,7 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name, newrelic.WithFunctionLocation(c.Handler()))
+			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, c.FullPath())
 			txn.SetWebRequestHTTP(c.Request)
 			defer txn.End()
 

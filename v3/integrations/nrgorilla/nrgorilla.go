@@ -64,6 +64,18 @@ func routeName(r *http.Request) string {
 	return r.Method + " " + n
 }
 
+func handlerName(r *http.Request) string {
+	route := mux.CurrentRoute(r)
+	if nil == route {
+		return r.RequestURI
+	}
+	if n, _ := route.GetPathTemplate(); n != "" {
+		return n
+	} else {
+		return r.RequestURI
+	}
+}
+
 // InstrumentRoutes instruments requests through the provided mux.Router.  Use
 // this after the routes have been added to the router.
 //
@@ -104,6 +116,7 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 			name := routeName(r)
 			txn := app.StartTransaction(name)
 			defer txn.End()
+			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, handlerName(r))
 			txn.SetWebRequestHTTP(r)
 			w = txn.SetWebResponse(w)
 			r = newrelic.RequestWithTransactionContext(r, txn)

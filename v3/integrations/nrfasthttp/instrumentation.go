@@ -68,6 +68,7 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 		fasthttpadaptor.ConvertRequest(ctx, r, true)
 		resp := fasthttpWrapperResponse{ctx: ctx}
 
+		txn.SetCsecAttributes(newrelic.AttributeCsecRouter, pattern)
 		txn.SetWebResponse(resp)
 		txn.SetWebRequestHTTP(r)
 

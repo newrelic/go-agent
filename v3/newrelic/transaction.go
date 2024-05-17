@@ -265,7 +265,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 		return
 	}
 	if IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND", r)
+		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes())
 	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
@@ -541,6 +541,21 @@ func (txn *Transaction) IsSampled() bool {
 	return txn.thread.IsSampled()
 }
 
+func (txn *Transaction) GetCsecAttributes() any {
+	if txn == nil || txn.thread == nil {
+		return nil
+	}
+	return txn.thread.getCsecAttributes()
+}
+
+func (txn *Transaction) SetCsecAttributes(key, value string) {
+	if txn == nil || txn.thread == nil {
+		return
+	}
+	txn.thread.setCsecAttributes(key, value)
+
+}
+
 const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.
@@ -604,6 +619,7 @@ type WebRequest struct {
 	ServerName    string
 	Type          string
 	RemoteAddress string
+	Router        string
 }
 
 func (webrequest WebRequest) GetHeader() http.Header {
