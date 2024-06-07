@@ -160,6 +160,10 @@ func TestTransactionLoggerWithFields(t *testing.T) {
 		t.Error(err)
 	}
 
+	wrappedCore = wrappedCore.With([]zapcore.Field{
+		zap.String("foo", "bar"),
+	})
+
 	logger := zap.New(wrappedCore)
 
 	msg := "this is a test info message"
@@ -186,6 +190,7 @@ func TestTransactionLoggerWithFields(t *testing.T) {
 				"duration": 1 * time.Second,
 				"int":      123,
 				"bool":     true,
+				"foo":      "bar",
 			},
 			Severity:  zap.InfoLevel.String(),
 			Message:   msg,
