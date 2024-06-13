@@ -74,7 +74,7 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 	if nil != r.application {
 		handle = func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 			txn := r.application.StartTransaction(txnName(method, path))
-			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, path)
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, path)
 			txn.SetWebRequestHTTP(req)
 			w = txn.SetWebResponse(w)
 			defer txn.End()

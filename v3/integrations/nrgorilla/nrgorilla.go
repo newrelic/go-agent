@@ -116,7 +116,7 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 			name := routeName(r)
 			txn := app.StartTransaction(name)
 			defer txn.End()
-			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, handlerName(r))
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, handlerName(r))
 			txn.SetWebRequestHTTP(r)
 			w = txn.SetWebResponse(w)
 			r = newrelic.RequestWithTransactionContext(r, txn)
