@@ -51,15 +51,15 @@ func handlerName(router interface{}) string {
 	}
 }
 
-func transactionName(c echo.Context) string {
+func transactionName(c echo.Context) (string, string) {
 	ptr := handlerPointer(c.Handler())
 	if ptr == handlerPointer(echo.NotFoundHandler) {
-		return "NotFoundHandler"
+		return "NotFoundHandler", ""
 	}
 	if ptr == handlerPointer(echo.MethodNotAllowedHandler) {
-		return "MethodNotAllowedHandler"
+		return "MethodNotAllowedHandler", ""
 	}
-	return c.Request().Method + " " + c.Path()
+	return c.Request().Method + " " + c.Path(), c.Path()
 }
 
 // Middleware creates Echo middleware that instruments requests.
@@ -77,9 +77,10 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
 			rw := c.Response().Writer
-			txn := app.StartTransaction(transactionName(c))
+			tName, route := transactionName(c)
+			txn := app.StartTransaction(tName)
 			defer txn.End()
-			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, c.Path())
+			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, route)
 			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)

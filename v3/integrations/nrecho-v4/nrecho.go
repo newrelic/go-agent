@@ -35,15 +35,15 @@ func handlerPointer(handler echo.HandlerFunc) uintptr {
 	return reflect.ValueOf(handler).Pointer()
 }
 
-func transactionName(c echo.Context) string {
+func transactionName(c echo.Context) (string, string) {
 	ptr := handlerPointer(c.Handler())
 	if ptr == handlerPointer(echo.NotFoundHandler) {
-		return "NotFoundHandler"
+		return "NotFoundHandler", ""
 	}
 	if ptr == handlerPointer(echo.MethodNotAllowedHandler) {
-		return "MethodNotAllowedHandler"
+		return "MethodNotAllowedHandler", ""
 	}
-	return c.Request().Method + " " + c.Path()
+	return c.Request().Method + " " + c.Path(), c.Path()
 }
 
 // Skipper defines a function to skip middleware. Returning true skips processing
@@ -100,9 +100,10 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			}
 
 			rw := c.Response().Writer
-			txn := config.App.StartTransaction(transactionName(c))
+			tname, path := transactionName(c)
+			txn := config.App.StartTransaction(tname)
 			defer txn.End()
-			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, c.Path())
+			txn.SetCsecAttributes(newrelic.AttributeCsecRouter, path)
 			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)
