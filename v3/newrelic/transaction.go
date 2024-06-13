@@ -37,6 +37,10 @@ func (txn *Transaction) End() {
 		// recover must be called in the function directly being deferred,
 		// not any nested call!
 		r = recover()
+
+		if nil != r && IsSecurityAgentPresent() {
+			secureAgent.SendEvent("RECORD_PANICS", r)
+		}
 	}
 	if txn.thread.IsWeb && IsSecurityAgentPresent() {
 		secureAgent.SendEvent("INBOUND_END", "")
