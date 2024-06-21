@@ -75,6 +75,7 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 		handler(ctx)
 		if newrelic.IsSecurityAgentPresent() {
 			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_WRITE", resp.Body(), resp.Header())
+			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_RESPONSE_CODE", ctx.Response.StatusCode())
 		}
 	}
 }
