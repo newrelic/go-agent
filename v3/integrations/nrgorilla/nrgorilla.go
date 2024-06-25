@@ -129,14 +129,13 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 // which is used to detect application URL mapping(api-endpoints) for provable security.
 // In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
 // but it may be enhanced to provide additional functionality in future releases.
-//  r := mux.NewRouter()
-//  ....
-//  ....
-//  ....
+//
+//	 r := mux.NewRouter()
+//	 ....
+//	 ....
+//	 ....
 //
 //	nrgorilla.WrapRouter(router)
-//
-
 func WrapRouter(router *mux.Router) {
 	if router != nil && newrelic.IsSecurityAgentPresent() {
 		router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {

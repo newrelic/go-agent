@@ -380,14 +380,13 @@ func StreamServerInterceptor(app *newrelic.Application, options ...HandlerOption
 // which is used to detect application URL mapping(api-endpoints) for provable security.
 // In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
 // but it may be enhanced to provide additional functionality in future releases.
-//  grpcServer := grpc.NewServer(...)
-//  ....
-//  ....
-//  ....
+//
+//	 grpcServer := grpc.NewServer(...)
+//	 ....
+//	 ....
+//	 ....
 //
 //	nrgrpc.WrapRouter(grpcServer)
-//
-
 func WrapRouter(server *grpc.Server) {
 	if server != nil && newrelic.IsSecurityAgentPresent() {
 		for n, info := range server.GetServiceInfo() {
