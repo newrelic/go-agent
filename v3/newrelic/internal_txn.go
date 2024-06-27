@@ -43,7 +43,8 @@ type txn struct {
 
 	// csecData is used to propagate HTTP request context in async apps,
 	// when NewGoroutine is called.
-	csecData any
+	csecData       any
+	csecAttributes map[string]any
 }
 
 type thread struct {
@@ -1384,4 +1385,19 @@ func (txn *txn) setCsecData() {
 	if txn.csecData == nil && IsSecurityAgentPresent() {
 		txn.csecData = secureAgent.SendEvent("NEW_GOROUTINE", "")
 	}
+}
+
+func (txn *txn) getCsecAttributes() any {
+	txn.Lock()
+	defer txn.Unlock()
+	return txn.csecAttributes
+}
+
+func (txn *txn) setCsecAttributes(key, value string) {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.csecAttributes == nil {
+		txn.csecAttributes = map[string]any{}
+	}
+	txn.csecAttributes[key] = value
 }
