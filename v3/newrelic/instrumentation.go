@@ -72,7 +72,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 
 		txn := app.StartTransaction(r.Method+" "+pattern, txnOptionList...)
 		defer txn.End()
-
+		txn.SetCsecAttributes(AttributeCsecRoute, pattern)
 		w = txn.SetWebResponse(w)
 		txn.SetWebRequestHTTP(r)
 
