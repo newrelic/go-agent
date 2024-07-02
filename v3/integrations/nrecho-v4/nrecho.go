@@ -103,7 +103,9 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			tname, path := transactionName(c)
 			txn := config.App.StartTransaction(tname)
 			defer txn.End()
-			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, path)
+			if newrelic.IsSecurityAgentPresent() {
+				txn.SetCsecAttributes(newrelic.AttributeCsecRoute, path)
+			}
 			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)
