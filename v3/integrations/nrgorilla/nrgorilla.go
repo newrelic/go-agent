@@ -64,6 +64,18 @@ func routeName(r *http.Request) string {
 	return r.Method + " " + n
 }
 
+func handlerName(r *http.Request) string {
+	route := mux.CurrentRoute(r)
+	if nil == route {
+		return r.RequestURI
+	}
+	if n, _ := route.GetPathTemplate(); n != "" {
+		return n
+	} else {
+		return r.RequestURI
+	}
+}
+
 // InstrumentRoutes instruments requests through the provided mux.Router.  Use
 // this after the routes have been added to the router.
 //
@@ -104,6 +116,9 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 			name := routeName(r)
 			txn := app.StartTransaction(name)
 			defer txn.End()
+			if newrelic.IsSecurityAgentPresent() {
+				txn.SetCsecAttributes(newrelic.AttributeCsecRoute, handlerName(r))
+			}
 			txn.SetWebRequestHTTP(r)
 			w = txn.SetWebResponse(w)
 			r = newrelic.RequestWithTransactionContext(r, txn)
@@ -116,14 +131,13 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 // which is used to detect application URL mapping(api-endpoints) for provable security.
 // In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
 // but it may be enhanced to provide additional functionality in future releases.
-//  r := mux.NewRouter()
-//  ....
-//  ....
-//  ....
+//
+//	 r := mux.NewRouter()
+//	 ....
+//	 ....
+//	 ....
 //
 //	nrgorilla.WrapRouter(router)
-//
-
 func WrapRouter(router *mux.Router) {
 	if router != nil && newrelic.IsSecurityAgentPresent() {
 		router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {

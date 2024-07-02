@@ -68,12 +68,16 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 		fasthttpadaptor.ConvertRequest(ctx, r, true)
 		resp := fasthttpWrapperResponse{ctx: ctx}
 
+		if newrelic.IsSecurityAgentPresent() {
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, pattern)
+		}
 		txn.SetWebResponse(resp)
 		txn.SetWebRequestHTTP(r)
 
 		handler(ctx)
 		if newrelic.IsSecurityAgentPresent() {
 			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_WRITE", resp.Body(), resp.Header())
+			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_RESPONSE_CODE", ctx.Response.StatusCode())
 		}
 	}
 }

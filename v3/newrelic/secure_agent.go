@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+const AttributeCsecRoute = "ROUTE"
+
 // secureAgent is a global interface point for the nrsecureagent's hooks into the go agent.
 // The default value for this is a noOpSecurityAgent value, which has null definitions for
 // the methods. The Go compiler is expected to optimize away all the securityAgent method

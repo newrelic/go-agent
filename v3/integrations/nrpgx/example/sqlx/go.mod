@@ -4,7 +4,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrpgx/example/sqlx
 go 1.20
 require (
 	github.com/jmoiron/sqlx v1.2.0
-	github.com/newrelic/go-agent/v3 v3.32.0
+	github.com/newrelic/go-agent/v3 v3.33.1
 	github.com/newrelic/go-agent/v3/integrations/nrpgx v0.0.0
 )
 replace github.com/newrelic/go-agent/v3/integrations/nrpgx => ../../

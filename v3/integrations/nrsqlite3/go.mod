@@ -7,7 +7,7 @@ go 1.20
 require (
 	github.com/mattn/go-sqlite3 v1.0.0
 	// v3.3.0 includes the new location of ParseQuery
-	github.com/newrelic/go-agent/v3 v3.32.0
+	github.com/newrelic/go-agent/v3 v3.33.1
 )
 
 
