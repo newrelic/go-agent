@@ -5,7 +5,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrpkgerrors
 go 1.20
 
 require (
-	github.com/newrelic/go-agent/v3 v3.32.0
+	github.com/newrelic/go-agent/v3 v3.33.1
 	// v0.8.0 was the last release in 2016, and when
 	// major development on pkg/errors stopped.
 	github.com/pkg/errors v0.8.0
