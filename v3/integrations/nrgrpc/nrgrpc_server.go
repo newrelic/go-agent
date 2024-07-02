@@ -79,7 +79,9 @@ func startTransaction(ctx context.Context, app *newrelic.Application, fullMethod
 		ServerName: target,
 	}
 	txn := app.StartTransaction(method)
-	txn.SetCsecAttributes(newrelic.AttributeCsecRoute, method)
+	if newrelic.IsSecurityAgentPresent() {
+		txn.SetCsecAttributes(newrelic.AttributeCsecRoute, method)
+	}
 	txn.SetWebRequest(webReq)
 
 	return txn
