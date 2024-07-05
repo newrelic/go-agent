@@ -118,8 +118,8 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
 | [uber-go/zap](https://github.com/uber-go/zap) | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap) | Send agent log messages to Zap |
 | [rs/zerolog](https://github.com/rs/zerolog) | [v3/integrations/nrzerolog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzerolog) | Send agent log messages to Zerolog |
+| [log/slog](https://pkg.go.dev/log/slog)               | [v3/integrations/nrslog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrslog)     | Send agent log messages to `log/slog` |
 
-#### Logs in Context
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
