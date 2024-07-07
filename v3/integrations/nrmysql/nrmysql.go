@@ -1,6 +1,7 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.10
 // +build go1.10
 
 // Package nrmysql instruments https://github.com/go-sql-driver/mysql.
@@ -48,6 +49,7 @@
 package nrmysql
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"net"
 
@@ -66,6 +68,10 @@ var (
 		ParseDSN:   parseDSN,
 	}
 )
+
+func RegisterTLSConfig(key string, config *tls.Config) error {
+	return mysql.RegisterTLSConfig(key, config)
+}
 
 func init() {
 	sql.Register("nrmysql", newrelic.InstrumentSQLDriver(mysql.MySQLDriver{}, baseBuilder))
