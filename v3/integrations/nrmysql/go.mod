@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/nrmysql
+module github.com/lamalex/go-agent/v3/integrations/nrmysql
 
 // 1.10 is the Go version in mysql's go.mod
 go 1.20
