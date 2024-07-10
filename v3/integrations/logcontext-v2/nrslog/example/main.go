@@ -12,6 +12,7 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("slog example app"),
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppLogEnabled(true),
 	)
