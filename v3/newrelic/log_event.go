@@ -186,6 +186,12 @@ func EnrichLog(buf *bytes.Buffer, opts EnricherOption) error {
 
 	reply, err := app.app.getState()
 	if err != nil {
+		app.app.Debug("cannot enrich logs, unable to reach application", map[string]interface{}{"error": err.Error()})
+		// If the application is shut down, don't return an error so the log can still be written.
+		// If debug logging is enabled, the error will be logged there.
+		if err == errApplicationShutDown {
+			return nil
+		}
 		return err
 	}
 
