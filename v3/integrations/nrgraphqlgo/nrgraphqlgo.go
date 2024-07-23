@@ -42,7 +42,10 @@ type Extension struct{}
 var _ graphql.Extension = Extension{}
 
 // Init is used to help you initialize the extension - in this case, a noop
-func (Extension) Init(ctx context.Context, _ *graphql.Params) context.Context {
+func (Extension) Init(ctx context.Context, params *graphql.Params) context.Context {
+	if params != nil && newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("GRAPHQL", params.RequestString != "", len(params.VariableValues) != 0)
+	}
 	return ctx
 }
 
