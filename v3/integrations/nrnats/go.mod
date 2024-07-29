@@ -1,10 +1,14 @@
 module github.com/newrelic/go-agent/v3/integrations/nrnats
 
-// As of Dec 2019, 1.11 is the earliest version of Go tested by nats:
+// As of Jun 2023, 1.19 is the earliest version of Go tested by nats:
 // https://github.com/nats-io/nats.go/blob/master/.travis.yml
-go 1.17
+go 1.20
 
 require (
-	github.com/nats-io/nats.go v1.17.0
-	github.com/newrelic/go-agent/v3 v3.18.2
+	github.com/nats-io/nats-server v1.4.1
+	github.com/nats-io/nats.go v1.28.0
+	github.com/newrelic/go-agent/v3 v3.33.1
 )
+
+
+replace github.com/newrelic/go-agent/v3 => ../..

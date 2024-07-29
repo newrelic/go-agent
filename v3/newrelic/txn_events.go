@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -113,6 +114,15 @@ func sharedTransactionIntrinsics(e *txnEvent, w *jsonFieldsWriter) {
 		w.stringField("nr.syntheticsResourceId", e.CrossProcess.Synthetics.ResourceID)
 		w.stringField("nr.syntheticsJobId", e.CrossProcess.Synthetics.JobID)
 		w.stringField("nr.syntheticsMonitorId", e.CrossProcess.Synthetics.MonitorID)
+		if e.CrossProcess.SyntheticsInfo != nil {
+			w.stringField("nr.syntheticsType", e.CrossProcess.SyntheticsInfo.Type)
+			w.stringField("nr.syntheticsInitiator", e.CrossProcess.SyntheticsInfo.Initiator)
+			for attrName, attrValue := range e.CrossProcess.SyntheticsInfo.Attributes {
+				if attrName != "" {
+					w.stringField(fmt.Sprintf("nr.synthetics%s%s", strings.ToUpper(attrName[0:1]), attrName[1:]), attrValue)
+				}
+			}
+		}
 	}
 }
 

@@ -61,6 +61,7 @@ func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	op := strings.ToLower(firstWordRegex.FindString(s))
 	if rg, ok := sqlOperations[op]; ok {
 		segment.Operation = op
+		segment.RawQuery = query
 		if nil != rg {
 			if m := rg.FindStringSubmatch(s); len(m) > 1 {
 				segment.Collection = extractTable(m[1])

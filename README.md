@@ -1,6 +1,6 @@
 [![Community Plus header](https://github.com/newrelic/opensource-website/raw/main/src/images/categories/Community_Plus.png)](https://opensource.newrelic.com/oss-category/#community-plus)
 
-# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent)
+# New Relic Go Agent [![GoDoc](https://godoc.org/github.com/newrelic/go-agent?status.svg)](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic/) [![Go Report Card](https://goreportcard.com/badge/github.com/newrelic/go-agent)](https://goreportcard.com/report/github.com/newrelic/go-agent) [![codecov](https://codecov.io/github/newrelic/go-agent/branch/master/graph/badge.svg?token=UEWy0clWYW)](https://codecov.io/github/newrelic/go-agent)
 
 The New Relic Go Agent allows you to monitor your Go applications with New
 Relic. It helps you track transactions, outbound requests, database calls, and
@@ -13,7 +13,7 @@ Go is a compiled language, and doesn’t use a virtual machine. This means that 
 
 ### Compatibility and Requirements
 
-For the latest version of the agent, Go 1.17+ is required.
+For the latest version of the agent, Go 1.18+ is required.
 
 Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
 
@@ -97,18 +97,28 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [jmoiron/sqlx](https://github.com/jmoiron/sqlx) | Use a supported [database driver](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrpq/example/sqlx) or [builtin instrumentation](https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#InstrumentSQLConnector) | Instrument database calls with SQLx |
 | [go-redis/redis](https://github.com/go-redis/redis) | [v3/integrations/nrredis-v7](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v7) | Instrument Redis 7 calls |
 | [go-redis/redis](https://github.com/go-redis/redis) | [v3/integrations/nrredis-v8](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v8) | Instrument Redis 8 calls |
+| [redis/go-redis](https://github.com/redis/go-redis) | [v3/integrations/nrredis-v9](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrredis-v9) | Instrument Redis 9 calls |
 | [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) | [v3/integrations/nrsqlite3](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsqlite3) | Instrument SQLite driver |
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
 
-#### Agent Logging
+#### AI
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
-| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
-| [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
-| [uber-go/zap](https://github.com/uber-go/zap) | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap) | Send agent log messages to Zap |
-| [rs/zerolog](https://github.com/rs/zerolog) | [v3/integrations/nrzerolog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzerolog) | Send agent log messages to Zerolog |
+| [sashabaranov/go-openai](https://github.com/sashabaranov/go-openai) | [v3/integrations/nropenai](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nropenai) | Send AI Monitoring Events with OpenAI |
+| [aws/aws-sdk-go-v2/tree/main/service/bedrockruntime](https://github.com/aws/aws-sdk-go-v2/tree/main/service/bedrockruntime) | [v3/integrations/nrawsbedrock](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawsbedrock) | Send AI Monitoring Events with AWS Bedrock |
+
+
+#### Agent Logging
+
+| Project                                               | Integration Package                                                                                 |                                       |
+|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------|---------------------------------------|
+| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus     |
+| [mgutz/logxi](https://github.com/mgutz/logxi)         | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi)   | Send agent log messages to Logxi      |
+| [uber-go/zap](https://github.com/uber-go/zap)         | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap)       | Send agent log messages to Zap        |
+| [log/slog](https://pkg.go.dev/log/slog)               | [v3/integrations/nrslog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrslog)     | Send agent log messages to `log/slog` |
+| [rs/zerolog](https://github.com/rs/zerolog)           | [v3/integrations/nrzerolog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzerolog) | Send agent log messages to Zerolog  |
 
 #### Logs in Context
 

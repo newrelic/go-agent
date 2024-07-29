@@ -6,6 +6,7 @@ package newrelic
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,7 +20,7 @@ import (
 // All methods on Transaction are nil safe. Therefore, a nil Transaction
 // pointer can be safely used as a mock.
 type Transaction struct {
-	Private interface{}
+	Private any
 	thread  *thread
 }
 
@@ -27,18 +28,22 @@ type Transaction struct {
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 
-	var r interface{}
+	var r any
 	if txn.thread.Config.ErrorCollector.RecordPanics {
 		// recover must be called in the function directly being deferred,
 		// not any nested call!
 		r = recover()
+
+		if nil != r && IsSecurityAgentPresent() {
+			secureAgent.SendEvent("RECORD_PANICS", r)
+		}
+	}
+	if txn.thread.IsWeb && IsSecurityAgentPresent() {
+		secureAgent.SendEvent("INBOUND_END", "")
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
@@ -58,10 +63,7 @@ func (txn *Transaction) SetOption(options ...TraceOption) {
 
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction", nil)
@@ -70,13 +72,23 @@ func (txn *Transaction) Ignore() {
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
 func (txn *Transaction) SetName(name string) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
+}
+
+// Name returns the name currently set for the transaction, as, e.g. by a call to SetName.
+// If unable to do so (such as due to a nil transaction pointer), the empty string is returned.
+func (txn *Transaction) Name() string {
+	// This is called Name rather than GetName to be consistent with the prevailing naming
+	// conventions for the Go language, even though the underlying internal call must be called
+	// something else (like GetName) because there's already a Name struct member.
+
+	if txn == nil || txn.thread == nil {
+		return ""
+	}
+	return txn.thread.GetName()
 }
 
 // NoticeError records an error.  The Transaction saves the first five
@@ -99,16 +111,13 @@ func (txn *Transaction) SetName(name string) {
 //	ErrorClass() string
 //
 //	// ErrorAttributes sets the errors attributes
-//	ErrorAttributes() map[string]interface{}
+//	ErrorAttributes() map[string]any
 //
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeError(err error) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.NoticeError(err, false), "notice error", nil)
@@ -136,16 +145,13 @@ func (txn *Transaction) NoticeError(err error) {
 //	ErrorClass() string
 //
 //	// ErrorAttributes sets the errors attributes
-//	ErrorAttributes() map[string]interface{}
+//	ErrorAttributes() map[string]any
 //
 // The newrelic.Error type, which implements these methods, is the recommended
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeExpectedError(err error) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.NoticeError(err, true), "notice error", nil)
@@ -159,14 +165,22 @@ func (txn *Transaction) NoticeExpectedError(err error) {
 //
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
-func (txn *Transaction) AddAttribute(key string, value interface{}) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+func (txn *Transaction) AddAttribute(key string, value any) {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
+}
+
+// SetUserID is used to track the user that a transaction, and all data that is recorded as a subset of that transaction,
+// belong to or interact with. This will propogate an attribute containing this information to all events that are
+// a child of this transaction, like errors and spans.
+func (txn *Transaction) SetUserID(userID string) {
+	if txn == nil || txn.thread == nil {
+		return
+	}
+
+	txn.thread.logAPIError(txn.thread.AddUserID(userID), "set user ID", nil)
 }
 
 // RecordLog records the data from a single log line.
@@ -180,7 +194,7 @@ func (txn *Transaction) AddAttribute(key string, value interface{}) {
 func (txn *Transaction) RecordLog(log LogData) {
 	event, err := log.toLogEvent()
 	if err != nil {
-		txn.Application().app.Error("unable to record log", map[string]interface{}{
+		txn.Application().app.Error("unable to record log", map[string]any{
 			"reason": err.Error(),
 		})
 		return
@@ -198,16 +212,20 @@ func (txn *Transaction) RecordLog(log LogData) {
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
-	if nil == r {
+	if r == nil {
 		txn.SetWebRequest(WebRequest{})
 		return
 	}
 	wr := WebRequest{
-		Header:    r.Header,
-		URL:       r.URL,
-		Method:    r.Method,
-		Transport: transport(r),
-		Host:      r.Host,
+		Header:        r.Header,
+		URL:           r.URL,
+		Method:        r.Method,
+		Transport:     transport(r),
+		Host:          r.Host,
+		Body:          reqBody(r),
+		ServerName:    serverName(r),
+		Type:          "HTTP",
+		RemoteAddress: r.RemoteAddr,
 	}
 	txn.SetWebRequest(wr)
 }
@@ -222,17 +240,36 @@ func transport(r *http.Request) TransportType {
 	return TransportUnknown
 }
 
+func serverName(r *http.Request) string {
+	if strings.HasPrefix(r.Proto, "HTTP") {
+		if r.TLS != nil {
+			return r.TLS.ServerName
+		}
+	}
+	return ""
+}
+
+func reqBody(req *http.Request) *BodyBuffer {
+	if IsSecurityAgentPresent() && req.Body != nil && req.Body != http.NoBody {
+		buf := &BodyBuffer{buf: make([]byte, 0, 100)}
+		tee := io.TeeReader(req.Body, buf)
+		req.Body = io.NopCloser(tee)
+		return buf
+	}
+	return nil
+}
+
 // SetWebRequest marks the transaction as a web transaction.  SetWebRequest
 // additionally collects details on request attributes, url, and method if
 // these fields are set.  If headers are present, the agent will look for
 // distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {
-	if nil == txn {
+	if txn == nil || txn.thread == nil {
 		return
 	}
-	if nil == txn.thread {
-		return
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes())
 	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
@@ -252,10 +289,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 // package middlewares.  Therefore, you probably want to use this only if you
 // are writing your own instrumentation middleware.
 func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
-	if nil == txn {
-		return w
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return w
 	}
 	return txn.thread.SetWebResponse(w)
@@ -270,10 +304,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 }
 
 func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
-	if nil == txn {
-		return SegmentStartTime{}
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return SegmentStartTime{}
 	}
 	return txn.thread.startSegmentAt(at)
@@ -293,6 +324,10 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
+	if IsSecurityAgentPresent() && txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
+		// async segment start
+		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
+	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
 		Name:      name,
@@ -311,10 +346,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.CreateDistributedTracePayload(hdrs)
@@ -335,10 +367,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	if nil == txn {
-		return
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
@@ -396,7 +425,7 @@ func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, j
 //
 // (Note that the HTTP headers are capitalized.)
 func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err error) {
-	var raw interface{}
+	var raw any
 	hdrs = http.Header{}
 	if jsondata == "" {
 		return
@@ -407,12 +436,12 @@ func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err err
 	}
 
 	switch d := raw.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		for k, v := range d {
 			switch hval := v.(type) {
 			case string:
 				hdrs.Set(k, hval)
-			case []interface{}:
+			case []any:
 				for _, subval := range hval {
 					switch sval := subval.(type) {
 					case string:
@@ -436,10 +465,7 @@ func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err err
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
-	if nil == txn {
-		return nil
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return nil
 	}
 	return txn.thread.Application()
@@ -458,10 +484,7 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
-	if nil == txn {
-		return nil
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return nil
 	}
 	b, err := txn.thread.BrowserTimingHeader()
@@ -483,22 +506,20 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
-	if nil == txn {
+	if txn == nil || txn.thread == nil {
 		return nil
 	}
-	if nil == txn.thread {
-		return nil
+	newTxn := txn.thread.NewGoroutine()
+	if IsSecurityAgentPresent() && newTxn.thread != nil {
+		newTxn.thread.setCsecData()
 	}
-	return txn.thread.NewGoroutine()
+	return newTxn
 }
 
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
-	if nil == txn {
-		return TraceMetadata{}
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return TraceMetadata{}
 	}
 	return txn.thread.GetTraceMetadata()
@@ -507,10 +528,7 @@ func (txn *Transaction) GetTraceMetadata() TraceMetadata {
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
-	if nil == txn {
-		return LinkingMetadata{}
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return LinkingMetadata{}
 	}
 	return txn.thread.GetLinkingMetadata()
@@ -521,13 +539,25 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
-	if nil == txn {
-		return false
-	}
-	if nil == txn.thread {
+	if txn == nil || txn.thread == nil {
 		return false
 	}
 	return txn.thread.IsSampled()
+}
+
+func (txn *Transaction) GetCsecAttributes() any {
+	if txn == nil || txn.thread == nil {
+		return nil
+	}
+	return txn.thread.getCsecAttributes()
+}
+
+func (txn *Transaction) SetCsecAttributes(key, value string) {
+	if txn == nil || txn.thread == nil {
+		return
+	}
+	txn.thread.setCsecAttributes(key, value)
+
 }
 
 const (
@@ -586,6 +616,59 @@ type WebRequest struct {
 	// This is the value of the `Host` header. Go does not add it to the
 	// http.Header object and so must be passed separately.
 	Host string
+
+	// The following fields are needed for the secure agent's vulnerability
+	// detection features.
+	Body          *BodyBuffer
+	ServerName    string
+	Type          string
+	RemoteAddress string
+	Router        string
+}
+
+func (webrequest WebRequest) GetHeader() http.Header {
+	return webrequest.Header
+}
+
+func (webrequest WebRequest) GetURL() *url.URL {
+	return webrequest.URL
+}
+
+func (webrequest WebRequest) GetMethod() string {
+	return webrequest.Method
+}
+
+func (webrequest WebRequest) GetTransport() string {
+	return webrequest.Transport.toString()
+}
+
+func (webrequest WebRequest) GetHost() string {
+	return webrequest.Host
+}
+
+func (webrequest WebRequest) GetBody() []byte {
+	if webrequest.Body == nil {
+		return make([]byte, 0)
+	}
+	return webrequest.Body.read()
+}
+
+func (webrequest WebRequest) IsDataTruncated() bool {
+	if webrequest.Body == nil {
+		return false
+	}
+	return webrequest.Body.isBodyTruncated()
+}
+
+func (webrequest WebRequest) GetServerName() string {
+	return webrequest.ServerName
+}
+
+func (webrequest WebRequest) Type1() string {
+	return webrequest.Type
+}
+func (webrequest WebRequest) GetRemoteAddress() string {
+	return webrequest.RemoteAddress
 }
 
 // LinkingMetadata is returned by Transaction.GetLinkingMetadata.  It contains

@@ -31,6 +31,9 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	if e.SpanID != "" {
 		w.stringField("spanId", e.SpanID)
 	}
+	if e.Expect {
+		w.boolField(expectErrorAttr, true)
+	}
 
 	sharedTransactionIntrinsics(&e.txnEvent, &w)
 	sharedBetterCATIntrinsics(&e.txnEvent, &w)
@@ -39,7 +42,13 @@ func (e *errorEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	userAttributesJSON(e.Attrs, buf, destError, e.errorData.ExtraAttributes)
 	buf.WriteByte(',')
-	agentAttributesJSON(e.Attrs, buf, destError)
+
+	if e.ErrorGroup != "" {
+		agentAttributesJSON(e.Attrs, buf, destError, map[string]string{AttributeErrorGroupName: e.ErrorGroup})
+	} else {
+		agentAttributesJSON(e.Attrs, buf, destError)
+	}
+
 	buf.WriteByte(']')
 }
 

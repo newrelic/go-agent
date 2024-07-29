@@ -42,7 +42,41 @@ func TestResponseCodeIsError(t *testing.T) {
 				tc.Code, tc.IsError, is)
 		}
 	}
+}
 
+func TestResponseCodeIsExpected(t *testing.T) {
+	cfg := config{Config: defaultConfig()}
+	cfg.ErrorCollector.ExpectStatusCodes = []int{400, 503, 504}
+	run := newAppRun(cfg, internal.ConnectReplyDefaults())
+
+	for _, tc := range []struct {
+		Code    int
+		IsError bool
+	}{
+		{Code: 0, IsError: false}, // gRPC
+		{Code: 1, IsError: false}, // gRPC
+		{Code: 400, IsError: true},
+		{Code: 404, IsError: false},
+		{Code: 503, IsError: true},
+		{Code: 504, IsError: true},
+	} {
+		if is := run.responseCodeIsExpected(tc.Code); is != tc.IsError {
+			t.Errorf("responseCodeIsError for %d, wanted=%v got=%v",
+				tc.Code, tc.IsError, is)
+		}
+	}
+}
+
+func BenchmarkResponseCodeIsExpectedHit(b *testing.B) {
+	cfg := config{Config: defaultConfig()}
+	cfg.ErrorCollector.ExpectStatusCodes = []int{400, 503, 504}
+	run := newAppRun(cfg, internal.ConnectReplyDefaults())
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for n := 0; n < b.N; n++ {
+		run.responseCodeIsExpected(400)
+	}
 }
 
 func TestCrossAppTracingEnabled(t *testing.T) {
@@ -187,7 +221,7 @@ func TestZeroReportPeriod(t *testing.T) {
 		maxCustomEvents: internal.MaxCustomEvents,
 		maxLogEvents:    internal.MaxLogEvents,
 		maxErrorEvents:  internal.MaxErrorEvents,
-		maxSpanEvents:   defaultMaxSpanEvents,
+		maxSpanEvents:   internal.MaxSpanEvents,
 		periods: map[harvestTypes]time.Duration{
 			harvestTypesAll: 60 * time.Second,
 			0:               60 * time.Second,
@@ -331,7 +365,7 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 	}
 	result := newAppRun(config{Config: defaultConfig()}, h).MaxTxnEvents()
 	if result != 15 {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", 15, result))
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, result)
 	}
 }
 
@@ -350,7 +384,7 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = expected
 	result := newAppRun(cfg, reply).MaxTxnEvents()
 	if result != expected {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", expected, result))
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", expected, result)
 	}
 }
 
@@ -368,7 +402,7 @@ func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
 	result := newAppRun(cfg, h).MaxTxnEvents()
 	if result != internal.MaxTxnEvents {
-		t.Error(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
+		t.Errorf(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
 	}
 }
 

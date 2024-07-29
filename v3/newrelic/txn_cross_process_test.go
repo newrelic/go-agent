@@ -85,6 +85,18 @@ func (req *request) withSynthetics(account int, encodingKey string) *request {
 	}
 
 	req.Header.Add(cat.NewRelicSyntheticsName, string(obfuscated))
+
+	return req.withSyntheticsInfo("cli", "scheduled", encodingKey)
+}
+
+func (req *request) withSyntheticsInfo(initiator, synthType, encodingKey string) *request {
+	header := fmt.Sprintf(`{"version":1,"type":"%s","initiator":"%s"}`, synthType, initiator)
+	obfuscated, err := obfuscate([]byte(header), []byte(encodingKey))
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Add(cat.NewRelicSyntheticsInfo, string(obfuscated))
 	return req
 }
 
@@ -168,14 +180,16 @@ func TestTxnCrossProcessInit(t *testing.T) {
 		id := ""
 		txnData := ""
 		synthetics := ""
+		syntheticsInfo := ""
 		if tc.req != nil {
 			id = tc.req.Header.Get(cat.NewRelicIDName)
 			txnData = tc.req.Header.Get(cat.NewRelicTxnName)
 			synthetics = tc.req.Header.Get(cat.NewRelicSyntheticsName)
+			syntheticsInfo = tc.req.Header.Get(cat.NewRelicSyntheticsInfo)
 		}
 
 		actual.Init(tc.enabled, false, tc.reply)
-		err := actual.handleInboundRequestHeaders(crossProcessMetadata{id, txnData, synthetics})
+		err := actual.handleInboundRequestHeaders(crossProcessMetadata{id, txnData, synthetics, syntheticsInfo})
 
 		if tc.expectedError == false && err != nil {
 			t.Errorf("%s: unexpected error returned from Init: %v", tc.name, err)
@@ -241,7 +255,8 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -253,7 +268,8 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -278,9 +294,10 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				ID:         mustObfuscate(`1#1`, "foo"),
-				TxnData:    mustObfuscate(`["00000000",false,"00000000","b95be233"]`, "foo"),
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				ID:             mustObfuscate(`1#1`, "foo"),
+				TxnData:        mustObfuscate(`["00000000",false,"00000000","b95be233"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 		{
@@ -305,9 +322,10 @@ func TestTxnCrossProcessCreateCrossProcessMetadata(t *testing.T) {
 			appName:       "app",
 			expectedError: false,
 			expectedMetadata: crossProcessMetadata{
-				ID:         mustObfuscate(`1#1`, "foo"),
-				TxnData:    mustObfuscate(`["00000000",false,"abcdefgh","cbec2654"]`, "foo"),
-				Synthetics: mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				ID:             mustObfuscate(`1#1`, "foo"),
+				TxnData:        mustObfuscate(`["00000000",false,"abcdefgh","cbec2654"]`, "foo"),
+				Synthetics:     mustObfuscate(`[1,1,"resource","job","monitor"]`, "foo"),
+				SyntheticsInfo: mustObfuscate(`{"version":1,"type":"scheduled","initiator":"cli"}`, "foo"),
 			},
 		},
 	} {

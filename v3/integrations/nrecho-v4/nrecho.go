@@ -35,15 +35,15 @@ func handlerPointer(handler echo.HandlerFunc) uintptr {
 	return reflect.ValueOf(handler).Pointer()
 }
 
-func transactionName(c echo.Context) string {
+func transactionName(c echo.Context) (string, string) {
 	ptr := handlerPointer(c.Handler())
 	if ptr == handlerPointer(echo.NotFoundHandler) {
-		return "NotFoundHandler"
+		return "NotFoundHandler", ""
 	}
 	if ptr == handlerPointer(echo.MethodNotAllowedHandler) {
-		return "MethodNotAllowedHandler"
+		return "MethodNotAllowedHandler", ""
 	}
-	return c.Request().Method + " " + c.Path()
+	return c.Request().Method + " " + c.Path(), c.Path()
 }
 
 // Skipper defines a function to skip middleware. Returning true skips processing
@@ -71,7 +71,6 @@ func WithSkipper(skipper Skipper) ConfigOption {
 //	e := echo.New()
 //	// Add the nrecho middleware before other middlewares or routes:
 //	e.Use(nrecho.MiddlewareWithConfig(nrecho.Config{App: app}))
-//
 func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.HandlerFunc) echo.HandlerFunc {
 	if app == nil {
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -101,9 +100,12 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			}
 
 			rw := c.Response().Writer
-			txn := config.App.StartTransaction(transactionName(c))
+			tname, path := transactionName(c)
+			txn := config.App.StartTransaction(tname)
 			defer txn.End()
-
+			if newrelic.IsSecurityAgentPresent() {
+				txn.SetCsecAttributes(newrelic.AttributeCsecRoute, path)
+			}
 			txn.SetWebRequestHTTP(c.Request())
 
 			c.Response().Writer = txn.SetWebResponse(rw)
@@ -128,6 +130,26 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 			}
 
 			return
+		}
+	}
+}
+
+// WrapRouter extracts API endpoints from the echo instance passed to it
+// which is used to detect application URL mapping(api-endpoints) for provable security.
+// In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
+// but it may be enhanced to provide additional functionality in future releases.
+//
+//	 e := echo.New()
+//	 ....
+//	 ....
+//	 ....
+//
+//	nrecho.WrapRouter(e)
+func WrapRouter(engine *echo.Echo) {
+	if engine != nil && newrelic.IsSecurityAgentPresent() {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, r.Name)
 		}
 	}
 }

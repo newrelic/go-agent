@@ -1,10 +1,11 @@
 module github.com/newrelic/go-agent/v3/integrations/nrlambda
 
-// As of Dec 2019, the aws-lambda-go go.mod uses 1.12:
-// https://github.com/aws/aws-lambda-go/blob/master/go.mod
-go 1.12
+go 1.20
 
 require (
-	github.com/aws/aws-lambda-go v1.20.0
-	github.com/newrelic/go-agent/v3 v3.4.0
+	github.com/aws/aws-lambda-go v1.41.0
+	github.com/newrelic/go-agent/v3 v3.33.1
 )
+
+
+replace github.com/newrelic/go-agent/v3 => ../..

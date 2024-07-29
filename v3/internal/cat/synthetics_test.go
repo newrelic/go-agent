@@ -5,6 +5,7 @@ package cat
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 )
 
@@ -117,4 +118,130 @@ func TestSyntheticsUnmarshalValid(t *testing.T) {
 			t.Errorf("given %s: MonitorID expected to be %s; got %s", test.json, test.synthetics.MonitorID, synthetics.MonitorID)
 		}
 	}
+}
+
+func TestSyntheticsInfoUnmarshal(t *testing.T) {
+	type testCase struct {
+		name           string
+		json           string
+		syntheticsInfo SyntheticsInfo
+		expectedError  error
+	}
+
+	testCases := []testCase{
+		{
+			name:           "missing type field",
+			json:           `{"version":1,"initiator":"cli"}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errMissingSyntheticsInfoType,
+		},
+		{
+			name:           "invalid type field",
+			json:           `{"version":1,"initiator":"cli","type":1}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errInvalidSyntheticsInfoType,
+		},
+		{
+			name:           "missing initiator field",
+			json:           `{"version":1,"type":"scheduled"}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errMissingSyntheticsInfoInitiator,
+		},
+		{
+			name:           "invalid initiator field",
+			json:           `{"version":1,"initiator":1,"type":"scheduled"}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errInvalidSyntheticsInfoInitiator,
+		},
+		{
+			name:           "missing version field",
+			json:           `{"type":"scheduled"}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errMissingSyntheticsInfoVersion,
+		},
+		{
+			name:           "invalid version field",
+			json:           `{"version":"1","initiator":"cli","type":"scheduled"}`,
+			syntheticsInfo: SyntheticsInfo{},
+			expectedError:  errInvalidSyntheticsInfoVersion,
+		},
+		{
+			name: "valid synthetics info",
+			json: `{"version":1,"type":"scheduled","initiator":"cli"}`,
+			syntheticsInfo: SyntheticsInfo{
+				Version:   1,
+				Type:      "scheduled",
+				Initiator: "cli",
+			},
+			expectedError: nil,
+		},
+		{
+			name: "valid synthetics info with attributes",
+			json: `{"version":1,"type":"scheduled","initiator":"cli","attributes":{"hi":"hello"}}`,
+			syntheticsInfo: SyntheticsInfo{
+				Version:    1,
+				Type:       "scheduled",
+				Initiator:  "cli",
+				Attributes: map[string]string{"hi": "hello"},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "valid synthetics info with invalid attributes",
+			json: `{"version":1,"type":"scheduled","initiator":"cli","attributes":{"hi":1}}`,
+			syntheticsInfo: SyntheticsInfo{
+				Version:    1,
+				Type:       "scheduled",
+				Initiator:  "cli",
+				Attributes: nil,
+			},
+			expectedError: errInvalidSyntheticsInfoAttributeVal,
+		},
+	}
+
+	for _, testCase := range testCases {
+		syntheticsInfo := SyntheticsInfo{}
+		err := syntheticsInfo.UnmarshalJSON([]byte(testCase.json))
+		if testCase.expectedError == nil {
+			if err != nil {
+				recordError(t, testCase.name, fmt.Sprintf("expected synthetics info to unmarshal without error, but got error: %v", err))
+			}
+
+			expect := testCase.syntheticsInfo
+			if expect.Version != syntheticsInfo.Version {
+				recordError(t, testCase.name, fmt.Sprintf(`expected version "%d", but got "%d"`, expect.Version, syntheticsInfo.Version))
+			}
+
+			if expect.Type != syntheticsInfo.Type {
+				recordError(t, testCase.name, fmt.Sprintf(`expected version "%s", but got "%s"`, expect.Type, syntheticsInfo.Type))
+			}
+
+			if expect.Initiator != syntheticsInfo.Initiator {
+				recordError(t, testCase.name, fmt.Sprintf(`expected version "%s", but got "%s"`, expect.Initiator, syntheticsInfo.Initiator))
+			}
+
+			if len(expect.Attributes) != 0 {
+				if len(syntheticsInfo.Attributes) == 0 {
+					recordError(t, testCase.name, fmt.Sprintf(`expected attribute array to have %d elements, but it only had %d`, len(expect.Attributes), len(syntheticsInfo.Attributes)))
+				}
+				for ek, ev := range expect.Attributes {
+					v, ok := syntheticsInfo.Attributes[ek]
+					if !ok {
+						recordError(t, testCase.name, fmt.Sprintf(`expected attributes to contain key "%s", but it did not`, ek))
+					}
+					if ev != v {
+						recordError(t, testCase.name, fmt.Sprintf(`expected attributes to contain "%s":"%s", but it contained "%s":"%s"`, ek, ev, ek, v))
+					}
+				}
+			}
+		} else {
+			if err != testCase.expectedError {
+				recordError(t, testCase.name, fmt.Sprintf(`expected synthetics info to unmarshal with error "%v", but got "%v"`, testCase.expectedError, err))
+			}
+		}
+	}
+}
+
+func recordError(t *testing.T, test, err string) {
+	t.Errorf("%s: %s", test, err)
 }

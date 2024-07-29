@@ -27,6 +27,48 @@ func testExpectedJSON(t testing.TB, expect string, actual string) {
 	}
 }
 
+func TestErrorNoCAT(t *testing.T) {
+	he := &tracedError{
+		errorData: errorData{
+			When:  time.Date(2014, time.November, 28, 1, 1, 0, 0, time.UTC),
+			Stack: emptyStackTrace,
+			Msg:   "my_msg",
+			Klass: "my_class",
+		},
+		txnEvent: txnEvent{
+			FinalName: "my_txn_name",
+			Attrs:     nil,
+			TxnID:     "txn-guid-id",
+			BetterCAT: betterCAT{
+				Enabled: false,
+			},
+			TotalTime: 2 * time.Second,
+		},
+	}
+	js, err := json.Marshal(he)
+	if nil != err {
+		t.Error(err)
+	}
+
+	expect := `
+	[
+		1.41713646e+12,
+		"my_txn_name",
+		"my_msg",
+		"my_class",
+		{
+			"agentAttributes":{},
+			"userAttributes":{},
+			"intrinsics":{
+				"totalTime":2
+			},
+			"stack_trace":[]
+		},
+		"txn-guid-id"
+	]`
+	testExpectedJSON(t, expect, string(js))
+}
+
 func TestErrorTraceMarshal(t *testing.T) {
 	he := &tracedError{
 		errorData: errorData{
@@ -38,6 +80,7 @@ func TestErrorTraceMarshal(t *testing.T) {
 		txnEvent: txnEvent{
 			FinalName: "my_txn_name",
 			Attrs:     nil,
+			TxnID:     "txn-guid-id",
 			BetterCAT: betterCAT{
 				Enabled:  true,
 				TxnID:    "txn-id",
@@ -69,7 +112,8 @@ func TestErrorTraceMarshal(t *testing.T) {
 				"sampled":false
 			},
 			"stack_trace":[]
-		}
+		},
+		"txn-guid-id"
 	]`
 	testExpectedJSON(t, expect, string(js))
 }
@@ -89,6 +133,7 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 				Enabled: false,
 			},
 			TotalTime: 2 * time.Second,
+			TxnID:     "txn-guid-id",
 		},
 	}
 	js, err := json.Marshal(he)
@@ -109,7 +154,8 @@ func TestErrorTraceMarshalOldCAT(t *testing.T) {
 				"totalTime":2
 			},
 			"stack_trace":[]
-		}
+		},
+		"txn-guid-id"
 	]`
 	testExpectedJSON(t, expect, string(js))
 }
@@ -135,11 +181,13 @@ func TestErrorTraceAttributes(t *testing.T) {
 		txnEvent: txnEvent{
 			FinalName: "my_txn_name",
 			Attrs:     attr,
+			TxnID:     "txn-id",
+
 			BetterCAT: betterCAT{
 				Enabled:  true,
-				TxnID:    "txn-id",
 				Priority: 0.5,
 				TraceID:  "trace-id",
+				TxnID:    "txn-id",
 			},
 			TotalTime: 2 * time.Second,
 		},
@@ -164,7 +212,8 @@ func TestErrorTraceAttributes(t *testing.T) {
 				"priority":0.500000,
 				"sampled":false
 			}
-		}
+		},
+		"txn-id"
 	]`
 	testExpectedJSON(t, expect, string(js))
 }
@@ -188,6 +237,7 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 			Klass: "my_class",
 		},
 		txnEvent: txnEvent{
+			TxnID:     "txn-guid-id",
 			FinalName: "my_txn_name",
 			Attrs:     attr,
 			BetterCAT: betterCAT{
@@ -212,7 +262,8 @@ func TestErrorTraceAttributesOldCAT(t *testing.T) {
 			"intrinsics":{
 				"totalTime":2
 			}
-		}
+		},
+		"txn-guid-id"
 	]`
 	testExpectedJSON(t, expect, string(js))
 }
@@ -231,6 +282,8 @@ func TestErrorsLifecycle(t *testing.T) {
 	mergeTxnErrors(&he, ers, txnEvent{
 		FinalName: "txnName",
 		Attrs:     nil,
+		TxnID:     "txn-id",
+
 		BetterCAT: betterCAT{
 			Enabled:  true,
 			TxnID:    "txn-id",
@@ -238,7 +291,7 @@ func TestErrorsLifecycle(t *testing.T) {
 			Priority: 0.5,
 		},
 		TotalTime: 2 * time.Second,
-	})
+	}, nil)
 	js, err := he.Data("agentRunID", time.Now())
 	if nil != err {
 		t.Error(err)
@@ -257,12 +310,13 @@ func TestErrorsLifecycle(t *testing.T) {
             "userAttributes":{},
             "intrinsics":{
                "totalTime":2,
-               "guid":"txn-id",
+			   "guid":"txn-id",
                "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
-         }
+         },
+		 "txn-id"
       ],
       [
          1.41713646e+12,
@@ -274,12 +328,13 @@ func TestErrorsLifecycle(t *testing.T) {
             "userAttributes":{},
             "intrinsics":{
                "totalTime":2,
-               "guid":"txn-id",
+			   "guid":"txn-id",
                "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
-         }
+         },
+		 "txn-id"
       ],
       [
          1.41713646e+12,
@@ -291,12 +346,13 @@ func TestErrorsLifecycle(t *testing.T) {
             "userAttributes":{},
             "intrinsics":{
                "totalTime":2,
-               "guid":"txn-id",
+			   "guid":"txn-id",
                "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
-         }
+         },
+		 "txn-id"
       ],
       [
          1.41713646e+12,
@@ -308,17 +364,18 @@ func TestErrorsLifecycle(t *testing.T) {
             "userAttributes":{},
             "intrinsics":{
                "totalTime":2,
-               "guid":"txn-id",
+			   "guid":"txn-id",
                "traceId":"trace-id",
                "priority":0.500000,
                "sampled":false
             }
-         }
+         },
+		 "txn-id"
       ]
    ]
 ]`)
 	if string(js) != expect {
-		t.Error(string(js), expect)
+		t.Error(string(js), "expect: ", expect)
 	}
 }
 
@@ -344,7 +401,7 @@ func BenchmarkErrorsJSON(b *testing.B) {
 	mergeTxnErrors(&he, ers, txnEvent{
 		FinalName: "WebTransaction/Go/hello",
 		Attrs:     attr,
-	})
+	}, nil)
 
 	b.ReportAllocs()
 	b.ResetTimer()

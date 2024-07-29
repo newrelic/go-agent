@@ -101,6 +101,11 @@ type Config struct {
 		// greater than or equal to 400 or less than 100 -- with the exception
 		// of 0, 5, and 404 -- are turned into errors.
 		IgnoreStatusCodes []int
+		// ExpectStatusCodes controls which http response codes should
+		// impact your error metrics, apdex score and alerts. Expected errors will
+		// be silently captured without impacting any of those. Note that setting an error
+		// code as Ignored will prevent it from being collected, even if its expected.
+		ExpectStatusCodes []int
 		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
 		// RecordPanics controls whether or not a deferred
@@ -108,6 +113,24 @@ type Config struct {
 		// as errors, and then re-panic them.  By default, this is
 		// set to false.
 		RecordPanics bool
+		// ErrorGroupCallback is a user defined callback function that takes an error as an input
+		// and returns a string that will be applied to an error to put it in an error group.
+		//
+		// If no error group is identified for a given error, this function should return an empty string.
+		// If an ErrorGroupCallbeck is defined, it will be executed against every error the go agent notices that
+		// is not ignored.
+		//
+		// example function:
+		//
+		// func ErrorGroupCallback(errorInfo newrelic.ErrorInfo) string {
+		//		if errorInfo.Class == "403" && errorInfo.GetUserId() == "example user" {
+		//			return "customer X payment issue"
+		// 		}
+		//
+		//		// returning empty string causes default error grouping behavior
+		//		return ""
+		// }
+		ErrorGroupCallback `json:"-"`
 	}
 
 	// TransactionTracer controls the capture of transaction traces.
@@ -212,6 +235,17 @@ type Config struct {
 		DynoNamePrefixesToShorten []string
 	}
 
+	// AIMonitoring controls the behavior of AI monitoring features.
+	AIMonitoring struct {
+		Enabled bool
+		// Indicates whether streams will be instrumented
+		Streaming struct {
+			Enabled bool
+		}
+		RecordContent struct {
+			Enabled bool
+		}
+	}
 	// CrossApplicationTracer controls behavior relating to cross application
 	// tracing (CAT).  In the case where CrossApplicationTracer and
 	// DistributedTracer are both enabled, DistributedTracer takes precedence.
@@ -293,6 +327,10 @@ type Config struct {
 		QueryParameters struct {
 			Enabled bool
 		}
+		RawQuery struct {
+			Enabled bool
+		}
+
 		// SlowQuery controls the capture of slow query traces.  Slow
 		// query traces show you instances of your slowest datastore
 		// segments.
@@ -421,6 +459,8 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+	// Security is used to post security configuration on UI.
+	Security interface{} `json:"Security,omitempty"`
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes
@@ -542,6 +582,15 @@ type ApplicationLogging struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
+	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
+	// during log collection, slowing down the execution of the line of code that will write the log. If your
+	// application collects logs at a high frequency or volume, or it can not afford the slowdown of marshaling objects
+	// before sending them to new relic, we can marshal them asynchronously in the backend during harvests by setting
+	// this to false using ConfigZapAttributesEncoder(false).
+	ZapLogger struct {
+		// Toggles whether zap logger field attributes are frontloaded with the zapcore.NewMapObjectEncoder or marshalled at harvest time
+		AttributesFrontloaded bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -614,14 +663,14 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
-
+	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
 
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
-	c.DistributedTracer.ReservoirLimit = defaultMaxSpanEvents
+	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
@@ -630,6 +679,7 @@ func defaultConfig() Config {
 	c.DatastoreTracer.QueryParameters.Enabled = true
 	c.DatastoreTracer.SlowQuery.Enabled = true
 	c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
+	c.DatastoreTracer.RawQuery.Enabled = false
 
 	c.ServerlessMode.ApdexThreshold = 500 * time.Millisecond
 	c.ServerlessMode.Enabled = false
@@ -637,11 +687,14 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
+	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Streaming.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = true
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	// Code Level Metrics
-	c.CodeLevelMetrics.Enabled = false
+	c.CodeLevelMetrics.Enabled = true
 	c.CodeLevelMetrics.RedactPathPrefixes = true
 	c.CodeLevelMetrics.RedactIgnoredPrefixes = true
 	c.CodeLevelMetrics.Scope = AllCLM
@@ -679,16 +732,16 @@ func (c Config) validate() error {
 			return errLicenseLen
 		}
 	}
-	if "" == c.AppName && c.Enabled && !c.ServerlessMode.Enabled {
+	if c.AppName == "" && c.Enabled && !c.ServerlessMode.Enabled {
 		return errAppNameMissing
 	}
-	if c.HighSecurity && "" != c.SecurityPoliciesToken {
+	if c.HighSecurity && c.SecurityPoliciesToken != "" {
 		return errHighSecurityWithSecurityPolicies
 	}
 	if strings.Count(c.AppName, ";") >= appNameLimit {
 		return errAppNameLimit
 	}
-	if "" != c.InfiniteTracing.TraceObserver.Host && c.ServerlessMode.Enabled {
+	if c.InfiniteTracing.TraceObserver.Host != "" && c.ServerlessMode.Enabled {
 		return errInfTracingServerless
 	}
 
@@ -697,7 +750,7 @@ func (c Config) validate() error {
 
 func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	configHost := c.InfiniteTracing.TraceObserver.Host
-	if "" == configHost {
+	if configHost == "" {
 		// This is the only instance from which we can return nil, nil.
 		// If the user requests use of a trace observer, we must either provide
 		// them with a valid observerURL _or_ alert them to the failure to do so.
@@ -766,7 +819,7 @@ func copyConfigReferenceFields(cfg Config) Config {
 			cp.Labels[key] = val
 		}
 	}
-	if nil != cfg.ErrorCollector.IgnoreStatusCodes {
+	if cfg.ErrorCollector.IgnoreStatusCodes != nil {
 		ignored := make([]int, len(cfg.ErrorCollector.IgnoreStatusCodes))
 		copy(ignored, cfg.ErrorCollector.IgnoreStatusCodes)
 		cp.ErrorCollector.IgnoreStatusCodes = ignored
@@ -1030,7 +1083,7 @@ var (
 )
 
 func (c config) preconnectHost() string {
-	if "" != c.Host {
+	if c.Host != "" {
 		return c.Host
 	}
 	m := preconnectRegionLicenseRegex.FindStringSubmatch(c.License)

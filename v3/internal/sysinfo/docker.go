@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 var (
@@ -31,8 +32,18 @@ func DockerID() (string, error) {
 		return "", err
 	}
 	defer f.Close()
+	id, err := parseDockerID(f)
 
-	return parseDockerID(f)
+	// Attempt mountinfo file lookup if DockerID not found in cgroup file
+	if err == ErrDockerNotFound {
+		f, err := os.Open("/proc/self/mountinfo")
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+		return parseDockerIDMountInfo(f)
+	}
+	return id, err
 }
 
 var (
@@ -43,6 +54,27 @@ var (
 	dockerIDRegex    = regexp.MustCompile(dockerIDRegexRaw)
 )
 
+func parseDockerIDMountInfo(r io.Reader) (string, error) {
+	// Each Line in the mountinfo file starts with a set of IDs before showing the path file we actually want
+	// 	1. Mount ID
+	//	2. Parent ID
+	//	3. Major and minor device numbers
+	// 	4. Path to ContainerID
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "/docker/containers/") {
+			id := dockerIDRegex.FindString(line)
+			if err := validateDockerID(id); err != nil {
+				return "", err
+			}
+			return id, nil
+		}
+	}
+	return "", ErrDockerNotFound
+}
+
 func parseDockerID(r io.Reader) (string, error) {
 	// Each line in the cgroup file consists of three colon delimited fields.
 	//   1. hierarchy ID  - we don't care about this
@@ -51,7 +83,6 @@ func parseDockerID(r io.Reader) (string, error) {
 	//
 	// Example
 	//   5:cpuacct,cpu,cpuset:/daemons
-
 	var id string
 
 	for scanner := bufio.NewScanner(r); scanner.Scan(); {
@@ -77,7 +108,6 @@ func parseDockerID(r io.Reader) (string, error) {
 		}
 		return id, nil
 	}
-
 	return "", ErrDockerNotFound
 }
 

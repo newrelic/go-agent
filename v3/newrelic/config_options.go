@@ -60,11 +60,26 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
 }
 
+// ConfigAIMonitoringStreamingEnabled turns on or off the collection of AI Monitoring streaming mode metrics.
+func ConfigAIMonitoringStreamingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.Streaming.Enabled = enabled
+	}
+}
+
 // ConfigCodeLevelMetricsEnabled turns on or off the collection of code
 // level metrics entirely.
 func ConfigCodeLevelMetricsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CodeLevelMetrics.Enabled = enabled
+	}
+}
+
+// ConfigDatastoreRawQuery replaces a parameterized query in datastores
+// with the full raw query
+func ConfigDatastoreRawQuery(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.DatastoreTracer.RawQuery.Enabled = enabled
 	}
 }
 
@@ -228,6 +243,21 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
+func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.Enabled = enabled
+	}
+}
+
+// ConfigAIMonitoringRecordContentEnabled enables or disables the collection of the prompt and
+// response data along with other AI event metadata.
+func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.RecordContent.Enabled = enabled
+	}
+}
+
 // ConfigAppLogMetricsEnabled enables or disables the collection of metrics
 // data for logs seen by an instrumented logging framework
 // default: true
@@ -272,6 +302,13 @@ func ConfigInfoLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewLogger(w))
 }
 
+// ConfigZapAttributesEncoder controls whether the agent will frontload the zap logger field attributes with the zapcore.NewMapObjectEncoder or marshal at harvest time
+func ConfigZapAttributesEncoder(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.ZapLogger.AttributesFrontloaded = enabled
+	}
+}
+
 // ConfigModuleDependencyMetricsEnabled controls whether the agent collects and reports
 // the list of modules compiled into the instrumented application.
 func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
@@ -285,6 +322,17 @@ func ConfigModuleDependencyMetricsEnabled(enabled bool) ConfigOption {
 func ConfigModuleDependencyMetricsIgnoredPrefixes(prefix ...string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.ModuleDependencyMetrics.IgnoredPrefixes = prefix
+	}
+}
+
+// ConfigSetErrorGroupCallbackFunction set a callback function of type ErrorGroupCallback that will
+// be invoked against errors at harvest time. This function overrides the default grouping behavior
+// of errors into a custom, user defined group when set. Setting this may have performance implications
+// for your application depending on the contents of the callback function. Do not set this if you want
+// the default error grouping behavior to be executed.
+func ConfigSetErrorGroupCallbackFunction(callback ErrorGroupCallback) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.ErrorGroupCallback = callback
 	}
 }
 
@@ -344,6 +392,9 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 //	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
 //	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
 //		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
+//		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -407,6 +458,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
+		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
+		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
+		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {

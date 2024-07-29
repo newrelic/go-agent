@@ -87,7 +87,7 @@ func getDTRequestHeaderVal(ctx context.Context) string {
 }
 
 func createTestApp() integrationsupport.ExpectApp {
-	return integrationsupport.NewTestApp(replyFn, cfgFn, integrationsupport.ConfigFullTraces)
+	return integrationsupport.NewTestApp(replyFn, cfgFn, integrationsupport.ConfigFullTraces, newrelic.ConfigCodeLevelMetricsEnabled(false))
 }
 
 var replyFn = func(reply *internal.ConnectReply) {

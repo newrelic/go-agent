@@ -21,13 +21,13 @@ func getStackTrace() stackTrace {
 	return callers[:written]
 }
 
-type stacktraceFrame struct {
+type StacktraceFrame struct {
 	Name string
 	File string
 	Line int64
 }
 
-func (f stacktraceFrame) formattedName() string {
+func (f StacktraceFrame) formattedName() string {
 	if strings.HasPrefix(f.Name, "go.") {
 		// This indicates an anonymous struct. eg.
 		// "go.(*struct { github.com/newrelic/go-agent.threadWithExtras }).NoticeError"
@@ -36,7 +36,7 @@ func (f stacktraceFrame) formattedName() string {
 	return path.Base(f.Name)
 }
 
-func (f stacktraceFrame) isAgent() bool {
+func (f StacktraceFrame) isAgent() bool {
 	// Note this is not a contains conditional rather than a prefix
 	// conditional to handle anonymous functions like:
 	// "go.(*struct { github.com/newrelic/go-agent.threadWithExtras }).NoticeError"
@@ -44,7 +44,7 @@ func (f stacktraceFrame) isAgent() bool {
 		strings.Contains(f.Name, "github.com/newrelic/go-agent/v3/newrelic.")
 }
 
-func (f stacktraceFrame) WriteJSON(buf *bytes.Buffer) {
+func (f StacktraceFrame) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('{')
 	w := jsonFieldsWriter{buf: buf}
 	if f.Name != "" {
@@ -59,7 +59,7 @@ func (f stacktraceFrame) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('}')
 }
 
-func writeFrames(buf *bytes.Buffer, frames []stacktraceFrame) {
+func writeFrames(buf *bytes.Buffer, frames []StacktraceFrame) {
 	// Remove top agent frames.
 	for len(frames) > 0 && frames[0].isAgent() {
 		frames = frames[1:]
@@ -80,17 +80,17 @@ func writeFrames(buf *bytes.Buffer, frames []stacktraceFrame) {
 	buf.WriteByte(']')
 }
 
-func (st stackTrace) frames() []stacktraceFrame {
+func (st stackTrace) frames() []StacktraceFrame {
 	if len(st) == 0 {
 		return nil
 	}
 	frames := runtime.CallersFrames(st) // CallersFrames is only available in Go 1.7+
-	fs := make([]stacktraceFrame, 0, maxStackTraceFrames)
+	fs := make([]StacktraceFrame, 0, maxStackTraceFrames)
 	var frame runtime.Frame
 	more := true
 	for more {
 		frame, more = frames.Next()
-		fs = append(fs, stacktraceFrame{
+		fs = append(fs, StacktraceFrame{
 			Name: frame.Function,
 			File: frame.File,
 			Line: int64(frame.Line),

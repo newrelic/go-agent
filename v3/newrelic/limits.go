@@ -36,13 +36,8 @@ const (
 	maxSyntheticsTraces = 20
 	maxHarvestErrors    = 20
 	maxHarvestSlowSQLs  = 10
-	// maxSpanEvents is the maximum number of Span Events that can be captured
-	// per 60-second harvest cycle
-	// DEPRECATED: replaced with DistributedTracer.ReservoirLimit configuration value
-	// This constant is the default we start that value as, but it can be changed at runtime.
-	// always find the dynamic value, e.g. run.MaxSpanEvents(), instead of this value.
-	defaultMaxSpanEvents = 2000
 
+	errorEventMessageLengthLimit = 4096
 	// attributes
 	attributeKeyLengthLimit   = 255
 	attributeValueLengthLimit = 255

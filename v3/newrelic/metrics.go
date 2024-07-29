@@ -117,7 +117,7 @@ func (mt *metricTable) mergeFailed(from *metricTable) {
 }
 
 func (mt *metricTable) merge(from *metricTable, newScope string) {
-	if "" == newScope {
+	if newScope == "" {
 		for id, m := range from.metrics {
 			mt.mergeMetric(id, *m)
 		}

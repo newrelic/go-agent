@@ -294,6 +294,9 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 		jsonx.AppendString(buf, trace.CrossProcess.GUID)
 	} else if trace.BetterCAT.Enabled {
 		jsonx.AppendString(buf, trace.BetterCAT.TraceID)
+	} else if !trace.BetterCAT.Enabled && trace.CrossProcess.GUID != "" {
+		jsonx.AppendString(buf, trace.txnEvent.TxnID)
+
 	} else {
 		buf.WriteString(`""`)
 	}
