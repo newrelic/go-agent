@@ -30,8 +30,9 @@ func NewFormatter(app *newrelic.Application, formatter logrus.Formatter) Context
 // Format renders a single log entry.
 func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	logData := newrelic.LogData{
-		Severity: e.Level.String(),
-		Message:  e.Message,
+		Severity:   e.Level.String(),
+		Message:    e.Message,
+		Attributes: e.Data,
 	}
 
 	logBytes, err := f.formatter.Format(e)

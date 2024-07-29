@@ -114,6 +114,32 @@ func TestBackgroundLog(t *testing.T) {
 	})
 }
 
+func TestBackgroundLogWithFields(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	out := bytes.NewBuffer([]byte{})
+	log := newTextLogger(out, app.Application)
+	message := "Hello World!"
+	log.WithField("test field", []string{"a", "b"}).Info(message)
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			Attributes: map[string]interface{}{
+				"test field": []string{"a", "b"},
+			},
+		},
+	})
+}
+
 func TestJSONBackgroundLog(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
