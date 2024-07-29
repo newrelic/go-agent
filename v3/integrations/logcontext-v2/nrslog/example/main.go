@@ -12,10 +12,9 @@ import (
 
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Slog Logs In Context Example"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigDebugLogger(os.Stdout),
-		newrelic.ConfigAppLogForwardingEnabled(true),
+		newrelic.ConfigAppName("slog example app"),
+		newrelic.ConfigFromEnvironment(),
+		newrelic.ConfigAppLogEnabled(true),
 	)
 	if err != nil {
 		panic(err)

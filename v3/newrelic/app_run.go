@@ -99,7 +99,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	if v := run.Reply.ServerSideConfig.ErrorCollectorExpectStatusCodes; v != nil {
 		run.Config.ErrorCollector.ExpectStatusCodes = v
 	}
-	if run.Config.ErrorCollector.IgnoreStatusCodes != nil {
+	if run.Config.ErrorCollector.ExpectStatusCodes != nil {
 		run.mu.Lock()
 		for _, errorCode := range run.Config.ErrorCollector.ExpectStatusCodes {
 			run.expectErrorCodesCache[errorCode] = true
