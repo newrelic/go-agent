@@ -218,3 +218,39 @@ func TestLogInContext(t *testing.T) {
 
 	txn.End()
 }
+
+func TestLogInContextWithFields(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	out := bytes.NewBuffer([]byte{})
+	log := newTextLogger(out, app.Application)
+	txn := app.StartTransaction("test txn")
+
+	ctx := newrelic.NewContext(context.Background(), txn)
+	message := "Hello World!"
+	log.WithField("hi", 1).WithContext(ctx).Info(message)
+
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+		TraceID:    txn.GetLinkingMetadata().TraceID,
+		SpanID:     txn.GetLinkingMetadata().SpanID,
+	})
+	txn.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  logrus.InfoLevel.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			SpanID:    txn.GetLinkingMetadata().SpanID,
+			TraceID:   txn.GetLinkingMetadata().TraceID,
+			Attributes: map[string]interface{}{
+				"hi": 1,
+			},
+		},
+	})
+
+	txn.End()
+}
