@@ -545,14 +545,14 @@ func (txn *Transaction) IsSampled() bool {
 	return txn.thread.IsSampled()
 }
 
-func (txn *Transaction) GetCsecAttributes() any {
+func (txn *Transaction) GetCsecAttributes() map[string]any {
 	if txn == nil || txn.thread == nil {
 		return nil
 	}
 	return txn.thread.getCsecAttributes()
 }
 
-func (txn *Transaction) SetCsecAttributes(key, value string) {
+func (txn *Transaction) SetCsecAttributes(key string, value any) {
 	if txn == nil || txn.thread == nil {
 		return
 	}

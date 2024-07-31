@@ -82,6 +82,8 @@ func (Extension) ValidationDidStart(ctx context.Context) (context.Context, graph
 func (Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	txn := newrelic.FromContext(ctx)
 	seg := txn.StartSegment("Execution")
+	csecData := newrelic.GetSecurityAgentInterface().SendEvent("NEW_GOROUTINE", "")
+	txn.SetCsecAttributes("CSEC_DATA", csecData)
 	return ctx, func(res *graphql.Result) {
 		// noticing here also captures those during resolve
 		for _, err := range res.Errors {
@@ -94,7 +96,11 @@ func (Extension) ExecutionDidStart(ctx context.Context) (context.Context, graphq
 // ResolveFieldDidStart is called at the start of the resolving of a field
 func (Extension) ResolveFieldDidStart(ctx context.Context, i *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
 	seg := newrelic.FromContext(ctx).StartSegment("ResolveField:" + i.FieldName)
+	txn := newrelic.FromContext(ctx)
+	a := txn.GetCsecAttributes()["CSEC_DATA"]
+	newrelic.GetSecurityAgentInterface().SendEvent("NEW_GOROUTINE_LINKER", a)
 	return ctx, func(interface{}, error) {
+		newrelic.GetSecurityAgentInterface().SendEvent("NEW_GOROUTINE_END", "")
 		seg.End()
 	}
 }
