@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	nraws "github.com/newrelic/go-agent/v3/integrations/nrawssdk-v2"
+	"github.com/newrelic/go-agent/v3/integrations/nrawssdk-v2"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -39,13 +39,14 @@ func main() {
 	txn := app.StartTransaction("My sample transaction")
 
 	ctx := context.Background()
-	awsConfig, err := config.LoadDefaultConfig(ctx)
+	awsConfig, err := config.LoadDefaultConfig(ctx, func(awsConfig *config.LoadOptions) error {
+		// Instrument all new AWS clients with New Relic
+		nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, nil)
+		return nil
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Instrument all new AWS clients with New Relic
-	nraws.AppendMiddlewares(&awsConfig.APIOptions, nil)
 
 	s3Client := s3.NewFromConfig(awsConfig)
 	output, err := s3Client.ListBuckets(ctx, nil)
