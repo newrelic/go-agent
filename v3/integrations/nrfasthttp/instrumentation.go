@@ -50,7 +50,9 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 	if app == nil {
 		return pattern, handler
 	}
-
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+	}
 	// add the wrapped function to the trace options as the source code reference point
 	// (but only if we know we're collecting CLM for this transaction and the user didn't already
 	// specify a different code location explicitly).
@@ -66,6 +68,9 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 		fasthttpadaptor.ConvertRequest(ctx, r, true)
 		resp := fasthttpWrapperResponse{ctx: ctx}
 
+		if newrelic.IsSecurityAgentPresent() {
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, pattern)
+		}
 		txn.SetWebResponse(resp)
 		txn.SetWebRequestHTTP(r)
 
@@ -76,6 +81,7 @@ func WrapHandle(app *newrelic.Application, pattern string, handler fasthttp.Requ
 				header.Add("Set-Cookie", string(value))
 			})
 			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_WRITE", resp.Body(), header)
+			newrelic.GetSecurityAgentInterface().SendEvent("INBOUND_RESPONSE_CODE", ctx.Response.StatusCode())
 		}
 	}
 }

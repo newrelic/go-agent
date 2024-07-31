@@ -5,6 +5,8 @@ package newrelic
 
 import (
 	"net/http"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // instrumentation.go contains helpers built on the lower level api.
@@ -42,6 +44,10 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 	// specify a different code location explicitly).
 	cache := NewCachedCodeLocation()
 
+	if IsSecurityAgentPresent() {
+		secureAgent.SendEvent("API_END_POINTS", pattern, "*", internal.HandlerName(handler))
+	}
+
 	return pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tOptions *traceOptSet
 		var txnOptionList []TraceOption
@@ -66,7 +72,9 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 
 		txn := app.StartTransaction(r.Method+" "+pattern, txnOptionList...)
 		defer txn.End()
-
+		if IsSecurityAgentPresent() {
+			txn.SetCsecAttributes(AttributeCsecRoute, pattern)
+		}
 		w = txn.SetWebResponse(w)
 		txn.SetWebRequestHTTP(r)
 

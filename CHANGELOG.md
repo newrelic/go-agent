@@ -1,3 +1,130 @@
+## 3.33.1
+### Added
+   - Increased max span events default limit to 2,000 to align with agent specifications
+   - Added support for gRPC API endpoints and HTTP status codes in the nrsecurity integration
+   - Added feature to detect route of an incoming request for all supported frameworks in the nrsecurity integration.
+   - Updated support for latest New Relic Security Agent release.
+### Fixed
+   - Fixed an issue with nrzap attributes not properly being forwarded
+   - Improved comments on nropenai
+   - Fixed a minor bug relating to ExpectStatusCodes in `app_run.go`
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.33.0
+### Added
+- Support for Zap Field Attributes
+- Updated dependency on csec-go-agent in nrsecurityagent
+### Fixed
+- Fixed an issue where running containers on AWS would falsely flag Azure Utilization
+- Fixed a typo with nrecho-v3
+- Changed nrslog example to use a context driven handler
+
+These changes increment the affected integration package version numbers to:
+- nrsecurityagent v1.3.1
+- nrecho-v3 v1.1.1
+- logcontext-v2/nrslog v1.2.0
+- logcontext-v2/nrzap v1.2.0
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+## 3.32.0
+### Added
+ * Updates to support for the New Relic security agent to report API endpoints.
+    * Adds new wrapper function for the `nrecho`, `nrgin`, and `nrgorilla` integrations.
+ * Handler to take New Relic transaction data from context automatically when using `nrslog` integration (thanks, @adomaskizogian!) 
+
+### Fixed
+ * Adds missing license file to the `nropenai` integration.
+ * Changes `*bedrockruntime.Client` parameters in `nrawsbedrock` integration to use a more general interface type, allowing the use of custom types which extend the bedrock client type.
+ * Fixes `pgx5` pool example
+ * Updated unit tests to check `Transaction.Ignore`
+ * Updated `nrzap` unit tests to add background logger sugared test case.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.31.0
+### Added
+ * Integration packages to instrument AI model invocations (see below).
+    * New package nrawsbedrock v1.0.0 introduced to instrument calls to Amazon Bedrock Runtime Client API `InvokeModel` and `InvokeModelWithResponseStream` calls. Also provides a simple one-step method which invokes stream invocations and harvests the response stream data for you.
+    * New package nropenai v1.0.0 introduced to instrument calls to OpenAI using `NRCreateChatCompletion`, `NRCreateChatCompletionStream`, and `NRCreateEmbedding` calls.
+    * Dockerfile in the `examples/server` sample app which facilitates the easy creation of a containerized ready-to-run sample app for situations where that makes testing easier.
+
+### Fixed
+ * `.Ignore` was not ignoring transaction. Fixes [Issue #845](https://github.com/newrelic/go-agent/issues/845).
+ * Added nil error check in wrap function. Fixes [Issue #862](https://github.com/newrelic/go-agent/issues/862).
+ * `WrapBackgroundCore` background logger was not sending logs to New Relic. Fixes [Issue #859](https://github.com/newrelic/go-agent/issues/859).
+ * Corrected pgx5 integration example which caused a race condition. Thanks to @WillAbides! Fixes [Issue #855](https://github.com/newrelic/go-agent/issues/855).
+ * Updated third-party library versions due to reported security or other supportability issues:
+    * `github.com/jackc/pgx/v5` to 5.5.4 in `nrpgx5` integration
+    * `google.gopang.org/protobuf` to 1.33.0 in `nrmicro` and `nrgrpc` integrations
+    * `github.com/jackc/pgx/v4` to 4.18.2 in `nrpgx` integration
+
+### AI Monitoring Configuration
+New configuration options are available specific to AI monitoring. These settings include:
+   * `AIMonitoring.Enabled`, configured via `ConfigAIMonitoring.Enabled(`_bool_`)` [default `false`]
+   * `AIMonitoring.Streaming.Enabled`, configured via `ConfigAIMonitoringStreamingEnabled(`_bool_`)` [default `true`]
+   * `AIMonitoring.Content.Enabled`, configured via `ConfigAIMonitoringContentEnabled(`_bool_`)` [default `true`]
+
+### AI Monitoring Public API Methods
+Two new AI monitoring related public API methods have been added, as methods of the `newrelic.Application` value returned by `newrelic.NewApplication`:
+   * [app.RecordLLMFeedbackEvent](https://pkg.go.dev/github.com/newrelic/go-agent/v3/newrelic#Application.RecordLLMFeedbackEvent)
+   * [app.SetLLMTokenCountCallback](https://pkg.go.dev/github.com/newrelic/go-agent/v3/newrelic#Application.SetLLMTokenCountCallback)
+
+### AI Monitoring
+New Relic AI monitoring is the industry’s first APM solution that provides end-to-end visibility for AI Large Language Model (LLM) applications. It enables end-to-end visibility into the key components of an AI LLM application. With AI monitoring, users can monitor, alert, and debug AI-powered applications for reliability, latency, performance, security and cost. AI monitoring also enables AI/LLM specific insights (metrics, events, logs and traces) which can easily integrate to build advanced guardrails for enterprise security, privacy and compliance.
+
+AI monitoring offers custom-built insights and tracing for the complete lifecycle of an LLM’s prompts and responses, from raw user input to repaired/polished responses. AI monitoring provides built-in integrations with popular LLMs and components of the AI development stack. This release provides instrumentation for [OpenAI](https://pkg.go.dev/github.com/newrelic/go-agent/v3/integrations/nropenai)
+and [Bedrock](https://pkg.go.dev/github.com/newrelic/go-agent/v3/integrations/nrawsbedrock).
+
+When AI monitoring is enabled with `ConfigAIMonitoringEnabled(true)`, the agent will now capture AI LLM related data. This data will be visible under a new APM tab called AI Responses. See our [AI Monitoring documentation](https://docs.newrelic.com/docs/ai-monitoring/intro-to-ai-monitoring/) for more details.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+
+## 3.30.0
+### Added
+ * Updated the depencency on nrsecurityagent to 1.0.0.
+ * Added new integration, logcontext-v2/nrslog, which instruments logging via the new slog library.
+
+### Fixed
+ * Redacts license keys from error reporting.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.29.1
+### Added
+ * Added Dockerized Unit Tests for Github Actions (internal build support)
+
+### Fixes
+ * Updated version of New Relic Security Agent (enables bug fixes released in that agent code for use with the Go Agent).
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.29.0
+### Added
+ * Security agent integration `nrsecurityagent` now reports security configuraiton information along with the overall Go Agent configuration values. (Updates `nrsecurityagent` to v1.2.0.)
+ * Code-Level Metrics collection efficiency enhancement allows user callback function for as-needed (and just-in-time) evaluation of custom code locations rather than up-front location overrides, via the `WithCodeLocationCallback` CLM option. Deprecates `WithCodeLocation` option (although the latter function is still supported for compatibility with existing code).
+ * Added extended synthetics support for new `X-Newrelic-Synthetics-Info` HTTP headers.
+ * Documentation fixes.
+ * Removed deprecated `ROADMAP.md` file.
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.28.1
 ### Added
 Added Supportability Metrics to `nrfasthttp` (brings `nrfasthttp` version to v1.0.1).
@@ -8,7 +135,7 @@ Fixed an issue where `nil` `Request.Body` could be set to non-`nil` `request.Bod
 More Secure URL Redaction
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.28.0
 ### Fixed
@@ -22,7 +149,7 @@ See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol
 
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
 
-See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 
 ## 3.27.0
@@ -1128,7 +1255,7 @@ feedback that you would like to pass along, please open up an issue
 [here](https://github.com/newrelic/go-agent/issues/new) and be sure to include
 the label `3.0`.
   * For normal (non-3.0) issues/questions we request that you report them via
-   our [support site](http://support.newrelic.com/) or our
+   our [support site](https://support.newrelic.com/) or our
    [community forum](https://discuss.newrelic.com). Please only report
    questions related to the 3.0 pre-release directly via GitHub.
 
@@ -1162,7 +1289,7 @@ include:
 ### Bug Fixes
 
 * Fixed an issue in the
-  [`nrhttprouter`](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  [`nrhttprouter`](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
   integration where the transaction was not being added to the requests
   context.  This resulted in an inability to access the transaction from within
   an
@@ -1208,7 +1335,7 @@ package.
   // (see https://docs.newrelic.com/docs/understand-dependencies/distributed-tracing/enable-configure/enable-distributed-tracing)
   txn := currentTxn()
 
-  req, err := http.NewRequest("GET", "http://example.com", nil)
+  req, err := http.NewRequest("GET", "https://example.com", nil)
   if nil != err {
       log.Fatalln(err)
   }
@@ -1384,9 +1511,9 @@ It can be configured as follows:
 ### New Features
 
 * Added support for [HttpRouter](https://github.com/julienschmidt/httprouter) in
-  the new [_integrations/nrhttprouter](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
+  the new [_integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter) package.  This package allows you to easily instrument inbound requests through the HttpRouter framework.
 
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrhttprouter)
   * [Example](_integrations/nrhttprouter/example/main.go)
 
 * Added support for [github.com/uber-go/zap](https://github.com/uber-go/zap) in
@@ -1469,7 +1596,7 @@ package.  This package supports instrumentation for servers, clients, publishers
 * Added support for creating static `WebRequest` instances manually via the `NewStaticWebRequest` function. This can be useful when you want to create a web transaction but don't have an `http.Request` object. Here's an example of creating a static `WebRequest` and using it to mark a transaction as a web transaction:
   ```go
   hdrs := http.Headers{}
-  u, _ := url.Parse("http://example.com")
+  u, _ := url.Parse("https://example.com")
   webReq := newrelic.NewStaticWebRequest(hdrs, u, "GET", newrelic.TransportHTTP)
   txn := app.StartTransaction("My-Transaction", nil, nil)
   txn.SetWebRequest(webReq)
@@ -1701,8 +1828,8 @@ package.  This package supports instrumentation for servers and clients.
   When using these SDKs, a segment will be created for each out going request.
   For DynamoDB calls, these will be Datastore segments and for all others they
   will be External segments.
-  * [v1 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
-  * [v2 Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
+  * [v1 Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v1)
+  * [v2 Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrawssdk/v2)
 
 * Added span event and transaction trace segment attribute configuration.  You
   may control which attributes are captured in span events and transaction trace
@@ -1801,7 +1928,7 @@ txn.Application().RecordCustomEvent("customerOrder", map[string]interface{}{
 
 * Added support for [Echo](https://echo.labstack.com) in the new `nrecho`
   package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrecho)
   * [Example](_integrations/nrecho/example/main.go)
 
 * Introduced `Transaction.SetWebResponse(http.ResponseWriter)` method which sets
@@ -1864,7 +1991,7 @@ transactions.  Example use:
 ```go
 client := &http.Client{}
 client.Transport = newrelic.NewRoundTripper(nil, client.Transport)
-request, _ := http.NewRequest("GET", "http://example.com", nil)
+request, _ := http.NewRequest("GET", "https://example.com", nil)
 request = newrelic.RequestWithTransactionContext(request, txn)
 resp, err := client.Do(request)
 ```
@@ -2027,7 +2154,7 @@ txn.NoticeError(newrelic.Error{
 
 * Added support for [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin)
   in the new `nrgin` package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgin/v1)
   * [Example](examples/_gin/main.go)
 
 ## 1.8.0
@@ -2040,9 +2167,9 @@ txn.NoticeError(newrelic.Error{
 
 ## 1.7.0
 
-* Added support for [gorilla/mux](http://github.com/gorilla/mux) in the new `nrgorilla`
+* Added support for [gorilla/mux](https://github.com/gorilla/mux) in the new `nrgorilla`
   package.
-  * [Documentation](http://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
+  * [Documentation](https://godoc.org/github.com/newrelic/go-agent/_integrations/nrgorilla/v1)
   * [Example](examples/_gorilla/main.go)
 
 ## 1.6.0

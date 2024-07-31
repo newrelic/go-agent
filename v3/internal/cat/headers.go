@@ -13,4 +13,5 @@ const (
 	NewRelicTxnName        = "X-Newrelic-Transaction"
 	NewRelicAppDataName    = "X-Newrelic-App-Data"
 	NewRelicSyntheticsName = "X-Newrelic-Synthetics"
+	NewRelicSyntheticsInfo = "X-Newrelic-Synthetics-Info"
 )

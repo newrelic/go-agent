@@ -28,7 +28,9 @@ func gatherAzure(util *Data, client *http.Client) error {
 	if err != nil {
 		// Only return the error here if it is unexpected to prevent
 		// warning customers who aren't running Azure about a timeout.
-		if _, ok := err.(unexpectedAzureErr); ok {
+		// If any of the other vendors have already been detected and set, and we have an error, we should not return the error
+		// If no vendors have been detected, we should return the error.
+		if _, ok := err.(unexpectedAzureErr); ok && !util.Vendors.AnySet() {
 			return err
 		}
 		return nil
