@@ -1,9 +1,6 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//go:build go1.10
-// +build go1.10
-
 // Package nrmssql instruments github.com/microsoft/go-mssqldb.
 //
 // Use this package to instrument your MSSQL calls without having to manually

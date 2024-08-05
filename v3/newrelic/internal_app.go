@@ -255,7 +255,7 @@ func (app *app) process() {
 
 			// Remove the run before merging any final data to
 			// ensure a bounded number of receives from dataChan.
-			app.setState(nil, errors.New("application shut down"))
+			app.setState(nil, errApplicationShutDown)
 
 			if obs := app.getObserver(); obs != nil {
 				if err := obs.shutdown(timeout); err != nil {
@@ -541,6 +541,7 @@ var (
 	errHighSecurityEnabled        = errors.New("high security enabled")
 	errCustomEventsDisabled       = errors.New("custom events disabled")
 	errCustomEventsRemoteDisabled = errors.New("custom events disabled by server")
+	errApplicationShutDown        = errors.New("application shut down")
 )
 
 // RecordCustomEvent implements newrelic.Application's RecordCustomEvent.

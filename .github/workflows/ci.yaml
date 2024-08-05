@@ -4,7 +4,7 @@ name: Go Agent CI
 on: pull_request
 env:
   # Specifies which go version to run integration tests on
-  INTEGRATION_TESTS_GO_VERSION: 1.21.5
+  INTEGRATION_TESTS_GO_VERSION: latest
 
 jobs:
   go-agent-v3:
@@ -15,11 +15,13 @@ jobs:
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.19.0
+          - go-version: 1.20.14
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.20.0
+          - go-version: 1.21
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.21.0
+          - go-version: latest
+            dirs: v3/newrelic,v3/internal,v3/examples
+          - go-version: 1.23rc2
             dirs: v3/newrelic,v3/internal,v3/examples
 
             # Integration Tests on highest Supported Go Version
@@ -68,6 +70,7 @@ jobs:
           - dirs: v3/integrations/nrgraphqlgo,v3/integrations/nrgraphqlgo/example
           - dirs: v3/integrations/nrmssql
           - dirs: v3/integrations/nropenai
+          - dirs: v3/integrations/nrslog
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -106,11 +109,11 @@ jobs:
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.19.0
+          - go-version: 1.20.14
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.20.0
+          - go-version: 1.21
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.21.0
+          - go-version: latest
             dirs: v3/newrelic,v3/internal,v3/examples
     steps:
     - name: Checkout Code

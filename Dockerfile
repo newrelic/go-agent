@@ -1,6 +1,6 @@
 # This file is used to build the docker image for the Go Agent's GitHub Action tests
 # Default go version if no arguments passed in
-ARG GO_VERSION=1.19
+ARG GO_VERSION=1.20
 
 # Takes in go version
 FROM golang:${GO_VERSION} as builder
