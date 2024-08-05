@@ -54,7 +54,7 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 	data := newrelic.LogData{}
 	data.Message = string(log)
 	data.Timestamp = time.Now().UnixMilli()
-
+	data.Attributes = make(map[string]any)
 	for i := 0; i < len(log)-1; {
 		// get key; always a string field
 		key, valStart := getKey(log, i)
@@ -70,11 +70,19 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 			if i >= len(log)-1 {
 				return data
 			}
-			// TODO: once we update the logging spec to support custom attributes, capture these
+
 			if isStringValue(log, valStart) {
-				_, next = getStringValue(log, valStart+1)
+				strVal := ""
+				strVal, next = getStringValue(log, valStart+1)
+				// If the key is message skip adding it to attributes
+				if key != "message" {
+					data.Attributes[key] = strVal
+
+				}
 			} else if isNumberValue(log, valStart) {
-				_, next = getNumberValue(log, valStart)
+				numVal := ""
+				numVal, next = getNumberValue(log, valStart)
+				data.Attributes[key] = numVal
 			} else {
 				return data
 			}
