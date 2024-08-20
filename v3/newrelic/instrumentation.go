@@ -81,6 +81,9 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 		r = RequestWithTransactionContext(r, txn)
 
 		handler.ServeHTTP(w, r)
+		if IsSecurityAgentPresent() {
+			secureAgent.SendEvent("RESPONSE_HEADER", w.Header())
+		}
 	})
 }
 
