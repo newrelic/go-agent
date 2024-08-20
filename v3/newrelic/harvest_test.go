@@ -315,6 +315,7 @@ func TestHarvestLogEventsReady(t *testing.T) {
 	})
 
 	logEvent := logEvent{
+		nil,
 		0.5,
 		123456,
 		"INFO",
@@ -576,6 +577,7 @@ func TestMergeFailedHarvest(t *testing.T) {
 	}, 0)
 
 	logEvent := logEvent{
+		nil,
 		0.5,
 		123456,
 		"INFO",

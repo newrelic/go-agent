@@ -144,6 +144,25 @@ func MiddlewareHandlerTxnNames(app *newrelic.Application) gin.HandlerFunc {
 	return middleware(app, false)
 }
 
+// WrapRouter extracts API endpoints from the router instance passed to it
+// which is used to detect application URL mapping(api-endpoints) for provable security.
+// In this version of the integration, this wrapper is only necessary if you are using the New Relic security agent integration [https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrsecurityagent],
+// but it may be enhanced to provide additional functionality in future releases.
+//
+//	router := gin.Default()
+//	....
+//	....
+//	....
+//
+//	nrgin.WrapRouter(router)
+func WrapRouter(engine *gin.Engine) {
+	if engine != nil && newrelic.IsSecurityAgentPresent() {
+		router := engine.Routes()
+		for _, r := range router {
+			newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", r.Path, r.Method, internal.HandlerName(r.HandlerFunc))
+		}
+	}
+}
 func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if app != nil {
@@ -151,6 +170,9 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 
 			w := &headerResponseWriter{w: c.Writer}
 			txn := app.StartTransaction(name, newrelic.WithFunctionLocation(c.Handler()))
+			if newrelic.IsSecurityAgentPresent() {
+				txn.SetCsecAttributes(newrelic.AttributeCsecRoute, c.FullPath())
+			}
 			txn.SetWebRequestHTTP(c.Request)
 			defer txn.End()
 

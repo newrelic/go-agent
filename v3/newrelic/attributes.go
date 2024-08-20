@@ -56,6 +56,8 @@ const (
 	AttributeErrorGroupName = "error.group.name"
 	// AttributeUserID tracks the user a transaction and its child events are impacting
 	AttributeUserID = "enduser.id"
+	// AttributeLLM tracks LLM transactions
+	AttributeLLM = "llm"
 )
 
 // Attributes destined for Errors and Transaction Traces:

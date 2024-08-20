@@ -36,19 +36,20 @@ func loggingConfigEnabled(limit int) loggingConfig {
 	}
 }
 
-func sampleLogEvent(priority priority, severity, message string) *logEvent {
+func sampleLogEvent(priority priority, severity, message string, attributes map[string]any) *logEvent {
 	return &logEvent{
-		priority:  priority,
-		severity:  severity,
-		message:   message,
-		timestamp: 123456,
+		priority:   priority,
+		severity:   severity,
+		message:    message,
+		attributes: attributes,
+		timestamp:  123456,
 	}
 }
 
 func TestBasicLogEvents(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(5))
-	events.Add(sampleLogEvent(0.5, infoLevel, "message1"))
-	events.Add(sampleLogEvent(0.5, infoLevel, "message2"))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message1", nil))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message2", nil))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -70,6 +71,53 @@ func TestBasicLogEvents(t *testing.T) {
 	}
 }
 
+type testStruct struct {
+	A string
+	B int
+	C c
+}
+
+type c struct {
+	D string
+}
+
+func TestBasicLogEventWithAttributes(t *testing.T) {
+	st := testStruct{
+		A: "a",
+		B: 1,
+		C: c{"hello"},
+	}
+
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(5))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message1", map[string]any{"two": "hi"}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message2", map[string]any{"struct": st}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message3", map[string]any{"map": map[string]string{"hi": "hello"}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message4", map[string]any{"slice": []string{"hi", "hello", "test"}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message5", map[string]any{"array": [2]int{1, 2}}))
+
+	json, err := events.CollectorJSON(agentRunID)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	expected := commonJSON +
+		`{"level":"INFO","message":"message1","timestamp":123456,"attributes":{"two":"hi"}},` +
+		`{"level":"INFO","message":"message2","timestamp":123456,"attributes":{"struct":"{\"A\":\"a\",\"B\":1,\"C\":{\"D\":\"hello\"}}"}},` +
+		`{"level":"INFO","message":"message3","timestamp":123456,"attributes":{"map":"{\"hi\":\"hello\"}"}},` +
+		`{"level":"INFO","message":"message4","timestamp":123456,"attributes":{"slice":"[\"hi\",\"hello\",\"test\"]"}},` +
+		`{"level":"INFO","message":"message5","timestamp":123456,"attributes":{"array":"[1,2]"}}]}]`
+
+	if string(json) != expected {
+		t.Error("actual not equal to expected:\n", string(json), "\n", expected)
+	}
+	if events.numSeen != 5 {
+		t.Error(events.numSeen)
+	}
+	if events.NumSaved() != 5 {
+		t.Error(events.NumSaved())
+	}
+}
+
 func TestEmptyLogEvents(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	json, err := events.CollectorJSON(agentRunID)
@@ -79,10 +127,10 @@ func TestEmptyLogEvents(t *testing.T) {
 	if nil != json {
 		t.Error(string(json))
 	}
-	if 0 != events.numSeen {
+	if events.numSeen != 0 {
 		t.Error(events.numSeen)
 	}
-	if 0 != events.NumSaved() {
+	if events.NumSaved() != 0 {
 		t.Error(events.NumSaved())
 	}
 }
@@ -91,12 +139,12 @@ func TestEmptyLogEvents(t *testing.T) {
 func TestSamplingLogEvents(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
-	events.Add(sampleLogEvent(0.999999, infoLevel, "a"))
-	events.Add(sampleLogEvent(0.1, infoLevel, "b"))
-	events.Add(sampleLogEvent(0.9, infoLevel, "c"))
-	events.Add(sampleLogEvent(0.2, infoLevel, "d"))
-	events.Add(sampleLogEvent(0.8, infoLevel, "e"))
-	events.Add(sampleLogEvent(0.3, infoLevel, "f"))
+	events.Add(sampleLogEvent(0.999999, infoLevel, "a", nil))
+	events.Add(sampleLogEvent(0.1, infoLevel, "b", nil))
+	events.Add(sampleLogEvent(0.9, infoLevel, "c", nil))
+	events.Add(sampleLogEvent(0.2, infoLevel, "d", nil))
+	events.Add(sampleLogEvent(0.8, infoLevel, "e", nil))
+	events.Add(sampleLogEvent(0.3, infoLevel, "f", nil))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -141,14 +189,14 @@ func TestMergeFullLogEvents(t *testing.T) {
 	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
 	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
-	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
-	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
-	e1.Add(sampleLogEvent(0.25, infoLevel, "c"))
+	e1.Add(sampleLogEvent(0.1, infoLevel, "a", nil))
+	e1.Add(sampleLogEvent(0.15, infoLevel, "b", nil))
+	e1.Add(sampleLogEvent(0.25, infoLevel, "c", nil))
 
-	e2.Add(sampleLogEvent(0.06, infoLevel, "d"))
-	e2.Add(sampleLogEvent(0.12, infoLevel, "e"))
-	e2.Add(sampleLogEvent(0.18, infoLevel, "f"))
-	e2.Add(sampleLogEvent(0.24, infoLevel, "g"))
+	e2.Add(sampleLogEvent(0.06, infoLevel, "d", nil))
+	e2.Add(sampleLogEvent(0.12, infoLevel, "e", nil))
+	e2.Add(sampleLogEvent(0.18, infoLevel, "f", nil))
+	e2.Add(sampleLogEvent(0.24, infoLevel, "g", nil))
 
 	e1.Merge(e2)
 	json, err := e1.CollectorJSON(agentRunID)
@@ -176,14 +224,14 @@ func TestLogEventMergeFailedSuccess(t *testing.T) {
 	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
 	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
-	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
-	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
-	e1.Add(sampleLogEvent(0.25, infoLevel, "c"))
+	e1.Add(sampleLogEvent(0.1, infoLevel, "a", nil))
+	e1.Add(sampleLogEvent(0.15, infoLevel, "b", nil))
+	e1.Add(sampleLogEvent(0.25, infoLevel, "c", nil))
 
-	e2.Add(sampleLogEvent(0.06, infoLevel, "d"))
-	e2.Add(sampleLogEvent(0.12, infoLevel, "e"))
-	e2.Add(sampleLogEvent(0.18, infoLevel, "f"))
-	e2.Add(sampleLogEvent(0.24, infoLevel, "g"))
+	e2.Add(sampleLogEvent(0.06, infoLevel, "d", nil))
+	e2.Add(sampleLogEvent(0.12, infoLevel, "e", nil))
+	e2.Add(sampleLogEvent(0.18, infoLevel, "f", nil))
+	e2.Add(sampleLogEvent(0.24, infoLevel, "g", nil))
 
 	e1.mergeFailed(e2)
 
@@ -214,14 +262,14 @@ func TestLogEventMergeFailedLimitReached(t *testing.T) {
 	e1 := newLogEvents(testCommonAttributes, loggingConfigEnabled(2))
 	e2 := newLogEvents(testCommonAttributes, loggingConfigEnabled(3))
 
-	e1.Add(sampleLogEvent(0.1, infoLevel, "a"))
-	e1.Add(sampleLogEvent(0.15, infoLevel, "b"))
-	e1.Add(sampleLogEvent(0.25, infoLevel, "c"))
+	e1.Add(sampleLogEvent(0.1, infoLevel, "a", nil))
+	e1.Add(sampleLogEvent(0.15, infoLevel, "b", nil))
+	e1.Add(sampleLogEvent(0.25, infoLevel, "c", nil))
 
-	e2.Add(sampleLogEvent(0.06, infoLevel, "d"))
-	e2.Add(sampleLogEvent(0.12, infoLevel, "e"))
-	e2.Add(sampleLogEvent(0.18, infoLevel, "f"))
-	e2.Add(sampleLogEvent(0.24, infoLevel, "g"))
+	e2.Add(sampleLogEvent(0.06, infoLevel, "d", nil))
+	e2.Add(sampleLogEvent(0.12, infoLevel, "e", nil))
+	e2.Add(sampleLogEvent(0.18, infoLevel, "f", nil))
+	e2.Add(sampleLogEvent(0.24, infoLevel, "g", nil))
 
 	e2.failedHarvests = failedEventsAttemptsLimit
 
@@ -253,7 +301,7 @@ func TestLogEventsSplitFull(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	for i := 0; i < 15; i++ {
 		priority := priority(float32(i) / 10.0)
-		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority), nil))
 	}
 	// Test that the capacity cannot exceed the max.
 	if 10 != events.capacity() {
@@ -292,7 +340,7 @@ func TestLogEventsSplitNotFullOdd(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	for i := 0; i < 7; i++ {
 		priority := priority(float32(i) / 10.0)
-		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority), nil))
 	}
 	e1, e2 := events.split()
 	j1, err1 := e1.CollectorJSON(agentRunID)
@@ -322,7 +370,7 @@ func TestLogEventsSplitNotFullEven(t *testing.T) {
 	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(10))
 	for i := 0; i < 8; i++ {
 		priority := priority(float32(i) / 10.0)
-		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority)))
+		events.Add(sampleLogEvent(priority, "INFO", fmt.Sprint(priority), nil))
 	}
 	e1, e2 := events.split()
 	j1, err1 := e1.CollectorJSON(agentRunID)
@@ -356,7 +404,7 @@ func TestLogEventsZeroCapacity(t *testing.T) {
 	if 0 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
 		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
 	}
-	events.Add(sampleLogEvent(0.5, "INFO", "TEST"))
+	events.Add(sampleLogEvent(0.5, "INFO", "TEST", nil))
 	if 1 != events.NumSeen() || 0 != events.NumSaved() || 0 != events.capacity() {
 		t.Error(events.NumSeen(), events.NumSaved(), events.capacity())
 	}
@@ -375,7 +423,7 @@ func TestLogEventCollectionDisabled(t *testing.T) {
 	if 0 != events.NumSeen() || 0 != len(events.severityCount) || 0 != events.NumSaved() || 5 != events.capacity() {
 		t.Error(events.NumSeen(), len(events.severityCount), events.NumSaved(), events.capacity())
 	}
-	events.Add(sampleLogEvent(0.5, "INFO", "TEST"))
+	events.Add(sampleLogEvent(0.5, "INFO", "TEST", nil))
 	if 1 != events.NumSeen() || 1 != len(events.severityCount) || 0 != events.NumSaved() || 5 != events.capacity() {
 		t.Error(events.NumSeen(), len(events.severityCount), events.NumSaved(), events.capacity())
 	}
@@ -467,6 +515,7 @@ func BenchmarkRecordLoggingMetrics(b *testing.B) {
 
 	for i := 0; i < internal.MaxLogEvents; i++ {
 		logEvent := logEvent{
+			nil,
 			newPriority(),
 			123456,
 			"INFO",

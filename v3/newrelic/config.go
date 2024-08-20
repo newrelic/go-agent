@@ -235,6 +235,17 @@ type Config struct {
 		DynoNamePrefixesToShorten []string
 	}
 
+	// AIMonitoring controls the behavior of AI monitoring features.
+	AIMonitoring struct {
+		Enabled bool
+		// Indicates whether streams will be instrumented
+		Streaming struct {
+			Enabled bool
+		}
+		RecordContent struct {
+			Enabled bool
+		}
+	}
 	// CrossApplicationTracer controls behavior relating to cross application
 	// tracing (CAT).  In the case where CrossApplicationTracer and
 	// DistributedTracer are both enabled, DistributedTracer takes precedence.
@@ -571,6 +582,15 @@ type ApplicationLogging struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
+	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
+	// during log collection, slowing down the execution of the line of code that will write the log. If your
+	// application collects logs at a high frequency or volume, or it can not afford the slowdown of marshaling objects
+	// before sending them to new relic, we can marshal them asynchronously in the backend during harvests by setting
+	// this to false using ConfigZapAttributesEncoder(false).
+	ZapLogger struct {
+		// Toggles whether zap logger field attributes are frontloaded with the zapcore.NewMapObjectEncoder or marshalled at harvest time
+		AttributesFrontloaded bool
+	}
 }
 
 // AttributeDestinationConfig controls the attributes sent to each destination.
@@ -643,7 +663,7 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
-
+	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
@@ -667,6 +687,9 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
+	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Streaming.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = true
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 

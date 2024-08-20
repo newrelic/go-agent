@@ -455,7 +455,7 @@ var _ newrelic.ErrorAttributer = MyErrorType{}
   ```go
   client := &http.Client{}
   client.Transport = newrelic.NewRoundTripper(txn, client.Transport)
-  req, _ := http.NewRequest("GET", "http://example.com", nil)
+  req, _ := http.NewRequest("GET", "https://example.com", nil)
   client.Do(req)
   ```
 

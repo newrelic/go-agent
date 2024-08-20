@@ -102,13 +102,23 @@ package primitives can be found [here](GUIDE.md#datastore-segments).
 | [snowflakedb/gosnowflake](https://github.com/snowflakedb/gosnowflake) | [v3/integrations/nrsnowflake](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrsnowflake) | Instrument Snowflake driver |
 | [mongodb/mongo-go-driver](https://github.com/mongodb/mongo-go-driver) | [v3/integrations/nrmongo](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmongo) | Instrument MongoDB calls |
 
-#### Agent Logging
+#### AI
 
 | Project | Integration Package |  |
 | ------------- | ------------- | - |
-| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus |
-| [mgutz/logxi](https://github.com/mgutz/logxi) | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi) | Send agent log messages to Logxi |
-| [uber-go/zap](https://github.com/uber-go/zap) | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap) | Send agent log messages to Zap |
+| [sashabaranov/go-openai](https://github.com/sashabaranov/go-openai) | [v3/integrations/nropenai](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nropenai) | Send AI Monitoring Events with OpenAI |
+| [aws/aws-sdk-go-v2/tree/main/service/bedrockruntime](https://github.com/aws/aws-sdk-go-v2/tree/main/service/bedrockruntime) | [v3/integrations/nrawsbedrock](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrawsbedrock) | Send AI Monitoring Events with AWS Bedrock |
+
+
+#### Agent Logging
+
+| Project                                               | Integration Package                                                                                 |                                       |
+|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------|---------------------------------------|
+| [sirupsen/logrus](https://github.com/sirupsen/logrus) | [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus) | Send agent log messages to Logrus     |
+| [mgutz/logxi](https://github.com/mgutz/logxi)         | [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi)   | Send agent log messages to Logxi      |
+| [uber-go/zap](https://github.com/uber-go/zap)         | [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap)       | Send agent log messages to Zap        |
+| [log/slog](https://pkg.go.dev/log/slog)               | [v3/integrations/nrslog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrslog)     | Send agent log messages to `log/slog` |
+| [rs/zerolog](https://github.com/rs/zerolog)           | [v3/integrations/nrzerolog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzerolog) | Send agent log messages to Zerolog  |
 
 #### Logs in Context
 

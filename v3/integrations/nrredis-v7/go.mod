@@ -1,11 +1,11 @@
 module github.com/newrelic/go-agent/v3/integrations/nrredis-v7
 
 // https://github.com/go-redis/redis/blob/master/go.mod
-go 1.19
+go 1.20
 
 require (
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
-	github.com/newrelic/go-agent/v3 v3.28.1
+	github.com/newrelic/go-agent/v3 v3.33.1
 )
 
 

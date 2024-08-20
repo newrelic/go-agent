@@ -74,6 +74,9 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 	if nil != r.application {
 		handle = func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 			txn := r.application.StartTransaction(txnName(method, path))
+			if newrelic.IsSecurityAgentPresent() {
+				txn.SetCsecAttributes(newrelic.AttributeCsecRoute, path)
+			}
 			txn.SetWebRequestHTTP(req)
 			w = txn.SetWebResponse(w)
 			defer txn.End()
@@ -84,6 +87,9 @@ func (r *Router) handle(method string, path string, original httprouter.Handle) 
 		}
 	}
 	r.Router.Handle(method, path, handle)
+	if newrelic.IsSecurityAgentPresent() {
+		newrelic.GetSecurityAgentInterface().SendEvent("API_END_POINTS", path, method, internal.HandlerName(original))
+	}
 }
 
 // DELETE replaces httprouter.Router.DELETE.

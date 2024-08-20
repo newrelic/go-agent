@@ -127,7 +127,7 @@ app, err := newrelic.NewApplication(
 To log at info level to a file, set:
 
 ```go
-w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+w, err := os.OpenFile("my_log_file", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 if nil == err {
     app, _ := newrelic.NewApplication(
         newrelic.ConfigAppName("Your Application Name"),
@@ -137,12 +137,13 @@ if nil == err {
 }
 ```
 
-Popular logging libraries `logrus`, `logxi` and `zap` are supported by
+Popular logging libraries `logrus`, `logxi`, `zap` and `zerolog` are supported by
 integration packages:
 
 * [v3/integrations/nrlogrus](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogrus/)
 * [v3/integrations/nrlogxi](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrlogxi/)
 * [v3/integrations/nrzap](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzap/)
+* [v3/integrations/nrzerolog](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrzerolog/)
 
 ## Transactions
 
@@ -400,7 +401,7 @@ ways to use this functionality:
     ```go
     client := &http.Client{}
     client.Transport = newrelic.NewRoundTripper(client.Transport)
-    request, _ := http.NewRequest("GET", "http://example.com", nil)
+    request, _ := http.NewRequest("GET", "https://example.com", nil)
     // Put transaction in the request's context:
     request = newrelic.RequestWithTransactionContext(request, txn)
     resp, err := client.Do(request)
