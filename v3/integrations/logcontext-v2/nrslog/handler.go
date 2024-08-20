@@ -129,10 +129,18 @@ func (h NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 //   - If a group has no Attrs (even if it has a non-empty key),
 //     ignore it.
 func (h NRHandler) Handle(ctx context.Context, record slog.Record) error {
+	attrs := map[string]interface{}{}
+
+	record.Attrs(func(attr slog.Attr) bool {
+		attrs[attr.Key] = attr.Value.Any()
+		return true
+	})
+
 	data := newrelic.LogData{
-		Severity:  record.Level.String(),
-		Timestamp: record.Time.UnixMilli(),
-		Message:   record.Message,
+		Severity:   record.Level.String(),
+		Timestamp:  record.Time.UnixMilli(),
+		Message:    record.Message,
+		Attributes: attrs,
 	}
 	if h.txn != nil {
 		h.txn.RecordLog(data)
