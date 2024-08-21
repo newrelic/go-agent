@@ -118,6 +118,15 @@ const (
 //
 // It is recommended that at most one message is consumed per transaction.
 const (
+	// The account ID of a cloud service provider
+	AttributeCloudAccountID = "cloud.account.id"
+	// The region of a cloud service provider
+	AttributeCloudRegion = "cloud.region"
+	// The name of the messaging system
+	AttributeMessageSystem = "messaging.system"
+	// The name of the messagine broker destination
+	AttributeMessageDestinationName = "message.destination.name"
+
 	// The routing key of the consumed message.
 	AttributeMessageRoutingKey = "message.routingKey"
 	// The name of the queue the message was consumed from.

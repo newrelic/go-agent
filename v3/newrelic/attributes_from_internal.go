@@ -34,6 +34,10 @@ var (
 	// attributes.go and add its default destinations here.
 	//
 	agentAttributeDefaultDests = map[string]destinationSet{
+		AttributeCloudAccountID:             usualDests,
+		AttributeMessageDestinationName:     usualDests,
+		AttributeCloudRegion:                usualDests,
+		AttributeMessageSystem:              usualDests,
 		AttributeHostDisplayName:            usualDests,
 		AttributeRequestMethod:              usualDests,
 		AttributeRequestAccept:              usualDests,
