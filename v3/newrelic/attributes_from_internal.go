@@ -70,6 +70,7 @@ var (
 		AttributeLLM:                        usualDests,
 
 		// Span specific attributes
+		SpanAttributeServerAddress:           usualDests,
 		SpanAttributeDBStatement:             usualDests,
 		SpanAttributeDBInstance:              usualDests,
 		SpanAttributeDBCollection:            usualDests,

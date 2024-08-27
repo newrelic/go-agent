@@ -16,7 +16,7 @@ const (
 
 func init() { internal.TrackUsage("integration", "messagebroker", "nramqp") }
 
-func creatProducerSegment(exchange, key string) *newrelic.MessageProducerSegment {
+func createProducerSegment(exchange, key string) *newrelic.MessageProducerSegment {
 	s := newrelic.MessageProducerSegment{
 		Library:         RabbitMQLibrary,
 		DestinationName: "Default",
@@ -35,11 +35,11 @@ func creatProducerSegment(exchange, key string) *newrelic.MessageProducerSegment
 
 // PublishedWithContext looks for a newrelic transaction in the context object, and if found, creates a message producer segment.
 // It will also inject distributed tracing headers into the message.
-func PublishWithContext(ch *amqp.Channel, ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+func PublishWithContext(ch *amqp.Channel, ctx context.Context, exchange, key, url string, mandatory, immediate bool, msg amqp.Publishing) error {
 	txn := newrelic.FromContext(ctx)
 	if txn != nil {
 		// generate message broker segment
-		s := creatProducerSegment(exchange, key)
+		s := createProducerSegment(exchange, key)
 
 		// capture telemetry for AMQP producer
 		if msg.Headers != nil && len(msg.Headers) > 0 {
@@ -49,15 +49,16 @@ func PublishWithContext(ch *amqp.Channel, ctx context.Context, exchange, key str
 			}
 			integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageHeaders, hdrStr)
 		}
-
-		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageRoutingKey, key)
-		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageCorrelationID, msg.CorrelationId)
-		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageReplyTo, msg.ReplyTo)
+		s.StartTime = txn.StartSegmentNow()
 
 		// inject DT headers into headers object
 		msg.Headers = injectDtHeaders(txn, msg.Headers)
 
-		s.StartTime = txn.StartSegmentNow()
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeServerAddress, url)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageRoutingKey, key)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageCorrelationID, msg.CorrelationId)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageReplyTo, msg.ReplyTo)
+
 		err := ch.PublishWithContext(ctx, exchange, key, mandatory, immediate, msg)
 		s.End()
 		return err

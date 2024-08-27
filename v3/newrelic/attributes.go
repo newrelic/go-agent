@@ -152,6 +152,7 @@ const (
 //	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 //		newrelic.SpanAttributeDBStatement)
 const (
+	SpanAttributeServerAddress           = "server.address"
 	SpanAttributeDBStatement             = "db.statement"
 	SpanAttributeDBInstance              = "db.instance"
 	SpanAttributeDBCollection            = "db.collection"
