@@ -31,6 +31,13 @@ func defaultSecurityConfig() SecurityConfig {
 	cfg.Security.Agent.Enabled = true
 	cfg.Security.Detection.Rxss.Enabled = true
 	cfg.Security.Request.BodyLimit = 300
+	// cfg.Security.SkipIastScan.Parameters.Header = make([]string, 0)
+	// cfg.Security.SkipIastScan.Parameters.Body = make([]string, 0)
+	// cfg.Security.SkipIastScan.Parameters.Query = make([]string, 0)
+	// cfg.Security.SkipIastScan.API = make([]string, 0)
+	// cfg.Security.SkipIastScan.API = append(cfg.Security.SkipIastScan.API, "rxss")
+	// cfg.Security.SkipIastScan.API = append(cfg.Security.SkipIastScan.API, "favicon")
+	cfg.Security.ScanSchedule.Duration = 1
 	return cfg
 }
 

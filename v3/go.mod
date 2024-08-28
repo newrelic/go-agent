@@ -3,7 +3,6 @@ module github.com/newrelic/go-agent/v3
 go 1.20
 
 require (
-	google.golang.org/protobuf v1.5.3
 	google.golang.org/grpc v1.56.3
 )
 
