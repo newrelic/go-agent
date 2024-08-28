@@ -140,6 +140,18 @@ const (
 	AttributeMessageCorrelationID = "message.correlationId"
 	// The headers of the message without CAT keys/values
 	AttributeMessageHeaders = "message.headers"
+	// Host identifier of the message broker
+	AttributeServerAddress = "server.address"
+	// Port number of the message broker
+	AttributeServerPort = "server.port"
+	// Will take on either the values "producer" or "consumer"
+	AttributeSpanKind = "span.kind"
+)
+
+// Experimental OTEL Attributes for consumed message transactions
+const (
+	AttributeMessagingDestinationPublishName = "messaging.destination_publish.name"
+	AttributeRabbitMQDestinationRoutingKey   = "messaging.rabbitmq.destination.routing_key"
 )
 
 // Attributes destined for Span Events. These attributes appear only on Span
@@ -152,7 +164,6 @@ const (
 //	cfg.SpanEvents.Attributes.Exclude = append(cfg.SpanEvents.Attributes.Exclude,
 //		newrelic.SpanAttributeDBStatement)
 const (
-	SpanAttributeServerAddress           = "server.address"
 	SpanAttributeDBStatement             = "db.statement"
 	SpanAttributeDBInstance              = "db.instance"
 	SpanAttributeDBCollection            = "db.collection"

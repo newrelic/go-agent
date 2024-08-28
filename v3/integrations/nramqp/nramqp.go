@@ -2,6 +2,7 @@ package nramqp
 
 import (
 	"context"
+	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -33,9 +34,25 @@ func createProducerSegment(exchange, key string) *newrelic.MessageProducerSegmen
 	return &s
 }
 
+func GetHostAndPortFromURL(url string) (string, string) {
+	// url is of format amqp://user:password@host:port
+	// dynamically extract host from url after "@" symbol
+	parts := strings.Split(url, "@")
+	if len(parts) != 2 {
+		return "", ""
+	}
+	strippedURL := strings.Split(parts[1], ":")
+
+	if len(strippedURL) != 2 {
+		return "", ""
+	}
+	return strippedURL[0], strippedURL[1]
+}
+
 // PublishedWithContext looks for a newrelic transaction in the context object, and if found, creates a message producer segment.
 // It will also inject distributed tracing headers into the message.
 func PublishWithContext(ch *amqp.Channel, ctx context.Context, exchange, key, url string, mandatory, immediate bool, msg amqp.Publishing) error {
+	host, port := GetHostAndPortFromURL(url)
 	txn := newrelic.FromContext(ctx)
 	if txn != nil {
 		// generate message broker segment
@@ -53,8 +70,10 @@ func PublishWithContext(ch *amqp.Channel, ctx context.Context, exchange, key, ur
 
 		// inject DT headers into headers object
 		msg.Headers = injectDtHeaders(txn, msg.Headers)
-
-		integrationsupport.AddAgentSpanAttribute(txn, newrelic.SpanAttributeServerAddress, url)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeSpanKind, "producer")
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeServerAddress, host)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeServerPort, port)
+		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageDestinationName, exchange)
 		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageRoutingKey, key)
 		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageCorrelationID, msg.CorrelationId)
 		integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageReplyTo, msg.ReplyTo)
@@ -92,8 +111,10 @@ func Consume(app *newrelic.Application, ch *amqp.Channel, queue, consumer string
 					integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageHeaders, hdrStr, nil)
 				}
 			}
-
+			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeSpanKind, "consumer", nil)
 			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageQueueName, queue, nil)
+			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageDestinationName, queue, nil)
+			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessagingDestinationPublishName, delivery.Exchange, nil)
 			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageRoutingKey, delivery.RoutingKey, nil)
 			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageCorrelationID, delivery.CorrelationId, nil)
 			integrationsupport.AddAgentAttribute(txn, newrelic.AttributeMessageReplyTo, delivery.ReplyTo, nil)
