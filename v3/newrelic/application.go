@@ -18,10 +18,14 @@ type Application struct {
 /*
 // IsAIMonitoringEnabled returns true if monitoring for the specified mode of the named integration is enabled.
 func (app *Application) IsAIMonitoringEnabled(integration string, streaming bool) bool {
-	if app == nil || app.app == nil || app.app.run == nil {
+	if app == nil || app.app == nil {
 		return false
 	}
-	aiconf := app.app.run.Config.AIMonitoring
+	run, _ := app.app.getState()
+	if run == nil {
+		return false
+	}
+	aiconf := run.Config.AIMonitoring
 	if !aiconf.Enabled {
 		return false
 	}
