@@ -15,7 +15,7 @@ func BenchmarkCreateProducerSegment(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		creatProducerSegment("exchange", "key")
+		createProducerSegment("exchange", "key")
 	}
 }
 
@@ -66,12 +66,60 @@ func TestCreateProducerSegment(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		s := creatProducerSegment(test.exchange, test.key)
+		s := createProducerSegment(test.exchange, test.key)
 		if s.DestinationName != test.expect.DestinationName {
 			t.Errorf("expected destination name %s, got %s", test.expect.DestinationName, s.DestinationName)
 		}
 		if s.DestinationType != test.expect.DestinationType {
 			t.Errorf("expected destination type %s, got %s", test.expect.DestinationType, s.DestinationType)
+		}
+	}
+
+}
+
+func TestPublishWithContext(t *testing.T) {
+	app := createTestApp()
+	txn := app.StartTransaction("test")
+	defer txn.End()
+
+}
+
+func TestHostAndPortParsing(t *testing.T) {
+	app := createTestApp()
+	txn := app.StartTransaction("test")
+	defer txn.End()
+
+	type testObject struct {
+		url        string
+		expectHost string
+		expectPort string
+	}
+
+	tests := []testObject{
+		{
+			"amqp://user:password@host:port",
+			"host",
+			"port",
+		},
+		{
+			"amqp://user:password@host",
+			"",
+			"",
+		},
+		{
+			"amqp://user:password@host:port:extra",
+			"",
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		host, port := GetHostAndPortFromURL(test.url)
+		if host != test.expectHost {
+			t.Errorf("expected host %s, got %s", test.expectHost, host)
+		}
+		if port != test.expectPort {
+			t.Errorf("expected port %s, got %s", test.expectPort, port)
 		}
 	}
 

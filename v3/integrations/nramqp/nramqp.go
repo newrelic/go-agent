@@ -36,7 +36,7 @@ func createProducerSegment(exchange, key string) *newrelic.MessageProducerSegmen
 
 func GetHostAndPortFromURL(url string) (string, string) {
 	// url is of format amqp://user:password@host:port
-	// dynamically extract host from url after "@" symbol
+	// extract host from url after "@" symbol
 	parts := strings.Split(url, "@")
 	if len(parts) != 2 {
 		return "", ""
