@@ -461,6 +461,12 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 			v = v[:maxAttributeLengthBytes]
 		}
 		w.stringField(key, v)
+	case error:
+		value := v.Error()
+		if len(value) > maxAttributeLengthBytes {
+			value = value[:maxAttributeLengthBytes]
+		}
+		w.stringField(key, value)
 	case bool:
 		if v {
 			w.rawField(key, `true`)
