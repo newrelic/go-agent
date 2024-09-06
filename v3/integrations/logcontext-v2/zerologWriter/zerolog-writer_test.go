@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
+
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/internal/logcontext"
 	"github.com/newrelic/go-agent/v3/internal/sysinfo"
@@ -183,9 +184,10 @@ func TestParseLogDataEscapes(t *testing.T) {
 	for _, test := range tests {
 		logger.Info().Msg(test.logMessage)
 		wantLog = append(wantLog, internal.WantLog{
-			Severity:  zerolog.LevelInfoValue,
-			Message:   test.expectMessage,
-			Timestamp: internal.MatchAnyUnixMilli,
+			Severity:   zerolog.LevelInfoValue,
+			Message:    test.expectMessage,
+			Timestamp:  internal.MatchAnyUnixMilli,
+			Attributes: make(map[string]interface{}),
 		})
 
 	}
@@ -218,9 +220,10 @@ func TestE2E(t *testing.T) {
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
-			Severity:  zerolog.LevelInfoValue,
-			Message:   `{"level":"info","message":"Hello World!"}`,
-			Timestamp: internal.MatchAnyUnixMilli,
+			Severity:   zerolog.LevelInfoValue,
+			Message:    `{"level":"info","message":"Hello World!"}`,
+			Timestamp:  internal.MatchAnyUnixMilli,
+			Attributes: make(map[string]interface{}),
 		},
 	})
 }
@@ -254,11 +257,12 @@ func TestE2EWithContext(t *testing.T) {
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
-			Severity:  zerolog.LevelInfoValue,
-			Message:   `{"level":"info","message":"Hello World!"}`,
-			Timestamp: internal.MatchAnyUnixMilli,
-			TraceID:   traceID,
-			SpanID:    spanID,
+			Severity:   zerolog.LevelInfoValue,
+			Message:    `{"level":"info","message":"Hello World!"}`,
+			Timestamp:  internal.MatchAnyUnixMilli,
+			TraceID:    traceID,
+			SpanID:     spanID,
+			Attributes: make(map[string]interface{}),
 		},
 	})
 }
@@ -292,11 +296,12 @@ func TestE2EWithTxn(t *testing.T) {
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
-			Severity:  zerolog.LevelInfoValue,
-			Message:   `{"level":"info","message":"Hello World!"}`,
-			Timestamp: internal.MatchAnyUnixMilli,
-			TraceID:   traceID,
-			SpanID:    spanID,
+			Severity:   zerolog.LevelInfoValue,
+			Message:    `{"level":"info","message":"Hello World!"}`,
+			Timestamp:  internal.MatchAnyUnixMilli,
+			TraceID:    traceID,
+			SpanID:     spanID,
+			Attributes: make(map[string]interface{}),
 		},
 	})
 
@@ -310,4 +315,90 @@ func BenchmarkParseLogLevel(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		parseJSONLogData(log)
 	}
+}
+
+func TestE2EWAttributes(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	buf := bytes.NewBuffer([]byte{})
+	a := New(buf, app.Application)
+	a.DebugLogging(true)
+
+	txn := app.Application.StartTransaction("test")
+
+	// create logger with txn context
+	txnWriter := a.WithTransaction(txn)
+	logger := zerolog.New(txnWriter)
+
+	logger.Info().
+		Str("foo", "bar").
+		Msg("Hello World!")
+	traceID := txn.GetLinkingMetadata().TraceID
+	spanID := txn.GetLinkingMetadata().SpanID
+	txn.End() // must end txn to dump logs into harvest
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  zerolog.LevelInfoValue,
+			Message:   `{"level":"info","foo":"bar","message":"Hello World!"}`,
+			Timestamp: internal.MatchAnyUnixMilli,
+			TraceID:   traceID,
+			SpanID:    spanID,
+			Attributes: map[string]any{
+				"foo": "bar",
+			},
+		},
+	})
+
+}
+
+func TestE2EWAttributesInt(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	buf := bytes.NewBuffer([]byte{})
+	a := New(buf, app.Application)
+	a.DebugLogging(true)
+
+	txn := app.Application.StartTransaction("test")
+
+	// create logger with txn context
+	txnWriter := a.WithTransaction(txn)
+	logger := zerolog.New(txnWriter)
+
+	logger.Info().
+		Int("foo", 30).
+		Msg("Hello World!")
+	traceID := txn.GetLinkingMetadata().TraceID
+	spanID := txn.GetLinkingMetadata().SpanID
+	txn.End() // must end txn to dump logs into harvest
+
+	logcontext.ValidateDecoratedOutput(t, buf, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  zerolog.LevelInfoValue,
+			Message:   `{"level":"info","foo":30,"message":"Hello World!"}`,
+			Timestamp: internal.MatchAnyUnixMilli,
+			TraceID:   traceID,
+			SpanID:    spanID,
+			Attributes: map[string]any{
+				"foo": 30,
+			},
+		},
+	})
+
 }

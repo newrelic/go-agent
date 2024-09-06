@@ -39,6 +39,11 @@ func main() {
 	time.Sleep(time.Microsecond * 100)
 
 	txnLogger.Printf("Ending transaction %s.", txnName)
+	txnLogger.Info().
+		Str("foo", "bar").
+		Bool("answer", true).
+		Msg("This is an info message with attributes.")
+
 	txn.End()
 
 	app.Shutdown(10 * time.Second)
