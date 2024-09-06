@@ -56,7 +56,12 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 	data.Message = string(log)
 	data.Timestamp = time.Now().UnixMilli()
 
-	for i := 0; i < len(log)-1; {
+	i := skipPastSpaces(log, 0)
+	if i < 0 || i >= len(log) || log[i] != '{' {
+		return data
+	}
+	i++
+	for i < len(log)-1 {
 		// get key; always a string field
 		key, valStart := getKey(log, i)
 		if valStart < 0 {
@@ -94,32 +99,31 @@ func parseJSONLogData(log []byte) newrelic.LogData {
 }
 
 func isStringValue(p []byte, indx int) bool {
+	if indx = skipPastSpaces(p, indx); indx < 0 {
+		return false
+	}
 	return p[indx] == '"'
 }
 
 func isNumberValue(p []byte, indx int) bool {
-	return unicode.IsDigit(rune(p[indx]))
+	if indx = skipPastSpaces(p, indx); indx < 0 {
+		return false
+	}
+	// unicode.IsDigit isn't sufficient here because JSON numbers can start with a sign too
+	return unicode.IsDigit(rune(p[indx])) || p[indx] == '-'
 }
 
 // zerolog keys are always JSON strings
-// sasdhsd"foo"
-//
-//	foo
 func getKey(p []byte, indx int) (string, int) {
 	value := strings.Builder{}
-	i := indx
-
-	// find start of string field
-	for ; i < len(p); i++ {
-		if p[i] == '"' {
-			i += 1
-			break
-		}
+	i := skipPastSpaces(p, indx)
+	if i < 0 || i >= len(p) || p[i] != '"' {
+		return "", -1
 	}
 
 	// parse value of string field
 	literalNext := false
-	for ; i < len(p); i++ {
+	for i++; i < len(p); i++ {
 		if literalNext {
 			value.WriteByte(p[i])
 			literalNext = false
@@ -208,7 +212,7 @@ func getStringValue(p []byte, indx int) (string, int) {
 
 		if p[i] == '"' {
 			// end of string. search past the comma so we can find the following key (if any) later.
-			if i = skipPastSpaces(p, i+1); i < 0 {
+			if i = skipPastSpaces(p, i+1); i < 0 || i >= len(p) {
 				return value.String(), -1
 			}
 			if p[i] == ',' {
