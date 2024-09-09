@@ -77,13 +77,6 @@ func TestCreateProducerSegment(t *testing.T) {
 
 }
 
-func TestPublishWithContext(t *testing.T) {
-	app := createTestApp()
-	txn := app.StartTransaction("test")
-	defer txn.End()
-
-}
-
 func TestHostAndPortParsing(t *testing.T) {
 	app := createTestApp()
 	txn := app.StartTransaction("test")
@@ -101,6 +94,17 @@ func TestHostAndPortParsing(t *testing.T) {
 			"host",
 			"port",
 		},
+		{
+			"amqp://host:port",
+			"host",
+			"port",
+		},
+		{
+			"aaa://host:port",
+			"",
+			"",
+		},
+
 		{
 			"amqp://user:password@host",
 			"",
