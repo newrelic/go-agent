@@ -28,9 +28,14 @@ package nrawssdk
 
 import (
 	"context"
+	"net/url"
 	"strconv"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsmiddle "github.com/aws/aws-sdk-go-v2/aws/middleware"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/smithy-go/middleware"
 	smithymiddle "github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
@@ -40,6 +45,11 @@ import (
 type nrMiddleware struct {
 	txn *newrelic.Transaction
 }
+
+// Context key for SQS service queue
+type contextKey string
+
+const queueURLKey contextKey = "QueueURL"
 
 type endable interface{ End() }
 
@@ -88,6 +98,24 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		response, ok := out.RawResponse.(*smithyhttp.Response)
 
 		if ok {
+			if serviceName == "sqs" || serviceName == "SQS" {
+				if queueURL, ok := ctx.Value(queueURLKey).(string); ok {
+					parsedURL, err := url.Parse(queueURL)
+					if err == nil {
+						// Example URL: https://sqs.{region}.amazonaws.com/{account.id}/{queue.name}
+						pathParts := strings.Split(parsedURL.Path, "/")
+						if len(pathParts) >= 3 {
+							accountID := pathParts[1]
+							queueName := pathParts[2]
+							integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeCloudAccountID, accountID)
+							integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeCloudRegion, region)
+							integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageSystem, "aws_sqs")
+							integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeMessageDestinationName, queueName)
+						}
+					}
+
+				}
+			}
 			// Set additional span attributes
 			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.AttributeResponseCode, strconv.Itoa(response.StatusCode))
@@ -105,6 +133,51 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		return out, metadata, err
 	}),
 		smithymiddle.Before)
+}
+
+func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
+	return stack.Initialize.Add(middleware.InitializeMiddlewareFunc("NRSerializeMiddleware", func(
+		ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler) (
+		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
+
+		serviceName := awsmiddle.GetServiceID(ctx)
+		if serviceName == "sqs" || serviceName == "SQS" {
+			QueueURL := ""
+			switch params := in.Parameters.(type) {
+			case *sqs.SendMessageInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.DeleteQueueInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.ReceiveMessageInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.DeleteMessageInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.ChangeMessageVisibilityInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.ChangeMessageVisibilityBatchInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.DeleteMessageBatchInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.SendMessageBatchInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.PurgeQueueInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.GetQueueAttributesInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.SetQueueAttributesInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.TagQueueInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			case *sqs.UntagQueueInput:
+				QueueURL = aws.ToString(params.QueueUrl)
+			default:
+				QueueURL = ""
+			}
+			// Store the QueueURL in the context
+			ctx = context.WithValue(ctx, queueURLKey, QueueURL)
+		}
+		return next.HandleInitialize(ctx, in)
+	}), middleware.After)
 }
 
 // AppendMiddlewares inserts New Relic middleware in the given `apiOptions` for
@@ -167,4 +240,6 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
 	m := nrMiddleware{txn: txn}
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
+	*apiOptions = append(*apiOptions, m.serializeMiddleware)
+
 }

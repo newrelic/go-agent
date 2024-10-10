@@ -17,9 +17,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
+
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 func testApp() integrationsupport.ExpectApp {
@@ -140,6 +145,28 @@ var (
 			"http.statusCode": "200",
 		},
 	}
+	SQSSpan = internal.WantEvent{
+		Intrinsics: map[string]interface{}{
+			"name":      "External/sqs.us-west-2.amazonaws.com/http/POST",
+			"category":  "http",
+			"parentId":  internal.MatchAnything,
+			"component": "http",
+			"span.kind": "client",
+			"sampled":   true,
+		},
+		UserAttributes: map[string]interface{}{},
+		AgentAttributes: map[string]interface{}{
+			"message.destination.name": "MyQueue",
+			"cloud.account.id":         "123456789012",
+			"cloud.region":             "us-west-2",
+			"http.url":                 "https://sqs.us-west-2.amazonaws.com/",
+			"http.method":              "POST",
+			"messaging.system":         "aws_sqs",
+			"aws.requestId":            "testing request id",
+			"http.statusCode":          "200",
+			"aws.region":               "us-west-2",
+		},
+	}
 	datastoreSpan = internal.WantEvent{
 		Intrinsics: map[string]interface{}{
 			"name":          "Datastore/operation/DynamoDB/DescribeTable",
@@ -254,6 +281,262 @@ func TestInstrumentRequestExternal(t *testing.T) {
 			app.ExpectMetrics(t, externalMetrics)
 			app.ExpectSpanEvents(t, []internal.WantEvent{
 				externalSpan, genericSpan})
+		},
+	)
+}
+
+type sqsTestTableEntry struct {
+	Name         string
+	BuildContext func(txn *newrelic.Transaction) context.Context
+	BuildConfig  func(ctx context.Context, txn *newrelic.Transaction) aws.Config
+	Input        interface{}
+}
+
+func runSQSTestTable(t *testing.T, entries []*sqsTestTableEntry, testFunc func(t *testing.T, entry *sqsTestTableEntry)) {
+	for _, entry := range entries {
+		t.Run(entry.Name, func(t *testing.T) {
+			testFunc(t, entry)
+		})
+	}
+}
+
+func TestSQSMiddleware(t *testing.T) {
+	runSQSTestTable(t,
+		[]*sqsTestTableEntry{
+			{
+				Name: "DeleteQueueInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.DeleteQueueInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue")},
+			},
+			{
+				Name: "ReceiveMessageInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.ReceiveMessageInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue")},
+			},
+			{
+				Name: "SendMessageInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.SendMessageInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"), MessageBody: aws.String("Hello, world!")},
+			},
+			{
+				Name: "PurgeQueueInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.PurgeQueueInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue")},
+			},
+			{
+				Name: "DeleteMessageInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.DeleteMessageInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"), ReceiptHandle: aws.String("receipt-handle")},
+			},
+			{
+				Name: "ChangeMessageVisibilityInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.ChangeMessageVisibilityInput{QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"), ReceiptHandle: aws.String("receipt-handle"), VisibilityTimeout: 10},
+			},
+
+			{
+				Name: "ChangeMessageVisibilityBatchInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.ChangeMessageVisibilityBatchInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					Entries: []sqstypes.ChangeMessageVisibilityBatchRequestEntry{
+						{
+							Id:                aws.String("id1"),
+							ReceiptHandle:     aws.String("receipt-handle"),
+							VisibilityTimeout: 10,
+						},
+					},
+				},
+			},
+			{
+				Name: "DeleteMessageBatchInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.DeleteMessageBatchInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					Entries: []sqstypes.DeleteMessageBatchRequestEntry{
+						{
+							Id:            aws.String("id1"),
+							ReceiptHandle: aws.String("receipt-handle"),
+						},
+					},
+				},
+			},
+			{
+				Name: "SendMessageBatchInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.SendMessageBatchInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					Entries: []sqstypes.SendMessageBatchRequestEntry{
+						{
+							Id:          aws.String("id1"),
+							MessageBody: aws.String("Hello, world!"),
+						},
+					},
+				},
+			},
+			{
+				Name: "GetQueueAttributesInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.GetQueueAttributesInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					AttributeNames: []sqstypes.QueueAttributeName{
+						"ApproximateNumberOfMessages",
+					},
+				},
+			},
+			{
+				Name: "SetQueueAttributesInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.SetQueueAttributesInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					Attributes: map[string]string{
+						"VisibilityTimeout": "10",
+					},
+				},
+			},
+			{
+				Name: "TagQueueInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.TagQueueInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					Tags: map[string]string{
+						"tag1": "value1",
+					},
+				},
+			},
+			{
+				Name: "UntagQueueInput",
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, txn)
+				},
+				Input: &sqs.UntagQueueInput{
+					QueueUrl: aws.String("https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue"),
+					TagKeys:  []string{"tag1"},
+				},
+			},
+		},
+
+		func(t *testing.T, entry *sqsTestTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
+			awsOp := ""
+			client := sqs.NewFromConfig(entry.BuildConfig(ctx, txn))
+			switch input := entry.Input.(type) {
+			case *sqs.SendMessageInput:
+				client.SendMessage(ctx, input)
+				awsOp = "SendMessage"
+			case *sqs.DeleteQueueInput:
+				client.DeleteQueue(ctx, input)
+				awsOp = "DeleteQueue"
+			case *sqs.ReceiveMessageInput:
+				client.ReceiveMessage(ctx, input)
+				awsOp = "ReceiveMessage"
+			case *sqs.DeleteMessageInput:
+				client.DeleteMessage(ctx, input)
+				awsOp = "DeleteMessage"
+			case *sqs.ChangeMessageVisibilityInput:
+				client.ChangeMessageVisibility(ctx, input)
+				awsOp = "ChangeMessageVisibility"
+			case *sqs.ChangeMessageVisibilityBatchInput:
+				client.ChangeMessageVisibilityBatch(ctx, input)
+				awsOp = "ChangeMessageVisibilityBatch"
+			case *sqs.DeleteMessageBatchInput:
+				client.DeleteMessageBatch(ctx, input)
+				awsOp = "DeleteMessageBatch"
+			case *sqs.PurgeQueueInput:
+				client.PurgeQueue(ctx, input)
+				awsOp = "PurgeQueue"
+			case *sqs.GetQueueAttributesInput:
+				client.GetQueueAttributes(ctx, input)
+				awsOp = "GetQueueAttributes"
+			case *sqs.SetQueueAttributesInput:
+				client.SetQueueAttributes(ctx, input)
+				awsOp = "SetQueueAttributes"
+			case *sqs.TagQueueInput:
+				client.TagQueue(ctx, input)
+				awsOp = "TagQueue"
+			case *sqs.UntagQueueInput:
+				client.UntagQueue(ctx, input)
+				awsOp = "UntagQueue"
+			case *sqs.SendMessageBatchInput:
+				client.SendMessageBatch(ctx, input)
+				awsOp = "SendMessageBatch"
+
+			default:
+				t.Errorf("unexpected input type: %T", input)
+
+			}
+
+			txn.End()
+			SQSSpanModified := SQSSpan
+			SQSSpanModified.AgentAttributes["aws.operation"] = awsOp
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				SQSSpan, genericSpan})
+
 		},
 	)
 }

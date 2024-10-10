@@ -118,6 +118,15 @@ const (
 //
 // It is recommended that at most one message is consumed per transaction.
 const (
+	// The account ID of a cloud service provider
+	AttributeCloudAccountID = "cloud.account.id"
+	// The region of a cloud service provider
+	AttributeCloudRegion = "cloud.region"
+	// The name of the messaging system
+	AttributeMessageSystem = "messaging.system"
+	// The name of the messagine broker destination
+	AttributeMessageDestinationName = "message.destination.name"
+
 	// The routing key of the consumed message.
 	AttributeMessageRoutingKey = "message.routingKey"
 	// The name of the queue the message was consumed from.
@@ -131,6 +140,18 @@ const (
 	AttributeMessageCorrelationID = "message.correlationId"
 	// The headers of the message without CAT keys/values
 	AttributeMessageHeaders = "message.headers"
+	// Host identifier of the message broker
+	AttributeServerAddress = "server.address"
+	// Port number of the message broker
+	AttributeServerPort = "server.port"
+	// Will take on either the values "producer" or "consumer"
+	AttributeSpanKind = "span.kind"
+)
+
+// Experimental OTEL Attributes for consumed message transactions
+const (
+	AttributeMessagingDestinationPublishName = "messaging.destination_publish.name"
+	AttributeRabbitMQDestinationRoutingKey   = "messaging.rabbitmq.destination.routing_key"
 )
 
 // Attributes destined for Span Events. These attributes appear only on Span

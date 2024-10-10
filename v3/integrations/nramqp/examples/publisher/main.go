@@ -40,13 +40,15 @@ type amqpServer struct {
 	ch         *amqp.Channel
 	exchange   string
 	routingKey string
+	url        string
 }
 
-func NewServer(channel *amqp.Channel, exchangeName, routingKeyName string) *amqpServer {
+func NewServer(channel *amqp.Channel, exchangeName, routingKeyName string, url string) *amqpServer {
 	return &amqpServer{
 		channel,
 		exchangeName,
 		routingKeyName,
+		url,
 	}
 }
 
@@ -65,6 +67,7 @@ func (serv *amqpServer) publishPlainTxtMessage(w http.ResponseWriter, r *http.Re
 		ctx,
 		serv.exchange,   // exchange
 		serv.routingKey, // routing key
+		serv.url,        // url
 		false,           // mandatory
 		false,           // immediate
 		amqp.Publishing{
@@ -94,7 +97,8 @@ func main() {
 
 	nrApp.WaitForConnection(time.Second * 5)
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	amqpURL := "amqp://guest:guest@localhost:5672/"
+	conn, err := amqp.Dial(amqpURL)
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -112,7 +116,7 @@ func main() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	server := NewServer(ch, "", q.Name)
+	server := NewServer(ch, "", q.Name, amqpURL)
 
 	http.HandleFunc(newrelic.WrapHandleFunc(nrApp, "/", server.index))
 	http.HandleFunc(newrelic.WrapHandleFunc(nrApp, "/message", server.publishPlainTxtMessage))
