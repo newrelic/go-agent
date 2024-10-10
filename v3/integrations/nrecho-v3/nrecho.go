@@ -104,6 +104,9 @@ func Middleware(app *newrelic.Application) func(echo.HandlerFunc) echo.HandlerFu
 				} else {
 					txn.SetWebResponse(nil).WriteHeader(http.StatusInternalServerError)
 				}
+				if newrelic.IsSecurityAgentPresent() {
+					newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Response().Header())
+				}
 			}
 
 			return

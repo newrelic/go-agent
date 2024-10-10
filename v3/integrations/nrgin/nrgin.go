@@ -187,5 +187,8 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 			c.Set(internal.GinTransactionContextKey, txn)
 		}
 		c.Next()
+		if newrelic.IsSecurityAgentPresent() {
+			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Writer.Header())
+		}
 	}
 }

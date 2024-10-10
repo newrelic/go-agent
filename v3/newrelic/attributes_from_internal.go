@@ -34,37 +34,45 @@ var (
 	// attributes.go and add its default destinations here.
 	//
 	agentAttributeDefaultDests = map[string]destinationSet{
-		AttributeHostDisplayName:            usualDests,
-		AttributeRequestMethod:              usualDests,
-		AttributeRequestAccept:              usualDests,
-		AttributeRequestContentType:         usualDests,
-		AttributeRequestContentLength:       usualDests,
-		AttributeRequestHost:                usualDests,
-		AttributeRequestUserAgent:           tracesDests,
-		AttributeRequestUserAgentDeprecated: tracesDests,
-		AttributeRequestReferer:             tracesDests,
-		AttributeRequestURI:                 usualDests,
-		AttributeResponseContentType:        usualDests,
-		AttributeResponseContentLength:      usualDests,
-		AttributeResponseCode:               usualDests,
-		AttributeResponseCodeDeprecated:     usualDests,
-		AttributeAWSRequestID:               usualDests,
-		AttributeAWSLambdaARN:               usualDests,
-		AttributeAWSLambdaColdStart:         usualDests,
-		AttributeAWSLambdaEventSourceARN:    usualDests,
-		AttributeMessageRoutingKey:          usualDests,
-		AttributeMessageQueueName:           usualDests,
-		AttributeMessageHeaders:             usualDests,
-		AttributeMessageExchangeType:        destNone,
-		AttributeMessageReplyTo:             destNone,
-		AttributeMessageCorrelationID:       destNone,
-		AttributeCodeFunction:               usualDests,
-		AttributeCodeNamespace:              usualDests,
-		AttributeCodeFilepath:               usualDests,
-		AttributeCodeLineno:                 usualDests,
-		AttributeUserID:                     usualDests,
-		AttributeLLM:                        usualDests,
-
+		AttributeCloudAccountID:                  usualDests,
+		AttributeMessageDestinationName:          usualDests,
+		AttributeCloudRegion:                     usualDests,
+		AttributeMessageSystem:                   usualDests,
+		AttributeHostDisplayName:                 usualDests,
+		AttributeRequestMethod:                   usualDests,
+		AttributeRequestAccept:                   usualDests,
+		AttributeRequestContentType:              usualDests,
+		AttributeRequestContentLength:            usualDests,
+		AttributeRequestHost:                     usualDests,
+		AttributeRequestUserAgent:                tracesDests,
+		AttributeRequestUserAgentDeprecated:      tracesDests,
+		AttributeRequestReferer:                  tracesDests,
+		AttributeRequestURI:                      usualDests,
+		AttributeResponseContentType:             usualDests,
+		AttributeResponseContentLength:           usualDests,
+		AttributeResponseCode:                    usualDests,
+		AttributeResponseCodeDeprecated:          usualDests,
+		AttributeAWSRequestID:                    usualDests,
+		AttributeAWSLambdaARN:                    usualDests,
+		AttributeAWSLambdaColdStart:              usualDests,
+		AttributeAWSLambdaEventSourceARN:         usualDests,
+		AttributeMessageRoutingKey:               usualDests,
+		AttributeMessageQueueName:                usualDests,
+		AttributeMessageHeaders:                  usualDests,
+		AttributeMessageExchangeType:             destNone,
+		AttributeMessageReplyTo:                  destNone,
+		AttributeMessageCorrelationID:            destNone,
+		AttributeCodeFunction:                    usualDests,
+		AttributeCodeNamespace:                   usualDests,
+		AttributeCodeFilepath:                    usualDests,
+		AttributeCodeLineno:                      usualDests,
+		AttributeUserID:                          usualDests,
+		AttributeLLM:                             usualDests,
+		AttributeServerAddress:                   usualDests,
+		AttributeServerPort:                      usualDests,
+		AttributeSpanKind:                        usualDests,
+		AttributeMessagingDestinationPublishName: usualDests,
+		AttributeRabbitMQDestinationRoutingKey:   usualDests,
 		// Span specific attributes
 		SpanAttributeDBStatement:             usualDests,
 		SpanAttributeDBInstance:              usualDests,
@@ -461,6 +469,12 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 			v = v[:maxAttributeLengthBytes]
 		}
 		w.stringField(key, v)
+	case error:
+		value := v.Error()
+		if len(value) > maxAttributeLengthBytes {
+			value = value[:maxAttributeLengthBytes]
+		}
+		w.stringField(key, value)
 	case bool:
 		if v {
 			w.rawField(key, `true`)

@@ -6,7 +6,8 @@ package nrzerolog_test
 import (
 	"os"
 
-	newrelic "github.com/newrelic/go-agent"
+	"github.com/newrelic/go-agent/v3/integrations/nrzerolog"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
 )
 
