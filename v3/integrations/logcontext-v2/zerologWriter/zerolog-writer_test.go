@@ -116,13 +116,31 @@ func TestParseLogData(t *testing.T) {
 			},
 		},
 		{
-			`{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
+			`{"Scale":"833 cents" , "Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
 			"level",
 			newrelic.LogData{
-				Message:  `{"Scale":"833 cents","Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
+				Message:  `{"Scale":"833 cents" , "Interval":833.09,"time":1562212768,"message":"Fibonacci is everywhere","level":"debug"}` + "\n",
 				Severity: "debug",
 			},
 		},
+		/* regression test case from issue 955 by MarioCarrion */
+		{
+			`{"level":"info","message":"\"value\","}` + "\n",
+			"level",
+			newrelic.LogData{
+				Message:  `{"level":"info","message":"\"value\","}` + "\n",
+				Severity: "info",
+			},
+		},
+		{
+			`{"level":"info","message":","}` + "\n",
+			"level",
+			newrelic.LogData{
+				Message:  `{"level":"info","message":","}` + "\n",
+				Severity: "info",
+			},
+		},
+		/* end of issue 955 test case */
 	}
 	for _, test := range tests {
 		if test.levelKey != "" {

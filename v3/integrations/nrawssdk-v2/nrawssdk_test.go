@@ -65,14 +65,15 @@ var fakeCreds = func() interface{} {
 }()
 
 func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
-	cfg, _ := config.LoadDefaultConfig(ctx)
+	cfg, _ := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
+		AppendMiddlewares(&o.APIOptions, txn)
+		return nil
+	})
 	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
 	cfg.Region = awsRegion
 	cfg.HTTPClient = &http.Client{
 		Transport: &fakeTransport{},
 	}
-
-	AppendMiddlewares(&cfg.APIOptions, txn)
 
 	return cfg
 }

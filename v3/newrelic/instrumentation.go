@@ -52,13 +52,16 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 		var tOptions *traceOptSet
 		var txnOptionList []TraceOption
 
-		if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
-			tOptions = resolveCLMTraceOptions(options)
-			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
-				// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
-				if tOptions.LocationOverride == nil {
-					if loc, err := cache.FunctionLocation(handler, handler.ServeHTTP); err == nil {
-						WithCodeLocation(loc)(tOptions)
+		if app.app != nil {
+			run, _ := app.app.getState()
+			if run != nil && run.Config.CodeLevelMetrics.Enabled {
+				tOptions = resolveCLMTraceOptions(options)
+				if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+					// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
+					if tOptions.LocationOverride == nil {
+						if loc, err := cache.FunctionLocation(handler, handler.ServeHTTP); err == nil {
+							WithCodeLocation(loc)(tOptions)
+						}
 					}
 				}
 			}
@@ -81,6 +84,9 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 		r = RequestWithTransactionContext(r, txn)
 
 		handler.ServeHTTP(w, r)
+		if IsSecurityAgentPresent() {
+			secureAgent.SendEvent("RESPONSE_HEADER", w.Header())
+		}
 	})
 }
 
@@ -96,13 +102,16 @@ func AddCodeLevelMetricsTraceOptions(app *Application, options []TraceOption, ca
 		return options
 	}
 
-	if app.app != nil && app.app.run != nil && app.app.run.Config.CodeLevelMetrics.Enabled {
-		tOptions = resolveCLMTraceOptions(options)
-		if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || app.app.run.Config.CodeLevelMetrics.Scope == 0 || (app.app.run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
-			// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
-			if tOptions.LocationOverride == nil {
-				if loc, err := cache.FunctionLocation(cachedLocations); err == nil {
-					WithCodeLocation(loc)(tOptions)
+	if app.app != nil {
+		run, _ := app.app.getState()
+		if run != nil && run.Config.CodeLevelMetrics.Enabled {
+			tOptions = resolveCLMTraceOptions(options)
+			if tOptions != nil && !tOptions.SuppressCLM && (tOptions.DemandCLM || run.Config.CodeLevelMetrics.Scope == 0 || (run.Config.CodeLevelMetrics.Scope&TransactionCLM) != 0) {
+				// we are for sure collecting CLM here, so go to the trouble of collecting this code location if nothing else has yet.
+				if tOptions.LocationOverride == nil {
+					if loc, err := cache.FunctionLocation(cachedLocations); err == nil {
+						WithCodeLocation(loc)(tOptions)
+					}
 				}
 			}
 		}

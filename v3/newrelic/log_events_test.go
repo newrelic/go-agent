@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -88,12 +89,13 @@ func TestBasicLogEventWithAttributes(t *testing.T) {
 		C: c{"hello"},
 	}
 
-	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(5))
+	events := newLogEvents(testCommonAttributes, loggingConfigEnabled(6))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message1", map[string]any{"two": "hi"}))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message2", map[string]any{"struct": st}))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message3", map[string]any{"map": map[string]string{"hi": "hello"}}))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message4", map[string]any{"slice": []string{"hi", "hello", "test"}}))
 	events.Add(sampleLogEvent(0.5, infoLevel, "message5", map[string]any{"array": [2]int{1, 2}}))
+	events.Add(sampleLogEvent(0.5, infoLevel, "message6", map[string]any{"error": errors.New("test error")}))
 
 	json, err := events.CollectorJSON(agentRunID)
 	if nil != err {
@@ -105,15 +107,16 @@ func TestBasicLogEventWithAttributes(t *testing.T) {
 		`{"level":"INFO","message":"message2","timestamp":123456,"attributes":{"struct":"{\"A\":\"a\",\"B\":1,\"C\":{\"D\":\"hello\"}}"}},` +
 		`{"level":"INFO","message":"message3","timestamp":123456,"attributes":{"map":"{\"hi\":\"hello\"}"}},` +
 		`{"level":"INFO","message":"message4","timestamp":123456,"attributes":{"slice":"[\"hi\",\"hello\",\"test\"]"}},` +
-		`{"level":"INFO","message":"message5","timestamp":123456,"attributes":{"array":"[1,2]"}}]}]`
+		`{"level":"INFO","message":"message5","timestamp":123456,"attributes":{"array":"[1,2]"}},` +
+		`{"level":"INFO","message":"message6","timestamp":123456,"attributes":{"error":"test error"}}]}]`
 
 	if string(json) != expected {
 		t.Error("actual not equal to expected:\n", string(json), "\n", expected)
 	}
-	if events.numSeen != 5 {
+	if events.numSeen != 6 {
 		t.Error(events.numSeen)
 	}
-	if events.NumSaved() != 5 {
+	if events.NumSaved() != 6 {
 		t.Error(events.NumSaved())
 	}
 }
