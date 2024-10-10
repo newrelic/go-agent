@@ -8,6 +8,8 @@
 package nrlogxi
 
 import (
+	"math"
+
 	log "github.com/mgutz/logxi/v1"
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -36,6 +38,10 @@ func (l *shim) DebugEnabled() bool {
 }
 
 func convert(c map[string]interface{}) []interface{} {
+	if len(c) >= math.MaxInt32/2 {
+		return []interface{}
+	}
+
 	output := make([]interface{}, 0, 2*len(c))
 	for k, v := range c {
 		output = append(output, k, v)

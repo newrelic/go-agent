@@ -83,8 +83,8 @@ func stringLengthByteLimit(str string, byteLimit int) string {
 }
 
 func timeFromUnixMilliseconds(millis uint64) time.Time {
-	secs := int64(millis) / 1000
-	msecsRemaining := int64(millis) % 1000
+	secs := int64(millis / 1000)
+	msecsRemaining := int64(millis % 1000)
 	nsecsRemaining := msecsRemaining * (1000 * 1000)
 	return time.Unix(secs, nsecsRemaining)
 }
