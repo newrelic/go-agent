@@ -39,7 +39,8 @@ func (l *shim) DebugEnabled() bool {
 
 func convert(c map[string]interface{}) []interface{} {
 	if len(c) >= math.MaxInt32/2 {
-		return []interface{}
+		output := make([]interface{}, 0)
+		return output
 	}
 
 	output := make([]interface{}, 0, 2*len(c))

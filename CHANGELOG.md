@@ -22,6 +22,8 @@
   - Workflow corrections for CI processes in github.
      - Fixes issue [#946](https://github.com/newrelic/go-agent/issues/946)
   - Updated to use latest grpc and protobuf versions.
+  - Fixes memory stat collection for `GOOS=js`.
+     - Thanks @hslatman for the [PR](https://github.com/newrelic/go-agent/pull/967)
 
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.

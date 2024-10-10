@@ -1,8 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrwriter
 
-go 1.20
+go 1.21
 
-require github.com/newrelic/go-agent/v3 v3.33.1
+require github.com/newrelic/go-agent/v3 v3.35.0
 
 
 replace github.com/newrelic/go-agent/v3 => ../../..

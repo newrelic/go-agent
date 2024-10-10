@@ -1,10 +1,10 @@
 module github.com/newrelic/go-agent/v3/integrations/nrlambda
 
-go 1.20
+go 1.21
 
 require (
 	github.com/aws/aws-lambda-go v1.41.0
-	github.com/newrelic/go-agent/v3 v3.33.1
+	github.com/newrelic/go-agent/v3 v3.35.0
 )
 
 
