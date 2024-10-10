@@ -4,8 +4,12 @@
      - Enables sharing of response headers with the csec-security-agent.
   - Now uses `error.Error()` value for log attributes
      - Thanks to @ejsolberg for the [PR](https://github.com/newrelic/go-agent/pull/947)
+  - nramqp integration cloud services entity relationship changes
+     - Enhances url support for amqp server connections
 
 ### Fixed
+  - nrawssdk-v2 integration examples of `AppendMiddlewares` corrected.
+     - Thanks to @Meroje for the [PR](https://github.com/newrelic/go-agent/pull/599)
   - Zerolog integration correction to example program `import` statement.
      - Fixes issue [#950](https://github.com/newrelic/go-agent/issues/950)
   - Zerolog integration JSON parser bug caused a runtime panic in some circumstances.
