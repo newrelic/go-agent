@@ -120,18 +120,18 @@ func ConfigSecurityFromYaml() ConfigOption {
 // NEW_RELIC_SECURITY_SCAN_SCHEDULER_DURATION   (integer) The duration field specifies the duration of the IAST scan in minutes. This determines how long the scan will run. By default is forever.
 // NEW_RELIC_SECURITY_SCAN_SCHEDULER_SCHEDULE   (string) The schedule field specifies a cron expression that defines when the IAST scan should run.
 // NEW_RELIC_SECURITY_ALWAYS_SAMPLE_TRACES      (boolean) always_sample_traces permits IAST to actively gather trace data in the background, and the collected data will be used by Security Agent to perform an IAST Scan at the scheduled time.
-// NEW_RELIC_IAST_SCAN_REQUEST_RATE_LIMIT       (integer) The IAST Scan Rate Limit settings limit the maximum number of analysis probes or requests that can be sent to the application in a minute, By default is 3600.
+// NEW_RELIC_SECURITY_IAST_SCAN_REQUEST_RATE_LIMIT       (integer) The IAST Scan Rate Limit settings limit the maximum number of analysis probes or requests that can be sent to the application in a minute, By default is 3600.
 //
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INSECURE_SETTINGS (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INVALID_FILE_ACCESS (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SQL_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_NOSQL_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_LDAP_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_JAVASCRIPT_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_COMMAND_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_XPATH_INJECTION (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SSRF (boolean)
-// NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_RXSS (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INSECURE_SETTINGS (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INVALID_FILE_ACCESS (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SQL_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_NOSQL_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_LDAP_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_JAVASCRIPT_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_COMMAND_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_XPATH_INJECTION (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SSRF (boolean)
+// NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_RXSS (boolean)
 
 func ConfigSecurityFromEnvironment() ConfigOption {
 	return func(cfg *SecurityConfig) {
@@ -171,18 +171,18 @@ func ConfigSecurityFromEnvironment() ConfigOption {
 		assignInt(&cfg.Security.ScanSchedule.Duration, "NEW_RELIC_SECURITY_SCAN_SCHEDULER_DURATION")
 		assignString(&cfg.Security.ScanSchedule.Schedule, "NEW_RELIC_SECURITY_SCAN_SCHEDULER_SCHEDULE")
 		assignBool(&cfg.Security.ScanSchedule.AllowIastSampleCollection, "NEW_RELIC_SECURITY_ALWAYS_SAMPLE_TRACES")
-		assignInt(&cfg.Security.ScanControllers.IastScanRequestRateLimit, "NEW_RELIC_IAST_SCAN_REQUEST_RATE_LIMIT")
+		assignInt(&cfg.Security.ScanControllers.IastScanRequestRateLimit, "NEW_RELIC_SECURITY_IAST_SCAN_REQUEST_RATE_LIMIT")
 
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InsecureSettings, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INSECURE_SETTINGS")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InvalidFileAccess, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INVALID_FILE_ACCESS")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.SQLInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SQL_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.NosqlInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_NOSQL_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.LdapInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_LDAP_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.JavascriptInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_JAVASCRIPT_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.CommandInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_COMMAND_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.XpathInjection, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_XPATH_INJECTION")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.Ssrf, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SSRF")
-		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.Rxss, "NEW_RELIC_IAST_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_RXSS")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InsecureSettings, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INSECURE_SETTINGS")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InvalidFileAccess, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_INVALID_FILE_ACCESS")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.SQLInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SQL_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.NosqlInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_NOSQL_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.LdapInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_LDAP_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.JavascriptInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_JAVASCRIPT_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.CommandInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_COMMAND_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.XpathInjection, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_XPATH_INJECTION")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.Ssrf, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_SSRF")
+		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.Rxss, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_DETECTION_CATEGORY_RXSS")
 	}
 }
 
