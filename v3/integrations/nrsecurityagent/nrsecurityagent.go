@@ -35,6 +35,7 @@ func defaultSecurityConfig() SecurityConfig {
 	cfg.Security.ExcludeFromIastScan.HttpRequestParameters.Body = make([]string, 0)
 	cfg.Security.ExcludeFromIastScan.HttpRequestParameters.Query = make([]string, 0)
 	cfg.Security.ExcludeFromIastScan.API = make([]string, 0)
+	cfg.Security.ScanControllers.IastScanRequestRateLimit = 3600
 	return cfg
 }
 
