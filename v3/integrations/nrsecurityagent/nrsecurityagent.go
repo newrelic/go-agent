@@ -31,6 +31,10 @@ func defaultSecurityConfig() SecurityConfig {
 	cfg.Security.Agent.Enabled = true
 	cfg.Security.Detection.Rxss.Enabled = true
 	cfg.Security.Request.BodyLimit = 300
+	cfg.Security.ExcludeFromIastScan.HttpRequestParameters.Header = make([]string, 0)
+	cfg.Security.ExcludeFromIastScan.HttpRequestParameters.Body = make([]string, 0)
+	cfg.Security.ExcludeFromIastScan.HttpRequestParameters.Query = make([]string, 0)
+	cfg.Security.ExcludeFromIastScan.API = make([]string, 0)
 	return cfg
 }
 
@@ -63,7 +67,7 @@ func InitSecurityAgent(app *newrelic.Application, opts ...ConfigOption) error {
 
 	appConfig, isValid := app.Config()
 	if !isValid {
-		return fmt.Errorf("Newrelic application value cannot be read; did you call newrelic.NewApplication?")
+		return fmt.Errorf("Newrelic  application value cannot be read; did you call newrelic.NewApplication?")
 	}
 	app.UpdateSecurityConfig(c.Security)
 	if !appConfig.HighSecurity && isSecurityAgentEnabled() {
