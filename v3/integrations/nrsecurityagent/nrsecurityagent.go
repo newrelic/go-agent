@@ -225,7 +225,7 @@ func ConfigSecurityRequestBodyLimit(bodyLimit int) ConfigOption {
 // The delay field indicated time in minutes before the IAST scan starts after the application starts
 func ConfigScanScheduleDelay(delay int) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Scan.Schedule.Delay = delay
+		cfg.Security.ScanSchedule.Delay = delay
 	}
 }
 
@@ -233,7 +233,7 @@ func ConfigScanScheduleDelay(delay int) ConfigOption {
 // The duration field specifies the duration of the IAST scan in minutes. This determines how long the scan will run.
 func ConfigScanScheduleDuration(duration int) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Scan.Schedule.Duration = duration
+		cfg.Security.ScanSchedule.Duration = duration
 	}
 }
 
@@ -241,7 +241,7 @@ func ConfigScanScheduleDuration(duration int) ConfigOption {
 // The schedule field specifies a cron expression that defines when the IAST scan should run.
 func ConfigScanScheduleSetSchedule(schedule string) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Scan.Schedule.Schedule = schedule
+		cfg.Security.ScanSchedule.Schedule = schedule
 	}
 }
 
@@ -249,7 +249,7 @@ func ConfigScanScheduleSetSchedule(schedule string) ConfigOption {
 // always_sample_traces permits IAST to actively gather trace data in the background, and the collected data will be used by Security Agent to perform an IAST Scan at the scheduled time.
 func ConfigScanScheduleAllowIastSampleCollection(isAllowed bool) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Scan.Schedule.AllowIastSampleCollection = isAllowed
+		cfg.Security.ScanSchedule.AllowIastSampleCollection = isAllowed
 	}
 }
 
@@ -257,6 +257,6 @@ func ConfigScanScheduleAllowIastSampleCollection(isAllowed bool) ConfigOption {
 // The IAST Scan Rate Limit settings limit the maximum number of analysis probes or requests that can be sent to the application in a minute
 func ConfigIastScanRequestRateLimit(limit int) ConfigOption {
 	return func(cfg *SecurityConfig) {
-		cfg.Security.Scan.Controllers.IastScanRequestRateLimit = limit
+		cfg.Security.ScanControllers.IastScanRequestRateLimit = limit
 	}
 }
