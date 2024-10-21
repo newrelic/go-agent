@@ -220,3 +220,43 @@ func ConfigSecurityRequestBodyLimit(bodyLimit int) ConfigOption {
 		cfg.Security.Request.BodyLimit = bodyLimit
 	}
 }
+
+// ConfigScanScheduleDelay is used to set delay for scan schedule.
+// The delay field indicated time in minutes before the IAST scan starts after the application starts
+func ConfigScanScheduleDelay(delay int) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.Scan.Schedule.Delay = delay
+	}
+}
+
+// ConfigScanScheduleDuration is used to set duration for scan schedule.
+// The duration field specifies the duration of the IAST scan in minutes. This determines how long the scan will run.
+func ConfigScanScheduleDuration(duration int) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.Scan.Schedule.Duration = duration
+	}
+}
+
+// ConfigScanScheduleSetSchedule is used to set schedule for scan schedule.
+// The schedule field specifies a cron expression that defines when the IAST scan should run.
+func ConfigScanScheduleSetSchedule(schedule string) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.Scan.Schedule.Schedule = schedule
+	}
+}
+
+// ConfigScanScheduleAllowIastSampleCollection is used to allow or disallow IAST sample collection
+// always_sample_traces permits IAST to actively gather trace data in the background, and the collected data will be used by Security Agent to perform an IAST Scan at the scheduled time.
+func ConfigScanScheduleAllowIastSampleCollection(isAllowed bool) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.Scan.Schedule.AllowIastSampleCollection = isAllowed
+	}
+}
+
+// ConfigScanControllersIastScanRequestRateLimit is used to set IAST scan request rate limit.
+// The IAST Scan Rate Limit settings limit the maximum number of analysis probes or requests that can be sent to the application in a minute
+func ConfigIastScanRequestRateLimit(limit int) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.Scan.Controllers.IastScanRequestRateLimit = limit
+	}
+}
