@@ -4,7 +4,6 @@
 package internal
 
 import (
-	"encoding/hex"
 	"math/rand"
 	"sync"
 )
@@ -39,6 +38,10 @@ const (
 	maxIDByteLen        = 16
 )
 
+const (
+	hextable = "0123456789abcdef"
+)
+
 // GenerateTraceID creates a new trace identifier, which is a 32 character hex string.
 func (tg *TraceIDGenerator) GenerateTraceID() string {
 	return tg.generateID(traceIDByteLen)
@@ -50,9 +53,15 @@ func (tg *TraceIDGenerator) GenerateSpanID() string {
 }
 
 func (tg *TraceIDGenerator) generateID(len int) string {
-	var bits [maxIDByteLen]byte
+	var bits [maxIDByteLen * 2]byte
 	tg.Lock()
 	defer tg.Unlock()
 	tg.rnd.Read(bits[:len])
-	return hex.EncodeToString(bits[:len])
+
+	// In-place encode
+	for i := len - 1; i >= 0; i-- {
+		bits[i*2+1] = hextable[bits[i]&0x0f]
+		bits[i*2] = hextable[bits[i]>>4]
+	}
+	return string(bits[:len*2])
 }
