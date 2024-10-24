@@ -43,7 +43,7 @@ func (app *Application) RegisterSecurityAgent(s securityAgent) {
 	if app != nil && app.app != nil && s != nil {
 		secureAgent = s
 		run, _ := app.app.getState()
-		if run != nil {
+		if run.Reply.IsConnectedToNewRelic() {
 			secureAgent.RefreshState(getLinkedMetaData(app.app))
 		}
 	}
