@@ -184,3 +184,17 @@ func TestDefaultEventHarvestConfigJSON(t *testing.T) {
 		t.Errorf("DefaultEventHarvestConfig does not match expected valued:\nExpected:\t%s\nActual:\t\t%s", expect, string(js))
 	}
 }
+
+func TestConnectReply_IsConnectedToNewRelic(t *testing.T) {
+	reply := ConnectReplyDefaults()
+	if reply.IsConnectedToNewRelic() {
+		t.Error("Connect Reply Defaults should not be considered connected to New Relic")
+	}
+
+	reply = ConnectReplyDefaults()
+	reply.RunID = "foo"
+	reply.EntityGUID = "bar"
+	if !reply.IsConnectedToNewRelic() {
+		t.Error("Connect Reply with RunID and EntityGUID should be considered connected to New Relic")
+	}
+}
