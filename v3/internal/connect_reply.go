@@ -270,7 +270,7 @@ const (
 // from a New Relic connect endpoint. This is determined by the presence of a RunID
 // and an EntityGUID which the agent needs to send data to a collector.
 func (r *ConnectReply) IsConnectedToNewRelic() bool {
-	return r.RunID != "" && r.EntityGUID != ""
+	return r != nil && r.RunID != "" && r.EntityGUID != ""
 }
 
 // MockConnectReplyEventLimits sets up a mock connect reply to test event limits
