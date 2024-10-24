@@ -229,9 +229,9 @@ const (
 // consumer.
 func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	var afterURLRules string
-	if "" != input {
+	if input != "" {
 		afterURLRules = reply.URLRules.Apply(input)
-		if "" == afterURLRules {
+		if afterURLRules == "" {
 			return ""
 		}
 	}
@@ -249,7 +249,7 @@ func CreateFullTxnName(input string, reply *ConnectReply, isWeb bool) string {
 	}
 
 	afterNameRules := reply.TxnNameRules.Apply(beforeNameRules)
-	if "" == afterNameRules {
+	if afterNameRules == "" {
 		return ""
 	}
 
@@ -265,6 +265,13 @@ const (
 	// CustomEventHarvestsPerMinute is the number of times per minute custom events are harvested
 	CustomEventHarvestsPerMinute = 5
 )
+
+// IsConnectedToNewRelic returns true if the connect reply is a valid connect reply
+// from a New Relic connect endpoint. This is determined by the presence of a RunID
+// and an EntityGUID which the agent needs to send data to a collector.
+func (r *ConnectReply) IsConnectedToNewRelic() bool {
+	return r != nil && r.RunID != "" && r.EntityGUID != ""
+}
 
 // MockConnectReplyEventLimits sets up a mock connect reply to test event limits
 // currently only verifies custom insights events
