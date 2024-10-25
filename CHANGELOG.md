@@ -1,3 +1,13 @@
+## 3.35.1
+### Fixed
+  - Security Agent Bug Hotfix: Do not update the security agent unti the go agent has completed its connect process [PR](https://github.com/newrelic/go-agent/pull/978)
+  - Faster Trace ID generation
+    - Community Member @ankon contributed [this change](https://github.com/newrelic/go-agent/pull/977)
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.35.0
 ### Added
   - Enhanced security features (adds support for secure cookie even reporting)

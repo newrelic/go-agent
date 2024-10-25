@@ -32,3 +32,18 @@ func BenchmarkTraceIDGenerator(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkTraceIDGeneratorParallel(b *testing.B) {
+	tg := NewTraceIDGenerator(12345)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.RunParallel(func(p *testing.PB) {
+		for p.Next() {
+			if id := tg.GenerateSpanID(); id == "" {
+				b.Fatal(id)
+			}
+		}
+	})
+}
