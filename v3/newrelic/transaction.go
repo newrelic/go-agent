@@ -269,7 +269,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 		return
 	}
 	if IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes())
+		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes(), txn.GetLinkingMetadata().TraceID)
 	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
