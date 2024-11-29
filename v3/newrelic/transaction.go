@@ -43,7 +43,7 @@ func (txn *Transaction) End() {
 		}
 	}
 	if txn.thread.IsWeb && IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND_END", "")
+		secureAgent.SendEvent("INBOUND_END", txn.GetLinkingMetadata().TraceID)
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
