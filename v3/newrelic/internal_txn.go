@@ -1396,13 +1396,16 @@ func (txn *txn) setCsecData() {
 	}
 }
 
-func (txn *txn) getCsecAttributes() any {
+func (txn *txn) getCsecAttributes() map[string]any {
 	txn.Lock()
 	defer txn.Unlock()
+	if txn.csecAttributes == nil {
+		return map[string]any{}
+	}
 	return txn.csecAttributes
 }
 
-func (txn *txn) setCsecAttributes(key, value string) {
+func (txn *txn) setCsecAttributes(key string, value any) {
 	txn.Lock()
 	defer txn.Unlock()
 	if txn.csecAttributes == nil {
