@@ -26,7 +26,7 @@ func TestHandlerZeroTime(t *testing.T) {
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	out := bytes.NewBuffer([]byte{})
-	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}))
+	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}), out)
 	handler.Handle(context.Background(), slog.Record{
 		Level:   slog.LevelInfo,
 		Message: "Hello World!",
@@ -52,7 +52,7 @@ func TestWrapHandler(t *testing.T) {
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	out := bytes.NewBuffer([]byte{})
-	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}))
+	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}), out)
 	log := slog.New(handler)
 	message := "Hello World!"
 	log.Info(message)

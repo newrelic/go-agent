@@ -9,17 +9,17 @@ import (
 )
 
 // TextHandler is a wrapper on slog.NewTextHandler that includes New Relic Logs in Context.
-// This method has been preserved for backwards compatibility, but is not longer recommended.
+// This method has been preserved for backwards compatibility, but is not longer recommended..
 // Deprecated: Use WrapHandler instead.
 func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
-	return WrapHandler(app, slog.NewTextHandler(w, opts))
+	return WrapHandler(app, slog.NewTextHandler(w, opts), w)
 }
 
 // TextHandler is a wrapper on slog.NewTextHandler that includes New Relic Logs in Context.
 // This method has been preserved for backwards compatibility, but is not longer recommended.
 // Deprecated: Use WrapHandler instead.
 func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
-	return WrapHandler(app, slog.NewJSONHandler(w, opts))
+	return WrapHandler(app, slog.NewJSONHandler(w, opts), w)
 }
 
 // WithTransaction creates a new Slog Logger object to be used for logging within a given transaction.

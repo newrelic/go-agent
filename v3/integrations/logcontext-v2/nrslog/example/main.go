@@ -21,7 +21,7 @@ func main() {
 	}
 
 	app.WaitForConnection(time.Second * 5)
-	log := slog.New(nrslog.WrapHandler(app, slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})))
+	log := slog.New(nrslog.WrapHandler(app, slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}), os.Stdout))
 
 	log.Info("I am a log message")
 
