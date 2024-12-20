@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
-	"runtime"
-	"sync"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -19,8 +16,7 @@ type NRHandler struct {
 	app     *newrelic.Application
 	txn     *newrelic.Transaction
 	goas    []groupOrAttrs
-	mu      *sync.Mutex
-	out     io.Writer
+	goasMap map[string]interface{}
 }
 
 // groupOrAttrs is a structure that holds either a group name or a slice of attributes
@@ -38,12 +34,11 @@ func WithTransactionFromContext(handler *NRHandler) *NRHandler {
 
 // WrapHandler returns a new handler that is wrapped with New Relic tools to capture
 // log data based on your application's logs in context settings.
-func WrapHandler(app *newrelic.Application, handler slog.Handler, w io.Writer) *NRHandler {
+func WrapHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
 	return &NRHandler{
 		handler: handler,
 		app:     app,
-		mu:      &sync.Mutex{},
-		out:     w,
+		goasMap: make(map[string]interface{}),
 	}
 }
 
@@ -54,8 +49,7 @@ func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) *NRHandler {
 		handler: h.handler,
 		app:     h.app,
 		txn:     txn,
-		mu:      &sync.Mutex{},
-		out:     h.out,
+		goasMap: make(map[string]interface{}),
 	}
 
 	return handler
@@ -92,25 +86,19 @@ func (h *NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 //     ignore it.
 
 func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
-	buf := make([]byte, 0, 1024)
-	attrs := map[string]interface{}{}
+
+	record.Attrs(func(attr slog.Attr) bool {
+		// ignore empty attributes
+		if !attr.Equal(slog.Attr{}) {
+			h.goasMap[attr.Key] = attr.Value.Any()
+		}
+		return true
+	})
+
 	// timestamp must be sent to newrelic
 	logTime := record.Time.UnixMilli()
 	if record.Time.IsZero() {
 		logTime = time.Now().UnixMilli()
-	} else {
-		buf = h.appendAttr(buf, slog.Time(slog.TimeKey, record.Time))
-	}
-
-	// Construct the log message into a buffer
-	buf = h.appendAttr(buf, slog.String(slog.MessageKey, record.Message))
-	buf = h.appendAttr(buf, slog.Any(slog.LevelKey, record.Level))
-
-	// Configure the source file and line number if available
-	if record.PC != 0 {
-		fs := runtime.CallersFrames([]uintptr{record.PC})
-		f, _ := fs.Next()
-		buf = h.appendAttr(buf, slog.String(slog.SourceKey, fmt.Sprintf("%s:%d", f.File, f.Line)))
 	}
 
 	// Add any groups or attributes to the log message
@@ -121,28 +109,21 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 			group = goa.group
 		} else {
 			for _, a := range goa.attrs {
-				// if group is not "", then we need to add it to the key
 				if group != "" {
 					a.Key = group + "." + a.Key
 				}
-				attrs[a.Key] = a.Value.Any()
-				buf = h.appendAttr(buf, a)
+				h.appendAttr(a)
+				record.AddAttrs(a)
 			}
 		}
 	}
-	record.Attrs(func(a slog.Attr) bool {
-		if !a.Equal(slog.Attr{}) {
-			attrs[a.Key] = a.Value.Any()
-			buf = h.appendAttr(buf, a)
-		}
-		return true
-	})
 
+	// Pass Map[string]interface{} to New Relic here
 	data := newrelic.LogData{
 		Severity:   record.Level.String(),
 		Timestamp:  logTime,
 		Message:    record.Message,
-		Attributes: attrs,
+		Attributes: h.goasMap,
 	}
 
 	// attempt to get the transaction from the context
@@ -161,76 +142,73 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 
 	// enrich log with newrelic metadata
 	// this will always return a valid log message even if an error occurs
-	enrichedBuf, enrichErr := enrichLog(buf, h.app, txn)
+	enrichedRecord, enrichErr := enrichLog(record.Message, h.app, txn)
+	record.Message = enrichedRecord
 	if enrichErr != nil {
 		err = fmt.Errorf("failed to enrich logs with New Relic metadata: %v", enrichErr)
 	}
-	buf = enrichedBuf
-
-	// write the log to the output
-	buf = append(buf, "\n"...)
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	_, bufErr := h.out.Write(buf)
-	if bufErr != nil {
+	handleErr := h.handler.Handle(ctx, record)
+	if handleErr != nil {
 		if err != nil {
-			err = fmt.Errorf("%v: %v", err, bufErr)
+			err = fmt.Errorf("%w; %w", err, handleErr)
 		} else {
-			err = bufErr
+			err = handleErr
 		}
 	}
 
 	return err
 }
 
-func (h *NRHandler) appendAttr(buf []byte, a slog.Attr) []byte {
+func (h *NRHandler) appendAttr(a slog.Attr) {
 	// Resolve the Attr's value before doing anything else.
 	a.Value = a.Value.Resolve()
 	// Ignore empty Attrs.
 	if a.Equal(slog.Attr{}) {
-		return buf
+		return
 	}
 	switch a.Value.Kind() {
 	case slog.KindString:
 		// Quote string values, to make them easy to parse.
-		buf = fmt.Appendf(buf, "%s=%q ", a.Key, a.Value.String())
+		h.goasMap[a.Key] = a.Value.String()
 	case slog.KindTime:
 		// Write times in a standard way, without the monotonic time.
-		buf = fmt.Appendf(buf, "%s=%s ", a.Key, a.Value.Time().Format(time.RFC3339Nano))
+		h.goasMap[a.Key] = a.Value.Time().Format(time.RFC3339Nano)
 	case slog.KindGroup:
 		attrs := a.Value.Group()
 		// Ignore empty groups.
 		if len(attrs) == 0 {
-			return buf
+			return
 		}
+		groupMap := make(map[string]interface{})
 		for _, ga := range attrs {
-			buf = h.appendAttr(buf, ga)
+			groupMap[ga.Key] = ga.Value.Any()
 		}
+		h.goasMap[a.Key] = groupMap
 	default:
-		buf = fmt.Appendf(buf, "%s=%v ", a.Key, a.Value)
+		h.goasMap[a.Key] = a.Value.Any()
 	}
-	return buf
 }
 
 // enrich log always returns a valid log message even if an error occurs
-func enrichLog(record []byte, app *newrelic.Application, txn *newrelic.Transaction) ([]byte, error) {
+func enrichLog(record string, app *newrelic.Application, txn *newrelic.Transaction) (string, error) {
 	var buf *bytes.Buffer
 	var err error
 
 	if txn != nil {
-		buf = bytes.NewBuffer(record)
+		buf = bytes.NewBuffer([]byte(record))
 		err = newrelic.EnrichLog(buf, newrelic.FromTxn(txn))
 	} else if app != nil {
-		buf = bytes.NewBuffer(record)
+		buf = bytes.NewBuffer([]byte(record))
 		err = newrelic.EnrichLog(buf, newrelic.FromApp(app))
 	} else {
 		return record, nil
 	}
 
-	return buf.Bytes(), err
+	return buf.String(), err
 }
 
 func (h *NRHandler) withGroupOrAttrs(goa groupOrAttrs) *NRHandler {
+	// Generate cachedAttributes
 	h2 := *h
 	h2.goas = make([]groupOrAttrs, len(h.goas)+1)
 	copy(h2.goas, h.goas)
@@ -268,8 +246,12 @@ func (h *NRHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 //
 // If the name is empty, WithGroup returns the receiver.
 func (h *NRHandler) WithGroup(name string) slog.Handler {
+	fmt.Println("With Group!")
 	if name == "" {
 		return h
 	}
 	return h.withGroupOrAttrs(groupOrAttrs{group: name})
 }
+
+//WithAttributes which adds to a logger
+// SLOG record stores distinct attributes in a map. So we need to get them out of the record
