@@ -55,6 +55,10 @@ func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) *NRHandler {
 	return handler
 }
 
+func startsWithGroup(key, group string) bool {
+	return len(key) > len(group) && key[:len(group)+1] == group+"."
+}
+
 // Enabled reports whether the handler handles records at the given level.
 // The handler ignores records whose level is lower.
 // It is called early, before any arguments are processed,
@@ -86,11 +90,30 @@ func (h *NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 //     ignore it.
 
 func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
-
+	if record.NumAttrs() == 0 {
+		// If the record has no Attrs, remove groups at the end of the list; they are empty.
+		for len(h.goas) > 0 && h.goas[len(h.goas)-1].group != "" {
+			h.goas = h.goas[:len(h.goas)-1]
+		}
+	}
+	// Case: If a group is passed in the record
 	record.Attrs(func(attr slog.Attr) bool {
 		// ignore empty attributes
 		if !attr.Equal(slog.Attr{}) {
-			h.goasMap[attr.Key] = attr.Value.Any()
+			if attr.Value.Kind() == slog.KindGroup {
+				attrs := attr.Value.Group()
+				// append the group name to the key
+				for _, a := range attrs {
+					if attr.Key != "" {
+						a.Key = attr.Key + "." + a.Key
+					}
+
+					h.appendAttr(a)
+					record.AddAttrs(a)
+				}
+			} else {
+				h.goasMap[attr.Key] = attr.Value.Any()
+			}
 		}
 		return true
 	})
@@ -101,23 +124,34 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		logTime = time.Now().UnixMilli()
 	}
 
-	// Add any groups or attributes to the log message
+	// Case: WithGroup
 	goas := h.goas
 	group := ""
+
 	for _, goa := range goas {
 		if goa.group != "" {
 			group = goa.group
-		} else {
-			for _, a := range goa.attrs {
-				if group != "" {
-					a.Key = group + "." + a.Key
-				}
-				h.appendAttr(a)
-				record.AddAttrs(a)
+		}
+		for _, a := range goa.attrs {
+			if group != "" && !startsWithGroup(a.Key, group) {
+				a.Key = group + "." + a.Key
 			}
+			h.appendAttr(a)
 		}
 	}
 
+	// If the group isn't empty and the record has attributes, append the group to the attributes
+	if group != "" {
+		tmp := make(map[string]interface{})
+		for key, value := range h.goasMap {
+			if !startsWithGroup(key, group) {
+				tmp[group+"."+key] = value
+			} else {
+				tmp[key] = value
+			}
+		}
+		h.goasMap = tmp
+	}
 	// Pass Map[string]interface{} to New Relic here
 	data := newrelic.LogData{
 		Severity:   record.Level.String(),
@@ -125,7 +159,8 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		Message:    record.Message,
 		Attributes: h.goasMap,
 	}
-
+	// reset goasMap
+	h.goasMap = make(map[string]interface{})
 	// attempt to get the transaction from the context
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
@@ -246,7 +281,6 @@ func (h *NRHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 //
 // If the name is empty, WithGroup returns the receiver.
 func (h *NRHandler) WithGroup(name string) slog.Handler {
-	fmt.Println("With Group!")
 	if name == "" {
 		return h
 	}

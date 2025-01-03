@@ -10,9 +10,38 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
+func logWithGroup(logger *slog.Logger) {
+	logger.WithGroup("program_info").With("pid", os.Getpid()).Info("log message with group and attribute")
+}
+
+func logWithGroupAndAttributes(logger *slog.Logger) {
+	logger.Info("I am a log group inside a log message",
+		slog.Group("logGroup",
+			slog.String("key1", "val"),
+			slog.Int("key2", 1),
+		),
+	)
+
+}
+func logWithLogAttrs(app *newrelic.Application, logger *slog.Logger) {
+	txn := app.StartTransaction("test-LogAttrs")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	logger.WithGroup("s").LogAttrs(ctx, slog.LevelInfo, "Log message with log attributes", slog.Int("a", 1), slog.Int("b", 2))
+	txn.End()
+
+}
+
+func logWithTxnContext(app *newrelic.Application, logger *slog.Logger) {
+	txn := app.StartTransaction("test")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	logger.InfoContext(ctx, "log has tracing on new relic")
+	txn.End()
+}
+
 func main() {
 	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("slog example app"),
+		newrelic.ConfigAppName("slog example"),
 		newrelic.ConfigFromEnvironment(),
 		newrelic.ConfigAppLogEnabled(true),
 	)
@@ -21,25 +50,13 @@ func main() {
 	}
 
 	app.WaitForConnection(time.Second * 5)
-	log := slog.New(nrslog.WrapHandler(app, slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}), os.Stdout))
+	logger := slog.New(nrslog.TextHandler(app, os.Stdout, &slog.HandlerOptions{}))
 
-	log.Info("I am a log message")
-
-	txn := app.StartTransaction("example transaction")
-	ctx := newrelic.NewContext(context.Background(), txn)
-
-	log.InfoContext(ctx, "I am a log inside a transaction with custom attributes!",
-		slog.String("foo", "bar"),
-		slog.Int("answer", 42),
-		slog.Any("some_map", map[string]interface{}{"a": 1.0, "b": 2}),
-	)
-
-	// pretend to do some work
-	time.Sleep(500 * time.Millisecond)
-	log.Warn("Uh oh, something important happened!")
-	txn.End()
-
-	log.Info("All Done!")
+	logWithGroup(logger)
+	logWithGroupAndAttributes(logger)
+	logWithTxnContext(app, logger)
+	logWithLogAttrs(app, logger)
+	logger.Info("All Done!")
 
 	app.Shutdown(time.Second * 10)
 }
