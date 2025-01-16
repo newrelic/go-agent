@@ -85,7 +85,7 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 
 		handler.ServeHTTP(w, r)
 		if IsSecurityAgentPresent() {
-			secureAgent.SendEvent("RESPONSE_HEADER", w.Header())
+			secureAgent.SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
 		}
 	})
 }

@@ -29,9 +29,8 @@ func (rw *replacementResponseWriter) Write(b []byte) (n int, err error) {
 	n, err = rw.original.Write(b)
 
 	headersJustWritten(rw.thd, http.StatusOK, hdr)
-
 	if IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND_WRITE", string(b), hdr)
+		secureAgent.SendEvent("INBOUND_WRITE", string(b), hdr, rw.thd.GetLinkingMetadata().TraceID)
 	}
 	return
 }

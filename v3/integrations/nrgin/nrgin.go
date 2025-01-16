@@ -165,6 +165,7 @@ func WrapRouter(engine *gin.Engine) {
 }
 func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		traceID := ""
 		if app != nil {
 			name := c.Request.Method + " " + getName(c, useNewNames)
 
@@ -185,10 +186,11 @@ func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
 			defer repl.flushHeader()
 
 			c.Set(internal.GinTransactionContextKey, txn)
+			traceID = txn.GetLinkingMetadata().TraceID
 		}
 		c.Next()
 		if newrelic.IsSecurityAgentPresent() {
-			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Writer.Header())
+			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Writer.Header(), traceID)
 		}
 	}
 }

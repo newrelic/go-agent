@@ -116,12 +116,14 @@ func ConfigSecurityFromYaml() ConfigOption {
 //	NEW_RELIC_SECURITY_MODE						scanning mode: "IAST" for now
 //	NEW_RELIC_SECURITY_AGENT_ENABLED			(boolean)
 //	NEW_RELIC_SECURITY_REQUEST_BODY_LIMIT		(integer) set limit on read request body in kb. By default, this is "300"
+//  NEW_RELIC_SECURITY_IAST_TEST_IDENTIFIER     (string) This configuration allows users to specify a unique test identifier when running IAST Scan with CI/CD
 //
 // NEW_RELIC_SECURITY_SCAN_SCHEDULE_DELAY      (integer) The delay field indicated time in minutes before the IAST scan starts after the application starts. By default is 0 min.
 // NEW_RELIC_SECURITY_SCAN_SCHEDULE_DURATION   (integer) The duration field specifies the duration of the IAST scan in minutes. This determines how long the scan will run. By default is forever.
 // NEW_RELIC_SECURITY_SCAN_SCHEDULE_SCHEDULE   (string) The schedule field specifies a cron expression that defines when the IAST scan should run.
 // NEW_RELIC_SECURITY_SCAN_SCHEDULE_ALWAYS_SAMPLE_TRACES      (boolean) always_sample_traces permits IAST to actively gather trace data in the background, and the collected data will be used by Security Agent to perform an IAST Scan at the scheduled time.
 // NEW_RELIC_SECURITY_SCAN_CONTROLLERS_IAST_SCAN_REQUEST_RATE_LIMIT       (integer) The IAST Scan Rate Limit settings limit the maximum number of analysis probes or requests that can be sent to the application in a minute, By default is 3600.
+// NEW_RELIC_SECURITY_SCAN_CONTROLLERS_SCAN_INSTANCE_COUNT  (integer) This configuration allows users to the number of application instances for a specific entity where IAST analysis is performed.
 //
 // NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_IAST_DETECTION_CATEGORY_INSECURE_SETTINGS (boolean)
 // NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_IAST_DETECTION_CATEGORY_INVALID_FILE_ACCESS (boolean)
@@ -167,12 +169,14 @@ func ConfigSecurityFromEnvironment() ConfigOption {
 		assignBool(&cfg.Security.Agent.Enabled, "NEW_RELIC_SECURITY_AGENT_ENABLED")
 		assignBool(&cfg.Security.Detection.Rxss.Enabled, "NEW_RELIC_SECURITY_DETECTION_RXSS_ENABLED")
 		assignInt(&cfg.Security.Request.BodyLimit, "NEW_RELIC_SECURITY_REQUEST_BODY_LIMIT")
+		assignString(&cfg.Security.IastTestIdentifier, "NEW_RELIC_SECURITY_IAST_TEST_IDENTIFIER")
 
 		assignInt(&cfg.Security.ScanSchedule.Delay, "NEW_RELIC_SECURITY_SCAN_SCHEDULE_DELAY")
 		assignInt(&cfg.Security.ScanSchedule.Duration, "NEW_RELIC_SECURITY_SCAN_SCHEDULE_DURATION")
 		assignString(&cfg.Security.ScanSchedule.Schedule, "NEW_RELIC_SECURITY_SCAN_SCHEDULE_SCHEDULE")
 		assignBool(&cfg.Security.ScanSchedule.AllowIastSampleCollection, "NEW_RELIC_SECURITY_SCAN_SCHEDULE_ALWAYS_SAMPLE_TRACES")
 		assignInt(&cfg.Security.ScanControllers.IastScanRequestRateLimit, "NEW_RELIC_SECURITY_SCAN_CONTROLLERS_IAST_SCAN_REQUEST_RATE_LIMIT")
+		assignInt(&cfg.Security.ScanControllers.ScanInstanceCount, "NEW_RELIC_SECURITY_SCAN_CONTROLLERS_SCAN_INSTANCE_COUNT")
 
 		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InsecureSettings, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_IAST_DETECTION_CATEGORY_INSECURE_SETTINGS")
 		assignBool(&cfg.Security.ExcludeFromIastScan.IastDetectionCategory.InvalidFileAccess, "NEW_RELIC_SECURITY_EXCLUDE_FROM_IAST_SCAN_IAST_DETECTION_CATEGORY_INVALID_FILE_ACCESS")
@@ -212,6 +216,14 @@ func ConfigSecurityMode(mode string) ConfigOption {
 func ConfigSecurityValidatorServiceEndPointUrl(url string) ConfigOption {
 	return func(cfg *SecurityConfig) {
 		cfg.Security.Validator_service_url = url
+	}
+}
+
+// ConfigSecurityIastTestIdentifier sets the iast test identifier.
+// This configuration allows users to specify a unique test identifier when running IAST Scan with CI/CD.
+func ConfigSecurityIastTestIdentifier(testIdentifier string) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.IastTestIdentifier = testIdentifier
 	}
 }
 
@@ -273,5 +285,13 @@ func ConfigScanScheduleAllowIastSampleCollection(isAllowed bool) ConfigOption {
 func ConfigIastScanRequestRateLimit(limit int) ConfigOption {
 	return func(cfg *SecurityConfig) {
 		cfg.Security.ScanControllers.IastScanRequestRateLimit = limit
+	}
+}
+
+// ConfigScanIstanceCount is used to set scan instance count.
+// This configuration allows users to the number of application instances for a specific entity where IAST analysis is performed.
+func ConfigScanInstanceCount(limit int) ConfigOption {
+	return func(cfg *SecurityConfig) {
+		cfg.Security.ScanControllers.ScanInstanceCount = limit
 	}
 }
