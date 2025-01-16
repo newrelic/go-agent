@@ -5,7 +5,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrzap
 go 1.21
 
 require (
-	github.com/newrelic/go-agent/v3 v3.35.0
+	github.com/newrelic/go-agent/v3 v3.36.0
 	// v1.12.0 is the earliest version of zap using modules.
 	go.uber.org/zap v1.12.0
 )

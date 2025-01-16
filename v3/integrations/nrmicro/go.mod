@@ -4,13 +4,13 @@ module github.com/newrelic/go-agent/v3/integrations/nrmicro
 // https://github.com/micro/go-micro/blob/master/go.mod
 go 1.21
 
-toolchain go1.22.3
+toolchain go1.23.4
 
 require (
 	github.com/golang/protobuf v1.5.4
 	github.com/micro/go-micro v1.8.0
-	github.com/newrelic/go-agent/v3 v3.35.0
-	google.golang.org/protobuf v1.34.1
+	github.com/newrelic/go-agent/v3 v3.36.0
+	google.golang.org/protobuf v1.36.2
 )
 
 
