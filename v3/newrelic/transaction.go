@@ -43,7 +43,7 @@ func (txn *Transaction) End() {
 		}
 	}
 	if txn.thread.IsWeb && IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND_END", "")
+		secureAgent.SendEvent("INBOUND_END", txn.GetLinkingMetadata().TraceID)
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
 }
@@ -269,7 +269,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 		return
 	}
 	if IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes())
+		secureAgent.SendEvent("INBOUND", r, txn.GetCsecAttributes(), txn.GetLinkingMetadata().TraceID)
 	}
 	txn.thread.logAPIError(txn.thread.SetWebRequest(r), "set web request", nil)
 }
@@ -545,14 +545,14 @@ func (txn *Transaction) IsSampled() bool {
 	return txn.thread.IsSampled()
 }
 
-func (txn *Transaction) GetCsecAttributes() any {
+func (txn *Transaction) GetCsecAttributes() map[string]any {
 	if txn == nil || txn.thread == nil {
 		return nil
 	}
 	return txn.thread.getCsecAttributes()
 }
 
-func (txn *Transaction) SetCsecAttributes(key, value string) {
+func (txn *Transaction) SetCsecAttributes(key string, value any) {
 	if txn == nil || txn.thread == nil {
 		return
 	}

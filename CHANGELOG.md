@@ -1,3 +1,23 @@
+## 3.36.0
+### Enhanced
+  - Internal improvements to securityagent integration to better support trace handling and other support for security analysis of applications under test, now v1.3.4; affects the following other integrations:
+    - nrecho, now v1.1.4
+    - nrecho-v4, now v1.1.3
+    - nrgin, now v1.3.3
+    - nrgorilla, now v1.2.3
+    - nrgraphqlgo, now v1.0.2
+    - nrhttprouter, now v1.1.3
+
+### Fixed
+  - Added missing license files.
+  - Fixed module dependencies in nrgrpc integration, now v1.4.5
+  - Corrects handling of `panic(nil)` to no longer try to keep pre-Go-1.21 behavior but to allow newer language semantics for that condition. Fixes [issue 975](https://github.com/newrelic/go-agent/issues/975).
+
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.35.1
 ### Fixed
   - Security Agent Bug Hotfix: Do not update the security agent unti the go agent has completed its connect process [PR](https://github.com/newrelic/go-agent/pull/978)

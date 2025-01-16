@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -970,6 +971,42 @@ func TestErrAttrsAddedWhenPanic(t *testing.T) {
 			AgentAttributes: map[string]interface{}{
 				SpanAttributeErrorClass:   "panic",
 				SpanAttributeErrorMessage: "whoopsidoodle",
+			},
+			Intrinsics: map[string]interface{}{
+				"category":         internal.MatchAnything,
+				"timestamp":        internal.MatchAnything,
+				"name":             "OtherTransaction/Go/hello",
+				"transaction.name": "OtherTransaction/Go/hello",
+				"nr.entryPoint":    true,
+			},
+		},
+	})
+}
+
+func TestPanicNilRecovery(t *testing.T) {
+	cfgFnRecordPanics := func(cfg *Config) {
+		cfg.DistributedTracer.Enabled = true
+		cfg.ErrorCollector.RecordPanics = true
+	}
+	app := testApp(replyFn, cfgFnRecordPanics, t)
+	func() {
+		defer func() {
+			recovered := recover()
+			if recovered == nil {
+				t.Error("code did not panic as expected")
+			} else if _, isNil := recovered.(*runtime.PanicNilError); !isNil {
+				t.Errorf("code did not panic with nil as expected; got %v (type %T) instead", recovered, recovered)
+			}
+		}()
+		txn := app.StartTransaction("hello")
+		defer txn.End()
+		panic(nil)
+	}()
+	app.ExpectSpanEvents(t, []internal.WantEvent{
+		{
+			AgentAttributes: map[string]interface{}{
+				SpanAttributeErrorClass:   "panic",
+				SpanAttributeErrorMessage: "panic called with nil argument",
 			},
 			Intrinsics: map[string]interface{}{
 				"category":         internal.MatchAnything,

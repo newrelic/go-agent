@@ -124,7 +124,7 @@ func Middleware(app *newrelic.Application) mux.MiddlewareFunc {
 			r = newrelic.RequestWithTransactionContext(r, txn)
 			next.ServeHTTP(w, r)
 			if newrelic.IsSecurityAgentPresent() {
-				newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header())
+				newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
 			}
 		})
 	}

@@ -128,7 +128,7 @@ func Middleware(app *newrelic.Application, opts ...ConfigOption) func(echo.Handl
 					txn.SetWebResponse(nil).WriteHeader(http.StatusInternalServerError)
 				}
 				if newrelic.IsSecurityAgentPresent() {
-					newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Response().Header())
+					newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", c.Response().Header(), txn.GetLinkingMetadata().TraceID)
 				}
 			}
 

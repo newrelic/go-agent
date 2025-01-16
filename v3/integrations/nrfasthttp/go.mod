@@ -3,7 +3,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrfasthttp
 go 1.21
 
 require (
-	github.com/newrelic/go-agent/v3 v3.35.0
+	github.com/newrelic/go-agent/v3 v3.36.0
 	github.com/valyala/fasthttp v1.49.0
 )
 

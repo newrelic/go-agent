@@ -6,7 +6,7 @@ go 1.21
 
 require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.0
-	github.com/newrelic/go-agent/v3 v3.35.0
+	github.com/newrelic/go-agent/v3 v3.36.0
 )
 
 
