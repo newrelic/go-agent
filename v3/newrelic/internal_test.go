@@ -753,6 +753,7 @@ func TestPanicInt(t *testing.T) {
 	app.ExpectMetrics(t, backgroundErrorMetrics)
 }
 
+/* superseded now by TestPanicNilRecovery.
 func TestPanicNil(t *testing.T) {
 	app := testApp(nil, func(cfg *Config) {
 		enableRecordPanics(cfg)
@@ -769,6 +770,7 @@ func TestPanicNil(t *testing.T) {
 	app.ExpectErrorEvents(t, []internal.WantEvent{})
 	app.ExpectMetrics(t, backgroundMetrics)
 }
+*/
 
 func TestResponseCodeError(t *testing.T) {
 	app := testApp(nil, ConfigDistributedTracerEnabled(false), t)
