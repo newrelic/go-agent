@@ -131,6 +131,18 @@ func (h NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 func (h NRHandler) Handle(ctx context.Context, record slog.Record) error {
 	attrs := map[string]interface{}{}
 
+	var processAttr func(attr slog.Attr) interface{}
+	processAttr = func(attr slog.Attr) interface{} {
+		if attr.Value.Kind() == slog.KindGroup {
+			groupMap := make(map[string]interface{})
+			for _, groupAttr := range attr.Value.Group() {
+				groupMap[groupAttr.Key] = processAttr(groupAttr)
+			}
+			return groupMap
+		}
+		return attr.Value.Any()
+	}
+
 	record.Attrs(func(attr slog.Attr) bool {
 		attrs[attr.Key] = attr.Value.Any()
 		return true
