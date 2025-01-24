@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
@@ -19,13 +20,39 @@ var (
 	host, _ = sysinfo.Hostname()
 )
 
-func TestHandler(t *testing.T) {
+func TestHandlerZeroTime(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
 	out := bytes.NewBuffer([]byte{})
-	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
+	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}))
+	handler.Handle(context.Background(), slog.Record{
+		Level:   slog.LevelInfo,
+		Message: "Hello World!",
+		Time:    time.Time{},
+	})
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   "Hello World!",
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+	})
+}
+
+func TestWrapHandler(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	out := bytes.NewBuffer([]byte{})
+	handler := WrapHandler(app.Application, slog.NewTextHandler(out, &slog.HandlerOptions{}))
 	log := slog.New(handler)
 	message := "Hello World!"
 	log.Info(message)
@@ -89,12 +116,11 @@ func TestHandlerTransactions(t *testing.T) {
 	log.Debug(backgroundMsg)
 	txn.End()
 
-	/*
-		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-			EntityGUID: integrationsupport.TestEntityGUID,
-			Hostname:   host,
-			EntityName: integrationsupport.SampleAppName,
-		}) */
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
@@ -134,6 +160,8 @@ func TestHandlerTransactionCtx(t *testing.T) {
 		EntityGUID: integrationsupport.TestEntityGUID,
 		Hostname:   host,
 		EntityName: integrationsupport.SampleAppName,
+		SpanID:     txninfo.SpanID,
+		TraceID:    txninfo.TraceID,
 	})
 
 	app.ExpectLogEvents(t, []internal.WantLog{
@@ -202,7 +230,8 @@ func TestWithAttributes(t *testing.T) {
 	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
 	log := slog.New(handler)
 	message := "Hello World!"
-	log = log.With(slog.String("string key", "val"), slog.Int("int key", 1))
+	emptyAttr := slog.Attr{}
+	log = log.With(slog.String("string key", "val"), slog.Int("int key", 1), emptyAttr)
 
 	log.Info(message)
 
@@ -220,10 +249,13 @@ func TestWithAttributes(t *testing.T) {
 		t.Errorf("expected %s to contain %s", log1, attrString)
 	}
 
+	if strings.Contains(log1, emptyAttr.String()) {
+		t.Errorf("expected %s to not contain empty attributes %+v", log1, emptyAttr)
+	}
+
 	if !strings.Contains(log2, attrString) {
 		t.Errorf("expected %s to contain %s", log2, attrString)
 	}
-
 }
 
 func TestWithAttributesFromContext(t *testing.T) {
@@ -244,6 +276,7 @@ func TestWithAttributesFromContext(t *testing.T) {
 		slog.Any("some_map", map[string]interface{}{"a": 1.0, "b": 2}),
 	)
 
+	txninfo := txn.GetLinkingMetadata()
 	txn.End()
 
 	app.ExpectLogEvents(t, []internal.WantLog{
@@ -261,10 +294,12 @@ func TestWithAttributesFromContext(t *testing.T) {
 				"answer":   42,
 				"some_map": map[string]interface{}{"a": 1.0, "b": 2},
 			},
+			SpanID:  txninfo.SpanID,
+			TraceID: txninfo.TraceID,
 		},
 	})
-
 }
+
 func TestWithGroup(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(false),
