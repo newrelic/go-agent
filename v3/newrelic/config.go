@@ -582,6 +582,10 @@ type ApplicationLogging struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
+	CustomTags struct {
+		Enabled bool
+		Tags    map[string]string
+	}
 	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
 	// during log collection, slowing down the execution of the line of code that will write the log. If your
 	// application collects logs at a high frequency or volume, or it can not afford the slowdown of marshaling objects
@@ -664,6 +668,7 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
 	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
+	c.ApplicationLogging.CustomTags.Enabled = false
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
