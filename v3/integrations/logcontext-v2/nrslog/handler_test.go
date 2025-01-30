@@ -243,7 +243,7 @@ func TestWithAttributesFromContext(t *testing.T) {
 		slog.Int("answer", 42),
 		slog.Any("some_map", map[string]interface{}{"a": 1.0, "b": 2}),
 	)
-
+	metadata := txn.GetTraceMetadata()
 	txn.End()
 
 	app.ExpectLogEvents(t, []internal.WantLog{
@@ -261,9 +261,10 @@ func TestWithAttributesFromContext(t *testing.T) {
 				"answer":   42,
 				"some_map": map[string]interface{}{"a": 1.0, "b": 2},
 			},
+			TraceID: metadata.TraceID,
+			SpanID:  metadata.SpanID,
 		},
 	})
-
 }
 func TestWithGroup(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
@@ -299,6 +300,7 @@ func TestWithGroup(t *testing.T) {
 
 }
 
+// Ensure deprecation compatibility
 func TestTransactionFromContextHandler(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
