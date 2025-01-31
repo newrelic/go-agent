@@ -90,6 +90,7 @@ func (a *Application) HeapHighWaterMarkAlarmShutdown() {
 		clear(a.app.heapHighWaterMarkAlarms.alarms)
 		a.app.heapHighWaterMarkAlarms.alarms = nil
 	}
+	a.app.heapHighWaterMarkAlarms.sampleTicker = nil
 }
 
 // HeapHighWaterMarkAlarmDisable stops sampling the heap memory allocation started by
