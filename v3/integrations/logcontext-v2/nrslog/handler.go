@@ -1,7 +1,6 @@
 package nrslog
 
 import (
-	"bytes"
 	"context"
 	"log/slog"
 	"time"
@@ -36,12 +35,19 @@ func (h *NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 
 // Handle handles the Record.
 // It will only be called when Enabled returns true.
-// The Context argument is as for Enabled.
-// It is present solely to provide Handlers access to the context's values.
-// Canceling the context should not affect record processing.
-// (Among other things, log messages may be necessary to debug a
-// cancellation-related problem.)
 func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
+	nrTxn := h.txn
+
+	ctxTxn := newrelic.FromContext(ctx)
+	if ctxTxn != nil {
+		nrTxn = ctxTxn
+	}
+
+	// if no app or txn, do nothing
+	if h.app == nil && nrTxn == nil {
+		return h.handler.Handle(ctx, record)
+	}
+
 	attrs := map[string]interface{}{}
 
 	record.Attrs(func(attr slog.Attr) bool {
@@ -67,32 +73,15 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		Attributes: attrs,
 	}
 
-	nrTxn := h.txn
-
-	ctxTxn := newrelic.FromContext(ctx)
-	if ctxTxn != nil {
-		nrTxn = ctxTxn
-	}
-
-	var enricherOpts newrelic.EnricherOption
 	if nrTxn != nil {
 		nrTxn.RecordLog(data)
-		enricherOpts = newrelic.FromTxn(nrTxn)
+		enrichRecordTxn(nrTxn, &record)
 	} else {
 		h.app.RecordLog(data)
-		enricherOpts = newrelic.FromApp(h.app)
+		enrichRecord(h.app, &record)
 	}
 
-	// add linking metadata as an attribute
-	// without disrupting normal usage of the handler
-	nrLinking := bytes.NewBuffer([]byte{})
-	err := newrelic.EnrichLog(nrLinking, enricherOpts)
-	if err == nil {
-		record.AddAttrs(slog.String("newrelic", nrLinking.String()))
-	}
-
-	err = h.handler.Handle(ctx, record)
-	return err
+	return h.handler.Handle(ctx, record)
 }
 
 // WithAttrs returns a new Handler whose attributes consist of

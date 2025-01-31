@@ -42,6 +42,21 @@ func TestHandler(t *testing.T) {
 	})
 }
 
+func TestHandlerNilApp(t *testing.T) {
+	out := bytes.NewBuffer([]byte{})
+	logger := New(nil, slog.NewTextHandler(out, &slog.HandlerOptions{}))
+	message := "Hello World!"
+	logger.Info(message)
+
+	logStr := out.String()
+	if strings.Contains(logStr, nrlinking) {
+		t.Errorf(" %s should not contain %s", logStr, nrlinking)
+	}
+	if len(logStr) == 0 {
+		t.Errorf("log string should not be empty")
+	}
+}
+
 func TestJSONHandler(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
@@ -88,12 +103,11 @@ func TestHandlerTransactions(t *testing.T) {
 	log.Debug(backgroundMsg)
 	txn.End()
 
-	/*
-		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-			EntityGUID: integrationsupport.TestEntityGUID,
-			Hostname:   host,
-			EntityName: integrationsupport.SampleAppName,
-		}) */
+	logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		Hostname:   host,
+		EntityName: integrationsupport.SampleAppName,
+	})
 
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
@@ -361,11 +375,57 @@ func TestTransactionFromContextHandler(t *testing.T) {
 	})
 }
 
-// shockingly cheap
-func BenchmarkGetContextValue(b *testing.B) {
-	var a *bytes.Buffer
+func BenchmarkEnrichLog(b *testing.B) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	txn := app.Application.StartTransaction("my txn")
+	defer txn.End()
+	record := slog.Record{}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
 	for i := 0; i < b.N; i++ {
-		a = bytes.NewBuffer([]byte{})
+		nrLinking := bytes.NewBuffer([]byte{})
+		err := newrelic.EnrichLog(nrLinking, newrelic.FromTxn(txn))
+		if err == nil {
+			record.AddAttrs(slog.String("newrelic", nrLinking.String()))
+		}
 	}
-	a.Reset()
+}
+
+func BenchmarkLinkingStringEnrichment(b *testing.B) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	txn := app.Application.StartTransaction("my txn")
+	defer txn.End()
+	record := slog.Record{}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		enrichRecordTxn(txn, &record)
+	}
+}
+
+func BenchmarkStringBuilder(b *testing.B) {
+	md := newrelic.LinkingMetadata{
+		EntityGUID: "entityGUID",
+		Hostname:   "hostname",
+		TraceID:    "traceID",
+		SpanID:     "spanID",
+		EntityName: "entityName",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		nrLinkingString(md)
+	}
 }
