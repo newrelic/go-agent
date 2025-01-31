@@ -1,8 +1,10 @@
 package nrslog
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -10,14 +12,8 @@ import (
 // NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context
 type NRHandler struct {
 	handler slog.Handler
-	w       *LogWriter
 	app     *newrelic.Application
 	txn     *newrelic.Transaction
-}
-
-// addWriter is an internal helper function to append an io.Writer to the NRHandler object
-func (h *NRHandler) addWriter(w *LogWriter) {
-	h.w = w
 }
 
 // WithTransaction returns a new handler that is configured to capture log data
@@ -27,11 +23,6 @@ func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) *NRHandler {
 		handler: h.handler,
 		app:     h.app,
 		txn:     txn,
-	}
-
-	if h.w != nil {
-		writer := h.w.WithTransaction(txn)
-		handler.addWriter(&writer)
 	}
 
 	return &handler
@@ -51,31 +42,57 @@ func (h *NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 // (Among other things, log messages may be necessary to debug a
 // cancellation-related problem.)
 func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
-	nrTxn := h.txn
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		nrTxn = txn
-	}
-
 	attrs := map[string]interface{}{}
 
 	record.Attrs(func(attr slog.Attr) bool {
-		attrs[attr.Key] = attr.Value.Any()
+		// ignore empty attributes
+		if !attr.Equal(slog.Attr{}) {
+			attrs[attr.Key] = attr.Value.Any()
+		}
 		return true
 	})
 
+	// timestamp must be sent to newrelic
+	var timestamp int64
+	if record.Time.IsZero() {
+		timestamp = time.Now().UnixMilli()
+	} else {
+		timestamp = record.Time.UnixMilli()
+	}
+
 	data := newrelic.LogData{
 		Severity:   record.Level.String(),
-		Timestamp:  record.Time.UnixMilli(),
+		Timestamp:  timestamp,
 		Message:    record.Message,
 		Attributes: attrs,
 	}
-	if nrTxn != nil {
-		nrTxn.RecordLog(data)
-	} else {
-		h.app.RecordLog(data)
+
+	nrTxn := h.txn
+
+	ctxTxn := newrelic.FromContext(ctx)
+	if ctxTxn != nil {
+		nrTxn = ctxTxn
 	}
 
-	return h.handler.Handle(ctx, record)
+	var enricherOpts newrelic.EnricherOption
+	if nrTxn != nil {
+		nrTxn.RecordLog(data)
+		enricherOpts = newrelic.FromTxn(nrTxn)
+	} else {
+		h.app.RecordLog(data)
+		enricherOpts = newrelic.FromApp(h.app)
+	}
+
+	// add linking metadata as an attribute
+	// without disrupting normal usage of the handler
+	nrLinking := bytes.NewBuffer([]byte{})
+	err := newrelic.EnrichLog(nrLinking, enricherOpts)
+	if err == nil {
+		record.AddAttrs(slog.String("newrelic", nrLinking.String()))
+	}
+
+	err = h.handler.Handle(ctx, record)
+	return err
 }
 
 // WithAttrs returns a new Handler whose attributes consist of

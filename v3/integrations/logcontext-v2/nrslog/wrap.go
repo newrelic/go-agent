@@ -11,35 +11,19 @@ import (
 // TextHandler creates a wrapped Slog TextHandler, enabling it to both automatically capture logs
 // and to enrich logs locally depending on your logs in context configuration in your New Relic
 // application.
+//
+// Deprecated: Use WrapHandler() instead.
 func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
-	nrWriter := NewWriter(w, app)
-	textHandler := slog.NewTextHandler(nrWriter, opts)
-	wrappedHandler := WrapHandler(app, textHandler)
-	wrappedHandler.addWriter(&nrWriter)
-	return wrappedHandler
+	return WrapHandler(app, slog.NewTextHandler(w, opts))
 }
 
 // JSONHandler creates a wrapped Slog JSONHandler, enabling it to both automatically capture logs
 // and to enrich logs locally depending on your logs in context configuration in your New Relic
 // application.
+//
+// Deprecated: Use WrapHandler() instead.
 func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
-	nrWriter := NewWriter(w, app)
-	jsonHandler := slog.NewJSONHandler(nrWriter, opts)
-	wrappedHandler := WrapHandler(app, jsonHandler)
-	wrappedHandler.addWriter(&nrWriter)
-	return wrappedHandler
-}
-
-// WithTransaction creates a new Slog Logger object to be used for logging within a given transaction it its found
-// in a context.
-// Calling this function with a logger having underlying TransactionFromContextHandler handler is a no-op.
-func WithContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
-	if ctx == nil {
-		return logger
-	}
-
-	txn := newrelic.FromContext(ctx)
-	return WithTransaction(txn, logger)
+	return WrapHandler(app, slog.NewJSONHandler(w, opts))
 }
 
 // WrapHandler returns a new handler that is wrapped with New Relic tools to capture
@@ -51,8 +35,33 @@ func WrapHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
 	}
 }
 
-// WithTransaction creates a new Slog Logger object to be used for logging within a given transaction.
-// Calling this function with a logger having underlying TransactionFromContextHandler handler is a no-op.
+// New Returns a new slog.Logger object wrapped with a New Relic handler that controls
+// logs in context features.
+func New(app *newrelic.Application, handler slog.Handler) *slog.Logger {
+	return slog.New(WrapHandler(app, handler))
+}
+
+// WithTransaction creates a new Slog Logger object to be used for logging within a given
+// transaction it its found in a context. Creating a transaction logger can have a performance
+// benefit when transactions are long running, and have a high log volume.
+//
+// Note: transaction contexts can also be passed to the logger without creating a new
+// logger using logger.InfoContext() or similar commands.
+func WithContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
+	if ctx == nil {
+		return logger
+	}
+
+	txn := newrelic.FromContext(ctx)
+	return WithTransaction(txn, logger)
+}
+
+// WithTransaction creates a new Slog Logger object to be used for logging
+// within a given transaction. Creating a transaction logger can have a performance
+// benefit when transactions are long running, and have a high log volume.
+//
+// Note: transaction contexts can also be passed to the logger without creating a new
+// logger using logger.InfoContext() or similar commands.
 func WithTransaction(txn *newrelic.Transaction, logger *slog.Logger) *slog.Logger {
 	if txn == nil || logger == nil {
 		return logger

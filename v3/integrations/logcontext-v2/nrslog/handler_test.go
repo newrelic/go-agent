@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
-	"os"
 	"strings"
 	"testing"
 
@@ -228,12 +227,28 @@ func TestWithAttributes(t *testing.T) {
 
 func TestWithAttributesFromContext(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
-		newrelic.ConfigAppLogDecoratingEnabled(false),
+		newrelic.ConfigAppLogDecoratingEnabled(true),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
-	log := slog.New(TextHandler(app.Application, os.Stdout, &slog.HandlerOptions{}))
+
+	writer := &bytes.Buffer{}
+	log := New(app.Application, slog.NewTextHandler(writer, &slog.HandlerOptions{}))
 
 	log.Info("I am a log message")
+	logcontext.ValidateDecoratedOutput(t, writer, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		EntityName: integrationsupport.SampleAppName,
+		Hostname:   host,
+	})
+
+	logcontext.ValidateDecoratedOutput(t, writer, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		EntityName: integrationsupport.SampleAppName,
+		Hostname:   host,
+	})
+
+	// purge the buffer
+	writer.Reset()
 
 	txn := app.StartTransaction("example transaction")
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -265,7 +280,16 @@ func TestWithAttributesFromContext(t *testing.T) {
 			SpanID:  metadata.SpanID,
 		},
 	})
+
+	logcontext.ValidateDecoratedOutput(t, writer, &logcontext.DecorationExpect{
+		EntityGUID: integrationsupport.TestEntityGUID,
+		EntityName: integrationsupport.SampleAppName,
+		Hostname:   host,
+		TraceID:    metadata.TraceID,
+		SpanID:     metadata.SpanID,
+	})
 }
+
 func TestWithGroup(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(false),
@@ -297,7 +321,6 @@ func TestWithGroup(t *testing.T) {
 	if !strings.Contains(log2, attrString) {
 		t.Errorf("expected %s to contain %s", log2, attrString)
 	}
-
 }
 
 // Ensure deprecation compatibility
@@ -336,4 +359,13 @@ func TestTransactionFromContextHandler(t *testing.T) {
 			TraceID:   txninfo.TraceID,
 		},
 	})
+}
+
+// shockingly cheap
+func BenchmarkGetContextValue(b *testing.B) {
+	var a *bytes.Buffer
+	for i := 0; i < b.N; i++ {
+		a = bytes.NewBuffer([]byte{})
+	}
+	a.Reset()
 }
