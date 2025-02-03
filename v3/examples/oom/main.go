@@ -26,7 +26,7 @@ func main() {
 	}
 
 	// Wait for the application to connect.
-	if err := app.WaitForConnection(5 * time.Second); nil != err {
+	if err := app.WaitForConnection(5 * time.Second); err != nil {
 		fmt.Println(err)
 	}
 
