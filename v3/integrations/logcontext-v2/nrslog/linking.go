@@ -47,6 +47,15 @@ func shouldEnrichLog(app *newrelic.Application) bool {
 	return config.ApplicationLogging.Enabled && config.ApplicationLogging.LocalDecorating.Enabled
 }
 
+func shouldForwardLogs(app *newrelic.Application) bool {
+	config, ok := app.Config()
+	if !ok {
+		return false
+	}
+
+	return config.ApplicationLogging.Enabled && config.ApplicationLogging.Forwarding.Enabled
+}
+
 // nrLinkingString returns a string that represents the linking metadata
 func nrLinkingString(data newrelic.LinkingMetadata) string {
 	if data.EntityGUID == "" {

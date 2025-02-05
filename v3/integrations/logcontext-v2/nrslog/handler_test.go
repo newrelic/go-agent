@@ -3,6 +3,7 @@ package nrslog
 import (
 	"bytes"
 	"context"
+	"io"
 	"log/slog"
 	"strings"
 	"testing"
@@ -313,7 +314,8 @@ func TestWithGroup(t *testing.T) {
 	handler := TextHandler(app.Application, out, &slog.HandlerOptions{})
 	log := slog.New(handler)
 	message := "Hello World!"
-	log = log.With(slog.Group("test group", slog.String("string key", "val")))
+	group := slog.Group("test group", slog.String("string key", "val"))
+	log = log.With(group)
 	log = log.WithGroup("test group")
 
 	log.Info(message)
@@ -338,7 +340,7 @@ func TestWithGroup(t *testing.T) {
 }
 
 // Ensure deprecation compatibility
-func TestTransactionFromContextHandler(t *testing.T) {
+func TestDeprecatedWithTransactionFromContext(t *testing.T) {
 	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
 		newrelic.ConfigAppLogDecoratingEnabled(true),
 		newrelic.ConfigAppLogForwardingEnabled(true),
@@ -373,6 +375,112 @@ func TestTransactionFromContextHandler(t *testing.T) {
 			TraceID:   txninfo.TraceID,
 		},
 	})
+}
+
+func TestAttributeCapture(t *testing.T) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	message := "Hello World!"
+	attr := slog.Group("group", slog.String("key", "val"), slog.Group("group2", slog.String("key2", "val2")))
+	log := New(app.Application, slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+
+	log.Info(message, attr)
+	fooLog := log.WithGroup("foo")
+	fooLog.Info(message, attr)
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			Attributes: map[string]interface{}{
+				"group.key":         "val",
+				"group.group2.key2": "val2",
+			},
+		},
+		{
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			Attributes: map[string]interface{}{
+				"foo.group.key":         "val",
+				"foo.group.group2.key2": "val2",
+			},
+		},
+	})
+}
+
+func TestAppendAttr(t *testing.T) {
+	h := &NRHandler{}
+	nrAttrs := map[string]interface{}{}
+
+	attr := slog.Group("group", slog.String("key", "val"), slog.Group("group2", slog.String("key2", "val2")))
+	h.appendAttr(nrAttrs, attr, "")
+	if len(nrAttrs) != 2 {
+		t.Errorf("expected 2 attributes, got %d", len(nrAttrs))
+	}
+
+	entry1, ok := nrAttrs["group.key"]
+	if !ok {
+		t.Errorf("expected group.key to be in the map")
+	}
+	if entry1 != "val" {
+		t.Errorf("expected value of 'group.key' to be val, got '%s'", entry1)
+	}
+
+	entry2, ok := nrAttrs["group.group2.key2"]
+	if !ok {
+		t.Errorf("expected group.group2.key2 to be in the map")
+	}
+	if entry2 != "val2" {
+		t.Errorf("expected value of 'group.group2.key2' to be val2, got '%s'", entry2)
+	}
+}
+
+func TestAppendAttrWithGroupPrefix(t *testing.T) {
+	h := &NRHandler{}
+	nrAttrs := map[string]interface{}{}
+
+	attr := slog.Group("group", slog.String("key", "val"), slog.Group("group2", slog.String("key2", "val2")))
+	h.appendAttr(nrAttrs, attr, "prefix")
+
+	if len(nrAttrs) != 2 {
+		t.Errorf("expected 2 attributes, got %d", len(nrAttrs))
+	}
+
+	entry1, ok := nrAttrs["prefix.group.key"]
+	if !ok {
+		t.Errorf("expected group.key to be in the map")
+	}
+	if entry1 != "val" {
+		t.Errorf("expected value of 'group.key' to be val, got '%s'", entry1)
+	}
+
+	entry2, ok := nrAttrs["prefix.group.group2.key2"]
+	if !ok {
+		t.Errorf("expected group.group2.key2 to be in the map")
+	}
+	if entry2 != "val2" {
+		t.Errorf("expected value of 'group.group2.key2' to be val2, got '%s'", entry2)
+	}
+}
+
+// the maps are costing so much here
+func BenchmarkAppendAttribute(b *testing.B) {
+	h := &NRHandler{}
+	nrAttrs := map[string]interface{}{}
+
+	attr := slog.Group("group", slog.String("key", "val"), slog.Group("group2", slog.String("key2", "val2")))
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		h.appendAttr(nrAttrs, attr, "")
+	}
 }
 
 func BenchmarkEnrichLog(b *testing.B) {
@@ -427,5 +535,21 @@ func BenchmarkStringBuilder(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		nrLinkingString(md)
+	}
+}
+
+func BenchmarkShouldEnrichLog(b *testing.B) {
+	app := integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn,
+		newrelic.ConfigAppLogDecoratingEnabled(true),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	txn := app.Application.StartTransaction("my txn")
+	defer txn.End()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		shouldEnrichLog(app.Application)
 	}
 }

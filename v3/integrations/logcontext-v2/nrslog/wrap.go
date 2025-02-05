@@ -13,7 +13,7 @@ import (
 // application.
 //
 // Deprecated: Use WrapHandler() instead.
-func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
+func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) slog.Handler {
 	return WrapHandler(app, slog.NewTextHandler(w, opts))
 }
 
@@ -22,28 +22,14 @@ func TextHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptio
 // application.
 //
 // Deprecated: Use WrapHandler() instead.
-func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) *NRHandler {
+func JSONHandler(app *newrelic.Application, w io.Writer, opts *slog.HandlerOptions) slog.Handler {
 	return WrapHandler(app, slog.NewJSONHandler(w, opts))
-}
-
-// WrapHandler returns a new handler that is wrapped with New Relic tools to capture
-// log data based on your application's logs in context settings.
-func WrapHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
-	return &NRHandler{
-		handler: handler,
-		app:     app,
-	}
-}
-
-// New Returns a new slog.Logger object wrapped with a New Relic handler that controls
-// logs in context features.
-func New(app *newrelic.Application, handler slog.Handler) *slog.Logger {
-	return slog.New(WrapHandler(app, handler))
 }
 
 // WithTransaction creates a new Slog Logger object to be used for logging within a given
 // transaction it its found in a context. Creating a transaction logger can have a performance
-// benefit when transactions are long running, and have a high log volume.
+// benefit when transactions are long running, and have a high log volume in comparison to
+// reading transactions from context on every log message.
 //
 // Note: transaction contexts can also be passed to the logger without creating a new
 // logger using logger.InfoContext() or similar commands.
@@ -58,7 +44,8 @@ func WithContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
 
 // WithTransaction creates a new Slog Logger object to be used for logging
 // within a given transaction. Creating a transaction logger can have a performance
-// benefit when transactions are long running, and have a high log volume.
+// benefit when transactions are long running, and have a high log volume in comparison to
+// reading transactions from context on every log message.
 //
 // Note: transaction contexts can also be passed to the logger without creating a new
 // logger using logger.InfoContext() or similar commands.
