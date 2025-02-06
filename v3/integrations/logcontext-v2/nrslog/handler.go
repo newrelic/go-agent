@@ -1,8 +1,8 @@
 package nrslog
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"slices"
 	"strings"
@@ -13,10 +13,12 @@ import (
 
 // NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context
 type NRHandler struct {
-	handler slog.Handler
+	configCache
+	attributeCache
 
-	app *newrelic.Application
-	txn *newrelic.Transaction
+	handler slog.Handler
+	app     *newrelic.Application
+	txn     *newrelic.Transaction
 
 	// group logic
 	goas []groupOrAttrs
@@ -30,14 +32,17 @@ type groupOrAttrs struct {
 // WrapHandler returns a new handler that is wrapped with New Relic tools to capture
 // log data based on your application's logs in context settings.
 //
-// Note: if your app is nil, or your handler is already wrapped with a NRHandler, WrapHandler will return
-// the handler as is.
-//
-// TODO: does this need to return an error?
+// Note: This function will silently fail, and always return a valid handler
+// to avoid service disruptions. If you would prefer to handle when wrapping
+// fails, use Wrap() instead.
 func WrapHandler(app *newrelic.Application, handler slog.Handler) slog.Handler {
 	if app == nil {
 		return handler
 	}
+	if handler == nil {
+		return handler
+	}
+
 	switch handler.(type) {
 	case *NRHandler:
 		return handler
@@ -47,6 +52,29 @@ func WrapHandler(app *newrelic.Application, handler slog.Handler) slog.Handler {
 			app:     app,
 		}
 	}
+}
+
+var ErrNilApp = errors.New("New Relic application cannot be nil")
+var ErrNilHandler = errors.New("slog handler cannot be nil")
+var ErrAlreadyWrapped = errors.New("handler is already wrapped with a New Relic handler")
+
+// WrapHandler returns a new handler that is wrapped with New Relic tools to capture
+// log data based on your application's logs in context settings.
+func Wrap(app *newrelic.Application, handler slog.Handler) (*NRHandler, error) {
+	if app == nil {
+		return nil, ErrNilApp
+	}
+	if handler == nil {
+		return nil, ErrNilHandler
+	}
+	if _, ok := handler.(*NRHandler); ok {
+		return nil, ErrAlreadyWrapped
+	}
+
+	return &NRHandler{
+		handler: handler,
+		app:     app,
+	}, nil
 }
 
 // New Returns a new slog.Logger object wrapped with a New Relic handler that controls
@@ -83,8 +111,14 @@ func (h *NRHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 // Handle handles the Record.
 // It will only be called when Enabled returns true.
 func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
-	nrTxn := h.txn
+	// exit quickly logs in context is disabled in the agent
+	// to preserve resources
+	if !h.isEnabled(h.app) {
+		return h.handler.Handle(ctx, record)
+	}
 
+	// get transaction, preferring transaction from context
+	nrTxn := h.txn
 	ctxTxn := newrelic.FromContext(ctx)
 	if ctxTxn != nil {
 		nrTxn = ctxTxn
@@ -103,37 +137,14 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		timestamp = record.Time.UnixMilli()
 	}
 
-	goas := h.goas
-	if record.NumAttrs() == 0 {
-		// If the record has no Attrs, remove groups at the end of the list; they are empty.
-		for len(goas) > 0 && goas[len(goas)-1].group != "" {
-			goas = goas[:len(goas)-1]
-		}
-	}
-
 	var data newrelic.LogData
 
-	// TODO: can we cache this?
-	if shouldForwardLogs(h.app) {
-		// TODO: optimize this to avoid maps, its very expensive
-		attrs := map[string]interface{}{}
-		groupPrefix := strings.Builder{}
-
-		for _, goa := range goas {
-			if goa.group != "" {
-				if len(groupPrefix.String()) > 0 {
-					groupPrefix.WriteByte('.')
-				}
-				groupPrefix.WriteString(goa.group)
-			} else {
-				for _, a := range goa.attrs {
-					h.appendAttr(attrs, a, groupPrefix.String())
-				}
-			}
-		}
+	if h.shouldForwardLogs(h.app) {
+		attrs := h.getPreCompiledAttributes() // coppies cached attribute map, todo: optimize to avoid map
+		prefix := h.getPrefix()
 
 		record.Attrs(func(attr slog.Attr) bool {
-			h.appendAttr(attrs, attr, groupPrefix.String())
+			h.appendAttr(attrs, attr, prefix)
 			return true
 		})
 
@@ -149,50 +160,15 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		if data.Message != "" {
 			nrTxn.RecordLog(data)
 		}
-		enrichRecordTxn(nrTxn, &record)
+		h.enrichRecordTxn(nrTxn, &record)
 	} else {
 		if data.Message != "" {
 			h.app.RecordLog(data)
 		}
-		enrichRecord(h.app, &record)
+		h.enrichRecord(h.app, &record)
 	}
 
 	return h.handler.Handle(ctx, record)
-}
-
-func (h *NRHandler) appendAttr(nrAttrs map[string]interface{}, a slog.Attr, groupPrefix string) {
-	// Resolve the Attr's value before doing anything else.
-	a.Value = a.Value.Resolve()
-	// Ignore empty Attrs.
-	if a.Equal(slog.Attr{}) {
-		return
-	}
-
-	groupBuffer := bytes.Buffer{}
-	groupBuffer.WriteString(groupPrefix)
-
-	if groupBuffer.Len() > 0 {
-		groupBuffer.WriteByte('.')
-	}
-	groupBuffer.WriteString(a.Key)
-	key := groupBuffer.String()
-
-	// If the Attr is a group, append its attributes
-	if a.Value.Kind() == slog.KindGroup {
-		attrs := a.Value.Group()
-		// Ignore empty groups.
-		if len(attrs) == 0 {
-			return
-		}
-
-		for _, ga := range attrs {
-			h.appendAttr(nrAttrs, ga, key)
-		}
-		return
-	}
-
-	// attr is an attribute
-	nrAttrs[key] = a.Value.Any()
 }
 
 // WithAttrs returns a new Handler whose attributes consist of
@@ -207,6 +183,7 @@ func (h *NRHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 
 	newHandler := h.withGroupOrAttrs(groupOrAttrs{attrs: attrs})
 	newHandler.handler = newHandler.handler.WithAttrs(attrs)
+	newHandler.computePrecompiledAttributes(newHandler.goas)
 	return newHandler
 }
 
@@ -222,6 +199,7 @@ func (h *NRHandler) WithGroup(name string) slog.Handler {
 
 	newHandler := h.withGroupOrAttrs(groupOrAttrs{group: name})
 	newHandler.handler = newHandler.handler.WithGroup(name)
+	newHandler.computePrecompiledAttributes(newHandler.goas)
 	return newHandler
 }
 
@@ -239,4 +217,61 @@ func (h *NRHandler) withGroupOrAttrs(goa groupOrAttrs) *NRHandler {
 // Deprecated: this is a no-op
 func WithTransactionFromContext(handler slog.Handler) slog.Handler {
 	return handler
+}
+
+const (
+	nrlinking = "NR-LINKING"
+	key       = "newrelic"
+)
+
+func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record) {
+	if !h.shouldEnrichLog(app) {
+		return
+	}
+
+	str := nrLinkingString(app.GetLinkingMetadata())
+	if str == "" {
+		return
+	}
+
+	record.AddAttrs(slog.String(key, str))
+}
+
+func (h *NRHandler) enrichRecordTxn(txn *newrelic.Transaction, record *slog.Record) {
+	if !h.shouldEnrichLog(txn.Application()) {
+		return
+	}
+
+	str := nrLinkingString(txn.GetLinkingMetadata())
+	if str == "" {
+		return
+	}
+
+	record.AddAttrs(slog.String(key, str))
+}
+
+// nrLinkingString returns a string that represents the linking metadata
+func nrLinkingString(data newrelic.LinkingMetadata) string {
+	if data.EntityGUID == "" {
+		return ""
+	}
+
+	len := 16 + len(data.EntityGUID) + len(data.Hostname) + len(data.TraceID) + len(data.SpanID) + len(data.EntityName)
+	str := strings.Builder{}
+	str.Grow(len) // only 1 alloc
+
+	str.WriteString(nrlinking)
+	str.WriteByte('|')
+	str.WriteString(data.EntityGUID)
+	str.WriteByte('|')
+	str.WriteString(data.Hostname)
+	str.WriteByte('|')
+	str.WriteString(data.TraceID)
+	str.WriteByte('|')
+	str.WriteString(data.SpanID)
+	str.WriteByte('|')
+	str.WriteString(data.EntityName)
+	str.WriteByte('|')
+
+	return str.String()
 }
