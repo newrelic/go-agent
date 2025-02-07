@@ -13,8 +13,9 @@ import (
 
 // NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context
 type NRHandler struct {
-	configCache
-	attributeCache
+	*attributeCache
+	*configCache
+	*linkingCache
 
 	handler slog.Handler
 	app     *newrelic.Application
@@ -27,6 +28,16 @@ type NRHandler struct {
 type groupOrAttrs struct {
 	group string
 	attrs []slog.Attr
+}
+
+func newHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
+	return &NRHandler{
+		handler:        handler,
+		attributeCache: newAttributeCache(),
+		configCache:    newConfigCache(),
+		linkingCache:   newLinkingCache(),
+		app:            app,
+	}
 }
 
 // WrapHandler returns a new handler that is wrapped with New Relic tools to capture
@@ -47,10 +58,7 @@ func WrapHandler(app *newrelic.Application, handler slog.Handler) slog.Handler {
 	case *NRHandler:
 		return handler
 	default:
-		return &NRHandler{
-			handler: handler,
-			app:     app,
-		}
+		return newHandler(app, handler)
 	}
 }
 
@@ -71,10 +79,7 @@ func Wrap(app *newrelic.Application, handler slog.Handler) (*NRHandler, error) {
 		return nil, ErrAlreadyWrapped
 	}
 
-	return &NRHandler{
-		handler: handler,
-		app:     app,
-	}, nil
+	return newHandler(app, handler), nil
 }
 
 // New Returns a new slog.Logger object wrapped with a New Relic handler that controls
@@ -86,11 +91,15 @@ func New(app *newrelic.Application, handler slog.Handler) *slog.Logger {
 // clone duplicates the handler, creating a new instance with the same configuration.
 // This is a deep copy.
 func (h *NRHandler) clone() *NRHandler {
+
 	return &NRHandler{
-		handler: h.handler,
-		app:     h.app,
-		txn:     h.txn,
-		goas:    slices.Clone(h.goas),
+		handler:        h.handler,
+		attributeCache: h.attributeCache.clone(),
+		configCache:    h.configCache.clone(),
+		linkingCache:   h.linkingCache.clone(),
+		app:            h.app,
+		txn:            h.txn,
+		goas:           slices.Clone(h.goas),
 	}
 }
 
@@ -137,8 +146,6 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 		timestamp = record.Time.UnixMilli()
 	}
 
-	var data newrelic.LogData
-
 	if h.shouldForwardLogs(h.app) {
 		attrs := h.getPreCompiledAttributes() // coppies cached attribute map, todo: optimize to avoid map
 		prefix := h.getPrefix()
@@ -148,24 +155,26 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 			return true
 		})
 
-		data = newrelic.LogData{
+		data := newrelic.LogData{
 			Severity:   record.Level.String(),
 			Timestamp:  timestamp,
 			Message:    record.Message,
 			Attributes: attrs,
 		}
-	}
-
-	if nrTxn != nil {
-		if data.Message != "" {
+		if nrTxn != nil {
 			nrTxn.RecordLog(data)
-		}
-		h.enrichRecordTxn(nrTxn, &record)
-	} else {
-		if data.Message != "" {
+		} else {
 			h.app.RecordLog(data)
 		}
-		h.enrichRecord(h.app, &record)
+	}
+
+	// enrich logs
+	if h.shouldEnrichLog(h.app) {
+		if nrTxn != nil {
+			h.enrichRecordTxn(nrTxn, &record)
+		} else {
+			h.enrichRecord(h.app, &record)
+		}
 	}
 
 	return h.handler.Handle(ctx, record)
@@ -225,11 +234,7 @@ const (
 )
 
 func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record) {
-	if !h.shouldEnrichLog(app) {
-		return
-	}
-
-	str := nrLinkingString(app.GetLinkingMetadata())
+	str := nrLinkingString(h.getAgentLinkingMetadata(app))
 	if str == "" {
 		return
 	}
@@ -238,11 +243,7 @@ func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record)
 }
 
 func (h *NRHandler) enrichRecordTxn(txn *newrelic.Transaction, record *slog.Record) {
-	if !h.shouldEnrichLog(txn.Application()) {
-		return
-	}
-
-	str := nrLinkingString(txn.GetLinkingMetadata())
+	str := nrLinkingString(h.getTransactionLinkingMetadata(txn))
 	if str == "" {
 		return
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -50,7 +49,7 @@ func TestWrap(t *testing.T) {
 		newrelic.ConfigAppLogDecoratingEnabled(true),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 	)
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})
+	handler := slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})
 
 	type test struct {
 		name          string
@@ -430,7 +429,7 @@ func TestWithComplexAttributeOrGroup(t *testing.T) {
 
 	message := "Hello World!"
 	attr := slog.Group("group", slog.String("key", "val"), slog.Group("group2", slog.String("key2", "val2")))
-	log := New(app.Application, slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+	log := New(app.Application, slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	log.Info(message, attr)
 	fooLog := log.WithGroup("foo")
@@ -648,7 +647,7 @@ func BenchmarkLinkingStringEnrichment(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		h.enrichRecordTxn(txn, &record)
+		h.enrichRecord(app.Application, &record)
 	}
 }
 

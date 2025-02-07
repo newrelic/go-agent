@@ -11,6 +11,17 @@ type attributeCache struct {
 	prefix                string
 }
 
+func newAttributeCache() *attributeCache {
+	return &attributeCache{}
+}
+
+func (c *attributeCache) clone() *attributeCache {
+	return &attributeCache{
+		preCompiledAttributes: maps.Clone(c.preCompiledAttributes),
+		prefix:                c.prefix,
+	}
+}
+
 func (c *attributeCache) getPreCompiledAttributes() map[string]interface{} {
 	if c.preCompiledAttributes == nil {
 		return make(map[string]interface{})

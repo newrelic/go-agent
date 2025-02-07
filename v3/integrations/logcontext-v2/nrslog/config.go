@@ -20,6 +20,20 @@ type configCache struct {
 	forwardLogs bool
 }
 
+func newConfigCache() *configCache {
+	return &configCache{}
+}
+
+func (c *configCache) clone() *configCache {
+	return &configCache{
+		lastCheck:        c.lastCheck,
+		gotStartupConfig: c.gotStartupConfig,
+		enabled:          c.enabled,
+		enrichLogs:       c.enrichLogs,
+		forwardLogs:      c.forwardLogs,
+	}
+}
+
 func (c *configCache) shouldEnrichLog(app *newrelic.Application) bool {
 	c.update(app)
 	return c.enrichLogs
