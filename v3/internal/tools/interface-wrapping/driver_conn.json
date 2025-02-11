@@ -13,6 +13,7 @@
 		"driver.NamedValueChecker",
 		"driver.Pinger",
 		"driver.Queryer",
-		"driver.QueryerContext"
+		"driver.QueryerContext",
+		"driver.SessionResetter"
 	]
 }
