@@ -12,7 +12,10 @@ type attributeCache struct {
 }
 
 func newAttributeCache() *attributeCache {
-	return &attributeCache{}
+	return &attributeCache{
+		preCompiledAttributes: make(map[string]interface{}),
+		prefix:                "",
+	}
 }
 
 func (c *attributeCache) clone() *attributeCache {
@@ -22,10 +25,7 @@ func (c *attributeCache) clone() *attributeCache {
 	}
 }
 
-func (c *attributeCache) getPreCompiledAttributes() map[string]interface{} {
-	if c.preCompiledAttributes == nil {
-		return make(map[string]interface{})
-	}
+func (c *attributeCache) copyPreCompiledAttributes() map[string]interface{} {
 	return maps.Clone(c.preCompiledAttributes)
 }
 
@@ -33,43 +33,27 @@ func (c *attributeCache) getPrefix() string {
 	return c.prefix
 }
 
-func (c *attributeCache) computePrecompiledAttributes(goas []groupOrAttrs) {
-	if len(goas) == 0 {
+// precompileGroup sets the group prefix for the cache created by a handler
+// precompileGroup call. This is used to avoid re-computing the group prefix
+// and should only ever be called on newly created caches and handlers.
+func (c *attributeCache) precompileGroup(group string) {
+	if c.prefix != "" {
+		c.prefix += "."
+	}
+	c.prefix += group
+}
+
+// precompileAttributes appends attributes to the cache created by a handler
+// WithAttrs call. This is used to avoid re-computing the with Attrs attributes
+// and should only ever be called on newly created caches and handlers.
+func (c *attributeCache) precompileAttributes(attrs []slog.Attr) {
+	if len(attrs) == 0 {
 		return
 	}
 
-	// if just one element, we can avoid allocation for the sting builder
-	if len(goas) == 1 {
-		if goas[0].group != "" {
-			c.prefix = goas[0].group
-		} else {
-			attrs := make(map[string]interface{})
-			for _, a := range goas[0].attrs {
-				c.appendAttr(attrs, a, "")
-			}
-		}
-		return
+	for _, a := range attrs {
+		c.appendAttr(c.preCompiledAttributes, a, c.prefix)
 	}
-
-	// string builder worth the pre-allocation cost
-	groupPrefix := strings.Builder{}
-	attrs := make(map[string]interface{})
-
-	for _, goa := range goas {
-		if goa.group != "" {
-			if len(groupPrefix.String()) > 0 {
-				groupPrefix.WriteByte('.')
-			}
-			groupPrefix.WriteString(goa.group)
-		} else {
-			for _, a := range goa.attrs {
-				c.appendAttr(attrs, a, groupPrefix.String())
-			}
-		}
-	}
-
-	c.preCompiledAttributes = attrs
-	c.prefix = groupPrefix.String()
 }
 
 func (c *attributeCache) appendAttr(nrAttrs map[string]interface{}, a slog.Attr, groupPrefix string) {
@@ -80,13 +64,18 @@ func (c *attributeCache) appendAttr(nrAttrs map[string]interface{}, a slog.Attr,
 		return
 	}
 
+	// majority of runtime spent allocating and copying strings
 	group := strings.Builder{}
+	group.Grow(len(groupPrefix) + len(a.Key) + 1)
 	group.WriteString(groupPrefix)
 
-	if group.Len() > 0 {
-		group.WriteByte('.')
+	if a.Key != "" {
+		if group.Len() > 0 {
+			group.WriteByte('.')
+		}
+		group.WriteString(a.Key)
 	}
-	group.WriteString(a.Key)
+
 	key := group.String()
 
 	// If the Attr is a group, append its attributes

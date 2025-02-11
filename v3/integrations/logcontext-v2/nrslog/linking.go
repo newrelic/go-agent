@@ -1,6 +1,10 @@
 package nrslog
 
-import "github.com/newrelic/go-agent/v3/newrelic"
+import (
+	"strings"
+
+	"github.com/newrelic/go-agent/v3/newrelic"
+)
 
 type linkingCache struct {
 	loaded     bool
@@ -77,4 +81,32 @@ func (cache *linkingCache) getTransactionLinkingMetadata(txn *newrelic.Transacti
 		TraceID:    traceData.TraceID,
 		SpanID:     traceData.SpanID,
 	}
+}
+
+const nrlinking = "NR-LINKING"
+
+// nrLinkingString returns a string that represents the linking metadata
+func nrLinkingString(data newrelic.LinkingMetadata) string {
+	if data.EntityGUID == "" {
+		return ""
+	}
+
+	len := 16 + len(data.EntityGUID) + len(data.Hostname) + len(data.TraceID) + len(data.SpanID) + len(data.EntityName)
+	str := strings.Builder{}
+	str.Grow(len) // only 1 alloc
+
+	str.WriteString(nrlinking)
+	str.WriteByte('|')
+	str.WriteString(data.EntityGUID)
+	str.WriteByte('|')
+	str.WriteString(data.Hostname)
+	str.WriteByte('|')
+	str.WriteString(data.TraceID)
+	str.WriteByte('|')
+	str.WriteString(data.SpanID)
+	str.WriteByte('|')
+	str.WriteString(data.EntityName)
+	str.WriteByte('|')
+
+	return str.String()
 }

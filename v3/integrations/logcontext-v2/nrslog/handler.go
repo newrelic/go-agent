@@ -4,32 +4,32 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-// NRHandler is an Slog handler that includes logic to implement New Relic Logs in Context
+// NRHandler is an Slog handler that includes logic to implement
+// New Relic Logs in Context. Please always create a new handler
+// using the Wrap() or WrapHandler() functions to ensure proper
+// initialization.
+//
+// Note: shallow coppies of this handler may not duplicate underlying
+// datastructures, and may cause logical errors. Please use the Clone()
+// method to create deep coppies, or use the WithTransaction, WithAttrs,
+// or WithGroup methods to create new handlers with additional data.
 type NRHandler struct {
 	*attributeCache
 	*configCache
 	*linkingCache
 
+	// underlying object pointers
 	handler slog.Handler
 	app     *newrelic.Application
 	txn     *newrelic.Transaction
-
-	// group logic
-	goas []groupOrAttrs
 }
 
-type groupOrAttrs struct {
-	group string
-	attrs []slog.Attr
-}
-
+// newHandler is an internal helper function to create a new NRHandler
 func newHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
 	return &NRHandler{
 		handler:        handler,
@@ -43,9 +43,9 @@ func newHandler(app *newrelic.Application, handler slog.Handler) *NRHandler {
 // WrapHandler returns a new handler that is wrapped with New Relic tools to capture
 // log data based on your application's logs in context settings.
 //
-// Note: This function will silently fail, and always return a valid handler
-// to avoid service disruptions. If you would prefer to handle when wrapping
-// fails, use Wrap() instead.
+// Note: This function will silently error, and always return a valid handler
+// to avoid service disruptions. If you would prefer to handle errors when
+// wrapping your handler, use the Wrap() function instead.
 func WrapHandler(app *newrelic.Application, handler slog.Handler) slog.Handler {
 	if app == nil {
 		return handler
@@ -88,10 +88,12 @@ func New(app *newrelic.Application, handler slog.Handler) *slog.Logger {
 	return slog.New(WrapHandler(app, handler))
 }
 
-// clone duplicates the handler, creating a new instance with the same configuration.
-// This is a deep copy.
-func (h *NRHandler) clone() *NRHandler {
-
+// Clone creates a deep copy of the original handler, including a copy of all cached data
+// and the underlying handler.
+//
+// Note: application, transaction, and handler pointers will be coppied, but the underlying
+// data will not be duplicated.
+func (h *NRHandler) Clone() *NRHandler {
 	return &NRHandler{
 		handler:        h.handler,
 		attributeCache: h.attributeCache.clone(),
@@ -99,14 +101,13 @@ func (h *NRHandler) clone() *NRHandler {
 		linkingCache:   h.linkingCache.clone(),
 		app:            h.app,
 		txn:            h.txn,
-		goas:           slices.Clone(h.goas),
 	}
 }
 
 // WithTransaction returns a new handler that is configured to capture log data
 // and attribute it to a specific transaction.
 func (h *NRHandler) WithTransaction(txn *newrelic.Transaction) *NRHandler {
-	h2 := h.clone()
+	h2 := h.Clone()
 	h2.txn = txn
 	return h2
 }
@@ -147,7 +148,7 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 	}
 
 	if h.shouldForwardLogs(h.app) {
-		attrs := h.getPreCompiledAttributes() // coppies cached attribute map, todo: optimize to avoid map
+		attrs := h.copyPreCompiledAttributes() // coppies cached attribute map, todo: optimize to avoid map coppies
 		prefix := h.getPrefix()
 
 		record.Attrs(func(attr slog.Attr) bool {
@@ -190,10 +191,10 @@ func (h *NRHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 
-	newHandler := h.withGroupOrAttrs(groupOrAttrs{attrs: attrs})
-	newHandler.handler = newHandler.handler.WithAttrs(attrs)
-	newHandler.computePrecompiledAttributes(newHandler.goas)
-	return newHandler
+	h2 := h.Clone()
+	h2.handler = h.handler.WithAttrs(attrs)
+	h2.precompileAttributes(attrs)
+	return h2
 }
 
 // WithGroup returns a new Handler with the given group appended to
@@ -206,18 +207,10 @@ func (h *NRHandler) WithGroup(name string) slog.Handler {
 		return h
 	}
 
-	newHandler := h.withGroupOrAttrs(groupOrAttrs{group: name})
-	newHandler.handler = newHandler.handler.WithGroup(name)
-	newHandler.computePrecompiledAttributes(newHandler.goas)
-	return newHandler
-}
-
-func (h *NRHandler) withGroupOrAttrs(goa groupOrAttrs) *NRHandler {
-	h2 := *h
-	h2.goas = make([]groupOrAttrs, len(h.goas)+1)
-	copy(h2.goas, h.goas)
-	h2.goas[len(h2.goas)-1] = goa
-	return &h2
+	h2 := h.Clone()
+	h2.handler = h.handler.WithGroup(name)
+	h2.precompileGroup(name)
+	return h2
 }
 
 // WithTransactionFromContext creates a wrapped NRHandler, enabling it to automatically reference New Relic
@@ -228,10 +221,7 @@ func WithTransactionFromContext(handler slog.Handler) slog.Handler {
 	return handler
 }
 
-const (
-	nrlinking = "NR-LINKING"
-	key       = "newrelic"
-)
+const newrelicAttributeKey = "newrelic"
 
 func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record) {
 	str := nrLinkingString(h.getAgentLinkingMetadata(app))
@@ -239,7 +229,7 @@ func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record)
 		return
 	}
 
-	record.AddAttrs(slog.String(key, str))
+	record.AddAttrs(slog.String(newrelicAttributeKey, str))
 }
 
 func (h *NRHandler) enrichRecordTxn(txn *newrelic.Transaction, record *slog.Record) {
@@ -248,31 +238,5 @@ func (h *NRHandler) enrichRecordTxn(txn *newrelic.Transaction, record *slog.Reco
 		return
 	}
 
-	record.AddAttrs(slog.String(key, str))
-}
-
-// nrLinkingString returns a string that represents the linking metadata
-func nrLinkingString(data newrelic.LinkingMetadata) string {
-	if data.EntityGUID == "" {
-		return ""
-	}
-
-	len := 16 + len(data.EntityGUID) + len(data.Hostname) + len(data.TraceID) + len(data.SpanID) + len(data.EntityName)
-	str := strings.Builder{}
-	str.Grow(len) // only 1 alloc
-
-	str.WriteString(nrlinking)
-	str.WriteByte('|')
-	str.WriteString(data.EntityGUID)
-	str.WriteByte('|')
-	str.WriteString(data.Hostname)
-	str.WriteByte('|')
-	str.WriteString(data.TraceID)
-	str.WriteByte('|')
-	str.WriteString(data.SpanID)
-	str.WriteByte('|')
-	str.WriteString(data.EntityName)
-	str.WriteByte('|')
-
-	return str.String()
+	record.AddAttrs(slog.String(newrelicAttributeKey, str))
 }

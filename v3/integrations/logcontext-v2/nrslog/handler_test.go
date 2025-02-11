@@ -292,24 +292,75 @@ func TestWithAttributes(t *testing.T) {
 
 	log.Info(message)
 
-	log1 := string(out.String())
-
 	txn := app.StartTransaction("hi")
 	txnLog := WithTransaction(txn, log)
 	txnLog.Info(message)
+	data := txn.GetLinkingMetadata()
 	txn.End()
 
-	log2 := string(out.String())
+	additionalAttrs := slog.String("additional", "attr")
 
-	attrString := `"string key"=val "int key"=1`
-	if !strings.Contains(log1, attrString) {
-		t.Errorf("expected %s to contain %s", log1, attrString)
-	}
+	log = log.WithGroup("group1")
+	log.Info(message, additionalAttrs)
 
-	if !strings.Contains(log2, attrString) {
-		t.Errorf("expected %s to contain %s", log2, attrString)
-	}
+	log = log.WithGroup("group2")
+	log.Info(message, additionalAttrs)
 
+	log = log.With(additionalAttrs)
+	log.Info(message)
+
+	app.ExpectLogEvents(t, []internal.WantLog{
+		{
+			Attributes: map[string]interface{}{
+				"string key": "val",
+				"int key":    1,
+			},
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+		{
+			Attributes: map[string]interface{}{
+				"string key": "val",
+				"int key":    1,
+			},
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+			SpanID:    data.SpanID,
+			TraceID:   data.TraceID,
+		},
+		{
+			Attributes: map[string]interface{}{
+				"string key":        "val",
+				"int key":           1,
+				"group1.additional": "attr",
+			},
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+		{
+			Attributes: map[string]interface{}{
+				"string key":               "val",
+				"int key":                  1,
+				"group1.group2.additional": "attr",
+			},
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+		{
+			Attributes: map[string]interface{}{
+				"string key":               "val",
+				"int key":                  1,
+				"group1.group2.additional": "attr",
+			},
+			Severity:  slog.LevelInfo.String(),
+			Message:   message,
+			Timestamp: internal.MatchAnyUnixMilli,
+		},
+	})
 }
 
 func TestWithAttributesFromContext(t *testing.T) {
