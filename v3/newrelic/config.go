@@ -572,6 +572,12 @@ type ApplicationLogging struct {
 		// Controls the overall memory consumption when using log forwarding.
 		// SHOULD be sent as part of the harvest_limits on Connect.
 		MaxSamplesStored int
+		Labels           struct {
+			// Toggles whether we send our labels with forwarded logs.
+			Enabled bool
+			// List of label types to exclude from forwarded logs.
+			Exclude []string
+		}
 	}
 	Metrics struct {
 		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
@@ -582,10 +588,10 @@ type ApplicationLogging struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
 	}
-	CustomTags struct {
-		Enabled bool
-		Tags    map[string]string
-	}
+	//	CustomTags struct {
+	//		Enabled bool
+	//		Tags    map[string]string
+	//	}
 	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
 	// during log collection, slowing down the execution of the line of code that will write the log. If your
 	// application collects logs at a high frequency or volume, or it can not afford the slowdown of marshaling objects
@@ -665,10 +671,12 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Enabled = true
 	c.ApplicationLogging.Forwarding.Enabled = true
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
+	c.ApplicationLogging.Forwarding.Labels.Enabled = false
+	c.ApplicationLogging.Forwarding.Labels.Exclude = nil
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
 	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
-	c.ApplicationLogging.CustomTags.Enabled = false
+	//	c.ApplicationLogging.CustomTags.Enabled = false
 	c.BrowserMonitoring.Enabled = true
 	// browser monitoring attributes are disabled by default
 	c.BrowserMonitoring.Attributes.Enabled = false
