@@ -252,32 +252,6 @@ func ConfigAppLogForwardingLabelsExclude(labelType ...string) ConfigOption {
 	}
 }
 
-//func ConfigAppLogCustomTagEnabled(enabled bool) ConfigOption {
-//	return func(cfg *Config) {
-//		cfg.ApplicationLogging.CustomTags.Enabled = enabled
-//	}
-//}
-//
-//func ConfigAppLogCustomTagAddTagMap(tags map[string]string) ConfigOption {
-//	return func(cfg *Config) {
-//		//		if cfg.ApplicationLogging.CustomTags == nil {
-//		//			cfg.ApplicationLogging.CustomTags.Tags = make(map[string]string)
-//		//		}
-//		for k, v := range tags {
-//			cfg.ApplicationLogging.CustomTags.Tags[k] = v
-//		}
-//	}
-//}
-//
-//func ConfigAppLogCustomTagAddTag(label, tag string) ConfigOption {
-//	return func(cfg *Config) {
-//		//		if cfg.ApplicationLogging.CustomTags == nil {
-//		//			cfg.ApplicationLogging.CustomTags.Tags = make(map[string]string)
-//		//		}
-//		cfg.ApplicationLogging.CustomTags.Tags[label] = tag
-//	}
-//}
-
 // ConfigAppLogDecoratingEnabled enables or disables the local decoration
 // of logs when using one of our logs in context plugins
 // Defaults: enabled=false
