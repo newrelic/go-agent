@@ -6,6 +6,8 @@ package newrelic
 import (
 	"bytes"
 	"container/heap"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal/jsonx"
@@ -167,6 +169,18 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 	buf.WriteByte(',')
 	buf.WriteString(`"hostname":`)
 	jsonx.AppendString(buf, events.hostname)
+	if events.config.includeLabels != nil {
+		for k, v := range events.config.includeLabels {
+			if events.config.excludeLabels == nil || !slices.ContainsFunc(*events.config.excludeLabels, func(s string) bool {
+				return strings.ToLower(s) == strings.ToLower(k)
+			}) {
+				buf.WriteByte(',')
+				jsonx.AppendString(buf, "tags."+k)
+				buf.WriteByte(':')
+				jsonx.AppendString(buf, v)
+			}
+		}
+	}
 	buf.WriteByte('}')
 	buf.WriteByte('}')
 	buf.WriteByte(',')

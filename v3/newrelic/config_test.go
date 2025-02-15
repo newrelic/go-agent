@@ -49,7 +49,7 @@ func runLabelsTestCase(t *testing.T, js json.RawMessage) {
 		return
 	}
 
-	actual := getLabels(tc.LabelString)
+	actual, _ := getLabels(tc.LabelString)
 	if len(actual) != len(tc.Expected) {
 		t.Errorf("%s: incorrect number of elements: actual=%d expect=%d", tc.Name, len(actual), len(tc.Expected))
 		return
@@ -144,6 +144,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled": true,
 				"Forwarding": {
 					"Enabled": true,
+					"Labels": {
+					    "Enabled": false,
+						"Exclude": null
+					},
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
@@ -304,7 +308,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	}`)
 	var sp internal.SecurityPolicies
 	err := json.Unmarshal(securityPoliciesInput, &sp)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -312,7 +316,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"NEW_RELIC_METADATA_ZAP": "zip",
 	}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", sp.PointerIfPopulated(), metadata)
-	if nil != err {
+	if err != nil {
 		t.Fatal(err)
 	}
 	out := standardizeNumbers(string(js))
@@ -352,6 +356,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled": true,
 				"Forwarding": {
 					"Enabled": true,
+					"Labels": {
+					    "Enabled": false,
+						"Exclude": null
+					},
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{

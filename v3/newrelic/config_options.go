@@ -6,6 +6,7 @@ package newrelic
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -229,6 +230,28 @@ func ConfigAppLogForwardingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigAppLogForwardingLabelsEnabled enables or disables sending our application
+// labels (which are configured via ConfigLabels) with forwarded log events.
+// Defaults: enabled=false
+func ConfigAppLogForwardingLabelsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.Forwarding.Labels.Enabled = enabled
+	}
+}
+
+// ConfigAppLogForwardingLabelsExclude specifies a list of specificd label types (i.e. keys)
+// which should NOT be sent along with forwarded log events.
+func ConfigAppLogForwardingLabelsExclude(labelType ...string) ConfigOption {
+	return func(cfg *Config) {
+		for _, t := range labelType {
+			t = strings.TrimSpace(t)
+			if t != "" && !strings.ContainsAny(t, ";:") {
+				cfg.ApplicationLogging.Forwarding.Labels.Exclude = append(cfg.ApplicationLogging.Forwarding.Labels.Exclude, t)
+			}
+		}
+	}
+}
+
 // ConfigAppLogDecoratingEnabled enables or disables the local decoration
 // of logs when using one of our logs in context plugins
 // Defaults: enabled=false
@@ -357,44 +380,55 @@ func ConfigDebugLogger(w io.Writer) ConfigOption {
 	return ConfigLogger(NewDebugLogger(w))
 }
 
+// ConfigLabels configures a set of labels for the application to report as attributes.
+// This may also be set using the NEW_RELIC_LABELS environment variable.
+func ConfigLabels(labels map[string]string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Labels = make(map[string]string)
+		maps.Copy(cfg.Labels, labels)
+	}
+}
+
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//		NEW_RELIC_APP_NAME                                			sets AppName
-//		NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//		NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
-//		NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
-//		NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
-//		NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
-//		NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
-//	 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
-//		NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
-//		NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
-//		NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
-//		NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
-//		NEW_RELIC_HOST                                    			sets Host
-//		NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
-//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
-//		NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//		NEW_RELIC_LICENSE_KEY                             			sets License
-//		NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//		NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//		NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
-//		NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
-//		NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
-//		NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
-//		NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
-//		NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
-//	 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
-//	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
-//	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
-//		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
-//		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
-//		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//			NEW_RELIC_APP_NAME                                			sets AppName
+//			NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//			NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
+//			NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
+//			NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//			NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//			NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
+//		 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
+//			NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
+//			NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
+//			NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
+//			NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
+//			NEW_RELIC_HOST                                    			sets Host
+//			NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
+//			NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//			NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
+//			NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//			NEW_RELIC_LICENSE_KEY                             			sets License
+//			NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//			NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//			NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
+//			NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
+//			NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
+//			NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
+//			NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
+//			NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
+//		 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
+//	     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
+//	     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
+//		 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
+//		 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//			NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//			NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
+//			NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -431,6 +465,13 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				*field = env
 			}
 		}
+		assignStringSlice := func(field *[]string, name string, delim string) {
+			if env := getenv(name); env != "" {
+				for _, part := range strings.Split(env, delim) {
+					*field = append(*field, strings.TrimSpace(part))
+				}
+			}
+		}
 
 		assignString(&cfg.AppName, "NEW_RELIC_APP_NAME")
 		assignString(&cfg.License, "NEW_RELIC_LICENSE_KEY")
@@ -455,6 +496,8 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		// Application Logging Env Variables
 		assignBool(&cfg.ApplicationLogging.Enabled, "NEW_RELIC_APPLICATION_LOGGING_ENABLED")
 		assignBool(&cfg.ApplicationLogging.Forwarding.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED")
+		assignBool(&cfg.ApplicationLogging.Forwarding.Labels.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED")
+		assignStringSlice(&cfg.ApplicationLogging.Forwarding.Labels.Exclude, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE", ",")
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
@@ -463,10 +506,12 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
-			if labels := getLabels(getenv("NEW_RELIC_LABELS")); len(labels) > 0 {
+			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
+			if err != nil {
+				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LABELS value: %s: %v", env, err)
+				cfg.Labels = nil
+			} else if len(labels) > 0 {
 				cfg.Labels = labels
-			} else {
-				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LABELS value: %s", env)
 			}
 		}
 
@@ -539,21 +584,37 @@ func isDebugEnv(env string) bool {
 // delimited string of colon-separated pairs (for example, "Server:One;Data
 // Center:Primary").  Label keys and values must be 255 characters or less in
 // length.  No more than 64 Labels can be set.
-func getLabels(env string) map[string]string {
+//
+// This has been updated as of 3.37.0 (February 2025) to conform to newer agent
+// specifications by being more rigorous about what we expect and more explicitly
+// rejecting invalid label lists.
+//
+// We disallow (and reject the entire list of labels if any are found):
+//
+//	empty key
+//	empty value
+//	too many delimiters in a row
+//	not enough delimiters
+//
+// However, we silently ignore:
+//
+//	leading and trailing extra semicolons
+//	whitespace around delimiters
+func getLabels(env string) (map[string]string, error) {
 	out := make(map[string]string)
 	env = strings.Trim(env, ";\t\n\v\f\r ")
 	for _, entry := range strings.Split(env, ";") {
 		if entry == "" {
-			return nil
+			return nil, fmt.Errorf("labels list contains empty entry")
 		}
 		split := strings.Split(entry, ":")
 		if len(split) != 2 {
-			return nil
+			return nil, fmt.Errorf("labels must each have \"type\":\"value\" format")
 		}
 		left := strings.TrimSpace(split[0])
 		right := strings.TrimSpace(split[1])
 		if left == "" || right == "" {
-			return nil
+			return nil, fmt.Errorf("labels list has missing type(s) and/or value(s)")
 		}
 		if utf8.RuneCountInString(left) > 255 {
 			runes := []rune(left)
@@ -563,10 +624,14 @@ func getLabels(env string) map[string]string {
 			runes := []rune(right)
 			right = string(runes[:255])
 		}
-		out[left] = right
-		if len(out) >= 64 {
-			return out
+		// Instead of bailing out if we exceed the maximum size, we'll
+		// just add to the output map if we still are under the allowed limit
+		// and continue processing the input string, because there's still the
+		// chance that we encounter an invalid string later on which would mean
+		// we're supposed to flag it as an error and reject the whole thing.
+		if len(out) < 64 {
+			out[left] = right
 		}
 	}
-	return out
+	return out, nil
 }
