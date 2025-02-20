@@ -333,7 +333,11 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	if IsSecurityAgentPresent() && nilTransaction(txn) && txn.thread.thread.threadID > 0 {
+	if nilTransaction(txn) {
+		return &Segment{} // return a non-nil Segment to avoid nil dereference
+	}
+
+	if IsSecurityAgentPresent() && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
 		// async segment start
 		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
 	}
