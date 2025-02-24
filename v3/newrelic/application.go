@@ -39,6 +39,31 @@ func (app *Application) IsAIMonitoringEnabled(integration string, streaming bool
 }
 */
 
+// GetLinkingMetadata returns the fields needed to link data to
+// an entity. This will return an empty struct if the application
+// is not connected or nil.
+func (app *Application) GetLinkingMetadata() LinkingMetadata {
+	if app == nil || app.app == nil {
+		return LinkingMetadata{}
+	}
+
+	reply, err := app.app.getState()
+	if err != nil {
+		app.app.Error("unable to record custom event", map[string]interface{}{
+			"event-type": "AppState",
+			"reason":     err.Error(),
+		})
+	}
+
+	md := LinkingMetadata{
+		EntityName: app.app.config.AppName,
+		Hostname:   app.app.config.hostname,
+		EntityGUID: reply.Reply.EntityGUID,
+	}
+
+	return md
+}
+
 // StartTransaction begins a Transaction with the given name.
 func (app *Application) StartTransaction(name string, opts ...TraceOption) *Transaction {
 	if app == nil {
