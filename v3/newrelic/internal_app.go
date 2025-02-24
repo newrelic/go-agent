@@ -66,6 +66,9 @@ type app struct {
 	// registered callback functions
 	llmTokenCountCallback func(string, string) int
 
+	// high water mark alarms
+	heapHighWaterMarkAlarms heapHighWaterMarkAlarmSet
+
 	serverless *serverlessHarvest
 }
 
