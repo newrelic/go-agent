@@ -13,12 +13,13 @@
      - Labels are defined via `ConfigLabels(...)` or `NEW_RELIC_LABELS`
   - Added memory allocation limit detection/response mechanism to facilitate calling custom functions to perform application-specific resource management functionality, report custom metrics or events, or take other appropriate actions, in response to rising heap memory size.
 
+### Fixed
+  - Added protection around transaction methods to gracefully return when the transaction object is `nil`.
+
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
 See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
 
-### Fixed
-  - Added protection around transaction methods to gracefully return when the transaction object is `nil`.
 
 ## 3.36.0
 ### Enhanced
