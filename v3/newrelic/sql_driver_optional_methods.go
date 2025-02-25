@@ -164,6 +164,7 @@ func optionalMethodsConn(conn *wrapConn) driver.Conn {
 		i5 int32 = 1 << 5
 		i6 int32 = 1 << 6
 		i7 int32 = 1 << 7
+		i8 int32 = 1 << 8
 	)
 	var interfaceSet int32
 	if _, ok := conn.original.(driver.ConnBeginTx); ok {
@@ -189,6 +190,9 @@ func optionalMethodsConn(conn *wrapConn) driver.Conn {
 	}
 	if _, ok := conn.original.(driver.QueryerContext); ok {
 		interfaceSet |= i7
+	}
+	if _, ok := conn.original.(driver.SessionResetter); ok {
+		interfaceSet |= i8
 	}
 	switch interfaceSet {
 	default: // No optional interfaces implemented
@@ -2239,5 +2243,2309 @@ func optionalMethodsConn(conn *wrapConn) driver.Conn {
 			driver.Queryer
 			driver.QueryerContext
 		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i8:
+		return struct {
+			driver.Conn
+			driver.SessionResetter
+		}{conn, conn}
+	case i0 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i1 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i1 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i2 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i2 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i2 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i2 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i2 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i2 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i4 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i2 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i2 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i5 | i8:
+		return struct {
+			driver.Conn
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i2 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i2 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i2 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i5 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i2 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i2 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i2 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i5 | i6 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i7 | i8:
+		return struct {
+			driver.Conn
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn}
+	case i0 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i1 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i1 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i2 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i2 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i2 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i5 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn}
+	case i0 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i1 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i1 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i2 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i2 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn}
+	case i0 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i1 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn}
+	case i0 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i2 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i2 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i1 | i2 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn}
+	case i0 | i1 | i2 | i3 | i4 | i5 | i6 | i7 | i8:
+		return struct {
+			driver.Conn
+			driver.ConnBeginTx
+			driver.ConnPrepareContext
+			driver.Execer
+			driver.ExecerContext
+			driver.NamedValueChecker
+			driver.Pinger
+			driver.Queryer
+			driver.QueryerContext
+			driver.SessionResetter
+		}{conn, conn, conn, conn, conn, conn, conn, conn, conn, conn}
 	}
 }
