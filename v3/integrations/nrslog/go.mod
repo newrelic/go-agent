@@ -1,10 +1,10 @@
 module github.com/newrelic/go-agent/v3/integrations/nrslog
 
 // The new log/slog package in Go 1.21 brings structured logging to the standard library.
-go 1.21
+go 1.22
 
 require (
-	github.com/newrelic/go-agent/v3 v3.36.0
+	github.com/newrelic/go-agent/v3 v3.37.0
 	github.com/stretchr/testify v1.9.0
 )
 

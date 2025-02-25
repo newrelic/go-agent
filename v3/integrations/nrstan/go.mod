@@ -2,13 +2,13 @@ module github.com/newrelic/go-agent/v3/integrations/nrstan
 
 // As of Dec 2019, 1.11 is the earliest Go version tested by Stan:
 // https://github.com/nats-io/stan.go/blob/master/.travis.yml
-go 1.21
+go 1.22
 
 toolchain go1.23.4
 
 require (
 	github.com/nats-io/stan.go v0.10.4
-	github.com/newrelic/go-agent/v3 v3.36.0
+	github.com/newrelic/go-agent/v3 v3.37.0
 )
 
 
