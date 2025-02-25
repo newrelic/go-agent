@@ -243,10 +243,10 @@ func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
 // If the transaction is nil, the thread is nil, or the transaction is finished, it returns true.
 // Otherwise, it returns thread.finished value.
 func (txn *Transaction) IsEnded() bool {
-	if txn == nil || txn.thread == nil || txn.thread.txn == nil {
+	if nilTransaction(txn) {
 		return true
 	}
-	return txn.thread.txn.finished
+	return txn.thread.IsEnded()
 }
 
 func transport(r *http.Request) TransportType {
