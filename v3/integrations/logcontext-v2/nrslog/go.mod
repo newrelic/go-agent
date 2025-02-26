@@ -1,7 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrslog
 
-go 1.21
+go 1.22
 
-require github.com/newrelic/go-agent/v3 v3.36.0
+require github.com/newrelic/go-agent/v3 v3.37.0
+
 
 replace github.com/newrelic/go-agent/v3 => ../../..
