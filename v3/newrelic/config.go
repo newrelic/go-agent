@@ -572,6 +572,12 @@ type ApplicationLogging struct {
 		// Controls the overall memory consumption when using log forwarding.
 		// SHOULD be sent as part of the harvest_limits on Connect.
 		MaxSamplesStored int
+		Labels           struct {
+			// Toggles whether we send our labels with forwarded logs.
+			Enabled bool
+			// List of label types to exclude from forwarded logs.
+			Exclude []string
+		}
 	}
 	Metrics struct {
 		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
@@ -661,6 +667,8 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Enabled = true
 	c.ApplicationLogging.Forwarding.Enabled = true
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
+	c.ApplicationLogging.Forwarding.Labels.Enabled = false
+	c.ApplicationLogging.Forwarding.Labels.Exclude = nil
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
 	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true

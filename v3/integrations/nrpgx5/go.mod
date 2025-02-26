@@ -1,13 +1,13 @@
 module github.com/newrelic/go-agent/v3/integrations/nrpgx5
 
-go 1.21
+go 1.22
 
-toolchain go1.23.4
+toolchain go1.24.0
 
 require (
 	github.com/egon12/pgsnap v0.0.0-20221022154027-2847f0124ed8
 	github.com/jackc/pgx/v5 v5.5.4
-	github.com/newrelic/go-agent/v3 v3.36.0
+	github.com/newrelic/go-agent/v3 v3.37.0
 	github.com/stretchr/testify v1.8.1
 )
 

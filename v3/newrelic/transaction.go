@@ -24,11 +24,16 @@ type Transaction struct {
 	thread  *thread
 }
 
+// nilTransaction guards against nil errors when handling a transaction.
+func nilTransaction(txn *Transaction) bool {
+	return txn == nil || txn.thread == nil || txn.thread.txn == nil
+}
+
 // End finishes the Transaction.  After that, subsequent calls to End or
 // other Transaction methods have no effect.  All segments and
 // instrumentation must be completed before End is called.
 func (txn *Transaction) End() {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 
@@ -55,7 +60,7 @@ func (txn *Transaction) End() {
 // The set of options should be the complete set you wish to have in effect,
 // just as if you were calling StartTransaction now with the same set of options.
 func (txn *Transaction) SetOption(options ...TraceOption) {
-	if txn == nil || txn.thread == nil || txn.thread.txn == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.txn.setOption(options...)
@@ -63,7 +68,7 @@ func (txn *Transaction) SetOption(options ...TraceOption) {
 
 // Ignore prevents this transaction's data from being recorded.
 func (txn *Transaction) Ignore() {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction", nil)
@@ -72,7 +77,7 @@ func (txn *Transaction) Ignore() {
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
 func (txn *Transaction) SetName(name string) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
@@ -84,8 +89,7 @@ func (txn *Transaction) Name() string {
 	// This is called Name rather than GetName to be consistent with the prevailing naming
 	// conventions for the Go language, even though the underlying internal call must be called
 	// something else (like GetName) because there's already a Name struct member.
-
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return ""
 	}
 	return txn.thread.GetName()
@@ -117,7 +121,7 @@ func (txn *Transaction) Name() string {
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeError(err error) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.NoticeError(err, false), "notice error", nil)
@@ -151,7 +155,7 @@ func (txn *Transaction) NoticeError(err error) {
 // way to directly control the recorded error's message, class, stacktrace,
 // and attributes.
 func (txn *Transaction) NoticeExpectedError(err error) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.NoticeError(err, true), "notice error", nil)
@@ -166,7 +170,7 @@ func (txn *Transaction) NoticeExpectedError(err error) {
 // For more information, see:
 // https://docs.newrelic.com/docs/agents/manage-apm-agents/agent-metrics/collect-custom-attributes
 func (txn *Transaction) AddAttribute(key string, value any) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AddAttribute(key, value), "add attribute", nil)
@@ -176,10 +180,9 @@ func (txn *Transaction) AddAttribute(key string, value any) {
 // belong to or interact with. This will propogate an attribute containing this information to all events that are
 // a child of this transaction, like errors and spans.
 func (txn *Transaction) SetUserID(userID string) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
-
 	txn.thread.logAPIError(txn.thread.AddUserID(userID), "set user ID", nil)
 }
 
@@ -192,6 +195,9 @@ func (txn *Transaction) SetUserID(userID string) {
 // as well as log metrics depending on how your application is
 // configured.
 func (txn *Transaction) RecordLog(log LogData) {
+	if nilTransaction(txn) {
+		return
+	}
 	event, err := log.toLogEvent()
 	if err != nil {
 		txn.Application().app.Error("unable to record log", map[string]any{
@@ -212,6 +218,9 @@ func (txn *Transaction) RecordLog(log LogData) {
 // present, the agent will look for distributed tracing headers using
 // Transaction.AcceptDistributedTraceHeaders.
 func (txn *Transaction) SetWebRequestHTTP(r *http.Request) {
+	if nilTransaction(txn) {
+		return
+	}
 	if r == nil {
 		txn.SetWebRequest(WebRequest{})
 		return
@@ -265,7 +274,7 @@ func reqBody(req *http.Request) *BodyBuffer {
 // distributed tracing headers using Transaction.AcceptDistributedTraceHeaders.
 // Use Transaction.SetWebRequestHTTP if you have a *http.Request.
 func (txn *Transaction) SetWebRequest(r WebRequest) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	if IsSecurityAgentPresent() {
@@ -289,7 +298,7 @@ func (txn *Transaction) SetWebRequest(r WebRequest) {
 // package middlewares.  Therefore, you probably want to use this only if you
 // are writing your own instrumentation middleware.
 func (txn *Transaction) SetWebResponse(w http.ResponseWriter) http.ResponseWriter {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return w
 	}
 	return txn.thread.SetWebResponse(w)
@@ -304,7 +313,7 @@ func (txn *Transaction) StartSegmentNow() SegmentStartTime {
 }
 
 func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return SegmentStartTime{}
 	}
 	return txn.thread.startSegmentAt(at)
@@ -324,7 +333,7 @@ func (txn *Transaction) startSegmentAt(at time.Time) SegmentStartTime {
 //	// ... code you want to time here ...
 //	segment.End()
 func (txn *Transaction) StartSegment(name string) *Segment {
-	if IsSecurityAgentPresent() && txn != nil && txn.thread != nil && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
+	if IsSecurityAgentPresent() && !nilTransaction(txn) && txn.thread.thread != nil && txn.thread.thread.threadID > 0 {
 		// async segment start
 		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
 	}
@@ -346,7 +355,7 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 // StartExternalSegment calls InsertDistributedTraceHeaders, so you don't need
 // to use it for outbound HTTP calls: Just use StartExternalSegment!
 func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.CreateDistributedTracePayload(hdrs)
@@ -367,7 +376,7 @@ func (txn *Transaction) InsertDistributedTraceHeaders(hdrs http.Header) {
 // context headers.  Only when those are not found will it look for the New
 // Relic distributed tracing header.
 func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http.Header) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.logAPIError(txn.thread.AcceptDistributedTraceHeaders(t, hdrs), "accept trace payload", nil)
@@ -379,6 +388,10 @@ func (txn *Transaction) AcceptDistributedTraceHeaders(t TransportType, hdrs http
 // convert the JSON string to http headers. There is no guarantee that the header data found in JSON
 // is correct beyond conforming to the expected types and syntax.
 func (txn *Transaction) AcceptDistributedTraceHeadersFromJSON(t TransportType, jsondata string) error {
+	if nilTransaction(txn) { // do no work if txn is nil
+		return nil
+	}
+
 	hdrs, err := DistributedTraceHeadersFromJSON(jsondata)
 	if err != nil {
 		return err
@@ -465,7 +478,7 @@ func DistributedTraceHeadersFromJSON(jsondata string) (hdrs http.Header, err err
 
 // Application returns the Application which started the transaction.
 func (txn *Transaction) Application() *Application {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return nil
 	}
 	return txn.thread.Application()
@@ -484,7 +497,7 @@ func (txn *Transaction) Application() *Application {
 // monitoring is disabled, the application is not connected, or an error
 // occurred.  It is safe to call the pointer's methods if it is nil.
 func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return nil
 	}
 	b, err := txn.thread.BrowserTimingHeader()
@@ -506,7 +519,7 @@ func (txn *Transaction) BrowserTimingHeader() *BrowserTimingHeader {
 // Note that any segments that end after the transaction ends will not
 // be reported.
 func (txn *Transaction) NewGoroutine() *Transaction {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return nil
 	}
 	newTxn := txn.thread.NewGoroutine()
@@ -519,7 +532,7 @@ func (txn *Transaction) NewGoroutine() *Transaction {
 // GetTraceMetadata returns distributed tracing identifiers.  Empty
 // string identifiers are returned if the transaction has finished.
 func (txn *Transaction) GetTraceMetadata() TraceMetadata {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return TraceMetadata{}
 	}
 	return txn.thread.GetTraceMetadata()
@@ -528,7 +541,7 @@ func (txn *Transaction) GetTraceMetadata() TraceMetadata {
 // GetLinkingMetadata returns the fields needed to link data to a trace or
 // entity.
 func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return LinkingMetadata{}
 	}
 	return txn.thread.GetLinkingMetadata()
@@ -539,21 +552,21 @@ func (txn *Transaction) GetLinkingMetadata() LinkingMetadata {
 // must be enabled for transactions to be sampled.  False is returned if
 // the Transaction has finished.
 func (txn *Transaction) IsSampled() bool {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return false
 	}
 	return txn.thread.IsSampled()
 }
 
 func (txn *Transaction) GetCsecAttributes() map[string]any {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return nil
 	}
 	return txn.thread.getCsecAttributes()
 }
 
 func (txn *Transaction) SetCsecAttributes(key string, value any) {
-	if txn == nil || txn.thread == nil {
+	if nilTransaction(txn) {
 		return
 	}
 	txn.thread.setCsecAttributes(key, value)

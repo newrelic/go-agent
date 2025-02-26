@@ -1,11 +1,11 @@
 module github.com/newrelic/go-agent/v3/integrations/nrpgx
 
-go 1.21
+go 1.22
 
 require (
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.18.2
-	github.com/newrelic/go-agent/v3 v3.36.0
+	github.com/newrelic/go-agent/v3 v3.37.0
 )
 
 

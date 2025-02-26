@@ -358,6 +358,8 @@ var (
 			true,
 			false,
 			internal.MaxLogEvents,
+			nil,
+			nil,
 		},
 	}
 )

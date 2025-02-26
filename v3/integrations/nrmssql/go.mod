@@ -1,10 +1,10 @@
 module github.com/newrelic/go-agent/v3/integrations/nrmssql
 
-go 1.21
+go 1.22
 
 require (
 	github.com/microsoft/go-mssqldb v0.19.0
-	github.com/newrelic/go-agent/v3 v3.36.0
+	github.com/newrelic/go-agent/v3 v3.37.0
 )
 
 
