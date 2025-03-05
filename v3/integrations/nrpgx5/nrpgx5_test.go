@@ -292,6 +292,27 @@ func TestTracer_inPool(t *testing.T) {
 	}
 }
 
+func TestTracer_copyFrom(t *testing.T) {
+	conn, finish := getTestCon(t)
+	defer finish()
+
+	t.Run("copy from should send metric with table identifier", func(t *testing.T) {
+		app := integrationsupport.NewBasicTestApp()
+
+		txn := app.StartTransaction(t.Name())
+
+		ctx := newrelic.NewContext(context.Background(), txn)
+		_, _ = conn.CopyFrom(ctx, pgx.Identifier{"mytable"}, []string{"name"}, pgx.CopyFromRows([][]interface{}{{"name a"}, {"name b"}, {"name c"}}))
+
+		txn.End()
+
+		app.ExpectMetricsPresent(t, []internal.WantMetric{
+			{Name: "Datastore/operation/Postgres/copy_from"},
+			{Name: "Datastore/statement/Postgres/mytable/copy_from"},
+		})
+	})
+}
+
 func getTestCon(t testing.TB) (*pgx.Conn, func()) {
 	snap := pgsnap.NewSnap(t, os.Getenv("PGSNAP_DB_URL"))
 
