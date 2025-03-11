@@ -60,3 +60,27 @@ func TestAnonymousFunctions(t *testing.T) {
 	})
 
 }
+
+func TestWriteHeader(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	router := chi.NewRouter()
+	router.Use(Middleware(app.Application))
+	router.Get("/writeheader", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+
+	response := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/writeheader", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router.ServeHTTP(response, req)
+	if response.Code != 404 {
+		t.Error("wrong response code", response.Code)
+	}
+	app.ExpectTxnMetrics(t, internal.WantTxn{
+		Name:          "GET /writeheader",
+		IsWeb:         true,
+		UnknownCaller: true,
+	})
+}
