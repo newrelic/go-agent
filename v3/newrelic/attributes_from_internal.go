@@ -346,8 +346,8 @@ func (e invalidFloatAttrValue) Error() string {
 }
 
 func truncateStringValueIfLong(val string) string {
-	if len(val) > attributeValueLengthLimit {
-		return stringLengthByteLimit(val, attributeValueLengthLimit)
+	if len(val) > attributeValueSizeLimit {
+		return stringLengthByteLimit(val, attributeValueSizeLimit)
 	}
 	return val
 }
@@ -462,14 +462,14 @@ func addUserAttribute(a *attributes, key string, val interface{}, d destinationS
 func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	switch v := val.(type) {
 	case string:
-		if len(v) > attributeValueLengthLimit {
-			v = v[:attributeValueLengthLimit]
+		if len(v) > attributeValueSizeLimit {
+			v = v[:attributeValueSizeLimit]
 		}
 		w.stringField(key, v)
 	case error:
 		value := v.Error()
-		if len(value) > attributeValueLengthLimit {
-			value = value[:attributeValueLengthLimit]
+		if len(value) > attributeValueSizeLimit {
+			value = value[:attributeValueSizeLimit]
 		}
 		w.stringField(key, value)
 	case bool:
@@ -509,8 +509,8 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 		kind := reflect.ValueOf(v).Kind()
 		if kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice || kind == reflect.Array {
 			bytes, _ := json.Marshal(v)
-			if len(bytes) > attributeValueLengthLimit {
-				bytes = bytes[:attributeValueLengthLimit]
+			if len(bytes) > attributeValueSizeLimit {
+				bytes = bytes[:attributeValueSizeLimit]
 			}
 			w.stringField(key, string(bytes))
 		} else {

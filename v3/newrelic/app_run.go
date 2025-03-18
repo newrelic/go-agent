@@ -57,11 +57,13 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		expectErrorCodesCache: make(map[int]bool),
 	}
 
-	// Attribute value length limit is set to the value of the
-	// AttributeConfig.ValueSizeLimit if it is set up to a maximum
-	// of 4096 characters.
 	if run.Config.AttributeConfig.ValueSizeLimit != 0 {
-		attributeValueLengthLimit = min(int(run.Config.AttributeConfig.ValueSizeLimit), 4096)
+		if run.Config.AttributeConfig.ValueSizeLimit > attributeValueSizeLimitMaximum {
+			run.Config.AttributeConfig.ValueSizeLimit = attributeValueSizeLimitMaximum
+		} else if run.Config.AttributeConfig.ValueSizeLimit < attributeValueSizeLimitMinimum {
+			run.Config.AttributeConfig.ValueSizeLimit = attributeValueSizeLimitMinimum
+		}
+		attributeValueSizeLimit = run.Config.AttributeConfig.ValueSizeLimit
 	}
 
 	// Overwrite local settings with any server-side-config settings

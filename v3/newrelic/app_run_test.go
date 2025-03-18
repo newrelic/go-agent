@@ -44,6 +44,58 @@ func TestResponseCodeIsError(t *testing.T) {
 	}
 }
 
+func TestAttributeValueLimits(t *testing.T) {
+	type test struct {
+		Name                 string
+		Config               Config
+		ConnectReply         *internal.ConnectReply
+		ExpectValueSizeLimit int
+	}
+
+	tests := []test{
+		{
+			Name:                 "default",
+			Config:               defaultConfig(),
+			ConnectReply:         internal.ConnectReplyDefaults(),
+			ExpectValueSizeLimit: 255,
+		},
+		{
+			Name:                 "valid increase",
+			Config:               defaultConfig(),
+			ConnectReply:         internal.ConnectReplyDefaults(),
+			ExpectValueSizeLimit: 255,
+		},
+		{
+			Name: "too small",
+			Config: func() Config {
+				conf := defaultConfig()
+				conf.AttributeConfig.ValueSizeLimit = 4000
+				return conf
+			}(),
+			ConnectReply:         internal.ConnectReplyDefaults(),
+			ExpectValueSizeLimit: 4000,
+		},
+		{
+			Name: "too big",
+			Config: func() Config {
+				conf := defaultConfig()
+				conf.AttributeConfig.ValueSizeLimit = 5000
+				return conf
+			}(),
+			ConnectReply:         internal.ConnectReplyDefaults(),
+			ExpectValueSizeLimit: 4096,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			newAppRun(config{Config: test.Config}, test.ConnectReply)
+			if attributeValueSizeLimit != test.ExpectValueSizeLimit {
+				t.Errorf("expected value size limit %d, got %d", test.ExpectValueSizeLimit, attributeValueSizeLimit)
+			}
+		})
+	}
+}
+
 func TestResponseCodeIsExpected(t *testing.T) {
 	cfg := config{Config: defaultConfig()}
 	cfg.ErrorCollector.ExpectStatusCodes = []int{400, 503, 504}

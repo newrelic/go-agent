@@ -46,6 +46,9 @@ const (
 	attributeErrorLimit       = 32
 	customEventAttributeLimit = 64
 
+	// smallest size the attribute value size should be set to
+	attributeValueSizeLimitMinimum = 255
+	attributeValueSizeLimitMaximum = 4096
 	// Limits affecting Config validation are found in the config package.
 
 	// runtimeSamplerPeriod is the period of the runtime sampler.  Runtime
@@ -57,7 +60,7 @@ const (
 )
 
 var (
-	// attributeValueLengthLimit is the maximum length of an attribute value.
+	// attributeValueSizeLimit is the max size of an attribute value.
 	// This is not a constant because it can be changed by the user.
-	attributeValueLengthLimit = 255
+	attributeValueSizeLimit = 255
 )

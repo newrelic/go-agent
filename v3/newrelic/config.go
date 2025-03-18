@@ -354,13 +354,13 @@ type Config struct {
 	AttributeConfig struct {
 		// ValueSizeLimit sets the maximum size of attribute values.  If an
 		// attribute value exceeds this limit, the attribute will be truncated.
+		// This value can be set between 256 and 4096.
 		//
 		// Note: increasing this may marginally increase the cpu and memory overhead
 		// of the agent due to the caching and marshalling of larger attribute strings.
 		//
 		// Default: 256
-		// Maximum: 4096
-		ValueSizeLimit uint32
+		ValueSizeLimit int
 	}
 
 	// RuntimeSampler controls the collection of runtime statistics like
@@ -644,7 +644,6 @@ func defaultConfig() Config {
 	c := Config{}
 
 	c.Enabled = true
-	c.AttributeConfig.ValueSizeLimit = 256
 	c.Labels = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
