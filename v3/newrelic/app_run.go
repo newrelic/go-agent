@@ -57,11 +57,17 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		expectErrorCodesCache: make(map[int]bool),
 	}
 
+	// Attribute value length limit is set to the value of the
+	// AttributeConfig.ValueSizeLimit if it is set up to a maximum
+	// of 4096 characters.
+	if run.Config.AttributeConfig.ValueSizeLimit != 0 {
+		attributeValueLengthLimit = min(int(run.Config.AttributeConfig.ValueSizeLimit), 4096)
+	}
+
 	// Overwrite local settings with any server-side-config settings
 	// present. NOTE!  This requires that the Config provided to this
 	// function is a value and not a pointer: We do not want to change the
 	// input Config with values particular to this connection.
-
 	if v := run.Reply.ServerSideConfig.TransactionTracerEnabled; v != nil {
 		run.Config.TransactionTracer.Enabled = *v
 	}

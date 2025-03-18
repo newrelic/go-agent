@@ -39,9 +39,8 @@ const (
 
 	errorEventMessageLengthLimit = 4096
 	// attributes
-	attributeKeyLengthLimit   = 255
-	attributeValueLengthLimit = 255
-	attributeUserLimit        = 64
+	attributeKeyLengthLimit = 255
+	attributeUserLimit      = 64
 	// attributeErrorLimit limits the number of extra attributes that can be
 	// provided when noticing an error.
 	attributeErrorLimit       = 32
@@ -55,4 +54,10 @@ const (
 	// be changed without notifying customers that they must update all
 	// instance simultaneously for valid runtime metrics.
 	runtimeSamplerPeriod = 60 * time.Second
+)
+
+var (
+	// attributeValueLengthLimit is the maximum length of an attribute value.
+	// This is not a constant because it can be changed by the user.
+	attributeValueLengthLimit = 255
 )
