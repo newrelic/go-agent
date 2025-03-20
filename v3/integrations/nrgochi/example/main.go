@@ -73,15 +73,6 @@ func main() {
 		w.Write([]byte("anonymous function handler"))
 	})
 
-	router.Get("/user/{username}", func(writer http.ResponseWriter, request *http.Request) {
-		username := chi.URLParam(request, "username") // 👈 getting path param
-		_, err := writer.Write([]byte("Hello " + username))
-		if err != nil {
-			// Transactions can be accessed from the request context.
-			newrelic.FromContext(request.Context()).NoticeError(err)
-		}
-	})
-
 	router.NotFound(endpointNotFound)
 
 	http.ListenAndServe(":8000", router)
