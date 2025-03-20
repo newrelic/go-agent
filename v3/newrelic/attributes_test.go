@@ -236,7 +236,7 @@ func TestUserAttributeValLength(t *testing.T) {
 	cfg := createAttributeConfig(config{Config: defaultConfig()}, true)
 	attrs := newAttributes(cfg)
 
-	atLimit := strings.Repeat("a", attributeValueLengthLimit)
+	atLimit := strings.Repeat("a", attributeValueSizeLimit)
 	tooLong := atLimit + "a"
 
 	err := addUserAttribute(attrs, `escape\me`, tooLong, destAll)
