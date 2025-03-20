@@ -1018,3 +1018,32 @@ func TestPanicNilRecovery(t *testing.T) {
 		},
 	})
 }
+
+func TestIsEndedInternal(t *testing.T) {
+	tests := []struct {
+		name     string
+		txn      *txn
+		expected bool
+	}{
+		{
+			name:     "finished transaction",
+			txn:      &txn{finished: true},
+			expected: true,
+		},
+		{
+			name:     "unfinished transaction",
+			txn:      &txn{finished: false},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			thread := &thread{txn: tt.txn}
+			result := thread.IsEnded()
+			if result != tt.expected {
+				t.Errorf("IsEnded() = %v; want %v", result, tt.expected)
+			}
+		})
+	}
+}
