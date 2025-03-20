@@ -124,6 +124,11 @@ var (
 // Errors will be returned if the zapcore object is nil, or if the application is nil. It is up to the user to decide
 // how to handle the case where the newrelic.Application is nil.
 // In the case that the newrelic.Application is nil, a valid NewRelicZapCore object will still be returned.
+//
+// Please note that, while enriched context is added to log data forwarded to New Relic telemetry,
+// it is not added to the local log data itself. This is due to the specific way zap logs are
+// efficiently integrated into the New Relic agent logs in context. Local log decoration for zap
+// logs requires additional custom code.
 func WrapBackgroundCore(core zapcore.Core, app *newrelic.Application) (*NewRelicZapCore, error) {
 	if core == nil {
 		return nil, ErrNilZapcore
@@ -148,6 +153,11 @@ func WrapBackgroundCore(core zapcore.Core, app *newrelic.Application) (*NewRelic
 // Errors will be returned if the zapcore object is nil, or if the application is nil. It is up to the user to decide
 // how to handle the case where the newrelic.Transaction is nil.
 // In the case that the newrelic.Application is nil, a valid NewRelicZapCore object will still be returned.
+//
+// Please note that, while enriched context is added to log data forwarded to New Relic telemetry,
+// it is not added to the local log data itself. This is due to the specific way zap logs are
+// efficiently integrated into the New Relic agent logs in context. Local log decoration for zap
+// logs requires additional custom code.
 func WrapTransactionCore(core zapcore.Core, txn *newrelic.Transaction) (zapcore.Core, error) {
 	if core == nil {
 		return nil, ErrNilZapcore

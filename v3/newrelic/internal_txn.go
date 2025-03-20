@@ -54,6 +54,14 @@ type thread struct {
 	thread *tracingThread
 }
 
+func (thd *thread) IsEnded() bool {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+
+	return txn.finished
+}
+
 func (txn *txn) markStart(now time.Time) {
 	txn.Start = now
 	// The mainThread is considered active now.

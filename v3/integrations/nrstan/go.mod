@@ -4,11 +4,11 @@ module github.com/newrelic/go-agent/v3/integrations/nrstan
 // https://github.com/nats-io/stan.go/blob/master/.travis.yml
 go 1.22
 
-toolchain go1.23.4
+toolchain go1.24.0
 
 require (
 	github.com/nats-io/stan.go v0.10.4
-	github.com/newrelic/go-agent/v3 v3.37.0
+	github.com/newrelic/go-agent/v3 v3.38.0
 )
 
 

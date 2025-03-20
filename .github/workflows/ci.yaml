@@ -69,6 +69,8 @@ jobs:
           - dirs: v3/integrations/nrmssql
           - dirs: v3/integrations/nropenai
           - dirs: v3/integrations/nrslog
+          - dirs: v3/integrations/nrgochi
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
