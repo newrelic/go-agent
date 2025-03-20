@@ -1,3 +1,17 @@
+## 3.38.0
+### Added
+ * Added new integration nrgochi v1.0.0 for support for go-chi library
+ * Added IsEnded() method for the Transaction type. Allowing for a straightforward approach to checking if a transaction has ended
+   * Community Member @frknikiz contributed to this solution
+
+
+### Fixed
+ * Added caveat to API docs about local log decoration in zap integration 
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy) for details about supported versions of the Go agent and third-party components.
+
 ## 3.37.0
 ### Enhanced
   - Implemented a new approach to integrating New Relic with SLOG that is more lightweight, out of the way, and collects richer data. These changes have been constructed to be completely backwards-compatible with v1 of nrslog. Changes include:
