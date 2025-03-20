@@ -3,7 +3,7 @@ module github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzap
 go 1.22
 
 require (
-	github.com/newrelic/go-agent/v3 v3.37.0
+	github.com/newrelic/go-agent/v3 v3.38.0
 	go.uber.org/zap v1.24.0
 )
 
