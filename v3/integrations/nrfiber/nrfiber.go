@@ -1,5 +1,17 @@
-// Package nrfiber implements a middleware for the Fiber web framework.
-// This middleware instruments Fiber applications with New Relic.
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+// Package nrgin instruments https://github.com/gofiber/fiber applications.
+//
+// Use this package to instrument inbound requests handled by a gin.Engine.
+// Call nrfiber.Middleware to get a nrfiber.HandlerFunc which can be added to your
+// application as a middleware:
+//
+//	router := nrfiber.New()
+//	// Add the nrgin middleware before other middlewares or routes:
+//	router.Use(nrfiber.Middleware(app))
+//
+// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrfiber/example/main.go
 package nrfiber
 
 import (
@@ -26,72 +38,18 @@ func (w *headerResponseWriter) WriteHeader(int)           {}
 
 var _ http.ResponseWriter = &headerResponseWriter{}
 
-type contextKeyType struct{}
-
-var (
-	// TransactionContextKey is the Fiber context key used to store the
-	// transaction.  This is exported to allow instrumentation of Fiber
-	// applications using a fiber.Handler.
-	TransactionContextKey = contextKeyType{}
-)
-
-// FromContext returns the Transaction from the context if it exists.
-func FromContext(ctx context.Context) *newrelic.Transaction {
+// Transaction returns the Transaction from the context if it exists.
+func Transaction(ctx context.Context) *newrelic.Transaction {
 	if ctx == nil {
 		return nil
 	}
-	if txn, ok := ctx.Value(TransactionContextKey).(*newrelic.Transaction); ok {
+	if txn, ok := ctx.Value(internal.TransactionContextKey).(*newrelic.Transaction); ok {
 		return txn
 	}
-	return nil
-}
-
-// Middleware creates a Fiber middleware that instruments requests with
-// New Relic.
-func Middleware(app *newrelic.Application) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-
-		// If no New Relic application is configured, do nothing
-		if app == nil {
-			return c.Next()
-		}
-
-		// Add request information to transaction
-		webReq := convertToHTTPRequest(c)
-
-		w := &headerResponseWriter{w: *c.Response()}
-
-		// Create New Relic transaction
-		txnName := getTransactionName(c)
-		txn := app.StartTransaction(txnName)
-		if newrelic.IsSecurityAgentPresent() {
-			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, c.Request().URI().String())
-		}
-		defer txn.End()
-
-		// Set web Response
-		txn.SetWebResponse(w)
-
-		// Store the transaction in context
-		userCtx := context.WithValue(c.UserContext(), TransactionContextKey, txn)
-		c.SetUserContext(userCtx)
-
-		// Accept distributed trace payload if present
-		txn.AcceptDistributedTraceHeaders(newrelic.TransportHTTP, webReq.Header)
-		txn.SetWebRequestHTTP(webReq)
-
-		// Execute next handlers
-		err := c.Next()
-		if err != nil {
-			txn.NoticeError(err)
-		}
-
-		if newrelic.IsSecurityAgentPresent() {
-			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
-		}
-
-		return err
+	if txn, ok := ctx.Value("transaction").(newrelic.Transaction); ok {
+		return &txn
 	}
+	return nil
 }
 
 // getTransactionName returns a transaction name based on the request path
@@ -127,45 +85,35 @@ func convertToHTTPRequest(c *fiber.Ctx) *http.Request {
 	return r
 }
 
-// WrapHandler wraps an existing Fiber handler with New Relic instrumentation
-func WrapHandler(app *newrelic.Application, pattern string, handler fiber.Handler) fiber.Handler {
-	if app == nil {
-		return handler
-	}
-
+// Middleware creates a Fiber middleware handler that instruments requests with New Relic.
+// It starts a New Relic transaction for each request, sets web request and response details,
+// and handles error tracking. If no New Relic application is configured, it passes the request through.
+func Middleware(app *newrelic.Application) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Get transaction from context if middleware is already applied
-		if txn := FromContext(c.UserContext()); txn != nil {
-			txn.SetName("Web" + pattern + "/" + string(c.Method()))
-			return handler(c)
+		// If no New Relic application is configured, do nothing
+		if app == nil {
+			return c.Next()
 		}
-
-		// If no transaction exists, create a new one
-		txn := app.StartTransaction("Web" + pattern)
+		// Create New Relic transaction
+		txnName := getTransactionName(c)
+		txn := app.StartTransaction(txnName, newrelic.WithFunctionLocation(c.App().Handler()))
 		defer txn.End()
-
-		userCtx := context.WithValue(c.UserContext(), TransactionContextKey, txn)
-		c.SetUserContext(userCtx)
-
-		txn.SetWebRequest(newrelic.WebRequest{
-			Header: convertHeaderToHTTP(c),
-			URL: &url.URL{
-				Path:     string(c.Path()),
-				RawQuery: string(c.Query("")),
-			},
-			Method:    string(c.Method()),
-			Transport: newrelic.TransportHTTP,
-		})
-
-		err := handler(c)
-
 		w := &headerResponseWriter{w: *c.Response()}
+		if newrelic.IsSecurityAgentPresent() {
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, c.Request().URI().String())
+		}
+		// Set web Response
 		txn.SetWebResponse(w)
-
+		// Set Web Requests
+		txn.SetWebRequestHTTP(convertToHTTPRequest(c))
+		// Execute next handlers
+		err := c.Next()
 		if err != nil {
 			txn.NoticeError(err)
 		}
-
+		if newrelic.IsSecurityAgentPresent() {
+			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
+		}
 		return err
 	}
 }
