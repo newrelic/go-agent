@@ -1,15 +1,15 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package nrgin instruments https://github.com/gofiber/fiber applications.
+// Package nrfiber instruments https://github.com/gofiber/fiber applications.
 //
-// Use this package to instrument inbound requests handled by a gin.Engine.
-// Call nrfiber.Middleware to get a nrfiber.HandlerFunc which can be added to your
+// Use this package to instrument inbound requests handled by a fiber.App.
+// Call nrfiber.Middleware to get a fiber.Handler which can be added to your
 // application as a middleware:
 //
-//	router := nrfiber.New()
-//	// Add the nrgin middleware before other middlewares or routes:
-//	router.Use(nrfiber.Middleware(app))
+//	app := fiber.New()
+//	// Add the nrfiber middleware before other middlewares or routes:
+//	app.Use(nrfiber.Middleware(newrelicApp))
 //
 // Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrfiber/example/main.go
 package nrfiber
@@ -24,17 +24,29 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func init() { internal.TrackUsage("integration", "framework", "fiber", "v1") }
+func init() {
+	internal.TrackUsage("integration", "framework", "fiber", "v2")
+}
 
 // headerResponseWriter gives the transaction access to response headers and the
 // response code.
 type headerResponseWriter struct {
-	w fiber.Response
+	fiberResponse *fiber.Response
 }
 
-func (w *headerResponseWriter) Header() http.Header       { return w.Header() }
+func (w *headerResponseWriter) Header() http.Header {
+	header := make(http.Header)
+	w.fiberResponse.Header.VisitAll(func(key, value []byte) {
+		header.Add(string(key), string(value))
+	})
+	return header
+}
+
 func (w *headerResponseWriter) Write([]byte) (int, error) { return 0, nil }
-func (w *headerResponseWriter) WriteHeader(int)           {}
+
+func (w *headerResponseWriter) WriteHeader(statusCode int) {
+	w.fiberResponse.SetStatusCode(statusCode)
+}
 
 var _ http.ResponseWriter = &headerResponseWriter{}
 
@@ -46,10 +58,12 @@ func Transaction(ctx context.Context) *newrelic.Transaction {
 	if txn, ok := ctx.Value(internal.TransactionContextKey).(*newrelic.Transaction); ok {
 		return txn
 	}
-	if txn, ok := ctx.Value("transaction").(newrelic.Transaction); ok {
-		return &txn
-	}
 	return nil
+}
+
+// FromContext is an alias for Transaction for API consistency with other New Relic middlewares
+func FromContext(ctx context.Context) *newrelic.Transaction {
+	return Transaction(ctx)
 }
 
 // getTransactionName returns a transaction name based on the request path
@@ -58,7 +72,7 @@ func getTransactionName(c *fiber.Ctx) string {
 	if path == "" {
 		path = "/"
 	}
-	return string(c.Request().Header.Method()) + " " + path
+	return string(c.Method()) + " " + path
 }
 
 // convertHeaderToHTTP converts Fiber headers to http.Header
@@ -94,26 +108,96 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 		if app == nil {
 			return c.Next()
 		}
+
 		// Create New Relic transaction
 		txnName := getTransactionName(c)
-		txn := app.StartTransaction(txnName, newrelic.WithFunctionLocation(c.App().Handler()))
+		txn := app.StartTransaction(txnName)
 		defer txn.End()
-		w := &headerResponseWriter{w: *c.Response()}
+
+		// Store transaction in context for retrieval in handlers
+		ctx := context.WithValue(c.UserContext(), internal.TransactionContextKey, txn)
+		c.SetUserContext(ctx)
+
+		// Create response writer wrapper
+		w := &headerResponseWriter{fiberResponse: c.Response()}
+
+		// Set security agent attributes if present
 		if newrelic.IsSecurityAgentPresent() {
-			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, c.Request().URI().String())
+			txn.SetCsecAttributes(newrelic.AttributeCsecRoute, string(c.Request().URI().Path()))
 		}
-		// Set web Response
+
+		// Set web response object
 		txn.SetWebResponse(w)
-		// Set Web Requests
+
+		// Set web request details
 		txn.SetWebRequestHTTP(convertToHTTPRequest(c))
+
 		// Execute next handlers
 		err := c.Next()
+
+		// Report error if any occurred
 		if err != nil {
 			txn.NoticeError(err)
 		}
+
+		// Update response status code in transaction
+		txn.SetWebResponse(w).WriteHeader(c.Response().StatusCode())
+
+		// Send security event if agent is present
 		if newrelic.IsSecurityAgentPresent() {
-			newrelic.GetSecurityAgentInterface().SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
+			newrelic.GetSecurityAgentInterface().SendEvent(
+				"RESPONSE_HEADER",
+				w.Header(),
+				txn.GetLinkingMetadata().TraceID,
+			)
 		}
+
+		return err
+	}
+}
+
+// WrapHandler wraps an existing Fiber handler with New Relic instrumentation
+func WrapHandler(app *newrelic.Application, pattern string, handler fiber.Handler) fiber.Handler {
+	if app == nil {
+		return handler
+	}
+
+	return func(c *fiber.Ctx) error {
+		// Get transaction from context if middleware is already applied
+		if txn := Transaction(c.UserContext()); txn != nil {
+			// Update name if this is a more specific handler
+			txn.SetName(string(c.Method()) + " " + pattern)
+			return handler(c)
+		}
+
+		// If no transaction exists, create a new one
+		txn := app.StartTransaction(string(c.Method()) + " " + pattern)
+		defer txn.End()
+
+		// Store in context
+		ctx := context.WithValue(c.UserContext(), internal.TransactionContextKey, txn)
+		c.SetUserContext(ctx)
+
+		// Create response writer wrapper
+		w := &headerResponseWriter{fiberResponse: c.Response()}
+
+		// Set web response object
+		txn.SetWebResponse(w)
+
+		// Set web request details
+		txn.SetWebRequestHTTP(convertToHTTPRequest(c))
+
+		// Call the handler
+		err := handler(c)
+
+		// Update response status code in transaction
+		txn.SetWebResponse(w).WriteHeader(c.Response().StatusCode())
+
+		// Report error if any occurred
+		if err != nil {
+			txn.NoticeError(err)
+		}
+
 		return err
 	}
 }
