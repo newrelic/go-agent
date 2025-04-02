@@ -61,9 +61,8 @@ func Transaction(ctx context.Context) *newrelic.Transaction {
 	return nil
 }
 
-// FromContext is an alias for Transaction for API consistency with other New Relic middlewares
-func FromContext(ctx context.Context) *newrelic.Transaction {
-	return Transaction(ctx)
+func FromContext(c *fiber.Ctx) *newrelic.Transaction {
+	return newrelic.FromContext(c.UserContext())
 }
 
 // getTransactionName returns a transaction name based on the request path
@@ -72,6 +71,7 @@ func getTransactionName(c *fiber.Ctx) string {
 	if path == "" {
 		path = "/"
 	}
+
 	return string(c.Method()) + " " + path
 }
 
@@ -102,6 +102,10 @@ func convertToHTTPRequest(c *fiber.Ctx) *http.Request {
 // Middleware creates a Fiber middleware handler that instruments requests with New Relic.
 // It starts a New Relic transaction for each request, sets web request and response details,
 // and handles error tracking. If no New Relic application is configured, it passes the request through.
+//
+//	router := fiber.New()
+//	// Add the nrfiber middleware before other middlewares or routes:
+//	router.Use(nrfiber.Middleware(app))
 func Middleware(app *newrelic.Application) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// If no New Relic application is configured, do nothing
@@ -157,6 +161,15 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 }
 
 // WrapHandler wraps an existing Fiber handler with New Relic instrumentation
+//
+// fiberApp := fiber.New()
+//
+// wrappedHandler := WrapHandler(app.Application, "/wrapped", func(c *fiber.Ctx) error {
+//	 return c.SendString("Wrapped Handler")
+// })
+//
+// fiberApp.Get("/wrapped", wrappedHandler)
+
 func WrapHandler(app *newrelic.Application, pattern string, handler fiber.Handler) fiber.Handler {
 	if app == nil {
 		return handler
