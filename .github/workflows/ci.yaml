@@ -40,6 +40,7 @@ jobs:
           - dirs: v3/integrations/nrecho-v4
           - dirs: v3/integrations/nrelasticsearch-v7
           - dirs: v3/integrations/nrgin
+          - dirs: v3/integrations/nrfiber
           - dirs: v3/integrations/nrgorilla
           - dirs: v3/integrations/nrgraphgophers
           - dirs: v3/integrations/nrlogrus
