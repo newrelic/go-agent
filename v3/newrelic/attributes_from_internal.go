@@ -514,7 +514,9 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 		writeAttributeValueJSON(w, key, v.String())
 	case time.Weekday:
 		writeAttributeValueJSON(w, key, v.String())
-	case time.Location:
+	case *time.Location:
+		writeAttributeValueJSON(w, key, v.String())
+	case time.Month:
 		writeAttributeValueJSON(w, key, v.String())
 	default:
 		// attempt to construct a JSON string
