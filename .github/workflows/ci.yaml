@@ -88,6 +88,11 @@ jobs:
     - name: Run tests
       run: go test -coverprofile=coverage.txt
 
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
 
