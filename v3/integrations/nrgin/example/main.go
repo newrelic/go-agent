@@ -65,8 +65,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Example filter: ignore monitoring for /headers and /anon endpoints
+	ignoreFilter := func(c *gin.Context) bool {
+		if c.Request.URL.Path == "/headers" || c.Request.URL.Path == "/anon" {
+			return false // Do not monitor
+		}
+		return true // Monitor all other requests
+	}
+
 	router := gin.Default()
-	router.Use(nrgin.Middleware(app))
+	router.Use(nrgin.Middleware(app, nrgin.WithFilter(ignoreFilter)))
 
 	router.GET("/404", endpoint404)
 	router.GET("/change", endpointChangeCode)
