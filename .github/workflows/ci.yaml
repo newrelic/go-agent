@@ -91,8 +91,20 @@ jobs:
     - name: Run tests
       run: |
         cd go-agent/${{ matrix.dirs }}
+        # Generate coverage profile
         go test -coverprofile=coverage.txt
-        grep -v '/examples/' raw-coverage.out | grep -v '/example/' > coverage.txt
+
+        # Check if coverage profile was created
+        if [ -f coverage.txt ]; then
+          # Filter out lines from 'example/' or 'examples/' directories and overwrite the coverage.txt
+          grep -v '/examples/' coverage.txt | grep -v '/example/' > filtered_coverage.txt
+
+          # Rename filtered coverage back to coverage.txt for consistency
+          mv filtered_coverage.txt coverage.txt
+        else
+          echo "Coverage profile 'coverage.txt' was not created."
+          exit 1 # Exit to highlight issue in workflow
+        fi
 
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v3
