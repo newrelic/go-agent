@@ -9,6 +9,8 @@ env:
 jobs:
   go-agent-v3:
     runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       # if one test fails, do not abort the rest
       fail-fast: false
