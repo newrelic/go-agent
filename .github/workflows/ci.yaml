@@ -99,22 +99,6 @@ jobs:
           cd go-agent/$dir
           # Generate coverage profile
           go test -coverprofile=coverage.txt
-
-          # Check if coverage profile was created
-          if [ -f coverage.txt ]; then
-            # Filter out lines from 'example/' or 'examples/' directories and overwrite the coverage.txt
-            grep -v '/examples/' coverage.txt | grep -v '/example/' > filtered_coverage.txt
-
-            # Rename filtered coverage back to coverage.txt for consistency
-            mv filtered_coverage.txt coverage.txt
-
-            # Print coverage data
-            cat coverage.txt
-          else
-            echo "Coverage profile 'coverage.txt' was not created."
-            exit 1 # Exit to highlight issue in workflow
-          fi
-
           cd - # Return to root to avoid path issues
         done
 
