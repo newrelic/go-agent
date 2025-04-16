@@ -82,7 +82,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }}
+        go-version: ${{ matrix.go-version || latest }}
 
     - name: Install dependencies
       run: |
@@ -93,7 +93,8 @@ jobs:
       run: |
         cd go-agent/${{ matrix.dirs }}
         go test -coverprofile=coverage.txt
-
+        # Filter out lines with 'example/' or 'examples/'
+        grep -v '/examples/' raw-coverage.out | grep -v '/example/' > coverage.txt
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v3
       with:
