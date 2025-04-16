@@ -102,7 +102,7 @@ jobs:
 
   # Arm64 tests
   go-agent-v3-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       # if one test fails, do not abort the rest
       fail-fast: false
@@ -121,25 +121,26 @@ jobs:
       with:
         path: "go-agent"
    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
+   
     - name: Build Docker Image
-      run: |
-        docker buildx create --use
-        docker buildx build --platform linux/arm64 -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-arm64 --load
-    - name: Run Tests in Docker
+      run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
+
+    - name: Set up Docker container and run tests
       run: |
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
+            # Create Coverage Report Directory for CodeCov
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
-            docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            # Special case for nrnats, which requires direct module proxying
+            if [[ "$dir" == *"nrnats"* ]]; then
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            else
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            fi
           else
             echo "Directory /app/$dir does not exist."
           fi
         done
+
