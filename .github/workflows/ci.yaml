@@ -130,17 +130,13 @@ jobs:
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
-            # Create Coverage Report Directory for CodeCov
-            coverage_dir="${{ github.workspace }}/coverage-reports"
-            mkdir -p "$coverage_dir"
             # Special case for nrnats, which requires direct module proxying
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run -e GOPROXY=direct -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             else
-              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
             fi
           else
             echo "Directory /app/$dir does not exist."
           fi
         done
-
