@@ -9,8 +9,6 @@ env:
 jobs:
   go-agent-v3:
     runs-on: ubuntu-latest
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       # if one test fails, do not abort the rest
       fail-fast: false
@@ -82,7 +80,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version || latest }}
+        go-version: ${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }}
 
     - name: Install dependencies
       run: |
@@ -93,14 +91,15 @@ jobs:
       run: |
         cd go-agent/${{ matrix.dirs }}
         go test -coverprofile=coverage.txt
-        # Filter out lines with 'example/' or 'examples/'
         grep -v '/examples/' raw-coverage.out | grep -v '/example/' > coverage.txt
+
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: go-agent/${{ matrix.dirs }}/coverage.txt
 
+   
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
 
@@ -114,9 +113,9 @@ jobs:
             mkdir -p "$coverage_dir"
             # Special case for nrnats, which requires direct module proxying
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${{ github.head_ref }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             else
-              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${{ github.head_ref }} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             fi
           else
             echo "Directory /app/$dir does not exist."
@@ -153,11 +152,14 @@ jobs:
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
+            # Create Coverage Report Directory for CodeCov
+            coverage_dir="${{ github.workspace }}/coverage-reports"
+            mkdir -p "$coverage_dir"
             # Special case for nrnats, which requires direct module proxying
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             else
-              docker run -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             fi
           else
             echo "Directory /app/$dir does not exist."
