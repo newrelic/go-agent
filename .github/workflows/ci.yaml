@@ -85,26 +85,38 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd go-agent/${{ matrix.dirs }}
-        go mod tidy
+        IFS=',' read -ra DIR_LIST <<< "${{ matrix.dirs }}"
+        for dir in "${DIR_LIST[@]}"; do
+          cd go-agent/$dir
+          go mod tidy
+          cd - # Return to the root to avoid path issues
+        done
 
     - name: Run tests
       run: |
-        cd go-agent/${{ matrix.dirs }}
-        # Generate coverage profile
-        go test -coverprofile=coverage.txt
+        IFS=',' read -ra DIR_LIST <<< "${{ matrix.dirs }}"
+        for dir in "${DIR_LIST[@]}"; do
+          cd go-agent/$dir
+          # Generate coverage profile
+          go test -coverprofile=coverage.txt
 
-        # Check if coverage profile was created
-        if [ -f coverage.txt ]; then
-          # Filter out lines from 'example/' or 'examples/' directories and overwrite the coverage.txt
-          grep -v '/examples/' coverage.txt | grep -v '/example/' > filtered_coverage.txt
+          # Check if coverage profile was created
+          if [ -f coverage.txt ]; then
+            # Filter out lines from 'example/' or 'examples/' directories and overwrite the coverage.txt
+            grep -v '/examples/' coverage.txt | grep -v '/example/' > filtered_coverage.txt
 
-          # Rename filtered coverage back to coverage.txt for consistency
-          mv filtered_coverage.txt coverage.txt
-        else
-          echo "Coverage profile 'coverage.txt' was not created."
-          exit 1 # Exit to highlight issue in workflow
-        fi
+            # Rename filtered coverage back to coverage.txt for consistency
+            mv filtered_coverage.txt coverage.txt
+
+            # Print coverage data
+            cat coverage.txt
+          else
+            echo "Coverage profile 'coverage.txt' was not created."
+            exit 1 # Exit to highlight issue in workflow
+          fi
+
+          cd - # Return to root to avoid path issues
+        done
 
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v5
