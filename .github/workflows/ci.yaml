@@ -15,9 +15,9 @@ jobs:
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.21.13
+          - go-version: 1.24.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.22.7
+          - go-version: 1.23.0
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: latest
             dirs: v3/newrelic,v3/internal,v3/examples
@@ -109,9 +109,9 @@ jobs:
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.21.13
+          - go-version: 1.24.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.22.7
+          - go-version: 1.23.0
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: latest
             dirs: v3/newrelic,v3/internal,v3/examples
