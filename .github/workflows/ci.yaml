@@ -79,7 +79,15 @@ jobs:
       with:
         path: "go-agent"
    
-   
+    - name: Set up Go
+      uses: actions/setup-go@v5
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: go test -coverprofile=coverage.txt
+
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
 
