@@ -1,7 +1,6 @@
 package nrfiber
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -253,55 +252,159 @@ func Test_GetTransactionName(t *testing.T) {
 	}
 }
 
-// Test_ConvertHeaderToHTTP tests the convertHeaderToHTTP function
-func Test_ConvertHeaderToHTTP(t *testing.T) {
-	// Create a new Fiber app and request for testing
+// Test_FastHeaderResponseWriter test the different header operations
+func Test_FastHeaderResponseWriter(t *testing.T) {
+	// Setup
 	app := fiber.New()
+	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
+	defer app.ReleaseCtx(ctx)
 
-	fctx := &fasthttp.RequestCtx{}
-	ctx := app.AcquireCtx(fctx)
+	t.Run("implements http.ResponseWriter", func(t *testing.T) {
+		// Verify that our implementation satisfies the http.ResponseWriter interface
+		var _ http.ResponseWriter = &fastHeaderResponseWriter{}
+	})
 
-	// Set test headers
-	ctx.Request().Header.Set("Content-Type", "application/json")
-	ctx.Request().Header.Set("X-Custom-Header", "test-value")
+	t.Run("header operations", func(t *testing.T) {
+		writer := newFastHeaderResponseWriter(ctx.Response())
 
-	// Convert the headers
-	headers := convertHeaderToHTTP(ctx)
+		// Test adding headers
+		writer.Header().Add("X-Test-Header", "value1")
+		writer.Header().Set("X-Single-Header", "single-value")
 
-	fmt.Println(headers.Get("Content-Type"))
+		// Verify headers were stored in the wrapper
+		assert.Equal(t, []string{"value1"}, writer.header["X-Test-Header"])
+		assert.Equal(t, []string{"single-value"}, writer.header["X-Single-Header"])
 
-	// Verify the headers were correctly converted
-	assert.Equal(t, "application/json", headers.Get("Content-Type"))
-	assert.Equal(t, "test-value", headers.Get("X-Custom-Header"))
+		// Verify headers aren't yet in the actual response
+		assert.Equal(t, "", string(ctx.Response().Header.Peek("X-Test-Header")))
 
-	// Release the context when done
-	app.ReleaseCtx(ctx)
+		// Apply headers and verify they're in the response
+		writer.applyHeaders()
+		assert.Equal(t, "value1", string(ctx.Response().Header.Peek("X-Test-Header")))
+		assert.Equal(t, "single-value", string(ctx.Response().Header.Peek("X-Single-Header")))
+	})
+
+	t.Run("status code handling", func(t *testing.T) {
+		writer := newFastHeaderResponseWriter(ctx.Response())
+
+		// Default status should be 200 OK
+		assert.Equal(t, http.StatusOK, writer.statusCode)
+
+		// Set status code
+		writer.WriteHeader(http.StatusNotFound)
+
+		// Check internal tracking
+		assert.Equal(t, http.StatusNotFound, writer.statusCode)
+
+		// Check fiber response status
+		assert.Equal(t, http.StatusNotFound, ctx.Response().StatusCode())
+	})
+
+	t.Run("write operation", func(t *testing.T) {
+		writer := newFastHeaderResponseWriter(ctx.Response())
+
+		// The Write method is a no-op but we should test it returns expected values
+		n, err := writer.Write([]byte("test"))
+		assert.Equal(t, 0, n)
+		assert.NoError(t, err)
+	})
+
+	t.Run("integration with fiber response", func(t *testing.T) {
+		writer := newFastHeaderResponseWriter(ctx.Response())
+
+		// Set headers via our wrapper
+		writer.Header().Set("Content-Type", "application/json")
+		writer.Header().Set("X-API-Key", "secret-key")
+
+		// Set status
+		writer.WriteHeader(http.StatusCreated)
+
+		// Apply headers
+		writer.applyHeaders()
+
+		// Check that fiber response has the correct values
+		assert.Equal(t, http.StatusCreated, ctx.Response().StatusCode())
+		assert.Equal(t, "application/json", string(ctx.Response().Header.Peek("Content-Type")))
+		assert.Equal(t, "secret-key", string(ctx.Response().Header.Peek("X-API-Key")))
+	})
 }
 
-// Test_HeaderResponseWriter tests the headerResponseWriter implementation
-func Test_HeaderResponseWriter(t *testing.T) {
-	// Create a new Fiber app and response for testing
+// This test specifically verifies the behavior when multiple values are set for a header
+func Test_MultiValueHeaders(t *testing.T) {
 	app := fiber.New()
-	fctx := &fasthttp.RequestCtx{}
-	ctx := app.AcquireCtx(fctx)
+	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
+	defer app.ReleaseCtx(ctx)
 
-	// Create a headerResponseWriter using the Fiber response
-	writer := &headerResponseWriter{fiberResponse: ctx.Response()}
+	writer := newFastHeaderResponseWriter(ctx.Response())
 
-	// Set some headers on the Fiber response
-	ctx.Response().Header.Set("Content-Type", "application/json")
-	ctx.Response().Header.Set("X-Test-Header", "test-value")
+	// Add multiple Set-Cookie headers (common use case for multi-value headers)
+	writer.Header().Add("Set-Cookie", "cookie1=value1; Path=/")
+	writer.Header().Add("Set-Cookie", "cookie2=value2; Path=/")
 
-	// Get the headers via the wrapper
-	headers := writer.Header()
+	// Apply headers
+	writer.applyHeaders()
 
-	// Verify the headers were correctly converted
-	assert.Equal(t, "application/json", headers.Get("Content-Type"))
-	assert.Equal(t, "test-value", headers.Get("X-Test-Header"))
+	// Fiber should handle multiple values properly for Set-Cookie
+	// Get all Set-Cookie headers
+	cookies := []string{}
+	ctx.Response().Header.VisitAllCookie(func(key, value []byte) {
+		cookies = append(cookies, string(value))
+	})
 
-	// Test WriteHeader
-	writer.WriteHeader(http.StatusCreated)
-	assert.Equal(t, http.StatusCreated, ctx.Response().StatusCode())
+	// Should have two cookies
+	assert.Len(t, cookies, 2)
+	assert.Contains(t, cookies, "cookie1=value1; Path=/")
+	assert.Contains(t, cookies, "cookie2=value2; Path=/")
+}
+
+// This test verifies that our response writer correctly interacts with a New Relic transaction
+func Test_FastHeaderResponseWriterWithNRTransaction(t *testing.T) {
+	// This is a mock test to demonstrate interaction with NR transaction
+	// In a real test, you would use a mock for the New Relic transaction
+
+	app := fiber.New()
+	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
+	defer app.ReleaseCtx(ctx)
+
+	writer := newFastHeaderResponseWriter(ctx.Response())
+
+	// Set custom headers
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("X-Custom-Header", "custom-value")
+
+	// Set a non-200 status code
+	writer.WriteHeader(http.StatusBadRequest)
+
+	// Apply the headers
+	writer.applyHeaders()
+
+	// Verify response state
+	assert.Equal(t, http.StatusBadRequest, writer.statusCode)
+	assert.Equal(t, http.StatusBadRequest, ctx.Response().StatusCode())
+	assert.Equal(t, "application/json", string(ctx.Response().Header.Peek("Content-Type")))
+	assert.Equal(t, "custom-value", string(ctx.Response().Header.Peek("X-Custom-Header")))
+}
+
+// This test verifies that header manipulations after WriteHeader still work
+func Test_HeadersAfterWriteHeader(t *testing.T) {
+	app := fiber.New()
+	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
+	defer app.ReleaseCtx(ctx)
+
+	writer := newFastHeaderResponseWriter(ctx.Response())
+
+	// Set status code first
+	writer.WriteHeader(http.StatusAccepted)
+
+	// Then manipulate headers
+	writer.Header().Set("X-Late-Header", "late-value")
+
+	// Apply headers
+	writer.applyHeaders()
+
+	// Verify everything was set correctly
+	assert.Equal(t, http.StatusAccepted, ctx.Response().StatusCode())
+	assert.Equal(t, "late-value", string(ctx.Response().Header.Peek("X-Late-Header")))
 }
 
 // Test_RouterGroup tests the router group functionality

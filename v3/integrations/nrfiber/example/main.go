@@ -42,8 +42,10 @@ func main() {
 		c.WriteString("actually ok!")
 		return nil
 	})
+
+	// Headers
 	router.Get("/headers", func(c *fiber.Ctx) error {
-		// Since gin.ResponseWriter buffers the response code, response headers
+		// Since fiber.Response buffers the response code, response headers
 		// can be set afterwards.
 		c.SendStatus(200)
 		c.Response().Header.Set("X-Custom", "custom value")

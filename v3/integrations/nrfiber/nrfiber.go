@@ -17,38 +17,57 @@ package nrfiber
 import (
 	"context"
 	"net/http"
-	"net/url"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 func init() {
-	internal.TrackUsage("integration", "framework", "fiber", "v2")
+	internal.TrackUsage("integration", "framework", "fiber", "v1")
 }
 
-// headerResponseWriter gives the transaction access to response headers and the
-// response code.
-type headerResponseWriter struct {
+// fastHeaderResponseWriter is a lightweight wrapper around Fiber's response
+// that implements http.ResponseWriter interface
+type fastHeaderResponseWriter struct {
 	fiberResponse *fiber.Response
+	header        http.Header // cached header to avoid repeated conversions
+	statusCode    int
 }
 
-func (w *headerResponseWriter) Header() http.Header {
-	header := make(http.Header)
-	w.fiberResponse.Header.VisitAll(func(key, value []byte) {
-		header.Add(string(key), string(value))
-	})
-	return header
+func newFastHeaderResponseWriter(resp *fiber.Response) *fastHeaderResponseWriter {
+	return &fastHeaderResponseWriter{
+		fiberResponse: resp,
+		header:        make(http.Header),
+		statusCode:    resp.StatusCode(),
+	}
 }
 
-func (w *headerResponseWriter) Write([]byte) (int, error) { return 0, nil }
+func (w *fastHeaderResponseWriter) Header() http.Header {
+	// Return cached headers to avoid repeated conversions
+	return w.header
+}
 
-func (w *headerResponseWriter) WriteHeader(statusCode int) {
+func (w *fastHeaderResponseWriter) Write([]byte) (int, error) {
+	// This is a no-op as we don't actually write anything here
+	return 0, nil
+}
+
+func (w *fastHeaderResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
 	w.fiberResponse.SetStatusCode(statusCode)
 }
 
-var _ http.ResponseWriter = &headerResponseWriter{}
+// Apply cached headers to the actual Fiber response
+func (w *fastHeaderResponseWriter) applyHeaders() {
+	for key, values := range w.header {
+		for _, value := range values {
+			w.fiberResponse.Header.Set(key, value)
+		}
+	}
+}
 
 // Transaction returns the Transaction from the context if it exists.
 func Transaction(ctx context.Context) *newrelic.Transaction {
@@ -61,11 +80,12 @@ func Transaction(ctx context.Context) *newrelic.Transaction {
 	return nil
 }
 
+// FromContext extracts a New Relic transaction from a Fiber context.
 func FromContext(c *fiber.Ctx) *newrelic.Transaction {
 	return newrelic.FromContext(c.UserContext())
 }
 
-// getTransactionName returns a transaction name based on the request path
+// getTransactionName returns a transaction name based on the request path.
 func getTransactionName(c *fiber.Ctx) string {
 	path := c.Path()
 	if path == "" {
@@ -75,28 +95,12 @@ func getTransactionName(c *fiber.Ctx) string {
 	return string(c.Method()) + " " + path
 }
 
-// convertHeaderToHTTP converts Fiber headers to http.Header
-func convertHeaderToHTTP(c *fiber.Ctx) http.Header {
-	header := make(http.Header)
-	c.Request().Header.VisitAll(func(key, value []byte) {
-		header.Add(string(key), string(value))
-	})
-	return header
-}
-
-// convertToHTTPRequest converts a Fiber context to http.Request
-func convertToHTTPRequest(c *fiber.Ctx) *http.Request {
-	// Create a simplified http.Request with essential information
-	r := &http.Request{
-		Method: string(c.Method()),
-		URL: &url.URL{
-			Path:     string(c.Path()),
-			RawQuery: string(c.Query("")),
-		},
-		Header: convertHeaderToHTTP(c),
-		Host:   string(c.Hostname()),
-	}
-	return r
+// fastHTTPToRequest efficiently converts FastHTTP request to http.Request
+// using fasthttpadaptor which is optimized for this purpose
+func fastHTTPToRequest(ctx *fasthttp.RequestCtx) *http.Request {
+	req := &http.Request{}
+	fasthttpadaptor.ConvertRequest(ctx, req, true)
+	return req
 }
 
 // Middleware creates a Fiber middleware handler that instruments requests with New Relic.
@@ -122,8 +126,8 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 		ctx := context.WithValue(c.UserContext(), internal.TransactionContextKey, txn)
 		c.SetUserContext(ctx)
 
-		// Create response writer wrapper
-		w := &headerResponseWriter{fiberResponse: c.Response()}
+		// Create optimized response writer wrapper
+		w := newFastHeaderResponseWriter(c.Response())
 
 		// Set security agent attributes if present
 		if newrelic.IsSecurityAgentPresent() {
@@ -133,11 +137,15 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 		// Set web response object
 		txn.SetWebResponse(w)
 
-		// Set web request details
-		txn.SetWebRequestHTTP(convertToHTTPRequest(c))
+		// Use fasthttpadaptor to efficiently convert to http.Request
+		httpReq := fastHTTPToRequest(c.Context())
+		txn.SetWebRequestHTTP(httpReq)
 
 		// Execute next handlers
 		err := c.Next()
+
+		// Apply any headers that were set through the ResponseWriter interface
+		w.applyHeaders()
 
 		// Report error if any occurred
 		if err != nil {
@@ -149,9 +157,15 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 
 		// Send security event if agent is present
 		if newrelic.IsSecurityAgentPresent() {
+			// Convert fiber response headers to http.Header for security event
+			headers := make(http.Header)
+			c.Response().Header.VisitAll(func(key, value []byte) {
+				headers.Add(string(key), string(value))
+			})
+
 			newrelic.GetSecurityAgentInterface().SendEvent(
 				"RESPONSE_HEADER",
-				w.Header(),
+				headers,
 				txn.GetLinkingMetadata().TraceID,
 			)
 		}
@@ -164,12 +178,11 @@ func Middleware(app *newrelic.Application) fiber.Handler {
 //
 // fiberApp := fiber.New()
 //
-// wrappedHandler := WrapHandler(app.Application, "/wrapped", func(c *fiber.Ctx) error {
-//	 return c.SendString("Wrapped Handler")
-// })
+//	wrappedHandler := WrapHandler(app.Application, "/wrapped", func(c *fiber.Ctx) error {
+//		 return c.SendString("Wrapped Handler")
+//	})
 //
 // fiberApp.Get("/wrapped", wrappedHandler)
-
 func WrapHandler(app *newrelic.Application, pattern string, handler fiber.Handler) fiber.Handler {
 	if app == nil {
 		return handler
@@ -191,17 +204,21 @@ func WrapHandler(app *newrelic.Application, pattern string, handler fiber.Handle
 		ctx := context.WithValue(c.UserContext(), internal.TransactionContextKey, txn)
 		c.SetUserContext(ctx)
 
-		// Create response writer wrapper
-		w := &headerResponseWriter{fiberResponse: c.Response()}
+		// Create optimized response writer wrapper
+		w := newFastHeaderResponseWriter(c.Response())
 
 		// Set web response object
 		txn.SetWebResponse(w)
 
-		// Set web request details
-		txn.SetWebRequestHTTP(convertToHTTPRequest(c))
+		// Use fasthttpadaptor to efficiently convert to http.Request
+		httpReq := fastHTTPToRequest(c.Context())
+		txn.SetWebRequestHTTP(httpReq)
 
 		// Call the handler
 		err := handler(c)
+
+		// Apply any headers that were set through the ResponseWriter interface
+		w.applyHeaders()
 
 		// Update response status code in transaction
 		txn.SetWebResponse(w).WriteHeader(c.Response().StatusCode())
