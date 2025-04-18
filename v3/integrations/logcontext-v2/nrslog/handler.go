@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -172,9 +173,9 @@ func (h *NRHandler) Handle(ctx context.Context, record slog.Record) error {
 	// enrich logs
 	if h.shouldEnrichLog(h.app) {
 		if nrTxn != nil {
-			h.enrichRecordTxn(nrTxn, &record)
+			h.enrichRecord(nil, nrTxn, &record)
 		} else {
-			h.enrichRecord(h.app, &record)
+			h.enrichRecord(h.app, nil, &record)
 		}
 	}
 
@@ -221,22 +222,36 @@ func WithTransactionFromContext(handler slog.Handler) slog.Handler {
 	return handler
 }
 
-const newrelicAttributeKey = "newrelic"
-
-func (h *NRHandler) enrichRecord(app *newrelic.Application, record *slog.Record) {
-	str := nrLinkingString(h.getAgentLinkingMetadata(app))
-	if str == "" {
+// enrichRecord enriches the log record with New Relic linking metadata.
+// This is used to link logs to transactions in New Relic.
+// It will only be called when logs in context is enabled.
+// Transaction linking metadata is preferred over agent linking metadata.
+func (h *NRHandler) enrichRecord(app *newrelic.Application, txn *newrelic.Transaction, record *slog.Record) {
+	var linkingMetadata string
+	if txn != nil {
+		linkingMetadata = nrLinkingString(h.getTransactionLinkingMetadata(txn))
+	} else if app != nil {
+		linkingMetadata = nrLinkingString(h.getAgentLinkingMetadata(app))
+	} else {
 		return
 	}
 
-	record.AddAttrs(slog.String(newrelicAttributeKey, str))
-}
-
-func (h *NRHandler) enrichRecordTxn(txn *newrelic.Transaction, record *slog.Record) {
-	str := nrLinkingString(h.getTransactionLinkingMetadata(txn))
-	if str == "" {
+	if linkingMetadata == "" {
 		return
 	}
 
-	record.AddAttrs(slog.String(newrelicAttributeKey, str))
+	if record.Message == "" {
+		record.Message = linkingMetadata
+		return
+	}
+
+	newMessage := strings.Builder{}
+	newMessage.WriteString(record.Message)
+
+	if record.Message[len(record.Message)-1] != ' ' {
+		newMessage.WriteString(" ")
+	}
+
+	newMessage.WriteString(linkingMetadata)
+	record.Message = newMessage.String()
 }
