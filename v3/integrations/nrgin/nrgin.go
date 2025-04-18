@@ -113,7 +113,22 @@ func getName(c handlerNamer, useNewNames bool) string {
 	return c.HandlerName()
 }
 
-// Middleware creates a Gin middleware that instruments requests.
+// MiddlewareOption defines a functional option for configuring the Middleware.
+type MiddlewareOption func(*middlewareConfig)
+
+type middlewareConfig struct {
+	filterFunc func(*gin.Context) bool
+}
+
+// WithFilter allows users to provide a custom filter function to determine
+// whether a request should be monitored.
+func WithFilter(filter func(*gin.Context) bool) MiddlewareOption {
+	return func(cfg *middlewareConfig) {
+		cfg.filterFunc = filter
+	}
+}
+
+// Middleware creates a Gin middleware that instruments requests with optional configurations.
 //
 //	router := gin.Default()
 //	// Add the nrgin middleware before other middlewares or routes:
@@ -125,8 +140,8 @@ func getName(c handlerNamer, useNewNames bool) string {
 // gin.Context.HandlerName if not.  If you are using Gin v1.5.0 and wish to
 // continue using the old transaction names, use
 // nrgin.MiddlewareHandlerTxnNames.
-func Middleware(app *newrelic.Application) gin.HandlerFunc {
-	return middleware(app, true)
+func Middleware(app *newrelic.Application, opts ...MiddlewareOption) gin.HandlerFunc {
+	return middleware(app, true, opts...)
 }
 
 // MiddlewareHandlerTxnNames creates a Gin middleware that instruments
@@ -163,8 +178,19 @@ func WrapRouter(engine *gin.Engine) {
 		}
 	}
 }
-func middleware(app *newrelic.Application, useNewNames bool) gin.HandlerFunc {
+
+func middleware(app *newrelic.Application, useNewNames bool, opts ...MiddlewareOption) gin.HandlerFunc {
+	config := &middlewareConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+
 	return func(c *gin.Context) {
+		if config.filterFunc != nil && !config.filterFunc(c) {
+			c.Next()
+			return
+		}
+
 		traceID := ""
 		if app != nil {
 			name := c.Request.Method + " " + getName(c, useNewNames)
