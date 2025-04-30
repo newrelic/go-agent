@@ -111,7 +111,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: go-agent/${{ matrix.dirs }}/coverage.txt
-        gcov_ignore: go-agent/v3/newrelic/sql_driver_optional_methods.go
 
    
     - name: Build Docker Image
