@@ -134,6 +134,7 @@ func TestTransactionLogger(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"test-key": "test-val",
+				"error":    "this is a test error",
 			},
 			Severity:  zap.ErrorLevel.String(),
 			Message:   msg,
@@ -188,7 +189,7 @@ func TestTransactionLoggerWithFields(t *testing.T) {
 				"region":   "region-test-2",
 				"anyValue": map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second},
 				"duration": "1s",
-				"int":      123,
+				"int":      int64(123),
 				"bool":     true,
 				"foo":      "bar",
 			},
