@@ -130,9 +130,9 @@ jobs:
             mkdir -p "$coverage_dir"
             # Special case for nrnats, which requires direct module proxying
             if [[ "$dir" == *"nrnats"* ]]; then
-              docker run -e GOPROXY=direct -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir"
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             else
-              docker run -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" 
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
             fi
           else
             echo "Directory /app/$dir does not exist."
