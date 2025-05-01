@@ -187,7 +187,7 @@ func TestTransactionLoggerWithFields(t *testing.T) {
 			Attributes: map[string]interface{}{
 				"region":   "region-test-2",
 				"anyValue": map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second},
-				"duration": 1 * time.Second,
+				"duration": "1s",
 				"int":      123,
 				"bool":     true,
 				"foo":      "bar",
