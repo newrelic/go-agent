@@ -88,7 +88,11 @@ jobs:
         IFS=',' read -ra DIR_LIST <<< "${{ matrix.dirs }}"
         for dir in "${DIR_LIST[@]}"; do
           cd go-agent/$dir
-          go mod tidy
+          if [[ "$dir" == "v3/integrations/nrnats" ]]; then
+            GOPROXY=direct go mod tidy
+          else
+            go mod tidy
+          fi
           cd - # Return to the root to avoid path issues
         done
 
