@@ -15,9 +15,9 @@ jobs:
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.21.13
+          - go-version: 1.24.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.22.7
+          - go-version: 1.23.0
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: latest
             dirs: v3/newrelic,v3/internal,v3/examples
@@ -77,7 +77,46 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: "go-agent"
-   
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.24.0
+        check-latest: true
+
+    - name: Install dependencies
+      run: |
+        IFS=',' read -ra DIR_LIST <<< "${{ matrix.dirs }}"
+        for dir in "${DIR_LIST[@]}"; do
+          cd go-agent/$dir
+          if [[ "$dir" == "v3/integrations/nrnats" ]]; then
+            GOPROXY=direct go mod tidy
+          else
+            go mod tidy
+          fi
+          cd - # Return to the root to avoid path issues
+        done
+
+    - name: Run tests
+      run: |
+        IFS=',' read -ra DIR_LIST <<< "${{ matrix.dirs }}"
+        for dir in "${DIR_LIST[@]}"; do
+          if [[ "$dir" == "v3/examples" ]]; then
+            echo "Skipping tests for $dir"
+            continue
+          fi
+          cd go-agent/$dir
+          # Generate coverage profile
+          go test -coverprofile=coverage.txt
+          cd - # Return to root to avoid path issues
+        done
+
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: go-agent/${{ matrix.dirs }}/coverage.txt
+
    
     - name: Build Docker Image
       run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
@@ -103,16 +142,16 @@ jobs:
 
   # Arm64 tests
   go-agent-v3-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       # if one test fails, do not abort the rest
       fail-fast: false
       matrix:
         include:
             # Core Tests on 3 most recent major Go versions
-          - go-version: 1.21.13
+          - go-version: 1.24.0
             dirs: v3/newrelic,v3/internal,v3/examples
-          - go-version: 1.22.7
+          - go-version: 1.23.0
             dirs: v3/newrelic,v3/internal,v3/examples
           - go-version: latest
             dirs: v3/newrelic,v3/internal,v3/examples
@@ -122,24 +161,24 @@ jobs:
       with:
         path: "go-agent"
    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
+   
     - name: Build Docker Image
-      run: |
-        docker buildx create --use
-        docker buildx build --platform linux/arm64 -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-arm64 --load
-    - name: Run Tests in Docker
+      run: docker build -f ${{ github.workspace }}/go-agent/Dockerfile ${{ github.workspace }} --build-arg GO_VERSION=${{ matrix.go-version || env.INTEGRATION_TESTS_GO_VERSION }} -t go-agent-tests-amd64
+
+    - name: Set up Docker container and run tests
       run: |
         IFS=',' read -ra DIRS <<< "${{ matrix.dirs }}"
         for dir in "${DIRS[@]}"; do
           if [ -d "go-agent/$dir" ]; then
+            # Create Coverage Report Directory for CodeCov
             coverage_dir="${{ github.workspace }}/coverage-reports"
             mkdir -p "$coverage_dir"
-            docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-arm64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            # Special case for nrnats, which requires direct module proxying
+            if [[ "$dir" == *"nrnats"* ]]; then
+              docker run -e GOPROXY=direct -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            else
+              docker run -e CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} -e GITHUB_HEAD_REF=${GITHUB_HEAD_REF} -v "$coverage_dir:/coverage" go-agent-tests-amd64 ./go-agent/run-tests.sh "$dir" "/coverage"
+            fi
           else
             echo "Directory /app/$dir does not exist."
           fi

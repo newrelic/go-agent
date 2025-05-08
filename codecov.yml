@@ -1,0 +1,13 @@
+coverage:
+  status:
+    project: true
+    patch: true
+    changes: false
+
+ignore:
+  - "go-agent/v3/newrelic/sql_driver_optional_methods.go"
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false

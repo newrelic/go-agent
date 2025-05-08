@@ -134,6 +134,7 @@ func TestTransactionLogger(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"test-key": "test-val",
+				"error":    "this is a test error",
 			},
 			Severity:  zap.ErrorLevel.String(),
 			Message:   msg,
@@ -187,8 +188,8 @@ func TestTransactionLoggerWithFields(t *testing.T) {
 			Attributes: map[string]interface{}{
 				"region":   "region-test-2",
 				"anyValue": map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second},
-				"duration": 1 * time.Second,
-				"int":      123,
+				"duration": "1s",
+				"int":      int64(123),
 				"bool":     true,
 				"foo":      "bar",
 			},
@@ -240,8 +241,8 @@ func TestTransactionLoggerWithFieldsAtHarvestTime(t *testing.T) {
 			Attributes: map[string]interface{}{
 				"region":   "region-test-2",
 				"anyValue": map[string]interface{}{"pi": 3.14, "duration": 2 * time.Second},
-				"duration": 1 * time.Second,
-				"int":      123,
+				"duration": "1s",
+				"int":      int64(123),
 				"bool":     true,
 			},
 			Severity:  zap.InfoLevel.String(),
