@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/microsoft/go-mssqldb v0.19.0
-	github.com/newrelic/go-agent/v3 v3.38.0
+	github.com/newrelic/go-agent/v3 v3.39.0
 )
 
 
