@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
 )
@@ -170,6 +171,11 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 	writeAttributeValueJSON(&w, "a", int(-5))
 	writeAttributeValueJSON(&w, "a", float32(1.5))
 	writeAttributeValueJSON(&w, "a", float64(4.56))
+	writeAttributeValueJSON(&w, "duration", time.Duration(7))
+	writeAttributeValueJSON(&w, "time", time.Time{}.AddDate(2000, 1, 1))
+	writeAttributeValueJSON(&w, "weekday", time.Wednesday)
+	writeAttributeValueJSON(&w, "month", time.April)
+	writeAttributeValueJSON(&w, "location", time.FixedZone("LOC", 0))
 	buf.WriteByte('}')
 
 	expect := compactJSONString(`{
@@ -188,7 +194,12 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 		"a":-4,
 		"a":-5,
 		"a":1.5,
-		"a":4.56
+		"a":4.56,
+		"duration":"7ns",
+		"time":"2001-02-02 00:00:00 +0000 UTC",
+		"weekday":"Wednesday",
+		"month":"April",
+		"location":"LOC"
 		}`)
 	js := buf.String()
 	if js != expect {

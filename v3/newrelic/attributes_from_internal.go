@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -507,6 +508,16 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 		w.floatField(key, float64(v))
 	case float64:
 		w.floatField(key, v)
+	case time.Time:
+		writeAttributeValueJSON(w, key, v.String())
+	case time.Duration:
+		writeAttributeValueJSON(w, key, v.String())
+	case time.Weekday:
+		writeAttributeValueJSON(w, key, v.String())
+	case *time.Location:
+		writeAttributeValueJSON(w, key, v.String())
+	case time.Month:
+		writeAttributeValueJSON(w, key, v.String())
 	default:
 		// attempt to construct a JSON string
 		kind := reflect.ValueOf(v).Kind()

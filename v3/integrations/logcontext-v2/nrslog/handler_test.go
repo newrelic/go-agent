@@ -294,7 +294,7 @@ func TestWithAttributes(t *testing.T) {
 
 	txn := app.StartTransaction("hi")
 	txnLog := WithTransaction(txn, log)
-	txnLog.Info(message)
+	txnLog.Info(message, slog.Duration("duration", 3*time.Second))
 	data := txn.GetLinkingMetadata()
 	txn.End()
 
@@ -309,11 +309,13 @@ func TestWithAttributes(t *testing.T) {
 	log = log.With(additionalAttrs)
 	log.Info(message)
 
+	expectInt := int64(1)
+
 	app.ExpectLogEvents(t, []internal.WantLog{
 		{
 			Attributes: map[string]interface{}{
 				"string key": "val",
-				"int key":    1,
+				"int key":    expectInt,
 			},
 			Severity:  slog.LevelInfo.String(),
 			Message:   message,
@@ -322,7 +324,8 @@ func TestWithAttributes(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"string key": "val",
-				"int key":    1,
+				"int key":    expectInt,
+				"duration":   time.Duration(3 * time.Second),
 			},
 			Severity:  slog.LevelInfo.String(),
 			Message:   message,
@@ -333,7 +336,7 @@ func TestWithAttributes(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"string key":        "val",
-				"int key":           1,
+				"int key":           expectInt,
 				"group1.additional": "attr",
 			},
 			Severity:  slog.LevelInfo.String(),
@@ -343,7 +346,7 @@ func TestWithAttributes(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"string key":               "val",
-				"int key":                  1,
+				"int key":                  expectInt,
 				"group1.group2.additional": "attr",
 			},
 			Severity:  slog.LevelInfo.String(),
@@ -353,7 +356,7 @@ func TestWithAttributes(t *testing.T) {
 		{
 			Attributes: map[string]interface{}{
 				"string key":               "val",
-				"int key":                  1,
+				"int key":                  expectInt,
 				"group1.group2.additional": "attr",
 			},
 			Severity:  slog.LevelInfo.String(),
@@ -417,7 +420,7 @@ func TestWithAttributesFromContext(t *testing.T) {
 			Timestamp: internal.MatchAnyUnixMilli,
 			Attributes: map[string]interface{}{
 				"foo":    "bar",
-				"answer": 42,
+				"answer": int64(42),
 			},
 			TraceID: metadata.TraceID,
 			SpanID:  metadata.SpanID,
@@ -428,7 +431,7 @@ func TestWithAttributesFromContext(t *testing.T) {
 			Timestamp: internal.MatchAnyUnixMilli,
 			Attributes: map[string]interface{}{
 				"group1.foo":    "bar",
-				"group1.answer": 42,
+				"group1.answer": int64(42),
 			},
 		},
 	})
@@ -698,7 +701,7 @@ func BenchmarkLinkingStringEnrichment(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		h.enrichRecord(app.Application, &record)
+		h.enrichRecord(app.Application, nil, &record)
 	}
 }
 

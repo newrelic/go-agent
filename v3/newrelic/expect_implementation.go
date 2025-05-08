@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -251,73 +252,33 @@ func expectLogEvent(v internal.Validator, actual logEvent, want internal.WantLog
 	}
 
 	if actual.attributes != nil && want.Attributes != nil {
-		for k, val := range want.Attributes {
-			actualVal, actualOk := actual.attributes[k]
-			if !actualOk {
-				v.Error(fmt.Sprintf("expected log attribute for key %v is missing", k))
-				return
+		if len(actual.attributes) != len(want.Attributes) {
+			skippedAttributes := []string{}
+			for k := range actual.attributes {
+				if _, ok := want.Attributes[k]; !ok {
+					skippedAttributes = append(skippedAttributes, fmt.Sprintf("an expected attribute is missing: {\"%s\":%v}", k, actual.attributes[k]))
+				}
 			}
-
-			// Check if both values are maps, and if so, compare them recursively
-			if expectedMap, ok := val.(map[string]interface{}); ok {
-				if actualMap, ok := actualVal.(map[string]interface{}); ok {
-					if !expectLogEventAttributesMaps(expectedMap, actualMap) {
-						v.Error(fmt.Sprintf("unexpected log attribute for key %v: got %v, want %v", k, actualMap, expectedMap))
-						return
-					}
-				} else {
-					v.Error(fmt.Sprintf("actual value for key %v is not a map", k))
+			for k := range want.Attributes {
+				if _, ok := actual.attributes[k]; !ok {
+					skippedAttributes = append(skippedAttributes, fmt.Sprintf("unexpected attribute: {\"%s\":%v}", k, want.Attributes[k]))
+				}
+			}
+			v.Error(fmt.Sprintf("unexpected number of log attributes: got %d, want %d; %s", len(actual.attributes), len(want.Attributes), skippedAttributes))
+			return
+		} else {
+			for k, wantVal := range want.Attributes {
+				actualVal := actual.attributes[k]
+				ok := reflect.DeepEqual(wantVal, actualVal)
+				if !ok {
+					v.Error(fmt.Sprintf("unexpected log attribute for key \"%s\": got value: %+v, type: %T; want value: %+v, type: %T", k, actualVal, actualVal, wantVal, wantVal))
 					return
 				}
 			}
 		}
 	}
-
 }
 
-// Helper function that compares two maps for equality. This is used to compare the attribute fields of log events expected vs received
-func expectLogEventAttributesMaps(a, b map[string]interface{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k, v := range a {
-		if bv, ok := b[k]; !ok {
-			return false
-		} else {
-			switch v := v.(type) {
-			case float64:
-				if bv, ok := bv.(float64); !ok || v != bv {
-					return false
-				}
-
-			case int:
-				if bv, ok := bv.(int); !ok || v != bv {
-					return false
-				}
-			case time.Duration:
-				if bv, ok := bv.(time.Duration); ok {
-					return v == bv
-				}
-			case string:
-				if bv, ok := bv.(string); !ok || v != bv {
-					return false
-				}
-			case int64:
-				if bv, ok := bv.(int64); !ok || v != bv {
-					return false
-				}
-			// if the type of the field is a map, recursively compare the maps
-			case map[string]interface{}:
-				if bv, ok := bv.(map[string]interface{}); !ok || !expectLogEventAttributesMaps(v, bv) {
-					return false
-				}
-			default:
-				return false
-			}
-		}
-	}
-	return true
-}
 func expectEvent(v internal.Validator, e json.Marshaler, expect internal.WantEvent) {
 	js, err := e.MarshalJSON()
 	if nil != err {
