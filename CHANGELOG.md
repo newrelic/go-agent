@@ -1,3 +1,21 @@
+## 3.39.0
+### Added
+ * Added nrfiber integration for go fiber framework
+   * Thank you to community member @MitulShah1 for contributing to this solution
+ * Updated nrslog example with new API
+   * Thank you to community member @frankywahl for contributing to this solution
+ * Add Optional Path Filtering Function to nrgin Middleware
+   * Thank you to community member @frknikiz for contributing to this solution
+ * Added ConfigDatastoreKeysEnabled to nrreddis integration allowing for reporting the names of keys along with the datastore operations
+ * Switched GitHub Action Testing Suite from an Emulated ARM layer to Native ARM layers
+ * Added support for time objects for attribute values for nrslog
+### Fixed
+ * Fixed linking metadata location in log messages
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.38.0
 ### Added
  * Added new integration nrgochi v1.0.0 for support for go-chi library
