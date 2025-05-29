@@ -1,0 +1,29 @@
+#
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+services:
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+       POSTGRES_PASSWORD: root
+       POSTGRES_USER: postgres
+  devenv:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+
+    volumes:
+       - ${PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    stdin_open: true
+    tty: true
+    profiles: ["dev"]
