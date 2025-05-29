@@ -9,6 +9,25 @@ services:
     environment:
        POSTGRES_PASSWORD: root
        POSTGRES_USER: postgres
+  go:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+
+    volumes:
+       - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    entrypoint: tail
+    command: -f /dev/null
+    container_name: nr-go
+    profiles: ["test"]
   devenv:
     build:
       context: .

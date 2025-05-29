@@ -42,6 +42,13 @@ vet: tidy
 format: tidy
 	@cd $(MODULE_DIR); $(GO) fmt ./...
 
+test-services-start:
+	docker compose --profile test pull $(SERVICES)
+	docker compose --profile test up --wait --remove-orphans -d $(SERVICES)
+
+test-services-stop:
+	docker compose --profile test stop
+
 # Developer targets
 devenv-image:
 	@docker compose --profile dev build devenv
