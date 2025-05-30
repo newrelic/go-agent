@@ -58,4 +58,6 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: false
       - name: Run go vet
-        run: go vet ./...
+        run: |
+          pwd
+          go vet ./...
