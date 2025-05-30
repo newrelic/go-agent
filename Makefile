@@ -39,7 +39,7 @@ info:
 # Test targets
 .PHONY: tidy
 tidy:
-	@cd $(MODULE_DIR); $(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/v3"; $(GO) mod tidy
+	@cd $(MODULE_DIR); $(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; $(GO) mod tidy
 
 .PHONY: bench
 bench: tidy
@@ -61,7 +61,7 @@ format: tidy
 integration-test:
 	@echo; echo "# TEST=$(TEST)"; \
 	cd $(MODULE_DIR)/integrations/$(TEST); \
-	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/v3";\
+	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)";\
 	$(GO) mod tidy; \
 	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...; \
 	$(GO) vet ./...; \
