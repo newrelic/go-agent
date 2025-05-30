@@ -59,4 +59,3 @@ jobs:
           cache: false
       - name: Run go vet
         run: go vet ./...
-        shell: bash
