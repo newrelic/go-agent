@@ -32,6 +32,7 @@ jobs:
         run: |
           go version
       - name: Run gofmt
+        working-directory: ./go-agent/v3
         run: |
           GOFMT_REPORTED_FILES="$(gofmt -l -e ./)"
           if [ ! -z "$GOFMT_REPORTED_FILES" ]; then
@@ -58,6 +59,8 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: false
       - name: Run go vet
+        working-directory: ./go-agent/v3
         run: |
-          go vet -C ./go-agent/v3 ./...
+          go mod tidy
+          go vet ./...
         shell: bash
