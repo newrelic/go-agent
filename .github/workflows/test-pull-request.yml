@@ -51,7 +51,7 @@ jobs:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
         with:
-          path: go-agent/v3
+          path: v3
       - name: Setup go
         uses: actions/setup-go@v5
         with:
