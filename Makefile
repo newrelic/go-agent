@@ -19,7 +19,22 @@ MODULE_DIR:= ./v3
 BENCHTIME := 1ms
 
 # Include the secrets file if it exists, but if it doesn't, that's OK too.
--include make/secrets.mk
+-include secrets.mk
+
+# Include the manifests for the integration and core tests
+include integration-tests.mk
+include core-tests.mk
+
+info:
+	@echo
+	@echo "$$(go version)"
+	@echo
+	@echo "Integration Tests:"
+	@echo $(GO_INTEGRATION_TESTS)
+	@echo
+	@echo "Core Tests:"
+	@echo $(GO_CORE_TESTS)
+	@echo
 
 # Test targets
 .PHONY: tidy
@@ -41,6 +56,23 @@ vet: tidy
 .PHONY: format
 format: tidy
 	@cd $(MODULE_DIR); $(GO) fmt ./...
+
+.PHONY: integration-test
+integration-test:
+	@echo; echo "# TEST=$(TEST)"; \
+	cd $(MODULE_DIR)/integrations/$(TEST); \
+	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/v3";\
+	$(GO) mod tidy; \
+	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...; \
+	$(GO) vet ./...; \
+	echo "# TEST=$(TEST)"; \
+	cd $(BASEDIR);
+
+.PHONY: integration-suite
+integration-suite:
+	@for TEST in $(GO_INTEGRATION_TESTS); do \
+		$(MAKE) integration-test TEST=$${TEST}; \
+	done
 
 test-services-start:
 	docker compose --profile test pull $(SERVICES)
