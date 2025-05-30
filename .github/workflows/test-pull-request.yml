@@ -22,7 +22,7 @@ jobs:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
         with:
-          path: go-agent
+          path: go-agent/v3
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -51,11 +51,12 @@ jobs:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
         with:
-          path: go-agent
+          path: go-agent/v3
       - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          cache: false
       - name: Run go vet
         run: go vet ./...
         shell: bash
