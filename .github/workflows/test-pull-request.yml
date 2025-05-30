@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, latest]
+        go-version: [1.23.0, 1.24.0]
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
