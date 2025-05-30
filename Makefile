@@ -57,6 +57,26 @@ vet: tidy
 format: tidy
 	@cd $(MODULE_DIR); $(GO) fmt ./...
 
+.PHONY: core-test
+core-test:
+	@echo; echo "# TEST=$(TEST), COVERAGE=$(COVERAGE)"; \
+	cd $(MODULE_DIR)/$(TEST); \
+	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; \
+	$(GO) mod tidy; \
+	if [ "$(COVERAGE)" == "1" ]; then \
+		$(GO) test -coverprofile=coverage.txt; \
+	else \
+		$(GO) test; \
+	fi; \
+	echo "# TEST=$(TEST)"; \
+	cd $(BASEDIR);
+
+.PHONY: core-suite
+core-suite:
+	@for TEST in $(GO_CORE_TESTS); do \
+		$(MAKE) core-test TEST=$${TEST} COVERAGE=$(COVERAGE); \
+	done
+
 .PHONY: integration-test
 integration-test:
 	@echo; echo "# TEST=$(TEST)"; \

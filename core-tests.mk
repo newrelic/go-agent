@@ -5,7 +5,6 @@
 
 # Core Tests on 3 most recent major Go versions
 GO_CORE_TESTS=$${CORE_TESTS:-\
-	v3/newrelic \
-	v3/internal \
-	v3/examples \
+	newrelic \
+	internal \
 }
