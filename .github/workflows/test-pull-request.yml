@@ -91,3 +91,9 @@ jobs:
         working-directory: ./go-agent
         run: |
           make core-test TEST=${{matrix.core-test}} COVERAGE=1
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: go-agent/${matrix.core-test}}/coverage.txt
+
