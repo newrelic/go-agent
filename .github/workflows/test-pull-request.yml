@@ -58,9 +58,13 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           cache: false
-      - name: Run go vet
+      - name: Run go mod tidy
         working-directory: ./go-agent/v3
         run: |
           go mod tidy
+        shell: bash
+      - name: Run go vet
+        working-directory: ./go-agent/v3
+        run: |
           go vet ./...
         shell: bash
