@@ -90,10 +90,10 @@ jobs:
       - name: Run core tests
         working-directory: ./go-agent
         run: |
-          make core-test TEST=${{matrix.core-test}} COVERAGE=1
+          docker exec -e TEST=${{ matrix.core-test }} -e COVERAGE=1 nr-go make core-test 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: go-agent/${matrix.core-test}}/coverage.txt
+          files: go-agent/${{ matrix.core-test }}/coverage.txt
 
