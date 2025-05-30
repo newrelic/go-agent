@@ -1,0 +1,42 @@
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: test-pull-request
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+  pull_request:
+
+jobs:
+  gofmt-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{matrix.go-version}}
+          cache: false
+      - name: Display go version
+        run: |
+          go version
+      - name: Run gofmt
+        run: |
+          GOFMT_REPORTED_FILES="$(gofmt -l -e ./...)"
+          if [ ! -z "$GOFMT_REPORTED_FILES" ]; then
+            gofmt -d -e ./...
+            echo "### gofmt violations found in $(echo "$GOFMT_REPORTED_FILES" | wc -l) files" >> $GITHUB_STEP_SUMMARY
+            echo "$GOFMT_REPORTED_FILES" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
