@@ -33,9 +33,9 @@ jobs:
           go version
       - name: Run gofmt
         run: |
-          GOFMT_REPORTED_FILES="$(gofmt -l -e ./...)"
+          GOFMT_REPORTED_FILES="$(gofmt -l -e ./)"
           if [ ! -z "$GOFMT_REPORTED_FILES" ]; then
-            gofmt -d -e ./...
+            gofmt -d -e ./
             echo "### gofmt violations found in $(echo "$GOFMT_REPORTED_FILES" | wc -l) files" >> $GITHUB_STEP_SUMMARY
             echo "$GOFMT_REPORTED_FILES" >> $GITHUB_STEP_SUMMARY
             exit 1
