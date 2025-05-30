@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0]
+        go-version: [1.23.0, 1.24.0, stable]
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0]
+        go-version: [1.23.0, 1.24.0, stable]
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
@@ -68,3 +68,26 @@ jobs:
         run: |
           go vet ./...
         shell: bash
+
+  core-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        core-test: [newrelic, internal]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+        run: |
+          make test-services-start
+      - name: Run core tests
+        working-directory: ./go-agent
+        run: |
+          make core-test TEST=${{matrix.core-test}} COVERAGE=1
