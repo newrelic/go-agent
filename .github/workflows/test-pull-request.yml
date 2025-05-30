@@ -51,13 +51,14 @@ jobs:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
         with:
-          path: v3
+          path: go-agent
       - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
           cache: false
       - name: Run go vet
+        working-directory: ./v3
         run: |
           pwd
           go vet ./...
