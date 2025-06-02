@@ -295,7 +295,7 @@ func (txn *txn) freezeName() {
 }
 
 func (txn *txn) getsApdex() bool {
-	return txn.IsWeb
+	return txn.IsWeb && !txn.ignoreApdex
 }
 
 func (txn *txn) shouldSaveTrace() bool {
@@ -794,6 +794,14 @@ func (txn *txn) Ignore() error {
 		return errAlreadyEnded
 	}
 	txn.ignore = true
+	return nil
+}
+
+func (txn *txn) IgnoreApdex() error {
+	txn.Lock()
+	defer txn.Unlock()
+
+	txn.ignoreApdex = true
 	return nil
 }
 
