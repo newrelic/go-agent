@@ -13,7 +13,7 @@ import (
 	nrlogxi "github.com/newrelic/go-agent/v3/integrations/nrlogxi"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func bufferToStringAndReset(buf *bytes.Buffer) string {

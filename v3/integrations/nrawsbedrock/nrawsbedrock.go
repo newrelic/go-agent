@@ -61,8 +61,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/google/uuid"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 var (
@@ -755,7 +755,7 @@ func parseModelData(app *newrelic.Application, modelID string, meta map[string]a
 					}
 				}
 			}
-			//modelResultList{output: completionReason:}
+			// modelResultList{output: completionReason:}
 			if rs, ok := responseData["completions"]; ok {
 				if crs, ok := rs.([]any); ok {
 					for _, crsv := range crs {
