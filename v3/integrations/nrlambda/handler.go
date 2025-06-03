@@ -25,8 +25,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda/handlertrace"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 type response struct {
@@ -83,7 +83,7 @@ func (wp *defaultWriterProvider) borrowWriter(needsWriter func(io.Writer)) {
 		needsWriter(os.Stdout)
 		return
 	}
-	//We need to close the pipe; of course we don't close stdout
+	// We need to close the pipe; of course we don't close stdout
 	defer pipeFile.Close()
 	needsWriter(pipeFile)
 }
@@ -168,7 +168,6 @@ func Wrap(handler interface{}, app *newrelic.Application) lambda.Handler {
 // With:
 //
 //	nrlambda.Start(myhandler, app)
-//
 func Start(handler interface{}, app *newrelic.Application) {
 	lambda.StartHandler(Wrap(handler, app))
 }
@@ -180,7 +179,6 @@ func Start(handler interface{}, app *newrelic.Application) {
 // With:
 //
 //	nrlambda.StartHandler(myhandler, app)
-//
 func StartHandler(handler lambda.Handler, app *newrelic.Application) {
 	lambda.StartHandler(WrapHandler(handler, app))
 }

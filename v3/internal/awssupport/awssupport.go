@@ -1,16 +1,17 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.8
 // +build go1.8
 
 package awssupport
 
 import (
 	"context"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"net/http"
 	"reflect"
 
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 

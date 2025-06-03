@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -261,7 +261,7 @@ func TestTransactionLoggerNilTxn(t *testing.T) {
 	)
 
 	txn := app.StartTransaction("test transaction")
-	//txnMetadata := txn.GetTraceMetadata()
+	// txnMetadata := txn.GetTraceMetadata()
 
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), os.Stdout, zap.InfoLevel)
 	wrappedCore, err := WrapTransactionCore(core, nil)
