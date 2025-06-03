@@ -74,6 +74,15 @@ func (txn *Transaction) Ignore() {
 	txn.thread.logAPIError(txn.thread.Ignore(), "ignore transaction", nil)
 }
 
+// IgnoreApdex prevents Apdex from being calculated for this transaction.
+func (txn *Transaction) IgnoreApdex() {
+	if nilTransaction(txn) {
+		return
+	}
+
+	txn.thread.logAPIError(txn.thread.IgnoreApdex(), "ignore apdex", nil)
+}
+
 // SetName names the transaction.  Use a limited set of unique names to
 // ensure that Transactions are grouped usefully.
 func (txn *Transaction) SetName(name string) {
