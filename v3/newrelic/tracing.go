@@ -79,6 +79,7 @@ type txnData struct {
 	SlowQueriesEnabled bool
 	noticeErrors       bool // If errors are not expected or ignored, then true
 	expectedErrors     bool
+	ignoreApdex        bool
 
 	stamp           segmentStamp
 	threadIDCounter uint64

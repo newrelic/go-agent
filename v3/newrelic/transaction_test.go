@@ -42,6 +42,7 @@ func TestTransaction_MethodsWithNilTransaction(t *testing.T) {
 	nilTxn.End()
 	nilTxn.SetOption()
 	nilTxn.Ignore()
+	nilTxn.IgnoreApdex()
 	nilTxn.SetName("test")
 	name := nilTxn.Name()
 	if name != "" {
