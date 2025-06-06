@@ -28,7 +28,7 @@ include core-tests.mk
 .PHONY: integration-to-json
 integration-to-json:
 	@TESTS="$(shell echo $(GO_INTEGRATION_TESTS))"; \
-	echo $$TESTS | jq -R 'split(" ")';
+	echo $$TESTS | jq -R 'split(" ")' | sed "s/\"/\'/g" | sed "s/ //g" | tr -d '\n';
 
 .PHONY: info
 info:
