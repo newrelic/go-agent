@@ -138,7 +138,7 @@ jobs:
       - name: Run Integration tests
         working-directory: ./go-agent
         run: |
-          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
+          docker exec -e TEST=${{ matrix.integration-test.test }} nr-go make integration-test
       - name: Stop services
         working-directory: ./go-agent
         run: |
