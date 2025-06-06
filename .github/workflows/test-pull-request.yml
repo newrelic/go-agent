@@ -12,6 +12,20 @@ on:
   pull_request:
 
 jobs:
+  setup-integration-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      integration-matrix: ${{ steps.setmatrix.outputs.INTEGRATION_MATRIX }}
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - id: setmatrix
+        working-directory: ./go-agent
+        run: |
+          echo "INTEGRATION_MATRIX=$(make integration-to-json)" >> $GITHUB_OUTPUT
+
   gofmt-check:
     runs-on: ubuntu-latest
     strategy:
@@ -96,4 +110,36 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: go-agent/v3/${{ matrix.core-test }}/coverage.txt
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
+
+  integration-test:
+    needs: setup-integration-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+        run: |
+          make test-services-start
+      - name: Run Integration tests
+        working-directory: ./go-agent
+        run: |
+          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
 

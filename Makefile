@@ -25,6 +25,12 @@ BENCHTIME := 1ms
 include integration-tests.mk
 include core-tests.mk
 
+.PHONY: integration-to-json
+integration-to-json:
+	@TESTS="$(shell echo $(GO_INTEGRATION_TESTS))"; \
+	echo $$TESTS | jq -R 'split(" ")';
+
+.PHONY: info
 info:
 	@echo
 	@echo "$$(go version)"

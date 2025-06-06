@@ -4,6 +4,11 @@ ARG GO_VERSION
 # Takes in go version
 FROM golang:${GO_VERSION:-1.24}
 
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  # Convert integration test list to json for GHA
+  jq
+
 # Set working directory and run go mod tidy
 WORKDIR /usr/src/app
 
