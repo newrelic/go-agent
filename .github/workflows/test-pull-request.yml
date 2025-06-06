@@ -28,6 +28,14 @@ jobs:
           echo "INTEGRATION_MATRIX=$(jq -cn --argjson tests "$TESTS" '{test: $tests}')" >> $GITHUB_OUTPUT
           echo "$INTEGRATION_MATRIX"
 
+  check-matrix-output:
+    needs: setup-integration-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show matrix
+        run: |
+          echo "${{ needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX }}"
+
   gofmt-check:
     runs-on: ubuntu-latest
     strategy:
