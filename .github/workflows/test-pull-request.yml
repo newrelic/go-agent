@@ -25,8 +25,9 @@ jobs:
         working-directory: ./go-agent
         run: |
           TESTS=$(make integration-to-json)
+          echo "$TESTS"
           echo "INTEGRATION_MATRIX=$(jq -cn --argjson tests "$TESTS" '{test: $tests}')" >> $GITHUB_OUTPUT
-          echo "$INTEGRATION_MATRIX"
+          echo "testing;  $INTEGRATION_MATRIX /testing;"
 
   check-matrix-output:
     needs: setup-integration-matrix
