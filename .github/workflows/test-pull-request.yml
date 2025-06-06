@@ -24,7 +24,7 @@ jobs:
       - id: setmatrix
         working-directory: ./go-agent
         run: |
-          echo "INTEGRATION_MATRIX=$(make integration-to-json)" >> $GITHUB_OUTPUT
+          echo "INTEGRATION_MATRIX='$(make integration-to-json)'" >> $GITHUB_OUTPUT
 
   gofmt-check:
     runs-on: ubuntu-latest
