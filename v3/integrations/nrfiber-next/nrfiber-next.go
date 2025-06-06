@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	internal.TrackUsage("integration", "framework", "fiber", "v1")
+	internal.TrackUsage("integration", "framework", "fiber", "v3")
 }
 
 // fastHeaderResponseWriter is a lightweight wrapper around Fiber's response
