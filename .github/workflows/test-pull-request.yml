@@ -26,6 +26,7 @@ jobs:
         run: |
           TESTS=$(make integration-to-json)
           echo "INTEGRATION_MATRIX=$(jq -cn --argjson tests "$TESTS" '{test: $tests}')" >> $GITHUB_OUTPUT
+          echo "$INTEGRATION_MATRIX"
 
   gofmt-check:
     runs-on: ubuntu-latest
