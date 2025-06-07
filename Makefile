@@ -85,7 +85,7 @@ core-suite:
 
 .PHONY: integration-test
 integration-test:
-	@echo; echo "# TEST=$(TEST)"; \
+	echo; echo "# TEST=$(TEST)"; \
 	cd $(MODULE_DIR)/integrations/$(TEST); \
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)";\
 	$(GO) mod tidy; \
