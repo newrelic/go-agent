@@ -85,11 +85,15 @@ core-suite:
 
 .PHONY: integration-test
 integration-test:
-	echo; echo "# TEST=$(TEST)"; \
+	@echo; echo "# TEST=$(TEST)"; \
 	cd $(MODULE_DIR)/integrations/$(TEST); \
 	WD=$(shell pwd); \
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$${WD}/${MODULE_DIR}";\
-	$(GO) mod tidy; \
+	if [ "$(TEST)" == "nrnats" ]; then \
+		GOPROXY=direct $(GO) mod tidy; \
+	else \
+		$(GO) mod tidy; \
+	fi; \
 	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...; \
 	$(GO) vet ./...; \
 	echo "# TEST=$(TEST)"; \
