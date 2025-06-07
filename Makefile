@@ -70,9 +70,9 @@ core-test:
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; \
 	$(GO) mod tidy; \
 	if [ "$(COVERAGE)" == "1" ]; then \
-		$(GO) test -coverprofile=coverage.txt; \
+		$(GO) test -coverprofile=coverage.txt || exit 1; \
 	else \
-		$(GO) test; \
+		$(GO) test || exit 1; \
 	fi; \
 	echo "# TEST=$(TEST)"; \
 	cd $(BASEDIR);
@@ -94,8 +94,8 @@ integration-test:
 	else \
 		$(GO) mod tidy; \
 	fi; \
-	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...; \
-	$(GO) vet ./...; \
+	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+	$(GO) vet ./... || exit 1; \
 	echo "# TEST=$(TEST)"; \
 	cd $(BASEDIR);
 
