@@ -24,9 +24,9 @@ jobs:
       - id: setmatrix
         working-directory: ./go-agent
         run: |
-          TESTS=$(make integration-to-json)
-          echo "$TESTS"
-          echo "INTEGRATION_MATRIX=$(jq -cn --argjson tests "$TESTS" '{test: $tests}')" >> $GITHUB_OUTPUT
+          INTEGRATION_MATRIX=$(make integration-to-json)
+          echo "$INTEGRATION_MATRIX"
+          echo "INTEGRATION_MATRIX='$INTEGRATION_MATRIX'" >> $GITHUB_OUTPUT
           echo "testing;  $INTEGRATION_MATRIX /testing;"
 
   check-matrix-output:
@@ -148,7 +148,7 @@ jobs:
       - name: Run Integration tests
         working-directory: ./go-agent
         run: |
-          docker exec -e TEST=${{ matrix.integration-test.test }} nr-go make integration-test
+          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
       - name: Stop services
         working-directory: ./go-agent
         run: |
