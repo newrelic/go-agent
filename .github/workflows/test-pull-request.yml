@@ -25,9 +25,7 @@ jobs:
         working-directory: ./go-agent
         run: |
           INTEGRATION_MATRIX=$(make integration-to-json)
-          echo "$INTEGRATION_MATRIX"
           echo "INTEGRATION_MATRIX='$INTEGRATION_MATRIX'" >> $GITHUB_OUTPUT
-          echo "testing;  $INTEGRATION_MATRIX /testing;"
 
   check-matrix-output:
     needs: setup-integration-matrix
@@ -132,7 +130,7 @@ jobs:
     strategy:
       matrix:
         go-version: [1.23.0, 1.24.0, latest]
-        integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
+        integration-test: ${{ needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX }}
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
