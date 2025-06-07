@@ -15,7 +15,7 @@ jobs:
   setup-integration-matrix:
     runs-on: ubuntu-latest
     outputs:
-      integration-matrix: ${{ steps.setmatrix.outputs.INTEGRATION_MATRIX }}
+      INTEGRATION_MATRIX: ${{ steps.setmatrix.outputs.INTEGRATION_MATRIX }}
     steps:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
