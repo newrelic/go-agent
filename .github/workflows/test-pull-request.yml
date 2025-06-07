@@ -25,7 +25,7 @@ jobs:
         working-directory: ./go-agent
         run: |
           INTEGRATION_MATRIX=$(make integration-to-json)
-          echo "INTEGRATION_MATRIX='$INTEGRATION_MATRIX'" >> $GITHUB_OUTPUT
+          echo "INTEGRATION_MATRIX=$INTEGRATION_MATRIX" >> $GITHUB_OUTPUT
 
   check-matrix-output:
     needs: setup-integration-matrix
