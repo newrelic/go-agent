@@ -87,7 +87,8 @@ core-suite:
 integration-test:
 	echo; echo "# TEST=$(TEST)"; \
 	cd $(MODULE_DIR)/integrations/$(TEST); \
-	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)";\
+	WD=$(shell pwd); \
+	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$${WD}/${MODULE_DIR}";\
 	$(GO) mod tidy; \
 	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...; \
 	$(GO) vet ./...; \
