@@ -578,6 +578,8 @@ type ApplicationLogging struct {
 			// List of label types to exclude from forwarded logs.
 			Exclude []string
 		}
+		// Key/Value pairs to add as custom attributes to all log events forwarded to New Relic.
+		CustomAttributes map[string]string
 	}
 	Metrics struct {
 		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}

@@ -91,13 +91,14 @@ func supportMetric(metrics *metricTable, b bool, metricName string) {
 // logging features for log data generation and supportability
 // metrics generation.
 type loggingConfig struct {
-	loggingEnabled  bool              // application logging features are enabled
-	collectEvents   bool              // collection of log event data is enabled
-	collectMetrics  bool              // collection of log metric data is enabled
-	localEnrichment bool              // local log enrichment is enabled
-	maxLogEvents    int               // maximum number of log events allowed to be collected
-	includeLabels   map[string]string // READ ONLY: if not nil, add these labels to log common data too
-	excludeLabels   *[]string         // READ ONLY: if not nil, exclude these label keys from the included labels
+	loggingEnabled   bool              // application logging features are enabled
+	collectEvents    bool              // collection of log event data is enabled
+	collectMetrics   bool              // collection of log metric data is enabled
+	localEnrichment  bool              // local log enrichment is enabled
+	maxLogEvents     int               // maximum number of log events allowed to be collected
+	includeLabels    map[string]string // READ ONLY: if not nil, add these labels to log common data too
+	excludeLabels    *[]string         // READ ONLY: if not nil, exclude these label keys from the included labels
+	customAttributes map[string]string // READ ONLY: if not nil, add these custom attributes to log common data too
 }
 
 // Logging metrics that are generated at connect response
