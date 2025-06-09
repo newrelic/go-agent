@@ -191,7 +191,6 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 	}
 	buf.WriteByte('}')
 	buf.WriteByte('}')
-	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteString(`"logs":`)
 	buf.WriteByte('[')
