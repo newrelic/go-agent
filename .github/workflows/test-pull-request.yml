@@ -119,12 +119,39 @@ jobs:
 
   integration-test:
     needs: setup-integration-matrix
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         go-version: [1.23.0, 1.24.0, latest]
         integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+        run: |
+          make test-services-start
+      - name: Run Integration tests
+        working-directory: ./go-agent
+        run: |
+          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
+
+  integration-test-arm64:
+    needs: setup-integration-matrix
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
