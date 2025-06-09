@@ -244,8 +244,8 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 		config.includeLabels = run.Config.Labels
 		config.excludeLabels = &logging.Forwarding.Labels.Exclude
 	}
-	if run.Config.ApplicationLogging.Forwarding.CustomAttributes != nil && logging.Forwarding.Enabled {
-		config.customAttributes = run.Config.ApplicationLogging.Forwarding.CustomAttributes
+	if run.Config.CustomAttributes != nil && logging.Forwarding.Enabled && logging.Forwarding.CustomAttributes.Enabled {
+		config.customAttributes = run.Config.CustomAttributes
 	}
 	return config
 }
