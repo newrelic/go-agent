@@ -9,7 +9,7 @@ services:
     environment:
        POSTGRES_PASSWORD: root
        POSTGRES_USER: postgres
-    profiles: ["nrpgx5"]
+    profiles: ["dev", "nrpgx5"]
 
   go:
     build:
@@ -22,6 +22,8 @@ services:
       PG_PORT: 5432
       PG_USER: postgres
       PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
 
     volumes:
        - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
@@ -42,6 +44,8 @@ services:
       PG_PORT: 5432
       PG_USER: postgres
       PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
 
     volumes:
        - ${PWD}:/usr/src/app/go-agent
