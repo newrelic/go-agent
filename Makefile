@@ -106,11 +106,20 @@ integration-suite:
 	done
 
 test-services-start:
-	docker compose --profile test pull $(SERVICES)
-	docker compose --profile test up --wait --remove-orphans -d $(SERVICES)
+	@if [ ! -z $(PACKAGE) ]; then \
+		docker compose --profile test --profile $(PACKAGE) pull $(SERVICES); \
+		docker compose --profile test --profile $(PACKAGE) up --wait --remove-orphans -d $(SERVICES); \
+	else \
+		docker compose --profile test pull $(SERVICES); \
+		docker compose --profile test up --wait --remove-orphans -d $(SERVICES); \
+	fi;
 
 test-services-stop:
-	docker compose --profile test stop
+	@if [ ! -z $(PACKAGE) ]; then \
+		docker compose --profile test --profile $(PACKAGE) stop; \
+	else \
+		docker compose --profile test stop; \
+	fi;
 
 # Developer targets
 devenv-image:

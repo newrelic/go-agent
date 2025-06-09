@@ -9,6 +9,8 @@ services:
     environment:
        POSTGRES_PASSWORD: root
        POSTGRES_USER: postgres
+    profiles: ["nrpgx5"]
+
   go:
     build:
       context: .
@@ -27,7 +29,8 @@ services:
     entrypoint: tail
     command: -f /dev/null
     container_name: nr-go
-    profiles: ["test"]
+    profiles: ["test", "nrpgx5"]
+
   devenv:
     build:
       context: .
