@@ -389,7 +389,7 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
-func ConfigApplicationLoggingForwardingCustomAttributes(customAttributes map[string]string) ConfigOption {
+func ConfigAppLogForwardingCustomAttributes(customAttributes map[string]string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.ApplicationLogging.Forwarding.CustomAttributes = make(map[string]string)
 		maps.Copy(cfg.ApplicationLogging.Forwarding.CustomAttributes, customAttributes)
