@@ -181,6 +181,15 @@ func (events *logEvents) CollectorJSON(agentRunID string) ([]byte, error) {
 			}
 		}
 	}
+	if events.config.customAttributes != nil {
+		for k, v := range events.config.customAttributes {
+			buf.WriteByte(',')
+			jsonx.AppendString(buf, "tags."+k)
+			buf.WriteByte(':')
+			jsonx.AppendString(buf, v)
+		}
+	}
+	buf.WriteByte('}')
 	buf.WriteByte('}')
 	buf.WriteByte('}')
 	buf.WriteByte(',')
