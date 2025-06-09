@@ -392,12 +392,15 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 // ConfigAppLogForwardingCustomAttributesEnabled enables or disables sending our application
 // custom attributes (which are configured via ConfigCustomAttributes) with forwarded log events.
 // Defaults: enabled=false
+// This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED environment variable.
 func ConfigAppLogForwardingCustomAttributesEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.ApplicationLogging.Forwarding.CustomAttributes.Enabled = enabled
 	}
 }
 
+// ConfigCustomAttributes configures a set of custom attributes to add as attributes to all log events forwarded to New Relic.
+// This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES environment variable.
 func ConfigCustomAttributes(customAttributes map[string]string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CustomAttributes = make(map[string]string)
