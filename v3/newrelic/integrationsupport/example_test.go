@@ -4,10 +4,9 @@
 package integrationsupport
 
 import (
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"testing"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 type myError struct{}
@@ -42,6 +41,7 @@ func TestAppLogsTestApp(t *testing.T) {
 		Severity:  "debug",
 		Timestamp: 12345,
 	})
+
 	expectedApp.RecordLog(newrelic.LogData{
 		Message:   "App Log Message",
 		Severity:  "info",
@@ -66,7 +66,16 @@ func TestAppLogsTestApp(t *testing.T) {
 func TestFullTracesTestApp(t *testing.T) {
 	expectedApp := NewTestApp(SampleEverythingReplyFn, ConfigFullTraces, newrelic.ConfigCodeLevelMetricsEnabled(false))
 	txn := expectedApp.Application.StartTransaction("test")
+
+	AddAgentAttribute(txn, newrelic.AttributeSpanKind, "producer", nil)
+
 	txn.End()
 
-	// will add more here
+	expectedApp.ExpectTxnTraces(t, []internal.WantTxnTrace{
+		{
+			AgentAttributes: map[string]interface{}{
+				newrelic.AttributeSpanKind: "producer",
+			},
+		},
+	})
 }
