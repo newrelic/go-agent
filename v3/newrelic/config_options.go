@@ -389,6 +389,15 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
+// ConfigAppLogForwardingCustomAttributesEnabled enables or disables sending our application
+// custom attributes (which are configured via ConfigCustomAttributes) with forwarded log events.
+// Defaults: enabled=false
+func ConfigAppLogForwardingCustomAttributesEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.Forwarding.CustomAttributes.Enabled = enabled
+	}
+}
+
 func ConfigCustomAttributes(customAttributes map[string]string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CustomAttributes = make(map[string]string)
