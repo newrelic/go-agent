@@ -640,7 +640,7 @@ func defaultConfig() Config {
 
 	c.Enabled = true
 	c.Labels = make(map[string]string)
-	c.CustomAttributes = nil
+	c.CustomAttributes = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
 	c.TransactionEvents.Enabled = true
@@ -836,6 +836,12 @@ func copyConfigReferenceFields(cfg Config) Config {
 		cp.Labels = make(map[string]string, len(cfg.Labels))
 		for key, val := range cfg.Labels {
 			cp.Labels[key] = val
+		}
+	}
+	if nil != cfg.CustomAttributes {
+		cp.CustomAttributes = make(map[string]string, len(cfg.CustomAttributes))
+		for key, val := range cfg.CustomAttributes {
+			cp.CustomAttributes[key] = val
 		}
 	}
 	if cfg.ErrorCollector.IgnoreStatusCodes != nil {
