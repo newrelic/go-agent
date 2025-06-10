@@ -238,12 +238,11 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 
 	// Override whatever needs to be overridden.
 	uDat.Config = overrideFromConfig(config)
-	vendorsMutex.Lock()
+
 	if uDat.Vendors.isEmpty() {
 		// Per spec, we MUST NOT send any vendors hash if it's empty.
 		uDat.Vendors = nil
 	}
-	vendorsMutex.Unlock()
 
 	return uDat
 }
