@@ -1,0 +1,16 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/newrelic/go-agent/v3/integrations/nrconnect/testapp
+plugins:
+  - remote: buf.build/connectrpc/go:v1.18.1
+    out: .
+    opt:
+      - paths=source_relative
+  # dependencies
+  - remote: buf.build/protocolbuffers/go:v1.36.6
+    out: .
+    opt:
+      - paths=source_relative
