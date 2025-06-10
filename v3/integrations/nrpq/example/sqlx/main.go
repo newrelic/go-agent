@@ -7,16 +7,16 @@
 // is set to your license key.  Postgres must be running on the default port
 // 5432 and have a user "foo" and a database "bar". One quick (albeit insecure)
 // way of doing this is to run a small local Postgres instance in Docker:
-//    docker run --rm -e POSTGRES_USER=foo -e POSTGRES_DB=bar \
-//      -e POSTGRES_PASSWORD=password -e POSTGRES_HOST_AUTH_METHOD=trust \
-//      -p 5432:5432 postgres &
 //
+//	docker run --rm -e POSTGRES_USER=foo -e POSTGRES_DB=bar \
+//	  -e POSTGRES_PASSWORD=password -e POSTGRES_HOST_AUTH_METHOD=trust \
+//	  -p 5432:5432 postgres &
 //
 // Adding instrumentation for the SQLx package is easy.  It means you can
 // make database calls without having to manually create DatastoreSegments.
 // Setup can be done in two steps:
 //
-// Set up your driver
+// # Set up your driver
 //
 // If you are using one of our currently supported database drivers (see
 // https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibility-requirements#frameworks),
@@ -54,7 +54,7 @@
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmysql/nrmysql.go
 // for a full example.
 //
-// Add context to your database calls
+// # Add context to your database calls
 //
 // Next, you must provide a context containing a newrelic.Transaction to all
 // methods on sqlx.DB, sqlx.NamedStmt, sqlx.Stmt, and sqlx.Tx that make a
@@ -66,7 +66,6 @@
 //
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	err := db.GetContext(ctx, &jason, "SELECT * FROM person WHERE first_name=$1", "Jason")
-//
 package main
 
 import (

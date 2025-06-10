@@ -6,7 +6,7 @@
 // This package can be used to instrument Micro Servers, Clients, Producers,
 // and Subscribers.
 //
-// Micro Servers
+// # Micro Servers
 //
 // To instrument a Micro Server, use the `micro.WrapHandler`
 // (https://godoc.org/github.com/micro/go-micro#WrapHandler) option with
@@ -51,7 +51,7 @@
 // Full server example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/server/server.go
 //
-// Micro Clients
+// # Micro Clients
 //
 // There are three different ways to instrument a Micro Client and create
 // External segments for `Call`, `Publish`, and `Stream` methods.
@@ -120,7 +120,7 @@
 // Full client example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/client/client.go
 //
-// Micro Producers
+// # Micro Producers
 //
 // To instrument a Micro Producer, wrap the Micro Client using the
 // `nrmico.ClientWrapper` as described in option 1 or 3 above.
@@ -141,7 +141,7 @@
 // Full Publisher/Subscriber example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmicro/example/pubsub/main.go
 //
-// Micro Subscribers
+// # Micro Subscribers
 //
 // To instrument a Micro Subscriber use the `micro.WrapSubscriber`
 // (https://godoc.org/github.com/micro/go-micro#WrapSubscriber) option with

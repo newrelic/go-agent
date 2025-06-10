@@ -1,6 +1,7 @@
 // Copyright 2021 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.10
 // +build go1.10
 
 // Package nrpgx instruments https://github.com/jackc/pgx/v4.
@@ -15,26 +16,26 @@
 // in place of the pgx driver. In other words,
 // if your code without New Relic's agent looks like this:
 //
-//	import (
-//      "database/sql"
-//		_ "github.com/jackc/pgx/v4/stdlib"
-//	)
+//		import (
+//	     "database/sql"
+//			_ "github.com/jackc/pgx/v4/stdlib"
+//		)
 //
-//	func main() {
-//		db, err := sql.Open("pgx", "user=pqgotest dbname=pqgotest sslmode=verify-full")
-//	}
+//		func main() {
+//			db, err := sql.Open("pgx", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+//		}
 //
 // Then change the side-effect import to this package, and open "nrpgx" instead:
 //
-//	import (
-//      "database/sql"
+//		import (
+//	     "database/sql"
 //
-//		_ "github.com/newrelic/go-agent/v3/integrations/nrpgx"
-//	)
+//			_ "github.com/newrelic/go-agent/v3/integrations/nrpgx"
+//		)
 //
-//	func main() {
-//		db, err := sql.Open("nrpgx", "user=pqgotest dbname=pqgotest sslmode=verify-full")
-//	}
+//		func main() {
+//			db, err := sql.Open("nrpgx", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+//		}
 //
 // Next, provide a context containing a newrelic.Transaction to all exec and query
 // methods on sql.DB, sql.Conn, and sql.Tx.  This requires using the
@@ -52,11 +53,9 @@
 // A working example is shown here:
 // https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrpgx/example/sql_compat/main.go
 //
-//
 // USING WITH DIRECT PGX CALLS WITHOUT DATABASE/SQL
 //
 // This mode of operation is not supported by the nrpgx integration at this time.
-//
 package nrpgx
 
 import (
@@ -153,7 +152,6 @@ func init() {
  * anything or duplicating effort.
  */
 
-//
 // parsePort takes a string representation which purports to be a TCP port number
 // or a comma-separated list of port numbers, and returns the port number as a
 // uint16 value and as a string. If a list was given, the returned values are for
@@ -161,7 +159,6 @@ func init() {
 //
 // If the string can't be understood as an unsigned integer value, then 0 is
 // returned as the uint16 value.
-//
 func parsePort(p string) (uint16, string) {
 	if p == "" {
 		return 0, ""
@@ -188,20 +185,16 @@ func parsePort(p string) (uint16, string) {
 	return uint16(np), p
 }
 
-//
 // ip6HostPort is a regular expression to parse IPv6 hostnames (which must be in
 // square brackets in the connection strings we're working with). The hostname may
 // optionally be followed by a colon and a TCP port number.
 //
 // Any text after the hostname (and port, if any), is ignored.
-//
 var ip6HostPort = regexp.MustCompile(`^\[([0-9a-fA-F:]*)\](:([0-9]+))?`)
 
-//
 // fullIp6ConnectPattern and fullConnectPattern are regular expressions which
 // match a postgres URI connection string using IPv6 addresses, or other forms,
 // respectively.
-//
 var fullIp6ConnectPattern = regexp.MustCompile(
 	//                     user     password    host                 port                dbname      params
 	//                     __1__    __2__     _________3________     __4__               __5__       __6_
@@ -211,17 +204,13 @@ var fullConnectPattern = regexp.MustCompile(
 	//                     __1__    __2__     ________3________    __4__               __5__       __6_
 	`^postgres(?:ql)?://(?:(.*?)(?::(.*?))?@)?([a-zA-Z0-9_.-]+)(?::(.*?))?(?:,.*?)*(?:/(.*?))?(?:\?(.*))?$`)
 
-//
 // fullParamPattern is a regular expression to match the key=value pairs of a
 // parameterized DSN string.
-//
 var fullParamPattern = regexp.MustCompile(
 	`(\w+)\s*=\s*('[^=]*'|[^'\s]+)`)
 
-//
 // parseDSN returns a function which will set datastore segment attributes to show
 // the database, host, and port as extracted from a supplied DSN string.
-//
 func parseDSN(getenv func(string) string) func(*newrelic.DatastoreSegment, string) {
 	return func(s *newrelic.DatastoreSegment, dsn string) {
 

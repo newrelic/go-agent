@@ -1,12 +1,11 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//
 // Package nrgrpc instruments https://github.com/grpc/grpc-go.
 //
 // This package can be used to instrument gRPC servers and gRPC clients.
 //
-// Server
+// # Server
 //
 // To instrument a gRPC server, use UnaryServerInterceptor and
 // StreamServerInterceptor with your newrelic.Application to create server
@@ -18,24 +17,25 @@
 //
 // In the simplest case, simply add interceptors as in the following example:
 //
-//  app, _ := newrelic.NewApplication(
-//     newrelic.ConfigAppName("gRPC Server"),
-//     newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-//     newrelic.ConfigDebugLogger(os.Stdout),
-//  )
-//  server := grpc.NewServer(
-//     grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-//     grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//  )
+//	app, _ := newrelic.NewApplication(
+//	   newrelic.ConfigAppName("gRPC Server"),
+//	   newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+//	   newrelic.ConfigDebugLogger(os.Stdout),
+//	)
+//	server := grpc.NewServer(
+//	   grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//	   grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
 //
 // The disposition of each, in terms of how to report each of the various
 // gRPC status codes, is determined by a built-in set of defaults:
-//   OK       OK
-//   Info     AlreadyExists, Canceled, InvalidArgument, NotFound,
-//            Unauthenticated
-//   Warning  Aborted, DeadlineExceeded, FailedPrecondition, OutOfRange,
-//            PermissionDenied, ResourceExhausted, Unavailable
-//   Error    DataLoss, Internal, Unknown, Unimplemented
+//
+//	OK       OK
+//	Info     AlreadyExists, Canceled, InvalidArgument, NotFound,
+//	         Unauthenticated
+//	Warning  Aborted, DeadlineExceeded, FailedPrecondition, OutOfRange,
+//	         PermissionDenied, ResourceExhausted, Unavailable
+//	Error    DataLoss, Internal, Unknown, Unimplemented
 //
 // These
 // may be overridden on a case-by-case basis using `WithStatusHandler()`
@@ -44,23 +44,26 @@
 //
 // For example, to report DeadlineExceeded as an error and NotFound
 // as a warning, for the UnaryInterceptor only:
-//   server := grpc.NewServer(
-//      grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app,
-//       nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
-//       nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler)),
-//      grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//   )
+//
+//	server := grpc.NewServer(
+//	   grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app,
+//	    nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
+//	    nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler)),
+//	   grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
 //
 // If you wanted to make those two changes to the overall default behavior, so they
 // apply to all subsequently declared interceptors:
-//   nrgrpc.Configure(
-//     nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
-//     nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler),
-//   )
-//   server := grpc.NewServer(
-//      grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
-//      grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
-//   )
+//
+//	nrgrpc.Configure(
+//	  nrgrpc.WithStatusHandler(codes.DeadlineExceeded, nrgrpc.ErrorInterceptorStatusHandler),
+//	  nrgrpc.WithStatusHandler(codes.NotFound, nrgrpc.WarningInterceptorStatusHandler),
+//	)
+//	server := grpc.NewServer(
+//	   grpc.UnaryInterceptor(nrgrpc.UnaryServerInterceptor(app)),
+//	   grpc.StreamInterceptor(nrgrpc.StreamServerInterceptor(app)),
+//	)
+//
 // In this case the new behavior for those two status codes applies to both interceptors.
 //
 // These interceptors create transactions for inbound calls.  The transaction is
@@ -75,13 +78,13 @@
 //			txn.NoticeError(err)
 //			return nil, err
 //		}
-// 		return &pb.Message{Text: "Hello World!"}, nil
-// 	}
+//		return &pb.Message{Text: "Hello World!"}, nil
+//	}
 //
 // Full server example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrgrpc/example/server/server.go
 //
-// Client
+// # Client
 //
 // To instrument a gRPC client, follow these two steps:
 //
