@@ -26,7 +26,7 @@
 //
 // Requires v1.4.0 of the Logrus package or newer.
 //
-// Configuration
+// # Configuration
 //
 // For the best linking experience be sure to enable Distributed Tracing:
 //
@@ -57,7 +57,7 @@
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	logger.WithContext(ctx).Info("Hello New Relic!")
 //
-// Troubleshooting
+// # Troubleshooting
 //
 // When properly configured, your log statements will be in JSON format with
 // one message per line:

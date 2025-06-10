@@ -1,6 +1,7 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build go1.10
 // +build go1.10
 
 // Package nrsqlite3 instruments https://github.com/mattn/go-sqlite3.
@@ -116,7 +117,6 @@ func init() {
 //				"sqlite3_mod_regexp",
 //			},
 //		}))
-//
 func InstrumentSQLDriver(d *sqlite3.SQLiteDriver) driver.Driver {
 	return newrelic.InstrumentSQLDriver(d, baseBuilder)
 }

@@ -16,24 +16,24 @@
 //
 // For example:
 //
-//    import (
-//       "github.com/jackc/pgx/v5"
-//       "github.com/newrelic/go-agent/v3/integrations/nrpgx5"
-//       "github.com/newrelic/go-agent/v3/newrelic"
-//    )
+//	import (
+//	   "github.com/jackc/pgx/v5"
+//	   "github.com/newrelic/go-agent/v3/integrations/nrpgx5"
+//	   "github.com/newrelic/go-agent/v3/newrelic"
+//	)
 //
-//    func main() {
-//       cfg, err := pgx.ParseConfig("postgres://postgres:postgres@localhost:5432") // OR pgxpools.ParseConfig(...)
-//       if err != nil {
-//          panic(err)
-//       }
+//	func main() {
+//	   cfg, err := pgx.ParseConfig("postgres://postgres:postgres@localhost:5432") // OR pgxpools.ParseConfig(...)
+//	   if err != nil {
+//	      panic(err)
+//	   }
 //
-//       cfg.Tracer = nrpgx5.NewTracer()
-//       conn, err := pgx.ConnectConfig(context.Background(), cfg)
-//       if err != nil {
-//          panic(err)
-//       }
-//    }
+//	   cfg.Tracer = nrpgx5.NewTracer()
+//	   conn, err := pgx.ConnectConfig(context.Background(), cfg)
+//	   if err != nil {
+//	      panic(err)
+//	   }
+//	}
 //
 // See the programs in the example directory for working examples of each use case.
 package nrpgx5
@@ -74,14 +74,16 @@ type TracerOption func(*Tracer)
 // NewTracer creates a new value which implements pgx.BatchTracer, pgx.ConnectTracer, pgx.PrepareTracer, and pgx.QueryTracer.
 // This value will be used to facilitate instrumentation of the database operations performed.
 // When establishing a connection to the database, the recommended usage is to do something like the following:
-//    cfg, err := pgx.ParseConfig("...")
-//    if err != nil { ... }
-//    cfg.Tracer = nrpgx5.NewTracer()
-//    conn, err := pgx.ConnectConfig(context.Background(), cfg)
+//
+//	cfg, err := pgx.ParseConfig("...")
+//	if err != nil { ... }
+//	cfg.Tracer = nrpgx5.NewTracer()
+//	conn, err := pgx.ConnectConfig(context.Background(), cfg)
 //
 // If you do not wish to have SQL query parameters included in the telemetry data, add the WithQueryParameters
 // option, like so:
-//    cfg.Tracer = nrpgx5.NewTracer(nrpgx5.WithQueryParameters(false))
+//
+//	cfg.Tracer = nrpgx5.NewTracer(nrpgx5.WithQueryParameters(false))
 //
 // (The default is to collect query parameters, but you can explicitly select this by passing true to WithQueryParameters.)
 //

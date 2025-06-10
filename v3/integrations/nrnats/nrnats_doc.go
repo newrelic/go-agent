@@ -7,7 +7,7 @@
 // the NATS framework we are limited to two integration points: `StartPublishSegment` for publishers, and `SubWrapper`
 // for subscribers.
 //
-// NATS publishers
+// # NATS publishers
 //
 // To generate an external segment for any method that publishes or responds to a NATS message, use the
 // `StartPublishSegment` method. The resulting segment will also need to be ended. Example:
@@ -30,7 +30,6 @@
 //	defer nrnats.StartPublishSegment(txn, nc, subject).End()
 //	nc.Publish(subject, []byte("Hello World"))
 //
-//
 // StartPublishSegment can be used with a NATS Streamming Connection as well
 // (https://github.com/nats-io/stan.go).  Use the `NatsConn()` method on the
 // `stan.Conn` interface (https://godoc.org/github.com/nats-io/stan#Conn) to
@@ -42,7 +41,7 @@
 //	defer nrnats.StartPublishSegment(txn, sc.NatsConn(), subject).End()
 //	sc.Publish(subject, []byte("Hello World"))
 //
-// NATS subscribers
+// # NATS subscribers
 //
 // The `nrnats.SubWrapper` function can be used to wrap the function for `nats.Subscribe`
 // (https://godoc.org/github.com/nats-io/go-nats#Conn.Subscribe or
