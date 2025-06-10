@@ -24,20 +24,24 @@
 // runtime library, as documented below.
 //
 // The relevant configuration options are passed to the NewApplication function and include
-//    ConfigAIMonitoringEnabled(true),  // enable (or disable if false) this integration
-//    ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
-//    ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
+//
+//	ConfigAIMonitoringEnabled(true),  // enable (or disable if false) this integration
+//	ConfigAIMonitoringStreamingEnabled(true), // enable instrumentation of streaming invocations
+//	ConfigAIMonitoringRecordContentEnabled(true), // include input/output data in instrumentation
 //
 // Currently, the following must also be set for AIM reporting to function correctly:
-//    ConfigCustomInsightsEventsEnabled(true) // (the default)
-//    ConfigHighSecurityEnabled(false) // (the default)
+//
+//	ConfigCustomInsightsEventsEnabled(true) // (the default)
+//	ConfigHighSecurityEnabled(false) // (the default)
 //
 // Or, if ConfigFromEnvironment() is included in your configuration options, the above configuration
 // options may be specified using these environment variables, respectively:
-//    NEW_RELIC_AI_MONITORING_ENABLED=true
-//    NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
-//    NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
-//    NEW_RELIC_HIGH_SECURITY=false
+//
+//	NEW_RELIC_AI_MONITORING_ENABLED=true
+//	NEW_RELIC_AI_MONITORING_STREAMING_ENABLED=true
+//	NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED=true
+//	NEW_RELIC_HIGH_SECURITY=false
+//
 // The values for these variables may be any form accepted by strconv.ParseBool (e.g., 1, t, T, true, TRUE, True,
 // 0, f, F, false, FALSE, or False).
 //
@@ -84,7 +88,6 @@ func init() {
 	internal.TrackUsage("Go", "ML", "Bedrock", "unknown")
 }
 
-//
 // isEnabled determines if AI Monitoring is enabled in the app's options.
 // It returns true if we should proceed with instrumentation. Additionally,
 // it sets the Go/ML/Streaming/Disabled supportability metric if we discover
@@ -96,7 +99,6 @@ func init() {
 // The return values are two booleans: the first indicates if AI instrumentation
 // is enabled at all, the second tells if it is permitted to record request and
 // response data (as opposed to just metadata).
-//
 func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 	if app == nil {
 		return false, false
@@ -155,14 +157,17 @@ type modelInputList struct {
 	tokenCount int
 }
 
-//
 // InvokeModelWithResponseStream invokes a model but unlike the InvokeModel method, the data returned
 // is a stream of multiple events instead of a single response value.
 // This function is the analogue of the bedrockruntime library InvokeModelWithResponseStream function,
 // so that, given a bedrockruntime.Client b, where you would normally call the AWS method
-//    response, err := b.InvokeModelWithResponseStream(c, p, f...)
+//
+//	response, err := b.InvokeModelWithResponseStream(c, p, f...)
+//
 // You instead invoke the New Relic InvokeModelWithResponseStream function as:
-//    rstream, err := nrbedrock.InvokeModelWithResponseStream(app, b, c, p, f...)
+//
+//	rstream, err := nrbedrock.InvokeModelWithResponseStream(app, b, c, p, f...)
+//
 // where app is your New Relic Application value.
 //
 // If using the bedrockruntime library directly, you would then process the response stream value
@@ -175,19 +180,18 @@ type modelInputList struct {
 // once you have that value.
 // Since this means control has passed back to your code for processing of the stream data, you need to
 // add instrumentation calls to your processing code:
-//    rstream.RecordEvent(content)   // for each event received from the stream
-//    rstream.Close()                // when you are finished and are going to close the stream
+//
+//	rstream.RecordEvent(content)   // for each event received from the stream
+//	rstream.Close()                // when you are finished and are going to close the stream
 //
 // However, see ProcessModelWithResponseStream for an easier alternative.
 //
 // Either start a transaction on your own and add it to the context c  passed into this function, or
 // a transaction will be started for you that lasts only for the duration of the model invocation.
-//
 func InvokeModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
 	return InvokeModelWithResponseStreamAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
-//
 // InvokeModelWithResponseStreamAttributes is identical to InvokeModelWithResponseStream except that
 // it adds the attrs parameter, which is a
 // map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
@@ -197,7 +201,6 @@ func InvokeModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx c
 // the attribute key before the metrics are sent out.
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
-//
 func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (ResponseStream, error) {
 	var aiEnabled bool
 	var err error
@@ -262,9 +265,7 @@ func InvokeModelWithResponseStreamAttributes(app *newrelic.Application, brc Mode
 	return resp, nil
 }
 
-//
 // RecordEvent records a single stream event as read from the data stream started by InvokeModelWithStreamResponse.
-//
 func (s *ResponseStream) RecordEvent(data []byte) error {
 	if s == nil || s.txn == nil || s.app == nil {
 		return nil
@@ -283,9 +284,7 @@ func (s *ResponseStream) RecordEvent(data []byte) error {
 	return nil
 }
 
-//
 // Close finishes up the instrumentation for a response stream.
-//
 func (s *ResponseStream) Close() error {
 	if s == nil || s.app == nil || s.txn == nil {
 		return nil
@@ -374,7 +373,6 @@ func (s *ResponseStream) Close() error {
 	return nil
 }
 
-//
 // ProcessModelWithResponseStream works just like InvokeModelWithResponseStream, except that
 // it handles all the stream processing automatically for you. For each event received from
 // the response stream, it will invoke the callback function you pass into the function call
@@ -383,12 +381,10 @@ func (s *ResponseStream) Close() error {
 //
 // If your callback function returns an error, the processing of the response stream will
 // terminate at that point.
-//
 func ProcessModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, optFns ...func(*bedrockruntime.Options)) error {
 	return ProcessModelWithResponseStreamAttributes(app, brc, ctx, callback, params, nil, optFns...)
 }
 
-//
 // ProcessModelWithResponseStreamAttributes is identical to ProcessModelWithResponseStream except that
 // it adds the attrs parameter, which is a
 // map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
@@ -398,7 +394,6 @@ func ProcessModelWithResponseStream(app *newrelic.Application, brc Modeler, ctx 
 // the attribute key before the metrics are sent out.
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
-//
 func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, callback func([]byte) error, params *bedrockruntime.InvokeModelWithResponseStreamInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) error {
 	var err error
 	var userErr error
@@ -432,12 +427,15 @@ func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc Mod
 	return err
 }
 
-//
 // InvokeModel provides an instrumented interface through which to call the AWS Bedrock InvokeModel function.
 // Where you would normally invoke the InvokeModel method on a bedrockruntime.Client value b from AWS as:
-//    b.InvokeModel(c, p, f...)
+//
+//	b.InvokeModel(c, p, f...)
+//
 // You instead invoke the New Relic InvokeModel function as:
-//    nrbedrock.InvokeModel(app, b, c, p, f...)
+//
+//	nrbedrock.InvokeModel(app, b, c, p, f...)
+//
 // where app is the New Relic Application value returned from NewApplication when you started
 // your application. If you start a transaction and add it to the passed context value c in the above
 // invocation, the instrumentation will be recorded on that transaction, including a segment for the Bedrock
@@ -445,12 +443,10 @@ func ProcessModelWithResponseStreamAttributes(app *newrelic.Application, brc Mod
 // InvokeModel function exits.
 //
 // If the transaction is unable to be created or used, the Bedrock call will be made anyway, without instrumentation.
-//
 func InvokeModel(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelInput, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	return InvokeModelWithAttributes(app, brc, ctx, params, nil, optFns...)
 }
 
-//
 // InvokeModelWithAttributes is identical to InvokeModel except for the addition of the attrs parameter, which is a
 // map of strings to values of any type. This map holds any custom attributes you wish to add to the reported metrics
 // relating to this model invocation.
@@ -459,7 +455,6 @@ func InvokeModel(app *newrelic.Application, brc Modeler, ctx context.Context, pa
 // the attribute key before the metrics are sent out.
 //
 // We recommend including at least "llm.conversation_id" in your attributes.
-//
 func InvokeModelWithAttributes(app *newrelic.Application, brc Modeler, ctx context.Context, params *bedrockruntime.InvokeModelInput, attrs map[string]any, optFns ...func(*bedrockruntime.Options)) (*bedrockruntime.InvokeModelOutput, error) {
 	var txn *newrelic.Transaction // the transaction to record in, or nil if we aren't instrumenting this time
 	var err error

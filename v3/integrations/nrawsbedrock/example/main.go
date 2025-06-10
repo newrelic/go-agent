@@ -1,6 +1,4 @@
-//
 // Example Bedrock client application with New Relic instrumentation
-//
 package main
 
 import (
@@ -180,10 +178,8 @@ func simpleChatCompletion(app *newrelic.Application, brc *bedrockruntime.Client)
 	}
 }
 
-//
 // This example shows a stream invocation where we let the nrawsbedrock integration retrieve
 // all the stream output for us.
-//
 func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
 	fmt.Println("================================================== STREAM (PROCESSED)")
 	contentType := "application/json"
@@ -210,10 +206,8 @@ func processedChatCompletionStream(app *newrelic.Application, brc *bedrockruntim
 	}
 }
 
-//
 // This example shows a stream invocation where we manually process the retrieval
 // of the stream output.
-//
 func manualChatCompletionStream(app *newrelic.Application, brc *bedrockruntime.Client) {
 	fmt.Println("================================================== STREAM (MANUAL)")
 	contentType := "application/json"

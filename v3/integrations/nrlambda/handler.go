@@ -168,7 +168,6 @@ func Wrap(handler interface{}, app *newrelic.Application) lambda.Handler {
 // With:
 //
 //	nrlambda.Start(myhandler, app)
-//
 func Start(handler interface{}, app *newrelic.Application) {
 	lambda.StartHandler(Wrap(handler, app))
 }
@@ -180,7 +179,6 @@ func Start(handler interface{}, app *newrelic.Application) {
 // With:
 //
 //	nrlambda.StartHandler(myhandler, app)
-//
 func StartHandler(handler lambda.Handler, app *newrelic.Application) {
 	lambda.StartHandler(WrapHandler(handler, app))
 }
