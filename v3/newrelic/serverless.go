@@ -158,6 +158,6 @@ func (sh *serverlessHarvest) Write(arn string, writer io.Writer) {
 	}
 
 	// log json data to stdout if the agent is in debug mode to help troubleshoot lambda issues
-	sh.logger.Debug("harvest data: " + string(js), nil)
+	sh.logger.Debug("harvest data: "+string(js), nil)
 	fmt.Fprintln(writer, string(js))
 }

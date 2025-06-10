@@ -11,17 +11,13 @@ import (
 	"sync"
 )
 
-//
 // defaultAgentProjectRoot is the default filename pattern which is at
 // the root of the agent's import path. This is used to identify functions
 // on the call stack which are assumed to belong to the agent rather than
 // the instrumented application's code.
-//
 const defaultAgentProjectRoot = "github.com/newrelic/go-agent/"
 
-//
 // CodeLocation marks the location of a line of source code for later reference.
-//
 type CodeLocation struct {
 	// LineNo is the line number within the source file.
 	LineNo int
@@ -34,7 +30,6 @@ type CodeLocation struct {
 	FilePath string
 }
 
-//
 // CachedCodeLocation provides storage for the code location computed such that
 // the discovery of the code location is only done once; thereafter the cached
 // value is available for use.
@@ -46,17 +41,14 @@ type CodeLocation struct {
 //
 // A usable CachedCodeLocation value must be obtained via a call to
 // NewCachedCodeLocation.
-//
 type CachedCodeLocation struct {
 	location *CodeLocation
 	once     *sync.Once
 	err      error
 }
 
-//
 // Err returns the error condition encountered when trying to determine
 // the code location being cached, if any.
-//
 func (c *CachedCodeLocation) Err() error {
 	if c == nil {
 		return errors.New("nil CachedCodeLocation")
@@ -64,20 +56,16 @@ func (c *CachedCodeLocation) Err() error {
 	return c.err
 }
 
-//
 // IsValid returns true if the cache value was correctly initialized
 // (as by, for example, NewCachedCodeLocation), and therefore can be
 // used to cache code location values. Otherwise it cannot be used.
-//
 func (c *CachedCodeLocation) IsValid() bool {
 	return c != nil && c.once != nil
 }
 
-//
 // NewCachedCodeLocation returns a pointer to a newly-created
 // CachedCodeLocation value, suitable for use with the methods
 // defined for that type.
-//
 func NewCachedCodeLocation() *CachedCodeLocation {
 	return &CachedCodeLocation{
 		once: new(sync.Once),
@@ -93,15 +81,12 @@ type traceOptSet struct {
 	LocationCallback func() *CodeLocation
 }
 
-//
 // TraceOption values provide optional parameters to transactions.
 //
 // (Currently it's only implemented for transactions, but the name TraceOption is
 // intentionally generic in case we apply these to other kinds of traces in the future.)
-//
 type TraceOption func(*traceOptSet)
 
-//
 // WithCodeLocation adds an explicit CodeLocation value
 // to report for the Code Level Metrics attached to a trace.
 // This is probably a value previously obtained by calling
@@ -111,14 +96,12 @@ type TraceOption func(*traceOptSet)
 // up-front to calculate the code location, which may be a waste
 // of effort if code level metrics happens to be disabled. Instead,
 // use the WithCodeLocationCallback function.
-//
 func WithCodeLocation(loc *CodeLocation) TraceOption {
 	return func(o *traceOptSet) {
 		o.LocationOverride = loc
 	}
 }
 
-//
 // WithCodeLocationCallback adds a callback function which the agent
 // will call if it needs to report the code location with an explicit
 // value provided by the caller. This will only be called if code
@@ -131,14 +114,12 @@ func WithCodeLocation(loc *CodeLocation) TraceOption {
 // a CodeLocation, then it is assumed the callback function was not able
 // to determine the code location, and the CLM reporting code's normal
 // method for determining the code location is used instead.
-//
 func WithCodeLocationCallback(locf func() *CodeLocation) TraceOption {
 	return func(o *traceOptSet) {
 		o.LocationCallback = locf
 	}
 }
 
-//
 // WithIgnoredPrefix indicates that the code location reported
 // for Code Level Metrics should be the first function in the
 // call stack that does not begin with the given string (or any of the given strings if more than one are given). This
@@ -156,14 +137,12 @@ func WithCodeLocationCallback(locf func() *CodeLocation) TraceOption {
 // If no prefix strings are passed here, the configured defaults will be used.
 //
 // Deprecated: New code should use WithIgnoredPrefixes instead.
-//
 func WithIgnoredPrefix(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.IgnoredPrefixes = prefix
 	}
 }
 
-//
 // WithIgnoredPrefixes indicates that the code location reported
 // for Code Level Metrics should be the first function in the
 // call stack that does not begin with the given string (or any of the given strings if more than one are given). This
@@ -179,86 +158,72 @@ func WithIgnoredPrefix(prefix ...string) TraceOption {
 // anything better on the way to the bottom of the stack.
 //
 // If no prefix strings are passed here, the configured defaults will be used.
-//
 func WithIgnoredPrefixes(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.IgnoredPrefixes = prefix
 	}
 }
 
-//
 // WithPathPrefix overrides the list of source code path prefixes
 // used to trim source file pathnames, providing a new set of one
 // or more path prefixes to use for this trace only.
 // If no strings are given, the configured defaults will be used.
 //
 // Deprecated: New code should use WithPathPrefixes instead.
-//
 func WithPathPrefix(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.PathPrefixes = prefix
 	}
 }
 
-//
 // WithPathPrefixes overrides the list of source code path prefixes
 // used to trim source file pathnames, providing a new set of one
 // or more path prefixes to use for this trace only.
 // If no strings are given, the configured defaults will be used.
-//
 func WithPathPrefixes(prefix ...string) TraceOption {
 	return func(o *traceOptSet) {
 		o.PathPrefixes = prefix
 	}
 }
 
-//
 // WithoutCodeLevelMetrics suppresses the collection and reporting
 // of Code Level Metrics for this trace. This helps avoid the overhead
 // of collecting that information if it's not needed for certain traces.
-//
 func WithoutCodeLevelMetrics() TraceOption {
 	return func(o *traceOptSet) {
 		o.SuppressCLM = true
 	}
 }
 
-//
 // WithCodeLevelMetrics includes this trace in code level metrics even if
 // it would otherwise not be (for example, if it would be out of the configured
 // scope setting). This will never cause code level metrics to be reported if
 // CLM were explicitly disabled (e.g. by CLM being globally off or if WithoutCodeLevelMetrics
 // is present in the options for this trace).
-//
 func WithCodeLevelMetrics() TraceOption {
 	return func(o *traceOptSet) {
 		o.DemandCLM = true
 	}
 }
 
-//
 // WithThisCodeLocation is equivalent to calling WithCodeLocation, referring
 // to the point in the code where the WithThisCodeLocation call is being made.
 // This can be helpful, for example, when the actual code invocation which starts
 // a transaction or other kind of trace is originating from a framework or other
 // centralized location, but you want to report this point in your application
 // for the Code Level Metrics associated with this trace.
-//
 func WithThisCodeLocation() TraceOption {
 	return WithCodeLocation(ThisCodeLocation())
 }
 
-//
 // WithThisCodeLocation is equivalent to the standalone WithThisCodeLocation
 // TraceOption, but uses the cached value in its receiver to ensure that the
 // overhead of computing the code location is only performed the first time
 // it is invoked for each instance of the receiver variable.
-//
 func (c *CachedCodeLocation) WithThisCodeLocation() TraceOption {
 	return WithCodeLocation(c.ThisCodeLocation())
 }
 
-//
 // FunctionLocation is like ThisCodeLocation, but takes as its parameter
 // a function value. It will report the code-level metrics information for
 // that function if that is possible to do. It returns an error if it
@@ -266,7 +231,6 @@ func (c *CachedCodeLocation) WithThisCodeLocation() TraceOption {
 //
 // If multiple functions are passed, each will be attempted until one is
 // found for which we can successfully find a code location.
-//
 func FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
 	for _, function := range functions {
 		if function == nil {
@@ -290,7 +254,6 @@ func FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
 	return nil, errors.New("could not find code location for function")
 }
 
-//
 // FunctionLocation works identically to the stand-alone FunctionLocation function,
 // in that it determines the souce code location of the named function, returning
 // a pointer to a CodeLocation value which represents that location, or an error value
@@ -303,7 +266,6 @@ func FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
 // This is thread-safe and is intended to allow the same code to run in multiple
 // concurrent goroutines without needlessly recalculating the location of the
 // function value.
-//
 func (c *CachedCodeLocation) FunctionLocation(functions ...interface{}) (*CodeLocation, error) {
 	if c == nil || !c.IsValid() {
 		// The cache is bogus so don't use it
@@ -316,12 +278,10 @@ func (c *CachedCodeLocation) FunctionLocation(functions ...interface{}) (*CodeLo
 	return c.location, c.err
 }
 
-//
 // WithFunctionLocation is like WithThisCodeLocation, but uses the
 // function value(s) passed as the location to report. Unlike FunctionLocation,
 // this does not report errors explicitly. If it is unable to use the
 // value passed to find a code location, it will do nothing.
-//
 func WithFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		loc, err := FunctionLocation(functions...)
@@ -331,7 +291,6 @@ func WithFunctionLocation(functions ...interface{}) TraceOption {
 	}
 }
 
-//
 // WithFunctionLocation works like the standalone function WithFunctionLocation,
 // but it stores a copy of the function's location in its receiver the first time
 // it is used. Subsequently that cached value will be used instead of computing
@@ -340,7 +299,6 @@ func WithFunctionLocation(functions ...interface{}) TraceOption {
 // This is thread-safe and is intended to allow the same code to run in multiple
 // concurrent goroutines without needlessly recalculating the location of the
 // function value.
-//
 func (c *CachedCodeLocation) WithFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		loc, err := c.FunctionLocation(functions...)
@@ -350,7 +308,6 @@ func (c *CachedCodeLocation) WithFunctionLocation(functions ...interface{}) Trac
 	}
 }
 
-//
 // WithDefaultFunctionLocation is like WithFunctionLocation but will only
 // evaluate the location of the function if nothing that came before it
 // set a code location first. This is useful, for example, if you want to
@@ -358,7 +315,6 @@ func (c *CachedCodeLocation) WithFunctionLocation(functions ...interface{}) Trac
 // of resolving that location until it's clear that you will need to. This
 // should appear at the end of a TraceOption list (or at least after any
 // other options that want to specify the code location).
-//
 func WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		if o.LocationOverride == nil {
@@ -367,7 +323,6 @@ func WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 	}
 }
 
-//
 // WithDefaultFunctionLocation works like the standalone WithDefaultFunctionLocation function,
 // except that it takes a CachedCodeLocation receiver which will
 // be used to cache the source code location of the function value.
@@ -388,7 +343,6 @@ func WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 // in the Err member of the CachedCodeLocation variable.
 // In this case, no additional attempts are guaranteed to be made on subsequent executions
 // to determine the code location.
-//
 func (c *CachedCodeLocation) WithDefaultFunctionLocation(functions ...interface{}) TraceOption {
 	return func(o *traceOptSet) {
 		if o.LocationOverride == nil {
@@ -400,11 +354,9 @@ func (c *CachedCodeLocation) WithDefaultFunctionLocation(functions ...interface{
 	}
 }
 
-//
 // withPreparedOptions copies the option settings from a structure
 // which was already set up (probably by executing a set of TraceOption
 // functions already).
-//
 func withPreparedOptions(newOptions *traceOptSet) TraceOption {
 	return func(o *traceOptSet) {
 		if newOptions != nil {
@@ -426,7 +378,6 @@ func withPreparedOptions(newOptions *traceOptSet) TraceOption {
 	}
 }
 
-//
 // ThisCodeLocation returns a CodeLocation value referring to
 // the place in your code that it was invoked.
 //
@@ -435,7 +386,6 @@ func withPreparedOptions(newOptions *traceOptSet) TraceOption {
 // of function calls to skip. For example, ThisCodeLocation(1) will return
 // the CodeLocation of the place the current function was called from
 // (i.e., the caller of the caller of ThisCodeLocation).
-//
 func ThisCodeLocation(skipLevels ...int) *CodeLocation {
 	skip := 0
 	if len(skipLevels) > 0 {
@@ -513,7 +463,6 @@ func thisCodeLocationCommon(skip int, skipInternal bool) *CodeLocation {
 	return &loc
 }
 
-//
 // ThisCodeLocation works identically to the stand-alone ThisCodeLocation function,
 // in that it determines the souce code location from whence it was called, returning
 // a pointer to a CodeLocation value which represents that location. However,
@@ -525,7 +474,6 @@ func thisCodeLocationCommon(skip int, skipInternal bool) *CodeLocation {
 // This is thread-safe and is intended to allow the same code to run in multiple
 // concurrent goroutines without needlessly recalculating the location of the
 // caller.
-//
 func (c *CachedCodeLocation) ThisCodeLocation(skiplevels ...int) *CodeLocation {
 	var skip int
 
@@ -552,12 +500,10 @@ func removeCodeLevelMetrics(remAttr func(string)) {
 	remAttr(AttributeCodeFunction)
 }
 
-//
 // Evaluate a set of TraceOptions, returning a pointer to a new traceOptSet struct
 // initialized from those options. To avoid any unnecessary performance penalties,
 // if we encounter an option that suppresses CLM collection, we stop without evaluating
 // anything further.
-//
 func resolveCLMTraceOptions(options []TraceOption) *traceOptSet {
 	optSet := traceOptSet{}
 	for _, o := range options {
