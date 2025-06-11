@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/logcontext-v2/logWriter
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/newrelic/go-agent/v3 v3.39.0
