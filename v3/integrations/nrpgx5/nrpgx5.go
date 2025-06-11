@@ -40,12 +40,12 @@ package nrpgx5
 
 import (
 	"context"
-	"strconv"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/sqlparse"
+	"strconv"
+	"strings"
 )
 
 func init() {
@@ -223,4 +223,27 @@ func (t *Tracer) TracePrepareStart(ctx context.Context, conn *pgx.Conn, data pgx
 
 // TracePrepareEnd implements pgx.PrepareTracer.
 func (t *Tracer) TracePrepareEnd(ctx context.Context, conn *pgx.Conn, data pgx.TracePrepareEndData) {
+}
+
+// TraceCopyFromStart is called at the beginning of CopyFrom calls. The
+// returned context is used for the rest of the call and will be passed to
+// TraceCopyFromEnd.
+func (t *Tracer) TraceCopyFromStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceCopyFromStartData) context.Context {
+	segment := t.BaseSegment
+	segment.StartTime = newrelic.FromContext(ctx).StartSegmentNow()
+
+	segment.Operation = "copy_from"
+	segment.Collection = strings.ReplaceAll(data.TableName.Sanitize(), "\"", "")
+	segment.AddAttribute("db.columnNames", data.ColumnNames)
+
+	return context.WithValue(ctx, querySegmentKey, &segment)
+}
+
+// TraceCopyFromEnd is called at the end of CopyFrom calls.
+func (t *Tracer) TraceCopyFromEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceCopyFromEndData) {
+	segment, ok := ctx.Value(querySegmentKey).(*newrelic.DatastoreSegment)
+	if !ok {
+		return
+	}
+	segment.End()
 }
