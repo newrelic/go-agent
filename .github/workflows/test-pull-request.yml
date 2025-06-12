@@ -30,7 +30,7 @@ jobs:
   setup-core-matrix:
     runs-on: ubuntu-latest
     outputs:
-      INTEGRATION_MATRIX: ${{ steps.setmatrix.outputs.CORE_MATRIX }}
+      CORE_MATRIX: ${{ steps.setmatrix.outputs.CORE_MATRIX }}
     steps:
       - name: Checkout go-agent code
         uses: actions/checkout@v4
