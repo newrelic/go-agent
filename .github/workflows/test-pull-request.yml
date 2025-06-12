@@ -141,7 +141,12 @@ jobs:
       - name: Run Integration tests
         working-directory: ./go-agent
         run: |
-          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
+          docker exec -e TEST=${{ matrix.integration-test }} -e COVERAGE=1 nr-go make integration-test
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: go-agent/v3/integrations/${{ matrix.integration-test }}/coverage.txt
       - name: Stop services
         working-directory: ./go-agent
         run: |

@@ -85,7 +85,7 @@ core-suite:
 
 .PHONY: integration-test
 integration-test:
-	@echo; echo "# TEST=$(TEST)"; \
+	@echo; echo "# TEST=$(TEST), COVERAGE=$(COVERAGE)"; \
 	cd $(MODULE_DIR)/integrations/$(TEST); \
 	WD=$(shell pwd); \
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$${WD}/${MODULE_DIR}";\
@@ -94,7 +94,11 @@ integration-test:
 	else \
 		$(GO) mod tidy; \
 	fi; \
-	$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+	if [ "$(COVERAGE)" == "1" ]; then \
+		$(GO) test -coverprofile=coverage.txt -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+	else \
+		$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+	fi; \
 	$(GO) vet ./... || exit 1; \
 	echo "# TEST=$(TEST)"; \
 	cd $(BASEDIR);
@@ -102,7 +106,7 @@ integration-test:
 .PHONY: integration-suite
 integration-suite:
 	@for TEST in $(GO_INTEGRATION_TESTS); do \
-		$(MAKE) integration-test TEST=$${TEST}; \
+		$(MAKE) integration-test TEST=$${TEST} COVERAGE=$(COVERAGE); \
 	done
 
 test-services-start:
