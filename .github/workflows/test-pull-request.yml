@@ -39,7 +39,7 @@ jobs:
       - id: setmatrix
         working-directory: ./go-agent
         run: |
-          INTEGRATION_MATRIX=$(make core-to-json)
+          CORE_MATRIX=$(make core-to-json)
           echo "CORE_MATRIX=$CORE_MATRIX" >> $GITHUB_OUTPUT
 
   gofmt-check:
