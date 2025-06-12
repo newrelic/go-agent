@@ -27,6 +27,21 @@ jobs:
           INTEGRATION_MATRIX=$(make integration-to-json)
           echo "INTEGRATION_MATRIX=$INTEGRATION_MATRIX" >> $GITHUB_OUTPUT
 
+  setup-core-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      INTEGRATION_MATRIX: ${{ steps.setmatrix.outputs.CORE_MATRIX }}
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - id: setmatrix
+        working-directory: ./go-agent
+        run: |
+          INTEGRATION_MATRIX=$(make core-to-json)
+          echo "CORE_MATRIX=$CORE_MATRIX" >> $GITHUB_OUTPUT
+
   gofmt-check:
     runs-on: ubuntu-latest
     strategy:
@@ -85,11 +100,12 @@ jobs:
         shell: bash
 
   core-tests:
+    needs: setup-core-matrix
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         go-version: [1.23.0, 1.24.0, latest]
-        core-test: [newrelic, internal]
+        core-test: ${{ fromJson(needs.setup-core-matrix.outputs.CORE_MATRIX) }}
         runner: [ubuntu-latest, ubuntu-24.04-arm]
     continue-on-error: true
     steps:
