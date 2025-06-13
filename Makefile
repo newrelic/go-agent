@@ -25,28 +25,6 @@ BENCHTIME := 1ms
 include integration-tests.mk
 include core-tests.mk
 
-.PHONY: integration-to-json
-integration-to-json:
-	@TESTS="$(shell echo $(GO_INTEGRATION_TESTS))"; \
-		echo $$TESTS | jq -R 'split(" ")' | sed "s/ //g" | tr -d '\n';
-
-.PHONY: core-to-json
-core-to-json:
-	@TESTS="$(shell echo $(GO_CORE_TESTS))"; \
-		echo $$TESTS | jq -R 'split(" ")' | sed "s/ //g" | tr -d '\n';
-
-.PHONY: info
-info:
-	@echo
-	@echo "$$(go version)"
-	@echo
-	@echo "Integration Tests:"
-	@echo $(GO_INTEGRATION_TESTS)
-	@echo
-	@echo "Core Tests:"
-	@echo $(GO_CORE_TESTS)
-	@echo
-
 # Test targets
 .PHONY: tidy
 tidy:
