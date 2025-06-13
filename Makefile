@@ -30,10 +30,6 @@ include core-tests.mk
 tidy:
 	@cd $(MODULE_DIR); $(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; $(GO) mod tidy
 
-.PHONY: format
-format: tidy
-	@cd $(MODULE_DIR); $(GO) fmt ./...
-
 .PHONY: core-test
 core-test:
 	@echo; echo "# TEST=$(TEST), COVERAGE=$(COVERAGE)"; \
@@ -66,9 +62,9 @@ integration-test:
 		$(GO) mod tidy; \
 	fi; \
 	if [ "$(COVERAGE)" == "1" ]; then \
-		$(GO) test -coverprofile=coverage.txt -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+		$(GO) test -coverprofile=coverage.txt -race -benchtime=$(BENCHTIME) -bench=. ./ || exit 1; \
 	else \
-		$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./... || exit 1; \
+		$(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./ || exit 1; \
 	fi; \
 	$(GO) vet ./... || exit 1; \
 	echo "# TEST=$(TEST)"; \
