@@ -48,11 +48,6 @@ type Config struct {
 	// https://docs.newrelic.com/docs/using-new-relic/user-interface-functions/organize-your-data/labels-categories-organize-apps-monitors
 	Labels map[string]string
 
-	// CustomAttributes A hash with key/value pairs to add as custom attributes to all log events forwarded to New Relic.
-	//
-	// https://docs.newrelic.com/docs/TODO
-	CustomAttributes map[string]string
-
 	// HighSecurity guarantees that certain agent settings can not be made
 	// more permissive.  This setting must match the corresponding account
 	// setting in the New Relic UI.
@@ -72,6 +67,11 @@ type Config struct {
 	//
 	// https://docs.newrelic.com/docs/insights/new-relic-insights/adding-querying-data/inserting-custom-events-new-relic-apm-agents
 	CustomInsightsEvents struct {
+		// CustomAttributesEnabled Toggles whether we send our custom attributes with forwarded logs.
+		CustomAttributesEnabled bool
+		// CustomAttributes A hash with key/value pairs to add as custom attributes to all log events forwarded to New Relic.
+		// https://docs.newrelic.com/docs/TODO
+		CustomAttributesValues map[string]string
 		// Enabled controls whether RecordCustomEvent will collect
 		// custom analytics events.  High security mode overrides this
 		// setting.
@@ -583,10 +583,6 @@ type ApplicationLogging struct {
 			// List of label types to exclude from forwarded logs.
 			Exclude []string
 		}
-		CustomAttributes struct {
-			// Toggles whether we send our custom attributes with forwarded logs.
-			Enabled bool
-		}
 	}
 	Metrics struct {
 		// Toggles whether the agent gathers the the user facing Logging/lines and Logging/lines/{SEVERITY}
@@ -640,7 +636,8 @@ func defaultConfig() Config {
 
 	c.Enabled = true
 	c.Labels = make(map[string]string)
-	c.CustomAttributes = make(map[string]string)
+	c.CustomInsightsEvents.CustomAttributesEnabled = false
+	c.CustomInsightsEvents.CustomAttributesValues = make(map[string]string)
 	c.CustomInsightsEvents.Enabled = true
 	c.CustomInsightsEvents.MaxSamplesStored = internal.MaxCustomEvents
 	c.TransactionEvents.Enabled = true
@@ -679,7 +676,6 @@ func defaultConfig() Config {
 	c.ApplicationLogging.Forwarding.MaxSamplesStored = internal.MaxLogEvents
 	c.ApplicationLogging.Forwarding.Labels.Enabled = false
 	c.ApplicationLogging.Forwarding.Labels.Exclude = nil
-	c.ApplicationLogging.Forwarding.CustomAttributes.Enabled = false
 	c.ApplicationLogging.Metrics.Enabled = true
 	c.ApplicationLogging.LocalDecorating.Enabled = false
 	c.ApplicationLogging.ZapLogger.AttributesFrontloaded = true
@@ -838,10 +834,10 @@ func copyConfigReferenceFields(cfg Config) Config {
 			cp.Labels[key] = val
 		}
 	}
-	if nil != cfg.CustomAttributes {
-		cp.CustomAttributes = make(map[string]string, len(cfg.CustomAttributes))
-		for key, val := range cfg.CustomAttributes {
-			cp.CustomAttributes[key] = val
+	if cfg.CustomInsightsEvents.CustomAttributesValues != nil {
+		cp.CustomInsightsEvents.CustomAttributesValues = make(map[string]string, len(cfg.CustomInsightsEvents.CustomAttributesValues))
+		for key, val := range cfg.CustomInsightsEvents.CustomAttributesValues {
+			cp.CustomInsightsEvents.CustomAttributesValues[key] = val
 		}
 	}
 	if cfg.ErrorCollector.IgnoreStatusCodes != nil {

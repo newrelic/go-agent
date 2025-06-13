@@ -389,22 +389,22 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
-// ConfigAppLogForwardingCustomAttributesEnabled enables or disables sending our application
-// custom attributes (which are configured via ConfigCustomAttributes) with forwarded log events.
+// ConfigCustomInsightsCustomAttributesEnabled enables or disables sending our application
+// custom attributes (which are configured via ConfigCustomInsightsCustomAttributesValues) with forwarded log events.
 // Defaults: enabled=false
 // This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED environment variable.
-func ConfigAppLogForwardingCustomAttributesEnabled(enabled bool) ConfigOption {
+func ConfigCustomInsightsCustomAttributesEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ApplicationLogging.Forwarding.CustomAttributes.Enabled = enabled
+		cfg.CustomInsightsEvents.CustomAttributesEnabled = enabled
 	}
 }
 
-// ConfigCustomAttributes configures a set of custom attributes to add as attributes to all log events forwarded to New Relic.
+// ConfigCustomInsightsCustomAttributesValues configures a set of custom attributes to add as attributes to all log events forwarded to New Relic.
 // This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES environment variable.
-func ConfigCustomAttributes(customAttributes map[string]string) ConfigOption {
+func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]string) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomAttributes = make(map[string]string)
-		maps.Copy(cfg.CustomAttributes, customAttributes)
+		cfg.CustomInsightsEvents.CustomAttributesValues = make(map[string]string)
+		maps.Copy(cfg.CustomInsightsEvents.CustomAttributesValues, customAttributes)
 	}
 }
 
@@ -518,7 +518,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.ApplicationLogging.Enabled, "NEW_RELIC_APPLICATION_LOGGING_ENABLED")
 		assignBool(&cfg.ApplicationLogging.Forwarding.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED")
 		assignBool(&cfg.ApplicationLogging.Forwarding.Labels.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED")
-		assignBool(&cfg.ApplicationLogging.Forwarding.CustomAttributes.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 		assignStringSlice(&cfg.ApplicationLogging.Forwarding.Labels.Exclude, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE", ",")
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
@@ -526,6 +525,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
 		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
+		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
@@ -541,9 +541,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			customAttributes, err := getLabels(getenv("NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES"))
 			if err != nil {
 				cfg.Error = fmt.Errorf("invalid NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES value: %s: %v", env, err)
-				cfg.CustomAttributes = nil
+				cfg.CustomInsightsEvents.CustomAttributesValues = nil
 			} else if len(customAttributes) > 0 {
-				cfg.CustomAttributes = customAttributes
+				cfg.CustomInsightsEvents.CustomAttributesValues = customAttributes
 			}
 		}
 

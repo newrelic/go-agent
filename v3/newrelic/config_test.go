@@ -85,7 +85,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	cfg.AppName = "my appname"
 	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels["zip"] = "zap"
-	cfg.CustomAttributes["fiz"] = "baz"
+	cfg.CustomInsightsEvents.CustomAttributesValues["fiz"] = "baz"
 	cfg.ErrorCollector.IgnoreStatusCodes = append(cfg.ErrorCollector.IgnoreStatusCodes, 405)
 	cfg.ErrorCollector.ExpectStatusCodes = append(cfg.ErrorCollector.ExpectStatusCodes, 500)
 	cfg.Attributes.Include = append(cfg.Attributes.Include, "1")
@@ -145,9 +145,6 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"ApplicationLogging": {
 				"Enabled": true,
 				"Forwarding": {
-					"CustomAttributes": {
-						"Enabled": false
-					},
 					"Enabled": true,
 					"Labels": {
 					    "Enabled": false,
@@ -172,8 +169,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomAttributes":{"fiz":"baz"},
 			"CustomInsightsEvents":{
+				"CustomAttributesEnabled":false,
+				"CustomAttributesValues":{"fiz":"baz"},
 				"Enabled":true,
 				"MaxSamplesStored":%d
 			},
@@ -335,7 +333,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	cfg := defaultConfig()
 	cfg.AppName = "my appname"
-	cfg.CustomAttributes = nil
+	cfg.CustomInsightsEvents.CustomAttributesValues = nil
 	cfg.License = "0123456789012345678901234567890123456789"
 	cfg.Labels = nil
 	cfg.ErrorCollector.IgnoreStatusCodes = nil
@@ -362,9 +360,6 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"ApplicationLogging": {
 				"Enabled": true,
 				"Forwarding": {
-					"CustomAttributes": {
-						"Enabled": false
-					},
 					"Enabled": true,
 					"Labels": {
 					    "Enabled": false,
@@ -393,8 +388,9 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
-			"CustomAttributes": null,
 			"CustomInsightsEvents":{
+				"CustomAttributesEnabled": false,
+				"CustomAttributesValues": null,
 				"Enabled":true,
 				"MaxSamplesStored":%d
 			},
