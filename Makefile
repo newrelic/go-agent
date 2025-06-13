@@ -30,14 +30,6 @@ include core-tests.mk
 tidy:
 	@cd $(MODULE_DIR); $(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; $(GO) mod tidy
 
-.PHONY: bench
-bench: tidy
-	@cd $(MODULE_DIR); $(GO) test -race -benchtime=$(BENCHTIME) -bench=. ./...
-
-.PHONY: test
-test: tidy
-	@cd $(MODULE_DIR); $(GO) test ./...
-
 .PHONY: vet
 vet: tidy
 	@cd $(MODULE_DIR); $(GO) vet ./...
