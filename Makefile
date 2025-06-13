@@ -30,10 +30,6 @@ include core-tests.mk
 tidy:
 	@cd $(MODULE_DIR); $(GO) mod edit -replace github.com/newrelic/go-agent/v3="$(BASEDIR)/$(MODULE_DIR)"; $(GO) mod tidy
 
-.PHONY: vet
-vet: tidy
-	@cd $(MODULE_DIR); $(GO) vet ./...
-
 .PHONY: format
 format: tidy
 	@cd $(MODULE_DIR); $(GO) fmt ./...
