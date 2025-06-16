@@ -184,7 +184,7 @@ At the root directory is a Makefile that contains several helpful targets for bu
 
 The development workflow described in this section relies heavily Docker. The containers that are generated will create a [volume](https://docs.docker.com/engine/storage/volumes/) mounted to the current directory on the local host, allowing the modification of code and tests on the local host to be propagated automatically to the running container without having to re-build or copy manually.
 
-#### Targets
+### Targets
 
 | Target | Description |
 |--------|-------------|
@@ -200,7 +200,7 @@ The development workflow described in this section relies heavily Docker. The co
 | `tidy` | Replace github.com New Relic Go Agent Module with the local copy; run `go mod tidy`. |
 | `info` | Display information about the running Go environment, integration tests, and core tests. |
 
-#### Usage
+### Usage
 
 Build and run the agent container and database container(s). Execute a shell into the agent container environment:
 ```
@@ -243,7 +243,7 @@ Run all integration tests:
 make integration-suite <COVERAGE=1>
 ```
 
-#### Example (dev-shell)
+### Example (dev-shell)
 
 An example development workflow where the developer is testing changes to `utilization` functionality and the `nrpgx5` integration might look like the following:
 
@@ -299,7 +299,7 @@ docker compose --profile dev stop
 local:go-agent user$
 ```
 
-#### Example (test-services)
+### Example (test-services)
 
 The `test-services-*` targets are designed to allow developers to run tests without needing to execute a shell into the agent container. Re-using the scenario described above in `dev-shell`, this workflow might look like the following:
 
@@ -357,7 +357,7 @@ local:go-agent user$ make test-services-stop PROFILE=nrpgx5
 local:go-agent user$
 ```
 
-#### Adding new tests or moving existing tests
+### Adding new tests or moving existing tests
 
 When adding or moving tests, any changes must be reflected in the corresponding `integration-tests.mk` / `core-tests.mk` files.
 
@@ -365,7 +365,7 @@ When adding or moving tests, any changes must be reflected in the corresponding 
 
 `integration-tests.mk` contains all tests under the `v3/integrations` directory and subdirectories.
 
-#### Development with different Go Versions
+### Development with different Go Versions
 
 Docker Compose uses the latest Go Version for the agent container by default. At the time of writing, this is `1.24`. This value can be changed by exporting a `GO_VERSION` environment variable or top-level `.env` file containing the `GO_VERSION` definition.
 
