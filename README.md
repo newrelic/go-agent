@@ -170,7 +170,7 @@ If you are already using another open source solution to gather telemetry data, 
 
 ## Go Agent Development
 
-If you wish to contribute to the development of the Go Agent, there are a set of workflows designed to aid the local development experience.
+This section describes the suggested workflow for developers contributing to the Go Agent.
 
 ### The Makefile
 
