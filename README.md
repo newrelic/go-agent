@@ -365,6 +365,16 @@ When adding or moving tests, any changes must be reflected in the corresponding 
 
 `integration-tests.mk` contains all tests under the `v3/integrations` directory and subdirectories.
 
+#### Development with different Go Versions
+
+Docker Compose uses the latest Go Version for the agent container by default. At the time of writing, this is `1.24`. This value can be changed by exporting a `GO_VERSION` environment variable or top-level `.env` file containing the `GO_VERSION` definition.
+
+Example using Go 1.23:
+```
+export GO_VERSION=1.23
+```
+Then start docker services as normal.
+
 ## Support
                                                                             n
 Should you need assistance with New Relic products, you are in good hands with several support channels.  
