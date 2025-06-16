@@ -376,7 +376,6 @@ export GO_VERSION=1.23
 Then start docker services as normal.
 
 ## Support
-                                                                            n
 Should you need assistance with New Relic products, you are in good hands with several support channels.  
 
 If the issue has been confirmed as a bug or is a Feature request, please file a Github issue.
