@@ -77,17 +77,17 @@ integration-suite:
 	done
 
 test-services-start:
-	@if [ ! -z $(PACKAGE) ]; then \
-		docker compose --profile test --profile $(PACKAGE) pull $(SERVICES); \
-		docker compose --profile test --profile $(PACKAGE) up --wait --remove-orphans -d $(SERVICES); \
+	@if [ ! -z $(PROFILE) ]; then \
+		docker compose --profile test --profile $(PROFILE) pull $(SERVICES); \
+		docker compose --profile test --profile $(PROFILE) up --wait --remove-orphans -d $(SERVICES); \
 	else \
 		docker compose --profile test pull $(SERVICES); \
 		docker compose --profile test up --wait --remove-orphans -d $(SERVICES); \
 	fi;
 
 test-services-stop:
-	@if [ ! -z $(PACKAGE) ]; then \
-		docker compose --profile test --profile $(PACKAGE) stop; \
+	@if [ ! -z $(PROFILE) ]; then \
+		docker compose --profile test --profile $(PROFILE) stop; \
 	else \
 		docker compose --profile test stop; \
 	fi;

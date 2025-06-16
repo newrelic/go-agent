@@ -117,7 +117,7 @@ jobs:
         working-directory: ./go-agent
         env:
           GO_VERSION: ${{ matrix.go-version }}
-          PACKAGE: ${{ matrix.core-test }}
+          PROFILE: ${{ matrix.core-test }}
         run: |
           make test-services-start
       - name: Run core tests
@@ -151,7 +151,7 @@ jobs:
         working-directory: ./go-agent
         env:
           GO_VERSION: ${{ matrix.go-version }}
-          PACKAGE: ${{ matrix.integration-test }}
+          PROFILE: ${{ matrix.integration-test }}
         run: |
           make test-services-start
       - name: Run Integration tests
@@ -185,7 +185,7 @@ jobs:
         working-directory: ./go-agent
         env:
           GO_VERSION: ${{ matrix.go-version }}
-          PACKAGE: ${{ matrix.integration-test }}
+          PROFILE: ${{ matrix.integration-test }}
         run: |
           make test-services-start
       - name: Run Integration tests
