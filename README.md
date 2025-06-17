@@ -188,7 +188,7 @@ The development workflow described in this section relies heavily Docker. The co
 
 | Target | Description |
 |--------|-------------|
-| `dev-image` | Build the dev image(s) specified under the `docker compose` `dev` profile. |
+| `devenv-image` | Build the dev image(s) specified under the `docker compose` `dev` profile. |
 | `dev-shell` | Run `docker compose` with the `dev` profile. Open a shell in the running container. |
 | `dev-stop`  | Terminate the running containers under the `docker compose` `dev` profile. |
 | `test-services-start` | Spin up agent and other containers. |
