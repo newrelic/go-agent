@@ -7,6 +7,7 @@
 GO_CORE_TESTS=$${CORE_TESTS:-\
 	newrelic \
 	newrelic/integrationsupport \
+	newrelic/sqlparse \
 	internal \
 	internal/awssupport \
 	internal/cat \
