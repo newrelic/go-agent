@@ -6,6 +6,7 @@
 # Core Tests on 3 most recent major Go versions
 GO_CORE_TESTS=$${CORE_TESTS:-\
 	newrelic \
+	newrelic/sqlparse \
 	internal \
 	internal/awssupport \
 	internal/cat \
