@@ -214,6 +214,8 @@ make dev-stop
 
 Spin up services for testing. Does not create a shell into the container.
 May specify an optional `PROFILE` argument to start another container not covered by the default `test` profile:
+*Note*: When running the `integration-suite` against `test-services` containers, all accessory `PROFILE`s must be specified or the tests will fail.
+This may require editing the docker-compose.yml file. It is recommended to instead use `dev-shell` for this kind of use case, as the `dev` profile will start every integration container by default.
 ```
 make test-services-start <PROFILE=profile-name>
 ```
