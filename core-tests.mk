@@ -6,12 +6,12 @@
 # Core Tests on 3 most recent major Go versions
 GO_CORE_TESTS=$${CORE_TESTS:-\
 	newrelic \
+	newrelic/integrationsupport \
 	internal \
 	internal/awssupport \
 	internal/cat \
 	internal/com_newrelic_trace_v1 \
 	internal/crossagent \
-	internal/integrationsupport \
 	internal/jsonx \
 	internal/logcontext \
 	internal/logger \
