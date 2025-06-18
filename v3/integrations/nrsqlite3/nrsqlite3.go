@@ -96,7 +96,7 @@ var (
 
 func init() {
 	sql.Register("nrsqlite3", InstrumentSQLDriver(&sqlite3.SQLiteDriver{}))
-	internal.TrackUsage("integration", "driver", "sqlite3")
+	internal.TrackUsage("integrsation", "driver", "sqlite3")
 }
 
 // InstrumentSQLDriver wraps an sqlite3.SQLiteDriver to add instrumentation.
