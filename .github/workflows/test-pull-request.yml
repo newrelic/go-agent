@@ -1,0 +1,199 @@
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: test-pull-request
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+  pull_request:
+
+jobs:
+  setup-integration-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      INTEGRATION_MATRIX: ${{ steps.setmatrix.outputs.INTEGRATION_MATRIX }}
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - id: setmatrix
+        working-directory: ./go-agent
+        run: |
+          INTEGRATION_MATRIX=$(make integration-to-json)
+          echo "INTEGRATION_MATRIX=$INTEGRATION_MATRIX" >> $GITHUB_OUTPUT
+
+  setup-core-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      CORE_MATRIX: ${{ steps.setmatrix.outputs.CORE_MATRIX }}
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - id: setmatrix
+        working-directory: ./go-agent
+        run: |
+          CORE_MATRIX=$(make core-to-json)
+          echo "CORE_MATRIX=$CORE_MATRIX" >> $GITHUB_OUTPUT
+
+  gofmt-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, stable]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{matrix.go-version}}
+          cache: false
+      - name: Display go version
+        run: |
+          go version
+      - name: Run gofmt
+        working-directory: ./go-agent/v3
+        run: |
+          GOFMT_REPORTED_FILES="$(gofmt -l -e ./)"
+          if [ ! -z "$GOFMT_REPORTED_FILES" ]; then
+            gofmt -d -e ./
+            echo "### gofmt violations found in $(echo "$GOFMT_REPORTED_FILES" | wc -l) files" >> $GITHUB_STEP_SUMMARY
+            echo "$GOFMT_REPORTED_FILES" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+  govet-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, stable]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: false
+      - name: Run go mod tidy
+        working-directory: ./go-agent/v3
+        run: |
+          go mod tidy
+        shell: bash
+      - name: Run go vet
+        working-directory: ./go-agent/v3
+        run: |
+          go vet ./...
+        shell: bash
+
+  core-tests:
+    needs: setup-core-matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        core-test: ${{ fromJson(needs.setup-core-matrix.outputs.CORE_MATRIX) }}
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+          PROFILE: ${{ matrix.core-test }}
+        run: |
+          make test-services-start
+      - name: Run core tests
+        working-directory: ./go-agent
+        run: |
+          docker exec -e TEST=${{ matrix.core-test }} -e COVERAGE=1 nr-go make core-test 
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: go-agent/v3/${{ matrix.core-test }}/coverage.txt
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
+
+  integration-test:
+    needs: setup-integration-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+          PROFILE: ${{ matrix.integration-test }}
+        run: |
+          make test-services-start
+      - name: Run Integration tests
+        working-directory: ./go-agent
+        run: |
+          docker exec -e TEST=${{ matrix.integration-test }} -e COVERAGE=1 nr-go make integration-test
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: go-agent/v3/integrations/${{ matrix.integration-test }}/coverage.txt
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
+
+  integration-test-arm64:
+    needs: setup-integration-matrix
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        go-version: [1.23.0, 1.24.0, latest]
+        integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
+    continue-on-error: true
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          path: go-agent
+      - name: Start test services
+        working-directory: ./go-agent
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
+          PROFILE: ${{ matrix.integration-test }}
+        run: |
+          make test-services-start
+      - name: Run Integration tests
+        working-directory: ./go-agent
+        run: |
+          docker exec -e TEST=${{ matrix.integration-test }} nr-go make integration-test
+      - name: Stop services
+        working-directory: ./go-agent
+        run: |
+          make test-services-stop
+
