@@ -1,0 +1,55 @@
+#
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+services:
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+       POSTGRES_PASSWORD: root
+       POSTGRES_USER: postgres
+    profiles: ["dev", "nrpgx5"]
+
+  go:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
+
+    volumes:
+       - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    entrypoint: tail
+    command: -f /dev/null
+    container_name: nr-go
+    profiles: ["test", "nrpgx5"]
+
+  devenv:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
+
+    volumes:
+       - ${PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    stdin_open: true
+    tty: true
+    profiles: ["dev"]
