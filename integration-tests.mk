@@ -14,6 +14,7 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	logcontext-v2/nrzerolog \
 	logcontext-v2/zerologWriter \
   	nramqp \
+  	nrawsbedrock \
 	nrawssdk-v1 \
 	nrawssdk-v2 \
 	nrb3 \
@@ -48,6 +49,7 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrredis-v8 \
 	nrredis-v9 \
 	nrsarama \
+	nrsecurityagent \
 	nrslog \
 	nrsnowflake \
 	nrsqlite3 \
