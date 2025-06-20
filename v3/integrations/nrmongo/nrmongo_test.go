@@ -231,7 +231,25 @@ func TestCollName(t *testing.T) {
 			t.Errorf("Wrong collection name: %s", result)
 		}
 	}
+}
 
+func TestGetJsonQuery(t *testing.T) {
+	// Test with a valid BSON document
+	doc := bson.D{{Key: "foo", Value: "bar"}}
+	result := getJsonQuery(doc)
+	if len(result) == 0 {
+		t.Error("Expected non-empty JSON for valid BSON document")
+	}
+
+	// Test with a value that cannot be marshaled
+	type invalidType struct {
+		Ch chan int
+	}
+	invalid := invalidType{Ch: make(chan int)}
+	result = getJsonQuery(invalid)
+	if string(result) != "" {
+		t.Error("Expected empty JSON for value that cannot be marshaled")
+	}
 }
 
 func createTestApp() integrationsupport.ExpectApp {
