@@ -28,10 +28,10 @@ var (
 		ConnectionID: connID,
 	}
 	finishedEvent = event.CommandFinishedEvent{
-		DurationNanos: 5,
-		CommandName:   "name",
-		RequestID:     reqID,
-		ConnectionID:  connID,
+		Duration:     5,
+		CommandName:  "name",
+		RequestID:    reqID,
+		ConnectionID: connID,
 	}
 	se = &event.CommandSucceededEvent{
 		CommandFinishedEvent: finishedEvent,
