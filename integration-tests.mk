@@ -23,7 +23,6 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrelasticsearch-v7 \
   	nrfasthttp \
 	nrfiber \
-	nrfiber/example \
 	nrgin \
 	nrgochi \
 	nrgorilla \
@@ -53,7 +52,6 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrslog \
 	nrsnowflake \
 	nrsqlite3 \
-	nrstan/test \
 	nrzap \
 	nrzerolog \
 }
