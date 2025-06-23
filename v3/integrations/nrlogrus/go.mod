@@ -14,4 +14,4 @@ require (
 
 replace github.com/newrelic/go-agent/v3 => ../..
 
-replace github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus => ../../logcontext-v2/nrlogrus
+replace github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus => ../logcontext-v2/nrlogrus
