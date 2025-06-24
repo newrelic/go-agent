@@ -123,6 +123,12 @@ func TestMonitor(t *testing.T) {
 	if len(nrMonitor.segmentMap) != 1 {
 		t.Errorf("Wrong number of segments, expected 1 but got %d", len(nrMonitor.segmentMap))
 	}
+	seg, ok := nrMonitor.segmentMap[reqID]
+	if !ok {
+		t.Error("Segment not found in map")
+	}
+	confirmSegValues(t, seg)
+
 	nrMonitor.succeeded(ctx, se)
 	if !succeeded {
 		t.Error("Original monitor not succeeded")
@@ -186,9 +192,15 @@ func TestMonitor(t *testing.T) {
 	if len(nrMonitor.segmentMap) != 1 {
 		t.Errorf("Wrong number of segments, expected 1 but got %d", len(nrMonitor.segmentMap))
 	}
+	seg, ok = nrMonitor.segmentMap[reqID]
+	if !ok {
+		t.Error("Segment not found in map")
+	}
+	confirmSegValues(t, seg)
+
 	nrMonitor.failed(ctx, fe)
 	if !failed {
-		t.Error("Original monitor not succeeded")
+		t.Error("failed not called")
 	}
 	if len(nrMonitor.segmentMap) != 0 {
 		t.Errorf("Wrong number of segments, expected 0 but got %d", len(nrMonitor.segmentMap))
@@ -249,6 +261,39 @@ func TestGetJsonQuery(t *testing.T) {
 	result = getJsonQuery(invalid)
 	if string(result) != "" {
 		t.Error("Expected empty JSON for value that cannot be marshaled")
+	}
+}
+
+func confirmSegValues(t *testing.T, seg *newrelic.DatastoreSegment) {
+	if seg.StartTime == (newrelic.SegmentStartTime{}) {
+		t.Error("StartTime is zero value, expected it to be set")
+	}
+	if seg.Product != "MongoDB" {
+		t.Errorf("Wrong product, expected 'MongoDB' but got '%s'", seg.Product)
+	}
+	if seg.Collection != "collName" {
+		t.Errorf("Wrong collection name, expected 'collName' but got '%s'", seg.Collection)
+	}
+	if seg.Operation != "commName" {
+		t.Errorf("Wrong operation name, expected 'commName' but got '%s'", seg.Operation)
+	}
+	if seg.ParameterizedQuery != "" {
+		t.Errorf("Wrong parameterized query, expected '' but got '%s'", seg.ParameterizedQuery)
+	}
+	if seg.RawQuery != "" {
+		t.Errorf("Wrong raw query, expected '' but got '%s'", seg.RawQuery)
+	}
+	if seg.QueryParameters != nil {
+		t.Errorf("Wrong query parameters, expected nil but got '%v'", seg.QueryParameters)
+	}
+	if seg.Host != "localhost" {
+		t.Errorf("Wrong host name, expected 'localhost' but got '%s'", seg.Host)
+	}
+	if seg.PortPathOrID != "27017" {
+		t.Errorf("Wrong port, expected '27017' but got '%s'", seg.PortPathOrID)
+	}
+	if seg.DatabaseName != "testdb" {
+		t.Errorf("Wrong database name, expected 'testdb' but got '%s'", seg.DatabaseName)
 	}
 }
 

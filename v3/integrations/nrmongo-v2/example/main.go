@@ -21,19 +21,19 @@ func main() {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDebugLogger(os.Stdout),
 	)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	app.WaitForConnection(10 * time.Second)
 
 	// If you have another CommandMonitor, you can pass it to NewCommandMonitor and it will get called along
 	// with the NR monitor
-	nrMon := nrmongo.NewCommandMonitor(nil)
+	nrCmdMonitor := nrmongo.NewCommandMonitor(nil)
 	ctx := context.Background()
 
-	// nrMon must be added after any other monitors are added, as previous options get overwritten.
+	// nrCmdMonitor must be added after any other monitors are added, as previous options get overwritten.
 	// This example assumes Mongo is running locally on port 27017
-	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrMon))
+	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrCmdMonitor))
 	if err != nil {
 		panic(err)
 	}
