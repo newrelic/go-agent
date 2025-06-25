@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -24,9 +24,9 @@ func TestRealDatabaseOperations(t *testing.T) {
 	})
 
 	app := integrationsupport.NewTestApp(nil, nil)
-	//txn := app.StartTransaction("build")
+	// txn := app.StartTransaction("build")
 	ctx := context.Background()
-	//ctx := newrelic.NewContext(context.Background(), txn)
+	// ctx := newrelic.NewContext(context.Background(), txn)
 	db.AddHook(NewHookWithOptions(nil,
 		ConfigDatastoreKeysEnabled(true),
 		ConfigLimitOperations("get", "set"),
@@ -55,7 +55,7 @@ func TestRealDatabaseOperations(t *testing.T) {
 			t.Fatalf("database store of item %d failed: %v", i, err)
 		}
 	}
-	//txn.End()
+	// txn.End()
 	txn2 := app.StartTransaction("query")
 	ctx2 := newrelic.NewContext(context.Background(), txn2)
 	for i, d := range testData {
@@ -102,7 +102,7 @@ func TestRealDatabaseOperations(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Forced: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Forced: nil},
 	})
-	//app.ExpectSpanEvents(t, []internal.WantEvent{})
+	// app.ExpectSpanEvents(t, []internal.WantEvent{})
 	app.ExpectSlowQueries(t, []internal.WantSlowQuery{})
 	// c.DatastoreTracer.SlowQuery.Threshold = 10 * time.Millisecond
 	// c.DatastoreTracer.RawQuery.Enabled = true

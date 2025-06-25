@@ -23,8 +23,8 @@ import (
 	proto "github.com/newrelic/go-agent/v3/integrations/nrmicro/example/proto"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 const (

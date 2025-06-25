@@ -20,8 +20,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/awssupport"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func testApp() integrationsupport.ExpectApp {
