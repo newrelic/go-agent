@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func Test_linkingCache_getAgentLinkingMetadata(t *testing.T) {
@@ -239,7 +239,7 @@ func BenchmarkGetTransactionLinkingMetadata(b *testing.B) {
 	txn := app.StartTransaction("txn")
 	defer txn.End()
 
-	//cache := &linkingCache{}
+	// cache := &linkingCache{}
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

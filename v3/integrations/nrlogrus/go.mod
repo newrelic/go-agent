@@ -12,5 +12,6 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..
+
+replace github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus => ../logcontext-v2/nrlogrus

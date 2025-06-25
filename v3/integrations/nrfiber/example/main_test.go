@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/newrelic/go-agent/v3/integrations/nrfiber"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func setupTestApp(t *testing.T) *fiber.App {

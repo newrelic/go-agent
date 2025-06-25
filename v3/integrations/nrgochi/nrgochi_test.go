@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func hello(w http.ResponseWriter, r *http.Request) {

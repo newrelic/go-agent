@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"github.com/sirupsen/logrus"
 )
 
@@ -284,7 +284,7 @@ func TestEntryError(t *testing.T) {
 		"line.number": matchAnything,
 		"log.level":   "info",
 		// Since the err field on the Entry is private we cannot record it.
-		//"logrus_error": `can not add field "func"`,
+		// "logrus_error": `can not add field "func"`,
 		"message":     "Hello World!",
 		"method.name": matchAnything,
 		"timestamp":   float64(1417136460000),
