@@ -381,6 +381,9 @@ func TestWithRealMongoDB(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/TestTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/instance/MongoDB/" + MONGO_HOST + "/" + MONGO_PORT, Scope: "", Forced: false, Data: nil},
+		/* line for testing
+		{Name: "Datastore/instance/MongoDB/" + "PX121F7NJ7" + "/" + "27017", Scope: "", Forced: false, Data: nil},
+		*/
 		{Name: "Datastore/operation/MongoDB/insert", Scope: "", Forced: false, Data: nil},
 		{Name: "OtherTransaction/Go/TestTxn", Scope: "", Forced: true, Data: nil},
 		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
@@ -392,7 +395,7 @@ func TestWithRealMongoDB(t *testing.T) {
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/statement/MongoDB/nrmongo_test_started/insert", Scope: "", Forced: false, Data: []float64{1.0}},
-		{Name: "Datastore/statement/MongoDB/nrmongo_test_started/insert OtherTransaction/Go/TestTxn", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test_started/insert", Scope: "OtherTransaction/Go/TestTxn", Forced: false, Data: []float64{1.0}},
 	})
 	//	*/
 
