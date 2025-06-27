@@ -12,25 +12,26 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 	"testing"
 )
 
 var (
-	/*
-		MONGO_HOST = os.Getenv("MG_HOST")
-		MONGO_PORT = os.Getenv("MG_PORT")
-		MONGO_USER = os.Getenv("MG_USER")
-		MONGO_PASS = os.Getenv("MG_PW")
-		MONGO_DB   = os.Getenv("MG_DB")
+	// /*
+	MONGO_HOST = os.Getenv("MG_HOST")
+	MONGO_PORT = os.Getenv("MG_PORT")
+	MONGO_USER = os.Getenv("MG_USER")
+	MONGO_PASS = os.Getenv("MG_PW")
+	MONGO_DB   = os.Getenv("MG_DB")
 
-	*/
-	//	/*
+	// */
+	/* local test values
 	MONGO_HOST = "localhost"
 	MONGO_PORT = "27017"
 	MONGO_USER = "admin"
 	MONGO_PASS = "password"
 	MONGO_DB   = "test"
-	//	*/
+	*/
 	MONGO_URI = "mongodb://" + MONGO_USER + ":" + MONGO_PASS + "@" + MONGO_HOST + ":" + MONGO_PORT
 )
 
