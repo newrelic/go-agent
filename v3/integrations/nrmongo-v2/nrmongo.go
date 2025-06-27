@@ -43,7 +43,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 )
 
-func init() { internal.TrackUsage("integration", "datastore", "mongo") }
+func init() { internal.TrackUsage("integration", "datastore", "mongo-v2") }
 
 type mongoMonitor struct {
 	segmentMap  map[int64]*newrelic.DatastoreSegment
