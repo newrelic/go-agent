@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"html"
 )
 
 type replacementResponseWriter struct {
@@ -26,11 +27,12 @@ func (rw *replacementResponseWriter) Write(b []byte) (n int, err error) {
 	// times; see also the commentary in addCrossProcessHeaders().
 	addCrossProcessHeaders(rw.thd.txn, hdr)
 
-	n, err = rw.original.Write(b)
+	escapedContent := []byte(html.EscapeString(string(b)))
+	n, err = rw.original.Write(escapedContent)
 
 	headersJustWritten(rw.thd, http.StatusOK, hdr)
 	if IsSecurityAgentPresent() {
-		secureAgent.SendEvent("INBOUND_WRITE", string(b), hdr, rw.thd.GetLinkingMetadata().TraceID)
+		secureAgent.SendEvent("INBOUND_WRITE", string(escapedContent), hdr, rw.thd.GetLinkingMetadata().TraceID)
 	}
 	return
 }
