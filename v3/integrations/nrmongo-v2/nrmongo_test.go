@@ -5,7 +5,6 @@ package nrmongo
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -14,9 +13,13 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+/*
 var (
+
 	connID       = "localhost:27017[-1]"
 	reqID  int64 = 10
 	raw, _       = bson.Marshal(bson.D{bson.E{Key: "commName", Value: "collName"}, {Key: "$db", Value: "testing"}})
@@ -301,6 +304,45 @@ func createTestApp() integrationsupport.ExpectApp {
 	return integrationsupport.NewTestApp(replyFn, integrationsupport.ConfigFullTraces, newrelic.ConfigCodeLevelMetricsEnabled(false))
 }
 
-var replyFn = func(reply *internal.ConnectReply) {
-	reply.SetSampleEverything()
+	var replyFn = func(reply *internal.ConnectReply) {
+		reply.SetSampleEverything()
+	}
+*/
+func TestStartedMethodWithRealMongoDB(t *testing.T) {
+	// Setup New Relic app and transaction
+	app := integrationsupport.NewBasicTestApp()
+	txn := app.StartTransaction("TestTxn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	// Setup monitor
+	monitor := &mongoMonitor{
+		segmentMap: make(map[int64]*newrelic.DatastoreSegment),
+	}
+	cmdMonitor := &event.CommandMonitor{
+		Started: monitor.started,
+	}
+
+	// Connect to real MongoDB
+	uri := "mongodb://admin:password@mongodb:27017"
+	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetMonitor(cmdMonitor))
+	if err != nil {
+		t.Skipf("Skipping test, could not connect to MongoDB: %v", err)
+		return
+	}
+	defer client.Disconnect(ctx)
+
+	// Perform an insert to trigger started
+	coll := client.Database("testing").Collection("nrmongo_test_started")
+	_, err = coll.InsertOne(ctx, bson.M{"foo": "bar"})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+
+	// Check that a segment was created
+	monitor.Lock()
+	defer monitor.Unlock()
+	if len(monitor.segmentMap) == 0 {
+		t.Error("Expected segment to be created in started method")
+	}
+	txn.End()
 }

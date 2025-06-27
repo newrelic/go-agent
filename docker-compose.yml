@@ -11,6 +11,26 @@ services:
        POSTGRES_USER: postgres
     profiles: ["dev", "nrpgx5"]
 
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DB: test
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    container_name: mongodb-1
+    profiles: ["mongo"]
+
   go:
     build:
       context: .
@@ -24,6 +44,11 @@ services:
       PG_PW: root
       PG_DB: postgres
       PG_PARAM: "?connect_timeout=10&sslmode=disable"
+      MG_HOST: mongodb
+      MG_PORT: 27017
+      MG_USER: admin
+      MG_PW: password
+      MG_DB: test
 
     volumes:
        - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
@@ -46,6 +71,11 @@ services:
       PG_PW: root
       PG_DB: postgres
       PG_PARAM: "?connect_timeout=10&sslmode=disable"
+      MG_HOST: mongodb
+      MG_PORT: 27017
+      MG_USER: admin
+      MG_PW: password
+      MG_DB: test
 
     volumes:
        - ${PWD}:/usr/src/app/go-agent
