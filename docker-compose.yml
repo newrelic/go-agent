@@ -29,7 +29,8 @@ services:
       retries: 3
       start_period: 20s
     container_name: mongodb-1
-    profiles: ["mongo"]
+    profiles: ["dev", "nrpgx5"]
+    #profiles: ["mongo"] - for local testing
 
   go:
     build:
