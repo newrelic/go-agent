@@ -34,6 +34,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsmiddle "github.com/aws/aws-sdk-go-v2/aws/middleware"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/smithy-go/middleware"
 	smithymiddle "github.com/aws/smithy-go/middleware"
@@ -46,10 +47,12 @@ type nrMiddleware struct {
 	txn *newrelic.Transaction
 }
 
-// Context key for SQS service queue
 type contextKey string
 
-const queueURLKey contextKey = "QueueURL"
+const (
+	dynamodbInputKey contextKey = "DynamoDBInput"
+	queueURLKey      contextKey = "QueueURL"
+)
 
 type endable interface{ End() }
 
@@ -74,11 +77,17 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		region := awsmiddle.GetRegion(ctx)
 
 		var segment endable
-		// Service name capitalization is different for v1 and v2.
+
 		if serviceName == "dynamodb" || serviceName == "DynamoDB" {
+			input, _ := ctx.Value(dynamodbInputKey).(dynamodbInput)
+			collection := input.tableName
+			if input.indexName != "" {
+				collection += "." + input.indexName
+			}
+
 			segment = &newrelic.DatastoreSegment{
 				Product:            newrelic.DatastoreDynamoDB,
-				Collection:         "", // AWS SDK V2 doesn't expose TableName
+				Collection:         collection,
 				Operation:          operation,
 				ParameterizedQuery: "",
 				QueryParameters:    nil,
@@ -131,8 +140,7 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		}
 		segment.End()
 		return out, metadata, err
-	}),
-		smithymiddle.Before)
+	}), smithymiddle.Before)
 }
 
 func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
@@ -141,40 +149,11 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
 
 		serviceName := awsmiddle.GetServiceID(ctx)
-		if serviceName == "sqs" || serviceName == "SQS" {
-			QueueURL := ""
-			switch params := in.Parameters.(type) {
-			case *sqs.SendMessageInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.DeleteQueueInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.ReceiveMessageInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.DeleteMessageInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.ChangeMessageVisibilityInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.ChangeMessageVisibilityBatchInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.DeleteMessageBatchInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.SendMessageBatchInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.PurgeQueueInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.GetQueueAttributesInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.SetQueueAttributesInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.TagQueueInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			case *sqs.UntagQueueInput:
-				QueueURL = aws.ToString(params.QueueUrl)
-			default:
-				QueueURL = ""
-			}
-			// Store the QueueURL in the context
-			ctx = context.WithValue(ctx, queueURLKey, QueueURL)
+		switch serviceName {
+		case "dynamodb", "DynamoDB":
+			ctx = context.WithValue(ctx, dynamodbInputKey, dynamoDBInputFromMiddlewareInput(in))
+		case "sqs", "SQS":
+			ctx = context.WithValue(ctx, queueURLKey, sqsQueueURFromMiddlewareInput(in))
 		}
 		return next.HandleInitialize(ctx, in)
 	}), middleware.After)
@@ -241,5 +220,61 @@ func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newre
 	m := nrMiddleware{txn: txn}
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
 	*apiOptions = append(*apiOptions, m.serializeMiddleware)
+}
 
+func sqsQueueURFromMiddlewareInput(in middleware.InitializeInput) string {
+	switch params := in.Parameters.(type) {
+	case *sqs.SendMessageInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.DeleteQueueInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.ReceiveMessageInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.DeleteMessageInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.ChangeMessageVisibilityInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.ChangeMessageVisibilityBatchInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.DeleteMessageBatchInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.SendMessageBatchInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.PurgeQueueInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.GetQueueAttributesInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.SetQueueAttributesInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.TagQueueInput:
+		return aws.ToString(params.QueueUrl)
+	case *sqs.UntagQueueInput:
+		return aws.ToString(params.QueueUrl)
+	default:
+		return ""
+	}
+}
+
+type dynamodbInput struct {
+	tableName string
+	indexName string
+}
+
+func dynamoDBInputFromMiddlewareInput(in middleware.InitializeInput) dynamodbInput {
+	switch params := in.Parameters.(type) {
+	case *dynamodb.DeleteItemInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName)}
+	case *dynamodb.GetItemInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName)}
+	case *dynamodb.PutItemInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName)}
+	case *dynamodb.QueryInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName), indexName: aws.ToString(params.IndexName)}
+	case *dynamodb.ScanInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName), indexName: aws.ToString(params.IndexName)}
+	case *dynamodb.UpdateItemInput:
+		return dynamodbInput{tableName: aws.ToString(params.TableName)}
+	default:
+		return dynamodbInput{}
+	}
 }
