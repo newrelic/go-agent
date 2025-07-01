@@ -198,3 +198,26 @@ func TestConnectReply_IsConnectedToNewRelic(t *testing.T) {
 		t.Error("Connect Reply with RunID and EntityGUID should be considered connected to New Relic")
 	}
 }
+
+func TestAgentRunIdString(t *testing.T) {
+	id := AgentRunID("agent-run-id")
+
+	if id.String() != "agent-run-id" {
+		t.Errorf("AgentRunID did not match expected value: %v", id)
+	}
+}
+
+func TestDefaultEventHarvestConfigWithDT(t *testing.T) {
+	cfg := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+
+	ce := *cfg.Limits.CustomEvents == 3
+	ee := *cfg.Limits.ErrorEvents == 100
+	le := *cfg.Limits.LogEvents == 2
+	se := *cfg.Limits.SpanEvents == 4
+	txe := *cfg.Limits.TxnEvents == 1
+	rpms := cfg.ReportPeriodMs == 60*1000
+
+	if !ce && !ee && !le && !se && !txe && !rpms {
+		t.Errorf("DefaultEventHarvestConfigWithDT does not match expected value: %v", cfg)
+	}
+}

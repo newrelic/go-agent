@@ -325,3 +325,12 @@ func TestVendorsIsEmpty(t *testing.T) {
 		t.Fatal("nil vendors should be empty")
 	}
 }
+
+func TestVendorsAnySet(t *testing.T) {
+	v := &vendors{AWS: &aws{}, Azure: &azure{}, GCP: &gcp{}}
+
+	expected := v.AnySet()
+	if expected == false {
+		t.Error("expected anyset to be true")
+	}
+}
