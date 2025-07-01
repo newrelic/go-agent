@@ -6,6 +6,9 @@ coverage:
 
 ignore:
   - "go-agent/v3/newrelic/sql_driver_optional_methods.go"
+  - "go-agent/v3/internal/com_newrelic_trace_v1"
+  - "go-agent/v3/internal/crossagent"
+  - "go-agent/v3/internal/logcontext"
 
 comment:
   layout: "reach,diff,flags,files,footer"
