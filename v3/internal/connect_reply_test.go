@@ -221,3 +221,37 @@ func TestDefaultEventHarvestConfigWithDT(t *testing.T) {
 		t.Errorf("DefaultEventHarvestConfigWithDT does not match expected value: %v", cfg)
 	}
 }
+
+func TestConnectReplyMockConnectReplyEventLimitsWithGreaterThanMaxLimit(t *testing.T) {
+	ehc := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+	cr := &ConnectReply{EventData: ehc}
+	rel := &RequestEventLimits{CustomEvents: 100001}
+	cr.MockConnectReplyEventLimits(rel)
+	expected := uint(8333)
+
+	if *cr.EventData.Limits.CustomEvents != expected {
+		t.Errorf("ConnectReply.EventData.Limits.CustomEvents does not match expected value: %v", expected)
+	}
+}
+
+func TestConnectReplyMockConnectReplyEventLimitsWithLessThanMinLimit(t *testing.T) {
+	ehc := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+	cr := &ConnectReply{EventData: ehc}
+	rel := &RequestEventLimits{CustomEvents: -1}
+	cr.MockConnectReplyEventLimits(rel)
+	expected := uint(0)
+
+	if *cr.EventData.Limits.CustomEvents != expected {
+		t.Errorf("ConnectReply.EventData.Limits.CustomEvents does not match expected value: %v", expected)
+	}
+}
+
+func TestConnectReplyMockConnectReplySampleNothing(t *testing.T) {
+	cr := &ConnectReply{SamplingTarget: 100}
+	cr.SetSampleNothing()
+	expected := uint64(0)
+
+	if cr.SamplingTarget != expected {
+		t.Errorf("ConnectReply.SamplingTarget does not match expected value: %v", expected)
+	}
+}
