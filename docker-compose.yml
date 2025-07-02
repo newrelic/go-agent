@@ -2,6 +2,13 @@
 # Copyright 2025 New Relic Corporation. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
+x-mongo-env: &mongo-env
+  MONGO_INITDB_ROOT_USERNAME: admin
+  MONGO_INITDB_ROOT_PASSWORD: password
+  MONGO_HOST: mongodb
+  MONGO_PORT: 27017
+  MONGO_DB: test
+
 services:
   postgres:
     image: postgres
@@ -15,11 +22,7 @@ services:
     image: mongo:latest
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_HOST: mongodb
-      MONGO_PORT: 27017
-      MONGO_DB: test
+      <<: *mongo-env
     ports:
       - "27017:27017"
     healthcheck:
@@ -45,11 +48,7 @@ services:
       PG_PW: root
       PG_DB: postgres
       PG_PARAM: "?connect_timeout=10&sslmode=disable"
-      MG_HOST: mongodb
-      MG_PORT: 27017
-      MG_USER: admin
-      MG_PW: password
-      MG_DB: test
+      <<: *mongo-env
 
     volumes:
        - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
@@ -72,11 +71,7 @@ services:
       PG_PW: root
       PG_DB: postgres
       PG_PARAM: "?connect_timeout=10&sslmode=disable"
-      MG_HOST: mongodb
-      MG_PORT: 27017
-      MG_USER: admin
-      MG_PW: password
-      MG_DB: test
+      <<: *mongo-env
 
     volumes:
        - ${PWD}:/usr/src/app/go-agent
