@@ -20,12 +20,11 @@ import (
 
 var (
 	// /*
-	MONGO_HOST = os.Getenv("MG_HOST")
-	MONGO_PORT = os.Getenv("MG_PORT")
-	MONGO_USER = os.Getenv("MG_USER")
-	MONGO_PASS = os.Getenv("MG_PW")
-	MONGO_DB   = os.Getenv("MG_DB")
-
+	MONGO_HOST = os.Getenv("MONGO_HOST")
+	MONGO_PORT = os.Getenv("MONGO_PORT")
+	MONGO_USER = os.Getenv("MONGO_INITDB_ROOT_USERNAME")
+	MONGO_PASS = os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
+	MONGO_DB   = os.Getenv("MONGO_DB")
 	// */
 	/* local test values
 	MONGO_HOST = "localhost"
@@ -367,7 +366,7 @@ func TestWithRealMongoDB(t *testing.T) {
 	}(client, ctx)
 
 	// Perform an insert
-	coll := client.Database("testing").Collection("nrmongo_test_started")
+	coll := client.Database(MONGO_DB).Collection("nrmongo_test")
 	r, err := coll.InsertOne(ctx, bson.M{"foo": "bar"})
 	if err != nil {
 		t.Fatalf("InsertOne failed: %v", err)
@@ -381,7 +380,7 @@ func TestWithRealMongoDB(t *testing.T) {
 	app.ExpectMetrics(t, []internal.WantMetric{
 		{Name: "OtherTransactionTotalTime/Go/TestTxn", Scope: "", Forced: false, Data: nil},
 		{Name: "Datastore/instance/MongoDB/" + MONGO_HOST + "/" + MONGO_PORT, Scope: "", Forced: false, Data: nil},
-		/* line for testing
+		/* todo remove local test values
 		{Name: "Datastore/instance/MongoDB/" + "PX121F7NJ7" + "/" + "27017", Scope: "", Forced: false, Data: nil},
 		*/
 		{Name: "Datastore/operation/MongoDB/insert", Scope: "", Forced: false, Data: nil},
@@ -394,8 +393,8 @@ func TestWithRealMongoDB(t *testing.T) {
 		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/statement/MongoDB/nrmongo_test_started/insert", Scope: "", Forced: false, Data: []float64{1.0}},
-		{Name: "Datastore/statement/MongoDB/nrmongo_test_started/insert", Scope: "OtherTransaction/Go/TestTxn", Forced: false, Data: []float64{1.0}},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "", Forced: false, Data: []float64{1.0}},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "OtherTransaction/Go/TestTxn", Forced: false, Data: []float64{1.0}},
 	})
 	//	*/
 
