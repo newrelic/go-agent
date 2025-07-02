@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -125,13 +126,17 @@ func TestStartAndEndSegment(t *testing.T) {
 }
 
 func TestStartAndEndDynamoDbSegment(t *testing.T) {
+	tableName := "testTable"
 	req := request.Request{
 		ClientInfo: metadata.ClientInfo{ServiceName: "dynamodb", SigningRegion: "us-east-1"},
 		Operation:  &request.Operation{HTTPMethod: "GET", HTTPPath: "/"},
 		HTTPRequest: &http.Request{
 			Method: "GET",
+			URL:    &url.URL{Host: "dynamodb.us-east-1.amazonaws.com:443"},
 		},
-		Params: map[string]string{"TableName": "myTable"},
+		Params: &struct {
+			TableName *string
+		}{TableName: &tableName},
 	}
 
 	input := StartSegmentInputs{
@@ -158,5 +163,4 @@ func TestStartAndEndDynamoDbSegment(t *testing.T) {
 
 	EndSegment(ctx, req.HTTPResponse)
 	v = req.HTTPRequest.Context().Value(segmentContextKey)
-	t.Log("Done")
 }
