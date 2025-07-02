@@ -334,3 +334,20 @@ func TestVendorsAnySet(t *testing.T) {
 		t.Error("expected anyset to be true")
 	}
 }
+
+func TestGather(t *testing.T) {
+	config := Config{
+		DetectAWS:        true,
+		DetectAzure:      true,
+		DetectGCP:        true,
+		DetectPCF:        true,
+		DetectDocker:     true,
+		DetectKubernetes: true,
+		Hostname:         "test-hostname",
+	}
+
+	data := Gather(config, logger.ShimLogger{})
+	if data == nil {
+		t.Error("Data expected to be non-nil")
+	}
+}
