@@ -6,6 +6,7 @@ package nrmongo
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -14,9 +15,19 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 var (
+	MONGO_HOST = os.Getenv("MONGO_HOST")
+	MONGO_PORT = os.Getenv("MONGO_PORT")
+	MONGO_USER = os.Getenv("MONGO_INITDB_ROOT_USERNAME")
+	MONGO_PASS = os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
+	MONGO_DB   = os.Getenv("MONGO_DB")
+
+	MONGO_URI = "mongodb://" + MONGO_USER + ":" + MONGO_PASS + "@" + MONGO_HOST + ":" + MONGO_PORT
+
 	connID       = "localhost:27017[-1]"
 	reqID  int64 = 10
 	raw, _       = bson.Marshal(bson.D{bson.E{Key: "commName", Value: "collName"}, {Key: "$db", Value: "testing"}})
@@ -303,4 +314,71 @@ func createTestApp() integrationsupport.ExpectApp {
 
 var replyFn = func(reply *internal.ConnectReply) {
 	reply.SetSampleEverything()
+}
+
+func TestWithRealMongoDB(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	txn := app.StartTransaction("TestTxn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	monitor := &event.CommandMonitor{
+		Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			mongoMonitor := &mongoMonitor{
+				segmentMap: make(map[int64]*newrelic.DatastoreSegment),
+			}
+			mongoMonitor.started(ctx, e)
+		},
+		Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
+			mongoMonitor := &mongoMonitor{
+				segmentMap: make(map[int64]*newrelic.DatastoreSegment),
+			}
+			mongoMonitor.succeeded(ctx, e)
+		},
+		Failed: nil,
+	}
+
+	cmdMonitor := NewCommandMonitor(monitor)
+
+	// Connect to real MongoDB
+	t.Logf("Connecting to MongoDB at %s", MONGO_URI)
+	client, err := mongo.Connect(options.Client().ApplyURI(MONGO_URI).SetMonitor(cmdMonitor))
+	if err != nil {
+		t.Skipf("Skipping test, could not connect to MongoDB: %v", err)
+		return
+	}
+	defer func(client *mongo.Client, ctx context.Context) {
+		err := client.Disconnect(ctx)
+		if err != nil {
+			t.Fatalf("Failed to disconnect from MongoDB: %v", err)
+		}
+	}(client, ctx)
+
+	// Perform an insert
+	coll := client.Database(MONGO_DB).Collection("nrmongo_test")
+	r, err := coll.InsertOne(ctx, bson.M{"foo": "bar"})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+	if r != nil {
+		t.Log(r)
+	}
+
+	txn.End()
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransactionTotalTime/Go/TestTxn", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/instance/MongoDB/" + MONGO_HOST + "/" + MONGO_PORT, Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/MongoDB/insert", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/TestTxn", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "Datastore/MongoDB/all", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "Datastore/MongoDB/allOther", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "", Forced: false, Data: []float64{1.0}},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "OtherTransaction/Go/TestTxn", Forced: false, Data: []float64{1.0}},
+	})
 }
