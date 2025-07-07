@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrmongo"
+	"github.com/newrelic/go-agent/v3/integrations/nrmongo-v2"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 
 	// nrCmdMonitor must be added after any other monitors are added, as previous options get overwritten.
 	// This example assumes Mongo is running locally on port 27017
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrCmdMonitor))
+	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(nrCmdMonitor))
 	if err != nil {
 		panic(err)
 	}
