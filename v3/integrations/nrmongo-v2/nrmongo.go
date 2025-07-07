@@ -1,15 +1,15 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package nrmongo instruments https://github.com/mongodb/mongo-go-driver
+// Package nrmongo instruments https://github.com/mongodb/mongo-go-driver v2
 //
 // Use this package to instrument your MongoDB calls without having to manually
 // create DatastoreSegments.  To do so, first set the monitor in the connect
 // options using `SetMonitor`
-// (https://godoc.org/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetMonitor):
+// (https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo/options#ClientOptions.SetMonitor):
 //
 //	nrCmdMonitor := nrmongo.NewCommandMonitor(nil)
-//	client, err := mongo.Connect(ctx, options.Client().SetMonitor(nrCmdMonitor))
+//	client, err := mongo.Connect(options.Client().SetMonitor(nrCmdMonitor))
 //
 // Note that it is important that this `nrmongo` monitor is the last monitor
 // set, otherwise it will be overwritten.  If needing to use more than one
@@ -22,13 +22,13 @@
 //		Failed:    origFailed,
 //	}
 //	nrCmdMonitor := nrmongo.NewCommandMonitor(origMon)
-//	client, err := mongo.Connect(ctx, options.Client().SetMonitor(nrCmdMonitor))
+//	client, err := mongo.Connect(options.Client().SetMonitor(nrCmdMonitor))
 //
 // Then add the current transaction to the context used in any MongoDB call:
 //
-//	ctx = newrelic.NewContext(context.Background(), txn)
-//	collection := client.Database("testing").Collection("numbers")
-//	resp, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+//		ctx = newrelic.NewContext(context.Background(), txn)
+//	 collection := client.Database("testing").Collection("numbers")
+//		resp, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
 package nrmongo
 
 import (
@@ -39,11 +39,11 @@ import (
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 )
 
-func init() { internal.TrackUsage("integration", "datastore", "mongo") }
+func init() { internal.TrackUsage("integration", "datastore", "mongo-v2") }
 
 type mongoMonitor struct {
 	segmentMap  map[int64]*newrelic.DatastoreSegment
@@ -53,15 +53,15 @@ type mongoMonitor struct {
 
 // The Mongo connection ID is constructed as: `fmt.Sprintf("%s[-%d]", addr, nextConnectionID())`,
 // where addr is of the form `host:port` (or `a.sock` for unix sockets)
-// See https://github.com/mongodb/mongo-go-driver/blob/b39cd78ce7021252efee2fb44aa6e492d67680ef/x/mongo/driver/topology/connection.go#L68
-// and https://github.com/mongodb/mongo-go-driver/blob/b39cd78ce7021252efee2fb44aa6e492d67680ef/x/mongo/driver/address/addr.go
+// See https://github.com/mongodb/mongo-go-driver/blob/release/2.2/x/mongo/driver/topology/connection.go#L93
+// and https://github.com/mongodb/mongo-go-driver/blob/release/2.2/mongo/address/addr.go
 var connIDPattern = regexp.MustCompile(`([^:\[]+)(?::(\d+))?\[-\d+]`)
 
 // NewCommandMonitor returns a new `*event.CommandMonitor`
-// (https://godoc.org/go.mongodb.org/mongo-driver/event#CommandMonitor).  If
+// (https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/event#CommandMonitor).  If
 // provided, the original `*event.CommandMonitor` will be called as well.  The
 // returned `*event.CommandMonitor` creates `newrelic.DatastoreSegment`s
-// (https://godoc.org/github.com/newrelic/go-agent#DatastoreSegment) for each
+// (https://pkg.go.dev/github.com/newrelic/go-agent/v3/newrelic#DatastoreSegment) for each
 // database call.
 func NewCommandMonitor(original *event.CommandMonitor) *event.CommandMonitor {
 	m := mongoMonitor{
