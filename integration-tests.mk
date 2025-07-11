@@ -18,6 +18,7 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrawssdk-v1 \
 	nrawssdk-v2 \
 	nrb3 \
+	nrconnect \
 	nrecho-v3 \
 	nrecho-v4 \
 	nrelasticsearch-v7 \
