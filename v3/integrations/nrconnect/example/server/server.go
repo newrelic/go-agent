@@ -6,8 +6,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -25,7 +25,7 @@ type service struct{}
 
 func processMessage(ctx context.Context, msg *sampleapp.Message) {
 	defer newrelic.FromContext(ctx).StartSegment("processMessage").End()
-	fmt.Printf("Message received: %s\n", msg.Text)
+	log.Printf("Message received: %s\n", msg.Text)
 }
 
 func (s *service) DoUnaryUnary(ctx context.Context, req *connect.Request[sampleapp.Message]) (*connect.Response[sampleapp.Message], error) {

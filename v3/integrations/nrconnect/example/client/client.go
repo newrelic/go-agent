@@ -7,8 +7,8 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -28,7 +28,7 @@ func doUnaryUnary(ctx context.Context, client sampleappconnect.SampleApplication
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(resp.Msg.Text)
+	log.Println(resp.Msg.Text)
 }
 
 func doUnaryStream(ctx context.Context, client sampleappconnect.SampleApplicationClient) {
@@ -38,7 +38,7 @@ func doUnaryStream(ctx context.Context, client sampleappconnect.SampleApplicatio
 	}
 	for stream.Receive() {
 		msg := stream.Msg()
-		fmt.Println(msg.Text)
+		log.Println(msg.Text)
 	}
 	if err := stream.Err(); err != nil {
 		panic(err)
@@ -56,7 +56,7 @@ func doStreamUnary(ctx context.Context, client sampleappconnect.SampleApplicatio
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(resp.Msg.Text)
+	log.Println(resp.Msg.Text)
 }
 
 func doStreamStream(ctx context.Context, client sampleappconnect.SampleApplicationClient) {
@@ -73,7 +73,7 @@ func doStreamStream(ctx context.Context, client sampleappconnect.SampleApplicati
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(msg.Text)
+			log.Println(msg.Text)
 		}
 	}()
 
