@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -15,16 +15,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
-
+	lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
-
-	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 func testApp() integrationsupport.ExpectApp {
@@ -37,7 +35,7 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
 		Header: http.Header{
 			"X-Amzn-Requestid": []string{requestID},
 		},
@@ -167,30 +165,6 @@ var (
 			"aws.region":               "us-west-2",
 		},
 	}
-	datastoreSpan = internal.WantEvent{
-		Intrinsics: map[string]interface{}{
-			"name":          "Datastore/operation/DynamoDB/DescribeTable",
-			"sampled":       true,
-			"category":      "datastore",
-			"priority":      internal.MatchAnything,
-			"guid":          internal.MatchAnything,
-			"transactionId": internal.MatchAnything,
-			"traceId":       internal.MatchAnything,
-			"parentId":      internal.MatchAnything,
-			"component":     "DynamoDB",
-			"span.kind":     "client",
-		},
-		UserAttributes: map[string]interface{}{},
-		AgentAttributes: map[string]interface{}{
-			"aws.operation":   "DescribeTable",
-			"aws.region":      awsRegion,
-			"aws.requestId":   requestID,
-			"db.statement":    "'DescribeTable' on 'unknown' using 'DynamoDB'",
-			"peer.address":    "dynamodb.us-west-2.amazonaws.com:unknown",
-			"peer.hostname":   "dynamodb.us-west-2.amazonaws.com",
-			"http.statusCode": "200",
-		},
-	}
 	txnMetrics = []internal.WantMetric{
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
 		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
@@ -204,15 +178,6 @@ var (
 		{Name: "External/allOther", Scope: "", Forced: true, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/all", Scope: "", Forced: false, Data: nil},
 		{Name: "External/lambda.us-west-2.amazonaws.com/http/POST", Scope: "OtherTransaction/Go/" + txnName, Forced: false, Data: nil},
-	}...)
-	datastoreMetrics = append(txnMetrics, []internal.WantMetric{
-		{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
-		{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "", Forced: false, Data: nil},
-		{Name: "Datastore/operation/DynamoDB/DescribeTable", Scope: "OtherTransaction/Go/aws-txn", Forced: false, Data: nil},
 	}...)
 )
 
@@ -266,8 +231,8 @@ func TestInstrumentRequestExternal(t *testing.T) {
 			input := &lambda.InvokeInput{
 				ClientContext:  aws.String("MyApp"),
 				FunctionName:   aws.String("non-existent-function"),
-				InvocationType: types.InvocationTypeRequestResponse,
-				LogType:        types.LogTypeTail,
+				InvocationType: lambdatypes.InvocationTypeRequestResponse,
+				LogType:        lambdatypes.LogTypeTail,
 				Payload:        []byte("{}"),
 			}
 
@@ -541,7 +506,7 @@ func TestSQSMiddleware(t *testing.T) {
 	)
 }
 
-func TestInstrumentRequestDatastore(t *testing.T) {
+func TestInstrumentRequestDynamoDB(t *testing.T) {
 	runTestTable(t,
 		[]*testTableEntry{
 			{
@@ -571,20 +536,246 @@ func TestInstrumentRequestDatastore(t *testing.T) {
 
 			client := dynamodb.NewFromConfig(entry.BuildConfig(ctx, txn))
 
-			input := &dynamodb.DescribeTableInput{
+			input := &dynamodb.GetItemInput{
+				Key: map[string]dynamodbtypes.AttributeValue{
+					"PartitionKey": &dynamodbtypes.AttributeValueMemberS{Value: "foo"},
+				},
 				TableName: aws.String("thebesttable"),
 			}
 
-			_, err := client.DescribeTable(ctx, input)
+			_, err := client.GetItem(ctx, input)
 			if err != nil {
 				t.Error(err)
 			}
 
 			txn.End()
 
+			var datastoreMetrics []internal.WantMetric
+			datastoreMetrics = append(datastoreMetrics, txnMetrics...)
+			datastoreMetrics = append(datastoreMetrics, []internal.WantMetric{
+				{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/operation/DynamoDB/GetItem", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/statement/DynamoDB/thebesttable/GetItem", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/statement/DynamoDB/thebesttable/GetItem", Scope: "OtherTransaction/Go/aws-txn", Forced: false, Data: nil},
+			}...)
 			app.ExpectMetrics(t, datastoreMetrics)
+
 			app.ExpectSpanEvents(t, []internal.WantEvent{
-				datastoreSpan, genericSpan})
+				{
+					Intrinsics: map[string]interface{}{
+						"name":          "Datastore/statement/DynamoDB/thebesttable/GetItem",
+						"sampled":       true,
+						"category":      "datastore",
+						"priority":      internal.MatchAnything,
+						"guid":          internal.MatchAnything,
+						"transactionId": internal.MatchAnything,
+						"traceId":       internal.MatchAnything,
+						"parentId":      internal.MatchAnything,
+						"component":     "DynamoDB",
+						"span.kind":     "client",
+					},
+					UserAttributes: map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{
+						"aws.operation":   "GetItem",
+						"aws.region":      awsRegion,
+						"aws.requestId":   requestID,
+						"db.collection":   "thebesttable",
+						"db.statement":    "'GetItem' on 'thebesttable' using 'DynamoDB'",
+						"peer.address":    "dynamodb.us-west-2.amazonaws.com:unknown",
+						"peer.hostname":   "dynamodb.us-west-2.amazonaws.com",
+						"http.statusCode": "200",
+					},
+				},
+				genericSpan,
+			})
+		},
+	)
+}
+
+func TestInstrumentRequestDynamoDBWithIndex(t *testing.T) {
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
+
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
+
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
+
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
+
+			client := dynamodb.NewFromConfig(entry.BuildConfig(ctx, txn))
+
+			input := &dynamodb.ScanInput{
+				TableName: aws.String("thebesttable"),
+				IndexName: aws.String("someindex"),
+			}
+
+			_, err := client.Scan(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			var datastoreMetrics []internal.WantMetric
+			datastoreMetrics = append(datastoreMetrics, txnMetrics...)
+			datastoreMetrics = append(datastoreMetrics, []internal.WantMetric{
+				{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/operation/DynamoDB/Scan", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/statement/DynamoDB/thebesttable.someindex/Scan", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/statement/DynamoDB/thebesttable.someindex/Scan", Scope: "OtherTransaction/Go/aws-txn", Forced: false, Data: nil},
+			}...)
+			app.ExpectMetrics(t, datastoreMetrics)
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				{
+					Intrinsics: map[string]interface{}{
+						"name":          "Datastore/statement/DynamoDB/thebesttable.someindex/Scan",
+						"sampled":       true,
+						"category":      "datastore",
+						"priority":      internal.MatchAnything,
+						"guid":          internal.MatchAnything,
+						"transactionId": internal.MatchAnything,
+						"traceId":       internal.MatchAnything,
+						"parentId":      internal.MatchAnything,
+						"component":     "DynamoDB",
+						"span.kind":     "client",
+					},
+					UserAttributes: map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{
+						"aws.operation":   "Scan",
+						"aws.region":      awsRegion,
+						"aws.requestId":   requestID,
+						"db.collection":   "thebesttable.someindex",
+						"db.statement":    "'Scan' on 'thebesttable.someindex' using 'DynamoDB'",
+						"peer.address":    "dynamodb.us-west-2.amazonaws.com:unknown",
+						"peer.hostname":   "dynamodb.us-west-2.amazonaws.com",
+						"http.statusCode": "200",
+					},
+				},
+				genericSpan,
+			})
+		},
+	)
+}
+
+func TestInstrumentRequestDynamoDBOther(t *testing.T) {
+	runTestTable(t,
+		[]*testTableEntry{
+			{
+				Name: "with manually set transaction",
+
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return context.Background()
+				},
+				BuildConfig: newConfig,
+			},
+			{
+				Name: "with transaction set in context",
+
+				BuildContext: func(txn *newrelic.Transaction) context.Context {
+					return newrelic.NewContext(context.Background(), txn)
+				},
+				BuildConfig: func(ctx context.Context, txn *newrelic.Transaction) aws.Config {
+					return newConfig(ctx, nil) // Set txn to nil to ensure transaction is retrieved from the context
+				},
+			},
+		},
+
+		func(t *testing.T, entry *testTableEntry) {
+			app := testApp()
+			txn := app.StartTransaction(txnName)
+			ctx := entry.BuildContext(txn)
+
+			client := dynamodb.NewFromConfig(entry.BuildConfig(ctx, txn))
+
+			input := &dynamodb.BatchGetItemInput{
+				RequestItems: map[string]dynamodbtypes.KeysAndAttributes{
+					"FirstTable": {
+						Keys: []map[string]dynamodbtypes.AttributeValue{
+							{"PartitionKey": &dynamodbtypes.AttributeValueMemberS{Value: "foo"}},
+						},
+					},
+					"SecondTable": {
+						Keys: []map[string]dynamodbtypes.AttributeValue{
+							{"PartitionKey": &dynamodbtypes.AttributeValueMemberS{Value: "bar"}},
+						},
+					},
+				},
+			}
+
+			_, err := client.BatchGetItem(ctx, input)
+			if err != nil {
+				t.Error(err)
+			}
+
+			txn.End()
+
+			var datastoreMetrics []internal.WantMetric
+			datastoreMetrics = append(datastoreMetrics, txnMetrics...)
+			datastoreMetrics = append(datastoreMetrics, []internal.WantMetric{
+				{Name: "Datastore/DynamoDB/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/DynamoDB/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/allOther", Scope: "", Forced: true, Data: nil},
+				{Name: "Datastore/instance/DynamoDB/dynamodb.us-west-2.amazonaws.com/unknown", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/operation/DynamoDB/BatchGetItem", Scope: "", Forced: false, Data: nil},
+				{Name: "Datastore/operation/DynamoDB/BatchGetItem", Scope: "OtherTransaction/Go/aws-txn", Forced: false, Data: nil},
+			}...)
+			app.ExpectMetrics(t, datastoreMetrics)
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				{
+					Intrinsics: map[string]interface{}{
+						"name":          "Datastore/operation/DynamoDB/BatchGetItem",
+						"sampled":       true,
+						"category":      "datastore",
+						"priority":      internal.MatchAnything,
+						"guid":          internal.MatchAnything,
+						"transactionId": internal.MatchAnything,
+						"traceId":       internal.MatchAnything,
+						"parentId":      internal.MatchAnything,
+						"component":     "DynamoDB",
+						"span.kind":     "client",
+					},
+					UserAttributes: map[string]interface{}{},
+					AgentAttributes: map[string]interface{}{
+						"aws.operation":   "BatchGetItem",
+						"aws.region":      awsRegion,
+						"aws.requestId":   requestID,
+						"db.statement":    "'BatchGetItem' on 'unknown' using 'DynamoDB'",
+						"peer.address":    "dynamodb.us-west-2.amazonaws.com:unknown",
+						"peer.hostname":   "dynamodb.us-west-2.amazonaws.com",
+						"http.statusCode": "200",
+					},
+				},
+				genericSpan,
+			})
 		},
 	)
 }
@@ -602,7 +793,7 @@ func (t *firstFailingTransport) RoundTrip(r *http.Request) (*http.Response, erro
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
 		Header: http.Header{
 			"X-Amzn-Requestid": []string{requestID},
 		},
@@ -653,8 +844,8 @@ func TestRetrySend(t *testing.T) {
 			input := &lambda.InvokeInput{
 				ClientContext:  aws.String("MyApp"),
 				FunctionName:   aws.String("non-existent-function"),
-				InvocationType: types.InvocationTypeRequestResponse,
-				LogType:        types.LogTypeTail,
+				InvocationType: lambdatypes.InvocationTypeRequestResponse,
+				LogType:        lambdatypes.LogTypeTail,
 				Payload:        []byte("{}"),
 			}
 
@@ -763,8 +954,8 @@ func TestRequestSentTwice(t *testing.T) {
 			input := &lambda.InvokeInput{
 				ClientContext:  aws.String("MyApp"),
 				FunctionName:   aws.String("non-existent-function"),
-				InvocationType: types.InvocationTypeRequestResponse,
-				LogType:        types.LogTypeTail,
+				InvocationType: lambdatypes.InvocationTypeRequestResponse,
+				LogType:        lambdatypes.LogTypeTail,
 				Payload:        []byte("{}"),
 			}
 
@@ -804,7 +995,7 @@ func (t *noRequestIDTransport) RoundTrip(r *http.Request) (*http.Response, error
 	return &http.Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
 	}, nil
 }
 
@@ -845,8 +1036,8 @@ func TestNoRequestIDFound(t *testing.T) {
 			input := &lambda.InvokeInput{
 				ClientContext:  aws.String("MyApp"),
 				FunctionName:   aws.String("non-existent-function"),
-				InvocationType: types.InvocationTypeRequestResponse,
-				LogType:        types.LogTypeTail,
+				InvocationType: lambdatypes.InvocationTypeRequestResponse,
+				LogType:        lambdatypes.LogTypeTail,
 				Payload:        []byte("{}"),
 			}
 			_, err := client.Invoke(ctx, input)
