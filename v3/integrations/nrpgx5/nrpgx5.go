@@ -40,6 +40,7 @@ package nrpgx5
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/jackc/pgx/v5"
@@ -175,7 +176,7 @@ func (t *Tracer) TraceQueryEnd(ctx context.Context, conn *pgx.Conn, data pgx.Tra
 func (t *Tracer) getQueryParameters(args []interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	for i, arg := range args {
-		result["$"+strconv.Itoa(i)] = arg
+		result["$"+strconv.Itoa(i)] = fmt.Sprintf("[%s]", arg)
 	}
 	return result
 }
