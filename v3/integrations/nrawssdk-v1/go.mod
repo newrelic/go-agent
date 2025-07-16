@@ -8,7 +8,7 @@ go 1.22
 require (
 	// v1.15.0 is the first aws-sdk-go version with module support.
 	github.com/aws/aws-sdk-go v1.34.0
-	github.com/newrelic/go-agent/v3 v3.39.0
+	github.com/newrelic/go-agent/v3 v3.40.0
 )
 
 
