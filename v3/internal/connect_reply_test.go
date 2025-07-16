@@ -198,3 +198,60 @@ func TestConnectReply_IsConnectedToNewRelic(t *testing.T) {
 		t.Error("Connect Reply with RunID and EntityGUID should be considered connected to New Relic")
 	}
 }
+
+func TestAgentRunIdString(t *testing.T) {
+	id := AgentRunID("agent-run-id")
+
+	if id.String() != "agent-run-id" {
+		t.Errorf("AgentRunID did not match expected value: %v", id)
+	}
+}
+
+func TestDefaultEventHarvestConfigWithDT(t *testing.T) {
+	cfg := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+
+	ce := *cfg.Limits.CustomEvents == 3
+	ee := *cfg.Limits.ErrorEvents == 100
+	le := *cfg.Limits.LogEvents == 2
+	se := *cfg.Limits.SpanEvents == 4
+	txe := *cfg.Limits.TxnEvents == 1
+	rpms := cfg.ReportPeriodMs == 60*1000
+
+	if !ce && !ee && !le && !se && !txe && !rpms {
+		t.Errorf("DefaultEventHarvestConfigWithDT does not match expected value: %v", cfg)
+	}
+}
+
+func TestConnectReplyMockConnectReplyEventLimitsWithGreaterThanMaxLimit(t *testing.T) {
+	ehc := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+	cr := &ConnectReply{EventData: ehc}
+	rel := &RequestEventLimits{CustomEvents: 100001}
+	cr.MockConnectReplyEventLimits(rel)
+	expected := uint(8333)
+
+	if *cr.EventData.Limits.CustomEvents != expected {
+		t.Errorf("ConnectReply.EventData.Limits.CustomEvents does not match expected value: %v", expected)
+	}
+}
+
+func TestConnectReplyMockConnectReplyEventLimitsWithLessThanMinLimit(t *testing.T) {
+	ehc := DefaultEventHarvestConfigWithDT(1, 2, 3, 4, true)
+	cr := &ConnectReply{EventData: ehc}
+	rel := &RequestEventLimits{CustomEvents: -1}
+	cr.MockConnectReplyEventLimits(rel)
+	expected := uint(0)
+
+	if *cr.EventData.Limits.CustomEvents != expected {
+		t.Errorf("ConnectReply.EventData.Limits.CustomEvents does not match expected value: %v", expected)
+	}
+}
+
+func TestConnectReplyMockConnectReplySampleNothing(t *testing.T) {
+	cr := &ConnectReply{SamplingTarget: 100}
+	cr.SetSampleNothing()
+	expected := uint64(0)
+
+	if cr.SamplingTarget != expected {
+		t.Errorf("ConnectReply.SamplingTarget does not match expected value: %v", expected)
+	}
+}
