@@ -325,3 +325,29 @@ func TestVendorsIsEmpty(t *testing.T) {
 		t.Fatal("nil vendors should be empty")
 	}
 }
+
+func TestVendorsAnySet(t *testing.T) {
+	v := &vendors{AWS: &aws{}, Azure: &azure{}, GCP: &gcp{}}
+
+	expected := v.AnySet()
+	if expected == false {
+		t.Error("expected anyset to be true")
+	}
+}
+
+func TestGather(t *testing.T) {
+	config := Config{
+		DetectAWS:        true,
+		DetectAzure:      true,
+		DetectGCP:        true,
+		DetectPCF:        true,
+		DetectDocker:     true,
+		DetectKubernetes: true,
+		Hostname:         "test-hostname",
+	}
+
+	data := Gather(config, logger.ShimLogger{})
+	if data == nil {
+		t.Error("Data expected to be non-nil")
+	}
+}
