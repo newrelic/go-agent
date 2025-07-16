@@ -57,11 +57,19 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		expectErrorCodesCache: make(map[int]bool),
 	}
 
+	if run.Config.AttributeConfig.ValueSizeLimit != 0 {
+		if run.Config.AttributeConfig.ValueSizeLimit > attributeValueSizeLimitMaximum {
+			run.Config.AttributeConfig.ValueSizeLimit = attributeValueSizeLimitMaximum
+		} else if run.Config.AttributeConfig.ValueSizeLimit < attributeValueSizeLimitMinimum {
+			run.Config.AttributeConfig.ValueSizeLimit = attributeValueSizeLimitMinimum
+		}
+		attributeValueSizeLimit = run.Config.AttributeConfig.ValueSizeLimit
+	}
+
 	// Overwrite local settings with any server-side-config settings
 	// present. NOTE!  This requires that the Config provided to this
 	// function is a value and not a pointer: We do not want to change the
 	// input Config with values particular to this connection.
-
 	if v := run.Reply.ServerSideConfig.TransactionTracerEnabled; v != nil {
 		run.Config.TransactionTracer.Enabled = *v
 	}
