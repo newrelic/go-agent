@@ -17,7 +17,7 @@ import (
 )
 
 func TestTracer_Trace_CRUD(t *testing.T) {
-	con, finish := getTestCon()
+	con, finish := getTestCon(t)
 	defer finish()
 
 	tests := []struct {
@@ -123,7 +123,7 @@ func TestTracer_Trace_CRUD(t *testing.T) {
 }
 
 func TestTracer_connect(t *testing.T) {
-	conn, finish := getTestCon()
+	conn, finish := getTestCon(t)
 	defer finish()
 
 	cfg := conn.Config()
@@ -153,7 +153,7 @@ func TestTracer_connect(t *testing.T) {
 }
 
 func TestTracer_batch(t *testing.T) {
-	conn, finish := getTestCon()
+	conn, finish := getTestCon(t)
 	defer finish()
 
 	cfg := conn.Config()
@@ -284,17 +284,29 @@ func TestTracer_inPool(t *testing.T) {
 	}
 }
 
-func getTestCon() (*pgx.Conn, func()) {
+func getTestCon(t *testing.T) (*pgx.Conn, func()) {
 	dsn := getDSN()
 
-	cfg, _ := pgx.ParseConfig(dsn)
+	cfg, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		t.Fatalf("failed to parse DSN: %v", err)
+		t.Fail()
+	}
 
 	cfg.Tracer = NewTracer()
 
-	con, _ := pgx.ConnectConfig(context.Background(), cfg)
+	con, err := pgx.ConnectConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("failed to connect to database: %v", err)
+		t.Fail()
+	}
 
 	return con, func() {
-		_ = con.Close(context.Background())
+		err = con.Close(context.Background())
+		if err != nil {
+			t.Errorf("failed to close database: %v", err)
+			t.Fail()
+		}
 	}
 }
 

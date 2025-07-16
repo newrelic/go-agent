@@ -1,3 +1,25 @@
+## 3.40.0
+### Added
+  * Added `txn.IgnoreApdex()` function to ignore Apdex score for a given transaction
+  * Added Custom Attributes via environment variables `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES`
+  * Added `nrconnect` integration for connect library. Connect is a slim library for building browser and gRPC-compatible HTTP APIs 
+    * Thank you to community member @castaneai for contributing to this solution
+  * Added `nrmongo-v2` integration supporting the mongodb-v2 library
+  * Overhauled GitHub Actions Test Suite
+    * Added dockerized database support for mongodb and pgx5 integrations
+### Fixed
+  * Enhanced query parameter representation in nrpgx5 integration
+  * Fixed a bug where a race condition would occur in identifying container utilization.
+  * Capture DynamoDB table name and index name in DatastoreSegment
+    * Thank you to community member @rittneje for contributing to this solution
+  * Updated third-party library versions due to reported security or other supportability issues:
+    * `github.com/gofiber/fiber/v2` to 2.52.7 in `nrfiber` integration
+    * `github.com/go-chi/chi/v5` to 5.2.2 in `nrgochi` integration
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.39.0
 ### Added
  * Added nrfiber integration for go fiber framework

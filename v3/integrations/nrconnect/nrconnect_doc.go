@@ -1,12 +1,11 @@
 // Copyright 2024 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//
 // Package nrconnect instruments https://github.com/connectrpc/connect-go.
 //
 // This package can be used to instrument Connect RPC servers and Connect RPC clients.
 //
-// Server
+// # Server
 //
 // To instrument a Connect RPC server, use the Interceptor function with your
 // newrelic.Application to create an interceptor to pass to connect.WithInterceptors
@@ -31,20 +30,21 @@
 //	mux.Handle(path, handler)
 //
 // The disposition of each Connect status code is handled as follows:
-//   OK                   200 HTTP status, no error reported
-//   InvalidArgument      400 HTTP status
-//   OutOfRange           400 HTTP status
-//   Unauthenticated      401 HTTP status
-//   PermissionDenied     403 HTTP status
-//   NotFound             404 HTTP status
-//   ResourceExhausted    429 HTTP status
-//   Canceled             499 HTTP status
-//   Internal             500 HTTP status, reported as error
-//   DataLoss             500 HTTP status, reported as error
-//   Unknown              500 HTTP status, reported as error
-//   Unimplemented        501 HTTP status
-//   Unavailable          503 HTTP status
-//   DeadlineExceeded     504 HTTP status
+//
+//	OK                   200 HTTP status, no error reported
+//	InvalidArgument      400 HTTP status
+//	OutOfRange           400 HTTP status
+//	Unauthenticated      401 HTTP status
+//	PermissionDenied     403 HTTP status
+//	NotFound             404 HTTP status
+//	ResourceExhausted    429 HTTP status
+//	Canceled             499 HTTP status
+//	Internal             500 HTTP status, reported as error
+//	DataLoss             500 HTTP status, reported as error
+//	Unknown              500 HTTP status, reported as error
+//	Unimplemented        501 HTTP status
+//	Unavailable          503 HTTP status
+//	DeadlineExceeded     504 HTTP status
 //
 // These interceptors create transactions for inbound calls. The transaction is
 // added to the call context and can be accessed in your method handlers
@@ -64,7 +64,7 @@
 // Full server example:
 // https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrconnect/example/server/server.go
 //
-// Client
+// # Client
 //
 // To instrument a Connect RPC client, use the Interceptor function when creating a
 // Connect RPC client. Example:
