@@ -83,10 +83,17 @@ type vendors struct {
 	Kubernetes *kubernetes `json:"kubernetes,omitempty"`
 }
 
+var vendorsMutex sync.Mutex
+
 func (v *vendors) AnySet() bool {
+	vendorsMutex.Lock()
+	defer vendorsMutex.Unlock()
 	return v.AWS != nil || v.Azure != nil || v.GCP != nil || v.PCF != nil || v.Docker != nil || v.Kubernetes != nil
 }
+
 func (v *vendors) isEmpty() bool {
+	vendorsMutex.Lock()
+	defer vendorsMutex.Unlock()
 	return nil == v || *v == vendors{}
 }
 
@@ -156,6 +163,8 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 			// Thus this code is fine as long as each routine is
 			// modifying a different field of util.
 			defer wg.Done()
+			vendorsMutex.Lock()
+			defer vendorsMutex.Unlock()
 			if err := gather(uDat, client); err != nil {
 				warnGatherError(datatype, err)
 			}
@@ -197,7 +206,9 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 	}
 
 	if config.DetectKubernetes {
+		vendorsMutex.Lock()
 		gatherKubernetes(uDat.Vendors, os.Getenv)
+		vendorsMutex.Unlock()
 	}
 
 	if config.DetectDocker {
@@ -207,7 +218,9 @@ func gatherWithClient(config Config, lg logger.Logger, client *http.Client) *Dat
 				warnGatherError("docker", err)
 			}
 		} else {
+			vendorsMutex.Lock()
 			uDat.Vendors.Docker = &docker{ID: id}
+			vendorsMutex.Unlock()
 		}
 	}
 
