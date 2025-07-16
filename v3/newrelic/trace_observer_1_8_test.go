@@ -1,7 +1,9 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build !go1.9
 // +build !go1.9
+
 // This build tag is necessary because Infinite Tracing is only supported for Go version 1.9 and up
 
 package newrelic

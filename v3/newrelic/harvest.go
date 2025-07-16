@@ -360,6 +360,7 @@ var (
 			internal.MaxLogEvents,
 			nil,
 			nil,
+			nil,
 		},
 	}
 )

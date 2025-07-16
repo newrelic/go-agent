@@ -2,26 +2,19 @@ package nrpgx5
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 	"strconv"
 	"testing"
 
-	"github.com/egon12/pgsnap"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"github.com/stretchr/testify/assert"
 )
-
-// to create pgnsap__** snapshot file, we are using real database.
-// delete all pgnap_*.txt file and fill PGSNAP_DB_URL to recreate the snapshot file
-// for example run it with
-// ```sh
-// PGSNAP_DB_URL="postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" go test -v -run TestTracer_Trace_CRUD
-// ```
 
 func TestTracer_Trace_CRUD(t *testing.T) {
 	con, finish := getTestCon(t)
@@ -154,7 +147,7 @@ func TestTracer_connect(t *testing.T) {
 		txn.End()
 
 		app.ExpectMetricsPresent(t, []internal.WantMetric{
-			{Name: "Datastore/instance/Postgres/" + getDBHostname() + "/" + tracer.BaseSegment.PortPathOrID},
+			{Name: "Datastore/instance/Postgres/" + os.Getenv("PG_HOST") + "/" + tracer.BaseSegment.PortPathOrID},
 		})
 	})
 }
@@ -184,20 +177,19 @@ func TestTracer_batch(t *testing.T) {
 		txn.End()
 
 		app.ExpectMetricsPresent(t, []internal.WantMetric{
-			{Name: "Datastore/instance/Postgres/" + getDBHostname() + "/" + tracer.BaseSegment.PortPathOrID},
+			{Name: "Datastore/instance/Postgres/" + os.Getenv("PG_HOST") + "/" + tracer.BaseSegment.PortPathOrID},
 			{Name: "Datastore/operation/Postgres/batch"},
 		})
 	})
 }
 
 func TestTracer_inPool(t *testing.T) {
-	snap := pgsnap.NewSnap(t, os.Getenv("PGSNAP_DB_URL"))
-	defer snap.Finish()
+	dsn := getDSN()
 
-	cfg, _ := pgxpool.ParseConfig(snap.Addr())
+	cfg, _ := pgxpool.ParseConfig(dsn)
 	cfg.ConnConfig.Tracer = NewTracer()
 
-	u, _ := url.Parse(snap.Addr())
+	u, _ := url.Parse(dsn)
 
 	con, _ := pgxpool.NewWithConfig(context.Background(), cfg)
 
@@ -273,7 +265,7 @@ func TestTracer_inPool(t *testing.T) {
 				_, _ = con.Exec(ctx, "SELECT 1")
 			},
 			metric: []internal.WantMetric{
-				{Name: "Datastore/instance/Postgres/" + getDBHostname() + "/" + u.Port()},
+				{Name: "Datastore/instance/Postgres/" + os.Getenv("PG_HOST") + "/" + u.Port()},
 			},
 		},
 	}
@@ -292,27 +284,41 @@ func TestTracer_inPool(t *testing.T) {
 	}
 }
 
-func getTestCon(t testing.TB) (*pgx.Conn, func()) {
-	snap := pgsnap.NewSnap(t, os.Getenv("PGSNAP_DB_URL"))
+func getTestCon(t *testing.T) (*pgx.Conn, func()) {
+	dsn := getDSN()
 
-	cfg, _ := pgx.ParseConfig(snap.Addr())
+	cfg, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		t.Fatalf("failed to parse DSN: %v", err)
+		t.Fail()
+	}
+
 	cfg.Tracer = NewTracer()
 
-	con, _ := pgx.ConnectConfig(context.Background(), cfg)
+	con, err := pgx.ConnectConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("failed to connect to database: %v", err)
+		t.Fail()
+	}
 
 	return con, func() {
-		_ = con.Close(context.Background())
-		snap.Finish()
+		err = con.Close(context.Background())
+		if err != nil {
+			t.Errorf("failed to close database: %v", err)
+			t.Fail()
+		}
 	}
 }
 
-// getDBHostname that should be localhost or local hostname
-// becase the db is listen in local
-func getDBHostname() string {
-	h, err := os.Hostname()
-	if err != nil {
-		return "127.0.0.1"
-	}
+func getDSN() string {
+	pgHost := os.Getenv("PG_HOST")
+	pgPort := os.Getenv("PG_PORT")
+	pgUser := os.Getenv("PG_USER")
+	pgPass := os.Getenv("PG_PW")
+	pgDB := os.Getenv("PG_DB")
+	pgParam := os.Getenv("PG_PARAM")
 
-	return h
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s%s", pgUser, pgPass, pgHost, pgPort, pgDB, pgParam)
+
+	return dsn
 }

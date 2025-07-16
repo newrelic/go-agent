@@ -1,0 +1,15 @@
+// Copyright 2020 New Relic Corporation. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+service SampleApplication {
+    rpc DoUnaryUnary(Message) returns (Message) {}
+    rpc DoUnaryStream(Message) returns (stream Message) {}
+    rpc DoStreamUnary(stream Message) returns (Message) {}
+    rpc DoStreamStream(stream Message) returns (stream Message) {}
+}
+
+message Message {
+    string text = 1;
+}

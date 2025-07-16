@@ -5,18 +5,29 @@ package nrmongo
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"os"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
+	MONGO_HOST = os.Getenv("MONGO_HOST")
+	MONGO_PORT = os.Getenv("MONGO_PORT")
+	MONGO_USER = os.Getenv("MONGO_INITDB_ROOT_USERNAME")
+	MONGO_PASS = os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
+	MONGO_DB   = os.Getenv("MONGO_DB")
+
+	MONGO_URI = "mongodb://" + MONGO_USER + ":" + MONGO_PASS + "@" + MONGO_HOST + ":" + MONGO_PORT
+
 	connID       = "localhost:27017[-1]"
 	reqID  int64 = 10
 	raw, _       = bson.Marshal(bson.D{primitive.E{Key: "commName", Value: "collName"}, {Key: "$db", Value: "testing"}})
@@ -28,10 +39,10 @@ var (
 		ConnectionID: connID,
 	}
 	finishedEvent = event.CommandFinishedEvent{
-		DurationNanos: 5,
-		CommandName:   "name",
-		RequestID:     reqID,
-		ConnectionID:  connID,
+		Duration:     5,
+		CommandName:  "name",
+		RequestID:    reqID,
+		ConnectionID: connID,
 	}
 	se = &event.CommandSucceededEvent{
 		CommandFinishedEvent: finishedEvent,
@@ -123,6 +134,12 @@ func TestMonitor(t *testing.T) {
 	if len(nrMonitor.segmentMap) != 1 {
 		t.Errorf("Wrong number of segments, expected 1 but got %d", len(nrMonitor.segmentMap))
 	}
+	seg, ok := nrMonitor.segmentMap[reqID]
+	if !ok {
+		t.Error("Segment not found in map")
+	}
+	confirmSegValues(t, seg)
+
 	nrMonitor.succeeded(ctx, se)
 	if !succeeded {
 		t.Error("Original monitor not succeeded")
@@ -186,9 +203,15 @@ func TestMonitor(t *testing.T) {
 	if len(nrMonitor.segmentMap) != 1 {
 		t.Errorf("Wrong number of segments, expected 1 but got %d", len(nrMonitor.segmentMap))
 	}
+	seg, ok = nrMonitor.segmentMap[reqID]
+	if !ok {
+		t.Error("Segment not found in map")
+	}
+	confirmSegValues(t, seg)
+
 	nrMonitor.failed(ctx, fe)
 	if !failed {
-		t.Error("Original monitor not succeeded")
+		t.Error("failed not called")
 	}
 	if len(nrMonitor.segmentMap) != 0 {
 		t.Errorf("Wrong number of segments, expected 0 but got %d", len(nrMonitor.segmentMap))
@@ -231,7 +254,58 @@ func TestCollName(t *testing.T) {
 			t.Errorf("Wrong collection name: %s", result)
 		}
 	}
+}
 
+func TestGetJsonQuery(t *testing.T) {
+	// Test with a valid BSON document
+	doc := bson.D{{Key: "foo", Value: "bar"}}
+	result := getJsonQuery(doc)
+	if len(result) == 0 {
+		t.Error("Expected non-empty JSON for valid BSON document")
+	}
+
+	// Test with a value that cannot be marshaled
+	type invalidType struct {
+		Ch chan int
+	}
+	invalid := invalidType{Ch: make(chan int)}
+	result = getJsonQuery(invalid)
+	if string(result) != "" {
+		t.Error("Expected empty JSON for value that cannot be marshaled")
+	}
+}
+
+func confirmSegValues(t *testing.T, seg *newrelic.DatastoreSegment) {
+	if seg.StartTime == (newrelic.SegmentStartTime{}) {
+		t.Error("StartTime is zero value, expected it to be set")
+	}
+	if seg.Product != "MongoDB" {
+		t.Errorf("Wrong product, expected 'MongoDB' but got '%s'", seg.Product)
+	}
+	if seg.Collection != "collName" {
+		t.Errorf("Wrong collection name, expected 'collName' but got '%s'", seg.Collection)
+	}
+	if seg.Operation != "commName" {
+		t.Errorf("Wrong operation name, expected 'commName' but got '%s'", seg.Operation)
+	}
+	if seg.ParameterizedQuery != "" {
+		t.Errorf("Wrong parameterized query, expected '' but got '%s'", seg.ParameterizedQuery)
+	}
+	if seg.RawQuery != "" {
+		t.Errorf("Wrong raw query, expected '' but got '%s'", seg.RawQuery)
+	}
+	if seg.QueryParameters != nil {
+		t.Errorf("Wrong query parameters, expected nil but got '%v'", seg.QueryParameters)
+	}
+	if seg.Host != "localhost" {
+		t.Errorf("Wrong host name, expected 'localhost' but got '%s'", seg.Host)
+	}
+	if seg.PortPathOrID != "27017" {
+		t.Errorf("Wrong port, expected '27017' but got '%s'", seg.PortPathOrID)
+	}
+	if seg.DatabaseName != "testdb" {
+		t.Errorf("Wrong database name, expected 'testdb' but got '%s'", seg.DatabaseName)
+	}
 }
 
 func createTestApp() integrationsupport.ExpectApp {
@@ -240,4 +314,71 @@ func createTestApp() integrationsupport.ExpectApp {
 
 var replyFn = func(reply *internal.ConnectReply) {
 	reply.SetSampleEverything()
+}
+
+func TestWithRealMongoDB(t *testing.T) {
+	app := integrationsupport.NewBasicTestApp()
+	txn := app.StartTransaction("TestTxn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	monitor := &event.CommandMonitor{
+		Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			mongoMonitor := &mongoMonitor{
+				segmentMap: make(map[int64]*newrelic.DatastoreSegment),
+			}
+			mongoMonitor.started(ctx, e)
+		},
+		Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
+			mongoMonitor := &mongoMonitor{
+				segmentMap: make(map[int64]*newrelic.DatastoreSegment),
+			}
+			mongoMonitor.succeeded(ctx, e)
+		},
+		Failed: nil,
+	}
+
+	cmdMonitor := NewCommandMonitor(monitor)
+
+	// Connect to real MongoDB
+	t.Logf("Connecting to MongoDB at %s", MONGO_URI)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(MONGO_URI).SetMonitor(cmdMonitor))
+	if err != nil {
+		t.Skipf("Skipping test, could not connect to MongoDB: %v", err)
+		return
+	}
+	defer func(client *mongo.Client, ctx context.Context) {
+		err := client.Disconnect(ctx)
+		if err != nil {
+			t.Fatalf("Failed to disconnect from MongoDB: %v", err)
+		}
+	}(client, ctx)
+
+	// Perform an insert
+	coll := client.Database(MONGO_DB).Collection("nrmongo_test")
+	r, err := coll.InsertOne(ctx, bson.M{"foo": "bar"})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+	if r != nil {
+		t.Log(r)
+	}
+
+	txn.End()
+
+	app.ExpectMetrics(t, []internal.WantMetric{
+		{Name: "OtherTransactionTotalTime/Go/TestTxn", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/instance/MongoDB/" + MONGO_HOST + "/" + MONGO_PORT, Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/operation/MongoDB/insert", Scope: "", Forced: false, Data: nil},
+		{Name: "OtherTransaction/Go/TestTxn", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/all", Scope: "", Forced: true, Data: nil},
+		{Name: "Datastore/allOther", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "Datastore/MongoDB/all", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "Datastore/MongoDB/allOther", Scope: "", Forced: true, Data: []float64{1.0}},
+		{Name: "OtherTransaction/all", Scope: "", Forced: true, Data: nil},
+		{Name: "OtherTransactionTotalTime", Scope: "", Forced: true, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/all", Scope: "", Forced: false, Data: nil},
+		{Name: "DurationByCaller/Unknown/Unknown/Unknown/Unknown/allOther", Scope: "", Forced: false, Data: nil},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "", Forced: false, Data: []float64{1.0}},
+		{Name: "Datastore/statement/MongoDB/nrmongo_test/insert", Scope: "OtherTransaction/Go/TestTxn", Forced: false, Data: []float64{1.0}},
+	})
 }

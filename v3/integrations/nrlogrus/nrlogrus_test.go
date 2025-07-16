@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 func bufferToStringAndReset(buf *bytes.Buffer) string {

@@ -7,8 +7,7 @@
 // the NATS Streaming framework we are limited to two integration points: `StartPublishSegment` for publishers, and
 // `SubWrapper` for subscribers.
 //
-//
-// NATS Streaming subscribers
+// # NATS Streaming subscribers
 //
 // `nrstan.StreamingSubWrapper` can be used to wrap the function for STREAMING stan.Subscribe and stan.QueueSubscribe
 // (https://godoc.org/github.com/nats-io/stan.go#Conn) If the `newrelic.Application` parameter is non-nil, it will
@@ -16,14 +15,13 @@
 //
 //	sc, err := stan.Connect(clusterName, clientName)
 //	if err != nil {
-// 		t.Fatal("Couldn't connect to server", err)
+//		t.Fatal("Couldn't connect to server", err)
 //	}
 //	defer sc.Close()
 //	app := createTestApp(t)  // newrelic.Application
 //	sc.Subscribe(subject, StreamingSubWrapper(app, myMessageHandler)
 //
-//
-// NATS Streaming publishers
+// # NATS Streaming publishers
 //
 // You can use `nrnats.StartPublishSegment` from the `nrnats` package
 // (https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrnats/#StartPublishSegment)

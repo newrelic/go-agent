@@ -13,8 +13,8 @@ import (
 	"github.com/newrelic/go-agent/v3/integrations/nrgrpc/testapp"
 	"github.com/newrelic/go-agent/v3/integrations/nrsecurityagent"
 	"github.com/newrelic/go-agent/v3/internal"
-	"github.com/newrelic/go-agent/v3/internal/integrationsupport"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"google.golang.org/grpc/metadata"
 )
 

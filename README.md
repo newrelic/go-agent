@@ -79,6 +79,7 @@ https://docs.newrelic.com/docs/agents/go-agent/get-started/go-agent-compatibilit
 | [labstack/echo](https://github.com/labstack/echo) | [v3/integrations/nrecho-v4](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrecho-v4) | Instrument inbound requests through version 4 of the Echo framework |
 | [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) | [v3/integrations/nrhttprouter](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrhttprouter) | Instrument inbound requests through the HttpRouter framework |
 | [micro/go-micro](https://github.com/micro/go-micro) | [v3/integrations/nrmicro](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrmicro) | Instrument servers, clients, publishers, and subscribers through the Micro framework |
+| [connectrpc/connect-go](https://github.com/connectrpc/connect-go) | [v3/integrations/nrconnect](https://godoc.org/github.com/newrelic/go-agent/v3/integrations/nrconnect) | Instrument Connect servers and clients |
 
 #### Datastores
 
@@ -168,9 +169,216 @@ If you are already using another open source solution to gather telemetry data, 
 * Istio Adapter: [github.com/newrelic/newrelic-istio-adapter](https://github.com/newrelic/newrelic-istio-adapter)
 * Telemetry SDK: [github.com/newrelic/newrelic-telemetry-sdk-go](https://github.com/newrelic/newrelic-telemetry-sdk-go)
 
+## Go Agent Development
+
+This section describes the suggested workflow for developers contributing to the Go Agent.
+
+### The Makefile
+
+At the root directory is a Makefile that contains several helpful targets for building containers and running tests.
+
+### Docker
+
+[Docker](https://www.docker.com/) is a useful development tool that allows for the quick, easy and repeatable creation of virtual environments.
+
+[Docker Compose](https://docs.docker.com/compose/) builds on the functionality provided by Docker to control the orchestration of multi-container environments.
+
+The development workflow described in this section relies heavily Docker. The containers that are generated will create a [volume](https://docs.docker.com/engine/storage/volumes/) mounted to the current directory on the local host, allowing the modification of code and tests on the local host to be propagated automatically to the running container without having to re-build or copy manually.
+
+### Targets
+
+| Target | Description |
+|--------|-------------|
+| `devenv-image` | Build the dev image(s) specified under the `docker compose` `dev` profile. |
+| `dev-shell` | Run `docker compose` with the `dev` profile. Open a shell in the running container. |
+| `dev-stop`  | Terminate the running containers under the `docker compose` `dev` profile. |
+| `test-services-start` | Spin up agent and other containers. |
+| `test-services-stop`  | Terminate agent and other containers. |
+| `core-test`  | Run a specified core test. |
+| `core-suite` | Run all core tests. |
+| `integration-test`  | Run a specified integration test. |
+| `integration-suite` | Run all integration tests. |
+| `tidy` | Replace github.com New Relic Go Agent Module with the local copy; run `go mod tidy`. |
+| `info` | Display information about the running Go environment, integration tests, and core tests. |
+
+### Usage
+
+Build and run the agent container and database container(s). Execute a shell into the agent container environment:
+```
+make dev-shell
+```
+
+Terminate the container(s) started by `dev-shell`:
+```
+make dev-stop
+```
+
+Spin up services for testing. Does not create a shell into the container.
+May specify an optional `PROFILE` argument to start another container not covered by the default `test` profile:
+*Note*: When running the `integration-suite` against `test-services` containers, all accessory `PROFILE`s must be specified or the tests will fail.
+This may require editing the docker-compose.yml file. It is recommended to instead use `dev-shell` for this kind of use case, as the `dev` profile will start every integration container by default.
+```
+make test-services-start <PROFILE=profile-name>
+```
+
+Terminate the containers started by the `test-services-start` target:
+```
+make test-services-stop <PROFILE=profile-name>
+```
+
+Run a core test. May specify optional `COVERAGE` argument to generate a coverprofile:
+```
+make core-test TEST=test-name <COVERAGE=1>
+```
+
+Run all core tests:
+```
+make core-suite <COVERAGE=1>
+```
+
+Run an integration test. May specify optional `COVERAGE` argument to generate a coverprofile:
+```
+make integration-test TEST=test-name <COVERAGE=1>
+```
+
+Run all integration tests:
+```
+make integration-suite <COVERAGE=1>
+```
+
+### Example (dev-shell)
+
+An example development workflow where the developer is testing changes to `utilization` functionality and the `nrpgx5` integration might look like the following:
+
+From the top-level checkout of the go-agent, start the containers and open a shell into the agent container:
+```
+local:go-agent user$ make dev-shell
+[+] Building 0/0
+...Docker build output...
+[+] Building 1/1 docker.io/library/go-agent-devenv                                   0.0s
+ ✔ Service devenv  Built                                                             0.8s
+docker compose --profile dev up --pull missing --remove-orphans -d
+[+] Running 2/2
+ ✔ Container go-agent-postgres-1  Started                                            0.2s
+ ✔ Container go-agent-devenv-1    Started                                            0.2s
+docker compose exec -it devenv bash -c "bash"
+root@5a832b6fcba3:/usr/src/app/go-agent#
+```
+
+Testing the `utilization` package:
+```
+root@5a832b6fcba3:/usr/src/app/go-agent# make core-test TEST=internal/utilization
+
+# TEST=internal/utilization, COVERAGE=
+go: downloading packages...
+PASS
+ok      github.com/newrelic/go-agent/v3/internal/utilization    0.116s
+# TEST=internal/utilization
+root@5a832b6fcba3:/usr/src/app/go-agent#
+```
+
+Testing the `nrpgx5` integration:
+```
+root@5a832b6fcba3:/usr/src/app/go-agent# make integration-test TEST=nrpgx5
+
+# TEST=nrpgx5, COVERAGE=
+go: downloading packages...
+PASS
+ok      github.com/newrelic/go-agent/v3/integrations/nrpgx5     1.100s
+# TEST=nrpgx5
+root@5a832b6fcba3:/usr/src/app/go-agent#
+```
+Make the necessary code changes, and test using the steps above until satisfied.
+
+Once done with development, terminate the running containers:
+```
+root@5a832b6fcba3:/usr/src/app/go-agent# exit
+exit
+local:go-agent user$ make dev-stop
+docker compose --profile dev stop
+[+] Stopping 2/2
+ ✔ Container go-agent-devenv-1    Stopped                                           10.1s
+ ✔ Container go-agent-postgres-1  Stopped                                            0.1s
+local:go-agent user$
+```
+
+### Example (test-services)
+
+The `test-services-*` targets are designed to allow developers to run tests without needing to execute a shell into the agent container. Re-using the scenario described above in `dev-shell`, this workflow might look like the following:
+
+From the top-level checkout of the go-agent:
+```
+local:go-agent user$ make test-services-start PROFILE=nrpgx5
+[+] Pulling 16/16
+ ✔ go Skipped - No image to be pulled                                                0.0s
+ ✔ postgres Pulled                                                                   7.0s
+...Docker build output...
+ ✔ Service go                     Built                                              0.9s
+ ✔ Container nr-go                Healthy                                            1.1s
+ ✔ Container go-agent-postgres-1  Healthy                                            1.1s
+local:go-agent user$
+```
+*Note*: the specification of `PROFILE=nrpgx5`. This ensures that the postgres container is started alongside the agent container in order to test the `nrpgx5` integration. This is not necessary if you do not intend to run postgres tests.
+
+Testing the `utilization` package:
+```
+local:go-agent user$ docker exec -e TEST=internal/utilization nr-go make core-test
+
+# TEST=internal/utilization, COVERAGE=
+go: downloading packages...
+PASS
+ok      github.com/newrelic/go-agent/v3/internal/utilization    0.105s
+# TEST=internal/utilization
+local:go-agent user$
+```
+Let's quickly break down the above docker command:
+1. [docker exec](https://docs.docker.com/reference/cli/docker/container/exec/) executes a command in a running container.
+2. `-e TEST=internal/utilization` passes the `TEST` argument as an environment variable.
+3. `nr-go` is the name of the container where the command will be executed.
+4. `make core-test` is the command to be executed.
+
+The same logic applies to running integration tests:
+```
+local:go-agent user$ docker exec -e TEST=nrpgx5 nr-go make integration-test
+
+# TEST=nrpgx5, COVERAGE=
+go: downloading packages...
+PASS
+ok      github.com/newrelic/go-agent/v3/integrations/nrpgx5     1.095s
+# TEST=nrpgx5
+local:go-agent user$
+```
+
+Like the `dev-shell` target, the `test-services` agent container is volume-mounted to the local working directory containing the agent checkout. Code and test changes can be made and will automatically propagate to the container environment.
+
+To terminate the running containers:
+```
+local:go-agent user$ make test-services-stop PROFILE=nrpgx5
+[+] Stopping 2/2
+ ✔ Container go-agent-postgres-1  Stopped                                            0.1s
+ ✔ Container nr-go                Stopped                                           10.1s
+local:go-agent user$
+```
+
+### Adding new tests or moving existing tests
+
+When adding or moving tests, any changes must be reflected in the corresponding `integration-tests.mk` / `core-tests.mk` files.
+
+`core-tests.mk` contains all tests under the `v3/newrelic` and `v3/internal` directories and subdirectories.
+
+`integration-tests.mk` contains all tests under the `v3/integrations` directory and subdirectories.
+
+### Development with different Go Versions
+
+Docker Compose uses the latest Go Version for the agent container by default. At the time of writing, this is `1.24`. This value can be changed by exporting a `GO_VERSION` environment variable or top-level `.env` file containing the `GO_VERSION` definition.
+
+Example using Go 1.23:
+```
+export GO_VERSION=1.23
+```
+Then start docker services as normal.
 
 ## Support
-
 Should you need assistance with New Relic products, you are in good hands with several support channels.  
 
 If the issue has been confirmed as a bug or is a Feature request, please file a Github issue.

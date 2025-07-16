@@ -1,0 +1,81 @@
+#
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+x-mongo-env: &mongo-env
+  MONGO_INITDB_ROOT_USERNAME: admin
+  MONGO_INITDB_ROOT_PASSWORD: password
+  MONGO_HOST: mongodb
+  MONGO_PORT: 27017
+  MONGO_DB: test
+
+services:
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+       POSTGRES_PASSWORD: root
+       POSTGRES_USER: postgres
+    profiles: ["dev", "nrpgx5"]
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      <<: *mongo-env
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    container_name: mongodb-1
+    profiles: ["dev", "nrmongo", "nrmongo-v2"]
+    #profiles: ["mongo"] - for local testing
+
+  go:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
+      <<: *mongo-env
+
+    volumes:
+       - ${AGENT_CODE:-$PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    entrypoint: tail
+    command: -f /dev/null
+    container_name: nr-go
+    profiles: ["test", "nrpgx5"]
+
+  devenv:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        GO_VERSION: ${GO_VERSION:-1.24}
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PW: root
+      PG_DB: postgres
+      PG_PARAM: "?connect_timeout=10&sslmode=disable"
+      <<: *mongo-env
+
+    volumes:
+       - ${PWD}:/usr/src/app/go-agent
+    working_dir: /usr/src/app/go-agent
+    stdin_open: true
+    tty: true
+    profiles: ["dev"]
