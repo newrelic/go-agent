@@ -7,10 +7,7 @@
 package awssupport
 
 import (
-	"github.com/aws/aws-sdk-go/aws/client/metadata"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 )
@@ -86,81 +83,4 @@ func TestGetRequestID(t *testing.T) {
 			t.Error(i, out, test.hdr, test.expected)
 		}
 	}
-}
-
-func TestStartAndEndSegment(t *testing.T) {
-	req := request.Request{
-		ClientInfo: metadata.ClientInfo{ServiceName: "awssupport-test", SigningRegion: "us-east-1"},
-		Operation:  &request.Operation{HTTPMethod: "GET", HTTPPath: "/"},
-		HTTPRequest: &http.Request{
-			Method: "GET",
-		},
-		Params: nil,
-	}
-
-	input := StartSegmentInputs{
-		HTTPRequest: req.HTTPRequest,
-		ServiceName: req.ClientInfo.ServiceName,
-		Operation:   req.Operation.Name,
-		Region:      req.ClientInfo.SigningRegion,
-		Params:      req.Params,
-	}
-
-	ctx := req.HTTPRequest.Context()
-	v := ctx.Value(segmentContextKey)
-	if v != nil {
-		t.Errorf("Context segmentContextKey value is not nil %v", v)
-	}
-
-	req.HTTPRequest = StartSegment(input)
-
-	ctx = req.HTTPRequest.Context()
-	v = ctx.Value(segmentContextKey)
-	if v == nil {
-		t.Error("Context segmentContextKey value is nil")
-	}
-
-	EndSegment(ctx, req.HTTPResponse)
-	v = req.HTTPRequest.Context().Value(segmentContextKey)
-	t.Log("Done")
-}
-
-func TestStartAndEndDynamoDbSegment(t *testing.T) {
-	tableName := "testTable"
-	req := request.Request{
-		ClientInfo: metadata.ClientInfo{ServiceName: "dynamodb", SigningRegion: "us-east-1"},
-		Operation:  &request.Operation{HTTPMethod: "GET", HTTPPath: "/"},
-		HTTPRequest: &http.Request{
-			Method: "GET",
-			URL:    &url.URL{Host: "dynamodb.us-east-1.amazonaws.com:443"},
-		},
-		Params: &struct {
-			TableName *string
-		}{TableName: &tableName},
-	}
-
-	input := StartSegmentInputs{
-		HTTPRequest: req.HTTPRequest,
-		ServiceName: req.ClientInfo.ServiceName,
-		Operation:   req.Operation.Name,
-		Region:      req.ClientInfo.SigningRegion,
-		Params:      req.Params,
-	}
-
-	ctx := req.HTTPRequest.Context()
-	v := ctx.Value(segmentContextKey)
-	if v != nil {
-		t.Errorf("Context segmentContextKey value is not nil %v", v)
-	}
-
-	req.HTTPRequest = StartSegment(input)
-
-	ctx = req.HTTPRequest.Context()
-	v = ctx.Value(segmentContextKey)
-	if v == nil {
-		t.Error("Context segmentContextKey value is nil")
-	}
-
-	EndSegment(ctx, req.HTTPResponse)
-	v = req.HTTPRequest.Context().Value(segmentContextKey)
 }

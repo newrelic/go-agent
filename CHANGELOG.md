@@ -1,3 +1,11 @@
+## 3.40.1
+### Fixed
+  * Reverted utilization.go back to v3.39.0 release due to deadlock bug
+  * Removed awssupport_test.go tests that added direct dependencies to go module
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.40.0
 ### Added
   * Added `txn.IgnoreApdex()` function to ignore Apdex score for a given transaction
