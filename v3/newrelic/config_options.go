@@ -37,6 +37,34 @@ func ConfigDistributedTracerEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.DistributedTracer.Enabled = enabled }
 }
 
+// ConfigRemoteParentSampled sets the behavior for sampling when the remote parent is sampled.
+// If enabled is true, the local transaction is always sampled with priority 2 ("always_on").
+// If enabled is false, the local transaction is never sampled ("always_off").
+// The default agent behavior is used if this option is not set.
+func ConfigRemoteParentSampled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.DistributedTracer.Sampler.RemoteParentSampled = "always_on"
+		} else {
+			cfg.DistributedTracer.Sampler.RemoteParentSampled = "always_off"
+		}
+	}
+}
+
+// ConfigRemoteParentNotSampled sets the behavior for sampling when the remote parent is not sampled.
+// If enabled is true, the local transaction is always sampled with priority 2 ("always_on").
+// If enabled is false, the local transaction is never sampled ("always_off").
+// The default agent behavior is used if this option is not set.
+func ConfigRemoteParentNotSampled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		if enabled {
+			cfg.DistributedTracer.Sampler.RemoteParentNotSampled = "always_on"
+		} else {
+			cfg.DistributedTracer.Sampler.RemoteParentNotSampled = "always_off"
+		}
+	}
+}
+
 // ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.

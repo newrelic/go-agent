@@ -279,6 +279,11 @@ type Config struct {
 		// ReservoirLimit sets the desired maximum span event reservoir limit
 		// for collecting span event data. The collector MAY override this value.
 		ReservoirLimit int
+
+		Sampler struct {
+			RemoteParentSampled    string
+			RemoteParentNotSampled string
+		}
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
@@ -686,6 +691,8 @@ func defaultConfig() Config {
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
 	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
+	c.DistributedTracer.Sampler.RemoteParentSampled = "default"
+	c.DistributedTracer.Sampler.RemoteParentNotSampled = "default"
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
