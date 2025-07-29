@@ -19,6 +19,91 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
+type ProfilingTypeSet uint32
+type ProfilingType uint32
+
+const (
+	ProfilingTypeBlock ProfilingType = 1 << iota
+	ProfilingTypeCPU
+	ProfilingTypeGoroutine
+	ProfilingTypeHeap
+	ProfilingTypeMutex
+	ProfilingTypeThreadCreate
+	ProfilingTypeTrace
+)
+
+func (p *ProfilingTypeSet) FromStrings(types []string, additive bool) error {
+	if p == nil {
+		return fmt.Errorf("nil ProfilingTypeSet pointer")
+	}
+
+	if !additive {
+		*p = 0
+	}
+
+	for _, t := range types {
+		switch t {
+		case "block":
+			*p |= ProfilingTypeSet(ProfilingTypeBlock)
+		case "cpu":
+			*p |= ProfilingTypeSet(ProfilingTypeCPU)
+		case "goroutine":
+			*p |= ProfilingTypeSet(ProfilingTypeGoroutine)
+		case "heap":
+			*p |= ProfilingTypeSet(ProfilingTypeHeap)
+		case "mutex":
+			*p |= ProfilingTypeSet(ProfilingTypeMutex)
+		case "threadcreate":
+			*p |= ProfilingTypeSet(ProfilingTypeThreadCreate)
+		case "trace":
+			*p |= ProfilingTypeSet(ProfilingTypeTrace)
+		default:
+			return fmt.Errorf("unknown ProfilingType \"%s\"", t)
+		}
+	}
+	return nil
+}
+
+func (p ProfilingTypeSet) Strings() []string {
+	var typeSet []string
+
+	if ProfilingTypeBlock&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "block")
+	}
+	if ProfilingTypeCPU&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "cpu")
+	}
+	if ProfilingTypeGoroutine&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "goroutine")
+	}
+	if ProfilingTypeHeap&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "heap")
+	}
+	if ProfilingTypeMutex&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "mutex")
+	}
+	if ProfilingTypeThreadCreate&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "threadcreate")
+	}
+	if ProfilingTypeTrace&ProfilingType(p) != 0 {
+		typeSet = append(typeSet, "trace")
+	}
+	return typeSet
+}
+
+func (p ProfilingTypeSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.Strings())
+}
+
+func (p *ProfilingTypeSet) UnmarshalJSON(data []byte) error {
+	var t []string
+
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	return p.FromStrings(t, false)
+}
+
 // Config contains Application and Transaction behavior settings.
 type Config struct {
 	// AppName is used by New Relic to link data across servers.
@@ -464,6 +549,14 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+
+	// Profiling Configuration
+	Profiling struct {
+		Enabled          bool
+		SelectedProfiles ProfilingTypeSet
+		Interval         time.Duration
+	}
+
 	// Security is used to post security configuration on UI.
 	Security interface{} `json:"Security,omitempty"`
 }
