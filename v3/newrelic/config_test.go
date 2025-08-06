@@ -185,7 +185,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d,"Sampler":{"RemoteParentNotSampled":"default","RemoteParentSampled":"default"}},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
@@ -404,7 +404,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Threshold":10000000
 				}
 			},
-			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d},
+			"DistributedTracer":{"Enabled":true,"ExcludeNewRelicHeader":false,"ReservoirLimit":%d,"Sampler":{"RemoteParentNotSampled":"default","RemoteParentSampled":"default"}},
 			"Enabled":true,
 			"Error":null,
 			"ErrorCollector":{
