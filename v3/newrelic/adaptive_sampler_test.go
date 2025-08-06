@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func assert(t testing.TB, expectTrue bool) {
+func asserter(t testing.TB, expectTrue bool) {
 	if h, ok := t.(interface {
 		Helper()
 	}); ok {
@@ -25,33 +25,33 @@ func TestAdaptiveSampler(t *testing.T) {
 
 	// first period -- we're guaranteed to get 2 sampled
 	// due to our target, and we'll send through a total of 4
-	assert(t, sampler.computeSampled(0.0, start))
-	assert(t, sampler.computeSampled(0.0, start))
+	asserter(t, sampler.computeSampled(0.0, start))
+	asserter(t, sampler.computeSampled(0.0, start))
 	sampler.computeSampled(0.0, start)
 	sampler.computeSampled(0.0, start)
 
 	// Next period!  4 calls in the last period means a new sample ratio
 	// of 1/2.  Nothing with a priority less than the ratio will get through
 	now := start.Add(61 * time.Second)
-	assert(t, !sampler.computeSampled(0.0, now))
-	assert(t, !sampler.computeSampled(0.0, now))
-	assert(t, !sampler.computeSampled(0.0, now))
-	assert(t, !sampler.computeSampled(0.0, now))
-	assert(t, !sampler.computeSampled(0.49, now))
-	assert(t, !sampler.computeSampled(0.49, now))
+	asserter(t, !sampler.computeSampled(0.0, now))
+	asserter(t, !sampler.computeSampled(0.0, now))
+	asserter(t, !sampler.computeSampled(0.0, now))
+	asserter(t, !sampler.computeSampled(0.0, now))
+	asserter(t, !sampler.computeSampled(0.49, now))
+	asserter(t, !sampler.computeSampled(0.49, now))
 
 	// but these two will get through, and we'll still be under
 	// our target rate so there's no random sampling to deal with
-	assert(t, sampler.computeSampled(0.55, now))
-	assert(t, sampler.computeSampled(1.0, now))
+	asserter(t, sampler.computeSampled(0.55, now))
+	asserter(t, sampler.computeSampled(1.0, now))
 
 	// Next period!  8 calls in the last period means a new sample ratio
 	// of 1/4.
 	now = start.Add(121 * time.Second)
-	assert(t, !sampler.computeSampled(0.0, now))
-	assert(t, !sampler.computeSampled(0.5, now))
-	assert(t, !sampler.computeSampled(0.7, now))
-	assert(t, sampler.computeSampled(0.8, now))
+	asserter(t, !sampler.computeSampled(0.0, now))
+	asserter(t, !sampler.computeSampled(0.5, now))
+	asserter(t, !sampler.computeSampled(0.7, now))
+	asserter(t, sampler.computeSampled(0.8, now))
 }
 
 func TestAdaptiveSamplerSkipPeriod(t *testing.T) {
@@ -60,8 +60,8 @@ func TestAdaptiveSamplerSkipPeriod(t *testing.T) {
 
 	// same as the previous test, we know we can get two through
 	// and we'll send a total of 4 through
-	assert(t, sampler.computeSampled(0.0, start))
-	assert(t, sampler.computeSampled(0.0, start))
+	asserter(t, sampler.computeSampled(0.0, start))
+	asserter(t, sampler.computeSampled(0.0, start))
 	sampler.computeSampled(0.0, start)
 	sampler.computeSampled(0.0, start)
 
@@ -69,8 +69,8 @@ func TestAdaptiveSamplerSkipPeriod(t *testing.T) {
 	// should be zero
 
 	now := start.Add(121 * time.Second)
-	assert(t, sampler.computeSampled(0.0, now))
-	assert(t, sampler.computeSampled(0.0, now))
+	asserter(t, sampler.computeSampled(0.0, now))
+	asserter(t, sampler.computeSampled(0.0, now))
 }
 
 func TestAdaptiveSamplerTarget(t *testing.T) {
@@ -81,7 +81,7 @@ func TestAdaptiveSamplerTarget(t *testing.T) {
 
 	// we should always sample up to the number of target events
 	for i := 0; uint64(i) < target; i++ {
-		assert(t, sampler.computeSampled(0.0, start))
+		asserter(t, sampler.computeSampled(0.0, start))
 	}
 
 	// but now further calls to ComputeSampled are subject to exponential backoff.
@@ -97,6 +97,6 @@ func TestAdaptiveSamplerTargetZero(t *testing.T) {
 	sampler := newAdaptiveSampler(60*time.Second, target, start)
 
 	for i := 0; uint64(i) < 100; i++ {
-		assert(t, !sampler.computeSampled(0.0, start))
+		asserter(t, !sampler.computeSampled(0.0, start))
 	}
 }

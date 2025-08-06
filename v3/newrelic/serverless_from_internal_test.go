@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func createCompressedData(data map[string]interface{}) string {
@@ -55,9 +57,9 @@ func TestParseServerlessPayload(t *testing.T) {
 	payloadJSON := createServerlessPayload(metadata, compressedData)
 
 	resultMetadata, resultData, err := parseServerlessPayload(payloadJSON)
-	assert(t, err == nil)
-	assert(t, len(resultMetadata) == 2)
-	assert(t, len(resultData) == 2)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(resultMetadata))
+	assert.Equal(t, 2, len(resultData))
 
 	// Verify metadata values
 	var version string
@@ -65,14 +67,14 @@ func TestParseServerlessPayload(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	assert(t, version == "1.0")
+	assert.Equal(t, "1.0", version)
 
 	var dataType string
 	err = json.Unmarshal(resultMetadata["type"], &dataType)
 	if err != nil {
 		t.Fail()
 	}
-	assert(t, dataType == "serverless")
+	assert.Equal(t, "serverless", dataType)
 
 	// Verify data values
 	var key1 string
@@ -80,14 +82,14 @@ func TestParseServerlessPayload(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	assert(t, key1 == "value1")
+	assert.Equal(t, "value1", key1)
 
 	var key2 int
 	err = json.Unmarshal(resultData["key2"], &key2)
 	if err != nil {
 		t.Fail()
 	}
-	assert(t, key2 == 123)
+	assert.Equal(t, 123, key2)
 }
 
 func TestParseServerlessPayloadErrors(t *testing.T) {
@@ -183,9 +185,9 @@ func TestParseServerlessPayloadErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := parseServerlessPayload(tt.input)
-			assert(t, (err != nil) == tt.wantErr)
+			assert.Equal(t, tt.wantErr, err != nil)
 			if tt.errCheck != nil && err != nil {
-				assert(t, tt.errCheck(err))
+				assert.True(t, tt.errCheck(err))
 			}
 		})
 	}
@@ -209,8 +211,8 @@ func TestDecodeUncompress(t *testing.T) {
 		encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 		result, err := decodeUncompress(encoded)
-		assert(t, err == nil)
-		assert(t, string(result) == string(originalData))
+		assert.Nil(t, err)
+		assert.Equal(t, string(result), string(originalData))
 	})
 
 	errorTests := []struct {
@@ -234,7 +236,7 @@ func TestDecodeUncompress(t *testing.T) {
 	for _, tt := range errorTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := decodeUncompress(tt.input)
-			assert(t, err != nil)
+			assert.NotNil(t, err)
 		})
 	}
 }
