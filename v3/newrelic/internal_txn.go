@@ -1174,21 +1174,28 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 	}
 
 	if p.isSampled() { // trace parent exists and is sampled
-		if txn.Config.DistributedTracer.Sampler.RemoteParentSampled == "always_on" {
+		switch txn.Config.DistributedTracer.Sampler.RemoteParentSampled {
+		case "always_on":
 			p.Priority = 2.0
-		} else if txn.Config.DistributedTracer.Sampler.RemoteParentSampled == "always_off" {
+			txn.BetterCAT.Priority = p.Priority
+		case "always_off":
 			p.Priority = 0.0
-		} else {
+			txn.BetterCAT.Priority = p.Priority
+		default:
 			// If the remote parent is sampled, we use the priority from the
 			// transaction's adaptive sampler.
 			p.Priority = txn.BetterCAT.Priority
 		}
 	} else {
-		if txn.Config.DistributedTracer.Sampler.RemoteParentNotSampled == "always_on" {
+		switch txn.Config.DistributedTracer.Sampler.RemoteParentNotSampled {
+		case "always_on":
 			p.Priority = 2.0
-		} else if txn.Config.DistributedTracer.Sampler.RemoteParentNotSampled == "always_off" {
+			txn.BetterCAT.Priority = p.Priority
+
+		case "always_off":
 			p.Priority = 0.0
-		} else {
+			txn.BetterCAT.Priority = p.Priority
+		default:
 			// If the remote parent is not sampled, we use the priority from the
 			// transaction's adaptive sampler.
 			p.Priority = txn.BetterCAT.Priority
