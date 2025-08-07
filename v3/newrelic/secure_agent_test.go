@@ -1,10 +1,11 @@
 package newrelic
 
 import (
-	"github.com/newrelic/go-agent/v3/internal"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 func TestGetSecurityAgentInterface(t *testing.T) {
@@ -107,6 +108,12 @@ func TestApplicationRegisterSecurityAgentNilCases(t *testing.T) {
 			app:       nil,
 			agent:     &mockSecurityAgent{},
 			expectErr: "Expected secureAgent to remain unchanged with nil application",
+		},
+		{
+			name:      "application with nil app field",
+			app:       &Application{app: nil},
+			agent:     &mockSecurityAgent{},
+			expectErr: "Expected secureAgent to remain unchanged with nil app field",
 		},
 		{
 			name:      "nil agent",
