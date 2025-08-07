@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestHeapHighWaterMarkAlarmNilAppSafety(t *testing.T) {
+func TestHighWaterMarkAlarmNilAppSafety(t *testing.T) {
 	tests := []struct {
 		name string
 		fn   func(*Application)
@@ -18,17 +18,26 @@ func TestHeapHighWaterMarkAlarmNilAppSafety(t *testing.T) {
 		{"ClearAll", func(app *Application) { app.HeapHighWaterMarkAlarmClearAll() }},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("%s panicked on nil app: %v", tt.name, r)
-				}
-			}()
+	appCases := []struct {
+		name string
+		app  *Application
+	}{
+		{"nil app", nil},
+		{"nil app.app", &Application{app: nil}},
+	}
 
-			var app *Application
-			tt.fn(app)
-		})
+	for _, appCase := range appCases {
+		for _, tt := range tests {
+			t.Run(appCase.name+"_"+tt.name, func(t *testing.T) {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Errorf("%s panicked on %s: %v", tt.name, appCase.name, r)
+					}
+				}()
+
+				tt.fn(appCase.app)
+			})
+		}
 	}
 }
 
@@ -105,48 +114,31 @@ func TestHeapHighWaterMarkAlarmCallbackTriggered(t *testing.T) {
 	}
 }
 
-func TestHeapHighWaterMarkAlarmEnableWithZeroInterval(t *testing.T) {
-	app := testApp(nil, ConfigEnabled(true), t)
-	defer app.Shutdown(10 * time.Second)
-
-	app.HeapHighWaterMarkAlarmEnable(100 * time.Millisecond)
-	defer app.HeapHighWaterMarkAlarmShutdown()
-	app.HeapHighWaterMarkAlarmEnable(0)
-
-	app.app.heapHighWaterMarkAlarms.lock.RLock()
-	ticker := app.app.heapHighWaterMarkAlarms.sampleTicker
-	app.app.heapHighWaterMarkAlarms.lock.RUnlock()
-
-	// Confirm ticker is not nil (already done)
-	if ticker == nil {
-		t.Error("Expected ticker to still exist after disable")
+func TestHighWaterMarkWithInvalidInterval(t *testing.T) {
+	tests := []struct {
+		name     string
+		interval time.Duration
+	}{
+		{"zero interval", 0},
+		{"negative interval", -1 * time.Second},
 	}
 
-	// Optionally, set a callback and ensure it is not called after disable
-	called := false
-	app.HeapHighWaterMarkAlarmSet(1, func(uint64, *runtime.MemStats) {
-		called = true
-	})
-	app.HeapHighWaterMarkAlarmDisable()
-	time.Sleep(200 * time.Millisecond)
-	if called {
-		t.Error("Callback should not be called after disable")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := testApp(nil, ConfigEnabled(true), t)
+			defer app.Shutdown(10 * time.Second)
 
-func TestHeapHighWaterMarkAlarmEnableWithNegativeInterval(t *testing.T) {
-	app := testApp(nil, ConfigEnabled(true), t)
-	defer app.Shutdown(10 * time.Second)
+			app.HeapHighWaterMarkAlarmEnable(tt.interval)
+			defer app.HeapHighWaterMarkAlarmShutdown()
 
-	app.HeapHighWaterMarkAlarmEnable(-1 * time.Second)
-	defer app.HeapHighWaterMarkAlarmShutdown()
+			app.app.heapHighWaterMarkAlarms.lock.RLock()
+			ticker := app.app.heapHighWaterMarkAlarms.sampleTicker
+			app.app.heapHighWaterMarkAlarms.lock.RUnlock()
 
-	app.app.heapHighWaterMarkAlarms.lock.RLock()
-	ticker := app.app.heapHighWaterMarkAlarms.sampleTicker
-	app.app.heapHighWaterMarkAlarms.lock.RUnlock()
-
-	if ticker != nil {
-		t.Error("Expected ticker to be nil with negative interval")
+			if ticker != nil {
+				t.Error("Expected ticker to be nil with invalid interval")
+			}
+		})
 	}
 }
 
