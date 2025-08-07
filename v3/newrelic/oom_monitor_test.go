@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestHighWaterMarkAlarmNilAppSafety(t *testing.T) {
+func TestHeapHighWaterMarkAlarmNilAppSafety(t *testing.T) {
 	tests := []struct {
 		name string
 		fn   func(*Application)
@@ -114,7 +114,7 @@ func TestHeapHighWaterMarkAlarmCallbackTriggered(t *testing.T) {
 	}
 }
 
-func TestHighWaterMarkWithInvalidInterval(t *testing.T) {
+func TestHeapHighWaterMarkWithInvalidInterval(t *testing.T) {
 	tests := []struct {
 		name     string
 		interval time.Duration
