@@ -97,6 +97,13 @@ func TestApplicationRegisterSecurityAgentNilCases(t *testing.T) {
 	originalAgent := secureAgent
 	defer func() { secureAgent = originalAgent }()
 
+	cfgfn := func(cfg *Config) { cfg.Enabled = true }
+	reply := &internal.ConnectReply{
+		EntityGUID: "test-guid-123",
+		RunID:      "123",
+		AccountID:  "test-account-id",
+	}
+
 	tests := []struct {
 		name      string
 		app       *Application
@@ -117,7 +124,7 @@ func TestApplicationRegisterSecurityAgentNilCases(t *testing.T) {
 		},
 		{
 			name:      "nil agent",
-			app:       &Application{},
+			app:       testApp(func(r *internal.ConnectReply) { *r = *reply }, cfgfn, t).Application,
 			agent:     nil,
 			expectErr: "Expected secureAgent to remain unchanged with nil agent",
 		},

@@ -61,11 +61,9 @@ func getLinkedMetaData(app *app) map[string]string {
 	if app != nil && app.run != nil {
 		runningAppData["hostname"] = app.run.Config.hostname
 		runningAppData["entityName"] = app.run.firstAppName
-		if app.run != nil {
-			runningAppData["entityGUID"] = app.run.Reply.EntityGUID
-			runningAppData["agentRunId"] = app.run.Reply.RunID.String()
-			runningAppData["accountId"] = app.run.Reply.AccountID
-		}
+		runningAppData["entityGUID"] = app.run.Reply.EntityGUID
+		runningAppData["agentRunId"] = app.run.Reply.RunID.String()
+		runningAppData["accountId"] = app.run.Reply.AccountID
 	}
 	return runningAppData
 }
