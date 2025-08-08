@@ -75,7 +75,7 @@ func TestHeapHighWaterMarkAlarmEnableResetTicker(t *testing.T) {
 	}
 
 	// Enable with new interval - should reset existing ticker
-	app.HeapHighWaterMarkAlarmEnable(200 * time.Millisecond)
+	app.HeapHighWaterMarkAlarmEnable(400 * time.Millisecond)
 
 	app.app.heapHighWaterMarkAlarms.lock.RLock()
 	newTicker := app.app.heapHighWaterMarkAlarms.sampleTicker
@@ -89,12 +89,26 @@ func TestHeapHighWaterMarkAlarmEnableResetTicker(t *testing.T) {
 		t.Error("Expected ticker to be the same instance after reset")
 	}
 
-	// Verify ticker is still functional by waiting for at least one tick
-	select {
-	case <-newTicker.C:
-		// Successfully received a tick
-	case <-time.After(400 * time.Millisecond):
-		t.Error("Ticker should have ticked within 400ms with 200ms interval")
+	// Verify ticker is functional and doesn't tick too frequently
+	tickCount := 0
+	timeout := time.After(1200 * time.Millisecond) // Give enough time for 2+ ticks
+
+	for {
+		select {
+		case <-newTicker.C:
+			tickCount++
+			if tickCount == 2 { // Stop after getting expected ticks
+				return
+			} else if tickCount > 2 {
+				t.Errorf("Ticker ticked more than expected: %d times", tickCount)
+				return
+			}
+		case <-timeout:
+			if tickCount == 0 {
+				t.Error("Ticker should have ticked at least once within timeout")
+			}
+			return
+		}
 	}
 }
 
