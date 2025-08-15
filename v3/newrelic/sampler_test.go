@@ -195,7 +195,8 @@ func TestGetSystemStatsNoGC(t *testing.T) {
 func TestGetSystemStatsNoCPUUsage(t *testing.T) {
 	baseTime := time.Now()
 
-	// Test when previous usage is 0 (CPU stats should remain zero)
+	// For the initial sample (or if prior usage data is unavailable or zero) the calculated CPU utilization will be zero
+	// to ensure accuracy and prevent misleading spikes.
 	prev := &systemSample{
 		when:  baseTime,
 		usage: sysinfo.Usage{User: 0, System: 0},
