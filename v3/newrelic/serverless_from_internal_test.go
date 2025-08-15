@@ -10,8 +10,6 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func createCompressedData(data map[string]interface{}) string {
@@ -57,9 +55,17 @@ func TestParseServerlessPayload(t *testing.T) {
 	payloadJSON := createServerlessPayload(metadata, compressedData)
 
 	resultMetadata, resultData, err := parseServerlessPayload(payloadJSON)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(resultMetadata))
-	assert.Equal(t, 2, len(resultData))
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+
+	if len(resultMetadata) != 2 {
+		t.Errorf("expected 2 metadata items, got %d", len(resultMetadata))
+	}
+
+	if len(resultData) != 2 {
+		t.Errorf("expected 2 data items, got %d", len(resultData))
+	}
 
 	// Verify metadata values
 	var version string
@@ -67,14 +73,20 @@ func TestParseServerlessPayload(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	assert.Equal(t, "1.0", version)
+
+	if version != "1.0" {
+		t.Errorf("expected version '1.0', got '%s'", version)
+	}
 
 	var dataType string
 	err = json.Unmarshal(resultMetadata["type"], &dataType)
 	if err != nil {
 		t.Fail()
 	}
-	assert.Equal(t, "serverless", dataType)
+
+	if dataType != "serverless" {
+		t.Errorf("expected type 'serverless', got '%s'", dataType)
+	}
 
 	// Verify data values
 	var key1 string
@@ -82,14 +94,18 @@ func TestParseServerlessPayload(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	assert.Equal(t, "value1", key1)
+	if key1 != "value1" {
+		t.Errorf("expected key1 'value1', got '%s'", key1)
+	}
 
 	var key2 int
 	err = json.Unmarshal(resultData["key2"], &key2)
 	if err != nil {
 		t.Fail()
 	}
-	assert.Equal(t, 123, key2)
+	if key2 != 123 {
+		t.Errorf("expected key2 123, got %d", key2)
+	}
 }
 
 func TestParseServerlessPayloadErrors(t *testing.T) {
@@ -185,9 +201,13 @@ func TestParseServerlessPayloadErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := parseServerlessPayload(tt.input)
-			assert.Equal(t, tt.wantErr, err != nil)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("unexpected error state: got error = %v, wantErr = %v", err, tt.wantErr)
+			}
 			if tt.errCheck != nil && err != nil {
-				assert.True(t, tt.errCheck(err))
+				if !tt.errCheck(err) {
+					t.Errorf("error check failed: %v", err)
+				}
 			}
 		})
 	}
@@ -211,8 +231,12 @@ func TestDecodeUncompress(t *testing.T) {
 		encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 		result, err := decodeUncompress(encoded)
-		assert.Nil(t, err)
-		assert.Equal(t, string(result), string(originalData))
+		if err != nil {
+			t.Fatalf("expected nil error, got %v", err)
+		}
+		if string(result) != string(originalData) {
+			t.Errorf("expected %s, got %s", string(originalData), string(result))
+		}
 	})
 
 	errorTests := []struct {
@@ -236,7 +260,9 @@ func TestDecodeUncompress(t *testing.T) {
 	for _, tt := range errorTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := decodeUncompress(tt.input)
-			assert.NotNil(t, err)
+			if err == nil {
+				t.Errorf("expected error for input '%s', got nil", tt.input)
+			}
 		})
 	}
 }

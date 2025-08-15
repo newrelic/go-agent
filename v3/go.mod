@@ -3,7 +3,6 @@ module github.com/newrelic/go-agent/v3
 go 1.22
 
 require (
-	github.com/stretchr/testify v1.10.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )
