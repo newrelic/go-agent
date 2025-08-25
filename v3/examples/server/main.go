@@ -62,6 +62,8 @@ func CPUspinner(w http.ResponseWriter, r *http.Request) {
 	var i int
 	var hypot, gamma3, xy float64
 
+	sgmt := txn.StartSegment("spinner")
+	defer sgmt.End()
 	for i := 0; i < 50_000_000; i++ {
 		if i%1_000_000 == 0 {
 			io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
@@ -76,6 +78,13 @@ func CPUspinner(w http.ResponseWriter, r *http.Request) {
 		"gamma":      gamma3,
 		"xy":         xy,
 	})
+}
+
+var a [][]byte
+
+func alloc100(w http.ResponseWriter, r *http.Request) {
+	a = append(a, make([]byte, 1024*1024*100, 1024*1024*100))
+	io.WriteString(w, "added 100MB to heap")
 }
 
 // Make a blizzard of goroutines, some of which will block for a while
@@ -336,11 +345,12 @@ func main() {
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigFromEnvironment(),
-		//newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigDebugLogger(os.Stdout),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigCodeLevelMetricsEnabled(true),
 		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
 		newrelic.ConfigProfilingEnabled(true),
+		newrelic.ConfigProfilingWithSegments(true),
 		newrelic.ConfigProfilingInclude(
 			newrelic.ProfilingTypeCPU|
 				newrelic.ProfilingTypeGoroutine|
@@ -348,7 +358,7 @@ func main() {
 				newrelic.ProfilingTypeMutex|
 				newrelic.ProfilingTypeThreadCreate|
 				newrelic.ProfilingTypeBlock),
-		newrelic.ConfigProfilingSampleInterval(time.Millisecond*1000),
+		newrelic.ConfigProfilingSampleInterval(time.Millisecond*500),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -391,6 +401,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/cpuspin", CPUspinner))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/gostorm", goStorm))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/alloc100", alloc100))
 
 	//loc := newrelic.ThisCodeLocation()
 	backgroundCache := newrelic.NewCachedCodeLocation()

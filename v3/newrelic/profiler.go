@@ -6,7 +6,6 @@ package newrelic
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"runtime/pprof"
@@ -26,13 +25,15 @@ const (
 )
 
 type profilerConfig struct {
-	lock         sync.RWMutex     // protects creation of the ticker and access to map
-	sampleTicker *time.Ticker     // once made, only read by monitor goroutine
-	selected     ProfilingTypeSet // which profiling types we've selected to report
-	done         chan byte
-	ingestSwitch chan byte
-	outputSwitch chan string
-	switchResult chan error
+	lock           sync.RWMutex     // protects creation of the ticker and access to map
+	segLock        sync.RWMutex     // protects access to segment list
+	sampleTicker   *time.Ticker     // once made, only read by monitor goroutine
+	selected       ProfilingTypeSet // which profiling types we've selected to report
+	done           chan byte
+	ingestSwitch   chan byte
+	outputSwitch   chan string
+	switchResult   chan error
+	activeSegments map[string]struct{}
 }
 
 func (a *app) StartProfiler() {
@@ -46,24 +47,52 @@ func (a *app) StartProfiler() {
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
 }
 
-func (a *Application) ShutdownProfiler() {
-	if a == nil || a.app == nil {
+// AddSegmentToProfiler signals that a segment has started which the profiler should report as being
+// in play during all subsequent samples until RemoveSegmentFromProfiler is called with the same segment
+// name. If the ConfigProfilingWithSegments(true) option is set, this will automatically be called when
+// txn.StartSegment is invoked, but if you start a custom segment in any other way, you'll need to
+// call AddSegmentToProfiler manually yourself since otherwise the profiler won't be able to be told
+// the segment name to track.
+//
+// Note that this assumes segment names are unique at any given point in the program's runtime.
+func (app *Application) AddSegmentToProfiler(name string) {
+	app.app.profiler.segLock.Lock()
+	if app.app.profiler.activeSegments == nil {
+		app.app.profiler.activeSegments = make(map[string]struct{})
+	}
+	app.app.profiler.activeSegments[name] = struct{}{}
+	app.app.profiler.segLock.Unlock()
+}
+
+// RemoveSegmentFromProfiler signals that a segment has terminated and the profiler should stop
+// tracking that segment name to collected samples. If the ConfigProfilingWithSegments(true) option is
+// set, this will automatically be called when the segment's End method is invoked.
+func (app *Application) RemoveSegmentFromProfiler(name string) {
+	app.app.profiler.segLock.Lock()
+	if app.app.profiler.activeSegments != nil {
+		delete(app.app.profiler.activeSegments, name)
+	}
+	app.app.profiler.segLock.Unlock()
+}
+
+func (app *Application) ShutdownProfiler() {
+	if app == nil || app.app == nil {
 		return
 	}
-	a.SetProfileSampleInterval(0)
-	a.app.profiler.done <- 0
+	app.SetProfileSampleInterval(0)
+	app.app.profiler.done <- 0
 }
 
 // SetProfileSampleInterval adjusts the sample time for profile data.
 // If set to 0, the profiler is paused entirely, but its data are not deallocated
 // nor are the profiles removed. Calling this method again with a positive interval
 // resumes sampling again.
-func (a *Application) SetProfileSampleInterval(interval time.Duration) {
-	if a == nil || a.app == nil {
+func (app *Application) SetProfileSampleInterval(interval time.Duration) {
+	if app == nil || app.app == nil {
 		return
 	}
 
-	a.app.setProfileSampleInterval(interval)
+	app.app.setProfileSampleInterval(interval)
 }
 
 // SetProfileOutputDirectory changes the destination for the profiler's output so that
@@ -72,10 +101,10 @@ func (a *Application) SetProfileSampleInterval(interval time.Duration) {
 //
 // This can be useful when debugging locally, if you want to get local profile data, or
 // if you want manual control over where profile data gets reported.
-func (a *Application) SetProfileOutputDirectory(dirname string) error {
-	if a != nil && a.app != nil {
-		a.app.profiler.outputSwitch <- dirname
-		return <-a.app.profiler.switchResult
+func (app *Application) SetProfileOutputDirectory(dirname string) error {
+	if app != nil && app.app != nil {
+		app.app.profiler.outputSwitch <- dirname
+		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
 }
@@ -84,10 +113,10 @@ func (a *Application) SetProfileOutputDirectory(dirname string) error {
 // all further profile data will be written to an OTEL-compatible profiling signal
 // endpoint.
 
-func (a *Application) SetProfileOutputOTEL() error {
-	if a != nil && a.app != nil {
-		a.app.profiler.ingestSwitch <- profileIngestOTEL
-		return <-a.app.profiler.switchResult
+func (app *Application) SetProfileOutputOTEL() error {
+	if app != nil && app.app != nil {
+		app.app.profiler.ingestSwitch <- profileIngestOTEL
+		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
 }
@@ -95,48 +124,35 @@ func (a *Application) SetProfileOutputOTEL() error {
 // SetProfileOutputMELT changes the destination for the profiler's output so that
 // all further profile data will be written to a New Relic MELT endpoint as custom
 // log events
-func (a *Application) SetProfileOutputMELT() error {
-	if a != nil && a.app != nil {
-		a.app.profiler.ingestSwitch <- profileIngestMELT
-		return <-a.app.profiler.switchResult
+func (app *Application) SetProfileOutputMELT() error {
+	if app != nil && app.app != nil {
+		app.app.profiler.ingestSwitch <- profileIngestMELT
+		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
 }
 
-func (a *app) setProfileSampleInterval(interval time.Duration) {
-	a.profiler.lock.Lock()
-	defer a.profiler.lock.Unlock()
+func (app *app) setProfileSampleInterval(interval time.Duration) {
+	app.profiler.lock.Lock()
+	defer app.profiler.lock.Unlock()
 
 	if interval <= 0 {
-		if a.profiler.sampleTicker != nil {
-			a.profiler.sampleTicker.Stop()
+		if app.profiler.sampleTicker != nil {
+			app.profiler.sampleTicker.Stop()
 		}
 		return
 	}
 
-	if a.profiler.sampleTicker == nil {
-		a.profiler.sampleTicker = time.NewTicker(interval)
-		a.profiler.done = make(chan byte)
-		a.profiler.ingestSwitch = make(chan byte)
-		a.profiler.outputSwitch = make(chan string)
-		a.profiler.switchResult = make(chan error)
-		//a.profiler.profile = pprof.NewProfile("newrelic/go-agent/v3/profiler")
-		go a.profiler.monitor(a)
+	if app.profiler.sampleTicker == nil {
+		app.profiler.sampleTicker = time.NewTicker(interval)
+		app.profiler.done = make(chan byte)
+		app.profiler.ingestSwitch = make(chan byte)
+		app.profiler.outputSwitch = make(chan string)
+		app.profiler.switchResult = make(chan error)
+		go app.profiler.monitor(app)
 	} else {
-		a.profiler.sampleTicker.Reset(interval)
+		app.profiler.sampleTicker.Reset(interval)
 	}
-}
-
-func (a *Application) StartTraceSpan(txn *Transaction) {
-	//	if a != nil && a.app != nil && a.app.profiler.sampleTicker != nil && txn != nil {
-	//		pprof.Lookup("heap").Add(txn, 2)
-	//	}
-}
-
-func (a *Application) StopTraceSpan(txn *Transaction) {
-	//	if a != nil && a.app != nil && a.app.profiler.sampleTicker != nil && txn != nil {
-	//		pprof.Lookup("heap").Remove(txn)
-	//	}
 }
 
 func (pc *profilerConfig) isBlockSelected() bool {
@@ -174,18 +190,79 @@ func (pc *profilerConfig) monitor(a *app) {
 
 	profileDestination := profileNilDest
 	var heap_f, goroutine_f, threadcreate_f, block_f, mutex_f, cpu_f *os.File
+	var cpuData bytes.Buffer
 	var err error
 	var harvestNumber int64
 
+	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool) {
+		var p *profile.Profile
+		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
+			attrs := map[string]any{"harvest_seq": 0} // we only get one harvest, at the close
+			for sampleNumber, sampleData := range p.Sample {
+				attrs["sample_seq"] = sampleNumber
+				for i, dataValue := range sampleData.Value {
+					attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
+				}
+				pc.segLock.RLock()
+				if pc.activeSegments != nil {
+					segmentSeq := 0
+					for segmentName, _ := range pc.activeSegments {
+						attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+						segmentSeq++
+					}
+				}
+				pc.segLock.RUnlock()
+				for i, codeLoc := range sampleData.Location {
+					if codeLoc.Line != nil && len(codeLoc.Line) > 0 {
+						attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
+					}
+				}
+				attrs["time_ns"] = p.TimeNanos
+				attrs["duration_ns"] = p.DurationNanos
+				attrs[normalizeAttrNameFromSampleValueType("sample_period_"+p.PeriodType.Type, p.PeriodType.Unit)] = p.Period
+				if debug {
+					fmt.Printf("EVENT %s: %v\n", eventType, attrs)
+				} else {
+					if err = a.RecordCustomEvent(eventType, attrs); err != nil {
+						a.Error("unable to record CPU profiling data as custom event", map[string]any{
+							"event-type": eventType,
+							"reason":     err.Error(),
+						})
+					}
+				}
+			}
+		} else {
+			if debug {
+				fmt.Printf("ERROR parsing %s: %v\n", eventType, err)
+			} else {
+				a.Error("unable to parse "+eventType+" profiling data", map[string]any{
+					"event-type": eventType,
+					"reason":     err.Error(),
+				})
+			}
+		}
+	}
+
 	closeLocalFiles := func() {
-		_ = heap_f.Close()
-		_ = goroutine_f.Close()
-		_ = threadcreate_f.Close()
-		_ = block_f.Close()
-		_ = mutex_f.Close()
-		_ = cpu_f.Close()
-		if pc.isCPUSelected() {
-			pprof.StopCPUProfile()
+		if profileDestination == profileNilDest {
+			// no action needed
+		} else if profileDestination == profileLocalFile {
+			_ = heap_f.Close()
+			_ = goroutine_f.Close()
+			_ = threadcreate_f.Close()
+			_ = block_f.Close()
+			_ = mutex_f.Close()
+			if pc.isCPUSelected() {
+				pprof.StopCPUProfile()
+				_ = cpu_f.Close()
+			}
+		} else {
+			// we're sending to an ingest endpoint of some sort
+			if pc.isCPUSelected() {
+				pprof.StopCPUProfile()
+				reportCPUProfileSamples(&cpuData, "ProfileCPU", false)
+				cpuData.Reset()
+			}
 		}
 		profileDestination = profileNilDest
 	}
@@ -196,11 +273,18 @@ func (pc *profilerConfig) monitor(a *app) {
 		// To prevent interthread contention without the need for mutexes, we use channels here
 		// to let user threads request switching profile output destinations here and only this
 		// monitor thread ever writes anything.
+		//
 		case newDestination := <-pc.ingestSwitch:
 			switch newDestination {
 			case profileIngestOTEL, profileIngestMELT, profileNilDest:
 				if profileDestination == profileLocalFile {
 					closeLocalFiles()
+				}
+				if pc.isCPUSelected() {
+					if err = pprof.StartCPUProfile(&cpuData); err != nil {
+						pc.switchResult <- err
+						return
+					}
 				}
 				profileDestination = newDestination
 				pc.switchResult <- nil
@@ -210,6 +294,8 @@ func (pc *profilerConfig) monitor(a *app) {
 
 		case newDirectory := <-pc.outputSwitch:
 			var err error
+
+			closeLocalFiles()
 			if pc.isHeapSelected() {
 				if heap_f, err = os.OpenFile(path.Join(newDirectory, "heap.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
 					pc.switchResult <- err
@@ -287,6 +373,15 @@ func (pc *profilerConfig) monitor(a *app) {
 							for i, dataValue := range sampleData.Value {
 								attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
 							}
+							pc.segLock.RLock()
+							if pc.activeSegments != nil {
+								segmentSeq := 0
+								for segmentName, _ := range pc.activeSegments {
+									attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+									segmentSeq++
+								}
+							}
+							pc.segLock.RUnlock()
 							for i, codeLoc := range sampleData.Location {
 								if codeLoc.Line != nil && len(codeLoc.Line) > 0 {
 									attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
@@ -333,95 +428,14 @@ func (pc *profilerConfig) monitor(a *app) {
 				if pc.isMutexSelected() {
 					reportProfileSample("mutex", "ProfileMutex", false)
 				}
-				if pc.isCPUSelected() {
-					// wip
-				}
 				harvestNumber++
 			}
 		case <-pc.done:
-			log.Println("pc.done!")
 			// We were told to terminate our profile monitoring
 			return
 		}
 	}
 }
-
-//// HeapHighWaterMarkAlarmShutdown stops the monitoring goroutine and deallocates the entire
-//// monitoring completely. All alarms are calcelled and disabled.
-//func (a *Application) HeapHighWaterMarkAlarmShutdown() {
-//	if a == nil || a.app == nil {
-//		return
-//	}
-//
-//	a.app.heapHighWaterMarkAlarms.lock.Lock()
-//	defer a.app.heapHighWaterMarkAlarms.lock.Unlock()
-//	a.app.heapHighWaterMarkAlarms.sampleTicker.Stop()
-//	if a.app.heapHighWaterMarkAlarms.done != nil {
-//		a.app.heapHighWaterMarkAlarms.done <- 0
-//	}
-//	if a.app.heapHighWaterMarkAlarms.alarms != nil {
-//		clear(a.app.heapHighWaterMarkAlarms.alarms)
-//		a.app.heapHighWaterMarkAlarms.alarms = nil
-//	}
-//	a.app.heapHighWaterMarkAlarms.sampleTicker = nil
-//}
-//
-//// HeapHighWaterMarkAlarmDisable stops sampling the heap memory allocation started by
-//// HeapHighWaterMarkAlarmEnable. It is safe to call even if HeapHighWaterMarkAlarmEnable was
-//// never called or the alarms were already disabled.
-//func (a *Application) HeapHighWaterMarkAlarmDisable() {
-//	if a == nil || a.app == nil {
-//		return
-//	}
-//
-//}
-//
-//// HeapHighWaterMarkAlarmSet adds a heap memory high water mark alarm to the set of alarms
-//// being tracked by the running heap monitor. Memory is checked on the interval specified to
-//// the last call to HeapHighWaterMarkAlarmEnable, and if at that point the globally allocated heap
-//// memory is at least the specified size, the provided callback function will be invoked. This
-//// method may be called multiple times to register any number of callback functions to respond
-//// to different memory thresholds. For example, you may wish to make measurements or warnings
-//// of various urgency levels before finally taking action.
-////
-//// If HeapHighWaterMarkAlarmSet is called with the same memory limit as a previous call, the
-//// supplied callback function will replace the one previously registered for that limit. If
-//// the function is given as nil, then that memory limit alarm is removed from the list.
-//func (a *Application) HeapHighWaterMarkAlarmSet(limit uint64, f func(uint64, *runtime.MemStats)) {
-//	if a == nil || a.app == nil {
-//		return
-//	}
-//
-//	a.app.heapHighWaterMarkAlarms.lock.Lock()
-//	defer a.app.heapHighWaterMarkAlarms.lock.Unlock()
-//
-//	if a.app.heapHighWaterMarkAlarms.alarms == nil {
-//		a.app.heapHighWaterMarkAlarms.alarms = make(map[uint64]func(uint64, *runtime.MemStats))
-//	}
-//
-//	if f == nil {
-//		delete(a.app.heapHighWaterMarkAlarms.alarms, limit)
-//	} else {
-//		a.app.heapHighWaterMarkAlarms.alarms[limit] = f
-//	}
-//}
-//
-//// HeapHighWaterMarkAlarmClearAll removes all high water mark alarms from the memory monitor
-//// set.
-//func (a *Application) HeapHighWaterMarkAlarmClearAll() {
-//	if a == nil || a.app == nil {
-//		return
-//	}
-//
-//	a.app.heapHighWaterMarkAlarms.lock.Lock()
-//	defer a.app.heapHighWaterMarkAlarms.lock.Unlock()
-//
-//	if a.app.heapHighWaterMarkAlarms.alarms == nil {
-//		return
-//	}
-//
-//	clear(a.app.heapHighWaterMarkAlarms.alarms)
-//}
 
 func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 	return strings.Map(func(s rune) rune {

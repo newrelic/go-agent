@@ -553,6 +553,7 @@ type Config struct {
 	// Profiling Configuration
 	Profiling struct {
 		Enabled          bool
+		WithSegments     bool
 		SelectedProfiles ProfilingTypeSet
 		Interval         time.Duration
 	}
