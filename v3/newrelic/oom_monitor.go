@@ -59,7 +59,6 @@ func (as *heapHighWaterMarkAlarmSet) monitor() {
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
 			as.lock.RLock()
-			defer as.lock.RUnlock()
 			if as.alarms != nil {
 				for limit, callback := range as.alarms {
 					if m.HeapAlloc >= limit {
@@ -67,6 +66,7 @@ func (as *heapHighWaterMarkAlarmSet) monitor() {
 					}
 				}
 			}
+			as.lock.RUnlock()
 		case <-as.done:
 			return
 		}
@@ -74,6 +74,7 @@ func (as *heapHighWaterMarkAlarmSet) monitor() {
 }
 
 // HeapHighWaterMarkAlarmShutdown stops the monitoring goroutine and deallocates the entire
+
 // monitoring completely. All alarms are calcelled and disabled.
 func (app *Application) HeapHighWaterMarkAlarmShutdown() {
 	if app == nil || app.app == nil {
@@ -82,7 +83,9 @@ func (app *Application) HeapHighWaterMarkAlarmShutdown() {
 
 	app.app.heapHighWaterMarkAlarms.lock.Lock()
 	defer app.app.heapHighWaterMarkAlarms.lock.Unlock()
-	app.app.heapHighWaterMarkAlarms.sampleTicker.Stop()
+  if app.app.heapHighWaterMarkAlarms.sampleTicker != nil {
+    app.app.heapHighWaterMarkAlarms.sampleTicker.Stop()
+  }
 	if app.app.heapHighWaterMarkAlarms.done != nil {
 		app.app.heapHighWaterMarkAlarms.done <- 0
 	}
