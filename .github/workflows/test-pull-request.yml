@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, stable]
+        go-version: [1.24.0, 1.25.0, stable]
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, stable]
+        go-version: [1.24.0, 1.25.0, stable]
     continue-on-error: true
     steps:
       - name: Checkout go-agent code
@@ -104,7 +104,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, latest]
+        go-version: [1.24.0, 1.25.0, latest]
         core-test: ${{ fromJson(needs.setup-core-matrix.outputs.CORE_MATRIX) }}
         runner: [ubuntu-latest, ubuntu-24.04-arm]
     continue-on-error: true
@@ -139,7 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, latest]
+        go-version: [1.24.0, 1.25.0, latest]
         integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
     continue-on-error: true
     steps:
@@ -173,7 +173,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
-        go-version: [1.23.0, 1.24.0, latest]
+        go-version: [1.24.0, 1.25.0, latest]
         integration-test: ${{ fromJson(needs.setup-integration-matrix.outputs.INTEGRATION_MATRIX) }}
     continue-on-error: true
     steps:
