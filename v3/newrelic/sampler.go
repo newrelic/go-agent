@@ -83,6 +83,8 @@ func getSystemStats(ss systemSamples) systemStats {
 	}
 
 	// CPU Utilization
+	// For the initial sample (or if prior usage data is unavailable or zero) the calculated CPU utilization will be zero
+	// to ensure accuracy and prevent misleading spikes.
 	totalCPUSeconds := elapsed.Seconds() * float64(cur.numCPU)
 	if prev.usage.User != 0 && cur.usage.User > prev.usage.User {
 		s.user.used = cur.usage.User - prev.usage.User
