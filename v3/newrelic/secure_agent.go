@@ -61,11 +61,9 @@ func getLinkedMetaData(app *app) map[string]string {
 	if app != nil && app.run != nil {
 		runningAppData["hostname"] = app.run.Config.hostname
 		runningAppData["entityName"] = app.run.firstAppName
-		if app.run != nil {
-			runningAppData["entityGUID"] = app.run.Reply.EntityGUID
-			runningAppData["agentRunId"] = app.run.Reply.RunID.String()
-			runningAppData["accountId"] = app.run.Reply.AccountID
-		}
+		runningAppData["entityGUID"] = app.run.Reply.EntityGUID
+		runningAppData["agentRunId"] = app.run.Reply.RunID.String()
+		runningAppData["accountId"] = app.run.Reply.AccountID
 	}
 	return runningAppData
 }
@@ -113,16 +111,22 @@ type BodyBuffer struct {
 }
 
 func (b *BodyBuffer) Write(p []byte) (int, error) {
-	if l := len(b.buf); len(p) <= secureAgent.RequestBodyReadLimit()-l {
-		b.buf = append(b.buf, p...)
-		return len(p), nil
-	} else if l := len(b.buf); secureAgent.RequestBodyReadLimit()-l > 1 {
-		end := secureAgent.RequestBodyReadLimit() - l
-		b.buf = append(b.buf, p[:end-1]...)
-		return end, nil
-	} else {
+	l := len(b.buf)
+
+	if l == secureAgent.RequestBodyReadLimit() {
+		// no room, can't write
 		b.isDataTruncated = true
 		return 0, nil
+	} else if len(p)+l > secureAgent.RequestBodyReadLimit() {
+		// can write, but will truncate to limit
+		end := secureAgent.RequestBodyReadLimit() - l
+		b.buf = append(b.buf, p[:end]...)
+		b.isDataTruncated = true
+		return end, nil
+	} else {
+		// can write all data
+		b.buf = append(b.buf, p...)
+		return len(p), nil
 	}
 }
 
