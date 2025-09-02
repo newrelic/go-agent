@@ -6,8 +6,10 @@ package newrelic
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -25,15 +27,21 @@ const (
 )
 
 type profilerConfig struct {
-	lock           sync.RWMutex     // protects creation of the ticker and access to map
-	segLock        sync.RWMutex     // protects access to segment list
-	sampleTicker   *time.Ticker     // once made, only read by monitor goroutine
-	selected       ProfilingTypeSet // which profiling types we've selected to report
-	done           chan byte
-	ingestSwitch   chan byte
-	outputSwitch   chan string
-	switchResult   chan error
-	activeSegments map[string]struct{}
+	lock            sync.RWMutex  // protects creation of the ticker and access to map
+	segLock         sync.RWMutex  // protects access to segment list
+	sampleTicker    *time.Ticker  // once made, only read by monitor goroutine
+	cpuReportTicker *time.Ticker  // once made, only read by monitor goroutine
+	selected        ProfilingType // which profiling types we've selected to report
+	done            chan byte
+	//	forceCPUReport  chan byte
+	outputDirectory string
+	ingestSwitch    chan byte
+	outputSwitch    chan string
+	switchResult    chan error
+	activeSegments  map[string]struct{}
+	blockRate       int
+	mutexRate       int
+	cpuSampleRateHz int
 }
 
 func (a *app) StartProfiler() {
@@ -43,8 +51,12 @@ func (a *app) StartProfiler() {
 
 	a.profiler.lock.Lock()
 	a.profiler.selected = a.config.Profiling.SelectedProfiles
+	a.profiler.blockRate = a.config.Profiling.BlockRate
+	a.profiler.mutexRate = a.config.Profiling.MutexRate
+	a.profiler.cpuSampleRateHz = a.config.Profiling.CPUSampleRateHz
 	a.profiler.lock.Unlock()
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
+	a.setProfileCPUReportInterval(a.config.Profiling.CPUReportInterval)
 }
 
 // AddSegmentToProfiler signals that a segment has started which the profiler should report as being
@@ -83,10 +95,57 @@ func (app *Application) ShutdownProfiler() {
 	app.app.profiler.done <- 0
 }
 
+// SetProfileCPUSampleRateHz adjusts the sample time for CPU profile data.
+// Changing this value does not actually take effect until the next time the
+// CPU profiler is restarted. This will be when it is explicitly started, or
+// when app.ReportCPUProfileStats is called (either manually or via the periodic
+// timer set in motion via the ConfigProfilingCPUReportInterval option).
+func (app *Application) SetProfileCPUSampleRateHz(hz int) {
+	if app == nil || app.app == nil {
+		return
+	}
+	app.app.profiler.lock.Lock()
+	app.app.profiler.cpuSampleRateHz = hz
+	app.app.profiler.lock.Unlock()
+}
+
+// SetProfileCPUReportInterval adjusts the pace at which we report the collected CPU profile data, just
+// like the ConfigProfilingCPUReportInverval agent configuration option does, but this allows the value
+// to be adjusted at runtime at will. Setting this to 0 stops the interruption of the CPU profiler, allowing
+// it to run until explicitly stopped when the overall agent profiler is shut down.
+func (app *Application) SetProfileCPUReportInterval(interval time.Duration) {
+	if app == nil || app.app == nil {
+		return
+	}
+
+	app.app.setProfileCPUReportInterval(interval)
+}
+
+func (app *app) setProfileCPUReportInterval(interval time.Duration) {
+	app.profiler.lock.Lock()
+	defer app.profiler.lock.Unlock()
+
+	if interval <= 0 {
+		if app.profiler.cpuReportTicker != nil {
+			app.profiler.cpuReportTicker.Stop()
+		}
+		return
+	}
+
+	if app.profiler.cpuReportTicker == nil {
+		app.profiler.cpuReportTicker = time.NewTicker(interval)
+	} else {
+		app.profiler.cpuReportTicker.Reset(interval)
+	}
+}
+
 // SetProfileSampleInterval adjusts the sample time for profile data.
 // If set to 0, the profiler is paused entirely, but its data are not deallocated
 // nor are the profiles removed. Calling this method again with a positive interval
 // resumes sampling again.
+//
+// This does not affect sample rates for CPU data. Use SetProfileCPUSampleInterval
+// and/or SetProfileCPUReportingInterval for that instead.
 func (app *Application) SetProfileSampleInterval(interval time.Duration) {
 	if app == nil || app.app == nil {
 		return
@@ -146,6 +205,7 @@ func (app *app) setProfileSampleInterval(interval time.Duration) {
 	if app.profiler.sampleTicker == nil {
 		app.profiler.sampleTicker = time.NewTicker(interval)
 		app.profiler.done = make(chan byte)
+		//		app.profiler.forceCPUReport = make(chan byte)
 		app.profiler.ingestSwitch = make(chan byte)
 		app.profiler.outputSwitch = make(chan string)
 		app.profiler.switchResult = make(chan error)
@@ -156,36 +216,43 @@ func (app *app) setProfileSampleInterval(interval time.Duration) {
 }
 
 func (pc *profilerConfig) isBlockSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeBlock) != 0
+	return (pc.selected & ProfilingTypeBlock) != 0
 }
 
 func (pc *profilerConfig) isCPUSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeCPU) != 0
+	return (pc.selected & ProfilingTypeCPU) != 0
 }
 
 func (pc *profilerConfig) isGoroutineSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeGoroutine) != 0
+	return (pc.selected & ProfilingTypeGoroutine) != 0
 }
 
 func (pc *profilerConfig) isHeapSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeHeap) != 0
+	return (pc.selected & ProfilingTypeHeap) != 0
 }
 
 func (pc *profilerConfig) isMutexSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeMutex) != 0
+	return (pc.selected & ProfilingTypeMutex) != 0
 }
 
 func (pc *profilerConfig) isThreadCreateSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeThreadCreate) != 0
+	return (pc.selected & ProfilingTypeThreadCreate) != 0
 }
 
 func (pc *profilerConfig) isTraceSelected() bool {
-	return (ProfilingType(pc.selected) & ProfilingTypeTrace) != 0
+	return (pc.selected & ProfilingTypeTrace) != 0
 }
 
 func (pc *profilerConfig) monitor(a *app) {
 	if pc == nil {
 		return
+	}
+
+	if pc.isBlockSelected() {
+		runtime.SetBlockProfileRate(pc.blockRate)
+	}
+	if pc.isMutexSelected() {
+		_ = runtime.SetMutexProfileFraction(pc.mutexRate)
 	}
 
 	profileDestination := profileNilDest
@@ -197,7 +264,7 @@ func (pc *profilerConfig) monitor(a *app) {
 	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool) {
 		var p *profile.Profile
 		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
-			attrs := map[string]any{"harvest_seq": 0} // we only get one harvest, at the close
+			attrs := map[string]any{"harvest_seq": harvestNumber}
 			for sampleNumber, sampleData := range p.Sample {
 				attrs["sample_seq"] = sampleNumber
 				for i, dataValue := range sampleData.Value {
@@ -281,6 +348,7 @@ func (pc *profilerConfig) monitor(a *app) {
 					closeLocalFiles()
 				}
 				if pc.isCPUSelected() {
+					runtime.SetCPUProfileRate(pc.cpuSampleRateHz)
 					if err = pprof.StartCPUProfile(&cpuData); err != nil {
 						pc.switchResult <- err
 						return
@@ -295,6 +363,7 @@ func (pc *profilerConfig) monitor(a *app) {
 		case newDirectory := <-pc.outputSwitch:
 			var err error
 
+			pc.outputDirectory = newDirectory
 			closeLocalFiles()
 			if pc.isHeapSelected() {
 				if heap_f, err = os.OpenFile(path.Join(newDirectory, "heap.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
@@ -331,6 +400,7 @@ func (pc *profilerConfig) monitor(a *app) {
 					pc.switchResult <- err
 					return
 				}
+				runtime.SetCPUProfileRate(pc.cpuSampleRateHz)
 				if err = pprof.StartCPUProfile(cpu_f); err != nil {
 					pc.switchResult <- err
 					return
@@ -338,6 +408,37 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 			profileDestination = profileLocalFile
 			pc.switchResult <- nil
+
+		case <-pc.cpuReportTicker.C:
+			if pc.isCPUSelected() {
+				if profileDestination == profileNilDest {
+					// nothing to do here
+				} else {
+					// shut down the profiler, let it report out
+					pprof.StopCPUProfile()
+					runtime.SetCPUProfileRate(pc.cpuSampleRateHz)
+					if profileDestination == profileLocalFile {
+						// cycle to a new destination file
+						_ = cpu_f.Close()
+						if cpu_f, err = os.OpenFile(path.Join(pc.outputDirectory, fmt.Sprintf("cpu.pprof%v", harvestNumber)), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							pc.selected &= ^ProfilingTypeCPU
+						} else if err = pprof.StartCPUProfile(cpu_f); err != nil {
+							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							pc.selected &= ^ProfilingTypeCPU
+						}
+					} else {
+						// report to ingest endpoint
+						reportCPUProfileSamples(&cpuData, "ProfileCPU", false)
+						cpuData.Reset()
+						if err = pprof.StartCPUProfile(&cpuData); err != nil {
+							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							pc.selected &= ^ProfilingTypeCPU
+						}
+					}
+				}
+				harvestNumber++
+			}
 
 		case <-pc.sampleTicker.C:
 			if profileDestination == profileNilDest {
@@ -451,3 +552,15 @@ func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 		return -1
 	}, strings.ToLower(typeName+"_"+unitName))
 }
+
+// ReportCPUProfileStats interrupts the CPU profiler to force the profile data it's collected so far to be reported out
+// immediately. This is necessary because normally it collects and buffers all of that data internally, only reporting it
+// when the profiler is stopped so a complete set of samples is delivered all at once. This function, therefore, actually
+// stops the profiler, lets it deliver all the data it collected, and then starts it up again to start a new run from scratch.
+//
+// This may automatically be run on a repeating schedule by configuring the ConfigProfilingCPUReportInterval option.
+//func (app *Application) ReportCPUProfileStats() {
+//	if app != nil && app.app.profiler.forceCPUReport != nil {
+//		app.app.profiler.forceCPUReport <- 0
+//	}
+//}

@@ -412,7 +412,7 @@ func ConfigProfilingWithSegments(enabled bool) ConfigOption {
 func ConfigProfilingInclude(ptype ...ProfilingType) ConfigOption {
 	return func(cfg *Config) {
 		for _, pt := range ptype {
-			cfg.Profiling.SelectedProfiles |= ProfilingTypeSet(pt)
+			cfg.Profiling.SelectedProfiles |= pt
 		}
 	}
 }
@@ -433,9 +433,51 @@ func ConfigProfilingIncludeByNames(ptype ...string) ConfigOption {
 	}
 }
 
+// ConfigProfilingSampleInterval controls the pace at which we sample and report the collected profile data to the destination,
+// except for CPU profiles (which are buffered internally until the profiler is stopped, under normal circumstances).
 func ConfigProfilingSampleInterval(interval time.Duration) ConfigOption {
 	return func(cfg *Config) {
 		cfg.Profiling.Interval = interval
+	}
+}
+
+// ConfigProfilingCPUReportInterval controls the pace at which we report the collected CPU profile data. Since the
+// CPU profiler internally buffers and aggregates its data during its entire run, reporting its data out only when
+// it is stopped, this means that every time this interval of time elapses, we actually need to stop the CPU profiler,
+// let it report out its data, then start a new CPU profiler run for a new set of profile data. Keep this in mind as you
+// determine the report interval to give yourself realtime visibility, vs. having a single comprehensive set of profile
+// data that represents the entire runtime performance of your application.
+func ConfigProfilingCPUReportInterval(interval time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.CPUReportInterval = interval
+	}
+}
+
+// ConfigProfilingCPUSampleRateHz controls the CPU profiler's internal sample rate at which it collects the system's CPU usage
+// data as it works. By default this is set to 100 Hz, but you can adjust that here if you want to collect data more or less
+// frequently.
+func ConfigProfilingCPUSampleRateHz(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.CPUSampleRateHz = rate
+	}
+}
+
+// ConfigProfilingBlockRate controls the number of block profile samples we try to collect. The default value of
+// 1 tries to collect all data. Increasing this to some value n reduces that to try to collect 1/n of the blocks
+// seen as the profiler looks at the blocked routines. A value less than or equal to 0 means not to collect block profile
+// data at all.
+func ConfigProfilingBlockRate(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.BlockRate = rate
+	}
+}
+
+// ConfigProfilingMutexRate controls the number of mutex profile samples we try to collect. The default value of
+// 1 tries to collect all data. Increasing this to some value n reduces that to try to collect 1/n of the mutex samples.
+// A value of 0 means not to collect this data at all.
+func ConfigProfilingMutexRate(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.MutexRate = rate
 	}
 }
 
@@ -481,6 +523,10 @@ func ConfigProfilingSampleInterval(interval time.Duration) ConfigOption {
 //						NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //			         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
 //		          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
+//		          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
+//		          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
+//		          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
+//		          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
 //	           NEW_RELIC_PROFILING_WITH_SEGMENTS                              sets Profiling.WithSegments
 //			         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //
@@ -634,12 +680,19 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.
 		var intervalMS int
-		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_INTERVAL_MS") && intervalMS >= 0 {
+		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS") && intervalMS >= 0 {
 			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
+		}
+		var intervalCPU int
+		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS") && intervalCPU >= 0 {
+			cfg.Profiling.CPUReportInterval = time.Duration(intervalCPU) * time.Millisecond
 		}
 		if env := getenv("NEW_RELIC_PROFILING_INCLUDE"); env != "" {
 			cfg.Profiling.SelectedProfiles.FromStrings(strings.Split(env, ","), false)
 		}
+		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ")
+		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE")
+		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE")
 	}
 }
 

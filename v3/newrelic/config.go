@@ -19,7 +19,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
-type ProfilingTypeSet uint32
 type ProfilingType uint32
 
 const (
@@ -32,9 +31,9 @@ const (
 	ProfilingTypeTrace
 )
 
-func (p *ProfilingTypeSet) FromStrings(types []string, additive bool) error {
+func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 	if p == nil {
-		return fmt.Errorf("nil ProfilingTypeSet pointer")
+		return fmt.Errorf("nil ProfilingType pointer")
 	}
 
 	if !additive {
@@ -44,19 +43,19 @@ func (p *ProfilingTypeSet) FromStrings(types []string, additive bool) error {
 	for _, t := range types {
 		switch t {
 		case "block":
-			*p |= ProfilingTypeSet(ProfilingTypeBlock)
+			*p |= ProfilingTypeBlock
 		case "cpu":
-			*p |= ProfilingTypeSet(ProfilingTypeCPU)
+			*p |= ProfilingTypeCPU
 		case "goroutine":
-			*p |= ProfilingTypeSet(ProfilingTypeGoroutine)
+			*p |= ProfilingTypeGoroutine
 		case "heap":
-			*p |= ProfilingTypeSet(ProfilingTypeHeap)
+			*p |= ProfilingTypeHeap
 		case "mutex":
-			*p |= ProfilingTypeSet(ProfilingTypeMutex)
+			*p |= ProfilingTypeMutex
 		case "threadcreate":
-			*p |= ProfilingTypeSet(ProfilingTypeThreadCreate)
+			*p |= ProfilingTypeThreadCreate
 		case "trace":
-			*p |= ProfilingTypeSet(ProfilingTypeTrace)
+			*p |= ProfilingTypeTrace
 		default:
 			return fmt.Errorf("unknown ProfilingType \"%s\"", t)
 		}
@@ -64,38 +63,38 @@ func (p *ProfilingTypeSet) FromStrings(types []string, additive bool) error {
 	return nil
 }
 
-func (p ProfilingTypeSet) Strings() []string {
+func (p ProfilingType) Strings() []string {
 	var typeSet []string
 
-	if ProfilingTypeBlock&ProfilingType(p) != 0 {
+	if ProfilingTypeBlock&p != 0 {
 		typeSet = append(typeSet, "block")
 	}
-	if ProfilingTypeCPU&ProfilingType(p) != 0 {
+	if ProfilingTypeCPU&p != 0 {
 		typeSet = append(typeSet, "cpu")
 	}
-	if ProfilingTypeGoroutine&ProfilingType(p) != 0 {
+	if ProfilingTypeGoroutine&p != 0 {
 		typeSet = append(typeSet, "goroutine")
 	}
-	if ProfilingTypeHeap&ProfilingType(p) != 0 {
+	if ProfilingTypeHeap&p != 0 {
 		typeSet = append(typeSet, "heap")
 	}
-	if ProfilingTypeMutex&ProfilingType(p) != 0 {
+	if ProfilingTypeMutex&p != 0 {
 		typeSet = append(typeSet, "mutex")
 	}
-	if ProfilingTypeThreadCreate&ProfilingType(p) != 0 {
+	if ProfilingTypeThreadCreate&p != 0 {
 		typeSet = append(typeSet, "threadcreate")
 	}
-	if ProfilingTypeTrace&ProfilingType(p) != 0 {
+	if ProfilingTypeTrace&p != 0 {
 		typeSet = append(typeSet, "trace")
 	}
 	return typeSet
 }
 
-func (p ProfilingTypeSet) MarshalJSON() ([]byte, error) {
+func (p ProfilingType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.Strings())
 }
 
-func (p *ProfilingTypeSet) UnmarshalJSON(data []byte) error {
+func (p *ProfilingType) UnmarshalJSON(data []byte) error {
 	var t []string
 
 	if err := json.Unmarshal(data, &t); err != nil {
@@ -552,10 +551,32 @@ type Config struct {
 
 	// Profiling Configuration
 	Profiling struct {
-		Enabled          bool
-		WithSegments     bool
-		SelectedProfiles ProfilingTypeSet
-		Interval         time.Duration
+		// Enabled controls whether the profiler is running.
+		Enabled bool
+		// WithSegments controls whether we report the actively-running segments
+		// along with the sample data so they can be associated with them when data are
+		// analyzed later.
+		WithSegments bool
+		// SelectedProfiles indicates which kinds of profiles we're collecting and reporting.
+		SelectedProfiles ProfilingType
+		// Interval is the rate at which the profiler gathers and reports non-CPU profile data.
+		Interval time.Duration
+		// CPUReportInterval is the rate at which we stop the CPU profiler to let it report
+		// out the data it's collected so far, after which we restart it again to collect more
+		// data. If this is zero, we won't interrupt the profiler to report anything
+		// until we shut down the whole agent profiler.
+		CPUReportInterval time.Duration
+		// CPUSampleRateHz is the internal collection speed at which the CPU profiler is running
+		// to collect CPU stats.
+		CPUSampleRateHz int
+		// BlockRate is the rate at which we collect block profile data. If <=0, we stop collecting
+		// block profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
+		// tries to collect them all.
+		BlockRate int
+		// MutexRate is the rate at which we collect Mutex profile data. If 0, we stop collecting
+		// mutex profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
+		// tries to collect them all.
+		MutexRate int
 	}
 
 	// Security is used to post security configuration on UI.
@@ -811,6 +832,11 @@ func defaultConfig() Config {
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
 	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
+
+	// Profiling settings
+	c.Profiling.CPUSampleRateHz = 100
+	c.Profiling.BlockRate = 1
+	c.Profiling.MutexRate = 1
 	return c
 }
 
