@@ -6,7 +6,6 @@ package newrelic
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"runtime"
@@ -33,7 +32,6 @@ type profilerConfig struct {
 	cpuReportTicker *time.Ticker  // once made, only read by monitor goroutine
 	selected        ProfilingType // which profiling types we've selected to report
 	done            chan byte
-	//	forceCPUReport  chan byte
 	outputDirectory string
 	ingestSwitch    chan byte
 	outputSwitch    chan string
@@ -87,6 +85,8 @@ func (app *Application) RemoveSegmentFromProfiler(name string) {
 	app.app.profiler.segLock.Unlock()
 }
 
+// ShutdownProfiler stops the collection and reporting of profile data and stops the
+// monitor background goroutine.
 func (app *Application) ShutdownProfiler() {
 	if app == nil || app.app == nil {
 		return
@@ -172,13 +172,16 @@ func (app *Application) SetProfileOutputDirectory(dirname string) error {
 // all further profile data will be written to an OTEL-compatible profiling signal
 // endpoint.
 
-func (app *Application) SetProfileOutputOTEL() error {
+// (future)
+
+/* func (app *Application) SetProfileOutputOTEL() error {
 	if app != nil && app.app != nil {
 		app.app.profiler.ingestSwitch <- profileIngestOTEL
 		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
 }
+*/
 
 // SetProfileOutputMELT changes the destination for the profiler's output so that
 // all further profile data will be written to a New Relic MELT endpoint as custom
@@ -205,7 +208,6 @@ func (app *app) setProfileSampleInterval(interval time.Duration) {
 	if app.profiler.sampleTicker == nil {
 		app.profiler.sampleTicker = time.NewTicker(interval)
 		app.profiler.done = make(chan byte)
-		//		app.profiler.forceCPUReport = make(chan byte)
 		app.profiler.ingestSwitch = make(chan byte)
 		app.profiler.outputSwitch = make(chan string)
 		app.profiler.switchResult = make(chan error)
@@ -421,10 +423,17 @@ func (pc *profilerConfig) monitor(a *app) {
 						// cycle to a new destination file
 						_ = cpu_f.Close()
 						if cpu_f, err = os.OpenFile(path.Join(pc.outputDirectory, fmt.Sprintf("cpu.pprof%v", harvestNumber)), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							a.Logger.Error("error restarting CPU profiler", map[string]any{
+								"filename":  fmt.Sprintf("cpu.pprof%v", harvestNumber),
+								"operation": "OpenFile",
+								"error":     err.Error(),
+							})
 							pc.selected &= ^ProfilingTypeCPU
 						} else if err = pprof.StartCPUProfile(cpu_f); err != nil {
-							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							a.Logger.Error("error restarting CPU profiler", map[string]any{
+								"operation": "StartCPUProfile",
+								"error":     err.Error(),
+							})
 							pc.selected &= ^ProfilingTypeCPU
 						}
 					} else {
@@ -432,7 +441,10 @@ func (pc *profilerConfig) monitor(a *app) {
 						reportCPUProfileSamples(&cpuData, "ProfileCPU", false)
 						cpuData.Reset()
 						if err = pprof.StartCPUProfile(&cpuData); err != nil {
-							log.Printf("error restarting CPU profiler: %v", err) // TODO send to right log
+							a.Logger.Error("error restarting CPU profiler", map[string]any{
+								"operation": "StartCPUProfile",
+								"error":     err.Error(),
+							})
 							pc.selected &= ^ProfilingTypeCPU
 						}
 					}
@@ -552,15 +564,3 @@ func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 		return -1
 	}, strings.ToLower(typeName+"_"+unitName))
 }
-
-// ReportCPUProfileStats interrupts the CPU profiler to force the profile data it's collected so far to be reported out
-// immediately. This is necessary because normally it collects and buffers all of that data internally, only reporting it
-// when the profiler is stopped so a complete set of samples is delivered all at once. This function, therefore, actually
-// stops the profiler, lets it deliver all the data it collected, and then starts it up again to start a new run from scratch.
-//
-// This may automatically be run on a repeating schedule by configuring the ConfigProfilingCPUReportInterval option.
-//func (app *Application) ReportCPUProfileStats() {
-//	if app != nil && app.app.profiler.forceCPUReport != nil {
-//		app.app.profiler.forceCPUReport <- 0
-//	}
-//}
