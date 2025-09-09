@@ -4,7 +4,7 @@
 
 The New Relic Go Agent allows you to monitor your Go applications with New
 Relic. It helps you track transactions, outbound requests, database calls, and
-other parts of your Go application's behavior and provides a running overview of
+other parts of your Go asdfapplication's behavior and provides a running overview of
 garbage collection, goroutine activity, and memory use.
 
 Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.
