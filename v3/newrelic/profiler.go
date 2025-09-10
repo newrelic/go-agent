@@ -5,7 +5,9 @@ package newrelic
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"runtime"
@@ -25,12 +27,20 @@ const (
 	profileIngestMELT
 )
 
+type profilerAuditRecord struct {
+	EventType  string `json:"event_type"`
+	HarvestSeq int64  `json:"harvest_seq"`
+	SampleSeq  int    `json:"sample_seq"`
+	Reason     string `json:"error,omitempty"`
+}
+
 type profilerConfig struct {
 	lock            sync.RWMutex  // protects creation of the ticker and access to map
 	segLock         sync.RWMutex  // protects access to segment list
 	sampleTicker    *time.Ticker  // once made, only read by monitor goroutine
 	cpuReportTicker *time.Ticker  // once made, only read by monitor goroutine
 	selected        ProfilingType // which profiling types we've selected to report
+	auditFile       *os.File      // debugging audit file of profile data (nil for normal production runs)
 	done            chan byte
 	outputDirectory string
 	ingestSwitch    chan byte
@@ -72,6 +82,33 @@ func (app *Application) AddSegmentToProfiler(name string) {
 	}
 	app.app.profiler.activeSegments[name] = struct{}{}
 	app.app.profiler.segLock.Unlock()
+}
+
+// The following are undocumented because they're intended for internal testing
+// purposes. They open and close an audit log of the profile samples collected
+// and reported for the profiler.
+
+func (app *Application) OpenProfileAuditLog(filename string) error {
+	var err error
+	if app == nil || app.app == nil {
+		return fmt.Errorf("nil application")
+	}
+	app.app.profiler.lock.Lock()
+	app.app.profiler.auditFile, err = os.Create(filename)
+	app.app.profiler.lock.Unlock()
+	return err
+}
+
+func (app *Application) CloseProfileAuditLog() error {
+	var err error
+	if app == nil || app.app == nil {
+		return fmt.Errorf("nil application")
+	}
+	app.app.profiler.lock.Lock()
+	err = app.app.profiler.auditFile.Close()
+	app.app.profiler.auditFile = nil
+	app.app.profiler.lock.Unlock()
+	return err
 }
 
 // RemoveSegmentFromProfiler signals that a segment has terminated and the profiler should stop
@@ -263,7 +300,7 @@ func (pc *profilerConfig) monitor(a *app) {
 	var err error
 	var harvestNumber int64
 
-	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool) {
+	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		var p *profile.Profile
 		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
 			attrs := map[string]any{"harvest_seq": harvestNumber}
@@ -297,6 +334,28 @@ func (pc *profilerConfig) monitor(a *app) {
 							"event-type": eventType,
 							"reason":     err.Error(),
 						})
+						if audit != nil {
+							// add note in our audit record that we failed to record this sample
+							if b, jerr := json.Marshal(profilerAuditRecord{
+								EventType:  eventType,
+								HarvestSeq: harvestNumber,
+								SampleSeq:  sampleNumber,
+								Reason:     err.Error(),
+							}); jerr == nil {
+								audit.Write(b)
+								audit.Write([]byte{'\n'})
+							}
+						}
+					} else if audit != nil {
+						// the custom event succeeded. add that to the audit trail too
+						if b, jerr := json.Marshal(profilerAuditRecord{
+							EventType:  eventType,
+							HarvestSeq: harvestNumber,
+							SampleSeq:  sampleNumber,
+						}); jerr == nil {
+							audit.Write(b)
+							audit.Write([]byte{'\n'})
+						}
 					}
 				}
 			}
@@ -329,7 +388,7 @@ func (pc *profilerConfig) monitor(a *app) {
 			// we're sending to an ingest endpoint of some sort
 			if pc.isCPUSelected() {
 				pprof.StopCPUProfile()
-				reportCPUProfileSamples(&cpuData, "ProfileCPU", false)
+				reportCPUProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
 				cpuData.Reset()
 			}
 		}
@@ -423,27 +482,30 @@ func (pc *profilerConfig) monitor(a *app) {
 						// cycle to a new destination file
 						_ = cpu_f.Close()
 						if cpu_f, err = os.OpenFile(path.Join(pc.outputDirectory, fmt.Sprintf("cpu.pprof%v", harvestNumber)), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-							a.Logger.Error("error restarting CPU profiler", map[string]any{
-								"filename":  fmt.Sprintf("cpu.pprof%v", harvestNumber),
-								"operation": "OpenFile",
-								"error":     err.Error(),
+							a.Error("error restarting CPU profiler", map[string]any{
+								"event-type": "ProfileCPU",
+								"filename":   fmt.Sprintf("cpu.pprof%v", harvestNumber),
+								"operation":  "OpenFile",
+								"reason":     err.Error(),
 							})
 							pc.selected &= ^ProfilingTypeCPU
 						} else if err = pprof.StartCPUProfile(cpu_f); err != nil {
-							a.Logger.Error("error restarting CPU profiler", map[string]any{
-								"operation": "StartCPUProfile",
-								"error":     err.Error(),
+							a.Error("error restarting CPU profiler", map[string]any{
+								"event-type": "ProfileCPU",
+								"operation":  "StartCPUProfile",
+								"reason":     err.Error(),
 							})
 							pc.selected &= ^ProfilingTypeCPU
 						}
 					} else {
 						// report to ingest endpoint
-						reportCPUProfileSamples(&cpuData, "ProfileCPU", false)
+						reportCPUProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
 						cpuData.Reset()
 						if err = pprof.StartCPUProfile(&cpuData); err != nil {
-							a.Logger.Error("error restarting CPU profiler", map[string]any{
-								"operation": "StartCPUProfile",
-								"error":     err.Error(),
+							a.Error("error restarting CPU profiler", map[string]any{
+								"event-type": "ProfileCPU",
+								"operation":  "StartCPUProfile",
+								"reason":     err.Error(),
 							})
 							pc.selected &= ^ProfilingTypeCPU
 						}
@@ -475,7 +537,7 @@ func (pc *profilerConfig) monitor(a *app) {
 				}
 			} else {
 				// Otherwise, we need to process the profile data internally and report it out somewhere.
-				reportProfileSample := func(profileName, eventType string, debug bool) {
+				reportProfileSample := func(profileName, eventType string, debug bool, audit io.Writer) {
 					var data bytes.Buffer
 					pprof.Lookup(profileName).WriteTo(&data, 0)
 					var p *profile.Profile
@@ -507,10 +569,32 @@ func (pc *profilerConfig) monitor(a *app) {
 								fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 							} else {
 								if err = a.RecordCustomEvent(eventType, attrs); err != nil {
-									a.Error("unable to record heap profiling data as custom event", map[string]any{
+									a.Error("unable to record "+eventType+" profiling data as custom event", map[string]any{
 										"event-type": eventType,
 										"reason":     err.Error(),
 									})
+									if audit != nil {
+										// add not in our audit record that we failed to record this sample
+										if b, jerr := json.Marshal(profilerAuditRecord{
+											EventType:  eventType,
+											HarvestSeq: harvestNumber,
+											SampleSeq:  sampleNumber,
+											Reason:     err.Error(),
+										}); jerr == nil {
+											audit.Write(b)
+											audit.Write([]byte{'\n'})
+										}
+									}
+								} else if audit != nil {
+									// the custom event succeeded. add that to the audit trail too
+									if b, jerr := json.Marshal(profilerAuditRecord{
+										EventType:  eventType,
+										HarvestSeq: harvestNumber,
+										SampleSeq:  sampleNumber,
+									}); jerr == nil {
+										audit.Write(b)
+										audit.Write([]byte{'\n'})
+									}
 								}
 							}
 						}
@@ -527,19 +611,19 @@ func (pc *profilerConfig) monitor(a *app) {
 				}
 
 				if pc.isHeapSelected() {
-					reportProfileSample("heap", "ProfileHeap", false)
+					reportProfileSample("heap", "ProfileHeap", false, pc.auditFile)
 				}
 				if pc.isGoroutineSelected() {
-					reportProfileSample("goroutine", "ProfileGoroutine", false)
+					reportProfileSample("goroutine", "ProfileGoroutine", false, pc.auditFile)
 				}
 				if pc.isThreadCreateSelected() {
-					reportProfileSample("threadcreate", "ProfileThreadCreate", false)
+					reportProfileSample("threadcreate", "ProfileThreadCreate", false, pc.auditFile)
 				}
 				if pc.isBlockSelected() {
-					reportProfileSample("block", "ProfileBlock", false)
+					reportProfileSample("block", "ProfileBlock", false, pc.auditFile)
 				}
 				if pc.isMutexSelected() {
-					reportProfileSample("mutex", "ProfileMutex", false)
+					reportProfileSample("mutex", "ProfileMutex", false, pc.auditFile)
 				}
 				harvestNumber++
 			}

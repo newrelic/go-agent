@@ -359,6 +359,7 @@ func main() {
 				newrelic.ProfilingTypeThreadCreate|
 				newrelic.ProfilingTypeBlock),
 		newrelic.ConfigProfilingSampleInterval(time.Millisecond*500),
+		newrelic.ConfigProfilingCPUReportInterval(time.Minute*5),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -378,6 +379,9 @@ func main() {
 		}
 	}
 
+	if err := app.OpenProfileAuditLog("/tmp/profile.audit"); err != nil {
+		log.Printf("error opening audit: %v", err)
+	}
 	app.SetProfileOutputMELT()
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
@@ -449,5 +453,8 @@ func main() {
 	}
 	app.ShutdownProfiler()
 	app.Shutdown(time.Second * 60)
+	if err := app.CloseProfileAuditLog(); err != nil {
+		log.Printf("error closing audit: %v", err)
+	}
 	log.Println("Agent shutdown.")
 }
