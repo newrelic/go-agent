@@ -351,6 +351,7 @@ func main() {
 		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
 		newrelic.ConfigProfilingEnabled(true),
 		newrelic.ConfigProfilingWithSegments(true),
+		newrelic.ConfigCustomInsightsEventsMaxSamplesStored(50000),
 		newrelic.ConfigProfilingInclude(
 			newrelic.ProfilingTypeCPU|
 				newrelic.ProfilingTypeGoroutine|
@@ -379,9 +380,9 @@ func main() {
 		}
 	}
 
-	if err := app.OpenProfileAuditLog("/tmp/profile.audit"); err != nil {
-		log.Printf("error opening audit: %v", err)
-	}
+	//	if err := app.OpenProfileAuditLog("/tmp/profile.audit"); err != nil {
+	//		log.Printf("error opening audit: %v", err)
+	//	}
 	app.SetProfileOutputMELT()
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
