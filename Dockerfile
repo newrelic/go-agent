@@ -2,7 +2,7 @@
 ARG GO_VERSION
 
 # Takes in go version
-FROM golang:${GO_VERSION:-1.24}
+FROM golang:${GO_VERSION:-1.25}
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
