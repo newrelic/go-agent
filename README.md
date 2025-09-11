@@ -15,7 +15,7 @@ Go is a compiled language, and doesn’t use a virtual machine. This means that 
 
 For the latest version of the agent, Go 1.22+ is required.
 
-Linux, OS X, and Windows (Vista, Server 2008 and later) are supported.
+Linux, OS X, and Windows (Vista, Server 2008 and later) are supported. (diff)
 
 ### Installing and using the Go agent
 
