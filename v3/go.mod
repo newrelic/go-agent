@@ -6,6 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5
+	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )

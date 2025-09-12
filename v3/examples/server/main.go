@@ -380,9 +380,6 @@ func main() {
 		}
 	}
 
-	//	if err := app.OpenProfileAuditLog("/tmp/profile.audit"); err != nil {
-	//		log.Printf("error opening audit: %v", err)
-	//	}
 	app.SetProfileOutputMELT()
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
@@ -432,7 +429,6 @@ func main() {
 		io.WriteString(w, "A background log message was recorded")
 	})
 
-	// http.ListenAndServe(":8000", nil)
 	server := http.Server{
 		Addr: ":8000",
 	}
@@ -454,8 +450,5 @@ func main() {
 	}
 	app.ShutdownProfiler()
 	app.Shutdown(time.Second * 60)
-	if err := app.CloseProfileAuditLog(); err != nil {
-		log.Printf("error closing audit: %v", err)
-	}
 	log.Println("Agent shutdown.")
 }
