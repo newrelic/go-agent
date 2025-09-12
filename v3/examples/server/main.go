@@ -435,7 +435,8 @@ func main() {
 	shutdownError := make(chan error)
 
 	http.HandleFunc("/shutdown", func(w http.ResponseWriter, req *http.Request) {
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+		ctx, cancelServer := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancelServer()
 		shutdownError <- server.Shutdown(ctx)
 	})
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

@@ -83,9 +83,9 @@ func (app *Application) HeapHighWaterMarkAlarmShutdown() {
 
 	app.app.heapHighWaterMarkAlarms.lock.Lock()
 	defer app.app.heapHighWaterMarkAlarms.lock.Unlock()
-  if app.app.heapHighWaterMarkAlarms.sampleTicker != nil {
-    app.app.heapHighWaterMarkAlarms.sampleTicker.Stop()
-  }
+	if app.app.heapHighWaterMarkAlarms.sampleTicker != nil {
+		app.app.heapHighWaterMarkAlarms.sampleTicker.Stop()
+	}
 	if app.app.heapHighWaterMarkAlarms.done != nil {
 		app.app.heapHighWaterMarkAlarms.done <- 0
 	}
