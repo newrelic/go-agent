@@ -842,3 +842,84 @@ func TestBetterCAT_SetTraceAndTxnIDs(t *testing.T) {
 		}
 	}
 }
+
+func Test_truncateSpanAttribute(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		value                 string
+		maxLengthWithEllipsis int
+		want                  string
+	}{
+		// TODO: Add test cases.
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table WHERE",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table WHERE",
+		},
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé WHERE",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table WHERE condition=truncated",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table WH...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé WHERE condition=truncated",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis with character larger than a byte in section that gets truncated",
+			value:                 "SELECT * FROM tablé WHERE condition=truncatéd",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "éééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "ééééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "éééééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateSpanAttribute(tt.value, tt.maxLengthWithEllipsis)
+			// TODO: update the condition below to compare got with tt.want.
+			if got != tt.want {
+				t.Errorf("truncateSpanAttribute() = %v, want %v\nsize got: %d, want: %d\n", got, tt.want, len(got), len(tt.want))
+			}
+		})
+	}
+}
