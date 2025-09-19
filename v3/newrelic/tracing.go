@@ -212,7 +212,13 @@ type spanAttributeMap map[string]jsonWriter
 
 func (m *spanAttributeMap) addString(key string, val string) {
 	if val != "" {
-		m.add(key, stringJSONWriter(val))
+		m.add(key, stringJSONWriter(stringLengthByteLimit(val, attributeValueLengthLimit)))
+	}
+}
+
+func (m *spanAttributeMap) addLargeString(key string, val string) {
+	if val != "" {
+		m.add(key, stringJSONWriter(truncateSpanAttribute(val, MaxSpanAttributeDBStatementSize)))
 	}
 }
 
@@ -816,7 +822,7 @@ func endDatastoreSegment(p endDatastoreParams) error {
 
 	if p.TxnData.TxnTrace.considerNode(end) {
 		attributes := end.agentAttributes.copy()
-		attributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize))
+		attributes.addLargeString(SpanAttributeDBStatement, p.ParameterizedQuery)
 		attributes.addString(SpanAttributeDBInstance, p.Database)
 		attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		attributes.addString(SpanAttributePeerHostname, p.Host)
@@ -847,7 +853,7 @@ func endDatastoreSegment(p endDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.AgentAttributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize))
+		evt.AgentAttributes.addLargeString(SpanAttributeDBStatement, p.ParameterizedQuery)
 		evt.AgentAttributes.addString(SpanAttributeDBInstance, p.Database)
 		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host)
