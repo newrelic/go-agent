@@ -64,10 +64,9 @@ type (
 )
 
 const (
-	querySegmentKey   nrPgxSegmentType = "nrPgx5Segment"
-	prepareSegmentKey nrPgxSegmentType = "prepareNrPgx5Segment"
-	batchSegmentKey   nrPgxSegmentType = "batchNrPgx5Segment"
-	querySecurityKey  nrPgxSegmentType = "nrPgx5SecurityToken"
+	querySegmentKey  nrPgxSegmentType = "nrPgx5Segment"
+	batchSegmentKey  nrPgxSegmentType = "batchNrPgx5Segment"
+	querySecurityKey nrPgxSegmentType = "nrPgx5SecurityToken"
 )
 
 type TracerOption func(*Tracer)
@@ -167,14 +166,13 @@ func (t *Tracer) TraceQueryEnd(ctx context.Context, conn *pgx.Conn, data pgx.Tra
 	if newrelic.IsSecurityAgentPresent() {
 		if stoken := ctx.Value(querySecurityKey); stoken != nil {
 			newrelic.GetSecurityAgentInterface().SendExitEvent(stoken, nil)
-			ctx = context.WithValue(ctx, querySecurityKey, nil)
 		}
 	}
 	segment.End()
 }
 
-func (t *Tracer) getQueryParameters(args []interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
+func (t *Tracer) getQueryParameters(args []any) map[string]any {
+	result := map[string]any{}
 	for i, arg := range args {
 		result["$"+strconv.Itoa(i)] = fmt.Sprintf("[%s]", arg)
 	}
