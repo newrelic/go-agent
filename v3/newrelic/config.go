@@ -703,8 +703,8 @@ func defaultConfig() Config {
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
 	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
-	c.DistributedTracer.Sampler.RemoteParentSampled = "default"
-	c.DistributedTracer.Sampler.RemoteParentNotSampled = "default"
+	c.DistributedTracer.Sampler.RemoteParentSampled = Default.String()
+	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
