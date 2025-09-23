@@ -1511,7 +1511,7 @@ func TestW3CTraceHeaders(t *testing.T) {
 
 }
 
-func TestW3CTraceHeadersSamplingDefault(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentSamplingDefault(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnlySampledDefault, t)
 	txn := app.StartTransaction("hello")
 
@@ -1533,7 +1533,7 @@ func TestW3CTraceHeadersSamplingDefault(t *testing.T) {
 
 }
 
-func TestW3CTraceHeadersNotSamplingDefault(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentNotSamplingDefault(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFields(reply)
 		reply.SetSampleNothing()
@@ -1558,7 +1558,7 @@ func TestW3CTraceHeadersNotSamplingDefault(t *testing.T) {
 	}, backgroundUnknownCaller...))
 
 }
-func TestW3CTraceHeadersSamplingAlwaysOn(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentSamplingAlwaysOn(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnlySampledAlwaysOn, t)
 	txn := app.StartTransaction("hello")
 
@@ -1590,7 +1590,7 @@ func TestW3CTraceHeadersSamplingAlwaysOn(t *testing.T) {
 	})
 
 }
-func TestW3CTraceHeadersSamplingAlwaysOff(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentSamplingAlwaysOff(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnlySampledAlwaysOff, t)
 	txn := app.StartTransaction("hello")
 
@@ -1622,7 +1622,7 @@ func TestW3CTraceHeadersSamplingAlwaysOff(t *testing.T) {
 	})
 }
 
-func TestW3CTraceHeadersNoSamplingAlwaysOn(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentNoSamplingAlwaysOn(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFields(reply)
 		reply.SetSampleNothing()
@@ -1659,7 +1659,7 @@ func TestW3CTraceHeadersNoSamplingAlwaysOn(t *testing.T) {
 
 }
 
-func TestW3CTraceHeadersNoSamplingAlwaysOff(t *testing.T) {
+func TestW3CTraceHeadersRemoteParentNoSamplingAlwaysOff(t *testing.T) {
 	replyfn := func(reply *internal.ConnectReply) {
 		distributedTracingReplyFields(reply)
 		reply.SetSampleNothing()
