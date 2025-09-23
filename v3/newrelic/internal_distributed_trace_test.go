@@ -99,10 +99,22 @@ func enableW3COnly(cfg *Config) {
 	cfg.DistributedTracer.ExcludeNewRelicHeader = true
 }
 
+func enableW3COnlySampledDefault(cfg *Config) {
+	cfg.DistributedTracer.Enabled = true
+	cfg.DistributedTracer.ExcludeNewRelicHeader = true
+	cfg.DistributedTracer.Sampler.RemoteParentSampled = "default"
+}
+
 func enableW3COnlySampledAlwaysOn(cfg *Config) {
 	cfg.DistributedTracer.Enabled = true
 	cfg.DistributedTracer.ExcludeNewRelicHeader = true
 	cfg.DistributedTracer.Sampler.RemoteParentSampled = "always_on"
+}
+
+func enableW3COnlyNotSampledDefault(cfg *Config) {
+	cfg.DistributedTracer.Enabled = true
+	cfg.DistributedTracer.ExcludeNewRelicHeader = true
+	cfg.DistributedTracer.Sampler.RemoteParentNotSampled = "default"
 }
 
 func enableW3COnlySampledAlwaysOff(cfg *Config) {
@@ -1499,6 +1511,53 @@ func TestW3CTraceHeaders(t *testing.T) {
 
 }
 
+func TestW3CTraceHeadersSamplingDefault(t *testing.T) {
+	app := testApp(distributedTracingReplyFields, enableW3COnlySampledDefault, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	expected := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-01"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-1-1.437714-1577830891900"},
+	}
+	verifyHeaders(t, hdrs, expected)
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+
+}
+
+func TestW3CTraceHeadersNotSamplingDefault(t *testing.T) {
+	replyfn := func(reply *internal.ConnectReply) {
+		distributedTracingReplyFields(reply)
+		reply.SetSampleNothing()
+	}
+	app := testApp(replyfn, enableW3COnlyNotSampledDefault, t)
+	txn := app.StartTransaction("hello")
+
+	hdrs := http.Header{}
+	txn.InsertDistributedTraceHeaders(hdrs)
+
+	expected := http.Header{
+		DistributedTraceW3CTraceParentHeader: []string{"00-52fdfc072182654f163f5f0f9a621d72-9566c74d10d1e2c6-00"},
+		DistributedTraceW3CTraceStateHeader:  []string{"123@nr=0-0-123-456-9566c74d10d1e2c6-52fdfc072182654f-0-0.437714-1577830891900"},
+	}
+	verifyHeaders(t, hdrs, expected)
+
+	txn.End()
+	app.expectNoLoggedErrors(t)
+
+	app.ExpectMetrics(t, append([]internal.WantMetric{
+		{Name: "Supportability/TraceContext/Create/Success", Scope: "", Forced: true, Data: nil},
+	}, backgroundUnknownCaller...))
+
+}
 func TestW3CTraceHeadersSamplingAlwaysOn(t *testing.T) {
 	app := testApp(distributedTracingReplyFields, enableW3COnlySampledAlwaysOn, t)
 	txn := app.StartTransaction("hello")

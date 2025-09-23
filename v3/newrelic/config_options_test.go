@@ -264,7 +264,7 @@ func TestConfigRemoteParentSamplingDefaults(t *testing.T) {
 }
 
 func TestConfigRemoteParentSampledOn(t *testing.T) {
-	cfgOpt := ConfigRemoteParentSampled(true)
+	cfgOpt := ConfigRemoteParentSampled("always_on")
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
 	if cfg.DistributedTracer.Sampler.RemoteParentSampled != "always_on" {
@@ -273,7 +273,7 @@ func TestConfigRemoteParentSampledOn(t *testing.T) {
 }
 
 func TestConfigRemoteParentSampledOff(t *testing.T) {
-	cfgOpt := ConfigRemoteParentSampled(false)
+	cfgOpt := ConfigRemoteParentSampled("always_off")
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
 	if cfg.DistributedTracer.Sampler.RemoteParentSampled != "always_off" {
@@ -282,7 +282,7 @@ func TestConfigRemoteParentSampledOff(t *testing.T) {
 }
 
 func TestConfigRemoteParentNotSampledOn(t *testing.T) {
-	cfgOpt := ConfigRemoteParentNotSampled(true)
+	cfgOpt := ConfigRemoteParentNotSampled("always_on")
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
 	if cfg.DistributedTracer.Sampler.RemoteParentNotSampled != "always_on" {
@@ -291,7 +291,7 @@ func TestConfigRemoteParentNotSampledOn(t *testing.T) {
 }
 
 func TestConfigRemoteParentNotSampledOff(t *testing.T) {
-	cfgOpt := ConfigRemoteParentNotSampled(false)
+	cfgOpt := ConfigRemoteParentNotSampled("always_off")
 	cfg := defaultConfig()
 	cfgOpt(&cfg)
 	if cfg.DistributedTracer.Sampler.RemoteParentNotSampled != "always_off" {
