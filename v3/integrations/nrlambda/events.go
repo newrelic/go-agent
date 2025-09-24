@@ -16,31 +16,52 @@ func getEventSourceARN(event interface{}) string {
 	switch v := event.(type) {
 	case events.KinesisFirehoseEvent:
 		return v.DeliveryStreamArn
+	case *events.KinesisFirehoseEvent:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.KinesisEvent:
 		if len(v.Records) > 0 {
 			return v.Records[0].EventSourceArn
 		}
+	case *events.KinesisEvent:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.CodeCommitEvent:
 		if len(v.Records) > 0 {
 			return v.Records[0].EventSourceARN
 		}
+	case *events.CodeCommitEvent:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.DynamoDBEvent:
 		if len(v.Records) > 0 {
 			return v.Records[0].EventSourceArn
 		}
+	case *events.DynamoDBEvent:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.SQSEvent:
 		if len(v.Records) > 0 {
 			return v.Records[0].EventSourceARN
 		}
+	case *events.SQSEvent:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.S3Event:
 		if len(v.Records) > 0 {
 			return v.Records[0].S3.Bucket.Arn
 		}
+	case *events.S3Event:
+		return getEventSourceARN(safeDereference(v))
+
 	case events.SNSEvent:
 		if len(v.Records) > 0 {
 			return v.Records[0].EventSubscriptionArn
 		}
+	case *events.SNSEvent:
+		return getEventSourceARN(safeDereference(v))
 	}
+
 	return ""
 }
 
@@ -54,11 +75,16 @@ func eventWebRequest(event interface{}) *newrelic.WebRequest {
 		request.Method = r.HTTPMethod
 		path = r.Path
 		headers = r.Headers
+	case *events.APIGatewayProxyRequest:
+		return eventWebRequest(safeDereference(r))
+
 	case events.ALBTargetGroupRequest:
-		// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html#receive-event-from-load-balancer
 		request.Method = r.HTTPMethod
 		path = r.Path
 		headers = r.Headers
+	case *events.ALBTargetGroupRequest:
+		return eventWebRequest(safeDereference(r))
+
 	default:
 		return nil
 	}
@@ -98,9 +124,15 @@ func eventResponse(event interface{}) *response {
 	case events.APIGatewayProxyResponse:
 		code = r.StatusCode
 		headers = r.Headers
+	case *events.APIGatewayProxyResponse:
+		return eventResponse(safeDereference(r))
+
 	case events.ALBTargetGroupResponse:
 		code = r.StatusCode
 		headers = r.Headers
+	case *events.ALBTargetGroupResponse:
+		return eventResponse(safeDereference(r))
+
 	default:
 		return nil
 	}
@@ -112,4 +144,12 @@ func eventResponse(event interface{}) *response {
 		code:   code,
 		header: hdr,
 	}
+}
+
+func safeDereference[T any](p *T) T {
+	if p == nil {
+		var z T
+		return z
+	}
+	return *p
 }
