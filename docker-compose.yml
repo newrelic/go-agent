@@ -40,7 +40,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       args:
-        GO_VERSION: ${GO_VERSION:-1.24}
+        GO_VERSION: ${GO_VERSION:-1.25}
     environment:
       PG_HOST: postgres
       PG_PORT: 5432
@@ -63,7 +63,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       args:
-        GO_VERSION: ${GO_VERSION:-1.24}
+        GO_VERSION: ${GO_VERSION:-1.25}
     environment:
       PG_HOST: postgres
       PG_PORT: 5432

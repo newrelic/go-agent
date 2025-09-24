@@ -279,6 +279,23 @@ type Config struct {
 		// ReservoirLimit sets the desired maximum span event reservoir limit
 		// for collecting span event data. The collector MAY override this value.
 		ReservoirLimit int
+		// Sampler controls the sampling behavior for Inbound Requests for distributed traces
+		// If a valid traceparent exists, the following configuration options will allow
+		// users to choose which sampling strategy to apply.
+		//
+		//	`RemoteParentSampled` (when the traceparent sampled = 1)
+		//	* `always_on`: the agent will sample spans
+		//	* `always_off`: the agent will NOT sample spans
+		//	* `default`: the agent will use the existing NR sampling (default)
+
+		//	`RemoteParentNotSampled` (when the traceparent sampled = 0)
+		//	* `always_on`: the agent will sample spans
+		//	* `always_off`: the agent will NOT sample spans
+		//	* `default`: the agent will use the existing NR sampling (default)
+		Sampler struct {
+			RemoteParentSampled    string
+			RemoteParentNotSampled string
+		}
 	}
 
 	// SpanEvents controls behavior relating to Span Events.  Span Events
@@ -686,6 +703,8 @@ func defaultConfig() Config {
 	c.CrossApplicationTracer.Enabled = false
 	c.DistributedTracer.Enabled = true
 	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
+	c.DistributedTracer.Sampler.RemoteParentSampled = Default.String()
+	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 
