@@ -402,7 +402,7 @@ func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
 	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
 	result := newAppRun(cfg, h).MaxTxnEvents()
 	if result != internal.MaxTxnEvents {
-		t.Errorf(fmt.Sprintf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result))
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result)
 	}
 }
 
