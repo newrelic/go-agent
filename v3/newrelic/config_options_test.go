@@ -252,3 +252,49 @@ func TestConfigFromEnvironmentLabelsSuccess(t *testing.T) {
 		t.Error(cfg.Labels)
 	}
 }
+
+func TestConfigRemoteParentSamplingDefaults(t *testing.T) {
+	cfg := defaultConfig()
+	if cfg.DistributedTracer.Sampler.RemoteParentNotSampled != "default" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentNotSampled:", cfg.DistributedTracer.Sampler.RemoteParentNotSampled)
+	}
+	if cfg.DistributedTracer.Sampler.RemoteParentSampled != "default" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentSampled:", cfg.DistributedTracer.Sampler.RemoteParentSampled)
+	}
+}
+
+func TestConfigRemoteParentSampledOn(t *testing.T) {
+	cfgOpt := ConfigRemoteParentSampled(AlwaysOn)
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.DistributedTracer.Sampler.RemoteParentSampled != "always_on" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentSampled:", cfg.DistributedTracer.Sampler.RemoteParentSampled)
+	}
+}
+
+func TestConfigRemoteParentSampledOff(t *testing.T) {
+	cfgOpt := ConfigRemoteParentSampled(AlwaysOff)
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.DistributedTracer.Sampler.RemoteParentSampled != "always_off" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentSampled:", cfg.DistributedTracer.Sampler.RemoteParentSampled)
+	}
+}
+
+func TestConfigRemoteParentNotSampledOn(t *testing.T) {
+	cfgOpt := ConfigRemoteParentNotSampled(AlwaysOn)
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.DistributedTracer.Sampler.RemoteParentNotSampled != "always_on" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentNotSampled:", cfg.DistributedTracer.Sampler.RemoteParentNotSampled)
+	}
+}
+
+func TestConfigRemoteParentNotSampledOff(t *testing.T) {
+	cfgOpt := ConfigRemoteParentNotSampled(AlwaysOff)
+	cfg := defaultConfig()
+	cfgOpt(&cfg)
+	if cfg.DistributedTracer.Sampler.RemoteParentNotSampled != "always_off" {
+		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentNotSampled:", cfg.DistributedTracer.Sampler.RemoteParentNotSampled)
+	}
+}
