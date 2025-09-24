@@ -2,7 +2,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrstan/test
 
 // This module exists to avoid a dependency on
 // github.com/nats-io/nats-streaming-server in nrstan.
-go 1.22
+go 1.24
 
 toolchain go1.24.2
 

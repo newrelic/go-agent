@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrfiber
 
-go 1.22
+go 1.24
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.9

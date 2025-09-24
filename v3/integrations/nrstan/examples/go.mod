@@ -1,7 +1,7 @@
 module github.com/newrelic/go-agent/v3/integrations/nrstan/examples
 
 // This module exists to avoid a dependency on nrnrats.
-go 1.22
+go 1.24
 
 require (
 	github.com/nats-io/stan.go v0.10.4

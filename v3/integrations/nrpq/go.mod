@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrpq
 
-go 1.22
+go 1.24
 
 require (
 	// NewConnector dsn parsing tests expect v1.1.0 error return behavior.

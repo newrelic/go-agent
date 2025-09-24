@@ -2,7 +2,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrmicro
 
 // As of Dec 2019, the go-micro go.mod file uses 1.13:
 // https://github.com/micro/go-micro/blob/master/go.mod
-go 1.22
+go 1.24
 
 toolchain go1.24.2
 

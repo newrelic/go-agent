@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrgrpc
 
-go 1.22
+go 1.24
 
 require (
 	// protobuf v1.3.0 is the earliest version using modules, we use v1.3.1

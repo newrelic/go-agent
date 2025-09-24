@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrgraphqlgo/example
 
-go 1.22
+go 1.24
 
 require (
 	github.com/graphql-go/graphql v0.8.1
