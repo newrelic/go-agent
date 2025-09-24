@@ -117,7 +117,7 @@ func main() {
 			return
 		}
 
-		fmt.Printf(response.Choices[0].Delta.Content)
+		fmt.Print(response.Choices[0].Delta.Content)
 	}
 	stream.Close()
 	SendFeedback(app, *stream)
