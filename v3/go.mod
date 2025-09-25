@@ -1,8 +1,6 @@
 module github.com/newrelic/go-agent/v3
 
-go 1.23.0
-
-toolchain go1.24.2
+go 1.24
 
 require (
 	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5

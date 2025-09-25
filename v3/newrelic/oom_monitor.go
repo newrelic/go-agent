@@ -74,8 +74,7 @@ func (as *heapHighWaterMarkAlarmSet) monitor() {
 }
 
 // HeapHighWaterMarkAlarmShutdown stops the monitoring goroutine and deallocates the entire
-
-// monitoring completely. All alarms are calcelled and disabled.
+// monitoring completely. All alarms are cancelled and disabled.
 func (app *Application) HeapHighWaterMarkAlarmShutdown() {
 	if app == nil || app.app == nil {
 		return
