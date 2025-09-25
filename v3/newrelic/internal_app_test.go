@@ -1327,3 +1327,157 @@ func TestTransactionExpectLogEventsMergesThreadData(t *testing.T) {
 	// Ensure app.testHarvest is empty before ExpectLogEvents
 	if len(app.testHarvest.LogEvents.logs) != 0 {
 		t.Fatalf("Expected app.testHarvest.LogEvents to be empty before merge")
+	}
+
+	want := []internal.WantLog{
+		{
+			Severity:  "Info",
+			Message:   "Thread log message",
+			Timestamp: logEvent.timestamp,
+		},
+	}
+
+	txn.ExpectLogEvents(t, want)
+
+	// After ExpectLogEvents, app.testHarvest should contain the merged log event
+	if len(app.testHarvest.LogEvents.logs) == 0 {
+		t.Errorf("Expected app.testHarvest.LogEvents to contain merged thread log event")
+	}
+
+	testApp.Shutdown(1 * time.Second)
+}
+
+type mockTraceObserver struct {
+	connected     bool
+	restartCalled bool
+	lastRunID     internal.AgentRunID
+	lastHeaders   map[string]string
+}
+
+func (m *mockTraceObserver) initialConnCompleted() bool { return m.connected }
+func (m *mockTraceObserver) restart(runID internal.AgentRunID, headers map[string]string) {
+	m.restartCalled = true
+	m.lastRunID = runID
+	m.lastHeaders = headers
+}
+func (m *mockTraceObserver) shutdown(time.Duration) error                  { return nil }
+func (m *mockTraceObserver) QueueSize() int                                { return 0 }
+func (m *mockTraceObserver) Consume(*spanEvent)                            {}
+func (m *mockTraceObserver) consumeSpan(*spanEvent)                        {}
+func (m *mockTraceObserver) dumpSupportabilityMetrics() map[string]float64 { return nil }
+
+const (
+	sampleAppName = "my app"
+)
+
+// expectApp combines Application and Expect, for use in validating data in test apps
+type expectApplication struct {
+	internal.Expect
+	*Application
+}
+
+func (e expectApplication) Error(i ...interface{}) {
+}
+
+func newTestApp(replyfn func(*internal.ConnectReply), cfgFn ...ConfigOption) expectApplication {
+	cfgFn = append(cfgFn,
+		func(cfg *Config) {
+			// Prevent spawning app goroutines in tests.
+			if !cfg.ServerlessMode.Enabled {
+				cfg.Enabled = false
+			}
+		},
+		ConfigAppName(sampleAppName),
+		ConfigLicense(testLicenseKey),
+		ConfigCodeLevelMetricsEnabled(false),
+	)
+
+	app, err := NewApplication(cfgFn...)
+	if nil != err {
+		panic(err)
+	}
+
+	internal.HarvestTesting(app.Private, replyfn)
+
+	return expectApplication{
+		Expect:      app.Private.(internal.Expect),
+		Application: app,
+	}
+}
+
+const (
+	testEntityGUID = "testEntityGUID123"
+)
+
+var sampleEverythingReplyFn = func(reply *internal.ConnectReply) {
+	reply.SetSampleEverything()
+	reply.EntityGUID = testEntityGUID
+}
+
+var configTestAppLogFn = func(cfg *Config) {
+	cfg.Enabled = false
+	cfg.ApplicationLogging.Enabled = true
+	cfg.ApplicationLogging.Forwarding.Enabled = true
+	cfg.ApplicationLogging.Metrics.Enabled = true
+}
+
+var configTestAppSamplerFn = func(cfg *Config) {
+	cfg.Enabled = true
+	cfg.RuntimeSampler.Enabled = true
+	cfg.ServerlessMode.Enabled = true
+}
+
+type testLoggerWithMethodTracking struct {
+	messages      []string
+	fields        []map[string]interface{}
+	calledMethods []string
+}
+
+func (tl *testLoggerWithMethodTracking) DebugEnabled() bool {
+	return true
+}
+
+func (tl *testLoggerWithMethodTracking) Error(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+	tl.fields = append(tl.fields, fields)
+	tl.calledMethods = append(tl.calledMethods, "Error")
+}
+
+func (tl *testLoggerWithMethodTracking) Warn(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+	tl.fields = append(tl.fields, fields)
+	tl.calledMethods = append(tl.calledMethods, "Warn")
+}
+
+func (tl *testLoggerWithMethodTracking) Info(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+	tl.fields = append(tl.fields, fields)
+	tl.calledMethods = append(tl.calledMethods, "Info")
+}
+
+func (tl *testLoggerWithMethodTracking) Debug(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+	tl.fields = append(tl.fields, fields)
+	tl.calledMethods = append(tl.calledMethods, "Debug")
+}
+
+type testLogger struct {
+	messages []string
+}
+
+func (tl *testLogger) DebugEnabled() bool {
+	return true
+}
+
+func (tl *testLogger) Error(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+}
+func (tl *testLogger) Warn(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+}
+func (tl *testLogger) Info(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+}
+func (tl *testLogger) Debug(msg string, fields map[string]interface{}) {
+	tl.messages = append(tl.messages, msg)
+}
