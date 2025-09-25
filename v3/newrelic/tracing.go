@@ -17,6 +17,10 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
+const (
+	MaxSpanAttributeDBStatementSize = 4096 // int representing max size in bytes
+)
+
 // txnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
@@ -812,7 +816,7 @@ func endDatastoreSegment(p endDatastoreParams) error {
 
 	if p.TxnData.TxnTrace.considerNode(end) {
 		attributes := end.agentAttributes.copy()
-		attributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
+		attributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize))
 		attributes.addString(SpanAttributeDBInstance, p.Database)
 		attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		attributes.addString(SpanAttributePeerHostname, p.Host)
@@ -843,7 +847,7 @@ func endDatastoreSegment(p endDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.AgentAttributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
+		evt.AgentAttributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize))
 		evt.AgentAttributes.addString(SpanAttributeDBInstance, p.Database)
 		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host)
@@ -852,6 +856,15 @@ func endDatastoreSegment(p endDatastoreParams) error {
 	}
 
 	return err
+}
+
+func truncateSpanAttribute(value string, maxLength int) string {
+
+	if len(value) > maxLength {
+		// truncate to last three bytes and append "..."
+		return string(value[:maxLength-3]) + "..."
+	}
+	return value
 }
 
 // MergeBreakdownMetrics creates segment metrics.
