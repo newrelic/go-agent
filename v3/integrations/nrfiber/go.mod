@@ -9,5 +9,4 @@ require (
 	github.com/valyala/fasthttp v1.51.0
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

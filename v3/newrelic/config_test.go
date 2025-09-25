@@ -17,6 +17,7 @@ import (
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
 	"github.com/newrelic/go-agent/v3/internal/utilization"
+	"github.com/nsf/jsondiff"
 )
 
 type labelsTestCase struct {
@@ -213,6 +214,16 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
+			"Profiling": {
+				"BlockRate": 1,
+				"CPUReportInterval": 0,
+				"CPUSampleRateHz": 100,
+				"Enabled":false,
+				"Interval": 0,
+				"MutexRate": 1,
+				"SelectedProfiles": null,
+				"WithSegments": false
+			},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -325,8 +336,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 	}
 	out := standardizeNumbers(string(js))
 	if out != expect {
-		t.Error(expect)
-		t.Error(out)
+		o := jsondiff.DefaultConsoleOptions()
+		o.SkipMatches = true
+		whatHappened, differences := jsondiff.Compare([]byte(expect), []byte(out), &o)
+		t.Errorf("Config fields not as expected: %s:", whatHappened)
+		t.Error(differences)
+		//t.Error(expect)
+		//t.Error(out)
 	}
 }
 
@@ -432,6 +448,16 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Labels":null,
 			"Logger":null,
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
+			"Profiling": {
+				"BlockRate": 1,
+				"CPUReportInterval": 0,
+				"CPUSampleRateHz": 100,
+				"Enabled":false,
+				"Interval": 0,
+				"MutexRate": 1,
+				"SelectedProfiles": null,
+				"WithSegments": false
+			},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
 			"ServerlessMode":{
@@ -514,8 +540,13 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 	}
 	out := standardizeNumbers(string(js))
 	if out != expect {
-		t.Error(expect)
-		t.Error(out)
+		o := jsondiff.DefaultConsoleOptions()
+		o.SkipMatches = true
+		whatHappened, differences := jsondiff.Compare([]byte(expect), []byte(out), &o)
+		t.Errorf("Config fields not as expected: %s:", whatHappened)
+		t.Error(differences)
+		//t.Error(expect)
+		//t.Error(out)
 	}
 }
 

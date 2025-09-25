@@ -356,6 +356,11 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 		// async segment start
 		secureAgent.SendEvent("NEW_GOROUTINE_LINKER", txn.thread.getCsecData())
 	}
+
+	conf, ok := txn.Application().Config()
+	if ok && conf.Profiling.Enabled && conf.Profiling.WithSegments {
+		txn.Application().AddSegmentToProfiler(name)
+	}
 	return &Segment{
 		StartTime: txn.StartSegmentNow(),
 		Name:      name,

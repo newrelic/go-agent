@@ -13,7 +13,6 @@ require (
 	github.com/newrelic/go-agent/v3/integrations/nrstan v0.0.0
 )
 
-
 replace github.com/newrelic/go-agent/v3/integrations/nrstan => ../
 
 replace github.com/newrelic/go-agent/v3 => ../../..

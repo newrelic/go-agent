@@ -10,5 +10,4 @@ require (
 	github.com/sirupsen/logrus v1.4.0
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../../..

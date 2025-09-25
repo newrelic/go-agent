@@ -69,6 +69,9 @@ type app struct {
 	// high water mark alarms
 	heapHighWaterMarkAlarms heapHighWaterMarkAlarmSet
 
+	// profiler
+	profiler profilerConfig
+
 	serverless *serverlessHarvest
 }
 
@@ -469,6 +472,10 @@ func newApp(c config) *app {
 			if app.config.RuntimeSampler.Enabled {
 				go runSampler(app, runtimeSamplerPeriod)
 			}
+		}
+		// for now run in it's own goroutine but we may move this up to the main process later
+		if app.config.Profiling.Enabled {
+			app.StartProfiler()
 		}
 	}
 

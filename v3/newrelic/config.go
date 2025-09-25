@@ -19,6 +19,90 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
+type ProfilingType uint32
+
+const (
+	ProfilingTypeBlock ProfilingType = 1 << iota
+	ProfilingTypeCPU
+	ProfilingTypeGoroutine
+	ProfilingTypeHeap
+	ProfilingTypeMutex
+	ProfilingTypeThreadCreate
+	ProfilingTypeTrace
+)
+
+func (p *ProfilingType) FromStrings(types []string, additive bool) error {
+	if p == nil {
+		return fmt.Errorf("nil ProfilingType pointer")
+	}
+
+	if !additive {
+		*p = 0
+	}
+
+	for _, t := range types {
+		switch t {
+		case "block":
+			*p |= ProfilingTypeBlock
+		case "cpu":
+			*p |= ProfilingTypeCPU
+		case "goroutine":
+			*p |= ProfilingTypeGoroutine
+		case "heap":
+			*p |= ProfilingTypeHeap
+		case "mutex":
+			*p |= ProfilingTypeMutex
+		case "threadcreate":
+			*p |= ProfilingTypeThreadCreate
+		case "trace":
+			*p |= ProfilingTypeTrace
+		default:
+			return fmt.Errorf("unknown ProfilingType \"%s\"", t)
+		}
+	}
+	return nil
+}
+
+func (p ProfilingType) Strings() []string {
+	var typeSet []string
+
+	if ProfilingTypeBlock&p != 0 {
+		typeSet = append(typeSet, "block")
+	}
+	if ProfilingTypeCPU&p != 0 {
+		typeSet = append(typeSet, "cpu")
+	}
+	if ProfilingTypeGoroutine&p != 0 {
+		typeSet = append(typeSet, "goroutine")
+	}
+	if ProfilingTypeHeap&p != 0 {
+		typeSet = append(typeSet, "heap")
+	}
+	if ProfilingTypeMutex&p != 0 {
+		typeSet = append(typeSet, "mutex")
+	}
+	if ProfilingTypeThreadCreate&p != 0 {
+		typeSet = append(typeSet, "threadcreate")
+	}
+	if ProfilingTypeTrace&p != 0 {
+		typeSet = append(typeSet, "trace")
+	}
+	return typeSet
+}
+
+func (p ProfilingType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.Strings())
+}
+
+func (p *ProfilingType) UnmarshalJSON(data []byte) error {
+	var t []string
+
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	return p.FromStrings(t, false)
+}
+
 // Config contains Application and Transaction behavior settings.
 type Config struct {
 	// AppName is used by New Relic to link data across servers.
@@ -481,6 +565,37 @@ type Config struct {
 		// This list of ignored prefixes itself is not reported outside the agent.
 		IgnoredPrefixes []string
 	}
+
+	// Profiling Configuration
+	Profiling struct {
+		// Enabled controls whether the profiler is running.
+		Enabled bool
+		// WithSegments controls whether we report the actively-running segments
+		// along with the sample data so they can be associated with them when data are
+		// analyzed later.
+		WithSegments bool
+		// SelectedProfiles indicates which kinds of profiles we're collecting and reporting.
+		SelectedProfiles ProfilingType
+		// Interval is the rate at which the profiler gathers and reports non-CPU profile data.
+		Interval time.Duration
+		// CPUReportInterval is the rate at which we stop the CPU profiler to let it report
+		// out the data it's collected so far, after which we restart it again to collect more
+		// data. If this is zero, we won't interrupt the profiler to report anything
+		// until we shut down the whole agent profiler.
+		CPUReportInterval time.Duration
+		// CPUSampleRateHz is the internal collection speed at which the CPU profiler is running
+		// to collect CPU stats.
+		CPUSampleRateHz int
+		// BlockRate is the rate at which we collect block profile data. If <=0, we stop collecting
+		// block profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
+		// tries to collect them all.
+		BlockRate int
+		// MutexRate is the rate at which we collect Mutex profile data. If 0, we stop collecting
+		// mutex profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
+		// tries to collect them all.
+		MutexRate int
+	}
+
 	// Security is used to post security configuration on UI.
 	Security interface{} `json:"Security,omitempty"`
 }
@@ -736,6 +851,11 @@ func defaultConfig() Config {
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
 	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
+
+	// Profiling settings
+	c.Profiling.CPUSampleRateHz = 100
+	c.Profiling.BlockRate = 1
+	c.Profiling.MutexRate = 1
 	return c
 }
 
