@@ -851,7 +851,6 @@ func Test_truncateSpanAttribute(t *testing.T) {
 		maxLengthWithEllipsis int
 		want                  string
 	}{
-		// TODO: Add test cases.
 		{
 			name:                  "Length of value is less than maxLengthWithEllipsis",
 			value:                 "SELECT * FROM table",
@@ -916,7 +915,6 @@ func Test_truncateSpanAttribute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := truncateSpanAttribute(tt.value, tt.maxLengthWithEllipsis)
-			// TODO: update the condition below to compare got with tt.want.
 			if got != tt.want {
 				t.Errorf("truncateSpanAttribute() = %v, want %v\nsize got: %d, want: %d\n", got, tt.want, len(got), len(tt.want))
 			}
