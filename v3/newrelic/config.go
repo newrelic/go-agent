@@ -304,6 +304,9 @@ type Config struct {
 		Enabled bool
 		// Attributes controls the attributes included on Spans.
 		Attributes AttributeDestinationConfig
+		// MaxSamplesStored allows you to limit the number of Span
+		// Events stored/reported in a given 60-second period
+		MaxSamplesStored int
 	}
 
 	// InfiniteTracing controls behavior related to Infinite Tracing tail based
