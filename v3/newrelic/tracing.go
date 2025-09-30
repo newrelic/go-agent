@@ -859,10 +859,9 @@ func endDatastoreSegment(p endDatastoreParams) error {
 }
 
 func truncateSpanAttribute(value string, maxLength int) string {
-
 	if len(value) > maxLength {
 		// truncate to last three bytes and append "..."
-		return string(value[:maxLength-3]) + "..."
+		return stringLengthByteLimit(value, maxLength-3) + "..."
 	}
 	return value
 }
