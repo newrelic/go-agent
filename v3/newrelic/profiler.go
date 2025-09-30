@@ -300,6 +300,32 @@ func (pc *profilerConfig) monitor(a *app) {
 	var err error
 	var harvestNumber int64
 
+	reportProfilerChange := func(status string) {
+		var dest string
+		switch profileDestination {
+		case profileNilDest:
+			dest = "nil"
+		case profileIngestOTEL:
+			dest = "OTEL"
+		case profileIngestMELT:
+			dest = "MELT"
+		case profileLocalFile:
+			dest = "local"
+		default:
+			dest = "unknown"
+		}
+		if err = a.RecordCustomEvent("ProfilerStatusChange", map[string]any{
+			"status":      status,
+			"destination": dest,
+			"profiles":    strings.Join(pc.selected.Strings(), ","),
+		}); err != nil {
+			a.Error("unable to record profiler status change event", map[string]any{
+				"event-type": "ProfilerStatusChange",
+				"reason":     err.Error(),
+			})
+		}
+	}
+
 	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		var p *profile.Profile
 		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
@@ -396,6 +422,7 @@ func (pc *profilerConfig) monitor(a *app) {
 	}
 	defer closeLocalFiles()
 
+	reportProfilerChange("started")
 	for {
 		select {
 		// To prevent interthread contention without the need for mutexes, we use channels here
@@ -416,6 +443,7 @@ func (pc *profilerConfig) monitor(a *app) {
 					}
 				}
 				profileDestination = newDestination
+				reportProfilerChange("destination")
 				pc.switchResult <- nil
 			default:
 				pc.switchResult <- fmt.Errorf("Invalid profile destination code %v", newDestination)
@@ -468,6 +496,7 @@ func (pc *profilerConfig) monitor(a *app) {
 				}
 			}
 			profileDestination = profileLocalFile
+			reportProfilerChange("destination")
 			pc.switchResult <- nil
 
 		case <-pc.cpuReportTicker.C:
@@ -629,6 +658,7 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 		case <-pc.done:
 			// We were told to terminate our profile monitoring
+			reportProfilerChange("stopped")
 			return
 		}
 	}

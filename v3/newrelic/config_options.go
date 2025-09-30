@@ -575,8 +575,8 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 //		          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
 //		          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
 //		          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
-//		          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
-//		          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
+//		          NEW_RELIC_PROFILING_BLOCK_RATE						 sets Profiling.BlockRate
+//		          NEW_RELIC_PROFILING_MUTEX_RATE						 sets Profiling.MutexRate
 //	           NEW_RELIC_PROFILING_WITH_SEGMENTS                              sets Profiling.WithSegments
 //			         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //
