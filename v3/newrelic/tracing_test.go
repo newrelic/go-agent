@@ -1095,3 +1095,57 @@ func Test_truncateSpanAttribute(t *testing.T) {
 		})
 	}
 }
+
+func Test_spanAttributeMap_addString(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		key  string
+		val  string
+		want string
+	}{
+		{
+			name: "Add a string that is not of key db.statement",
+			key:  SpanAttributeDBInstance,
+			val:  "DbInstance",
+			want: "DbInstance",
+		},
+		{
+			name: "Add a different string that is not of key db.statement",
+			key:  SpanAttributeAWSRegion,
+			val:  "AwsRegion",
+			want: "AwsRegion",
+		},
+		{
+			name: "Add a string that is db.statement",
+			key:  SpanAttributeDBStatement,
+			val:  "SELECT * FROM TABLE",
+			want: "SELECT * FROM TABLE",
+		},
+		{
+			name: "Pass an empty string that is not of key db.statement and don't add to map",
+			key:  SpanAttributeAWSOperation,
+			val:  "",
+			want: "", // used to check for nil case
+		},
+		{
+			name: "Pass an empty string that is of key db.statement and don't add to map",
+			key:  SpanAttributeDBStatement,
+			val:  "",
+			want: "", // used to check for nil case
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var m spanAttributeMap
+			m.addString(tt.key, tt.val)
+			got := m[tt.key]
+			if got != nil && got != stringJSONWriter(tt.want) {
+				t.Errorf("addString() sets m[%v] = %v, want: %v", tt.key, got, tt.want)
+			} else if got == nil && tt.want != "" {
+				t.Errorf("addString() sets m[%v] = %v, want: nil", tt.key, got)
+			}
+			delete(m, tt.key) // clean up key after to prevent testing old cases
+		})
+	}
+}

@@ -211,9 +211,13 @@ func (b boolJSONWriter) WriteJSON(buf *bytes.Buffer) {
 type spanAttributeMap map[string]jsonWriter
 
 // addString writes the span attribute with any value over passed in limit
-func (m *spanAttributeMap) addString(key string, val string, limit int) {
+func (m *spanAttributeMap) addString(key string, val string) {
 	if val != "" {
-		m.add(key, stringJSONWriter(stringLengthByteLimit(val, limit)))
+		if key == SpanAttributeDBStatement {
+			m.add(key, stringJSONWriter(truncateSpanAttribute(val, MaxSpanAttributeDBStatementSize)))
+		} else {
+			m.add(key, stringJSONWriter(stringLengthByteLimit(val, attributeValueLengthLimit)))
+		}
 	}
 }
 func (m *spanAttributeMap) addInt(key string, val int) {
@@ -257,7 +261,7 @@ func (m *spanAttributeMap) addUserAttrs(attrs map[string]userAttribute) {
 func (m *spanAttributeMap) addAgentAttrs(attrs agentAttributes) {
 	for key, val := range attrs {
 		if val.stringVal != "" {
-			m.addString(key, val.stringVal, attributeValueLengthLimit)
+			m.addString(key, val.stringVal)
 		} else {
 			addAttr(m, key, val.otherVal)
 		}
@@ -267,7 +271,7 @@ func (m *spanAttributeMap) addAgentAttrs(attrs agentAttributes) {
 func addAttr(m *spanAttributeMap, key string, val any) {
 	switch v := val.(type) {
 	case string:
-		m.addString(key, v, attributeValueLengthLimit)
+		m.addString(key, v)
 	case bool:
 		m.addBool(key, v)
 	case uint8:
@@ -297,7 +301,7 @@ func addAttr(m *spanAttributeMap, key string, val any) {
 	case float64:
 		m.addFloat(key, v)
 	default:
-		m.addString(key, fmt.Sprintf("%T", v), attributeValueLengthLimit)
+		m.addString(key, fmt.Sprintf("%T", v))
 	}
 }
 
@@ -368,7 +372,7 @@ func (t *txnData) time(now time.Time) segmentTime {
 // AddAgentSpanAttribute allows attributes to be added to spans.
 func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 	if len(thread.stack) > 0 {
-		thread.stack[len(thread.stack)-1].agentAttributes.addString(key, val, attributeValueLengthLimit)
+		thread.stack[len(thread.stack)-1].agentAttributes.addString(key, val)
 	}
 }
 
@@ -624,7 +628,7 @@ func endExternalSegment(p endExternalParams) error {
 	if t.TxnTrace.considerNode(end) {
 		attributes := end.agentAttributes.copy()
 		if p.Library == "http" {
-			attributes.addString(SpanAttributeHTTPURL, safeURL(p.URL), attributeValueLengthLimit)
+			attributes.addString(SpanAttributeHTTPURL, safeURL(p.URL))
 		}
 		t.saveTraceSegment(end, key.scopedMetric(), attributes, transactionGUID)
 	}
@@ -635,8 +639,8 @@ func endExternalSegment(p endExternalParams) error {
 		evt.Kind = "client"
 		evt.Component = p.Library
 		if p.Library == "http" {
-			evt.AgentAttributes.addString(SpanAttributeHTTPURL, safeURL(p.URL), attributeValueLengthLimit)
-			evt.AgentAttributes.addString(SpanAttributeHTTPMethod, p.Method, attributeValueLengthLimit)
+			evt.AgentAttributes.addString(SpanAttributeHTTPURL, safeURL(p.URL))
+			evt.AgentAttributes.addString(SpanAttributeHTTPMethod, p.Method)
 		}
 		if p.StatusCode != nil {
 			evt.AgentAttributes.addInt(SpanAttributeHTTPStatusCode, *p.StatusCode)
@@ -816,10 +820,10 @@ func endDatastoreSegment(p endDatastoreParams) error {
 
 	if p.TxnData.TxnTrace.considerNode(end) {
 		attributes := end.agentAttributes.copy()
-		attributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize), MaxSpanAttributeDBStatementSize)
-		attributes.addString(SpanAttributeDBInstance, p.Database, attributeValueLengthLimit)
-		attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID), attributeValueLengthLimit)
-		attributes.addString(SpanAttributePeerHostname, p.Host, attributeValueLengthLimit)
+		attributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
+		attributes.addString(SpanAttributeDBInstance, p.Database)
+		attributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		attributes.addString(SpanAttributePeerHostname, p.Host)
 		if len(queryParams) > 0 {
 			attributes.add(spanAttributeQueryParameters, queryParams)
 		}
@@ -847,11 +851,11 @@ func endDatastoreSegment(p endDatastoreParams) error {
 		evt.Category = spanCategoryDatastore
 		evt.Kind = "client"
 		evt.Component = p.Product
-		evt.AgentAttributes.addString(SpanAttributeDBStatement, truncateSpanAttribute(p.ParameterizedQuery, MaxSpanAttributeDBStatementSize), MaxSpanAttributeDBStatementSize)
-		evt.AgentAttributes.addString(SpanAttributeDBInstance, p.Database, attributeValueLengthLimit)
-		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID), attributeValueLengthLimit)
-		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host, attributeValueLengthLimit)
-		evt.AgentAttributes.addString(SpanAttributeDBCollection, p.Collection, attributeValueLengthLimit)
+		evt.AgentAttributes.addString(SpanAttributeDBStatement, p.ParameterizedQuery)
+		evt.AgentAttributes.addString(SpanAttributeDBInstance, p.Database)
+		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
+		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host)
+		evt.AgentAttributes.addString(SpanAttributeDBCollection, p.Collection)
 		p.TxnData.saveSpanEvent(evt)
 	}
 

@@ -510,8 +510,8 @@ func (thd *thread) End(recovered interface{}) error {
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
 
 		if txn.rootSpanErrData != nil {
-			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass, attributeValueLengthLimit)
-			root.AgentAttributes.addString(SpanAttributeErrorMessage, scrubbedErrorMessage(txn.rootSpanErrData.Msg, txn), attributeValueLengthLimit)
+			root.AgentAttributes.addString(SpanAttributeErrorClass, txn.rootSpanErrData.Klass)
+			root.AgentAttributes.addString(SpanAttributeErrorMessage, scrubbedErrorMessage(txn.rootSpanErrData.Msg, txn))
 		}
 
 		if p := txn.BetterCAT.Inbound; nil != p {
@@ -519,12 +519,12 @@ func (thd *thread) End(recovered interface{}) error {
 			root.TrustedParentID = txn.BetterCAT.Inbound.TrustedParentID
 			root.TracingVendors = txn.BetterCAT.Inbound.TracingVendors
 			if p.HasNewRelicTraceInfo {
-				root.AgentAttributes.addString("parent.type", p.Type, attributeValueLengthLimit)
-				root.AgentAttributes.addString("parent.app", p.App, attributeValueLengthLimit)
-				root.AgentAttributes.addString("parent.account", p.Account, attributeValueLengthLimit)
+				root.AgentAttributes.addString("parent.type", p.Type)
+				root.AgentAttributes.addString("parent.app", p.App)
+				root.AgentAttributes.addString("parent.account", p.Account)
 				root.AgentAttributes.addFloat("parent.transportDuration", p.TransportDuration.Seconds())
 			}
-			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType, attributeValueLengthLimit)
+			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType)
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
