@@ -842,3 +842,310 @@ func TestBetterCAT_SetTraceAndTxnIDs(t *testing.T) {
 		}
 	}
 }
+
+func Test_truncateSpanAttribute(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		value                 string
+		maxLengthWithEllipsis int
+		want                  string
+	}{
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table WHERE",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table WHERE",
+		},
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé WHERE",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis",
+			value:                 "SELECT * FROM table WHERE condition=truncated",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM table WH...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis with character larger than a byte",
+			value:                 "SELECT * FROM tablé WHERE condition=truncated",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis with character larger than a byte in section that gets truncated",
+			value:                 "SELECT * FROM tablé WHERE condition=truncatéd",
+			maxLengthWithEllipsis: 25,
+			want:                  "SELECT * FROM tablé W...",
+		},
+		{
+			name:                  "Length of value is less than maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "éééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "ééééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and all characters larger than a byte",
+			value:                 "éééééé",
+			maxLengthWithEllipsis: 5,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and all characters larger than a byte with an even maxLength",
+			value:                 "ééééééé",
+			maxLengthWithEllipsis: 6,
+			want:                  "é...",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and all characters larger than a byte and an even maxLength",
+			value:                 "éé",
+			maxLengthWithEllipsis: 6,
+			want:                  "éé",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger than a byte and an even maxLength",
+			value:                 "ééé",
+			maxLengthWithEllipsis: 6,
+			want:                  "ééé",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and all characters larger than a byte and a larger even maxLength",
+			value:                 "ééééééééé",
+			maxLengthWithEllipsis: 8,
+			want:                  "éé...",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger than a byte and a larger even maxLength",
+			value:                 "éééé",
+			maxLengthWithEllipsis: 8,
+			want:                  "éééé",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and all characters larger two bytes with an odd maxLength",
+			value:                 "中中",
+			maxLengthWithEllipsis: 7,
+			want:                  "中中",
+		},
+		{
+			name:                  "Length of value is greater than maxLengthWithEllipsis and all characters larger two bytes with an odd maxLength",
+			value:                 "中中中",
+			maxLengthWithEllipsis: 7,
+			want:                  "中...",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger two bytes with an even maxLength",
+			value:                 "中中",
+			maxLengthWithEllipsis: 6,
+			want:                  "中中",
+		},
+		{
+			name:                  "Length of value is larger than maxLengthWithEllipsis and all characters larger two bytes with an even maxLength",
+			value:                 "中中中",
+			maxLengthWithEllipsis: 6,
+			want:                  "中...",
+		},
+		{
+			name:                  "Length of value is larger than maxLengthWithEllipsis and all characters larger two bytes with an larger odd maxLength",
+			value:                 "中中中中",
+			maxLengthWithEllipsis: 11,
+			want:                  "中中...",
+		},
+		{
+			name:                  "Length of value is equal to maxLengthWithEllipsis and all characters larger two bytes with a larger odd maxLength",
+			value:                 "中中中",
+			maxLengthWithEllipsis: 9,
+			want:                  "中中中",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and all characters larger two bytes with an even maxLength",
+			value:                 "中",
+			maxLengthWithEllipsis: 6,
+			want:                  "中",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an even maxLength",
+			value:                 "ééé中",
+			maxLengthWithEllipsis: 10,
+			want:                  "ééé中",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an odd maxLength",
+			value:                 "ééé中",
+			maxLengthWithEllipsis: 11,
+			want:                  "ééé中",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an odd maxLength",
+			value:                 "ééé中",
+			maxLengthWithEllipsis: 9,
+			want:                  "ééé中",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an even maxLength",
+			value:                 "é中éé中",
+			maxLengthWithEllipsis: 12,
+			want:                  "é中éé中",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an even maxLength",
+			value:                 "ééé中",
+			maxLengthWithEllipsis: 8,
+			want:                  "éé...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an even maxLength but larger byte comes earlier in string",
+			value:                 "é中éé中",
+			maxLengthWithEllipsis: 8,
+			want:                  "é中...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an odd maxLength",
+			value:                 "ééé中é",
+			maxLengthWithEllipsis: 9,
+			want:                  "ééé...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an odd maxLength but larger character in third position",
+			value:                 "éé中éé",
+			maxLengthWithEllipsis: 9,
+			want:                  "éé...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters of one and two bytes and an odd maxLength but larger character in third position",
+			value:                 "é中ééé",
+			maxLengthWithEllipsis: 9,
+			want:                  "é中...",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and a mixture of characters up to two bytes and an even maxLength",
+			value:                 "ééd中",
+			maxLengthWithEllipsis: 10,
+			want:                  "ééd中",
+		},
+		{
+			name:                  "Length of value is shorter than maxLengthWithEllipsis and a mixture of characters up to two bytes and an odd maxLength",
+			value:                 "ééd中",
+			maxLengthWithEllipsis: 9,
+			want:                  "ééd中",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis and a mixture of characters up to two bytes and an even maxLength",
+			value:                 "ééd中é",
+			maxLengthWithEllipsis: 10,
+			want:                  "ééd中é",
+		},
+		{
+			name:                  "Length of value is equal than maxLengthWithEllipsis and a mixture of characters up to two bytes and an odd maxLength",
+			value:                 "ééd中d",
+			maxLengthWithEllipsis: 9,
+			want:                  "ééd中d",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters up to two bytes and an even maxLength",
+			value:                 "ééd中é",
+			maxLengthWithEllipsis: 8,
+			want:                  "ééd...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters up to two bytes and an even maxLength and the single byte character position later",
+			value:                 "éé中dé",
+			maxLengthWithEllipsis: 8,
+			want:                  "éé...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters up to two bytes and an odd maxLength",
+			value:                 "ééd中é",
+			maxLengthWithEllipsis: 9,
+			want:                  "ééd...",
+		},
+		{
+			name:                  "Length of value is longer than maxLengthWithEllipsis and a mixture of characters up to two bytes and an odd maxLength and an extra single byte character added in",
+			value:                 "éédd中é",
+			maxLengthWithEllipsis: 9,
+			want:                  "éédd...",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateSpanAttribute(tt.value, tt.maxLengthWithEllipsis)
+			if got != tt.want {
+				t.Errorf("truncateSpanAttribute() = %v, want %v\nsize got: %d, want: %d\n", got, tt.want, len(got), len(tt.want))
+			}
+		})
+	}
+}
+
+func Test_spanAttributeMap_addString(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		key  string
+		val  string
+		want string
+	}{
+		{
+			name: "Add a string that is not of key db.statement",
+			key:  SpanAttributeDBInstance,
+			val:  "DbInstance",
+			want: "DbInstance",
+		},
+		{
+			name: "Add a different string that is not of key db.statement",
+			key:  SpanAttributeAWSRegion,
+			val:  "AwsRegion",
+			want: "AwsRegion",
+		},
+		{
+			name: "Add a string that is db.statement",
+			key:  SpanAttributeDBStatement,
+			val:  "SELECT * FROM TABLE",
+			want: "SELECT * FROM TABLE",
+		},
+		{
+			name: "Pass an empty string that is not of key db.statement and don't add to map",
+			key:  SpanAttributeAWSOperation,
+			val:  "",
+			want: "", // used to check for nil case
+		},
+		{
+			name: "Pass an empty string that is of key db.statement and don't add to map",
+			key:  SpanAttributeDBStatement,
+			val:  "",
+			want: "", // used to check for nil case
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var m spanAttributeMap
+			m.addString(tt.key, tt.val)
+			got := m[tt.key]
+			if got != nil && got != stringJSONWriter(tt.want) {
+				t.Errorf("addString() sets m[%v] = %v, want: %v", tt.key, got, tt.want)
+			} else if got == nil && tt.want != "" {
+				t.Errorf("addString() sets m[%v] = %v, want: nil", tt.key, got)
+			}
+			delete(m, tt.key) // clean up key after to prevent testing old cases
+		})
+	}
+}
