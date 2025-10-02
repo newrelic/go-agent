@@ -17,10 +17,6 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 )
 
-const (
-	MaxSpanAttributeDBStatementSize = 4096 // int representing max size in bytes
-)
-
 // txnEvent represents a transaction.
 // https://source.datanerd.us/agents/agent-specs/blob/master/Transaction-Events-PORTED.md
 // https://newrelic.atlassian.net/wiki/display/eng/Agent+Support+for+Synthetics%3A+Forced+Transaction+Traces+and+Analytic+Events
@@ -210,11 +206,12 @@ func (b boolJSONWriter) WriteJSON(buf *bytes.Buffer) {
 // value is a jsonWriter to allow for segment query parameters.
 type spanAttributeMap map[string]jsonWriter
 
-// addString writes the span attribute with any value over passed in limit
+// addString writes the span attribute and checks for handling the special
+// case for db.statement
 func (m *spanAttributeMap) addString(key string, val string) {
 	if val != "" {
 		if key == SpanAttributeDBStatement {
-			m.add(key, stringJSONWriter(truncateSpanAttribute(val, MaxSpanAttributeDBStatementSize)))
+			m.add(key, stringJSONWriter(truncateSpanAttribute(val, attributeSpanDBStatementLimit)))
 		} else {
 			m.add(key, stringJSONWriter(stringLengthByteLimit(val, attributeValueLengthLimit)))
 		}
