@@ -39,14 +39,16 @@ const (
 
 	errorEventMessageLengthLimit = 4096
 	// attributes
-	attributeKeyLengthLimit   = 255
-	attributeValueLengthLimit = 255
-	attributeUserLimit        = 64
+	attributeKeyLengthLimit = 255
+	attributeUserLimit      = 64
 	// attributeErrorLimit limits the number of extra attributes that can be
 	// provided when noticing an error.
 	attributeErrorLimit       = 32
 	customEventAttributeLimit = 64
 
+	// smallest size the attribute value size should be set to
+	attributeValueSizeLimitMinimum = 255
+	attributeValueSizeLimitMaximum = 4096
 	// Limits affecting Config validation are found in the config package.
 
 	// runtimeSamplerPeriod is the period of the runtime sampler.  Runtime
@@ -55,4 +57,10 @@ const (
 	// be changed without notifying customers that they must update all
 	// instance simultaneously for valid runtime metrics.
 	runtimeSamplerPeriod = 60 * time.Second
+)
+
+var (
+	// attributeValueSizeLimit is the max size of an attribute value.
+	// This is not a constant because it can be changed by the user.
+	attributeValueSizeLimit = 255
 )

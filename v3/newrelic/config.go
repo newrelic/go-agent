@@ -369,7 +369,21 @@ type Config struct {
 	// This setting affects all attribute destinations: Transaction Events,
 	// Error Events, Transaction Traces and segments, Traced Errors, Span
 	// Events, and Browser timing header.
+	//
+	// TODO: this should move into AttributeConfig but is not trivial.
 	Attributes AttributeDestinationConfig
+
+	AttributeConfig struct {
+		// ValueSizeLimit sets the maximum size of attribute values.  If an
+		// attribute value exceeds this limit, the attribute will be truncated.
+		// This value can be set between 256 and 4096.
+		//
+		// Note: increasing this may marginally increase the cpu and memory overhead
+		// of the agent due to the caching and marshalling of larger attribute strings.
+		//
+		// Default: 256
+		ValueSizeLimit int
+	}
 
 	// RuntimeSampler controls the collection of runtime statistics like
 	// CPU/Memory usage, goroutine count, and GC pauses.
