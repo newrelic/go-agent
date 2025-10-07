@@ -254,7 +254,7 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 // which will be the default or the user's configured size (if any), but
 // may be capped to the maximum allowed by the collector.
 func (run *appRun) MaxSpanEvents() int {
-	return run.limit(internal.MaxSpanEvents, run.ptrSpanEvents)
+	return run.limit(run.Config.maxSpanEvents(), run.ptrSpanEvents)
 }
 
 func (run *appRun) limit(dflt int, field func() *uint) int {

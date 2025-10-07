@@ -499,3 +499,210 @@ func TestCreateTransactionName(t *testing.T) {
 		t.Error("wanted:", want, "got:", out)
 	}
 }
+
+func testMockConnectReply(t *testing.T, retVal string) *internal.ConnectReply {
+	h, err := internal.UnmarshalConnectReply([]byte(retVal), internal.PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	return h
+}
+
+func Test_appRun_MaxSpanEvents(t *testing.T) {
+	// this test assumes the default max is 2000 span events
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		config config
+		reply  *internal.ConnectReply
+		want   int
+	}{
+		{
+			name:   "MaxSamplesStored is default and Reply limit is max span events",
+			config: config{Config: defaultConfig()},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 2000
+				}
+			}}`),
+			want: 2000,
+		},
+		{
+			name:   "MaxSamplesStored is default and Reply limit is nil",
+			config: config{Config: defaultConfig()},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": null
+			}}`),
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is greater than response from harvester",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 1500},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 1400
+				}
+			}}`),
+			want: 1400,
+		},
+		{
+			name: "MaxSamplesStored is less than 2000 and response is greater", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 1999},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 2000
+				}
+			}}`),
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is greater than 2000 and response is max span events",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 20000},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 2000
+				}
+			}}`),
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is greater than 2000 and response is less than max span events",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 20000},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 50
+				}
+			}}`),
+			want: 50,
+		},
+		{
+			name: "MaxSamplesStored is 2000 and response is greater than our coded max span events", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 2000},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 4455
+				}
+			}}`),
+			want: 4455,
+		},
+		{
+			name: "MaxSamplesStored is greater than 2000 and response is greater than our coded max span events", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 5000},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 5000
+				}
+			}}`),
+			want: 5000,
+		},
+		{
+			name: "MaxSamplesStored is 0 and response is 0",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 0},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": 0
+				}
+			}}`),
+			want: 0,
+		},
+		{
+			name: "MaxSamplesStored is 0 and response is nil",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 0},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": null
+				}
+			}}`),
+			want: 0,
+		},
+		{
+			name: "MaxSamplesStored is negative and response is nil",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: -1},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": null
+				}
+			}}`),
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is greater than max and response is nil",
+			config: config{Config: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{MaxSamplesStored: 20001},
+			}},
+			reply: testMockConnectReply(t, `{"return_value":{
+				"span_event_harvest_config": {
+					"harvest_limit": null
+				}
+			}}`),
+			want: 2000,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := newAppRun(tt.config, tt.reply)
+			got := run.MaxSpanEvents()
+			if got != tt.want {
+				t.Errorf("MaxSpanEvents() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -98,6 +98,17 @@ func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
 }
 
+// ConfigSpanEventsMaxSamplesStored alters the sample size allowing control
+// of how many span events are stored in an agent for a given harvest cycle.
+// Alters the SpanEvents.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 100000.
+func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
+	if limit > 2000 {
+		return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = 2000 }
+	}
+	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = limit }
+}
+
 // ConfigCustomInsightsEventsEnabled enables or disables the collection of custom insight events.
 func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = enabled }

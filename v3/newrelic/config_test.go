@@ -226,7 +226,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{
 					"Enabled":true,"Exclude":["12"],"Include":["11"]
 				},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
@@ -298,7 +299,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -443,7 +444,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"SpanEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
@@ -505,7 +507,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
@@ -966,5 +968,103 @@ func TestCLMJsonUnmarshalling(t *testing.T) {
 				t.Errorf("#%d expected \"%v\" but got \"%v\"", i, tc.S, s)
 			}
 		}
+	}
+}
+
+func TestConfig_maxSpanEvents(t *testing.T) {
+	// these tests assume internal.MaxSpanEvents = 2000
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		cfg  Config
+		want int
+	}{
+		{
+			name: "MaxSamplesStored is less than 0",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: -1,
+				},
+			},
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is greater than 2000",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: 2001,
+				},
+			},
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is much greater than 2000",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: 10000,
+				},
+			},
+			want: 2000,
+		},
+		{
+			name: "MaxSamplesStored is between 0 and 2000",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: 500,
+				},
+			},
+			want: 500,
+		},
+		{
+			name: "MaxSamplesStored is 0",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: 0,
+				},
+			},
+			want: 0,
+		},
+		{
+			name: "MaxSamplesStored is 2000",
+			cfg: Config{
+				SpanEvents: struct {
+					Enabled          bool
+					Attributes       AttributeDestinationConfig
+					MaxSamplesStored int
+				}{
+					MaxSamplesStored: 2000,
+				},
+			},
+			want: 2000,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := copyConfigReferenceFields(tt.cfg)
+			got := c.maxSpanEvents()
+			if got != tt.want {
+				t.Errorf("maxSpanEvents() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

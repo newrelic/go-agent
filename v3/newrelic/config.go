@@ -663,6 +663,8 @@ func defaultConfig() Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
+	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
+
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
@@ -811,6 +813,16 @@ func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
+// maxSpanEvents returns the configured maximum number of Span Events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func (c Config) maxSpanEvents() int {
+	configured := c.SpanEvents.MaxSamplesStored
+	if configured < 0 || configured > internal.MaxSpanEvents {
+		return internal.MaxSpanEvents
 	}
 	return configured
 }
