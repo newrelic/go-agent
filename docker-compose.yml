@@ -74,7 +74,7 @@ services:
       <<: *mongo-env
 
     volumes:
-       - ${PWD}:/usr/src/app/go-agent
+       - ${PWD}:/usr/src/app/go-agent:rw,Z
     working_dir: /usr/src/app/go-agent
     stdin_open: true
     tty: true
