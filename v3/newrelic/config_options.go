@@ -109,6 +109,11 @@ func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = limit }
 }
 
+// ConfigSpanEventsEnabled enables or disables the collection of span events.
+func ConfigSpanEventsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) { cfg.SpanEvents.Enabled = enabled }
+}
+
 // ConfigCustomInsightsEventsEnabled enables or disables the collection of custom insight events.
 func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = enabled }
