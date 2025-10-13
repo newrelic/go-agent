@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // ConfigOption configures the Config when provided to NewApplication.
@@ -101,10 +103,10 @@ func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 // ConfigSpanEventsMaxSamplesStored alters the sample size allowing control
 // of how many span events are stored in an agent for a given harvest cycle.
 // Alters the SpanEvents.MaxSamplesStored setting.
-// Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 100000.
+// Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 2000.
 func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
-	if limit > 2000 {
-		return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = 2000 }
+	if limit > internal.MaxSpanEvents {
+		return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents }
 	}
 	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = limit }
 }
@@ -124,7 +126,10 @@ func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
 // using the built-in default.
 // Alters the DistributedTracer.ReservoirLimit setting.
 func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
+	return func(cfg *Config) {
+		cfg.Warning.Msg += "warning: DistributedTracer.ReservoirLimit has been deprecated. Please use SpanEvents.MaxSamplesStored\n"
+		ConfigSpanEventsMaxSamplesStored(limit)
+	}
 }
 
 // ConfigAIMonitoringStreamingEnabled turns on or off the collection of AI Monitoring streaming mode metrics.
