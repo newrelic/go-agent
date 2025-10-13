@@ -113,6 +113,8 @@ type Config struct {
 		ExpectStatusCodes []int
 		// Attributes controls the attributes included with errors.
 		Attributes AttributeDestinationConfig
+		// Reservoir limit for error events. Defaults to 100
+		MaxSamplesStored int
 		// RecordPanics controls whether or not a deferred
 		// Transaction.End will attempt to recover panics, record them
 		// as errors, and then re-panic them.  By default, this is
@@ -674,6 +676,7 @@ func defaultConfig() Config {
 		http.StatusNotFound, // 404
 	}
 	c.ErrorCollector.Attributes.Enabled = true
+	c.ErrorCollector.MaxSamplesStored = internal.MaxErrorEvents
 	c.Utilization.DetectAWS = true
 	c.Utilization.DetectAzure = true
 	c.Utilization.DetectPCF = true
@@ -842,6 +845,9 @@ func (c Config) maxLogEvents() int {
 	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxLogEvents {
 		return internal.MaxLogEvents
+func (c Config) maxConfigEvents(configured int, dflt int) int {
+	if configured < 0 || configured > dflt {
+		return dflt
 	}
 	return configured
 }

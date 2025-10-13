@@ -600,6 +600,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.SpanEvents.Enabled, "NEW_RELIC_SPAN_EVENTS_ENABLED")
 		assignInt(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED", maxSpanEvents)
 
+		// Error Collector Max Samples stored
+		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED")
+
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
 			if err != nil {
