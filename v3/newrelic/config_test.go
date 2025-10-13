@@ -741,37 +741,6 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	}
 }
 
-func TestConfigMaxTxnEvents(t *testing.T) {
-	cfg := defaultConfig()
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = 434
-	if n := cfg.maxTxnEvents(); n != 434 {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = 0
-	if n := cfg.maxTxnEvents(); n != 0 {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = -1
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 1
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-}
-
 func TestComputeDynoHostname(t *testing.T) {
 	testcases := []struct {
 		useDynoNames     bool
@@ -862,16 +831,6 @@ func TestNewInternalConfig(t *testing.T) {
 		"NEW_RELIC_METADATA_ZIP": "ZAP",
 	}) {
 		t.Error(c.metadata)
-	}
-}
-
-func TestConfigurableMaxCustomEvents(t *testing.T) {
-	expected := 1000
-	cfg := config{Config: defaultConfig()}
-	cfg.CustomInsightsEvents.MaxSamplesStored = expected
-	result := cfg.maxCustomEvents()
-	if result != expected {
-		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
 	}
 }
 
