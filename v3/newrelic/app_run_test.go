@@ -663,38 +663,6 @@ func Test_appRun_MaxSpanEvents(t *testing.T) {
 			}}`),
 			want: 0,
 		},
-		{
-			name: "MaxSamplesStored is negative and response is nil",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: -1},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": null
-				}
-			}}`),
-			want: 2000,
-		},
-		{
-			name: "MaxSamplesStored is greater than max and response is nil",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 20001},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": null
-				}
-			}}`),
-			want: 2000,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

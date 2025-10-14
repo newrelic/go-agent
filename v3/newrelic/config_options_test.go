@@ -298,3 +298,62 @@ func TestConfigRemoteParentNotSampledOff(t *testing.T) {
 		t.Error("incorrect config value for DistributedTracer.Sampler.RemoteParentNotSampled:", cfg.DistributedTracer.Sampler.RemoteParentNotSampled)
 	}
 }
+
+func TestConfigSpanEventsMaxSamplesStored(t *testing.T) {
+	// these tests assume internal.MaxSpanEvents = 2000
+	tests := []struct {
+		name  string // description of this test case
+		limit int    // limit that is being passed in
+		want  int
+	}{
+		{
+			name:  "MaxSamplesStored is less than 0",
+			limit: -1,
+			want:  2000,
+		},
+		{
+			name:  "MaxSamplesStored is greater than 2000",
+			limit: 2001,
+			want:  2000,
+		},
+		{
+			name:  "MaxSamplesStored is much greater than 2000",
+			limit: 100000,
+			want:  2000,
+		},
+		{
+			name:  "MaxSamplesStored is between 0 and 2000",
+			limit: 500,
+			want:  500,
+		},
+		{
+			name:  "MaxSamplesStored is 0",
+			limit: 0,
+			want:  0,
+		},
+		{
+			name:  "MaxSamplesStored is 2000",
+			limit: 2000,
+			want:  2000,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfgOpt := ConfigSpanEventsMaxSamplesStored(tt.limit)
+			cfg := defaultConfig()
+			cfgOpt(&cfg)
+			if cfg.SpanEvents.MaxSamplesStored != tt.want {
+				t.Errorf("cfg.SpanEvents.MaxSamplesStored = %v, want %v", cfg.SpanEvents.MaxSamplesStored, tt.want)
+			}
+		})
+		// Should be the same result if using the wrapped function
+		t.Run(tt.name, func(t *testing.T) {
+			cfgOpt := ConfigDistributedTracerReservoirLimit(tt.limit)
+			cfg := defaultConfig()
+			cfgOpt(&cfg)
+			if cfg.SpanEvents.MaxSamplesStored != tt.want {
+				t.Errorf("cfg.SpanEvents.MaxSamplesStored = %v, want %v", cfg.SpanEvents.MaxSamplesStored, tt.want)
+			}
+		})
+	}
+}

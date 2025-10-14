@@ -712,6 +712,7 @@ func defaultConfig() Config {
 	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
+	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
 
 	c.DatastoreTracer.InstanceReporting.Enabled = true
 	c.DatastoreTracer.DatabaseNameReporting.Enabled = true
@@ -813,16 +814,6 @@ func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
-	}
-	return configured
-}
-
-// maxSpanEvents returns the configured maximum number of Span Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxSpanEvents() int {
-	configured := c.SpanEvents.MaxSamplesStored
-	if configured < 0 || configured > internal.MaxSpanEvents {
-		return internal.MaxSpanEvents
 	}
 	return configured
 }
@@ -1029,7 +1020,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.SpanEvents.MaxSamplesStored, c.DistributedTracer.Enabled),
 	}})
 }
 
