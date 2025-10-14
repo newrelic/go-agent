@@ -416,14 +416,6 @@ type Config struct {
 	// error if it is set.
 	Error error
 
-	// Warning may be populated by the ConfigOptions provided to NewApplication
-	// to indicate that some portions of setup may need to be looked at again.
-	// NewApplication will add these and print the warnings if needed
-	Warning struct {
-		Msg     string
-		Context map[string]interface{}
-	}
-
 	// CodeLevelMetrics contains fields which control the collection and reporting
 	// of source code context information associated with telemetry data.
 	CodeLevelMetrics struct {
@@ -671,6 +663,7 @@ func defaultConfig() Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
+	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
 
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
@@ -719,7 +712,6 @@ func defaultConfig() Config {
 	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
-	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
 
 	c.DatastoreTracer.InstanceReporting.Enabled = true
 	c.DatastoreTracer.DatabaseNameReporting.Enabled = true
@@ -1037,7 +1029,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.SpanEvents.MaxSamplesStored, c.DistributedTracer.Enabled),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
 	}})
 }
 

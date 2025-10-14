@@ -285,8 +285,5 @@ func NewApplication(opts ...ConfigOption) (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.Warning.Msg != "" {
-		cfg.Logger.Warn(cfg.Warning.Msg, cfg.Warning.Context)
-	}
 	return newApplication(newApp(cfg)), nil
 }
