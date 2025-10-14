@@ -663,7 +663,6 @@ func defaultConfig() Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
-	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
 
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
