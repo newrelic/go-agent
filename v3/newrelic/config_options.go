@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // ConfigOption configures the Config when provided to NewApplication.
@@ -87,15 +89,24 @@ func ConfigRemoteParentNotSampled(flag RemoteParentSamplingConfig) ConfigOption 
 	}
 }
 
+// ConfigTransactionEventsMaxSamplesStored alters the sample size allowing control
+// of how many transaction events are stored in an agent for a given harvest cycle.
+// Alters the TransactionEvents.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 10000.
+func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.TransactionEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxTxnEvents)
+	}
+}
+
 // ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
-// Note: As of Jul 2022, the absolute maximum events that can be sent each minute is 100000.
+// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 30000.
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
-	if limit > 100000 {
-		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = 100000 }
+	return func(cfg *Config) {
+		cfg.CustomInsightsEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxCustomEvents)
 	}
-	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
 }
 
 // ConfigSpanEventsMaxSamplesStored alters the sample size allowing control
@@ -111,11 +122,6 @@ func ConfigSpanEventsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.SpanEvents.Enabled = enabled }
 }
 
-// ConfigCustomInsightsEventsEnabled enables or disables the collection of custom insight events.
-func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
-	return func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = enabled }
-}
-
 // Deprecated: ConfigDistributedTracerReservoirLimit is deprecated in favor of ConfigSpanEventsMaxSamplesStored
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
 // number of span events to be collected) for distributed tracing instead of
@@ -124,6 +130,16 @@ func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
 func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 	// will add some logging logic here to notify that this option is deprectated
 	return ConfigSpanEventsMaxSamplesStored(limit)
+}
+
+// ConfigErrorCollectorMaxSamplesStored alters the sample size allowing control
+// of how many errors are stored in an agent for a given harvest cycle.
+// Alters the ErrorCollector.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum errors that can be sent each minute is 100.
+func ConfigErrorCollectorMaxSamplesStored(limit int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.MaxSamplesStored = maxConfigEvents(limit, internal.MaxErrorEvents)
+	}
 }
 
 // ConfigAIMonitoringStreamingEnabled turns on or off the collection of AI Monitoring streaming mode metrics.
@@ -374,9 +390,10 @@ func ConfigAppLogEnabled(enabled bool) ConfigOption {
 
 // ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
 // log events the agent is allowed to collect and store in a given harvest cycle.
-func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {
+// Note: As of Oct 2025, the absolute maximum log events that can be sent each minute is 10000.
+func ConfigAppLogForwardingMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxSamplesStored
+		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxConfigEvents(limit, internal.MaxLogEvents)
 	}
 }
 
@@ -596,12 +613,18 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
+		// Transaction Event Env Variables
+		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED", nil)
+
+		// Custom Insights Events Env Variables
+		assignInt(&cfg.CustomInsightsEvents.MaxSamplesStored, "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED", nil)
+
 		// Span Event Env Variables
 		assignBool(&cfg.SpanEvents.Enabled, "NEW_RELIC_SPAN_EVENTS_ENABLED")
 		assignInt(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED", maxSpanEvents)
 
-		// Error Collector Max Samples stored
-		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED")
+		// Error Collector Env Variables
+		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED", nil)
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))

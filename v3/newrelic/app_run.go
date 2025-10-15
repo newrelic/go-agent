@@ -144,10 +144,10 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 
 	run.harvestConfig = harvestConfig{
 		ReportPeriods:   run.ReportPeriods(),
-		MaxTxnEvents:    run.limit(run.Config.TransactionEvents.MaxSamplesStored, internal.MaxTxnEvents, run.ptrTxnEvents),
-		MaxCustomEvents: run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, internal.MaxCustomEvents, run.ptrCustomEvents),
-		MaxErrorEvents:  run.limit(run.Config.ErrorCollector.MaxSamplesStored, internal.MaxErrorEvents, run.ptrErrorEvents),
-		MaxSpanEvents:   run.limit(run.Config.SpanEvents.MaxSamplesStored, internal.MaxSpanEvents, run.ptrSpanEvents),
+		MaxTxnEvents:    run.limit(run.Config.TransactionEvents.MaxSamplesStored, run.ptrTxnEvents),
+		MaxCustomEvents: run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, run.ptrCustomEvents),
+		MaxErrorEvents:  run.limit(run.Config.ErrorCollector.MaxSamplesStored, run.ptrErrorEvents),
+		MaxSpanEvents:   run.limit(run.Config.SpanEvents.MaxSamplesStored, run.ptrSpanEvents),
 		LoggingConfig:   run.LoggingConfig(),
 	}
 
@@ -226,7 +226,7 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 
 	config.loggingEnabled = logging.Enabled
 	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
-	config.maxLogEvents = run.limit(logging.Forwarding.MaxSamplesStored, internal.MaxLogEvents, run.ptrLogEvents)
+	config.maxLogEvents = run.limit(logging.Forwarding.MaxSamplesStored, run.ptrLogEvents)
 	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
 	config.localEnrichment = logging.Enabled && logging.LocalDecorating.Enabled
 	if run.Config.Labels != nil && logging.Forwarding.Enabled && logging.Forwarding.Labels.Enabled {
@@ -239,11 +239,11 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 	return config
 }
 
-func (run *appRun) limit(configMaxSamplesStored int, dflt int, field func() *uint) int {
+func (run *appRun) limit(configMaxSamplesStored int, field func() *uint) int {
 	if field() != nil {
 		return int(*field())
 	}
-	return run.Config.maxConfigEvents(configMaxSamplesStored, dflt)
+	return configMaxSamplesStored
 }
 
 func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {

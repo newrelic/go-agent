@@ -364,8 +364,9 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	run := newAppRun(config{Config: defaultConfig()}, h)
-	if run.Config.TransactionEvents.MaxSamplesStored != 15 {
-		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, run.Config.TransactionEvents.MaxSamplesStored)
+	// changed this line because I believe we are not changing the local config based on the response but just the harvest config
+	if run.harvestConfig.MaxTxnEvents != 15 {
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, run.harvestConfig.MaxTxnEvents)
 	}
 }
 
@@ -385,24 +386,6 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	run := newAppRun(cfg, reply)
 	if run.Config.TransactionEvents.MaxSamplesStored != expected {
 		t.Errorf("Unexpected max number of txn events, expected %d but got %d", expected, run.Config.TransactionEvents.MaxSamplesStored)
-	}
-}
-
-func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
-	h, err := internal.UnmarshalConnectReply([]byte(
-		`{"return_value":{
-			"event_harvest_config": {
-				"report_period_ms": 10000
-			}
-        }}`), internal.PreconnectReply{})
-	if nil != err {
-		t.Fatal(err)
-	}
-	cfg := config{Config: defaultConfig()}
-	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
-	run := newAppRun(cfg, h)
-	if run.Config.TransactionEvents.MaxSamplesStored != internal.MaxTxnEvents {
-		t.Errorf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, run.Config.TransactionEvents.MaxSamplesStored)
 	}
 }
 
