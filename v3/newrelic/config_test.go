@@ -194,6 +194,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true,
 				"ExpectStatusCodes":[500],
 				"IgnoreStatusCodes":[0,5,404,405],
+				"MaxSamplesStored": %d,
 				"RecordPanics":false
 			},
 			"Heroku":{
@@ -299,7 +300,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxErrorEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -414,6 +415,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true,
 				"ExpectStatusCodes":null,
 				"IgnoreStatusCodes":null,
+				"MaxSamplesStored": %d,
 				"RecordPanics":false
 			},
 			"Heroku":{
@@ -507,7 +509,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxErrorEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)

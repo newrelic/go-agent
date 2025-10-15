@@ -144,10 +144,10 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 
 	run.harvestConfig = harvestConfig{
 		ReportPeriods:   run.ReportPeriods(),
-		MaxTxnEvents:    run.MaxTxnEvents(),
-		MaxCustomEvents: run.MaxCustomEvents(),
-		MaxErrorEvents:  run.MaxErrorEvents(),
-		MaxSpanEvents:   run.MaxSpanEvents(),
+		MaxTxnEvents:    run.limit(run.Config.TransactionEvents.MaxSamplesStored, run.ptrTxnEvents),
+		MaxCustomEvents: run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, run.ptrCustomEvents),
+		MaxErrorEvents:  run.limit(run.Config.ErrorCollector.MaxSamplesStored, run.ptrErrorEvents),
+		MaxSpanEvents:   run.limit(run.Config.SpanEvents.MaxSamplesStored, run.ptrSpanEvents),
 		LoggingConfig:   run.LoggingConfig(),
 	}
 
@@ -237,7 +237,7 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 
 	config.loggingEnabled = logging.Enabled
 	config.collectEvents = logging.Enabled && logging.Forwarding.Enabled && !run.Config.HighSecurity
-	config.maxLogEvents = run.MaxLogEvents()
+	config.maxLogEvents = run.limit(logging.Forwarding.MaxSamplesStored, run.ptrLogEvents)
 	config.collectMetrics = logging.Enabled && logging.Metrics.Enabled
 	config.localEnrichment = logging.Enabled && logging.LocalDecorating.Enabled
 	if run.Config.Labels != nil && logging.Forwarding.Enabled && logging.Forwarding.Labels.Enabled {
@@ -250,18 +250,11 @@ func (run *appRun) LoggingConfig() (config loggingConfig) {
 	return config
 }
 
-// MaxSpanEvents returns the reservoir limit for collected span events,
-// which will be the default or the user's configured size (if any), but
-// may be capped to the maximum allowed by the collector.
-func (run *appRun) MaxSpanEvents() int {
-	return run.limit(run.Config.SpanEvents.MaxSamplesStored, run.ptrSpanEvents)
-}
-
-func (run *appRun) limit(dflt int, field func() *uint) int {
+func (run *appRun) limit(configMaxSamplesStored int, field func() *uint) int {
 	if field() != nil {
 		return int(*field())
 	}
-	return dflt
+	return configMaxSamplesStored
 }
 
 func (run *appRun) ReportPeriods() map[harvestTypes]time.Duration {
