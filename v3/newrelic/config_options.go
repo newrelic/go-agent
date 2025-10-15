@@ -105,10 +105,7 @@ func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 // Alters the SpanEvents.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 2000.
 func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
-	if limit < 0 || limit > internal.MaxSpanEvents {
-		return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents }
-	}
-	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = limit }
+	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxSpanEvents) }
 }
 
 // ConfigSpanEventsEnabled enables or disables the collection of span events.
@@ -551,6 +548,15 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				}
 			}
 		}
+		assignIntWithMax := func(field *int, name string, max int) {
+			if env := getenv(name); env != "" {
+				if i, err := strconv.Atoi(env); nil != err {
+					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
+				} else {
+					*field = maxConfigEvents(i, max) // should send a warning back if the value is set to default
+				}
+			}
+		}
 		assignString := func(field *string, name string) {
 			if env := getenv(name); env != "" {
 				*field = env
@@ -599,7 +605,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// Span Event Env Variables
 		assignBool(&cfg.SpanEvents.Enabled, "NEW_RELIC_SPAN_EVENTS_ENABLED")
-		assignInt(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED")
+		assignIntWithMax(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED", internal.MaxSpanEvents)
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))

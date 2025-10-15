@@ -817,6 +817,15 @@ func (c Config) maxTxnEvents() int {
 	return configured
 }
 
+// maxConfigEvents returns the configured maximum number of events if it has been configured
+// and is less than the default maximum; otherwise it returns the default max.
+func maxConfigEvents(configured int, max int) int {
+	if configured < 0 || configured > max {
+		return max
+	}
+	return configured
+}
+
 // maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
 // and is less than the default maximum; otherwise it returns the default max.
 func (c Config) maxCustomEvents() int {
