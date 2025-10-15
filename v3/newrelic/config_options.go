@@ -121,6 +121,7 @@ func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = enabled }
 }
 
+// Deprecated: ConfigDistributedTracerReservoirLimit is deprecated in favor of ConfigSpanEventsMaxSamplesStored
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
 // number of span events to be collected) for distributed tracing instead of
 // using the built-in default.
