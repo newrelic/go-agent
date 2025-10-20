@@ -491,168 +491,232 @@ func testMockConnectReply(t *testing.T, retVal string) *internal.ConnectReply {
 	return h
 }
 
-func Test_appRun_MaxSpanEvents(t *testing.T) {
-	// this test assumes the default max is 2000 span events
+func uintPtr(v uint) *uint {
+	return &v
+}
+
+func Test_appRun_limit(t *testing.T) {
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for receiver constructor.
-		config config
-		reply  *internal.ConnectReply
-		want   int
+		name                   string
+		configMaxSamplesStored int
+		fieldValue             *uint // nil means field() returns nil
+		want                   int
 	}{
 		{
-			name:   "MaxSamplesStored is default and Reply limit is max span events",
-			config: config{Config: defaultConfig()},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 2000
-				}
-			}}`),
-			want: 2000,
+			name:                   "field returns nil, use config value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             nil,
+			want:                   1000,
 		},
 		{
-			name:   "MaxSamplesStored is default and Reply limit is nil",
-			config: config{Config: defaultConfig()},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": null
-			}}`),
-			want: 2000,
+			name:                   "field returns value, use field value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(500),
+			want:                   500,
 		},
 		{
-			name: "MaxSamplesStored is greater than response from harvester",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 1500},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 1400
-				}
-			}}`),
-			want: 1400,
+			name:                   "field returns zero, use field value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(0),
+			want:                   0,
 		},
 		{
-			name: "MaxSamplesStored is less than 2000 and response is greater", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 1999},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 2000
-				}
-			}}`),
-			want: 2000,
+			name:                   "config is zero, field returns nil",
+			configMaxSamplesStored: 0,
+			fieldValue:             nil,
+			want:                   0,
 		},
 		{
-			name: "MaxSamplesStored is greater than 2000 and response is max span events",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 20000},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 2000
-				}
-			}}`),
-			want: 2000,
+			name:                   "config is zero, field returns value",
+			configMaxSamplesStored: 0,
+			fieldValue:             uintPtr(100),
+			want:                   100,
 		},
 		{
-			name: "MaxSamplesStored is greater than 2000 and response is less than max span events",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 20000},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 50
-				}
-			}}`),
-			want: 50,
+			name:                   "config is negative, field returns nil", // keeping this test so we know whatever value exists, we will use
+			configMaxSamplesStored: -1,
+			fieldValue:             nil,
+			want:                   -1,
 		},
 		{
-			name: "MaxSamplesStored is 2000 and response is greater than our coded max span events", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 2000},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 4455
-				}
-			}}`),
-			want: 4455,
+			name:                   "config is negative, field returns value",
+			configMaxSamplesStored: -1,
+			fieldValue:             uintPtr(200),
+			want:                   200,
 		},
 		{
-			name: "MaxSamplesStored is greater than 2000 and response is greater than our coded max span events", // we don't expect this case to happen, but we are showing that we will use whatever the harvester response is
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 5000},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 5000
-				}
-			}}`),
-			want: 5000,
+			name:                   "field returns large value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(999999),
+			want:                   999999,
 		},
 		{
-			name: "MaxSamplesStored is 0 and response is 0",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 0},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": 0
-				}
-			}}`),
-			want: 0,
+			name:                   "field returns 1",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(1),
+			want:                   1,
 		},
 		{
-			name: "MaxSamplesStored is 0 and response is nil",
-			config: config{Config: Config{
-				SpanEvents: struct {
-					Enabled          bool
-					Attributes       AttributeDestinationConfig
-					MaxSamplesStored int
-				}{MaxSamplesStored: 0},
-			}},
-			reply: testMockConnectReply(t, `{"return_value":{
-				"span_event_harvest_config": {
-					"harvest_limit": null
-				}
-			}}`),
-			want: 0,
+			name:                   "config and field both large values",
+			configMaxSamplesStored: 50000,
+			fieldValue:             uintPtr(60000),
+			want:                   60000,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			run := newAppRun(tt.config, tt.reply)
-			got := run.MaxSpanEvents()
+			run := &appRun{}
+
+			// Create a field function that returns the test value
+			fieldFunc := func() *uint {
+				return tt.fieldValue
+			}
+
+			got := run.limit(tt.configMaxSamplesStored, fieldFunc)
 			if got != tt.want {
-				t.Errorf("MaxSpanEvents() = %v, want %v", got, tt.want)
+				t.Errorf("limit() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Since we are using uint we are expecting a non-negative number in the harvester response.
+// If there were to be a negative number in the test case, it would cause an error when
+// unmarshaling the json response
+func Test_appRun_ptrEventsMethods(t *testing.T) {
+	type eventTypeTest struct {
+		name       string
+		methodName string
+		method     func(*appRun) *uint
+		jsonKey    string
+		configKey  string
+	}
+
+	eventTypes := []eventTypeTest{
+		{
+			name:       "TxnEvents",
+			methodName: "ptrTxnEvents",
+			method:     (*appRun).ptrTxnEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"analytic_event_data": %s}`,
+		},
+		{
+			name:       "CustomEvents",
+			methodName: "ptrCustomEvents",
+			method:     (*appRun).ptrCustomEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"custom_event_data": %s}`,
+		},
+		{
+			name:       "LogEvents",
+			methodName: "ptrLogEvents",
+			method:     (*appRun).ptrLogEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"log_event_data": %s}`,
+		},
+		{
+			name:       "ErrorEvents",
+			methodName: "ptrErrorEvents",
+			method:     (*appRun).ptrErrorEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"error_event_data": %s}`,
+		},
+		{
+			name:       "SpanEvents",
+			methodName: "ptrSpanEvents",
+			method:     (*appRun).ptrSpanEvents,
+			jsonKey:    "span_event_harvest_config",
+			configKey:  `%s`,
+		},
+	}
+
+	testCases := []struct {
+		name          string
+		format        string
+		harvest_limit string
+		want          *uint
+	}{
+		{
+			name:          "limit is set to 2000",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "2000",
+			want:          uintPtr(2000),
+		},
+		{
+			name:          "limit is set to 0",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "0",
+			want:          uintPtr(0),
+		},
+		{
+			name:          "limit is set to 1",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "1",
+			want:          uintPtr(1),
+		},
+		{
+			name:          "limit is set to large value",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "999999",
+			want:          uintPtr(999999),
+		},
+		{
+			name:          "config section is null",
+			format:        `{"return_value": {"%s": {"%s": null}}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+		{
+			name:          "limit field is null",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+		{
+			name:          "config section is missing",
+			format:        `{"return_value": {}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+	}
+
+	for _, eventType := range eventTypes {
+		t.Run(eventType.name, func(t *testing.T) {
+			harvestLimitField := "harvest_limits"
+			if eventType.name == "SpanEvents" {
+				harvestLimitField = "harvest_limit"
+			}
+			for _, tt := range testCases {
+				t.Run(tt.name, func(t *testing.T) {
+					var jsonStr string
+
+					switch tt.name {
+					case "config section is missing":
+						jsonStr = tt.format
+					case "config section is null":
+						jsonStr = fmt.Sprintf(tt.format, harvestLimitField, eventType.jsonKey)
+					default:
+						harvestLimit := fmt.Sprintf(eventType.configKey, tt.harvest_limit)
+						jsonStr = fmt.Sprintf(tt.format, eventType.jsonKey, harvestLimitField, harvestLimit)
+					}
+
+					reply := testMockConnectReply(t, jsonStr)
+					run := &appRun{Reply: reply}
+					got := eventType.method(run)
+
+					if tt.want == nil {
+						if got != nil {
+							t.Errorf("%s() = %v, want nil", eventType.methodName, got)
+						}
+					} else {
+						if got == nil {
+							t.Errorf("%s() = nil, want %v", eventType.methodName, *tt.want)
+						} else if *got != *tt.want {
+							t.Errorf("%s() = %v, want %v", eventType.methodName, *got, *tt.want)
+						}
+					}
+				})
 			}
 		})
 	}
