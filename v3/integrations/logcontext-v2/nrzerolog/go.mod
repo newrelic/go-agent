@@ -7,5 +7,4 @@ require (
 	github.com/rs/zerolog v1.26.1
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../../..

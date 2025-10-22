@@ -13,7 +13,6 @@ require (
 	google.golang.org/protobuf v1.34.2
 )
 
-
 replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../../integrations/nrsecurityagent
 
 replace github.com/newrelic/go-agent/v3 => ../..

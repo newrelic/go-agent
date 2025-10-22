@@ -184,6 +184,13 @@ func (s *Segment) End() {
 			"name": s.Name,
 		})
 	}
+
+	if s.StartTime.thread != nil && s.StartTime.thread.txn != nil {
+		conf, ok := s.StartTime.thread.txn.Application().Config()
+		if ok && conf.Profiling.Enabled && conf.Profiling.WithSegments {
+			s.StartTime.thread.txn.Application().RemoveSegmentFromProfiler(s.Name)
+		}
+	}
 }
 
 // AddAttribute adds a key value pair to the current DatastoreSegment.

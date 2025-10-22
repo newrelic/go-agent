@@ -4,9 +4,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,6 +18,8 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
+
+var wasteSomeTime chan byte
 
 func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "hello world")
@@ -50,6 +55,71 @@ func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 			"relevant_string":  "zap",
 		},
 	})
+}
+
+func CPUspinner(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	var i int
+	var hypot, gamma3, xy float64
+
+	sgmt := txn.StartSegment("spinner")
+	defer sgmt.End()
+	for i := 0; i < 50_000_000; i++ {
+		if i%1_000_000 == 0 {
+			io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
+		}
+		hypot = math.Hypot(123.56789, 23.4567889)
+		gamma3 = math.Gamma(3)
+		xy = math.Pow(20, 3.5)
+	}
+	txn.Application().RecordCustomEvent("CPUspinner", map[string]any{
+		"iterations": i,
+		"hypot":      hypot,
+		"gamma":      gamma3,
+		"xy":         xy,
+	})
+}
+
+var a [][]byte
+
+func alloc100(w http.ResponseWriter, r *http.Request) {
+	a = append(a, make([]byte, 1024*1024*100, 1024*1024*100))
+	io.WriteString(w, "added 100MB to heap")
+}
+
+// Make a blizzard of goroutines, some of which will block for a while
+func goStorm(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	txn.RecordLog(newrelic.LogData{
+		Message:  "Launched goroutine storm",
+		Severity: "info",
+	})
+
+	var group sync.WaitGroup
+	for i := range 10_000 {
+		group.Add(1)
+		go func(tx *newrelic.Transaction, goRoutineNumber, total int, wg *sync.WaitGroup) {
+			defer wg.Done()
+			<-wasteSomeTime
+			tx.RecordLog(newrelic.LogData{
+				Message:  fmt.Sprintf("Storm goroutine #%d/%d terminated", goRoutineNumber+1, total),
+				Severity: "info",
+			})
+			log.Printf("Terminated goroutine %d/%d", goRoutineNumber+1, total)
+		}(txn, i, 10_000, &group)
+		log.Printf("Launched goroutine %d/%d", i+1, 10_000)
+	}
+
+	go func(tx *newrelic.Transaction, wg *sync.WaitGroup) {
+		wg.Wait()
+		tx.RecordLog(newrelic.LogData{
+			Message:  "Goroutine storm is over",
+			Severity: "info",
+		})
+		log.Print("Goroutine storm is over")
+	}(txn, &group)
+
+	io.WriteString(w, "A blizzard of goroutines was released")
 }
 
 func customEvent(w http.ResponseWriter, r *http.Request) {
@@ -264,6 +334,14 @@ func logTxnMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	go func() {
+		wasteSomeTime = make(chan byte)
+		for {
+			wasteSomeTime <- 0
+			time.Sleep(time.Millisecond * 100)
+		}
+	}()
+
 	app, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigFromEnvironment(),
@@ -271,11 +349,38 @@ func main() {
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigCodeLevelMetricsEnabled(true),
 		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
+		newrelic.ConfigProfilingEnabled(true),
+		newrelic.ConfigProfilingWithSegments(true),
+		newrelic.ConfigCustomInsightsEventsMaxSamplesStored(50000),
+		newrelic.ConfigProfilingInclude(
+			newrelic.ProfilingTypeCPU|
+				newrelic.ProfilingTypeGoroutine|
+				newrelic.ProfilingTypeHeap|
+				newrelic.ProfilingTypeMutex|
+				newrelic.ProfilingTypeThreadCreate|
+				newrelic.ProfilingTypeBlock),
+		newrelic.ConfigProfilingSampleInterval(time.Millisecond*500),
+		newrelic.ConfigProfilingCPUReportInterval(time.Minute*5),
 	)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	//if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
+	//	fmt.Println("unable to set profiling directory: %v", err)
+	//}
+	if err := app.WaitForConnection(time.Second * 120); err != nil {
+		log.Printf("Failed to connect in 120 seconds: %v", err)
+	}
+
+	if c, ok := app.Config(); ok {
+		log.Printf("Starting %s", c.AppName)
+		if c.Profiling.Enabled {
+			log.Printf("Profiling: %v every %v", c.Profiling.SelectedProfiles.Strings(), c.Profiling.Interval)
+		}
+	}
+
+	app.SetProfileOutputMELT()
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))
@@ -296,6 +401,9 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/async", async))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/cpuspin", CPUspinner))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/gostorm", goStorm))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/alloc100", alloc100))
 
 	//loc := newrelic.ThisCodeLocation()
 	backgroundCache := newrelic.NewCachedCodeLocation()
@@ -321,5 +429,27 @@ func main() {
 		io.WriteString(w, "A background log message was recorded")
 	})
 
-	http.ListenAndServe(":8000", nil)
+	server := http.Server{
+		Addr: ":8000",
+	}
+	shutdownError := make(chan error)
+
+	http.HandleFunc("/shutdown", func(w http.ResponseWriter, req *http.Request) {
+		ctx, cancelServer := context.WithTimeout(context.Background(), time.Second*60)
+		defer cancelServer()
+		shutdownError <- server.Shutdown(ctx)
+	})
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("HTTP server failed to start: %v", err)
+	}
+
+	log.Println("HTTP server shutdown initiated...")
+	if status := <-shutdownError; status != nil {
+		log.Printf("HTTP server shutdown error: %v", status)
+	} else {
+		log.Println("HTTP server shutdown, shutting down APM agent...")
+	}
+	app.ShutdownProfiler()
+	app.Shutdown(time.Second * 60)
+	log.Println("Agent shutdown.")
 }

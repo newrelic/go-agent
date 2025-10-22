@@ -7,5 +7,4 @@ require (
 	go.uber.org/zap v1.24.0
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../../..
