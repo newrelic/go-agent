@@ -817,11 +817,11 @@ func (c Config) maxTxnEvents() int {
 	return configured
 }
 
-// maxConfigEvents returns the configured maximum number of events if it has been configured
+// maxSpan returns the configured maximum number of Span Events if it has been configured
 // and is less than the default maximum; otherwise it returns the default max.
-func maxConfigEvents(configured int, max int) int {
-	if configured < 0 || configured > max {
-		return max
+func maxSpanEvents(configured int) int {
+	if configured < 0 || configured > internal.MaxSpanEvents {
+		return internal.MaxSpanEvents
 	}
 	return configured
 }

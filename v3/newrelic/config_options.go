@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // ConfigOption configures the Config when provided to NewApplication.
@@ -105,7 +103,7 @@ func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 // Alters the SpanEvents.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 2000.
 func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxSpanEvents) }
+	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxSpanEvents(limit) }
 }
 
 // ConfigSpanEventsEnabled enables or disables the collection of span events.
@@ -544,16 +542,13 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				if i, err := strconv.Atoi(env); nil != err {
 					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
 				} else {
-					*field = i
-				}
-			}
-		}
-		assignIntWithMax := func(field *int, name string, max int) {
-			if env := getenv(name); env != "" {
-				if i, err := strconv.Atoi(env); nil != err {
-					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
-				} else {
-					*field = maxConfigEvents(i, max) // should send a warning back if the value is set to default
+					switch name {
+					case "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED":
+						*field = maxSpanEvents(i)
+					default:
+						*field = i
+
+					}
 				}
 			}
 		}
@@ -605,7 +600,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// Span Event Env Variables
 		assignBool(&cfg.SpanEvents.Enabled, "NEW_RELIC_SPAN_EVENTS_ENABLED")
-		assignIntWithMax(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED", internal.MaxSpanEvents)
+		assignInt(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED")
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))

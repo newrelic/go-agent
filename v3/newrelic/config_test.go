@@ -971,62 +971,54 @@ func TestCLMJsonUnmarshalling(t *testing.T) {
 	}
 }
 
-func Test_maxConfigEvents(t *testing.T) {
+func Test_maxSpanEvents(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
 		configured int
-		max        int
 		want       int
 	}{
 		{
 			name:       "configured is less than 0",
 			configured: -1,
-			max:        100,
-			want:       100,
+			want:       2000,
 		},
 		{
 			name:       "configured is greater than max",
-			configured: 101,
-			max:        100,
-			want:       100,
+			configured: 2001,
+			want:       2000,
 		},
 		{
 			name:       "configured is equal to max",
-			configured: 100,
-			max:        100,
-			want:       100,
+			configured: 2000,
+			want:       2000,
 		},
 		{
 			name:       "configured is equal to 0",
 			configured: 0,
-			max:        100,
 			want:       0,
 		},
 		{
-			name:       "configured is between to 0 and max",
-			configured: 50,
-			max:        100,
-			want:       50,
+			name:       "configured is between 0 and max",
+			configured: 1000,
+			want:       1000,
 		},
 		{
-			name:       "configured is between to 0 and max (different configured)",
-			configured: 78,
-			max:        100,
-			want:       78,
+			name:       "configured is between 0 and max (different configured value)",
+			configured: 1500,
+			want:       1500,
 		},
 		{
-			name:       "configured is between to 0 and max (different max)",
-			configured: 205,
-			max:        400,
-			want:       205,
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := maxConfigEvents(tt.configured, tt.max)
+			got := maxSpanEvents(tt.configured)
 			if got != tt.want {
-				t.Errorf("maxConfigEvents() = %v, want %v", got, tt.want)
+				t.Errorf("maxSpanEvents() = %v, want %v", got, tt.want)
 			}
 		})
 	}
