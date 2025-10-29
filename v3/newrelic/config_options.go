@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/newrelic/go-agent/v3/internal"
 )
 
 // ConfigOption configures the Config when provided to NewApplication.
@@ -95,7 +93,7 @@ func ConfigRemoteParentNotSampled(flag RemoteParentSamplingConfig) ConfigOption 
 // Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 10000.
 func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.TransactionEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxTxnEvents)
+		cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(limit)
 	}
 }
 
@@ -105,7 +103,7 @@ func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
 // Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 30000.
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomInsightsEvents.MaxSamplesStored = cfg.maxCustomEvents(limit)
+		cfg.CustomInsightsEvents.MaxSamplesStored = maxCustomEvents(limit)
 	}
 }
 
@@ -138,7 +136,7 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 // Note: As of Oct 2025, the absolute maximum errors that can be sent each minute is 100.
 func ConfigErrorCollectorMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ErrorCollector.MaxSamplesStored = maxConfigEvents(limit, internal.MaxErrorEvents)
+		cfg.ErrorCollector.MaxSamplesStored = maxErrorEvents(limit)
 	}
 }
 
@@ -393,7 +391,7 @@ func ConfigAppLogEnabled(enabled bool) ConfigOption {
 // Note: As of Oct 2025, the absolute maximum log events that can be sent each minute is 10000.
 func ConfigAppLogForwardingMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxConfigEvents(limit, internal.MaxLogEvents)
+		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxLogEvents(limit)
 	}
 }
 

@@ -807,17 +807,16 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	}, nil
 }
 
-// maxTxnEvents returns the configured maximum number of Transaction Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxTxnEvents() int {
-	configured := c.TransactionEvents.MaxSamplesStored
+// maxTxnEvents returns the configured maximum number of Transaction Events if it
+// is less than the default maximum; otherwise it returns the default max.
+func maxTxnEvents(configured int) int {
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
 	}
 	return configured
 }
 
-// maxSpan returns the configured maximum number of Span Events if it
+// maxSpanEvents returns the configured maximum number of Span Events if it
 // is less than the default maximum; otherwise it returns the default max.
 func maxSpanEvents(configured int) int {
 	if configured < 0 || configured > internal.MaxSpanEvents {
@@ -826,20 +825,27 @@ func maxSpanEvents(configured int) int {
 	return configured
 }
 
-// maxCustomEvents returns the configured maximum number of Custom Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxCustomEvents() int {
-	configured := c.CustomInsightsEvents.MaxSamplesStored
+// maxCustomEvents returns the configured maximum number of Custom Events if it
+// is less than the default maximum; otherwise it returns the default max.
+func maxCustomEvents(configured int) int {
 	if configured < 0 || configured > internal.MaxCustomEvents {
 		return internal.MaxCustomEvents
 	}
 	return configured
 }
 
-// maxLogEvents returns the configured maximum number of Log Events if it has been configured
-// and is less than the default maximum; otherwise it returns the default max.
-func (c Config) maxLogEvents() int {
-	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
+// maxErrorEvents returns the configured maximum number of Error Events if it
+// is less than the default maximum; otherwise it returns the default max.
+func maxErrorEvents(configured int) int {
+	if configured < 0 || configured > internal.MaxErrorEvents {
+		return internal.MaxErrorEvents
+	}
+	return configured
+}
+
+// maxLogEvents returns the configured maximum number of Log Events if it
+// is less than the default maximum; otherwise it returns the default max.
+func maxLogEvents(configured int) int {
 	if configured < 0 || configured > internal.MaxLogEvents {
 		return internal.MaxLogEvents
 	}
