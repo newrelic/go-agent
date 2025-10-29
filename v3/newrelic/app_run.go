@@ -223,13 +223,16 @@ func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.SpanEventHarvestCo
 
 func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
 func (run *appRun) MaxCustomEvents() int {
-	return run.limit(internal.MaxCustomEvents, run.ptrCustomEvents)
+	return run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, run.ptrCustomEvents)
 }
 func (run *appRun) MaxLogEvents() int {
 	return run.limit(internal.MaxLogEvents, run.ptrLogEvents)
 }
 func (run *appRun) MaxErrorEvents() int {
 	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+func (run *appRun) MaxSpanEvents() int {
+	return run.limit(run.Config.SpanEvents.MaxSamplesStored, run.ptrSpanEvents)
 }
 
 func (run *appRun) LoggingConfig() (config loggingConfig) {
