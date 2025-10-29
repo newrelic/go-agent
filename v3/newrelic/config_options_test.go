@@ -205,6 +205,92 @@ func TestConfigFromEnvironmentInvalidInt(t *testing.T) {
 	}
 }
 
+func TestConfigFromEnvironmentIntCases(t *testing.T) {
+	tests := []struct {
+		name     string // description of the test case
+		envVar   string // environment variable name
+		envValue string // environment variable value to set
+		want     int
+		getValue func(*Config) int // function to extract the actual value from config
+	}{
+		{
+			name:     "TraceObserver Port valid value",
+			envVar:   "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT",
+			envValue: "8000",
+			want:     8000,
+			getValue: func(c *Config) int { return c.InfiniteTracing.TraceObserver.Port },
+		},
+		{
+			name:     "Logical Processors valid value",
+			envVar:   "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS",
+			envValue: "123",
+			want:     123,
+			getValue: func(c *Config) int { return c.Utilization.LogicalProcessors },
+		},
+		{
+			name:     "Total RAM MiB valid value",
+			envVar:   "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB",
+			envValue: "321",
+			want:     321,
+			getValue: func(c *Config) int { return c.Utilization.TotalRAMMIB },
+		},
+		{
+			name:     "Span Events Queue Size valid value",
+			envVar:   "NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE",
+			envValue: "500",
+			want:     500,
+			getValue: func(c *Config) int { return c.InfiniteTracing.SpanEvents.QueueSize },
+		},
+		{
+			name:     "Application Logging Forwarding Max Samples valid value",
+			envVar:   "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED",
+			envValue: "800",
+			want:     800,
+			getValue: func(c *Config) int { return c.ApplicationLogging.Forwarding.MaxSamplesStored },
+		},
+		{
+			name:     "Span Events Max Samples valid value",
+			envVar:   "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "2000",
+			want:     2000,
+			getValue: func(c *Config) int { return c.SpanEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Span Events Max Samples more than maximum",
+			envVar:   "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "200000",
+			want:     2000,
+			getValue: func(c *Config) int { return c.SpanEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Span Events Max Samples less than 0",
+			envVar:   "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "-1000",
+			want:     2000,
+			getValue: func(c *Config) int { return c.SpanEvents.MaxSamplesStored },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfgOpt := configFromEnvironment(func(s string) string {
+				if s == tt.envVar {
+					return tt.envValue
+				}
+				return ""
+			})
+
+			cfg := defaultConfig()
+			cfgOpt(&cfg)
+
+			got := tt.getValue(&cfg)
+			if got != tt.want {
+				t.Errorf("got %s = %d, want %s = %d", tt.envVar, got, tt.envVar, tt.want)
+			}
+		})
+	}
+}
+
 func TestConfigFromEnvironmentInvalidLogger(t *testing.T) {
 	cfgOpt := configFromEnvironment(func(s string) string {
 		switch s {
