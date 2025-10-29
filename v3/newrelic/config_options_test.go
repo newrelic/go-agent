@@ -269,6 +269,87 @@ func TestConfigFromEnvironmentIntCases(t *testing.T) {
 			want:     2000,
 			getValue: func(c *Config) int { return c.SpanEvents.MaxSamplesStored },
 		},
+		// Transaction Events test cases
+		{
+			name:     "Transaction Events Max Samples valid value",
+			envVar:   "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "5000",
+			want:     5000,
+			getValue: func(c *Config) int { return c.TransactionEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Transaction Events Max Samples more than maximum",
+			envVar:   "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "200000",
+			want:     10000, // internal.MaxTxnEvents
+			getValue: func(c *Config) int { return c.TransactionEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Transaction Events Max Samples less than 0",
+			envVar:   "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "-500",
+			want:     10000, // internal.MaxTxnEvents
+			getValue: func(c *Config) int { return c.TransactionEvents.MaxSamplesStored },
+		},
+		// Custom Insights Events test cases
+		{
+			name:     "Custom Insights Events Max Samples valid value",
+			envVar:   "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "15000",
+			want:     15000,
+			getValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Custom Insights Events Max Samples more than maximum",
+			envVar:   "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "500000",
+			want:     30000, // internal.MaxCustomEvents
+			getValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
+		},
+		{
+			name:     "Custom Insights Events Max Samples less than 0",
+			envVar:   "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED",
+			envValue: "-1500",
+			want:     30000, // internal.MaxCustomEvents
+			getValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
+		},
+		// Error Collector Events test cases
+		{
+			name:     "Error Collector Max Event Samples valid value",
+			envVar:   "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED",
+			envValue: "50",
+			want:     50,
+			getValue: func(c *Config) int { return c.ErrorCollector.MaxSamplesStored },
+		},
+		{
+			name:     "Error Collector Max Event Samples more than maximum",
+			envVar:   "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED",
+			envValue: "5000",
+			want:     100, // internal.MaxErrorEvents
+			getValue: func(c *Config) int { return c.ErrorCollector.MaxSamplesStored },
+		},
+		{
+			name:     "Error Collector Max Event Samples less than 0",
+			envVar:   "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED",
+			envValue: "-50",
+			want:     100, // internal.MaxErrorEvents
+			getValue: func(c *Config) int { return c.ErrorCollector.MaxSamplesStored },
+		},
+		// Application Logging Forwarding test cases (additional beyond existing one)
+		{
+			name:     "Application Logging Forwarding Max Samples more than maximum",
+			envVar:   "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED",
+			envValue: "50000",
+			want:     10000, // internal.MaxLogEvents
+			getValue: func(c *Config) int { return c.ApplicationLogging.Forwarding.MaxSamplesStored },
+		},
+		{
+			name:     "Application Logging Forwarding Max Samples less than 0",
+			envVar:   "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED",
+			envValue: "-800",
+			want:     10000, // internal.MaxLogEvents
+			getValue: func(c *Config) int { return c.ApplicationLogging.Forwarding.MaxSamplesStored },
+		},
 	}
 
 	for _, tt := range tests {
