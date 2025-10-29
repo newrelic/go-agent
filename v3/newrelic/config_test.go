@@ -973,27 +973,26 @@ func TestCLMJsonUnmarshalling(t *testing.T) {
 	}
 }
 
-func Test_maxSpanEvents(t *testing.T) {
+func Test_maxTxnEvents(t *testing.T) {
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
+		name       string
 		configured int
 		want       int
 	}{
 		{
 			name:       "configured is less than 0",
 			configured: -1,
-			want:       2000,
+			want:       internal.MaxTxnEvents,
 		},
 		{
 			name:       "configured is greater than max",
-			configured: 2001,
-			want:       2000,
+			configured: internal.MaxTxnEvents + 1,
+			want:       internal.MaxTxnEvents,
 		},
 		{
 			name:       "configured is equal to max",
-			configured: 2000,
-			want:       2000,
+			configured: internal.MaxTxnEvents,
+			want:       internal.MaxTxnEvents,
 		},
 		{
 			name:       "configured is equal to 0",
@@ -1002,13 +1001,102 @@ func Test_maxSpanEvents(t *testing.T) {
 		},
 		{
 			name:       "configured is between 0 and max",
-			configured: 1000,
-			want:       1000,
+			configured: internal.MaxTxnEvents / 2,
+			want:       internal.MaxTxnEvents / 2,
 		},
 		{
-			name:       "configured is between 0 and max (different configured value)",
-			configured: 1500,
-			want:       1500,
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxTxnEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxTxnEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxCustomEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxCustomEvents + 1,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxCustomEvents,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxCustomEvents / 2,
+			want:       internal.MaxCustomEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxCustomEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxCustomEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxSpanEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxSpanEvents + 1,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxSpanEvents,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxSpanEvents / 2,
+			want:       internal.MaxSpanEvents / 2,
 		},
 		{
 			name:       "configured is between 0 and max (small value)",
@@ -1020,7 +1108,101 @@ func Test_maxSpanEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := maxSpanEvents(tt.configured)
 			if got != tt.want {
-				t.Errorf("maxSpanEvents() = %v, want %v", got, tt.want)
+				t.Errorf("maxSpanEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxErrorEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxErrorEvents + 1,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxErrorEvents,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxErrorEvents / 2,
+			want:       internal.MaxErrorEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 10,
+			want:       10,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxErrorEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxErrorEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxLogEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxLogEvents + 1,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxLogEvents,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxLogEvents / 2,
+			want:       internal.MaxLogEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxLogEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxLogEvents(%d) = %v, want %v", tt.configured, got, tt.want)
 			}
 		})
 	}
