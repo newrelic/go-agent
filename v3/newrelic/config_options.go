@@ -105,7 +105,7 @@ func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
 // Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 30000.
 func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomInsightsEvents.MaxSamplesStored = maxConfigEvents(limit, internal.MaxCustomEvents)
+		cfg.CustomInsightsEvents.MaxSamplesStored = cfg.maxCustomEvents(limit)
 	}
 }
 
