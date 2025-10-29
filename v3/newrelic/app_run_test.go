@@ -583,7 +583,8 @@ func Test_appRun_limit(t *testing.T) {
 
 // Since we are using uint we are expecting a non-negative number in the harvester response.
 // If there were to be a negative number in the test case, it would cause an error when
-// unmarshaling the json response
+// unmarshaling the json response.  This test in only testing how the response is handled
+// it does not matter what the limits are in this case
 func Test_appRun_ptrEventsMethods(t *testing.T) {
 	type eventTypeTest struct {
 		name       string
