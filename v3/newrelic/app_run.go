@@ -221,6 +221,20 @@ func (run *appRun) ptrLogEvents() *uint    { return run.Reply.EventData.Limits.L
 func (run *appRun) ptrErrorEvents() *uint  { return run.Reply.EventData.Limits.ErrorEvents }
 func (run *appRun) ptrSpanEvents() *uint   { return run.Reply.SpanEventHarvestConfig.HarvestLimit }
 
+func (run *appRun) MaxTxnEvents() int { return run.limit(run.Config.maxTxnEvents(), run.ptrTxnEvents) }
+func (run *appRun) MaxCustomEvents() int {
+	return run.limit(run.Config.CustomInsightsEvents.MaxSamplesStored, run.ptrCustomEvents)
+}
+func (run *appRun) MaxLogEvents() int {
+	return run.limit(internal.MaxLogEvents, run.ptrLogEvents)
+}
+func (run *appRun) MaxErrorEvents() int {
+	return run.limit(internal.MaxErrorEvents, run.ptrErrorEvents)
+}
+func (run *appRun) MaxSpanEvents() int {
+	return run.limit(run.Config.SpanEvents.MaxSamplesStored, run.ptrSpanEvents)
+}
+
 func (run *appRun) LoggingConfig() (config loggingConfig) {
 	logging := run.Config.ApplicationLogging
 

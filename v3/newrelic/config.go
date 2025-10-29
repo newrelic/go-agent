@@ -845,6 +845,9 @@ func (c Config) maxLogEvents() int {
 	configured := c.ApplicationLogging.Forwarding.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxLogEvents {
 		return internal.MaxLogEvents
+
+	}
+}
 func (c Config) maxConfigEvents(configured int, dflt int) int {
 	if configured < 0 || configured > dflt {
 		return dflt
