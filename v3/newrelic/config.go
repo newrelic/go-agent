@@ -304,6 +304,9 @@ type Config struct {
 		Enabled bool
 		// Attributes controls the attributes included on Spans.
 		Attributes AttributeDestinationConfig
+		// MaxSamplesStored allows you to limit the number of Span
+		// Events stored/reported in a given 60-second period
+		MaxSamplesStored int
 	}
 
 	// InfiniteTracing controls behavior related to Infinite Tracing tail based
@@ -660,6 +663,7 @@ func defaultConfig() Config {
 	c.TransactionEvents.Enabled = true
 	c.TransactionEvents.Attributes.Enabled = true
 	c.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents
+
 	c.HighSecurity = false
 	c.ErrorCollector.Enabled = true
 	c.ErrorCollector.CaptureEvents = true
@@ -707,6 +711,7 @@ func defaultConfig() Config {
 	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
+	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents
 
 	c.DatastoreTracer.InstanceReporting.Enabled = true
 	c.DatastoreTracer.DatabaseNameReporting.Enabled = true
@@ -808,6 +813,15 @@ func (c Config) maxTxnEvents() int {
 	configured := c.TransactionEvents.MaxSamplesStored
 	if configured < 0 || configured > internal.MaxTxnEvents {
 		return internal.MaxTxnEvents
+	}
+	return configured
+}
+
+// maxSpan returns the configured maximum number of Span Events if it
+// is less than the default maximum; otherwise it returns the default max.
+func maxSpanEvents(configured int) int {
+	if configured < 0 || configured > internal.MaxSpanEvents {
+		return internal.MaxSpanEvents
 	}
 	return configured
 }
@@ -1014,7 +1028,7 @@ func configConnectJSONInternal(c Config, pid int, util *utilization.Data, e envi
 		Util:             util,
 		SecurityPolicies: securityPolicies,
 		Metadata:         metadata,
-		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.DistributedTracer.ReservoirLimit, c.DistributedTracer.Enabled),
+		EventData:        internal.DefaultEventHarvestConfigWithDT(c.TransactionEvents.MaxSamplesStored, c.ApplicationLogging.Forwarding.MaxSamplesStored, c.CustomInsightsEvents.MaxSamplesStored, c.SpanEvents.MaxSamplesStored, c.DistributedTracer.Enabled),
 	}})
 }
 

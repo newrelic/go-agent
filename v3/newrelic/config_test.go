@@ -226,7 +226,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{
 					"Enabled":true,"Exclude":["12"],"Include":["11"]
 				},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
@@ -298,7 +299,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -443,7 +444,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"SpanEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
@@ -505,7 +507,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
@@ -966,5 +968,58 @@ func TestCLMJsonUnmarshalling(t *testing.T) {
 				t.Errorf("#%d expected \"%v\" but got \"%v\"", i, tc.S, s)
 			}
 		}
+	}
+}
+
+func Test_maxSpanEvents(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       2000,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: 2001,
+			want:       2000,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: 2000,
+			want:       2000,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: 1000,
+			want:       1000,
+		},
+		{
+			name:       "configured is between 0 and max (different configured value)",
+			configured: 1500,
+			want:       1500,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxSpanEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxSpanEvents() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
