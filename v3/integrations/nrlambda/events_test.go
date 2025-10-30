@@ -4,6 +4,8 @@
 package nrlambda
 
 import (
+	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -260,94 +262,164 @@ func TestEventResponse(t *testing.T) {
 		t.Error(resp)
 	}
 
+	runTest := func(t *testing.T, input any, want *response) {
+		resp = eventResponse(input)
+		if resp == nil {
+			t.Fatal("no response returned")
+		}
+
+		if !reflect.DeepEqual(resp.header, want.header) {
+			t.Error("header mismatch", resp.header, want.header)
+		}
+
+		if resp.code != want.code {
+			t.Error("status code mismatch", resp.code, want.code)
+		}
+	}
+
 	testcases := []struct {
-		testname   string
-		input      interface{}
-		numHeaders int
-		code       int
+		testname          string
+		headers           map[string]string
+		multiValueHeaders map[string][]string
+		wantHeaders       http.Header
 	}{
 		{
-			testname:   "empty APIGatewayProxyResponse",
-			input:      events.APIGatewayProxyResponse{},
-			numHeaders: 0,
-			code:       0,
-		},
-		{
-			testname: "populated APIGatewayProxyResponse",
-			input: events.APIGatewayProxyResponse{
-				StatusCode: 200,
-				Headers: map[string]string{
-					"x-custom-header": "my custom header value",
-				},
+			testname: "with Headers",
+			headers: map[string]string{
+				"x-custom-header": "my custom header value",
 			},
-			numHeaders: 1,
-			code:       200,
-		},
-		{
-			testname:   "nil *APIGatewayProxyResponse",
-			input:      (*events.APIGatewayProxyResponse)(nil),
-			numHeaders: 0,
-			code:       0,
-		},
-		{
-			testname: "populated *APIGatewayProxyResponse",
-			input: &events.APIGatewayProxyResponse{
-				StatusCode: 200,
-				Headers: map[string]string{
-					"x-custom-header": "my custom header value",
-				},
+			wantHeaders: http.Header{
+				"X-Custom-Header": {"my custom header value"},
 			},
-			numHeaders: 1,
-			code:       200,
-		},
-
-		{
-			testname:   "empty ALBTargetGroupResponse",
-			input:      events.ALBTargetGroupResponse{},
-			numHeaders: 0,
-			code:       0,
 		},
 		{
-			testname: "populated ALBTargetGroupResponse",
-			input: events.ALBTargetGroupResponse{
-				StatusCode: 200,
-				Headers: map[string]string{
-					"x-custom-header": "my custom header value",
-				},
+			testname: "with MultiValueHeaders",
+			multiValueHeaders: map[string][]string{
+				"x-custom-header": {"my custom header value", "another value"},
 			},
-			numHeaders: 1,
-			code:       200,
-		},
-		{
-			testname:   "nil *ALBTargetGroupResponse",
-			input:      (*events.ALBTargetGroupResponse)(nil),
-			numHeaders: 0,
-			code:       0,
-		},
-		{
-			testname: "populated *ALBTargetGroupResponse",
-			input: &events.ALBTargetGroupResponse{
-				StatusCode: 200,
-				Headers: map[string]string{
-					"x-custom-header": "my custom header value",
-				},
+			wantHeaders: http.Header{
+				"X-Custom-Header": {"my custom header value"},
 			},
-			numHeaders: 1,
-			code:       200,
+		},
+		{
+			testname: "with Headers and MultiValueHeaders",
+			headers: map[string]string{
+				"x-custom-header": "my custom header value",
+			},
+			multiValueHeaders: map[string][]string{
+				"x-custom-header-2": {"my second custom header value"},
+				"empty-header":      {},
+			},
+			wantHeaders: http.Header{
+				"X-Custom-Header":   {"my custom header value"},
+				"X-Custom-Header-2": {"my second custom header value"},
+			},
+		},
+		{
+			testname: "with overlapping Headers and MultiValueHeaders",
+			headers: map[string]string{
+				"x-custom-header": "my custom header value",
+			},
+			multiValueHeaders: map[string][]string{
+				"X-CUSTOM-HEADER": {"my second custom header value"},
+			},
+			wantHeaders: http.Header{
+				"X-Custom-Header": {"my second custom header value"},
+			},
 		},
 	}
 
-	for _, tc := range testcases {
-		resp = eventResponse(tc.input)
-		if resp == nil {
-			t.Error(tc.testname, "no response returned")
-			continue
+	t.Run("APIGatewayProxyResponse", func(t *testing.T) {
+		t.Run("empty", func(t *testing.T) {
+			input := events.APIGatewayProxyResponse{}
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			t.Run(tc.testname, func(t *testing.T) {
+				input := events.APIGatewayProxyResponse{
+					StatusCode:        200,
+					Headers:           tc.headers,
+					MultiValueHeaders: tc.multiValueHeaders,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
 		}
-		if h := resp.Header(); len(h) != tc.numHeaders {
-			t.Error(tc.testname, "header len mismatch", h, tc.numHeaders)
+	})
+	t.Run("*APIGatewayProxyResponse", func(t *testing.T) {
+		t.Run("nil", func(t *testing.T) {
+			input := (*events.APIGatewayProxyResponse)(nil)
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			t.Run(tc.testname, func(t *testing.T) {
+				input := &events.APIGatewayProxyResponse{
+					StatusCode:        200,
+					Headers:           tc.headers,
+					MultiValueHeaders: tc.multiValueHeaders,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
 		}
-		if resp.code != tc.code {
-			t.Error(tc.testname, "status code mismatch", resp.code, tc.code)
+	})
+
+	t.Run("ALBTargetGroupResponse", func(t *testing.T) {
+		t.Run("empty", func(t *testing.T) {
+			input := events.ALBTargetGroupResponse{}
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			t.Run(tc.testname, func(t *testing.T) {
+				input := events.ALBTargetGroupResponse{
+					StatusCode:        200,
+					Headers:           tc.headers,
+					MultiValueHeaders: tc.multiValueHeaders,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
 		}
-	}
+	})
+	t.Run("*ALBTargetGroupResponse", func(t *testing.T) {
+		t.Run("nil", func(t *testing.T) {
+			input := (*events.ALBTargetGroupResponse)(nil)
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			t.Run(tc.testname, func(t *testing.T) {
+				input := &events.ALBTargetGroupResponse{
+					StatusCode:        200,
+					Headers:           tc.headers,
+					MultiValueHeaders: tc.multiValueHeaders,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
+		}
+	})
 }
