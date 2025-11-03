@@ -1,10 +1,11 @@
 module github.com/newrelic/go-agent/v3
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
+	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )

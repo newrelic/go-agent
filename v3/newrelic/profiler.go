@@ -12,10 +12,13 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
+
+	xtrace "golang.org/x/exp/trace"
 
 	"github.com/google/pprof/profile"
 )
@@ -28,17 +31,74 @@ const (
 )
 
 type profilerAuditRecord struct {
-	EventType  string `json:"event_type"`
-	HarvestSeq int64  `json:"harvest_seq"`
-	SampleSeq  int    `json:"sample_seq"`
-	Reason     string `json:"error,omitempty"`
+	EventType  string         `json:"event_type"`
+	HarvestSeq int64          `json:"harvest_seq"`
+	SampleSeq  int            `json:"sample_seq"`
+	Reason     string         `json:"error,omitempty"`
+	Attributes int            `json:"attr_count"`
+	RawData    map[string]any `json:"raw_data,omitempty"`
+}
+
+func auditQty(audit io.Writer, eventType string, harvestNumber int64, samples int) {
+	if audit != nil {
+		if b, jerr := json.Marshal(profilerAuditRecord{
+			EventType:  "INFO_QTY:" + eventType,
+			HarvestSeq: harvestNumber,
+			Attributes: samples,
+		}); jerr == nil {
+			audit.Write(b)
+			audit.Write([]byte{'\n'})
+		}
+	}
+}
+
+func auditLog(audit io.Writer, format string, data ...any) {
+	if audit != nil {
+		if b, jerr := json.Marshal(profilerAuditRecord{
+			EventType: "INFO",
+			Reason:    fmt.Sprintf(format, data...),
+		}); jerr == nil {
+			audit.Write(b)
+			audit.Write([]byte{'\n'})
+		}
+	}
+}
+
+func profilerError(a *app, audit io.Writer, eventType string, harvestSeq int64, err error, debug bool, format string, data ...any) {
+	if debug {
+		fmt.Printf("ERROR "+format, data...)
+		fmt.Println(err.Error())
+	} else {
+		a.Error(fmt.Sprintf(format, data...), map[string]any{
+			"event-type": eventType,
+			"reason":     err.Error(),
+		})
+		if audit != nil {
+			auditError(audit, eventType, harvestSeq, err, format, data...)
+		}
+	}
+}
+
+func auditError(audit io.Writer, eventType string, harvestSeq int64, e error, format string, data ...any) {
+	if audit != nil {
+		m := fmt.Sprintf(format, data...)
+		if b, jerr := json.Marshal(profilerAuditRecord{
+			EventType:  eventType,
+			HarvestSeq: harvestSeq,
+			Reason:     fmt.Sprintf("%s: %v", m, e.Error()),
+		}); jerr == nil {
+			audit.Write(b)
+			audit.Write([]byte{'\n'})
+		}
+	}
 }
 
 type profilerConfig struct {
-	lock            sync.RWMutex  // protects creation of the ticker and access to map
-	segLock         sync.RWMutex  // protects access to segment list
-	sampleTicker    *time.Ticker  // once made, only read by monitor goroutine
-	cpuReportTicker *time.Ticker  // once made, only read by monitor goroutine
+	lock            sync.RWMutex // protects creation of the ticker and access to map
+	segLock         sync.RWMutex // protects access to segment list
+	sampleTicker    *time.Ticker // once made, only read by monitor goroutine
+	cpuReportTicker *time.Ticker // once made, only read by monitor goroutine
+	isRunning       bool
 	selected        ProfilingType // which profiling types we've selected to report
 	auditFile       *os.File      // debugging audit file of profile data (nil for normal production runs)
 	done            chan byte
@@ -50,6 +110,18 @@ type profilerConfig struct {
 	blockRate       int
 	mutexRate       int
 	cpuSampleRateHz int
+}
+
+func (p *profilerConfig) IsRunning() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.isRunning
+}
+
+func (p *profilerConfig) SetRunning(state bool) {
+	p.lock.Lock()
+	p.isRunning = state
+	p.lock.Unlock()
 }
 
 func (a *app) StartProfiler() {
@@ -123,13 +195,20 @@ func (app *Application) RemoveSegmentFromProfiler(name string) {
 }
 
 // ShutdownProfiler stops the collection and reporting of profile data and stops the
-// monitor background goroutine.
-func (app *Application) ShutdownProfiler() {
+// monitor background goroutine. If the waitForShutdown parameter is true, it will block
+// until the monitor goroutine has completed its final harvest of profile samples and fully
+// shut down before returning.
+func (app *Application) ShutdownProfiler(waitForShutdown bool) {
 	if app == nil || app.app == nil {
 		return
 	}
 	app.SetProfileSampleInterval(0)
 	app.app.profiler.done <- 0
+	if waitForShutdown {
+		for app.app.profiler.IsRunning() {
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
 }
 
 // SetProfileCPUSampleRateHz adjusts the sample time for CPU profile data.
@@ -282,11 +361,36 @@ func (pc *profilerConfig) isTraceSelected() bool {
 	return (pc.selected & ProfilingTypeTrace) != 0
 }
 
+func sanitizeProfileEventAttrs(attrs map[string]any) {
+	if len(attrs) > customEventAttributeLimit {
+		// too many attributes for an event; sacrifice some location names
+		for i := len(attrs) - 1; i >= 0 && len(attrs) > customEventAttributeLimit; i-- {
+			key := fmt.Sprintf("location.%d", i)
+			if _, exists := attrs[key]; exists {
+				delete(attrs, key)
+			}
+		}
+	}
+	if len(attrs) > customEventAttributeLimit {
+		// still too many? kill the span ids too, then, as a move of desperation...
+		for i := len(attrs) - 1; i >= 0 && len(attrs) > customEventAttributeLimit; i-- {
+			key := fmt.Sprintf("span.%d", i)
+			if _, exists := attrs[key]; exists {
+				delete(attrs, key)
+			}
+		}
+	}
+}
+
 func (pc *profilerConfig) monitor(a *app) {
 	if pc == nil {
 		return
 	}
 
+	pc.SetRunning(true)
+	defer pc.SetRunning(false)
+
+	auditLog(pc.auditFile, "monitor started")
 	if pc.isBlockSelected() {
 		runtime.SetBlockProfileRate(pc.blockRate)
 	}
@@ -295,17 +399,93 @@ func (pc *profilerConfig) monitor(a *app) {
 	}
 
 	profileDestination := profileNilDest
-	var heap_f, goroutine_f, threadcreate_f, block_f, mutex_f, cpu_f *os.File
-	var cpuData bytes.Buffer
+	var heap_f, goroutine_f, threadcreate_f, block_f, mutex_f, cpu_f, trace_f *os.File
+	var cpuData, traceData bytes.Buffer
 	var err error
 	var harvestNumber int64
 
-	reportCPUProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
+	reportBufferedTraceSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
+		var err error
+		var event xtrace.Event
+
+		reader, err := xtrace.NewReader(profileData)
+		if err != nil {
+			profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "cannot create trace reader")
+			return
+		}
+		sampleNumber := 0
+		for {
+			event, err = reader.ReadEvent()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "error reading trace events")
+				return
+			}
+			attrs := map[string]any{
+				"harvest_seq": harvestNumber,
+				"sample_seq":  sampleNumber,
+				"kind":        event.Kind().String(),
+			}
+			sampleNumber++
+
+			switch event.Kind() {
+			case xtrace.EventLog:
+				elog := event.Log()
+				attrs["task"] = uint64(elog.Task)
+				attrs["category"] = elog.Category
+				attrs["message"] = elog.Message
+			case xtrace.EventMetric:
+				em := event.Metric()
+				attrs["name"] = em.Name
+				if em.Value.Kind() == xtrace.ValueUint64 {
+					attrs["value"] = em.Value.Uint64()
+				} else if em.Value.Kind() == xtrace.ValueString {
+					attrs["value"] = em.Value.String()
+				}
+
+				/* event.Kind().String() EventSync EventMetric EventLabel EventStackSample EventRangeBegin EventRangeActive EventRangeEnd EventTaskBegin EventTaskEnd EventRegionBegin EventRegionEnd EventLog EventStateTransition EventExperimental*/
+			}
+
+			pc.segLock.RLock()
+			if pc.activeSegments != nil {
+				segmentSeq := 0
+				for segmentName, _ := range pc.activeSegments {
+					attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+					segmentSeq++
+				}
+			}
+			pc.segLock.RUnlock()
+			sanitizeProfileEventAttrs(attrs)
+			if debug {
+				fmt.Printf("EVENT %s: %v\n", eventType, attrs)
+			} else {
+				if err = a.RecordCustomEvent(eventType, attrs); err != nil {
+					profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "unable to record profiling data as custom event")
+				} else if audit != nil {
+					// the custom event succeeded. add that to the audit trail too
+					if b, jerr := json.Marshal(profilerAuditRecord{
+						EventType:  eventType,
+						HarvestSeq: harvestNumber,
+						SampleSeq:  sampleNumber,
+					}); jerr == nil {
+						audit.Write(b)
+						audit.Write([]byte{'\n'})
+					}
+				}
+			}
+		}
+	}
+	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		var p *profile.Profile
 		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
-			attrs := map[string]any{"harvest_seq": harvestNumber}
+			auditQty(audit, eventType, harvestNumber, len(p.Sample))
 			for sampleNumber, sampleData := range p.Sample {
-				attrs["sample_seq"] = sampleNumber
+				attrs := map[string]any{
+					"harvest_seq": harvestNumber,
+					"sample_seq":  sampleNumber,
+				}
 				for i, dataValue := range sampleData.Value {
 					attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
 				}
@@ -326,11 +506,12 @@ func (pc *profilerConfig) monitor(a *app) {
 				attrs["time_ns"] = p.TimeNanos
 				attrs["duration_ns"] = p.DurationNanos
 				attrs[normalizeAttrNameFromSampleValueType("sample_period_"+p.PeriodType.Type, p.PeriodType.Unit)] = p.Period
+				sanitizeProfileEventAttrs(attrs)
 				if debug {
 					fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 				} else {
 					if err = a.RecordCustomEvent(eventType, attrs); err != nil {
-						a.Error("unable to record CPU profiling data as custom event", map[string]any{
+						a.Error("unable to record profiling data as custom event", map[string]any{
 							"event-type": eventType,
 							"reason":     err.Error(),
 						})
@@ -363,15 +544,26 @@ func (pc *profilerConfig) monitor(a *app) {
 			if debug {
 				fmt.Printf("ERROR parsing %s: %v\n", eventType, err)
 			} else {
-				a.Error("unable to parse "+eventType+" profiling data", map[string]any{
+				a.Error("unable to parse profiling data", map[string]any{
 					"event-type": eventType,
 					"reason":     err.Error(),
 				})
+				if audit != nil {
+					if b, jerr := json.Marshal(profilerAuditRecord{
+						EventType:  eventType,
+						HarvestSeq: harvestNumber,
+						Reason:     err.Error(),
+					}); jerr == nil {
+						audit.Write(b)
+						audit.Write([]byte{'\n'})
+					}
+				}
 			}
 		}
 	}
 
 	closeLocalFiles := func() {
+		auditLog(pc.auditFile, "closeLocalFiles called")
 		if profileDestination == profileNilDest {
 			// no action needed
 		} else if profileDestination == profileLocalFile {
@@ -384,12 +576,21 @@ func (pc *profilerConfig) monitor(a *app) {
 				pprof.StopCPUProfile()
 				_ = cpu_f.Close()
 			}
+			if pc.isTraceSelected() {
+				trace.Stop()
+				_ = trace_f.Close()
+			}
 		} else {
 			// we're sending to an ingest endpoint of some sort
 			if pc.isCPUSelected() {
 				pprof.StopCPUProfile()
-				reportCPUProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
+				reportBufferedProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
 				cpuData.Reset()
+			}
+			if pc.isTraceSelected() {
+				trace.Stop()
+				reportBufferedTraceSamples(&traceData, "ProfileTrace", false, pc.auditFile)
+				traceData.Reset()
 			}
 		}
 		profileDestination = profileNilDest
@@ -411,6 +612,12 @@ func (pc *profilerConfig) monitor(a *app) {
 				if pc.isCPUSelected() {
 					runtime.SetCPUProfileRate(pc.cpuSampleRateHz)
 					if err = pprof.StartCPUProfile(&cpuData); err != nil {
+						pc.switchResult <- err
+						return
+					}
+				}
+				if pc.isTraceSelected() {
+					if err = trace.Start(&traceData); err != nil {
 						pc.switchResult <- err
 						return
 					}
@@ -452,6 +659,16 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 			if pc.isMutexSelected() {
 				if mutex_f, err = os.OpenFile(path.Join(newDirectory, "mutex.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+					pc.switchResult <- err
+					return
+				}
+			}
+			if pc.isTraceSelected() {
+				if trace_f, err = os.OpenFile(path.Join(newDirectory, "trace.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+					pc.switchResult <- err
+					return
+				}
+				if err = trace.Start(trace_f); err != nil {
 					pc.switchResult <- err
 					return
 				}
@@ -499,7 +716,7 @@ func (pc *profilerConfig) monitor(a *app) {
 						}
 					} else {
 						// report to ingest endpoint
-						reportCPUProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
+						reportBufferedProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
 						cpuData.Reset()
 						if err = pprof.StartCPUProfile(&cpuData); err != nil {
 							a.Error("error restarting CPU profiler", map[string]any{
@@ -535,6 +752,8 @@ func (pc *profilerConfig) monitor(a *app) {
 				if pc.isMutexSelected() {
 					pprof.Lookup("mutex").WriteTo(mutex_f, 1)
 				}
+				// The tracer writes to the file on its own, as does the cpu profiler,
+				// so we don't need to do anything for them here.
 			} else {
 				// Otherwise, we need to process the profile data internally and report it out somewhere.
 				reportProfileSample := func(profileName, eventType string, debug bool, audit io.Writer) {
@@ -542,9 +761,12 @@ func (pc *profilerConfig) monitor(a *app) {
 					pprof.Lookup(profileName).WriteTo(&data, 0)
 					var p *profile.Profile
 					if p, err = profile.ParseData(data.Bytes()); err == nil {
-						attrs := map[string]any{"harvest_seq": harvestNumber}
+						auditQty(audit, eventType, harvestNumber, len(p.Sample))
 						for sampleNumber, sampleData := range p.Sample {
-							attrs["sample_seq"] = sampleNumber
+							attrs := map[string]any{
+								"harvest_seq": harvestNumber,
+								"sample_seq":  sampleNumber,
+							}
 							for i, dataValue := range sampleData.Value {
 								attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
 							}
@@ -565,6 +787,7 @@ func (pc *profilerConfig) monitor(a *app) {
 							attrs["time_ns"] = p.TimeNanos
 							attrs["duration_ns"] = p.DurationNanos
 							attrs[normalizeAttrNameFromSampleValueType("sample_period_"+p.PeriodType.Type, p.PeriodType.Unit)] = p.Period
+							sanitizeProfileEventAttrs(attrs)
 							if debug {
 								fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 							} else {
@@ -580,6 +803,8 @@ func (pc *profilerConfig) monitor(a *app) {
 											HarvestSeq: harvestNumber,
 											SampleSeq:  sampleNumber,
 											Reason:     err.Error(),
+											Attributes: len(attrs),
+											RawData:    attrs,
 										}); jerr == nil {
 											audit.Write(b)
 											audit.Write([]byte{'\n'})
@@ -591,6 +816,8 @@ func (pc *profilerConfig) monitor(a *app) {
 										EventType:  eventType,
 										HarvestSeq: harvestNumber,
 										SampleSeq:  sampleNumber,
+										Attributes: len(attrs),
+										RawData:    attrs,
 									}); jerr == nil {
 										audit.Write(b)
 										audit.Write([]byte{'\n'})
@@ -606,6 +833,16 @@ func (pc *profilerConfig) monitor(a *app) {
 								"event-type": eventType,
 								"reason":     err.Error(),
 							})
+							if audit != nil {
+								if b, jerr := json.Marshal(profilerAuditRecord{
+									EventType:  eventType,
+									HarvestSeq: harvestNumber,
+									Reason:     err.Error(),
+								}); jerr == nil {
+									audit.Write(b)
+									audit.Write([]byte{'\n'})
+								}
+							}
 						}
 					}
 				}
@@ -625,10 +862,13 @@ func (pc *profilerConfig) monitor(a *app) {
 				if pc.isMutexSelected() {
 					reportProfileSample("mutex", "ProfileMutex", false, pc.auditFile)
 				}
+				// We don't get trace data until we stop the profiler (but we can use the flight recorder instead
+				// if we need that)
 				harvestNumber++
 			}
 		case <-pc.done:
 			// We were told to terminate our profile monitoring
+			auditLog(pc.auditFile, "monitor stopped")
 			return
 		}
 	}

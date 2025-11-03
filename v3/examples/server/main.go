@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime/trace"
 	"sync"
 	"time"
 
@@ -85,6 +86,22 @@ var a [][]byte
 func alloc100(w http.ResponseWriter, r *http.Request) {
 	a = append(a, make([]byte, 1024*1024*100, 1024*1024*100))
 	io.WriteString(w, "added 100MB to heap")
+}
+
+func traceprof(w http.ResponseWriter, r *http.Request) {
+	ctx, task := trace.NewTask(context.Background(), "tracedTask")
+	trace.Log(ctx, "tracedTask", "started")
+	trace.WithRegion(ctx, "tracedFunction", func() {
+		trace.Log(ctx, "process step", "a")
+		trace.Log(ctx, "process step", "b")
+		trace.Logf(ctx, "process data", "x=%d", 42)
+		trace.WithRegion(ctx, "subFunction", func() {
+			trace.Log(ctx, "process step", "c")
+		})
+	})
+	task.End()
+	io.WriteString(w, fmt.Sprintf("traced some functions to the profiler (%v)",
+		trace.IsEnabled()))
 }
 
 // Make a blizzard of goroutines, some of which will block for a while
@@ -351,13 +368,14 @@ func main() {
 		newrelic.ConfigCodeLevelMetricsPathPrefix("go-agent/v3"),
 		newrelic.ConfigProfilingEnabled(true),
 		newrelic.ConfigProfilingWithSegments(true),
-		newrelic.ConfigCustomInsightsEventsMaxSamplesStored(50000),
+		newrelic.ConfigCustomInsightsEventsMaxSamplesStored(500000),
 		newrelic.ConfigProfilingInclude(
 			newrelic.ProfilingTypeCPU|
 				newrelic.ProfilingTypeGoroutine|
 				newrelic.ProfilingTypeHeap|
 				newrelic.ProfilingTypeMutex|
 				newrelic.ProfilingTypeThreadCreate|
+				newrelic.ProfilingTypeTrace|
 				newrelic.ProfilingTypeBlock),
 		newrelic.ConfigProfilingSampleInterval(time.Millisecond*500),
 		newrelic.ConfigProfilingCPUReportInterval(time.Minute*5),
@@ -366,9 +384,13 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	//if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
 	//	fmt.Println("unable to set profiling directory: %v", err)
 	//}
+	if err := app.OpenProfileAuditLog("/tmp/profile-audit"); err != nil {
+		panic(err)
+	}
 	if err := app.WaitForConnection(time.Second * 120); err != nil {
 		log.Printf("Failed to connect in 120 seconds: %v", err)
 	}
@@ -404,6 +426,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/cpuspin", CPUspinner))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/gostorm", goStorm))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/alloc100", alloc100))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/trace", traceprof))
 
 	//loc := newrelic.ThisCodeLocation()
 	backgroundCache := newrelic.NewCachedCodeLocation()
@@ -449,7 +472,10 @@ func main() {
 	} else {
 		log.Println("HTTP server shutdown, shutting down APM agent...")
 	}
-	app.ShutdownProfiler()
+	app.ShutdownProfiler(true)
+	if err := app.CloseProfileAuditLog(); err != nil {
+		panic(err)
+	}
 	app.Shutdown(time.Second * 60)
 	log.Println("Agent shutdown.")
 }
