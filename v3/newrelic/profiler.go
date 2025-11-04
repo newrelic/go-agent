@@ -910,6 +910,9 @@ func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, 
 			IdleConnTimeout:    0,
 			DisableCompression: true, // our data format is already compressed
 		}}
+		if pc.auditFile != nil {
+			auditLog(pc.auditFile, "OTEL ingest endpoint transport setup to %s", pc.ingestEndpoint)
+		}
 	}
 	req, err := http.NewRequest(http.MethodPost, pc.ingestEndpoint, data)
 	if err != nil {
@@ -937,5 +940,9 @@ func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, 
 	}
 	if err := response.Body.Close(); err != nil {
 		auditLog(pc.auditFile, "error closing response from sending %s profile data to %s: %v", profileName, pc.ingestEndpoint, err)
+	}
+	if pc.auditFile != nil {
+		auditLog(pc.auditFile, "posted %s data -> %d %s", profileName, response.StatusCode, response.Status)
+		fmt.Printf("posted %s data -> %s", profileName, response.Status)
 	}
 }
