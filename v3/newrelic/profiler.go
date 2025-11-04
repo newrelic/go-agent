@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"runtime"
@@ -110,6 +111,10 @@ type profilerConfig struct {
 	blockRate       int
 	mutexRate       int
 	cpuSampleRateHz int
+	ingestEndpoint  string
+	ingestClient    *http.Client
+	apiKey          string
+	serviceName     string
 }
 
 func (p *profilerConfig) IsRunning() bool {
@@ -134,6 +139,9 @@ func (a *app) StartProfiler() {
 	a.profiler.blockRate = a.config.Profiling.BlockRate
 	a.profiler.mutexRate = a.config.Profiling.MutexRate
 	a.profiler.cpuSampleRateHz = a.config.Profiling.CPUSampleRateHz
+	a.profiler.ingestEndpoint = a.config.Profiling.Host
+	a.profiler.serviceName = a.config.AppName
+	a.profiler.apiKey = a.config.License
 	a.profiler.lock.Unlock()
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
 	a.setProfileCPUReportInterval(a.config.Profiling.CPUReportInterval)
@@ -287,17 +295,13 @@ func (app *Application) SetProfileOutputDirectory(dirname string) error {
 // SetProfileOutputOTEL changes the destination for the profiler's output so that
 // all further profile data will be written to an OTEL-compatible profiling signal
 // endpoint.
-
-// (future)
-
-/* func (app *Application) SetProfileOutputOTEL() error {
+func (app *Application) SetProfileOutputOTEL() error {
 	if app != nil && app.app != nil {
 		app.app.profiler.ingestSwitch <- profileIngestOTEL
 		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
 }
-*/
 
 // SetProfileOutputMELT changes the destination for the profiler's output so that
 // all further profile data will be written to a New Relic MELT endpoint as custom
@@ -478,6 +482,11 @@ func (pc *profilerConfig) monitor(a *app) {
 		}
 	}
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
+		if profileDestination == profileIngestOTEL {
+			pc.sendOTELProfileRawData(eventType, eventType, profileData)
+			return
+		}
+
 		var p *profile.Profile
 		if p, err = profile.ParseData(profileData.Bytes()); err == nil {
 			auditQty(audit, eventType, harvestNumber, len(p.Sample))
@@ -759,6 +768,10 @@ func (pc *profilerConfig) monitor(a *app) {
 				reportProfileSample := func(profileName, eventType string, debug bool, audit io.Writer) {
 					var data bytes.Buffer
 					pprof.Lookup(profileName).WriteTo(&data, 0)
+					if profileDestination == profileIngestOTEL {
+						pc.sendOTELProfileRawData(profileName, eventType, &data)
+						return
+					}
 					var p *profile.Profile
 					if p, err = profile.ParseData(data.Bytes()); err == nil {
 						auditQty(audit, eventType, harvestNumber, len(p.Sample))
@@ -887,4 +900,42 @@ func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 		}
 		return -1
 	}, strings.ToLower(typeName+"_"+unitName))
+}
+
+func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, data *bytes.Buffer) {
+	if pc.ingestClient == nil {
+		pc.ingestClient = &http.Client{Transport: &http.Transport{
+			DisableKeepAlives:  false,
+			MaxIdleConns:       0,
+			IdleConnTimeout:    0,
+			DisableCompression: true, // our data format is already compressed
+		}}
+	}
+	req, err := http.NewRequest(http.MethodPost, pc.ingestEndpoint, data)
+	if err != nil {
+		auditLog(pc.auditFile, "error creating HTTP request to send %s profile data to %s: %v", profileName, pc.ingestEndpoint, err)
+		return
+	}
+
+	req.Header.Add("api-key", pc.apiKey)
+	req.Header.Add("service-name", pc.serviceName)
+	req.Header.Add("profile-type", profileName)
+	req.Header.Add("event-type", eventType)
+	req.Header.Add("content-type", "application/octet-stream")
+
+	response, err := pc.ingestClient.Do(req)
+	if err != nil {
+		auditLog(pc.auditFile, "error sending %s profile data to %s: %v", profileName, pc.ingestEndpoint, err)
+		return
+	}
+
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		auditLog(pc.auditFile, "HTTP response %d sending %s profile data to %s: %v", response.StatusCode, profileName, pc.ingestEndpoint, err)
+	}
+	if _, err := io.ReadAll(response.Body); err != nil {
+		auditLog(pc.auditFile, "error reading response from sending %s profile data to %s: %v", profileName, pc.ingestEndpoint, err)
+	}
+	if err := response.Body.Close(); err != nil {
+		auditLog(pc.auditFile, "error closing response from sending %s profile data to %s: %v", profileName, pc.ingestEndpoint, err)
+	}
 }

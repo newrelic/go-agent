@@ -440,6 +440,13 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
+// ConfigProfilingHost sets the ingest endpoint URL for sending OTEL/pprof-format data.
+func ConfigProfilingHost(URL string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Host = URL
+	}
+}
+
 // ConfigProfilingEnabled turns on profiling of the runtime, which is further broken down into
 // specific areas to measure by ConfigProfilingInclude.
 func ConfigProfilingEnabled(enabled bool) ConfigOption {
@@ -572,6 +579,7 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 //						NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
 //						NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //			         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
+//					 NEW_RELIC_PROFILING_HOST									 sets Profiling.Host OTEL ingest endpoint
 //		          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
 //		          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
 //		          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
@@ -726,6 +734,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		assignBool(&cfg.Profiling.Enabled, "NEW_RELIC_PROFILING_ENABLED")
 		assignBool(&cfg.Profiling.WithSegments, "NEW_RELIC_PROFILING_WITH_SEGMENTS")
+		assignString(&cfg.Profiling.Host, "NEW_RELIC_PROFILING_HOST")
 
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.

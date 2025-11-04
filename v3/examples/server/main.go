@@ -402,7 +402,10 @@ func main() {
 		}
 	}
 
-	app.SetProfileOutputMELT()
+	//app.SetProfileOutputMELT()
+	if err := app.SetProfileOutputOTEL(); err != nil {
+		panic(err)
+	}
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))

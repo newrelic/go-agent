@@ -594,6 +594,8 @@ type Config struct {
 		// mutex profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
 		// tries to collect them all.
 		MutexRate int
+		// Host provides the OTEl/pprof ingest endpoint to use.
+		Host string
 	}
 
 	// Security is used to post security configuration on UI.
