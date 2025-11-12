@@ -1166,3 +1166,47 @@ func Test_maxLogEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultConfigMaxSamplesStored(t *testing.T) {
+	cfg := defaultConfig()
+
+	tests := []struct {
+		name     string
+		actual   int
+		expected int
+	}{
+		{
+			name:     "CustomInsightsEvents.MaxSamplesStored",
+			actual:   cfg.CustomInsightsEvents.MaxSamplesStored,
+			expected: internal.MaxCustomEvents,
+		},
+		{
+			name:     "TransactionEvents.MaxSamplesStored",
+			actual:   cfg.TransactionEvents.MaxSamplesStored,
+			expected: internal.MaxTxnEvents,
+		},
+		{
+			name:     "ErrorCollector.MaxSamplesStored",
+			actual:   cfg.ErrorCollector.MaxSamplesStored,
+			expected: internal.MaxErrorEvents,
+		},
+		{
+			name:     "SpanEvents.MaxSamplesStored",
+			actual:   cfg.SpanEvents.MaxSamplesStored,
+			expected: internal.MaxSpanEvents,
+		},
+		{
+			name:     "ApplicationLogging.Forwarding.MaxSamplesStored",
+			actual:   cfg.ApplicationLogging.Forwarding.MaxSamplesStored,
+			expected: internal.MaxLogEvents,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.actual != tt.expected {
+				t.Errorf("%s: defaultConfig() sets %d, expected %d", tt.name, tt.actual, tt.expected)
+			}
+		})
+	}
+}
