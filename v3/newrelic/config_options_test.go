@@ -303,14 +303,14 @@ func TestConfigFromEnvironmentIntCases(t *testing.T) {
 			name:     "Custom Insights Events Max Samples more than maximum",
 			envVar:   "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED",
 			envValue: "500000",
-			want:     30000, // internal.MaxCustomEvents
+			want:     100000, // internal.MaxCustomEvents
 			getValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
 		},
 		{
 			name:     "Custom Insights Events Max Samples less than 0",
 			envVar:   "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED",
 			envValue: "-1500",
-			want:     30000, // internal.MaxCustomEvents
+			want:     100000, // internal.MaxCustomEvents
 			getValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
 		},
 		// Error Collector Events test cases
@@ -494,7 +494,7 @@ func TestConfigEventsMaxSamplesStored(t *testing.T) {
 		},
 		{
 			name:           "CustomInsightsEvents",
-			maxLimit:       30000, // internal.MaxCustomEvents
+			maxLimit:       100000, // internal.MaxCustomEvents
 			configFunc:     ConfigCustomInsightsEventsMaxSamplesStored,
 			getConfigValue: func(c *Config) int { return c.CustomInsightsEvents.MaxSamplesStored },
 		},
