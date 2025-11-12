@@ -370,6 +370,28 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 	}
 }
 
+func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
+	h, err := internal.UnmarshalConnectReply([]byte(
+		`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 10000
+			}
+        }}`), internal.PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	cfg := config{Config: defaultConfig()}
+	// Original
+	// cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
+	// through code (almost like a setter)
+	cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(internal.MaxTxnEvents + 100)
+
+	run := newAppRun(cfg, h)
+	if run.harvestConfig.MaxTxnEvents != internal.MaxTxnEvents {
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, run.harvestConfig.MaxTxnEvents)
+	}
+}
+
 func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	reply, err := internal.UnmarshalConnectReply([]byte(
 		`{"return_value":{
