@@ -91,9 +91,9 @@ func ConfigRemoteParentNotSampled(flag RemoteParentSamplingConfig) ConfigOption 
 // of how many transaction events are stored in an agent for a given harvest cycle.
 // Alters the TransactionEvents.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 10000.
-func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
+func ConfigTransactionEventsMaxSamplesStored(value int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(limit)
+		cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(value)
 	}
 }
 
@@ -101,9 +101,9 @@ func ConfigTransactionEventsMaxSamplesStored(limit int) ConfigOption {
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 30000.
-func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
+func ConfigCustomInsightsEventsMaxSamplesStored(value int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomInsightsEvents.MaxSamplesStored = maxCustomEvents(limit)
+		cfg.CustomInsightsEvents.MaxSamplesStored = maxCustomEvents(value)
 	}
 }
 
@@ -111,8 +111,8 @@ func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
 // of how many span events are stored in an agent for a given harvest cycle.
 // Alters the SpanEvents.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 2000.
-func ConfigSpanEventsMaxSamplesStored(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxSpanEvents(limit) }
+func ConfigSpanEventsMaxSamplesStored(value int) ConfigOption {
+	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxSpanEvents(value) }
 }
 
 // ConfigSpanEventsEnabled enables or disables the collection of span events.
@@ -134,9 +134,9 @@ func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
 // of how many errors are stored in an agent for a given harvest cycle.
 // Alters the ErrorCollector.MaxSamplesStored setting.
 // Note: As of Oct 2025, the absolute maximum errors that can be sent each minute is 100.
-func ConfigErrorCollectorMaxSamplesStored(limit int) ConfigOption {
+func ConfigErrorCollectorMaxSamplesStored(value int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ErrorCollector.MaxSamplesStored = maxErrorEvents(limit)
+		cfg.ErrorCollector.MaxSamplesStored = maxErrorEvents(value)
 	}
 }
 
