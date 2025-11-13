@@ -100,7 +100,7 @@ func ConfigTransactionEventsMaxSamplesStored(value int) ConfigOption {
 // ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
-// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 30000.
+// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 100000.
 func ConfigCustomInsightsEventsMaxSamplesStored(value int) ConfigOption {
 	return func(cfg *Config) {
 		cfg.CustomInsightsEvents.MaxSamplesStored = maxCustomEvents(value)
