@@ -24,6 +24,13 @@ import (
 )
 
 const (
+	ProfileCustomEventType        = "Profile"
+	ProfileTypeAttributeName      = "profile-type"
+	ProfileLanguageAttributeName  = "language"
+	ProfileLanguageAttributeValue = "go"
+)
+
+const (
 	profileNilDest byte = iota
 	profileLocalFile
 	profileIngestOTEL
@@ -70,8 +77,9 @@ func profilerError(a *app, audit io.Writer, eventType string, harvestSeq int64, 
 		fmt.Println(err.Error())
 	} else {
 		a.Error(fmt.Sprintf(format, data...), map[string]any{
-			"event-type": eventType,
-			"reason":     err.Error(),
+			"event-type":             ProfileCustomEventType,
+			ProfileTypeAttributeName: eventType,
+			"reason":                 err.Error(),
 		})
 		if audit != nil {
 			auditError(audit, eventType, harvestSeq, err, format, data...)
@@ -424,9 +432,11 @@ func (pc *profilerConfig) monitor(a *app) {
 				return
 			}
 			attrs := map[string]any{
-				"harvest_seq": harvestNumber,
-				"sample_seq":  sampleNumber,
-				"kind":        event.Kind().String(),
+				"harvest_seq":                harvestNumber,
+				"sample_seq":                 sampleNumber,
+				"kind":                       event.Kind().String(),
+				ProfileTypeAttributeName:     eventType,
+				ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 			}
 			sampleNumber++
 
@@ -461,7 +471,7 @@ func (pc *profilerConfig) monitor(a *app) {
 			if debug {
 				fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 			} else {
-				if err = a.RecordCustomEvent(eventType, attrs); err != nil {
+				if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
 					profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "unable to record profiling data as custom event")
 				} else if audit != nil {
 					// the custom event succeeded. add that to the audit trail too
@@ -483,8 +493,10 @@ func (pc *profilerConfig) monitor(a *app) {
 			auditQty(audit, eventType, harvestNumber, len(p.Sample))
 			for sampleNumber, sampleData := range p.Sample {
 				attrs := map[string]any{
-					"harvest_seq": harvestNumber,
-					"sample_seq":  sampleNumber,
+					"harvest_seq":                harvestNumber,
+					"sample_seq":                 sampleNumber,
+					ProfileTypeAttributeName:     eventType,
+					ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 				}
 				for i, dataValue := range sampleData.Value {
 					attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
@@ -510,10 +522,11 @@ func (pc *profilerConfig) monitor(a *app) {
 				if debug {
 					fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 				} else {
-					if err = a.RecordCustomEvent(eventType, attrs); err != nil {
+					if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
 						a.Error("unable to record profiling data as custom event", map[string]any{
-							"event-type": eventType,
-							"reason":     err.Error(),
+							"event-type":             ProfileCustomEventType,
+							ProfileTypeAttributeName: eventType,
+							"reason":                 err.Error(),
 						})
 						if audit != nil {
 							// add note in our audit record that we failed to record this sample
@@ -545,8 +558,9 @@ func (pc *profilerConfig) monitor(a *app) {
 				fmt.Printf("ERROR parsing %s: %v\n", eventType, err)
 			} else {
 				a.Error("unable to parse profiling data", map[string]any{
-					"event-type": eventType,
-					"reason":     err.Error(),
+					"event-type":             ProfileCustomEventType,
+					ProfileTypeAttributeName: eventType,
+					"reason":                 err.Error(),
 				})
 				if audit != nil {
 					if b, jerr := json.Marshal(profilerAuditRecord{
@@ -764,8 +778,10 @@ func (pc *profilerConfig) monitor(a *app) {
 						auditQty(audit, eventType, harvestNumber, len(p.Sample))
 						for sampleNumber, sampleData := range p.Sample {
 							attrs := map[string]any{
-								"harvest_seq": harvestNumber,
-								"sample_seq":  sampleNumber,
+								"harvest_seq":                harvestNumber,
+								"sample_seq":                 sampleNumber,
+								ProfileTypeAttributeName:     eventType,
+								ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 							}
 							for i, dataValue := range sampleData.Value {
 								attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
@@ -791,10 +807,11 @@ func (pc *profilerConfig) monitor(a *app) {
 							if debug {
 								fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 							} else {
-								if err = a.RecordCustomEvent(eventType, attrs); err != nil {
+								if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
 									a.Error("unable to record "+eventType+" profiling data as custom event", map[string]any{
-										"event-type": eventType,
-										"reason":     err.Error(),
+										"event-type":             ProfileCustomEventType,
+										ProfileTypeAttributeName: eventType,
+										"reason":                 err.Error(),
 									})
 									if audit != nil {
 										// add not in our audit record that we failed to record this sample
@@ -830,8 +847,9 @@ func (pc *profilerConfig) monitor(a *app) {
 							fmt.Printf("ERROR parsing %s: %v\n", eventType, err)
 						} else {
 							a.Error("unable to parse "+eventType+" profiling data", map[string]any{
-								"event-type": eventType,
-								"reason":     err.Error(),
+								"event-type":             ProfileCustomEventType,
+								ProfileTypeAttributeName: eventType,
+								"reason":                 err.Error(),
 							})
 							if audit != nil {
 								if b, jerr := json.Marshal(profilerAuditRecord{
