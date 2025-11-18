@@ -25,7 +25,7 @@ import (
 
 const (
 	ProfileCustomEventType        = "Profile"
-	ProfileTypeAttributeName      = "profile-type"
+	ProfileTypeAttributeName      = "profile_type"
 	ProfileLanguageAttributeName  = "language"
 	ProfileLanguageAttributeValue = "go"
 )
