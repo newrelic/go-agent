@@ -5,7 +5,7 @@ go 1.24
 
 require (
 	github.com/go-redis/redis/v8 v8.4.0
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 )
 
 

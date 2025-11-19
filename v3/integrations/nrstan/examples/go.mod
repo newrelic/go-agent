@@ -5,7 +5,7 @@ go 1.24
 
 require (
 	github.com/nats-io/stan.go v0.10.4
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/newrelic/go-agent/v3/integrations/nrnats v0.0.0
 	github.com/newrelic/go-agent/v3/integrations/nrstan v0.0.0
 )

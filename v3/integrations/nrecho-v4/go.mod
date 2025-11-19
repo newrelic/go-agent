@@ -6,7 +6,7 @@ go 1.24
 
 require (
 	github.com/labstack/echo/v4 v4.9.0
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 )
 
 

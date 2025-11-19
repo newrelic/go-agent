@@ -35,7 +35,7 @@
 #	/set_name
 #	/version
 #
-FROM golang:1.22
+FROM golang:1.25
 MAINTAINER Steve Willoughby <swilloughby@newrelic.com>
 WORKDIR /go
 RUN git clone https://github.com/newrelic/go-agent

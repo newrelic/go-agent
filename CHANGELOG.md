@@ -1,3 +1,18 @@
+## 3.42.0
+### Added
+  * Added `ConfigTransactionEventsMaxSamplesStored`and `ConfigErrorCollectorMaxSamplesStored` allowing full control of maximum samples stored for Transaction Events, Custom Insights Events, Error Events, and Log Events
+  * Added support for the `MultiValueHeaders` property when extracting the headers from `events.APIGatewayProxyResponse` in nrlambda
+      * Thank you to community member @rittneje for contributing to this solution
+### Fixed
+  * Removed unused variables and modernize by replacing interface{} with any in the `nrpxg5` integration
+  * Fixed a bug where error events did not correctly mark expected errors
+      * Thank you to community member @driimus for contributing to this solution
+  * Bumped `nrwriter` integration to use v1.0.2
+      * Thank you to community member @hiicharm for spotting this.
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.41.0
 ### Added
   * Added `DistributedTracer.Sampler` config options for controlling the sampling behavior for Inbound Requests for distributed traces

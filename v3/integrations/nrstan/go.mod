@@ -8,7 +8,7 @@ toolchain go1.24.2
 
 require (
 	github.com/nats-io/stan.go v0.10.4
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 )
 
 

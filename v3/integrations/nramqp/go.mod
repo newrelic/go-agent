@@ -3,7 +3,7 @@ module github.com/newrelic/go-agent/v3/integrations/nramqp
 go 1.24
 
 require (
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/rabbitmq/amqp091-go v1.9.0
 )
 replace github.com/newrelic/go-agent/v3 => ../..
