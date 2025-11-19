@@ -5,6 +5,8 @@ package nroci
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -58,6 +60,7 @@ type ConfigWrapper struct {
 
 type ClientWrapper struct {
 	Client OCIClient
+	Config *nosqldb.Config
 }
 
 type ClientResponseWrapper[T any] struct {
@@ -78,7 +81,51 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	}
 	return &ClientWrapper{
 		Client: client,
+		Config: cfg.Config,
 	}, nil
+}
+
+// extractOperation extracts the operation type from a statement
+// if the the statement is empty, or no word is found, then return "UNKNOWN"
+func extractOperation(statement string) string {
+	if statement == "" {
+		return "UNKNOWN"
+	}
+
+	words := strings.Fields(strings.ToUpper(statement))
+	if len(words) == 0 {
+		return "UNKNOWN"
+	}
+
+	return words[0]
+}
+
+// extractHostPort extracts host and port from an endpoint URL
+func extractHostPort(endpoint string) (host, port string) {
+	if endpoint == "" {
+		return "", ""
+	}
+
+	// Parse the endpoint URL
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return "", ""
+	}
+
+	host = parsedURL.Hostname()
+	port = parsedURL.Port()
+
+	// Set default ports if not specified
+	if port == "" {
+		switch parsedURL.Scheme {
+		case "https":
+			port = "443"
+		case "http":
+			port = "80"
+		}
+	}
+
+	return host, port
 }
 
 // executeWithDatastoreSegment is a generic helper function that executes a query with a given function from the
@@ -86,6 +133,7 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 // OCI Client.  This function will take the transaction from the context (if it exists) and create a Datastore Segment.
 // It will then call whatever client function has been passed in.
 func executeWithDatastoreSegment[T any](
+	cw *ClientWrapper,
 	ctx context.Context,
 	req *nosqldb.TableRequest,
 	fn func() (T, error),
@@ -96,12 +144,18 @@ func executeWithDatastoreSegment[T any](
 		return nil, fmt.Errorf("error executing DoTableRequest, no transaction")
 	}
 
+	// Extract host and port from config endpoint
+	host, port := extractHostPort(cw.Config.Endpoint)
+
 	sgmt := newrelic.DatastoreSegment{
-		StartTime:    txn.StartSegmentNow(),
-		Product:      newrelic.DatastoreOracle,
-		Collection:   req.TableName,
-		Operation:    req.Namespace,
-		DatabaseName: req.Namespace,
+		StartTime:          txn.StartSegmentNow(),
+		Product:            newrelic.DatastoreOracle,
+		Collection:         req.TableName,
+		Operation:          extractOperation(req.Statement),
+		DatabaseName:       req.Namespace,
+		ParameterizedQuery: req.Statement,
+		Host:               host,
+		PortPathOrID:       port,
 	}
 
 	responseWrapper := ClientResponseWrapper[T]{}
@@ -110,16 +164,16 @@ func executeWithDatastoreSegment[T any](
 	if err != nil {
 		return &responseWrapper, fmt.Errorf("error making request: %s", err.Error())
 	}
-	// 4. End segment
+
 	sgmt.End()
-	// 5. Return result
+
 	return &responseWrapper, nil
 }
 
 // Wrapper for nosqldb.Client.DoTableRequest.  Provide the ClientWrapper and Context as parameters in addition to the nosqldbTableRequest.
 // Returns a ClientResponseWrapper[*nosqldbTableResult] and error.
 func NRDoTableRequest(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
-	return executeWithDatastoreSegment(ctx, req, func() (*nosqldb.TableResult, error) {
+	return executeWithDatastoreSegment(cw, ctx, req, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequest(req)
 	})
 }
@@ -127,7 +181,7 @@ func NRDoTableRequest(cw *ClientWrapper, ctx context.Context, req *nosqldb.Table
 // Wrapper for nosqldb.Client.DoTableRequestWait.  Provide the ClientWrapper and Context as parameters in addition to the nosqldbTableRequest,
 // timeout, and pollInterval. Returns a ClientResponseWrapper[*nosqldbTableResult] and error.
 func NRDoTableRequestAndWait(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest, timeout time.Duration, pollInterval time.Duration) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
-	return executeWithDatastoreSegment(ctx, req, func() (*nosqldb.TableResult, error) {
+	return executeWithDatastoreSegment(cw, ctx, req, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequestAndWait(req, timeout, pollInterval)
 	})
 }
