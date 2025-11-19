@@ -2,7 +2,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrnats
 
 // As of Jun 2023, 1.19 is the earliest version of Go tested by nats:
 // https://github.com/nats-io/nats.go/blob/master/.travis.yml
-go 1.24
+go 1.25
 
 toolchain go1.23.4
 
