@@ -4,7 +4,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrredis-v9
 go 1.24
 
 require (
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 	github.com/redis/go-redis/v9 v9.0.2
 )
 

@@ -7,7 +7,7 @@ go 1.24
 require (
 	// graphql-go has no tagged releases as of Jan 2020.
 	github.com/graph-gophers/graphql-go v1.3.0
-	github.com/newrelic/go-agent/v3 v3.41.0
+	github.com/newrelic/go-agent/v3 v3.42.0
 )
 
 
