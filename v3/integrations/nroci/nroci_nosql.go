@@ -63,6 +63,9 @@ type ClientWrapper struct {
 	Config *nosqldb.Config
 }
 
+type ClientRequestWrapper[R any] struct {
+	ClientRequest R
+}
 type ClientResponseWrapper[T any] struct {
 	ClientResponse T
 }
@@ -128,14 +131,27 @@ func extractHostPort(endpoint string) (host, port string) {
 	return host, port
 }
 
+func extractRequestFields(req any) (string, string, string) {
+	var collection, statement, databaseName string
+	switch r := req.(type) {
+	case *nosqldb.TableRequest:
+		collection = r.TableName
+		statement = r.Statement
+		databaseName = r.Namespace
+	default:
+		// keep strings empty
+	}
+	return collection, statement, databaseName
+}
+
 // executeWithDatastoreSegment is a generic helper function that executes a query with a given function from the
 // OCI Client.  It takes a type parameter T as any because of the different response types that are used within the
 // OCI Client.  This function will take the transaction from the context (if it exists) and create a Datastore Segment.
 // It will then call whatever client function has been passed in.
-func executeWithDatastoreSegment[T any](
+func executeWithDatastoreSegment[T any, R any](
 	cw *ClientWrapper,
 	ctx context.Context,
-	req *nosqldb.TableRequest,
+	rw *ClientRequestWrapper[R],
 	fn func() (T, error),
 ) (*ClientResponseWrapper[T], error) {
 
@@ -146,14 +162,14 @@ func executeWithDatastoreSegment[T any](
 
 	// Extract host and port from config endpoint
 	host, port := extractHostPort(cw.Config.Endpoint)
-
+	collection, statement, databaseName := extractRequestFields(rw.ClientRequest)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
 		Product:            newrelic.DatastoreOracle,
-		Collection:         req.TableName,
-		Operation:          extractOperation(req.Statement),
-		DatabaseName:       req.Namespace,
-		ParameterizedQuery: req.Statement,
+		Collection:         collection,
+		Operation:          extractOperation(statement),
+		DatabaseName:       databaseName,
+		ParameterizedQuery: statement,
 		Host:               host,
 		PortPathOrID:       port,
 	}
