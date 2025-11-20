@@ -116,16 +116,16 @@ func extractHostPort(endpoint string) (host, port string) {
 }
 
 func extractRequestFields(req any) (string, string, string) {
-	var collection, statement, databaseName string
+	var collection, statement, namespace string
 	switch r := req.(type) {
 	case *nosqldb.TableRequest:
 		collection = r.TableName
 		statement = r.Statement
-		databaseName = r.Namespace
+		namespace = r.Namespace
 	default:
 		// keep strings empty
 	}
-	return collection, statement, databaseName
+	return collection, statement, namespace
 }
 
 // executeWithDatastoreSegment is a generic helper function that executes a query with a given function from the
@@ -146,12 +146,12 @@ func executeWithDatastoreSegment[T any, R any](
 
 	// Extract host and port from config endpoint
 	host, port := extractHostPort(cw.Config.Endpoint)
-	collection, statement, databaseName := extractRequestFields(rw.ClientRequest)
+	collection, statement, namespace := extractRequestFields(rw.ClientRequest)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
 		Product:            newrelic.DatastoreOracle,
 		Collection:         collection,
-		DatabaseName:       databaseName,
+		DatabaseName:       namespace, // using the namespace as the database name in this instance
 		ParameterizedQuery: statement,
 		Host:               host,
 		PortPathOrID:       port,

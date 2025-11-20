@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	app.WaitForConnection(10 * time.Second)
+	app.WaitForConnection(10 * time.Second) // for short lived processes in apps
 	defer app.Shutdown(10 * time.Second)
 
 	cfg := nroci.NRDefaultConfig()
