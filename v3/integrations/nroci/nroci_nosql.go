@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -88,21 +87,6 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	}, nil
 }
 
-// extractOperation extracts the operation type from a statement
-// if the the statement is empty, or no word is found, then return "UNKNOWN"
-func extractOperation(statement string) string {
-	if statement == "" {
-		return "UNKNOWN"
-	}
-
-	words := strings.Fields(strings.ToUpper(statement))
-	if len(words) == 0 {
-		return "UNKNOWN"
-	}
-
-	return words[0]
-}
-
 // extractHostPort extracts host and port from an endpoint URL
 func extractHostPort(endpoint string) (host, port string) {
 	if endpoint == "" {
@@ -167,7 +151,6 @@ func executeWithDatastoreSegment[T any, R any](
 		StartTime:          txn.StartSegmentNow(),
 		Product:            newrelic.DatastoreOracle,
 		Collection:         collection,
-		Operation:          extractOperation(statement),
 		DatabaseName:       databaseName,
 		ParameterizedQuery: statement,
 		Host:               host,
@@ -186,18 +169,18 @@ func executeWithDatastoreSegment[T any, R any](
 	return &responseWrapper, nil
 }
 
-// Wrapper for nosqldb.Client.DoTableRequest.  Provide the ClientWrapper and Context as parameters in addition to the nosqldbTableRequest.
-// Returns a ClientResponseWrapper[*nosqldbTableResult] and error.
+// Wrapper for nosqldb.Client.DoTableRequest.  Provide the ClientWrapper and Context as parameters in addition to the nosqldb.TableRequest.
+// Returns a ClientResponseWrapper[*nosqldb.TableResult] and error.
 func NRDoTableRequest(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
-	return executeWithDatastoreSegment(cw, ctx, req, func() (*nosqldb.TableResult, error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.TableRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequest(req)
 	})
 }
 
-// Wrapper for nosqldb.Client.DoTableRequestWait.  Provide the ClientWrapper and Context as parameters in addition to the nosqldbTableRequest,
-// timeout, and pollInterval. Returns a ClientResponseWrapper[*nosqldbTableResult] and error.
+// Wrapper for nosqldb.Client.DoTableRequestWait.  Provide the ClientWrapper and Context as parameters in addition to the nosqldb.TableRequest,
+// timeout, and pollInterval. Returns a ClientResponseWrapper[*nosqldb.TableResult] and error.
 func NRDoTableRequestAndWait(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest, timeout time.Duration, pollInterval time.Duration) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
-	return executeWithDatastoreSegment(cw, ctx, req, func() (*nosqldb.TableResult, error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.TableRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequestAndWait(req, timeout, pollInterval)
 	})
 }
