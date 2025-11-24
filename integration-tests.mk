@@ -48,6 +48,7 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrredis-v7 \
 	nrredis-v8 \
 	nrredis-v9 \
+	nrrueidis \
 	nrsarama \
 	nrsecurityagent \
 	nrslog \
