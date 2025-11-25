@@ -43,6 +43,24 @@ func Test_extractRequestFields(t *testing.T) {
 			want2: "",
 			want3: "",
 		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.QueryRequest",
+			req: &nosqldb.QueryRequest{
+				TableName: "qrtable1",
+				Statement: `SELECT * FROM qrtable1 WHERE param="value"`,
+				Namespace: "oci_test_qr",
+			},
+			want:  "qrtable1",
+			want2: `SELECT * FROM qrtable1 WHERE param="value"`,
+			want3: "oci_test_qr",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.TableRequest",
+			req:   &nosqldb.TableRequest{},
+			want:  "",
+			want2: "",
+			want3: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

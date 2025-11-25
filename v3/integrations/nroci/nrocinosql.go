@@ -122,6 +122,10 @@ func extractRequestFields(req any) (string, string, string) {
 		collection = r.TableName
 		statement = r.Statement
 		namespace = r.Namespace
+	case *nosqldb.QueryRequest:
+		collection = r.TableName
+		statement = r.Statement
+		namespace = r.Namespace
 	default:
 		// keep strings empty
 	}
@@ -182,5 +186,13 @@ func NRDoTableRequest(cw *ClientWrapper, ctx context.Context, req *nosqldb.Table
 func NRDoTableRequestAndWait(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest, timeout time.Duration, pollInterval time.Duration) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.TableRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequestAndWait(req, timeout, pollInterval)
+	})
+}
+
+// Wrapper for nosqldb.Client.Query. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.QueryRequest.  Returns a
+// ClientResponseWrapper[*nosqldb.QueryResult] and error
+func NRQuery(cw *ClientWrapper, ctx context.Context, req *nosqldb.QueryRequest) (*ClientResponseWrapper[*nosqldb.QueryResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.QueryRequest]{ClientRequest: req}, func() (*nosqldb.QueryResult, error) {
+		return cw.Client.Query(req)
 	})
 }
