@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	ProfileCustomEventType        = "Profile"
+	ProfileCustomEventType        = "ExperimentalProfile"
 	ProfileTypeAttributeName      = "profile_type"
 	ProfileLanguageAttributeName  = "language"
 	ProfileLanguageAttributeValue = "go"
@@ -382,7 +382,7 @@ func sanitizeProfileEventAttrs(attrs map[string]any) {
 	if len(attrs) > customEventAttributeLimit {
 		// still too many? kill the span ids too, then, as a move of desperation...
 		for i := len(attrs) - 1; i >= 0 && len(attrs) > customEventAttributeLimit; i-- {
-			key := fmt.Sprintf("span.%d", i)
+			key := fmt.Sprintf("segment.%d", i)
 			if _, exists := attrs[key]; exists {
 				delete(attrs, key)
 			}
@@ -438,6 +438,8 @@ func (pc *profilerConfig) monitor(a *app) {
 				ProfileTypeAttributeName:     eventType,
 				ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 			}
+			var segments []string
+			var locations []string
 			sampleNumber++
 
 			switch event.Kind() {
@@ -460,28 +462,45 @@ func (pc *profilerConfig) monitor(a *app) {
 
 			pc.segLock.RLock()
 			if pc.activeSegments != nil {
-				segmentSeq := 0
+				//				segmentSeq := 0
 				for segmentName, _ := range pc.activeSegments {
-					attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
-					segmentSeq++
+					//					attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+					//					segmentSeq++
+					segments = append(segments, segmentName)
 				}
 			}
 			pc.segLock.RUnlock()
-			sanitizeProfileEventAttrs(attrs)
+			//			sanitizeProfileEventAttrs(attrs)
 			if debug {
 				fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 			} else {
-				if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
-					profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "unable to record profiling data as custom event")
-				} else if audit != nil {
-					// the custom event succeeded. add that to the audit trail too
-					if b, jerr := json.Marshal(profilerAuditRecord{
-						EventType:  eventType,
-						HarvestSeq: harvestNumber,
-						SampleSeq:  sampleNumber,
-					}); jerr == nil {
-						audit.Write(b)
-						audit.Write([]byte{'\n'})
+				childSeq := 0
+				for childSeq == 0 || len(locations) > childSeq || len(segments) > childSeq {
+					attrs["child_seq"] = childSeq
+					if len(locations) > childSeq {
+						attrs["location"] = locations[childSeq]
+					} else {
+						delete(attrs, "location")
+					}
+					if len(segments) > childSeq {
+						attrs["segment"] = segments[childSeq]
+					} else {
+						delete(attrs, "segment")
+					}
+					childSeq++
+
+					if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
+						profilerError(a, pc.auditFile, eventType, harvestNumber, err, debug, "unable to record profiling data as custom event")
+					} else if audit != nil {
+						// the custom event succeeded. add that to the audit trail too
+						if b, jerr := json.Marshal(profilerAuditRecord{
+							EventType:  eventType,
+							HarvestSeq: harvestNumber,
+							SampleSeq:  sampleNumber,
+						}); jerr == nil {
+							audit.Write(b)
+							audit.Write([]byte{'\n'})
+						}
 					}
 				}
 			}
@@ -498,57 +517,77 @@ func (pc *profilerConfig) monitor(a *app) {
 					ProfileTypeAttributeName:     eventType,
 					ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 				}
+				var segments []string
+				var locations []string
 				for i, dataValue := range sampleData.Value {
 					attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
 				}
 				pc.segLock.RLock()
 				if pc.activeSegments != nil {
-					segmentSeq := 0
+					//segmentSeq := 0
 					for segmentName, _ := range pc.activeSegments {
-						attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
-						segmentSeq++
+						//	attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+						//	segmentSeq++
+						segments = append(segments, segmentName)
 					}
 				}
 				pc.segLock.RUnlock()
-				for i, codeLoc := range sampleData.Location {
+				for _, codeLoc := range sampleData.Location {
 					if codeLoc.Line != nil && len(codeLoc.Line) > 0 {
-						attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
+						//						attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
+						locations = append(locations, fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line))
 					}
 				}
 				attrs["time_ns"] = p.TimeNanos
 				attrs["duration_ns"] = p.DurationNanos
 				attrs[normalizeAttrNameFromSampleValueType("sample_period_"+p.PeriodType.Type, p.PeriodType.Unit)] = p.Period
-				sanitizeProfileEventAttrs(attrs)
+				//				sanitizeProfileEventAttrs(attrs)
 				if debug {
 					fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 				} else {
-					if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
-						a.Error("unable to record profiling data as custom event", map[string]any{
-							"event-type":             ProfileCustomEventType,
-							ProfileTypeAttributeName: eventType,
-							"reason":                 err.Error(),
-						})
-						if audit != nil {
-							// add note in our audit record that we failed to record this sample
+					childSeq := 0
+					for childSeq == 0 || len(locations) > childSeq || len(segments) > childSeq {
+						attrs["child_seq"] = childSeq
+						if len(locations) > childSeq {
+							attrs["location"] = locations[childSeq]
+						} else {
+							delete(attrs, "location")
+						}
+						if len(segments) > childSeq {
+							attrs["segment"] = segments[childSeq]
+						} else {
+							delete(attrs, "segment")
+						}
+						childSeq++
+
+						if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
+							a.Error("unable to record profiling data as custom event", map[string]any{
+								"event-type":             ProfileCustomEventType,
+								ProfileTypeAttributeName: eventType,
+								"reason":                 err.Error(),
+							})
+							if audit != nil {
+								// add note in our audit record that we failed to record this sample
+								if b, jerr := json.Marshal(profilerAuditRecord{
+									EventType:  eventType,
+									HarvestSeq: harvestNumber,
+									SampleSeq:  sampleNumber,
+									Reason:     err.Error(),
+								}); jerr == nil {
+									audit.Write(b)
+									audit.Write([]byte{'\n'})
+								}
+							}
+						} else if audit != nil {
+							// the custom event succeeded. add that to the audit trail too
 							if b, jerr := json.Marshal(profilerAuditRecord{
 								EventType:  eventType,
 								HarvestSeq: harvestNumber,
 								SampleSeq:  sampleNumber,
-								Reason:     err.Error(),
 							}); jerr == nil {
 								audit.Write(b)
 								audit.Write([]byte{'\n'})
 							}
-						}
-					} else if audit != nil {
-						// the custom event succeeded. add that to the audit trail too
-						if b, jerr := json.Marshal(profilerAuditRecord{
-							EventType:  eventType,
-							HarvestSeq: harvestNumber,
-							SampleSeq:  sampleNumber,
-						}); jerr == nil {
-							audit.Write(b)
-							audit.Write([]byte{'\n'})
 						}
 					}
 				}
@@ -783,21 +822,25 @@ func (pc *profilerConfig) monitor(a *app) {
 								ProfileTypeAttributeName:     eventType,
 								ProfileLanguageAttributeName: ProfileLanguageAttributeValue,
 							}
+							var segments []string
+							var locations []string
 							for i, dataValue := range sampleData.Value {
 								attrs[normalizeAttrNameFromSampleValueType(p.SampleType[i].Type, p.SampleType[i].Unit)] = dataValue
 							}
 							pc.segLock.RLock()
 							if pc.activeSegments != nil {
-								segmentSeq := 0
+								//segmentSeq := 0
 								for segmentName, _ := range pc.activeSegments {
-									attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
-									segmentSeq++
+									//	attrs[fmt.Sprintf("segment.%d", segmentSeq)] = segmentName
+									//	segmentSeq++
+									segments = append(segments, segmentName)
 								}
 							}
 							pc.segLock.RUnlock()
-							for i, codeLoc := range sampleData.Location {
+							for _, codeLoc := range sampleData.Location {
 								if codeLoc.Line != nil && len(codeLoc.Line) > 0 {
-									attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
+									//attrs[fmt.Sprintf("location.%d", i)] = fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line)
+									locations = append(locations, fmt.Sprintf("%s:%d", codeLoc.Line[0].Function.Name, codeLoc.Line[0].Line))
 								}
 							}
 							attrs["time_ns"] = p.TimeNanos
@@ -807,37 +850,53 @@ func (pc *profilerConfig) monitor(a *app) {
 							if debug {
 								fmt.Printf("EVENT %s: %v\n", eventType, attrs)
 							} else {
-								if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
-									a.Error("unable to record "+eventType+" profiling data as custom event", map[string]any{
-										"event-type":             ProfileCustomEventType,
-										ProfileTypeAttributeName: eventType,
-										"reason":                 err.Error(),
-									})
-									if audit != nil {
-										// add not in our audit record that we failed to record this sample
+								childSeq := 0
+								for childSeq == 0 || len(locations) > childSeq || len(segments) > childSeq {
+									attrs["child_seq"] = childSeq
+									if len(locations) > childSeq {
+										attrs["location"] = locations[childSeq]
+									} else {
+										delete(attrs, "location")
+									}
+									if len(segments) > childSeq {
+										attrs["segment"] = segments[childSeq]
+									} else {
+										delete(attrs, "segment")
+									}
+									childSeq++
+
+									if err = a.RecordCustomEvent(ProfileCustomEventType, attrs); err != nil {
+										a.Error("unable to record "+eventType+" profiling data as custom event", map[string]any{
+											"event-type":             ProfileCustomEventType,
+											ProfileTypeAttributeName: eventType,
+											"reason":                 err.Error(),
+										})
+										if audit != nil {
+											// add not in our audit record that we failed to record this sample
+											if b, jerr := json.Marshal(profilerAuditRecord{
+												EventType:  eventType,
+												HarvestSeq: harvestNumber,
+												SampleSeq:  sampleNumber,
+												Reason:     err.Error(),
+												Attributes: len(attrs),
+												RawData:    attrs,
+											}); jerr == nil {
+												audit.Write(b)
+												audit.Write([]byte{'\n'})
+											}
+										}
+									} else if audit != nil {
+										// the custom event succeeded. add that to the audit trail too
 										if b, jerr := json.Marshal(profilerAuditRecord{
 											EventType:  eventType,
 											HarvestSeq: harvestNumber,
 											SampleSeq:  sampleNumber,
-											Reason:     err.Error(),
 											Attributes: len(attrs),
 											RawData:    attrs,
 										}); jerr == nil {
 											audit.Write(b)
 											audit.Write([]byte{'\n'})
 										}
-									}
-								} else if audit != nil {
-									// the custom event succeeded. add that to the audit trail too
-									if b, jerr := json.Marshal(profilerAuditRecord{
-										EventType:  eventType,
-										HarvestSeq: harvestNumber,
-										SampleSeq:  sampleNumber,
-										Attributes: len(attrs),
-										RawData:    attrs,
-									}); jerr == nil {
-										audit.Write(b)
-										audit.Write([]byte{'\n'})
 									}
 								}
 							}
