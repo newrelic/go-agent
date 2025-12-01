@@ -79,6 +79,23 @@ func Test_extractRequestFields(t *testing.T) {
 			want3: "",
 		},
 		{
+			name: "Should populate all 3 strings with *nosqldb.WriteMultiple",
+			req: &nosqldb.WriteMultipleRequest{
+				TableName: "wrtable",
+				Namespace: "oci_test_wr",
+			},
+			want:  "wrtable",
+			want2: "",
+			want3: "oci_test_wr",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.WriteMultiple",
+			req:   &nosqldb.WriteMultipleRequest{},
+			want:  "",
+			want2: "",
+			want3: "",
+		},
+		{
 			name: "Should populate all 3 strings with *nosqldb.DeleteRequest",
 			req: &nosqldb.DeleteRequest{
 				TableName: "dtable",

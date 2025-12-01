@@ -129,6 +129,9 @@ func extractRequestFields(req any) (string, string, string) {
 	case *nosqldb.PutRequest:
 		collection = r.TableName
 		namespace = r.Namespace
+	case *nosqldb.WriteMultipleRequest:
+		collection = r.TableName
+		namespace = r.Namespace
 	case *nosqldb.DeleteRequest:
 		collection = r.TableName
 		namespace = r.Namespace
@@ -211,6 +214,14 @@ func NRQuery(cw *ClientWrapper, ctx context.Context, req *nosqldb.QueryRequest) 
 func NRPut(cw *ClientWrapper, ctx context.Context, req *nosqldb.PutRequest) (*ClientResponseWrapper[*nosqldb.PutResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.PutRequest]{ClientRequest: req}, func() (*nosqldb.PutResult, error) {
 		return cw.Client.Put(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.WriteMultiple. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.WriteMultipleRequest. Returns a
+// ClientResponseWrapper[*nosqldb.WriteMultipleResult] and error
+func NRWriteMultiple(cw *ClientWrapper, ctx context.Context, req *nosqldb.WriteMultipleRequest) (*ClientResponseWrapper[*nosqldb.WriteMultipleResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.WriteMultipleRequest]{ClientRequest: req}, func() (*nosqldb.WriteMultipleResult, error) {
+		return cw.Client.WriteMultiple(req)
 	})
 }
 
