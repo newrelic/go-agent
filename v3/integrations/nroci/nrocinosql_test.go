@@ -95,6 +95,23 @@ func Test_extractRequestFields(t *testing.T) {
 			want2: "",
 			want3: "",
 		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.MultiDeleteRequest",
+			req: &nosqldb.MultiDeleteRequest{
+				TableName: "mdtable",
+				Namespace: "oci_test_mdelete",
+			},
+			want:  "mdtable",
+			want2: "",
+			want3: "oci_test_mdelete",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.MultiDeleteRequest",
+			req:   &nosqldb.MultiDeleteRequest{},
+			want:  "",
+			want2: "",
+			want3: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

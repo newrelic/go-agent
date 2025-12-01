@@ -132,6 +132,9 @@ func extractRequestFields(req any) (string, string, string) {
 	case *nosqldb.DeleteRequest:
 		collection = r.TableName
 		namespace = r.Namespace
+	case *nosqldb.MultiDeleteRequest:
+		collection = r.TableName
+		namespace = r.Namespace
 	default:
 		// keep strings empty
 	}
@@ -216,5 +219,13 @@ func NRPut(cw *ClientWrapper, ctx context.Context, req *nosqldb.PutRequest) (*Cl
 func NRDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.DeleteRequest) (*ClientResponseWrapper[*nosqldb.DeleteResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.DeleteRequest]{ClientRequest: req}, func() (*nosqldb.DeleteResult, error) {
 		return cw.Client.Delete(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.MutliDelete. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.DeleteRequest. Returns a
+// ClientResponseWrapper[*nosqldb.DeleteResult] and error
+func NRMultiDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.MultiDeleteRequest) (*ClientResponseWrapper[*nosqldb.MultiDeleteResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.MultiDeleteRequest]{ClientRequest: req}, func() (*nosqldb.MultiDeleteResult, error) {
+		return cw.Client.MultiDelete(req)
 	})
 }
