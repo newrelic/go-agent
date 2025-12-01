@@ -126,6 +126,9 @@ func extractRequestFields(req any) (string, string, string) {
 		collection = r.TableName
 		statement = r.Statement
 		namespace = r.Namespace
+	case *nosqldb.PutRequest:
+		collection = r.TableName
+		namespace = r.Namespace
 	default:
 		// keep strings empty
 	}
@@ -194,5 +197,13 @@ func NRDoTableRequestAndWait(cw *ClientWrapper, ctx context.Context, req *nosqld
 func NRQuery(cw *ClientWrapper, ctx context.Context, req *nosqldb.QueryRequest) (*ClientResponseWrapper[*nosqldb.QueryResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.QueryRequest]{ClientRequest: req}, func() (*nosqldb.QueryResult, error) {
 		return cw.Client.Query(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.Put. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.PutRequest. Returns a
+// ClientResponseWrapper[*nosqldb.PutResult] and error
+func NRPut(cw *ClientWrapper, ctx context.Context, req *nosqldb.PutRequest) (*ClientResponseWrapper[*nosqldb.PutResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.PutRequest]{ClientRequest: req}, func() (*nosqldb.PutResult, error) {
+		return cw.Client.Put(req)
 	})
 }

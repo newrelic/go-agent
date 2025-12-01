@@ -55,8 +55,25 @@ func Test_extractRequestFields(t *testing.T) {
 			want3: "oci_test_qr",
 		},
 		{
-			name:  "Should return empty string with *nosqldb.TableRequest",
-			req:   &nosqldb.TableRequest{},
+			name:  "Should return empty string with *nosqldb.QueryRequest",
+			req:   &nosqldb.QueryRequest{},
+			want:  "",
+			want2: "",
+			want3: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.PutRequest",
+			req: &nosqldb.PutRequest{
+				TableName: "ptable",
+				Namespace: "oci_test_put",
+			},
+			want:  "ptable",
+			want2: "",
+			want3: "oci_test_put",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.PutRequest",
+			req:   &nosqldb.PutRequest{},
 			want:  "",
 			want2: "",
 			want3: "",
