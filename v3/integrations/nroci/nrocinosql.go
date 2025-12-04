@@ -59,26 +59,10 @@ func NRDefaultConfig() *ConfigWrapper {
 	}
 }
 
-func NRConfigCloud(cfg *nosqldb.Config, sp *iam.SignatureProvider, compartmentID string) (*ConfigWrapper, error) {
-	var tenancyID string
-	tenancyID, err := sp.Profile().TenancyOCID()
-	if err != nil {
-		return nil, err
-	}
-
+func NRConfig(cfg *nosqldb.Config) (*ConfigWrapper, error) {
 	return &ConfigWrapper{
-		Config:        cfg,
-		CompartmentID: getCompartmentID(compartmentID, tenancyID),
+		Config: cfg,
 	}, nil
-}
-
-// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
-func getCompartmentID(compartmentID string, tenancyID string) string {
-	if compartmentID != "" {
-		return compartmentID
-	}
-	return tenancyID
-
 }
 
 func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
@@ -263,10 +247,13 @@ func newSignatureProvider(cfgWrapper *ConfigWrapper, fn func() (*iam.SignaturePr
 	if err != nil {
 		return nil, err
 	}
+	cfgWrapper.Config.AuthorizationProvider = sp // set the authorization provider
 	tenancyOCID, err := sp.Profile().TenancyOCID()
 	if err != nil {
 		return nil, err
 	}
+
+	// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
 	if len(compartmentID) > 0 {
 		cfgWrapper.CompartmentID = compartmentID[0]
 	} else {
