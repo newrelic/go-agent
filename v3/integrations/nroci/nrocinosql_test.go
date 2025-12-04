@@ -16,14 +16,12 @@ func Test_extractRequestFields(t *testing.T) {
 		req   any
 		want  string
 		want2 string
-		want3 string
 	}{
 		{
 			name:  "Default case should return 3 empty strings with non-used type",
 			req:   &nosqldb.SystemRequest{},
 			want:  "",
 			want2: "",
-			want3: "",
 		},
 		{
 			name: "Should populate all 3 strings with *nosqldb.TableRequest",
@@ -34,27 +32,95 @@ func Test_extractRequestFields(t *testing.T) {
 			},
 			want:  "table1",
 			want2: `SELECT * FROM table1 WHERE param="value"`,
-			want3: "oci_test",
 		},
 		{
 			name:  "Should return empty string with *nosqldb.TableRequest",
 			req:   &nosqldb.TableRequest{},
 			want:  "",
 			want2: "",
-			want3: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.QueryRequest",
+			req: &nosqldb.QueryRequest{
+				TableName: "qrtable1",
+				Statement: `SELECT * FROM qrtable1 WHERE param="value"`,
+			},
+			want:  "qrtable1",
+			want2: `SELECT * FROM qrtable1 WHERE param="value"`,
+		},
+		{
+			name:  "Should return empty string with *nosqldb.QueryRequest",
+			req:   &nosqldb.QueryRequest{},
+			want:  "",
+			want2: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.PutRequest",
+			req: &nosqldb.PutRequest{
+				TableName: "ptable",
+			},
+			want:  "ptable",
+			want2: "",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.PutRequest",
+			req:   &nosqldb.PutRequest{},
+			want:  "",
+			want2: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.WriteMultiple",
+			req: &nosqldb.WriteMultipleRequest{
+				TableName: "wrtable",
+			},
+			want:  "wrtable",
+			want2: "",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.WriteMultiple",
+			req:   &nosqldb.WriteMultipleRequest{},
+			want:  "",
+			want2: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.DeleteRequest",
+			req: &nosqldb.DeleteRequest{
+				TableName: "dtable",
+				Namespace: "oci_test_delete",
+			},
+			want:  "dtable",
+			want2: "",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.DeleteRequest",
+			req:   &nosqldb.DeleteRequest{},
+			want:  "",
+			want2: "",
+		},
+		{
+			name: "Should populate all 3 strings with *nosqldb.MultiDeleteRequest",
+			req: &nosqldb.MultiDeleteRequest{
+				TableName: "mdtable",
+				Namespace: "oci_test_mdelete",
+			},
+			want:  "mdtable",
+			want2: "",
+		},
+		{
+			name:  "Should return empty string with *nosqldb.MultiDeleteRequest",
+			req:   &nosqldb.MultiDeleteRequest{},
+			want:  "",
+			want2: "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got2, got3 := extractRequestFields(tt.req)
+			got, got2 := extractRequestFields(tt.req)
 			if got != tt.want {
 				t.Errorf("extractRequestFields() = %v, want %v", got, tt.want)
 			}
 			if got2 != tt.want2 {
 				t.Errorf("extractRequestFields() = %v, want %v", got2, tt.want2)
-			}
-			if got3 != tt.want3 {
-				t.Errorf("extractRequestFields() = %v, want %v", got3, tt.want3)
 			}
 		})
 	}

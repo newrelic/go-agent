@@ -10,6 +10,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/oracle/nosql-go-sdk/nosqldb"
+	"github.com/oracle/nosql-go-sdk/nosqldb/auth/iam"
 )
 
 func init() {
@@ -20,46 +21,28 @@ type OCIClient interface {
 	AddReplica(req *nosqldb.AddReplicaRequest) (*nosqldb.TableResult, error)
 	Close() error
 	Delete(req *nosqldb.DeleteRequest) (*nosqldb.DeleteResult, error)
-	DoSystemRequest(req *nosqldb.SystemRequest) (*nosqldb.SystemResult, error)
-	DoSystemRequestAndWait(statement string, timeout time.Duration, pollInterval time.Duration) (*nosqldb.SystemResult, error)
 	DoTableRequest(req *nosqldb.TableRequest) (*nosqldb.TableResult, error)
 	DoTableRequestAndWait(req *nosqldb.TableRequest, timeout time.Duration, pollInterval time.Duration) (*nosqldb.TableResult, error)
 	DropReplica(req *nosqldb.DropReplicaRequest) (*nosqldb.TableResult, error)
-	EnableRateLimiting(enable bool, usePercent float64)
 
 	Get(req *nosqldb.GetRequest) (*nosqldb.GetResult, error)
-	GetIndexes(req *nosqldb.GetIndexesRequest) (*nosqldb.GetIndexesResult, error)
-	GetQueryVersion() int16
-	GetReplicaStats(req *nosqldb.ReplicaStatsRequest) (*nosqldb.ReplicaStatsResult, error)
-	GetSerialVersion() int16
-	GetServerSerialVersion() int
-	GetSystemStatus(req *nosqldb.SystemStatusRequest) (*nosqldb.SystemResult, error)
 	GetTable(req *nosqldb.GetTableRequest) (*nosqldb.TableResult, error)
-	GetTableUsage(req *nosqldb.TableUsageRequest) (*nosqldb.TableUsageResult, error)
-
-	ListNamespaces() ([]string, error)
-	ListRoles() ([]string, error)
-	ListTables(req *nosqldb.ListTablesRequest) (*nosqldb.ListTablesResult, error)
-	ListUsers() ([]nosqldb.UserInfo, error)
 
 	MultiDelete(req *nosqldb.MultiDeleteRequest) (*nosqldb.MultiDeleteResult, error)
-	Prepare(req *nosqldb.PrepareRequest) (*nosqldb.PrepareResult, error)
 	Put(req *nosqldb.PutRequest) (*nosqldb.PutResult, error)
 	Query(req *nosqldb.QueryRequest) (*nosqldb.QueryResult, error)
-	ResetRateLimiters(tableName string)
-	SetQueryVersion(qVer int16)
-	SetSerialVersion(sVer int16)
-	VerifyConnection() error
+
 	WriteMultiple(req *nosqldb.WriteMultipleRequest) (*nosqldb.WriteMultipleResult, error)
 }
 
 type ConfigWrapper struct {
-	Config *nosqldb.Config
+	Config        *nosqldb.Config
+	CompartmentID string
 }
 
 type ClientWrapper struct {
 	Client OCIClient
-	Config *nosqldb.Config
+	Config *ConfigWrapper
 }
 
 type ClientRequestWrapper[R any] struct {
@@ -76,6 +59,12 @@ func NRDefaultConfig() *ConfigWrapper {
 	}
 }
 
+func NRConfig(cfg *nosqldb.Config) (*ConfigWrapper, error) {
+	return &ConfigWrapper{
+		Config: cfg,
+	}, nil
+}
+
 func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	client, err := nosqldb.NewClient(*cfg.Config)
 	if err != nil {
@@ -83,7 +72,7 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	}
 	return &ClientWrapper{
 		Client: client,
-		Config: cfg.Config,
+		Config: cfg,
 	}, nil
 }
 
@@ -115,17 +104,29 @@ func extractHostPort(endpoint string) (host, port string) {
 	return host, port
 }
 
-func extractRequestFields(req any) (string, string, string) {
-	var collection, statement, namespace string
+func extractRequestFields(req any) (string, string) {
+	var collection, statement string
 	switch r := req.(type) {
 	case *nosqldb.TableRequest:
 		collection = r.TableName
 		statement = r.Statement
-		namespace = r.Namespace
+	case *nosqldb.QueryRequest:
+		collection = r.TableName
+		statement = r.Statement
+	case *nosqldb.PutRequest:
+		collection = r.TableName
+	case *nosqldb.WriteMultipleRequest:
+		collection = r.TableName
+	case *nosqldb.DeleteRequest:
+		collection = r.TableName
+	case *nosqldb.MultiDeleteRequest:
+		collection = r.TableName
+	case *nosqldb.AddReplicaRequest:
+		collection = r.TableName
 	default:
 		// keep strings empty
 	}
-	return collection, statement, namespace
+	return collection, statement
 }
 
 // executeWithDatastoreSegment is a generic helper function that executes a query with a given function from the
@@ -145,14 +146,14 @@ func executeWithDatastoreSegment[T any, R any](
 	}
 
 	// Extract host and port from config endpoint
-	host, port := extractHostPort(cw.Config.Endpoint)
-	collection, statement, namespace := extractRequestFields(rw.ClientRequest)
+	host, port := extractHostPort(cw.Config.Config.Endpoint)
+	collection, statement := extractRequestFields(rw.ClientRequest)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
 		Product:            newrelic.DatastoreOracle,
 		Collection:         collection,
-		DatabaseName:       namespace, // using the namespace as the database name in this instance
 		ParameterizedQuery: statement,
+		DatabaseName:       cw.Config.CompartmentID,
 		Host:               host,
 		PortPathOrID:       port,
 	}
@@ -182,5 +183,153 @@ func NRDoTableRequest(cw *ClientWrapper, ctx context.Context, req *nosqldb.Table
 func NRDoTableRequestAndWait(cw *ClientWrapper, ctx context.Context, req *nosqldb.TableRequest, timeout time.Duration, pollInterval time.Duration) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.TableRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
 		return cw.Client.DoTableRequestAndWait(req, timeout, pollInterval)
+	})
+}
+
+// Wrapper for nosqldb.Client.Query. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.QueryRequest.  Returns a
+// ClientResponseWrapper[*nosqldb.QueryResult] and error
+func NRQuery(cw *ClientWrapper, ctx context.Context, req *nosqldb.QueryRequest) (*ClientResponseWrapper[*nosqldb.QueryResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.QueryRequest]{ClientRequest: req}, func() (*nosqldb.QueryResult, error) {
+		return cw.Client.Query(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.Put. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.PutRequest. Returns a
+// ClientResponseWrapper[*nosqldb.PutResult] and error
+func NRPut(cw *ClientWrapper, ctx context.Context, req *nosqldb.PutRequest) (*ClientResponseWrapper[*nosqldb.PutResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.PutRequest]{ClientRequest: req}, func() (*nosqldb.PutResult, error) {
+		return cw.Client.Put(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.WriteMultiple. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.WriteMultipleRequest. Returns a
+// ClientResponseWrapper[*nosqldb.WriteMultipleResult] and error
+func NRWriteMultiple(cw *ClientWrapper, ctx context.Context, req *nosqldb.WriteMultipleRequest) (*ClientResponseWrapper[*nosqldb.WriteMultipleResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.WriteMultipleRequest]{ClientRequest: req}, func() (*nosqldb.WriteMultipleResult, error) {
+		return cw.Client.WriteMultiple(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.Delete. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.DeleteRequest. Returns a
+// ClientResponseWrapper[*nosqldb.DeleteResult] and error
+func NRDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.DeleteRequest) (*ClientResponseWrapper[*nosqldb.DeleteResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.DeleteRequest]{ClientRequest: req}, func() (*nosqldb.DeleteResult, error) {
+		return cw.Client.Delete(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.MutliDelete. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.DeleteRequest. Returns a
+// ClientResponseWrapper[*nosqldb.DeleteResult] and error
+func NRMultiDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.MultiDeleteRequest) (*ClientResponseWrapper[*nosqldb.MultiDeleteResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.MultiDeleteRequest]{ClientRequest: req}, func() (*nosqldb.MultiDeleteResult, error) {
+		return cw.Client.MultiDelete(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.AddReplica. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.AddReplicaRequest. Returns a
+// ClientResponseWrapper[*nosqldb.TableResult] and error
+func NRAddReplica(cw *ClientWrapper, ctx context.Context, req *nosqldb.AddReplicaRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.AddReplicaRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
+		return cw.Client.AddReplica(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.DropReplica. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.DropReplicaRequest. Returns a
+// ClientResponseWrapper[*nosqldb.TableResult] and error
+func NRDropReplica(cw *ClientWrapper, ctx context.Context, req *nosqldb.DropReplicaRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.DropReplicaRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
+		return cw.Client.DropReplica(req)
+	})
+}
+
+func newSignatureProvider(cfgWrapper *ConfigWrapper, fn func() (*iam.SignatureProvider, error), compartmentID ...string) (*iam.SignatureProvider, error) {
+	sp, err := fn() // call SignatureProvider function
+	if err != nil {
+		return nil, err
+	}
+	cfgWrapper.Config.AuthorizationProvider = sp // set the authorization provider
+	tenancyOCID, err := sp.Profile().TenancyOCID()
+	if err != nil {
+		return nil, err
+	}
+
+	// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
+	if len(compartmentID) > 0 {
+		cfgWrapper.CompartmentID = compartmentID[0]
+	} else {
+		cfgWrapper.CompartmentID = tenancyOCID
+	}
+	return sp, nil
+}
+
+// Wrapper for iam.NewSignatureProvider. Only a *ConfigWrapper is passed in and will automatically call check OCI Config file default location (~/.oci/config) for
+// config options. Sets the value of *ConfigWrapper.CompartmentID and returns an *iam.SignatureProvider.
+func NRNewSignatureProvider(cfgWrapper *ConfigWrapper) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProvider()
+	})
+}
+
+// Wrapper for iam.NewSignatureProviderFromFile. Requires configFilePath, ociProfile, privateKeyPassphrase, and compartmentID as parameters.
+// Calls newSignatureProvider with iam.NewSignatureProviderFromFile to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewSignatureProviderFromFile(cfgWrapper *ConfigWrapper, configFilePath string, ociProfile string, privateKeyPassphrase string, compartmentID string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProviderFromFile(configFilePath, ociProfile, privateKeyPassphrase, compartmentID)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NewSignatureProvider. Requires *ConfigWrapper, tenancy, user, region, fingerprint, compartmentID, privateKeyOrFile and privateKeyPassphrase.
+// Calls newSignatureProvider with iam.NewRawSignatureProvider to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewRawSignatureProvider(cfgWrapper *ConfigWrapper, tenancy string, user string, region string, fingerprint string, compartmentID string, privateKeyOrFile string, privateKeyPassphrase *string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewRawSignatureProvider(tenancy, user, region, fingerprint, compartmentID, privateKeyOrFile, privateKeyPassphrase)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NewSignatureProviderWithResourcePrincipal. Requires *ConfigWrapper and compartmentID.
+// Calls newSignatureProvider with iam.NewSignatureProviderWithResourcePrincipal to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewSignatureProviderWithResourcePrincipal(cfgWrapper *ConfigWrapper, compartmentID string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProviderWithResourcePrincipal(compartmentID)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NRNewSignatureProviderWithInstancePrincipal. Requires *ConfigWrapper and compartmentID.
+// Calls newSignatureProvider with iam.NRNewSignatureProviderWithInstancePrincipal to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewSignatureProviderWithInstancePrincipal(cfgWrapper *ConfigWrapper, compartmentID string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProviderWithInstancePrincipal(compartmentID)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NRNewSignatureProviderWithInstancePrincipalDelegation. Requires *ConfigWrapper and compartmentID and delegationToken.
+// Calls newSignatureProvider with iam.NRNewSignatureProviderWithInstancePrincipalDelegation to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewSignatureProviderWithInstancePrincipalDelegation(cfgWrapper *ConfigWrapper, compartmentID string, delegationToken string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProviderWithInstancePrincipalDelegation(compartmentID, delegationToken)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NRNewSignatureProviderWithInstancePrincipalDelegationFromFile. Requires *ConfigWrapper and compartmentID and delegationTokenFile.
+// Calls newSignatureProvider with iam.NRNewSignatureProviderWithInstancePrincipalDelegationFromFile to set the cfgWrapper.CompartmentID and return *iam.SignatureProvider
+func NRNewSignatureProviderWithInstancePrincipalDelegationFromFile(cfgWrapper *ConfigWrapper, compartmentID string, delegationTokenFile string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSignatureProviderWithInstancePrincipalDelegationFromFile(compartmentID, delegationTokenFile)
+	}, compartmentID)
+}
+
+// Wrapper for iam.NRNewSessionTokenSignatureProvider. Requires *ConfigWrapper.
+// Calls newSignatureProvider with iam.NewSessionTokenSignatureProvider to set the cfgWrapper.CompartmentID return the *iam.SignatureProvider
+func NRNewSessionTokenSignatureProvider(cfgWrapper *ConfigWrapper) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSessionTokenSignatureProvider()
+	})
+}
+
+// Wrapper for iam.NRNewSessionTokenSignatureProvider. Requires *ConfigWrapper, configFilePath, ociProfile and privateKeyPassphrase.
+// Calls newSignatureProvider with iam.NewSessionTokenSignatureProvider to set the cfgWrapper.CompartmentID return the *iam.SignatureProvider
+func NRNewSessionTokenSignatureProviderFromFile(cfgWrapper *ConfigWrapper, configFilePath string, ociProfile string, privateKeyPassphrase string) (*iam.SignatureProvider, error) {
+	return newSignatureProvider(cfgWrapper, func() (*iam.SignatureProvider, error) {
+		return iam.NewSessionTokenSignatureProviderFromFile(configFilePath, ociProfile, privateKeyPassphrase)
 	})
 }
