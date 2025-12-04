@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/go-agent/v3/integrations/nroci"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/oracle/nosql-go-sdk/nosqldb"
+	"github.com/oracle/nosql-go-sdk/nosqldb/auth/iam"
 )
 
 func main() {
@@ -22,9 +23,21 @@ func main() {
 	app.WaitForConnection(10 * time.Second) // for short lived processes in apps
 	defer app.Shutdown(10 * time.Second)
 
-	cfg := nroci.NRDefaultConfig()
+	sp, err := iam.NewSignatureProviderFromFile("", "", "", "")
+	if err != nil {
+		panic(err)
+	}
+	cfg := &nosqldb.Config{
+		Mode:                  "cloud",
+		AuthorizationProvider: sp,
+	}
+	cfgWrapper, err := nroci.NRConfigCloud(cfg, sp, "") // should work for cloud
+	if err != nil {
+		panic(err)
+	}
+	// cfgWrapper := nrociNRConfigCloudSim()
 
-	clientWrapper, err := nroci.NRCreateClient(cfg)
+	clientWrapper, err := nroci.NRCreateClient(cfgWrapper)
 	if err != nil {
 		panic(err)
 	}

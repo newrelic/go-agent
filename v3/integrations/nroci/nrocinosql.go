@@ -10,6 +10,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/oracle/nosql-go-sdk/nosqldb"
+	"github.com/oracle/nosql-go-sdk/nosqldb/auth/iam"
 )
 
 func init() {
@@ -54,12 +55,13 @@ type OCIClient interface {
 }
 
 type ConfigWrapper struct {
-	Config *nosqldb.Config
+	Config        *nosqldb.Config
+	CompartmentID string
 }
 
 type ClientWrapper struct {
 	Client OCIClient
-	Config *nosqldb.Config
+	Config *ConfigWrapper
 }
 
 type ClientRequestWrapper[R any] struct {
@@ -76,6 +78,28 @@ func NRDefaultConfig() *ConfigWrapper {
 	}
 }
 
+func NRConfigCloud(cfg *nosqldb.Config, sp *iam.SignatureProvider, compartmentID string) (*ConfigWrapper, error) {
+	var tenancyID string
+	tenancyID, err := sp.Profile().TenancyOCID()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConfigWrapper{
+		Config:        cfg,
+		CompartmentID: getCompartmentID(compartmentID, tenancyID),
+	}, nil
+}
+
+// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
+func getCompartmentID(compartmentID string, tenancyID string) string {
+	if compartmentID != "" {
+		return compartmentID
+	}
+	return tenancyID
+
+}
+
 func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	client, err := nosqldb.NewClient(*cfg.Config)
 	if err != nil {
@@ -83,7 +107,7 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	}
 	return &ClientWrapper{
 		Client: client,
-		Config: cfg.Config,
+		Config: cfg,
 	}, nil
 }
 
@@ -115,33 +139,29 @@ func extractHostPort(endpoint string) (host, port string) {
 	return host, port
 }
 
-func extractRequestFields(req any) (string, string, string) {
-	var collection, statement, namespace string
+func extractRequestFields(req any) (string, string) {
+	var collection, statement string
 	switch r := req.(type) {
 	case *nosqldb.TableRequest:
 		collection = r.TableName
 		statement = r.Statement
-		namespace = r.Namespace
 	case *nosqldb.QueryRequest:
 		collection = r.TableName
 		statement = r.Statement
-		namespace = r.Namespace
 	case *nosqldb.PutRequest:
 		collection = r.TableName
-		namespace = r.Namespace
 	case *nosqldb.WriteMultipleRequest:
 		collection = r.TableName
-		namespace = r.Namespace
 	case *nosqldb.DeleteRequest:
 		collection = r.TableName
-		namespace = r.Namespace
 	case *nosqldb.MultiDeleteRequest:
 		collection = r.TableName
-		namespace = r.Namespace
+	case *nosqldb.AddReplicaRequest:
+		collection = r.TableName
 	default:
 		// keep strings empty
 	}
-	return collection, statement, namespace
+	return collection, statement
 }
 
 // executeWithDatastoreSegment is a generic helper function that executes a query with a given function from the
@@ -161,14 +181,14 @@ func executeWithDatastoreSegment[T any, R any](
 	}
 
 	// Extract host and port from config endpoint
-	host, port := extractHostPort(cw.Config.Endpoint)
-	collection, statement, namespace := extractRequestFields(rw.ClientRequest)
+	host, port := extractHostPort(cw.Config.Config.Endpoint)
+	collection, statement := extractRequestFields(rw.ClientRequest)
 	sgmt := newrelic.DatastoreSegment{
 		StartTime:          txn.StartSegmentNow(),
 		Product:            newrelic.DatastoreOracle,
 		Collection:         collection,
-		DatabaseName:       namespace, // using the namespace as the database name in this instance
 		ParameterizedQuery: statement,
+		DatabaseName:       cw.Config.CompartmentID,
 		Host:               host,
 		PortPathOrID:       port,
 	}
@@ -238,5 +258,21 @@ func NRDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.DeleteRequest
 func NRMultiDelete(cw *ClientWrapper, ctx context.Context, req *nosqldb.MultiDeleteRequest) (*ClientResponseWrapper[*nosqldb.MultiDeleteResult], error) {
 	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.MultiDeleteRequest]{ClientRequest: req}, func() (*nosqldb.MultiDeleteResult, error) {
 		return cw.Client.MultiDelete(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.AddReplica. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.AddReplicaRequest. Returns a
+// ClientResponseWrapper[*nosqldb.TableResult] and error
+func NRAddReplica(cw *ClientWrapper, ctx context.Context, req *nosqldb.AddReplicaRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.AddReplicaRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
+		return cw.Client.AddReplica(req)
+	})
+}
+
+// Wrapper for nosqldb.Client.DropReplica. Provide the ClientWrapper and Context as parameters in addition to the nosqldb.DropReplicaRequest. Returns a
+// ClientResponseWrapper[*nosqldb.TableResult] and error
+func NRDropReplica(cw *ClientWrapper, ctx context.Context, req *nosqldb.DropReplicaRequest) (*ClientResponseWrapper[*nosqldb.TableResult], error) {
+	return executeWithDatastoreSegment(cw, ctx, &ClientRequestWrapper[*nosqldb.DropReplicaRequest]{ClientRequest: req}, func() (*nosqldb.TableResult, error) {
+		return cw.Client.DropReplica(req)
 	})
 }
