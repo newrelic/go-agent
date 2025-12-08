@@ -23,11 +23,8 @@ func main() {
 	defer app.Shutdown(10 * time.Second)
 
 	// EXAMPLE for cloud
-	cfg := &nosqldb.Config{
-		Mode: "cloud",
-	}
 	// 1. Create Config Wrapper
-	cfgWrapper, err := nroci.NRConfig(cfg) // create config wrapper
+	cfgWrapper, err := nroci.NRConfig("cloud") // create config wrapper
 	if err != nil {
 		panic(err)
 	}
