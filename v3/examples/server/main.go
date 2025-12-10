@@ -385,14 +385,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := app.WaitForConnection(time.Second * 120); err != nil {
+		log.Printf("Failed to connect in 120 seconds: %v", err)
+	}
+	log.Printf("Connected")
 	//if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
 	//	fmt.Println("unable to set profiling directory: %v", err)
 	//}
 	if err := app.OpenProfileAuditLog("/tmp/profile-audit"); err != nil {
 		panic(err)
-	}
-	if err := app.WaitForConnection(time.Second * 120); err != nil {
-		log.Printf("Failed to connect in 120 seconds: %v", err)
 	}
 
 	if c, ok := app.Config(); ok {

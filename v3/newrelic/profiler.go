@@ -115,6 +115,8 @@ type profilerConfig struct {
 	ingestClient    *http.Client
 	apiKey          string
 	serviceName     string
+	hostname        string
+	entityGUID      string
 }
 
 func (p *profilerConfig) IsRunning() bool {
@@ -142,9 +144,15 @@ func (a *app) StartProfiler() {
 	a.profiler.ingestEndpoint = a.config.Profiling.Host
 	a.profiler.serviceName = a.config.AppName
 	a.profiler.apiKey = a.config.License
+	reply, err := a.getState()
+	a.profiler.hostname = a.config.hostname
+	if err != nil {
+		a.profiler.entityGUID = reply.Reply.EntityGUID
+	}
 	a.profiler.lock.Unlock()
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
 	a.setProfileCPUReportInterval(a.config.Profiling.CPUReportInterval)
+
 }
 
 // AddSegmentToProfiler signals that a segment has started which the profiler should report as being
@@ -294,9 +302,15 @@ func (app *Application) SetProfileOutputDirectory(dirname string) error {
 
 // SetProfileOutputOTEL changes the destination for the profiler's output so that
 // all further profile data will be written to an OTEL-compatible profiling signal
-// endpoint.
+// endpoint. It also refreshes the linking metadata including entityGUID in case
+// this needs to be updated.
 func (app *Application) SetProfileOutputOTEL() error {
 	if app != nil && app.app != nil {
+		md := app.GetLinkingMetadata()
+		app.app.profiler.lock.Lock()
+		defer app.app.profiler.lock.Unlock()
+		app.app.profiler.hostname = md.Hostname
+		app.app.profiler.entityGUID = md.EntityGUID
 		app.app.profiler.ingestSwitch <- profileIngestOTEL
 		return <-app.app.profiler.switchResult
 	}
@@ -925,6 +939,10 @@ func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, 
 	req.Header.Add("profile-type", profileName)
 	req.Header.Add("event-type", eventType)
 	req.Header.Add("content-type", "application/octet-stream")
+	req.Header.Add("hostname", pc.hostname)
+	if pc.entityGUID != "" {
+		req.Header.Add("entity-guid", pc.entityGUID)
+	}
 
 	response, err := pc.ingestClient.Do(req)
 	if err != nil {
