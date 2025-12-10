@@ -6,6 +6,9 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -16,6 +19,9 @@ import (
 func init() {
 	//add more here
 }
+
+var profileRegex = regexp.MustCompile(`^\[(.*)\]`) // from nosql-go-sdk from OCI
+var ociFilePath = "~/.oci/config/"                 // default path for OCI Config file
 
 type OCIClient interface {
 	AddReplica(req *nosqldb.AddReplicaRequest) (*nosqldb.TableResult, error)
@@ -35,9 +41,19 @@ type OCIClient interface {
 	WriteMultiple(req *nosqldb.WriteMultipleRequest) (*nosqldb.WriteMultipleResult, error)
 }
 
+type OCIProfile struct {
+	Profile string
+	Info    *OCIProfileInfo
+}
+
+type OCIProfileInfo struct {
+	TenancyOCID string
+}
+
 type ConfigWrapper struct {
 	Config        *nosqldb.Config
 	CompartmentID string
+	Profile       *OCIProfile
 }
 
 type ClientWrapper struct {
@@ -52,16 +68,31 @@ type ClientResponseWrapper[T any] struct {
 	ClientResponse T
 }
 
-func NRDefaultConfig() *ConfigWrapper {
-	cfg := nosqldb.Config{}
-	return &ConfigWrapper{
-		Config: &cfg,
+// uses default file location and DEFAULT profile
+func NRConfig(mode string) (*ConfigWrapper, error) {
+	profile, err := parseOCIConfig(ociFilePath)
+	if err != nil {
+		return nil, err
 	}
+	return &ConfigWrapper{
+		Config: &nosqldb.Config{
+			Mode: mode,
+		},
+		Profile: profile,
+	}, nil
 }
 
-func NRConfig(cfg *nosqldb.Config) (*ConfigWrapper, error) {
+// uses explicit file location and optional profile
+func NRConfigFromFile(mode string, configFile string, ociProfile ...string) (*ConfigWrapper, error) {
+	profile, err := parseOCIConfig(configFile, ociProfile...)
+	if err != nil {
+		return nil, err
+	}
 	return &ConfigWrapper{
-		Config: cfg,
+		Config: &nosqldb.Config{
+			Mode: mode,
+		},
+		Profile: profile,
 	}, nil
 }
 
@@ -74,6 +105,71 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 		Client: client,
 		Config: cfg,
 	}, nil
+}
+
+func parseOCIConfig(configFilePath string, ociProfile ...string) (*OCIProfile, error) {
+	data, err := openConfigFile(configFilePath)
+	if err != nil {
+		return nil, err
+	}
+	profile := "DEFAULT"
+	if len(ociProfile) > 0 {
+		profile = ociProfile[0]
+	}
+	info, err := parseOCIConfigFile(data, profile)
+	if err != nil {
+		return nil, err
+	}
+	return &OCIProfile{
+		Profile: profile,
+		Info:    info,
+	}, nil
+}
+
+func openConfigFile(fp string) ([]byte, error) {
+	data, err := os.ReadFile(fp)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func parseOCIConfigFile(data []byte, profile string) (*OCIProfileInfo, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty file error")
+	}
+
+	content := string(data)
+	splitContent := strings.Split(content, "\n")
+
+	for i, line := range splitContent {
+		if match := profileRegex.FindStringSubmatch(line); len(match) > 1 && match[1] == profile {
+			start := i + 1
+			return parseConfigAtLine(start, splitContent)
+
+		}
+	}
+	return nil, fmt.Errorf("couldn't parse config file")
+}
+
+func parseConfigAtLine(start int, splitContent []string) (info *OCIProfileInfo, err error) {
+	info = &OCIProfileInfo{}
+	for i := start; i < len(splitContent); i++ {
+		line := splitContent[i]
+		if profileRegex.MatchString(line) {
+			break
+		}
+		if !strings.Contains(line, "=") {
+			continue
+		}
+
+		splits := strings.Split(line, "=")
+		switch key, value := strings.TrimSpace(splits[0]), strings.TrimSpace(splits[1]); strings.ToLower(key) {
+		case "tenancy":
+			info.TenancyOCID = value
+		}
+	}
+	return info, nil
 }
 
 // extractHostPort extracts host and port from an endpoint URL
@@ -251,6 +347,9 @@ func newSignatureProvider(cfgWrapper *ConfigWrapper, fn func() (*iam.SignaturePr
 	tenancyOCID, err := sp.Profile().TenancyOCID()
 	if err != nil {
 		return nil, err
+	}
+	if tenancyOCID != cfgWrapper.Profile.Info.TenancyOCID {
+		cfgWrapper.Profile.Info.TenancyOCID = tenancyOCID // set to what is found by OCI
 	}
 
 	// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
