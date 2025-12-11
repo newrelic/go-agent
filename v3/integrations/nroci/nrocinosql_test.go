@@ -170,12 +170,6 @@ func Test_extractHostPort(t *testing.T) {
 			want:     "ocitest",
 			want2:    "80",
 		},
-		{
-			name:     "Host exists and pot exist but no scheme provided",
-			endpoint: "ocitest",
-			want:     "ocitest",
-			want2:    "80",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
