@@ -6,6 +6,9 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -17,6 +20,10 @@ func init() {
 	//add more here
 }
 
+var profileRegex = regexp.MustCompile(`^\[(.*)\]`) // from nosql-go-sdk from OCI
+var ociFilePath = "~/.oci/config/"                 // default path for OCI Config file
+
+// OCIClient is an interface that implements the functions in *nosqldb.Client
 type OCIClient interface {
 	AddReplica(req *nosqldb.AddReplicaRequest) (*nosqldb.TableResult, error)
 	Close() error
@@ -35,9 +42,16 @@ type OCIClient interface {
 	WriteMultiple(req *nosqldb.WriteMultipleRequest) (*nosqldb.WriteMultipleResult, error)
 }
 
+type nrConfig struct {
+	profile       string // name of profile, defaults to "DEFAULT"
+	compartmentID string // compartmentID is explictly passed in by user
+	tenancyOCID   string // tenancyOCID available through oci config
+	databaseName  string // this is not available through OCI and is used when sending a DatastoreSegment
+}
+
 type ConfigWrapper struct {
-	Config        *nosqldb.Config
-	CompartmentID string
+	Config   *nosqldb.Config
+	nrConfig *nrConfig
 }
 
 type ClientWrapper struct {
@@ -52,11 +66,36 @@ type ClientResponseWrapper[T any] struct {
 	ClientResponse T
 }
 
-func NRDefaultConfig() *ConfigWrapper {
-	cfg := nosqldb.Config{}
-	return &ConfigWrapper{
-		Config: &cfg,
+// NRConfig creates a *ConfigWrapper that includes the *nosqldb.Config and internal config.
+// This function uses the default file location for the OCI Config, and the DEFAULT profile.
+func NRConfig(mode string) (*ConfigWrapper, error) {
+	cfg, err := parseOCIConfig(ociFilePath)
+	if err != nil {
+		return nil, err
 	}
+	return &ConfigWrapper{
+		Config: &nosqldb.Config{
+			Mode: mode,
+		},
+		nrConfig: cfg,
+	}, nil
+}
+
+// ociConfigFromFile creates a *ConfigWrapper that includes the *nosqldb.Config and internal config.
+// This function uses an explicit file location for the OCI Config, and an optional profile.
+func NRConfigFromFile(mode string, configFile string, ociProfile ...string) (*ConfigWrapper, error) {
+	cfg, err := parseOCIConfig(configFile, ociProfile...)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("\n\n\n", cfg.profile)
+	fmt.Println(cfg.tenancyOCID)
+	return &ConfigWrapper{
+		Config: &nosqldb.Config{
+			Mode: mode,
+		},
+		nrConfig: cfg,
+	}, nil
 }
 
 func NRConfig(cfg *nosqldb.Config) (*ConfigWrapper, error) {
@@ -74,6 +113,68 @@ func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 		Client: client,
 		Config: cfg,
 	}, nil
+}
+
+func parseOCIConfig(configFilePath string, ociProfile ...string) (*nrConfig, error) {
+	data, err := openConfigFile(configFilePath)
+	if err != nil {
+		return nil, err
+	}
+	profile := "DEFAULT"
+	if len(ociProfile) > 0 {
+		profile = ociProfile[0]
+	}
+	return parseOCIConfigFile(data, profile)
+}
+
+func openConfigFile(fp string) ([]byte, error) {
+	data, err := os.ReadFile(fp)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func parseOCIConfigFile(data []byte, profile string) (*nrConfig, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty file error")
+	}
+
+	content := string(data)
+	splitContent := strings.Split(content, "\n")
+
+	for i, line := range splitContent {
+		if match := profileRegex.FindStringSubmatch(line); len(match) > 1 && match[1] == profile {
+			start := i + 1
+			cfg, err := parseConfigAtLine(start, splitContent)
+			if err != nil {
+				return nil, err
+			}
+			cfg.profile = profile
+			return cfg, nil
+		}
+	}
+	return nil, fmt.Errorf("couldn't parse config file")
+}
+
+func parseConfigAtLine(start int, splitContent []string) (*nrConfig, error) {
+	cfg := &nrConfig{}
+	for i := start; i < len(splitContent); i++ {
+		line := splitContent[i]
+		if profileRegex.MatchString(line) {
+			break
+		}
+		if !strings.Contains(line, "=") {
+			continue
+		}
+
+		splits := strings.Split(line, "=")
+		switch key, value := strings.TrimSpace(splits[0]), strings.TrimSpace(splits[1]); strings.ToLower(key) {
+		case "tenancy":
+			cfg.tenancyOCID = value
+		}
+	}
+	return cfg, nil
 }
 
 // extractHostPort extracts host and port from an endpoint URL
@@ -153,7 +254,7 @@ func executeWithDatastoreSegment[T any, R any](
 		Product:            newrelic.DatastoreOracle,
 		Collection:         collection,
 		ParameterizedQuery: statement,
-		DatabaseName:       cw.Config.CompartmentID,
+		DatabaseName:       cw.Config.nrConfig.compartmentID,
 		Host:               host,
 		PortPathOrID:       port,
 	}
@@ -252,12 +353,16 @@ func newSignatureProvider(cfgWrapper *ConfigWrapper, fn func() (*iam.SignaturePr
 	if err != nil {
 		return nil, err
 	}
+	if tenancyOCID != cfgWrapper.nrConfig.tenancyOCID {
+		cfgWrapper.nrConfig.tenancyOCID = tenancyOCID // set to what is found by OCI
+	}
 
 	// compartmentID is optional; if empty, the tenancyOCID is used in its place. If specified, it represents a compartment id or name.
 	if len(compartmentID) > 0 {
-		cfgWrapper.CompartmentID = compartmentID[0]
+		cfgWrapper.nrConfig.compartmentID = compartmentID[0]
+		cfgWrapper.nrConfig.databaseName = compartmentID[0]
 	} else {
-		cfgWrapper.CompartmentID = tenancyOCID
+		cfgWrapper.nrConfig.databaseName = tenancyOCID
 	}
 	return sp, nil
 }
