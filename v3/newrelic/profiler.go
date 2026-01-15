@@ -117,6 +117,23 @@ type profilerConfig struct {
 	serviceName     string
 	hostname        string
 	entityGUID      string
+
+
+
+	RPMControls
+	 License: copy str
+	 Client:	copy *http.Client
+	 Logger:	copy logger.Logger
+	 GzipWriterPool		copy *sync.Pool (or for us just set to nil)
+	RPMCmd
+	 Name:cmdPprofData
+	 Collector:
+	 RunID:
+	 Data:
+	 RequestHeadersMap:
+	 MaxPayloadSize:
+
+
 }
 
 func (p *profilerConfig) IsRunning() bool {
@@ -148,10 +165,34 @@ func (a *app) StartProfiler() {
 	a.profiler.hostname = a.config.hostname
 	if err != nil {
 		a.profiler.entityGUID = reply.Reply.EntityGUID
+		a.profiler.runID = reply.Reply.RunID
+		a.profiler.maxPayloadSizeInBytes = reply.Reply.MaxPayloadSizeInBytes
 	}
+	a.profiler.rpmControls.License = a.rpmControls.License	// string value; make local copy we can use
+	a.profiler.rpmControls.Client = a.rpmControls.Client	// *http.Client is goroutine-safe for us to use concurrently
+	a.profiler.rpmControls.Logger = a.rpmControls.Logger	// logger.Logger is goroutine-safe for us to use concurrently
+	a.profiler.rpmControls.GzipWriterPool = nil				// our data is already gzip compressed so don't let our collecter request code compress it again
 	a.profiler.lock.Unlock()
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
 	a.setProfileCPUReportInterval(a.config.Profiling.CPUReportInterval)
+
+
+
+	a.profiler.rpmCmd.Name = cmdPprofData
+	a.profiler.rpmCmd.Collector
+	a.profiler.rpmCmd.Data
+
+
+	rpmCmd{
+		Name: cmdPprofData,
+		Collector:
+		Data:
+		MaxPayloadSize: internal.MaxPayloadSizeInBytes, //?
+	}
+
+	rpmControls{
+	}
+
 
 }
 

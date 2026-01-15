@@ -38,6 +38,7 @@ const (
 	cmdTxnTraces    = "transaction_sample_data"
 	cmdSlowSQLs     = "sql_trace_data"
 	cmdSpanEvents   = "span_event_data"
+	cmdPprofData    = "pprof_data"
 )
 
 // rpmCmd contains fields specific to an individual call made to RPM.
@@ -197,7 +198,7 @@ func compress(b []byte, gzipWriterPool *sync.Pool) (*bytes.Buffer, error) {
 	_, err := w.Write(b)
 	w.Close()
 
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 
@@ -205,9 +206,19 @@ func compress(b []byte, gzipWriterPool *sync.Pool) (*bytes.Buffer, error) {
 }
 
 func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) *rpmResponse {
-	compressed, err := compress(cmd.Data, cs.GzipWriterPool)
-	if nil != err {
-		return newRPMResponse(err)
+	// Allow GzipWriterPool to be explicitly nil to disable compressing request bodies.
+	// N.B. This should ONLY be done if the message body is already gzip-compressed and need not
+	// be compressed again.
+	var err error
+	var compressed []byte
+
+	if cs.GzipWriterPool != nil {
+		compressed, err = compress(cmd.Data, cs.GzipWriterPool)
+		if err != nil {
+			return newRPMResponse(err)
+		}
+	} else {
+		compressed = cmd.Data
 	}
 
 	if l := compressed.Len(); l > cmd.MaxPayloadSize {
@@ -215,7 +226,7 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) *rpmRespon
 	}
 
 	req, err := http.NewRequest("POST", url, compressed)
-	if nil != err {
+	if err != nil {
 		return newRPMResponse(err)
 	}
 

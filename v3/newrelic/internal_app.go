@@ -505,7 +505,7 @@ func (app *app) getState() (*appRun, error) {
 	defer app.RUnlock()
 
 	run := app.run
-	if nil == run {
+	if run == nil {
 		run = app.placeholderRun
 	}
 	return run, app.err
