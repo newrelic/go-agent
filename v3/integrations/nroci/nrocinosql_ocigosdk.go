@@ -16,6 +16,12 @@ func init() {
 type NoSQLClient interface {
 	Query(ctx context.Context, req nosql.QueryRequest) (nosql.QueryResponse, error)
 	UpdateRow(ctx context.Context, req nosql.UpdateRowRequest) (nosql.UpdateRowResponse, error)
+	CreateTable(ctx context.Context, req nosql.CreateTableRequest) (nosql.CreateTableResponse, error)
+	DeleteRow(ctx context.Context, req nosql.DeleteRowRequest) (nosql.DeleteRowResponse, error)
+	DeleteTable(ctx context.Context, req nosql.DeleteTableRequest) (nosql.DeleteTableResponse, error)
+	GetRow(ctx context.Context, req nosql.GetRowRequest) (nosql.GetRowResponse, error)
+	GetTable(ctx context.Context, req nosql.GetTableRequest) (nosql.GetTableResponse, error)
+	UpdateTable(ctx context.Context, req nosql.UpdateTableRequest) (nosql.UpdateTableResponse, error)
 }
 
 type NoSQLClientWrapper struct {
@@ -41,23 +47,43 @@ func NRNewNoSQLClientWithConfigurationProvider(configProvider common.Configurati
 }
 
 func extractRequestFieldsOCI(req any) (string, string, string) {
+
+	requestNilCheck := func(value *string) string {
+		if value != nil {
+			return *value
+		}
+		return ""
+	}
+
 	var collection, statement, compartmentID string
 	switch r := req.(type) {
 	case nosql.QueryRequest:
 		// Could do FROM <table-name> type of parse?
-		if r.QueryDetails.CompartmentId != nil {
-			compartmentID = *r.QueryDetails.CompartmentId
-		}
-		if r.Statement != nil {
-			statement = *r.Statement
-		}
+		compartmentID = requestNilCheck(r.QueryDetails.CompartmentId)
+		statement = requestNilCheck(r.QueryDetails.Statement)
 	case nosql.UpdateRowRequest:
-		if r.TableNameOrId != nil {
-			collection = *r.TableNameOrId
-		}
-		if r.UpdateRowDetails.CompartmentId != nil {
-			compartmentID = *r.UpdateRowDetails.CompartmentId
-		}
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.UpdateRowDetails.CompartmentId)
+	case nosql.CreateTableRequest:
+		collection = requestNilCheck(r.CreateTableDetails.Name)
+		compartmentID = requestNilCheck(r.CreateTableDetails.CompartmentId)
+		statement = requestNilCheck(r.CreateTableDetails.DdlStatement)
+	case nosql.DeleteRowRequest:
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.CompartmentId)
+	case nosql.DeleteTableRequest:
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.CompartmentId)
+	case nosql.GetRowRequest:
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.CompartmentId)
+	case nosql.GetTableRequest:
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.CompartmentId)
+	case nosql.UpdateTableRequest:
+		collection = requestNilCheck(r.TableNameOrId)
+		compartmentID = requestNilCheck(r.UpdateTableDetails.CompartmentId)
+		statement = requestNilCheck(r.UpdateTableDetails.DdlStatement)
 	default:
 		// keep strings empty
 	}
@@ -104,5 +130,41 @@ func (cw *NoSQLClientWrapper) Query(ctx context.Context, req *NoSQLClientRequest
 func (cw *NoSQLClientWrapper) UpdateRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.UpdateRowRequest]) (*NoSQLClientResponseWrapper[nosql.UpdateRowResponse], error) {
 	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.UpdateRowResponse, error) {
 		return cw.Client.UpdateRow(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) CreateTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.CreateTableRequest]) (*NoSQLClientResponseWrapper[nosql.CreateTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.CreateTableResponse, error) {
+		return cw.Client.CreateTable(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) DeleteRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.DeleteRowRequest]) (*NoSQLClientResponseWrapper[nosql.DeleteRowResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.DeleteRowResponse, error) {
+		return cw.Client.DeleteRow(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) DeleteTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.DeleteTableRequest]) (*NoSQLClientResponseWrapper[nosql.DeleteTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.DeleteTableResponse, error) {
+		return cw.Client.DeleteTable(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) GetRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.GetRowRequest]) (*NoSQLClientResponseWrapper[nosql.GetRowResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.GetRowResponse, error) {
+		return cw.Client.GetRow(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) GetTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.GetTableRequest]) (*NoSQLClientResponseWrapper[nosql.GetTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.GetTableResponse, error) {
+		return cw.Client.GetTable(ctx, req.ClientRequest)
+	})
+}
+
+func (cw *NoSQLClientWrapper) UpdateTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.UpdateTableRequest]) (*NoSQLClientResponseWrapper[nosql.UpdateTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.UpdateTableResponse, error) {
+		return cw.Client.UpdateTable(ctx, req.ClientRequest)
 	})
 }
