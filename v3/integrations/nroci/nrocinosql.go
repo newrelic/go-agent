@@ -98,6 +98,12 @@ func NRConfigFromFile(mode string, configFile string, ociProfile ...string) (*Co
 	}, nil
 }
 
+func NRConfig(cfg *nosqldb.Config) (*ConfigWrapper, error) {
+	return &ConfigWrapper{
+		Config: cfg,
+	}, nil
+}
+
 func NRCreateClient(cfg *ConfigWrapper) (*ClientWrapper, error) {
 	client, err := nosqldb.NewClient(*cfg.Config)
 	if err != nil {
