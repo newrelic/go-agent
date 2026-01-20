@@ -94,6 +94,7 @@ func executeWithDatastoreSegmentOCI[T any, R any](
 	ctx context.Context,
 	rw *NoSQLClientRequestWrapper[R],
 	fn func() (T, error),
+	operation string,
 ) (*NoSQLClientResponseWrapper[T], error) {
 
 	txn := newrelic.FromContext(ctx)
@@ -108,6 +109,7 @@ func executeWithDatastoreSegmentOCI[T any, R any](
 		ParameterizedQuery: statement,
 		Collection:         collection,
 		DatabaseName:       compartmentID,
+		Operation:          operation,
 	}
 	res, err := fn()
 	if err != nil {
@@ -121,50 +123,66 @@ func executeWithDatastoreSegmentOCI[T any, R any](
 	return &responseWrapper, nil
 }
 
-func (cw *NoSQLClientWrapper) Query(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.QueryRequest]) (*NoSQLClientResponseWrapper[nosql.QueryResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.QueryResponse, error) {
-		return cw.Client.Query(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) Query(ctx context.Context, req nosql.QueryRequest) (*NoSQLClientResponseWrapper[nosql.QueryResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.QueryRequest]{
+		ClientRequest: req,
+	}, func() (nosql.QueryResponse, error) {
+		return cw.Client.Query(ctx, req)
+	}, "Query")
 }
 
-func (cw *NoSQLClientWrapper) UpdateRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.UpdateRowRequest]) (*NoSQLClientResponseWrapper[nosql.UpdateRowResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.UpdateRowResponse, error) {
-		return cw.Client.UpdateRow(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) UpdateRow(ctx context.Context, req nosql.UpdateRowRequest) (*NoSQLClientResponseWrapper[nosql.UpdateRowResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.UpdateRowRequest]{
+		ClientRequest: req,
+	}, func() (nosql.UpdateRowResponse, error) {
+		return cw.Client.UpdateRow(ctx, req)
+	}, "UpdateRow")
 }
 
-func (cw *NoSQLClientWrapper) CreateTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.CreateTableRequest]) (*NoSQLClientResponseWrapper[nosql.CreateTableResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.CreateTableResponse, error) {
-		return cw.Client.CreateTable(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) CreateTable(ctx context.Context, req nosql.CreateTableRequest) (*NoSQLClientResponseWrapper[nosql.CreateTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.CreateTableRequest]{
+		ClientRequest: req,
+	}, func() (nosql.CreateTableResponse, error) {
+		return cw.Client.CreateTable(ctx, req)
+	}, "CreateTable")
 }
 
-func (cw *NoSQLClientWrapper) DeleteRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.DeleteRowRequest]) (*NoSQLClientResponseWrapper[nosql.DeleteRowResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.DeleteRowResponse, error) {
-		return cw.Client.DeleteRow(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) DeleteRow(ctx context.Context, req nosql.DeleteRowRequest) (*NoSQLClientResponseWrapper[nosql.DeleteRowResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.DeleteRowRequest]{
+		ClientRequest: req,
+	}, func() (nosql.DeleteRowResponse, error) {
+		return cw.Client.DeleteRow(ctx, req)
+	}, "DeleteRow")
 }
 
-func (cw *NoSQLClientWrapper) DeleteTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.DeleteTableRequest]) (*NoSQLClientResponseWrapper[nosql.DeleteTableResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.DeleteTableResponse, error) {
-		return cw.Client.DeleteTable(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) DeleteTable(ctx context.Context, req nosql.DeleteTableRequest) (*NoSQLClientResponseWrapper[nosql.DeleteTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.DeleteTableRequest]{
+		ClientRequest: req,
+	}, func() (nosql.DeleteTableResponse, error) {
+		return cw.Client.DeleteTable(ctx, req)
+	}, "DeleteTable")
 }
 
-func (cw *NoSQLClientWrapper) GetRow(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.GetRowRequest]) (*NoSQLClientResponseWrapper[nosql.GetRowResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.GetRowResponse, error) {
-		return cw.Client.GetRow(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) GetRow(ctx context.Context, req nosql.GetRowRequest) (*NoSQLClientResponseWrapper[nosql.GetRowResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.GetRowRequest]{
+		ClientRequest: req,
+	}, func() (nosql.GetRowResponse, error) {
+		return cw.Client.GetRow(ctx, req)
+	}, "GetRow")
 }
 
-func (cw *NoSQLClientWrapper) GetTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.GetTableRequest]) (*NoSQLClientResponseWrapper[nosql.GetTableResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.GetTableResponse, error) {
-		return cw.Client.GetTable(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) GetTable(ctx context.Context, req nosql.GetTableRequest) (*NoSQLClientResponseWrapper[nosql.GetTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.GetTableRequest]{
+		ClientRequest: req,
+	}, func() (nosql.GetTableResponse, error) {
+		return cw.Client.GetTable(ctx, req)
+	}, "GetTable")
 }
 
-func (cw *NoSQLClientWrapper) UpdateTable(ctx context.Context, req *NoSQLClientRequestWrapper[nosql.UpdateTableRequest]) (*NoSQLClientResponseWrapper[nosql.UpdateTableResponse], error) {
-	return executeWithDatastoreSegmentOCI(ctx, req, func() (nosql.UpdateTableResponse, error) {
-		return cw.Client.UpdateTable(ctx, req.ClientRequest)
-	})
+func (cw *NoSQLClientWrapper) UpdateTable(ctx context.Context, req nosql.UpdateTableRequest) (*NoSQLClientResponseWrapper[nosql.UpdateTableResponse], error) {
+	return executeWithDatastoreSegmentOCI(ctx, &NoSQLClientRequestWrapper[nosql.UpdateTableRequest]{
+		ClientRequest: req,
+	}, func() (nosql.UpdateTableResponse, error) {
+		return cw.Client.UpdateTable(ctx, req)
+	}, "UpdateTable")
 }
