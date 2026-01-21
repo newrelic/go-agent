@@ -1,4 +1,4 @@
-module github.com/newrelic/go-agent/v3/integrations/norci
+module github.com/newrelic/go-agent/v3/integrations/nroci
 
 go 1.24
 
