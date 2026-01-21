@@ -65,17 +65,13 @@ func main() {
 			Statement:     &statement,
 		},
 	}
-	putRes, err := configWrapper.UpdateRow(ctx, &nroci.NoSQLClientRequestWrapper[nosql.UpdateRowRequest]{
-		ClientRequest: putReq,
-	})
+	putRes, err := configWrapper.UpdateRow(ctx, putReq)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("UpdateRow row: %v\nresult\n", putRes)
 
-	queryRes, err := configWrapper.Query(ctx, &nroci.NoSQLClientRequestWrapper[nosql.QueryRequest]{
-		ClientRequest: queryReq,
-	})
+	queryRes, err := configWrapper.Query(ctx, queryReq)
 
 	if err != nil {
 		panic(err)
