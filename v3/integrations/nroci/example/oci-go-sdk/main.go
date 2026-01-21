@@ -30,7 +30,7 @@ func main() {
 	configPath := filepath.Join(usr.HomeDir, ".oci/config")
 	configProvider, err := common.ConfigurationProviderFromFile(configPath, "")
 
-	configWrapper, err := nroci.NRNewNoSQLClientWithConfigurationProvider(configProvider)
+	clientWrapper, err := nroci.NRNewNoSQLClientWithConfigurationProvider(configProvider)
 	if err != nil {
 		panic(err)
 	}
@@ -65,13 +65,13 @@ func main() {
 			Statement:     &statement,
 		},
 	}
-	putRes, err := configWrapper.UpdateRow(ctx, putReq)
+	putRes, err := clientWrapper.UpdateRow(ctx, putReq)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("UpdateRow row: %v\nresult\n", putRes)
 
-	queryRes, err := configWrapper.Query(ctx, queryReq)
+	queryRes, err := clientWrapper.Query(ctx, queryReq)
 
 	if err != nil {
 		panic(err)
