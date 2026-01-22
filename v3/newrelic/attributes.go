@@ -79,10 +79,11 @@ const (
 
 // AWS Lambda specific attributes:
 const (
-	AttributeAWSRequestID            = "aws.requestId"
-	AttributeAWSLambdaARN            = "aws.lambda.arn"
-	AttributeAWSLambdaColdStart      = "aws.lambda.coldStart"
-	AttributeAWSLambdaEventSourceARN = "aws.lambda.eventSource.arn"
+	AttributeAWSRequestID                  = "aws.requestId"
+	AttributeAWSLambdaARN                  = "aws.lambda.arn"
+	AttributeAWSLambdaColdStart            = "aws.lambda.coldStart"
+	AttributeAWSLambdaEventSourceARN       = "aws.lambda.eventSource.arn"
+	AttributeAWSLambdaEventSourceEventType = "aws.lambda.eventSource.eventType"
 )
 
 // Attributes for consumed message transactions:
