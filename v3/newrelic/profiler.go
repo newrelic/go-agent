@@ -957,6 +957,9 @@ func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 	}, strings.ToLower(typeName+"_"+unitName))
 }
 
+func (pc *profilerConfig) sendOTELProfilePprofMethod(profileName, eventType string, data *bytes.Buffer) {
+}
+
 func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, data *bytes.Buffer) {
 	if pc.ingestClient == nil {
 		pc.ingestClient = &http.Client{Transport: &http.Transport{
