@@ -85,6 +85,9 @@ const (
 	AttributeAWSLambdaEventSourceARN = "aws.lambda.eventSource.arn"
 )
 
+// AWS OpenSearch specific attributes for Span only
+const AttributeAWSElastSearchDomainEndpoint = "aws.es.DomainEndpoint"
+
 // Attributes for consumed message transactions:
 //
 // When a message is consumed (for example from Kafka or RabbitMQ), supported
