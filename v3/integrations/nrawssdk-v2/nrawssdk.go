@@ -125,6 +125,9 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 
 				}
 			}
+			if serviceName == "OpenSearch" || serviceName == "opensearch" {
+				integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeAWSElastSearchDomainEndpoint, httpRequest.URL.String()) // this way I don't have to pull it out of context
+			}
 			// Set additional span attributes
 			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.AttributeResponseCode, strconv.Itoa(response.StatusCode))
