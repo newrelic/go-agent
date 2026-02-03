@@ -64,7 +64,7 @@ var fakeCreds = func() interface{} {
 
 func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
 	cfg, _ := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
-		AppendMiddlewares(&o.APIOptions, txn)
+		AppendMiddlewares(&o.APIOptions, txn, aws.Credentials{})
 		return nil
 	})
 	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)

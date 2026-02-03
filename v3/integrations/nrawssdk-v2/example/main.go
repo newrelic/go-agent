@@ -39,11 +39,17 @@ func main() {
 	txn := app.StartTransaction("My sample transaction")
 
 	ctx := context.Background()
+
 	awsConfig, err := config.LoadDefaultConfig(ctx, func(awsConfig *config.LoadOptions) error {
 		// Instrument all new AWS clients with New Relic
-		nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, nil)
+
 		return nil
 	})
+	creds, err := awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		log.Println("Warning couldn't get flags")
+	}
+	nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, nil, creds)
 	if err != nil {
 		log.Fatal(err)
 	}
