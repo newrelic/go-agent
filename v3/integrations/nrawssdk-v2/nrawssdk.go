@@ -28,6 +28,7 @@ package nrawssdk
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -39,12 +40,14 @@ import (
 	"github.com/aws/smithy-go/middleware"
 	smithymiddle "github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"github.com/newrelic/go-agent/v3/internal/awssupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
 type nrMiddleware struct {
-	txn *newrelic.Transaction
+	txn   *newrelic.Transaction
+	creds aws.Credentials
 }
 
 type contextKey string
@@ -69,12 +72,18 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		}
 
 		smithyRequest := in.Request.(*smithyhttp.Request)
-
 		// The actual http.Request is inside the smithyhttp.Request
 		httpRequest := smithyRequest.Request
 		serviceName := awsmiddle.GetServiceID(ctx)
 		operation := awsmiddle.GetOperationName(ctx)
 		region := awsmiddle.GetRegion(ctx)
+
+		creds := awsmiddle.GetSigningCredentials(ctx)
+		accountID, err := awssupport.AWSAccountIdFromAWSAccessKey(creds)
+		if err != nil {
+			accountID = ""
+			fmt.Println(err.Error())
+		}
 
 		var segment endable
 
@@ -129,6 +138,7 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 				integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeAWSElastSearchDomainEndpoint, httpRequest.URL.String()) // this way I don't have to pull it out of context
 			}
 			// Set additional span attributes
+			integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeCloudAccountID, accountID) // setting account ID here, why do we only do this if it is an SQS service?
 			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.AttributeResponseCode, strconv.Itoa(response.StatusCode))
 			integrationsupport.AddAgentSpanAttribute(txn,
@@ -150,8 +160,8 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 	return stack.Initialize.Add(middleware.InitializeMiddlewareFunc("NRSerializeMiddleware", func(
 		ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler) (
 		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
-
 		serviceName := awsmiddle.GetServiceID(ctx)
+		ctx = awsmiddle.SetSigningCredentials(ctx, m.creds)
 		switch serviceName {
 		case "dynamodb", "DynamoDB":
 			ctx = context.WithValue(ctx, dynamodbInputKey, dynamoDBInputFromMiddlewareInput(in))
@@ -219,8 +229,8 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
-	m := nrMiddleware{txn: txn}
+func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction, creds aws.Credentials) {
+	m := nrMiddleware{txn: txn, creds: creds}
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
 	*apiOptions = append(*apiOptions, m.serializeMiddleware)
 }
