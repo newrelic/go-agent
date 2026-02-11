@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -51,7 +52,19 @@ func (c fakeCredsWithoutContext) Retrieve() (aws.Credentials, error) {
 type fakeCredsWithContext struct{}
 
 func (c fakeCredsWithContext) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	return aws.Credentials{}, nil
+	return aws.Credentials{
+		AccessKeyID: "",
+		AccountID:   "",
+	}, nil
+}
+
+type mockResolver struct {
+	accountID string
+	err       error
+}
+
+func (m *mockResolver) AWSAccountIdFromAWSAccessKey(_creds aws.Credentials) (string, error) {
+	return m.accountID, m.err
 }
 
 var fakeCreds = func() interface{} {
@@ -64,7 +77,6 @@ var fakeCreds = func() interface{} {
 
 func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
 	cfg, _ := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
-		AppendMiddlewares(&o.APIOptions, txn, aws.Credentials{})
 		return nil
 	})
 	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
@@ -72,7 +84,11 @@ func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
 	cfg.HTTPClient = &http.Client{
 		Transport: &fakeTransport{},
 	}
-
+	// Ensure transaction is in context for NRAppendMiddlewares
+	if txn != nil {
+		ctx = newrelic.NewContext(ctx, txn)
+	}
+	NRAppendMiddlewares(&cfg.APIOptions, ctx, cfg)
 	return cfg
 }
 
@@ -1052,4 +1068,248 @@ func TestNoRequestIDFound(t *testing.T) {
 				externalSpanNoRequestID, genericSpan})
 		},
 	)
+}
+
+func TestResolveAWSCredentials(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		cfg          newrelic.Config
+		mockResolver mockResolver
+		want         string
+		wantErr      bool
+		wantedErr    string
+	}{
+		{
+			name: "Error from AWSACcountIDFromAWSAccessKey",
+			cfg:  newrelic.Config{},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       fmt.Errorf("error from called function"),
+			},
+			want:      "",
+			wantErr:   true,
+			wantedErr: "error from called function",
+		},
+		{
+			name: "AccountID exists in config with no accountID resolved. Should return config accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct{ AccountID string }{
+					AccountID: "123234345456",
+				},
+			},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       nil,
+			},
+			want:      "123234345456",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID exists in config with same accountID resolved. Should return config accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct{ AccountID string }{
+					AccountID: "123234345456",
+				},
+			},
+			mockResolver: mockResolver{
+				accountID: "123234345456",
+				err:       nil,
+			},
+			want:      "123234345456",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID exists in config with different accountID resolved. Should return config accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct{ AccountID string }{
+					AccountID: "123234345456",
+				},
+			},
+			mockResolver: mockResolver{
+				accountID: "123234345457",
+				err:       nil,
+			},
+			want:      "123234345457",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID empty in config with different accountID resolved. Should return config accountID",
+			cfg:  newrelic.Config{},
+			mockResolver: mockResolver{
+				accountID: "123234345457",
+				err:       nil,
+			},
+			want:      "123234345457",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID empty in config with empty accountID resolved. Should return config accountID",
+			cfg:  newrelic.Config{},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       nil,
+			},
+			want:      "",
+			wantErr:   false,
+			wantedErr: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := nrMiddleware{
+				resolver: &tt.mockResolver,
+			}
+			gotErr := m.ResolveAWSCredentials(tt.cfg, aws.Credentials{})
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("ResolveAWSCredentials() failed: %v", gotErr)
+				} else {
+					if tt.wantedErr != gotErr.Error() {
+						t.Errorf("ResolveAWSCredentials() error = %v, want %v", gotErr.Error(), tt.wantedErr)
+					}
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("ResolveAWSCredentials() succeeded unexpectedly")
+			}
+			if m.accountID != tt.want {
+				t.Errorf("ResolveAWSCredentials() = %v, want %v", m.accountID, tt.want)
+			}
+		})
+	}
+}
+
+func TestAWSAccountIdFromAWSAccessKey(t *testing.T) {
+	tests := []struct {
+		name       string
+		creds      aws.Credentials
+		want       string
+		wantErr    bool
+		wantErrStr string
+	}{
+		{
+			name: "Valid access key returns account ID",
+			creds: aws.Credentials{
+				AccountID:   "",
+				AccessKeyID: "AKIASAWSR23456AWS357",
+			},
+			want:    "138954266361",
+			wantErr: false,
+		},
+		{
+			name: "AccountID already exists and access key exists. Should return AccountID immediately",
+			creds: aws.Credentials{
+				AccountID:   "123451234512",
+				AccessKeyID: "ASKDHA123457AKJFHAKS",
+			},
+			want:    "123451234512",
+			wantErr: false,
+		},
+		{
+			name: "AccountID already exists and access key exists with too short of length. Should return AccountID immediately",
+			creds: aws.Credentials{
+				AccountID:   "123451234512",
+				AccessKeyID: "a",
+			},
+			want:    "123451234512",
+			wantErr: false,
+		},
+		{
+			name: "AccountID already exists and access key exists with improper format. Should return AccountID immediately",
+			creds: aws.Credentials{
+				AccountID:   "123451234512",
+				AccessKeyID: "a a a.                      ",
+			},
+			want:    "123451234512",
+			wantErr: false,
+		},
+		{
+			name: "AccountID already exists and access key does not exist. Should return AccountID immediately",
+			creds: aws.Credentials{
+				AccountID: "123451234512",
+			},
+			want:    "123451234512",
+			wantErr: false,
+		},
+		{
+			name:       "AccountID does not exist and access key does not exist. Should return an error",
+			creds:      aws.Credentials{},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "no access key id found",
+		},
+		{
+			name: "AccountID does not exist and access key is in an improper format. Should return an error",
+			creds: aws.Credentials{
+				AccessKeyID: "123asdfas",
+			},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "improper access key id format",
+		},
+		{
+			name: "AccountID does not exist and access key is in an improper format with only one character. Should return an error",
+			creds: aws.Credentials{
+				AccessKeyID: "a",
+			},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "improper access key id format",
+		},
+		{
+			name: "AccountID does not exist and access key is in an improper format for decoding",
+			creds: aws.Credentials{
+				AccessKeyID: "a a a.                      ",
+			},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "error decoding access keys",
+		},
+		{
+			name: "AccountID does not exist and access key contains non base32 characters",
+			creds: aws.Credentials{
+				AccessKeyID: "AKIA1234567899876541",
+			},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "error decoding access keys",
+		},
+		{
+			name: "AccountID does not exist and access key contains non base32 characters and is too short in length",
+			creds: aws.Credentials{
+				AccessKeyID: "AKIA1818",
+			},
+			want:       "",
+			wantErr:    true,
+			wantErrStr: "improper access key id format",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := &defaultResolver{}
+			got, gotErr := resolver.AWSAccountIdFromAWSAccessKey(tt.creds)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("AWSAccountIdFromAWSAccessKey() failed: %v", gotErr)
+				} else {
+					if tt.wantErrStr != gotErr.Error() {
+						t.Errorf("AWSAccountIdFromAWSAccessKey() error = %v, want %v", gotErr.Error(), tt.wantErrStr)
+					}
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("AWSAccountIdFromAWSAccessKey() succeeded unexpectedly")
+			}
+			if tt.want != got {
+				t.Errorf("AWSAccountIdFromAWSAccessKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
