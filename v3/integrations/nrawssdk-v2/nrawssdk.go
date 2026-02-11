@@ -28,6 +28,7 @@ package nrawssdk
 
 import (
 	"context"
+	"encoding/base32"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -40,15 +41,21 @@ import (
 	"github.com/aws/smithy-go/middleware"
 	smithymiddle "github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
-	"github.com/newrelic/go-agent/v3/internal/awssupport"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 )
 
-type nrMiddleware struct {
-	txn   *newrelic.Transaction
-	creds aws.Credentials
+type credentialsResolver interface {
+	AWSAccountIdFromAWSAccessKey(creds aws.Credentials) (string, error)
 }
+
+type nrMiddleware struct {
+	txn       *newrelic.Transaction
+	accountID string
+	resolver  credentialsResolver
+}
+
+type defaultResolver struct{}
 
 type contextKey string
 
@@ -77,14 +84,7 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 		serviceName := awsmiddle.GetServiceID(ctx)
 		operation := awsmiddle.GetOperationName(ctx)
 		region := awsmiddle.GetRegion(ctx)
-
-		creds := awsmiddle.GetSigningCredentials(ctx)
-		accountID, err := awssupport.AWSAccountIdFromAWSAccessKey(creds)
-		if err != nil {
-			accountID = ""
-			fmt.Println(err.Error())
-		}
-
+		accountID := m.accountID
 		var segment endable
 
 		if serviceName == "dynamodb" || serviceName == "DynamoDB" {
@@ -138,7 +138,9 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 				integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeAWSElastSearchDomainEndpoint, httpRequest.URL.String()) // this way I don't have to pull it out of context
 			}
 			// Set additional span attributes
+
 			integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeCloudAccountID, accountID) // setting account ID here, why do we only do this if it is an SQS service?
+
 			integrationsupport.AddAgentSpanAttribute(txn,
 				newrelic.AttributeResponseCode, strconv.Itoa(response.StatusCode))
 			integrationsupport.AddAgentSpanAttribute(txn,
@@ -161,7 +163,6 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 		ctx context.Context, in middleware.InitializeInput, next middleware.InitializeHandler) (
 		out middleware.InitializeOutput, metadata middleware.Metadata, err error) {
 		serviceName := awsmiddle.GetServiceID(ctx)
-		ctx = awsmiddle.SetSigningCredentials(ctx, m.creds)
 		switch serviceName {
 		case "dynamodb", "DynamoDB":
 			ctx = context.WithValue(ctx, dynamodbInputKey, dynamoDBInputFromMiddlewareInput(in))
@@ -229,8 +230,30 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction, creds aws.Credentials) {
-	m := nrMiddleware{txn: txn, creds: creds}
+func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
+	m := nrMiddleware{txn: txn}
+	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
+	*apiOptions = append(*apiOptions, m.serializeMiddleware)
+}
+
+func NRAppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, awsConfig aws.Config) {
+	txn := newrelic.FromContext(ctx)
+
+	creds, err := awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		fmt.Println("error: Couldn't get AWS Credentials")
+	}
+
+	cfg, ok := txn.Application().Config()
+	m := nrMiddleware{txn: txn, resolver: &defaultResolver{}}
+
+	if ok {
+		err := m.ResolveAWSCredentials(cfg, creds)
+		if err != nil {
+			fmt.Println("error: Couldn't resolve AWS credentials")
+		}
+	}
+
 	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
 	*apiOptions = append(*apiOptions, m.serializeMiddleware)
 }
@@ -290,4 +313,56 @@ func dynamoDBInputFromMiddlewareInput(in middleware.InitializeInput) dynamodbInp
 	default:
 		return dynamodbInput{}
 	}
+}
+
+func (m *nrMiddleware) ResolveAWSCredentials(cfg newrelic.Config, creds aws.Credentials) error {
+
+	if m.resolver == nil {
+		m.resolver = &defaultResolver{}
+	}
+
+	accountID, err := m.resolver.AWSAccountIdFromAWSAccessKey(creds)
+	if err != nil {
+		return err
+	}
+
+	// Use resolved accountID if:
+	// 1. No accountID is set in config (cfg.CloudAWS.AccountID is empty), OR
+	// 2. Resolved accountID is different from config accountID
+	if cfg.CloudAWS.AccountID == "" || (accountID != "" && accountID != cfg.CloudAWS.AccountID) {
+		m.accountID = accountID
+		return nil
+	}
+
+	// Otherwise use the config accountID
+	m.accountID = cfg.CloudAWS.AccountID
+	return nil
+}
+
+func (m *defaultResolver) AWSAccountIdFromAWSAccessKey(creds aws.Credentials) (string, error) {
+	if creds.AccountID != "" {
+		return creds.AccountID, nil
+	}
+	if creds.AccessKeyID == "" {
+		return "", fmt.Errorf("no access key id found")
+	}
+	if len(creds.AccessKeyID) < 16 {
+		return "", fmt.Errorf("improper access key id format")
+	}
+	trimmedAccessKey := creds.AccessKeyID[4:]
+	decoded, err := base32.StdEncoding.DecodeString(trimmedAccessKey)
+	if err != nil {
+		return "", fmt.Errorf("error decoding access keys")
+	}
+	var bigEndian uint64
+	for i := 0; i < 6; i++ {
+		bigEndian = bigEndian << 8      // shift 8 bits left.  Most significant byte read in first (decoded[i])
+		bigEndian |= uint64(decoded[i]) // apply OR for current byte
+	}
+
+	mask := uint64(0x7fffffffff80)
+
+	num := (bigEndian & mask) >> 7 // apply mask and get rid of last 7 bytes from mask
+
+	return fmt.Sprintf("%d", num), nil
 }

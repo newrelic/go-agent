@@ -8,12 +8,9 @@ package awssupport
 
 import (
 	"context"
-	"encoding/base32"
-	"fmt"
 	"net/http"
 	"reflect"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -117,32 +114,4 @@ func EndSegment(ctx context.Context, resp *http.Response) {
 		}
 		segment.End()
 	}
-}
-
-func AWSAccountIdFromAWSAccessKey(creds aws.Credentials) (string, error) {
-	if creds.AccountID != "" {
-		return creds.AccountID, nil
-	}
-	if creds.AccessKeyID == "" {
-		return "", fmt.Errorf("no access key id found")
-	}
-	if len(creds.AccessKeyID) < 16 {
-		return "", fmt.Errorf("improper access key id format")
-	}
-	trimmedAccessKey := creds.AccessKeyID[4:]
-	decoded, err := base32.StdEncoding.DecodeString(trimmedAccessKey)
-	if err != nil {
-		return "", fmt.Errorf("error decoding access keys")
-	}
-	var bigEndian uint64
-	for i := 0; i < 6; i++ {
-		bigEndian = bigEndian << 8      // shift 8 bits left.  Most significant byte read in first (decoded[i])
-		bigEndian |= uint64(decoded[i]) // apply OR for current byte
-	}
-
-	mask := uint64(0x7fffffffff80)
-
-	num := (bigEndian & mask) >> 7 // apply mask and get rid of last 7 bytes from mask
-
-	return fmt.Sprintf("%d", num), nil
 }
