@@ -38,12 +38,19 @@ func main() {
 	// Start recording a New Relic transaction
 	txn := app.StartTransaction("My sample transaction")
 
-	ctx := context.Background()
+	ctx := newrelic.NewContext(context.Background(), txn)
+
 	awsConfig, err := config.LoadDefaultConfig(ctx, func(awsConfig *config.LoadOptions) error {
 		// Instrument all new AWS clients with New Relic
-		nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, nil)
 		return nil
 	})
+
+	// Ensure transaction is in context for NRAppendMiddlewares
+	if txn != nil {
+		ctx = newrelic.NewContext(ctx, txn)
+	}
+
+	nrawssdk.NRAppendMiddlewares(&awsConfig.APIOptions, ctx, awsConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -167,6 +167,9 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
 			},
+			"CloudAWS":{
+				"AccountID": ""
+			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
 			"CustomInsightsEvents":{
@@ -387,6 +390,9 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Include":null
 				},
 				"Enabled":true
+			},
+			"CloudAWS":{
+				"AccountID": ""
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},

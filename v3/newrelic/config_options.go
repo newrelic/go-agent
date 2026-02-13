@@ -624,6 +624,9 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		// Error Collector Env Variables
 		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED", maxErrorEvents)
 
+		// AWS Env Variables
+		assignString(&cfg.CloudAWS.AccountID, "NEW_RELIC_CLOUD_AWS_ACCOUNT_ID")
+
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
 			if err != nil {
