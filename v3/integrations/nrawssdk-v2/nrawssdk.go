@@ -138,7 +138,6 @@ func (m nrMiddleware) deserializeMiddleware(stack *smithymiddle.Stack) error {
 				integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeAWSElastSearchDomainEndpoint, httpRequest.URL.String()) // this way I don't have to pull it out of context
 			}
 			// Set additional span attributes
-
 			integrationsupport.AddAgentSpanAttribute(txn, newrelic.AttributeCloudAccountID, accountID) // setting account ID here, why do we only do this if it is an SQS service?
 
 			integrationsupport.AddAgentSpanAttribute(txn,
@@ -317,6 +316,12 @@ func dynamoDBInputFromMiddlewareInput(in middleware.InitializeInput) dynamodbInp
 
 func (m *nrMiddleware) ResolveAWSCredentials(cfg newrelic.Config, creds aws.Credentials) error {
 
+	// use cfg accountID or use cfg accountID if account decoding is disabled
+	if cfg.CloudAWS.AccountID != "" || !cfg.CloudAWS.AccountDecoding.Enabled {
+		m.accountID = cfg.CloudAWS.AccountID
+		return nil
+	}
+
 	if m.resolver == nil {
 		m.resolver = &defaultResolver{}
 	}
@@ -326,16 +331,8 @@ func (m *nrMiddleware) ResolveAWSCredentials(cfg newrelic.Config, creds aws.Cred
 		return err
 	}
 
-	// Use resolved accountID if:
-	// 1. No accountID is set in config (cfg.CloudAWS.AccountID is empty), OR
-	// 2. Resolved accountID is different from config accountID
-	if cfg.CloudAWS.AccountID == "" || (accountID != "" && accountID != cfg.CloudAWS.AccountID) {
-		m.accountID = accountID
-		return nil
-	}
-
-	// Otherwise use the config accountID
-	m.accountID = cfg.CloudAWS.AccountID
+	// Otherwise use the resolved accountID
+	m.accountID = accountID
 	return nil
 }
 

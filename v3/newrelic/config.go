@@ -94,7 +94,10 @@ type Config struct {
 	}
 
 	CloudAWS struct {
-		AccountID string
+		AccountID       string
+		AccountDecoding struct {
+			Enabled bool
+		}
 	}
 
 	// ErrorCollector controls the capture of errors.
