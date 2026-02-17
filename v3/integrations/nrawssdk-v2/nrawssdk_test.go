@@ -1079,10 +1079,21 @@ func TestResolveAWSCredentials(t *testing.T) {
 		want         string
 		wantErr      bool
 		wantedErr    string
+		test         bool
 	}{
 		{
-			name: "Error from AWSACcountIDFromAWSAccessKey",
-			cfg:  newrelic.Config{},
+			name: "Error from AWSAccountIDFromAWSAccessKey",
+			cfg: newrelic.Config{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
+					AccountID: "",
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: true,
+					},
+				},
+			},
 			mockResolver: mockResolver{
 				accountID: "",
 				err:       fmt.Errorf("error from called function"),
@@ -1092,10 +1103,16 @@ func TestResolveAWSCredentials(t *testing.T) {
 			wantedErr: "error from called function",
 		},
 		{
-			name: "AccountID exists in config with no accountID resolved. Should return config accountID",
+			name: "AccountID exists in config with account encoding enabled. Should return config accountID",
 			cfg: newrelic.Config{
-				CloudAWS: struct{ AccountID string }{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
 					AccountID: "123234345456",
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: true,
+					},
 				},
 			},
 			mockResolver: mockResolver{
@@ -1107,10 +1124,37 @@ func TestResolveAWSCredentials(t *testing.T) {
 			wantedErr: "",
 		},
 		{
-			name: "AccountID exists in config with same accountID resolved. Should return config accountID",
+			name: "AccountID exists in config with account encoding disabled. Should return config accountID",
 			cfg: newrelic.Config{
-				CloudAWS: struct{ AccountID string }{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
 					AccountID: "123234345456",
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: false,
+					},
+				},
+			},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       nil,
+			},
+			want:      "123234345456",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID exists in config with same accountID resolved and account decoding enabled. Should return config accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
+					AccountID: "123234345456",
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: true,
+					},
 				},
 			},
 			mockResolver: mockResolver{
@@ -1122,10 +1166,36 @@ func TestResolveAWSCredentials(t *testing.T) {
 			wantedErr: "",
 		},
 		{
-			name: "AccountID exists in config with different accountID resolved. Should return config accountID",
+			name: "AccountID exists in config with different accountID resolved and account decoding enabled. Should return config accountID",
 			cfg: newrelic.Config{
-				CloudAWS: struct{ AccountID string }{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
 					AccountID: "123234345456",
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: true,
+					},
+				},
+			},
+			mockResolver: mockResolver{
+				accountID: "123234345457",
+				err:       nil,
+			},
+			want:      "123234345456",
+			wantErr:   false,
+			wantedErr: "",
+		},
+		{
+			name: "AccountID empty in config with different accountID resolved and account decoding enabled. Should return resolved accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: true,
+					},
 				},
 			},
 			mockResolver: mockResolver{
@@ -1137,13 +1207,22 @@ func TestResolveAWSCredentials(t *testing.T) {
 			wantedErr: "",
 		},
 		{
-			name: "AccountID empty in config with different accountID resolved. Should return config accountID",
-			cfg:  newrelic.Config{},
+			name: "AccountID empty in config with different accountID resolved and account decoding enabled. Should return empty config accountID",
+			cfg: newrelic.Config{
+				CloudAWS: struct {
+					AccountID       string
+					AccountDecoding struct{ Enabled bool }
+				}{
+					AccountDecoding: struct{ Enabled bool }{
+						Enabled: false,
+					},
+				},
+			},
 			mockResolver: mockResolver{
 				accountID: "123234345457",
 				err:       nil,
 			},
-			want:      "123234345457",
+			want:      "",
 			wantErr:   false,
 			wantedErr: "",
 		},
@@ -1160,6 +1239,7 @@ func TestResolveAWSCredentials(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+
 		t.Run(tt.name, func(t *testing.T) {
 			m := nrMiddleware{
 				resolver: &tt.mockResolver,

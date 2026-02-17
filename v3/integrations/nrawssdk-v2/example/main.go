@@ -45,11 +45,6 @@ func main() {
 		return nil
 	})
 
-	// Ensure transaction is in context for NRAppendMiddlewares
-	if txn != nil {
-		ctx = newrelic.NewContext(ctx, txn)
-	}
-
 	nrawssdk.NRAppendMiddlewares(&awsConfig.APIOptions, ctx, awsConfig)
 	if err != nil {
 		log.Fatal(err)
