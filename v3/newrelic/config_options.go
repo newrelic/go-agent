@@ -488,6 +488,22 @@ func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]stri
 	}
 }
 
+// ConfigCloudAWSAccountID is used to set the accountID for the AWS account to add as an attribute to span events. This may also be set using the
+// NEW_RELIC_CLOUD_AWS_ACCOUNT_ID environment variable.
+func ConfigCloudAWSAccountID(accountID string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CloudAWS.AccountID = accountID
+	}
+}
+
+// ConfigCloudAWSAccountDecodingEnabled is used to enable/disable accountID decoding for an AWS Access Key.  Any value that is decoded will be
+// overriden if the accountID is set in the config.
+func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CloudAWS.AccountDecoding.Enabled = enabled
+	}
+}
+
 // ConfigFromEnvironment populates the config based on environment variables:
 //
 //		NEW_RELIC_APP_NAME                                			sets AppName

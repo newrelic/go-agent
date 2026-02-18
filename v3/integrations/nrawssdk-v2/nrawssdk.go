@@ -235,7 +235,7 @@ func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newre
 	*apiOptions = append(*apiOptions, m.serializeMiddleware)
 }
 
-func NRAppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, awsConfig aws.Config) {
+func InitializeMiddleware(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, awsConfig aws.Config) {
 	txn := newrelic.FromContext(ctx)
 
 	creds, err := awsConfig.Credentials.Retrieve(ctx)
@@ -249,7 +249,7 @@ func NRAppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, ctx cont
 	if ok {
 		err := m.ResolveAWSCredentials(cfg, creds)
 		if err != nil {
-			fmt.Println("error: Couldn't resolve AWS credentials")
+			cfg.Logger.Error(err.Error(), map[string]interface{}{})
 		}
 	}
 
@@ -325,9 +325,9 @@ func (m *nrMiddleware) ResolveAWSCredentials(cfg newrelic.Config, creds aws.Cred
 	if m.resolver == nil {
 		m.resolver = &defaultResolver{}
 	}
-
 	accountID, err := m.resolver.AWSAccountIdFromAWSAccessKey(creds)
 	if err != nil {
+		// return err, aws account id remains empty
 		return err
 	}
 
