@@ -93,6 +93,13 @@ type Config struct {
 		MaxSamplesStored int
 	}
 
+	CloudAWS struct {
+		AccountID       string
+		AccountDecoding struct {
+			Enabled bool
+		}
+	}
+
 	// ErrorCollector controls the capture of errors.
 	ErrorCollector struct {
 		// Enabled controls whether errors are captured.  This setting
