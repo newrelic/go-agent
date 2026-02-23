@@ -546,6 +546,7 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 //		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
 //		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
 //		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//		NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.

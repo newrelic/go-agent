@@ -25,7 +25,7 @@ func main() {
 		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		// newrelic.ConfigCloudAWSAccountID("<insert-aws-account-id>"), // Set the AWS accountID.  Will override any previous config options
-		// newrelic.ConfigCloudAWSAccountDecodingEnabled(true), // Enable/disable accountID decoding. Default is disabled
+		// newrelic.ConfigCloudAWSAccountDecodingEnabled(false), // Enable/disable accountID decoding. Default is enabled
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -48,7 +48,7 @@ func main() {
 
 	// nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, txn) // LEGACY
 	// AppendMiddlewares is DEPRECATED. Please use InitializeMiddleware shown below
-	nrawssdk.InitializeMiddleware(&awsConfig.APIOptions, ctx, awsConfig)
+	nrawssdk.InitializeMiddleware(&awsConfig.APIOptions, ctx, awsConfig.Credentials)
 	if err != nil {
 		log.Fatal(err)
 	}
