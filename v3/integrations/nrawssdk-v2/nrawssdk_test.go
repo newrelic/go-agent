@@ -19,6 +19,7 @@ import (
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -30,6 +31,10 @@ func testApp() integrationsupport.ExpectApp {
 	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, integrationsupport.DTEnabledCfgFn, newrelic.ConfigCodeLevelMetricsEnabled(false))
 }
 
+func testAppWithConfigOptions(cfgSetAWSOpts newrelic.ConfigOption) integrationsupport.ExpectApp {
+	return integrationsupport.NewTestApp(integrationsupport.SampleEverythingReplyFn, cfgSetAWSOpts, integrationsupport.DTEnabledCfgFn, newrelic.ConfigCodeLevelMetricsEnabled(false))
+}
+
 type fakeTransport struct{}
 
 func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -39,6 +44,7 @@ func (t fakeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
 		Header: http.Header{
 			"X-Amzn-Requestid": []string{requestID},
+			"X-Amz-Request-Id": []string{requestID},
 		},
 	}, nil
 }
@@ -88,7 +94,30 @@ func newConfig(ctx context.Context, txn *newrelic.Transaction) aws.Config {
 	if txn != nil {
 		ctx = newrelic.NewContext(ctx, txn)
 	}
-	NRAppendMiddlewares(&cfg.APIOptions, ctx, cfg)
+	InitializeMiddleware(&cfg.APIOptions, ctx, cfg.Credentials)
+	return cfg
+}
+
+// newConfigWithResolver creates a test AWS config with a custom resolver
+// This still tests the actual InitializeMiddleware path by calling initializeMiddleware
+func newConfigWithResolver(ctx context.Context, txn *newrelic.Transaction, resolver credentialsResolver) aws.Config {
+	cfg, _ := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
+		return nil
+	})
+	cfg.Credentials = fakeCreds.(aws.CredentialsProvider)
+	cfg.Region = awsRegion
+	cfg.HTTPClient = &http.Client{
+		Transport: &fakeTransport{},
+	}
+
+	if txn != nil {
+		ctx = newrelic.NewContext(ctx, txn)
+	}
+
+	// Create middleware with custom resolver and call initializeMiddleware
+	m := nrMiddleware{txn: txn, resolver: resolver}
+	m.initializeMiddleware(&cfg.APIOptions, ctx, cfg.Credentials)
+
 	return cfg
 }
 
@@ -1070,6 +1099,198 @@ func TestNoRequestIDFound(t *testing.T) {
 	)
 }
 
+func TestAccountIDE2E(t *testing.T) {
+
+	tests := []struct {
+		name string
+		cfg  struct {
+			AccountID string
+			Enabled   bool
+		}
+		mockResolver mockResolver
+		want         string // account id wanted
+		wantErr      bool
+		wantedErr    string
+	}{
+		{
+			name: "Decoding disabled, same accountID in env as resolved",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "000000000000",
+				Enabled:   false,
+			},
+			mockResolver: mockResolver{
+				accountID: "000000000000",
+				err:       nil,
+			},
+			want: "000000000000",
+		},
+		{
+			name: "Decoding enabled, same accountID in config as resolved",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "111111111111",
+				Enabled:   true,
+			},
+			mockResolver: mockResolver{
+				accountID: "111111111111",
+				err:       nil,
+			},
+			want: "111111111111",
+		},
+		{
+			name: "Decoding enabled, different accountID resolved than config",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "222222222222",
+				Enabled:   true,
+			},
+			mockResolver: mockResolver{
+				accountID: "333333333333",
+				err:       nil,
+			},
+			want: "222222222222",
+		},
+		{
+			name: "Decoding enabled, no config accountID, resolver returns accountID",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "",
+				Enabled:   true,
+			},
+			mockResolver: mockResolver{
+				accountID: "444444444444",
+				err:       nil,
+			},
+			want: "444444444444",
+		},
+		{
+			name: "Decoding disabled, no config accountID, resolver returns accountID",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "",
+				Enabled:   false,
+			},
+			mockResolver: mockResolver{
+				accountID: "555555555555",
+				err:       nil,
+			},
+			want: "",
+		},
+		{
+			name: "Decoding enabled, resolver returns error, no config accountID",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "",
+				Enabled:   true,
+			},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       fmt.Errorf("failed to decode account ID"),
+			},
+			want: "",
+		},
+		{
+			name: "Decoding disabled, resolver returns error but config has accountID",
+			cfg: struct {
+				AccountID string
+				Enabled   bool
+			}{
+				AccountID: "666666666666",
+				Enabled:   false,
+			},
+			mockResolver: mockResolver{
+				accountID: "",
+				err:       fmt.Errorf("some resolver error"),
+			},
+			want: "666666666666",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := testAppWithConfigOptions(func(c *newrelic.Config) {
+				c.CloudAWS.AccountID = tt.cfg.AccountID
+				c.CloudAWS.AccountDecoding.Enabled = tt.cfg.Enabled
+			})
+			txn := app.StartTransaction(txnName)
+			ctx := newrelic.NewContext(context.Background(), txn)
+
+			client := s3.NewFromConfig(newConfigWithResolver(ctx, txn, &tt.mockResolver))
+			n := int32(10)
+			input := &s3.ListBucketsInput{
+				MaxBuckets: &n,
+			}
+
+			client.ListBuckets(ctx, input)
+
+			txn.End()
+
+			// Build expected S3 span with the correct account ID
+			expectedS3Span := internal.WantEvent{
+				Intrinsics: map[string]any{
+					"name":          "External/s3.us-west-2.amazonaws.com/http/GET",
+					"sampled":       true,
+					"category":      "http",
+					"priority":      internal.MatchAnything,
+					"guid":          internal.MatchAnything,
+					"transactionId": internal.MatchAnything,
+					"traceId":       internal.MatchAnything,
+					"parentId":      internal.MatchAnything,
+					"component":     "http",
+					"span.kind":     "client",
+				},
+				UserAttributes: map[string]any{},
+				AgentAttributes: map[string]any{
+					"aws.operation":   "ListBuckets",
+					"aws.region":      awsRegion,
+					"aws.requestId":   requestID,
+					"http.method":     "GET",
+					"http.url":        "https://s3.us-west-2.amazonaws.com/",
+					"http.statusCode": "200",
+				},
+			}
+
+			// Add cloud.account.id only if we expect an account ID
+			if tt.want != "" {
+				expectedS3Span.AgentAttributes["cloud.account.id"] = tt.want
+			}
+
+			app.ExpectSpanEvents(t, []internal.WantEvent{
+				expectedS3Span, // The S3 external call span
+				{
+					Intrinsics: map[string]interface{}{
+						"name":             "OtherTransaction/Go/" + txnName,
+						"transaction.name": "OtherTransaction/Go/" + txnName,
+						"sampled":          true,
+						"category":         "generic",
+						"priority":         internal.MatchAnything,
+						"guid":             internal.MatchAnything,
+						"transactionId":    internal.MatchAnything,
+						"nr.entryPoint":    true,
+						"traceId":          internal.MatchAnything,
+					},
+					UserAttributes:  map[string]any{},
+					AgentAttributes: map[string]any{},
+				}, // The transaction span
+			})
+		})
+	}
+
+}
+
 func TestResolveAWSCredentials(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
@@ -1079,7 +1300,6 @@ func TestResolveAWSCredentials(t *testing.T) {
 		want         string
 		wantErr      bool
 		wantedErr    string
-		test         bool
 	}{
 		{
 			name: "Error from AWSAccountIDFromAWSAccessKey",

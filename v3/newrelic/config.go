@@ -751,6 +751,9 @@ func defaultConfig() Config {
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
 	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
+
+	// Cloud AWS
+	c.CloudAWS.AccountDecoding.Enabled = true
 	return c
 }
 
