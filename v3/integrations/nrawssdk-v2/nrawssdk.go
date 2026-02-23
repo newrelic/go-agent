@@ -172,40 +172,32 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 	}), middleware.After)
 }
 
-// AppendMiddlewares inserts New Relic middleware in the given `apiOptions` for
-// the AWS SDK V2 for Go. It must be called only once per AWS configuration.
+// Deprecated: Use InitializeMiddleware instead.  Please note the different parameters used.
+func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
+	m := nrMiddleware{txn: txn}
+	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
+	*apiOptions = append(*apiOptions, m.serializeMiddleware)
+}
+
+// InitializeMiddleware registers New Relic middleware in the AWS SDK V2 for Go service stack.
+// It must be called only once per AWS configuration.
 //
-// If `txn` is provided as nil, the New Relic transaction will be retrieved
-// using `newrelic.FromContext`.
+// The New Relic transaction, `txn`, is fetched from the ctx.  Make sure to add the txn to the ctx
+// before passing it in in as a parameter. This can be done with:
+// ctx := newrelic.NewContext(context.Background(), txn)
 //
 // Additional attributes will be added to transaction trace segments and span
-// events: aws.region, aws.requestId, and aws.operation. In addition,
+// events: aws.accountId, aws.region, aws.requestId, and aws.operation. In addition,
 // http.statusCode will be added to span events.
 //
-// To see segments and spans for all AWS invocations, call AppendMiddlewares
-// with the AWS Config `apiOptions` and provide nil for `txn`. For example:
+// To see segments and spans for all AWS invocations, call InitializeMiddleware
+// with the aws.Config and provide ctx. For example:
 //
-//	awsConfig, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
-//		// Instrument all new AWS clients with New Relic
-//		nrawssdk.AppendMiddlewares(&o.APIOptions, nil)
-//		return nil
-//	})
+//	awsConfig, err := config.LoadDefaultConfig(ctx)
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//
-// If do not want the transaction to be retrieved from the context, you can
-// explicitly set `txn`. For example:
-//
-//	txn := loadNewRelicTransaction()
-//	awsConfig, err := config.LoadDefaultConfig(ctx, func(o *config.LoadOptions) error {
-//		// Instrument all new AWS clients with New Relic
-//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn)
-//		return nil
-//	})
-//	if err != nil {
-//		log.Fatal(err)
-//	}
+//	nrawssdk.InitializeMiddleware(awsConfig, nil, awsConfig.Credentials)
 //
 // The middleware can also be added later, per AWS service call using
 // the `optFns` parameter. For example:
@@ -223,33 +215,36 @@ func (m nrMiddleware) serializeMiddleware(stack *middleware.Stack) error {
 //
 //	txn := loadNewRelicTransaction()
 //	output, err := s3Client.ListBuckets(ctx, nil, func(o *s3.Options) error {
-//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn)
+//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn, o.Credentials)
 //		return nil
 //	})
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newrelic.Transaction) {
-	m := nrMiddleware{txn: txn}
-	*apiOptions = append(*apiOptions, m.deserializeMiddleware)
-	*apiOptions = append(*apiOptions, m.serializeMiddleware)
-}
-
-func InitializeMiddleware(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, awsConfig aws.Config) {
+func InitializeMiddleware(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, credentials aws.CredentialsProvider) {
 	txn := newrelic.FromContext(ctx)
 
-	creds, err := awsConfig.Credentials.Retrieve(ctx)
-	if err != nil {
-		fmt.Println("error: Couldn't get AWS Credentials")
-	}
-
-	cfg, ok := txn.Application().Config()
 	m := nrMiddleware{txn: txn, resolver: &defaultResolver{}}
 
+	m.initializeMiddleware(apiOptions, ctx, credentials)
+}
+
+func (m *nrMiddleware) initializeMiddleware(apiOptions *[]func(*smithymiddle.Stack) error, ctx context.Context, credentials aws.CredentialsProvider) {
+
+	if m.txn == nil {
+		m.txn = newrelic.FromContext(ctx)
+	}
+	cfg, ok := m.txn.Application().Config()
+	// if the nr config has not been intialized yet, don't try to resolve the credentials
 	if ok {
-		err := m.ResolveAWSCredentials(cfg, creds)
+		creds, err := credentials.Retrieve(ctx)
 		if err != nil {
-			cfg.Logger.Error(err.Error(), map[string]interface{}{})
+			cfg.Logger.Error(err.Error(), map[string]any{})
+		}
+
+		err = m.ResolveAWSCredentials(cfg, creds)
+		if err != nil {
+			cfg.Logger.Error(err.Error(), map[string]any{})
 		}
 	}
 
