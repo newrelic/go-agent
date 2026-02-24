@@ -492,7 +492,11 @@ func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]stri
 // NEW_RELIC_CLOUD_AWS_ACCOUNT_ID environment variable.
 func ConfigCloudAWSAccountID(accountID string) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CloudAWS.AccountID = accountID
+		validatedAccountID, err := validateAWSAccountID(accountID)
+		if err != nil {
+			cfg.Error = err
+		}
+		cfg.CloudAWS.AccountID = validatedAccountID
 	}
 }
 
@@ -643,6 +647,13 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// AWS Env Variables
 		assignString(&cfg.CloudAWS.AccountID, "NEW_RELIC_CLOUD_AWS_ACCOUNT_ID")
+		if env := getenv("NEW_RELIC_CLOUD_AWS_ACCOUNT_ID"); env != "" {
+			awsAccountID, err := validateAWSAccountID(env) // will either be a proper accountID or empty string if err
+			if err != nil {
+				cfg.Error = err
+			}
+			cfg.CloudAWS.AccountID = awsAccountID
+		}
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
