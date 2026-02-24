@@ -168,6 +168,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true
 			},
 			"CloudAWS":{
+				"AccountDecoding": {"Enabled": true},
 				"AccountID": ""
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
@@ -392,6 +393,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true
 			},
 			"CloudAWS":{
+				"AccountDecoding": {"Enabled": true},
 				"AccountID": ""
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
@@ -1212,6 +1214,145 @@ func TestDefaultConfigMaxSamplesStored(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.actual != tt.expected {
 				t.Errorf("%s: defaultConfig() sets %d, expected %d", tt.name, tt.actual, tt.expected)
+			}
+		})
+	}
+}
+
+func Test_validateAWSAccountID(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		accountID string
+		want      string
+		wantErr   bool
+		// no need to check error string since it is always the same
+	}{
+		{
+			name:      "Improper formatted account ID with non-number characters",
+			accountID: "onetwothreef",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper formatted account ID with non-number characters and numbers",
+			accountID: "111twothree4",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with numbers",
+			accountID: "111222333",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with non-number characters and numbers",
+			accountID: "onetwo34",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with non-number characters",
+			accountID: "onetwothre",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Proper length account ID with all numbers",
+			accountID: "123234345456",
+			want:      "123234345456",
+			wantErr:   false,
+		},
+		{
+			name:      "Empty string",
+			accountID: "",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with leading zeros",
+			accountID: "000123456789",
+			want:      "000123456789",
+			wantErr:   false,
+		},
+		{
+			name:      "All zeros",
+			accountID: "000000000000",
+			want:      "000000000000",
+			wantErr:   false,
+		},
+		{
+			name:      "13+ digits (too long)",
+			accountID: "1234567890123",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with hyphens",
+			accountID: "123-456-7890",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with spaces",
+			accountID: "123 456 7890",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with leading whitespace",
+			accountID: " 123456789012",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with trailing whitespace",
+			accountID: "123456789012 ",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Negative number representation",
+			accountID: "-12345678901",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Floating point representation",
+			accountID: "12345678.012",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Single digit",
+			accountID: "1",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "11 digits (just under the limit)",
+			accountID: "12345678901",
+			want:      "",
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := validateAWSAccountID(tt.accountID)
+			// putting tt.want comparison before error check because we want to see
+			// if it properly returns an empty string
+			if tt.want != got {
+				t.Errorf("validateAWSAccountID() = %v, want %v", got, tt.want)
+			}
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("validateAWSAccountID() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("validateAWSAccountID() succeeded unexpectedly")
 			}
 		})
 	}
