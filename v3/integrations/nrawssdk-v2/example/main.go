@@ -54,6 +54,14 @@ func main() {
 	}
 
 	s3Client := s3.NewFromConfig(awsConfig)
+	// If you want to instrument per request pass InitializeMiddleware in an optional
+	// function with the resolved awsConfig.Credentials
+	// output, err := s3Client.ListBuckets(ctx, nil, func(o *s3.Options) {
+	// 	nrawssdk.InitializeMiddleware(&o.APIOptions, ctx, awsConfig.Credentials)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// })
 	output, err := s3Client.ListBuckets(ctx, nil)
 	if err != nil {
 		log.Fatal(err)

@@ -94,6 +94,8 @@ type Config struct {
 		MaxSamplesStored int
 	}
 
+	// CloudAWS allows the setting of the AccountID and the enabling/disabling
+	// of AccountID decoding using the AWS access key
 	CloudAWS struct {
 		AccountID       string
 		AccountDecoding struct {

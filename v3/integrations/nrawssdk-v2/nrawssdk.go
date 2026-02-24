@@ -197,7 +197,7 @@ func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newre
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	nrawssdk.InitializeMiddleware(awsConfig, nil, awsConfig.Credentials)
+//	nrawssdk.InitializeMiddleware(awsConfig, ctx, awsConfig.Credentials)
 //
 // The middleware can also be added later, per AWS service call using
 // the `optFns` parameter. For example:
@@ -215,7 +215,7 @@ func AppendMiddlewares(apiOptions *[]func(*smithymiddle.Stack) error, txn *newre
 //
 //	txn := loadNewRelicTransaction()
 //	output, err := s3Client.ListBuckets(ctx, nil, func(o *s3.Options) error {
-//		nrawssdk.AppendMiddlewares(&o.APIOptions, txn, o.Credentials)
+//		nrawssdk.InitializeMiddlewares(&o.APIOptions, ctx, wsConfig.Credential)
 //		return nil
 //	})
 //	if err != nil {
@@ -354,7 +354,7 @@ func (m *defaultResolver) AWSAccountIdFromAWSAccessKey(creds aws.Credentials) (s
 
 	mask := uint64(0x7fffffffff80)
 
-	num := (bigEndian & mask) >> 7 // apply mask and get rid of last 7 bytes from mask
+	num := (bigEndian & mask) >> 7 // apply mask and get rid of last 7 bits from mask
 
 	return fmt.Sprintf("%d", num), nil
 }
