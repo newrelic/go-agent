@@ -8,9 +8,10 @@ package awssupport
 
 import (
 	"context"
-	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"net/http"
 	"reflect"
+
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )

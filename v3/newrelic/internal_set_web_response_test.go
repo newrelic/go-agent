@@ -42,7 +42,7 @@ func TestSetWebResponseSuccess(t *testing.T) {
 	txn := app.StartTransaction("hello")
 	w := httptest.NewRecorder()
 	rw := txn.SetWebResponse(w)
-	rw.WriteHeader(123)
+	rw.WriteHeader(200)
 	hdr := rw.Header()
 	hdr.Set("zip", "zap")
 	body := "should not panic"
@@ -51,7 +51,7 @@ func TestSetWebResponseSuccess(t *testing.T) {
 		t.Error(err, n)
 	}
 	txn.End()
-	if w.Code != 123 {
+	if w.Code != 200 {
 		t.Error(w.Code)
 	}
 	if w.HeaderMap.Get("zip") != "zap" {
@@ -62,8 +62,8 @@ func TestSetWebResponseSuccess(t *testing.T) {
 	}
 	app.ExpectTxnEvents(t, []internal.WantEvent{{
 		AgentAttributes: map[string]interface{}{
-			"httpResponseCode": 123,
-			"http.statusCode":  123,
+			"httpResponseCode": 200,
+			"http.statusCode":  200,
 		},
 		Intrinsics: map[string]interface{}{"name": "OtherTransaction/Go/hello"},
 	}})
