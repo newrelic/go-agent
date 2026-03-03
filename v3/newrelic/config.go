@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -91,6 +92,15 @@ type Config struct {
 		// MaxSamplesStored allows you to limit the number of Transaction
 		// Events stored/reported in a given 60-second period
 		MaxSamplesStored int
+	}
+
+	// CloudAWS allows the setting of the AccountID and the enabling/disabling
+	// of AccountID decoding using the AWS access key
+	CloudAWS struct {
+		AccountID       string
+		AccountDecoding struct {
+			Enabled bool
+		}
 	}
 
 	// ErrorCollector controls the capture of errors.
@@ -744,6 +754,9 @@ func defaultConfig() Config {
 	// Module Dependency Metrics
 	c.ModuleDependencyMetrics.Enabled = true
 	c.ModuleDependencyMetrics.RedactIgnoredPrefixes = true
+
+	// Cloud AWS
+	c.CloudAWS.AccountDecoding.Enabled = true
 	return c
 }
 
@@ -853,6 +866,24 @@ func maxLogEvents(configured int) int {
 		return internal.MaxLogEvents
 	}
 	return configured
+}
+
+// validateAWSAccountID returns an empty string and an error if the
+// accountID passed in is not a 12 digit number as specified by the AWS docs:
+// https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-identifiers.html#awsaccountid
+// otherwise it returns the passed in accountID
+func validateAWSAccountID(accountID string) (string, error) {
+	if len(accountID) != 12 {
+		return "", fmt.Errorf("improper aws accountID format.  12 digit number required")
+	}
+	i, err := strconv.Atoi(accountID)
+	if err != nil {
+		return "", fmt.Errorf("improper aws accountID format.  12 digit number required")
+	}
+	if i < 0 {
+		return "", fmt.Errorf("improper aws accountID format.  12 digit number required")
+	}
+	return accountID, nil
 }
 
 func copyDestConfig(c AttributeDestinationConfig) AttributeDestinationConfig {
