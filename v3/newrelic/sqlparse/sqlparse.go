@@ -39,6 +39,7 @@ var (
 		"alter":    nil,
 		"commit":   nil,
 		"rollback": nil,
+		"with":     nil,
 	}
 	firstWordRegex   = regexp.MustCompile(`^\w+`)
 	cCommentRegex    = regexp.MustCompile(`(?is)/\*.*?\*/`)
