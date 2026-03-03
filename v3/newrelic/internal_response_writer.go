@@ -60,6 +60,9 @@ func (rw *replacementResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, erro
 func (rw *replacementResponseWriter) ReadFrom(r io.Reader) (int64, error) {
 	return rw.original.(io.ReaderFrom).ReadFrom(r)
 }
+func (rw *replacementResponseWriter) Unwrap() {
+	rw.Unwrap()
+}
 
 func upgradeResponseWriter(rw *replacementResponseWriter) http.ResponseWriter {
 	// GENERATED CODE DO NOT MODIFY
