@@ -9,6 +9,8 @@ garbage collection, goroutine activity, and memory use.
 
 Go is a compiled language, and doesn’t use a virtual machine. This means that setting up New Relic for your Golang app requires you to use our Go agent API and manually add New Relic methods to your source code. Our API provides exceptional flexibility and control over what gets instrumented.
 
+If you prefer a more automated approach, we also offer [go-easy-instrumentation](https://github.com/newrelic/go-easy-instrumentation), a CLI tool that analyzes your Go code and suggests where New Relic instrumentation should be added, making the setup process faster and easier.
+
 ## Installation
 
 ### Compatibility and Requirements
