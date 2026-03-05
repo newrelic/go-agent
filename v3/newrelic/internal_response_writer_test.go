@@ -42,6 +42,14 @@ func (rw *rwTwoExtraMethods) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, nil
 }
 
+func TestReplacementResponseWriterUnwrap(t *testing.T) {
+	original := &rwNoExtraMethods{}
+	rw := &replacementResponseWriter{original: original}
+	if got := rw.Unwrap(); got != original {
+		t.Fatalf("Unwrap returned unexpected response writer: got %T, want %T", got, original)
+	}
+}
+
 func TestTransactionAllExtraMethods(t *testing.T) {
 	app := testApp(nil, nil, t)
 	rw := &rwAllExtraMethods{}
