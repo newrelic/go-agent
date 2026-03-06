@@ -29,7 +29,7 @@ type PreconnectReply struct {
 	SecurityPolicies SecurityPolicies `json:"security_policies"`
 }
 
-// ConnectReply contains all of the settings and state send down from the
+// ConnectReply contains all of the settings and state sent down from the
 // collector.  It should not be modified after creation.
 type ConnectReply struct {
 	RunID                 AgentRunID        `json:"agent_run_id"`
@@ -102,6 +102,7 @@ type ConnectReply struct {
 		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
 		ErrorCollectorExpectStatusCodes      []int       `json:"error_collector.expected_status_codes"`
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
+		ProfilingEnabled                     *bool       `json:"profiling.enabled"`
 	} `json:"agent_config"`
 
 	// Faster Event Harvest

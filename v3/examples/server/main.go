@@ -371,14 +371,17 @@ func main() {
 		newrelic.ConfigCustomInsightsEventsMaxSamplesStored(500000),
 		newrelic.ConfigProfilingInclude(
 			newrelic.ProfilingTypeCPU|
-				newrelic.ProfilingTypeGoroutine|
+				//				newrelic.ProfilingTypeGoroutine|
 				newrelic.ProfilingTypeHeap|
-				newrelic.ProfilingTypeMutex|
-				newrelic.ProfilingTypeThreadCreate|
-				newrelic.ProfilingTypeTrace|
-				newrelic.ProfilingTypeBlock),
+				// newrelic.ProfilingTypeMutex|
+				// newrelic.ProfilingTypeThreadCreate|
+				// newrelic.ProfilingTypeTrace|
+				// newrelic.ProfilingTypeBlock),
+				0),
 		newrelic.ConfigProfilingSampleInterval(time.Millisecond*500),
 		newrelic.ConfigProfilingCPUReportInterval(time.Minute*5),
+		//		newrelic.ConfigProfilingDelay(20*time.Second),
+		//		newrelic.ConfigProfilingDuration(1*time.Minute),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -388,10 +391,10 @@ func main() {
 	if err := app.WaitForConnection(time.Second * 120); err != nil {
 		log.Printf("Failed to connect in 120 seconds: %v", err)
 	}
+	if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
+		fmt.Println("unable to set profiling directory: %v", err)
+	}
 	log.Printf("Connected")
-	//if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
-	//	fmt.Println("unable to set profiling directory: %v", err)
-	//}
 	if err := app.OpenProfileAuditLog("/tmp/profile-audit"); err != nil {
 		panic(err)
 	}
@@ -404,9 +407,9 @@ func main() {
 	}
 
 	//app.SetProfileOutputMELT()
-	if err := app.SetProfileOutputOTEL(); err != nil {
-		panic(err)
-	}
+	//	if err := app.SetProfileOutputPPROF(); err != nil {
+	//		panic(err)
+	//	}
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))

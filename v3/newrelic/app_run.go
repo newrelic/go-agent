@@ -71,6 +71,9 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	if v := run.Reply.ServerSideConfig.CrossApplicationTracerEnabled; v != nil {
 		run.Config.CrossApplicationTracer.Enabled = *v
 	}
+	if v := run.Reply.ServerSideConfig.ProfilingEnabled; v != nil {
+		run.Config.Profiling.Enabled = *v
+	}
 	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; v != nil {
 		switch val := v.(type) {
 		case float64:

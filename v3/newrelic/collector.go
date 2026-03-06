@@ -210,7 +210,7 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) *rpmRespon
 	// N.B. This should ONLY be done if the message body is already gzip-compressed and need not
 	// be compressed again.
 	var err error
-	var compressed []byte
+	var compressed *bytes.Buffer
 
 	if cs.GzipWriterPool != nil {
 		compressed, err = compress(cmd.Data, cs.GzipWriterPool)
@@ -218,7 +218,7 @@ func collectorRequestInternal(url string, cmd rpmCmd, cs rpmControls) *rpmRespon
 			return newRPMResponse(err)
 		}
 	} else {
-		compressed = cmd.Data
+		compressed = bytes.NewBuffer(cmd.Data)
 	}
 
 	if l := compressed.Len(); l > cmd.MaxPayloadSize {

@@ -482,6 +482,20 @@ func ConfigProfilingIncludeByName(ptype []string) ConfigOption {
 	}
 }
 
+// ConfigProfilingDelay sets the delay before the profiler is automatically started (assuming it's enabled).
+func ConfigProfilingDelay(delay time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Delay = delay
+	}
+}
+
+// ConfigProfilingDuration sets the time until the profiler is automatically stopped.
+func ConfigProfilingDuration(duration time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Duration = duration
+	}
+}
+
 // ConfigProfilingIncludeByNames is just like ConfigProfilingInclude, execpt that it takes
 // a list of human-friendly strings with the profiling type names, e.g., "cpu" for ProfilingTypeCPU.
 func ConfigProfilingIncludeByNames(ptype ...string) ConfigOption {
@@ -540,53 +554,55 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//						NEW_RELIC_APP_NAME                                			sets AppName
-//						NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//						NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
-//						NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
-//						NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
-//						NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
-//						NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
-//						NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
-//						NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
-//						NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
-//					 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
-//						NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
-//						NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
-//						NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
-//						NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
-//						NEW_RELIC_HOST                                    			sets Host
-//						NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//						NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
-//						NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
-//						NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//						NEW_RELIC_LICENSE_KEY                             			sets License
-//						NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//						NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//						NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
-//						NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
-//						NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
-//						NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
-//						NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
-//						NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
-//					 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
-//				     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
-//				     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
-//					 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
-//					 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
-//						NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
-//						NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
-//						NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
-//						NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
-//			         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
-//					 NEW_RELIC_PROFILING_HOST									 sets Profiling.Host OTEL ingest endpoint
-//		          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
-//		          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
-//		          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
-//		          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
-//		          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
-//	           NEW_RELIC_PROFILING_WITH_SEGMENTS                              sets Profiling.WithSegments
-//			         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
+//							NEW_RELIC_APP_NAME                                			sets AppName
+//							NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//							NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
+//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
+//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
+//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
+//							NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
+//							NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//							NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//							NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
+//						 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
+//							NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
+//							NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
+//							NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
+//							NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
+//							NEW_RELIC_HOST                                    			sets Host
+//							NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
+//							NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//							NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
+//							NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//							NEW_RELIC_LICENSE_KEY                             			sets License
+//							NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//							NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//							NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
+//							NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
+//							NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
+//							NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
+//							NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
+//							NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
+//						 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
+//					     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
+//					     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
+//						 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
+//						 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//							NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//							NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//							NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
+//							NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//				         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
+//						 NEW_RELIC_PROFILING_HOST									 sets Profiling.Host OTEL ingest endpoint
+//	                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
+//	                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
+//			          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
+//			          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
+//			          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
+//			          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
+//			          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
+//		           NEW_RELIC_PROFILING_WITH_SEGMENTS                              sets Profiling.WithSegments
+//				         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -741,6 +757,14 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		var intervalMS int
 		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS") && intervalMS >= 0 {
 			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
+		}
+		var delayMS int
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DELAY") && delayMS >= 0 {
+			cfg.Profiling.Delay = time.Duration(delayMS) * time.Millisecond
+		}
+		var durationMS int
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DURATION") && durationMS >= 0 {
+			cfg.Profiling.Duration = time.Duration(durationMS) * time.Millisecond
 		}
 		var intervalCPU int
 		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS") && intervalCPU >= 0 {

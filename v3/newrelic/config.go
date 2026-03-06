@@ -574,6 +574,11 @@ type Config struct {
 		// along with the sample data so they can be associated with them when data are
 		// analyzed later.
 		WithSegments bool
+		// Delay controls how long to wait before starting the profiler.
+		Delay time.Duration
+		// Duration controls how long to run the profiler before automatically stopping it. If this is
+		// zero (the default), the profiler runs until explicitly stopped.
+		Duration time.Duration
 		// SelectedProfiles indicates which kinds of profiles we're collecting and reporting.
 		SelectedProfiles ProfilingType
 		// Interval is the rate at which the profiler gathers and reports non-CPU profile data.

@@ -27,7 +27,7 @@ import (
 const (
 	profileNilDest byte = iota
 	profileLocalFile
-	profileIngestOTEL
+	profileIngestPPROF
 	profileIngestMELT
 )
 
@@ -95,44 +95,48 @@ func auditError(audit io.Writer, eventType string, harvestSeq int64, e error, fo
 }
 
 type profilerConfig struct {
-	lock            sync.RWMutex // protects creation of the ticker and access to map
-	segLock         sync.RWMutex // protects access to segment list
-	sampleTicker    *time.Ticker // once made, only read by monitor goroutine
-	cpuReportTicker *time.Ticker // once made, only read by monitor goroutine
-	isRunning       bool
-	selected        ProfilingType // which profiling types we've selected to report
-	auditFile       *os.File      // debugging audit file of profile data (nil for normal production runs)
-	done            chan byte
-	outputDirectory string
-	ingestSwitch    chan byte
-	outputSwitch    chan string
-	switchResult    chan error
-	activeSegments  map[string]struct{}
-	blockRate       int
-	mutexRate       int
-	cpuSampleRateHz int
-	ingestEndpoint  string
-	ingestClient    *http.Client
-	apiKey          string
-	serviceName     string
-	hostname        string
-	entityGUID      string
-
-
-
-	RPMControls
-	 License: copy str
-	 Client:	copy *http.Client
-	 Logger:	copy logger.Logger
-	 GzipWriterPool		copy *sync.Pool (or for us just set to nil)
-	RPMCmd
-	 Name:cmdPprofData
-	 Collector:
-	 RunID:
-	 Data:
-	 RequestHeadersMap:
-	 MaxPayloadSize:
-
+	lock              sync.RWMutex // protects creation of the ticker and access to map
+	segLock           sync.RWMutex // protects access to segment list
+	sampleTicker      *time.Ticker // once made, only read by monitor goroutine
+	cpuReportTicker   *time.Ticker // once made, only read by monitor goroutine
+	delayToStart      time.Duration
+	delayToStop       time.Duration
+	isRunning         bool
+	selected          ProfilingType // which profiling types we've selected to report
+	auditFile         *os.File      // debugging audit file of profile data (nil for normal production runs)
+	done              chan byte
+	outputDirectory   string
+	ingestSwitch      chan byte
+	outputSwitch      chan string
+	switchResult      chan error
+	activeSegments    map[string]struct{}
+	blockRate         int
+	mutexRate         int
+	cpuSampleRateHz   int
+	ingestEndpoint    string
+	ingestClient      *http.Client
+	apiKey            string
+	serviceName       string
+	hostname          string
+	entityGUID        string
+	methodRpmCmd      rpmCmd
+	methodRpmControls rpmControls
+	//
+	//
+	//
+	//	RPMControls
+	//	 License: copy str
+	//	 Client:	copy *http.Client
+	//	 Logger:	copy logger.Logger
+	//	 GzipWriterPool		copy *sync.Pool (or for us just set to nil)
+	//	RPMCmd
+	//	 Name:cmdPprofData
+	//	 Collector:
+	//	 RunID:
+	//	 Data:
+	//	 RequestHeadersMap:
+	//	 MaxPayloadSize:
+	//
 
 }
 
@@ -148,12 +152,43 @@ func (p *profilerConfig) SetRunning(state bool) {
 	p.lock.Unlock()
 }
 
+func (a *app) UpdateProfiler() {
+	if a == nil {
+		return
+	}
+	a.profiler.lock.Lock()
+	defer a.profiler.lock.Unlock()
+
+	reply, err := a.getState()
+	fmt.Printf("retrying to get collector data...\n")
+	if err == nil {
+		a.profiler.entityGUID = reply.Reply.EntityGUID
+		a.profiler.methodRpmCmd.Collector = reply.Reply.Collector
+		a.profiler.methodRpmCmd.RunID = reply.Reply.RunID.String()
+		a.profiler.methodRpmCmd.RequestHeadersMap = reply.Reply.RequestHeadersMap
+		a.profiler.methodRpmCmd.MaxPayloadSize = reply.Reply.MaxPayloadSizeInBytes
+		fmt.Printf("*****\n*****\ncollector=%s, id=%s, headers=%v, max=%d\n******\n\n\n",
+			a.profiler.methodRpmCmd.Collector,
+			a.profiler.methodRpmCmd.RunID,
+			a.profiler.methodRpmCmd.RequestHeadersMap,
+			a.profiler.methodRpmCmd.MaxPayloadSize)
+	} else {
+		fmt.Printf("error: %v\n", err)
+	}
+}
+
 func (a *app) StartProfiler() {
 	if a == nil {
 		return
 	}
+	if a.config.HighSecurity {
+		a.config.Logger.Error("refusing to start profiler in high security mode", nil)
+		return
+	}
 
 	a.profiler.lock.Lock()
+	a.profiler.delayToStart = a.config.Profiling.Delay
+	a.profiler.delayToStop = a.config.Profiling.Duration
 	a.profiler.selected = a.config.Profiling.SelectedProfiles
 	a.profiler.blockRate = a.config.Profiling.BlockRate
 	a.profiler.mutexRate = a.config.Profiling.MutexRate
@@ -163,37 +198,29 @@ func (a *app) StartProfiler() {
 	a.profiler.apiKey = a.config.License
 	reply, err := a.getState()
 	a.profiler.hostname = a.config.hostname
-	if err != nil {
+	if err == nil {
 		a.profiler.entityGUID = reply.Reply.EntityGUID
-		a.profiler.runID = reply.Reply.RunID
-		a.profiler.maxPayloadSizeInBytes = reply.Reply.MaxPayloadSizeInBytes
+		//		a.profiler.runID = reply.Reply.RunID
+		a.profiler.methodRpmCmd.Collector = reply.Reply.Collector
+		a.profiler.methodRpmCmd.RunID = reply.Reply.RunID.String()
+		a.profiler.methodRpmCmd.RequestHeadersMap = reply.Reply.RequestHeadersMap
+		a.profiler.methodRpmCmd.MaxPayloadSize = reply.Reply.MaxPayloadSizeInBytes
+		fmt.Printf("*****\n*****\ncollector=%s, id=%se, headers=%v, max=%d\n******\n\n\n",
+			a.profiler.methodRpmCmd.Collector,
+			a.profiler.methodRpmCmd.RunID,
+			a.profiler.methodRpmCmd.RequestHeadersMap,
+			a.profiler.methodRpmCmd.MaxPayloadSize)
+	} else {
+		fmt.Println("******** NIL *******")
 	}
-	a.profiler.rpmControls.License = a.rpmControls.License	// string value; make local copy we can use
-	a.profiler.rpmControls.Client = a.rpmControls.Client	// *http.Client is goroutine-safe for us to use concurrently
-	a.profiler.rpmControls.Logger = a.rpmControls.Logger	// logger.Logger is goroutine-safe for us to use concurrently
-	a.profiler.rpmControls.GzipWriterPool = nil				// our data is already gzip compressed so don't let our collecter request code compress it again
+	a.profiler.methodRpmControls.License = a.rpmControls.License // string value; make local copy we can use
+	a.profiler.methodRpmControls.Client = a.rpmControls.Client   // *http.Client is goroutine-safe for us to use concurrently
+	a.profiler.methodRpmControls.Logger = a.rpmControls.Logger   // logger.Logger is goroutine-safe for us to use concurrently
+	a.profiler.methodRpmControls.GzipWriterPool = nil            // our data is already gzip compressed so don't let our collecter request code compress it again
 	a.profiler.lock.Unlock()
 	a.setProfileSampleInterval(a.config.Profiling.Interval)
 	a.setProfileCPUReportInterval(a.config.Profiling.CPUReportInterval)
-
-
-
-	a.profiler.rpmCmd.Name = cmdPprofData
-	a.profiler.rpmCmd.Collector
-	a.profiler.rpmCmd.Data
-
-
-	rpmCmd{
-		Name: cmdPprofData,
-		Collector:
-		Data:
-		MaxPayloadSize: internal.MaxPayloadSizeInBytes, //?
-	}
-
-	rpmControls{
-	}
-
-
+	a.profiler.methodRpmCmd.Name = cmdPprofData
 }
 
 // AddSegmentToProfiler signals that a segment has started which the profiler should report as being
@@ -341,18 +368,18 @@ func (app *Application) SetProfileOutputDirectory(dirname string) error {
 	return fmt.Errorf("nil application")
 }
 
-// SetProfileOutputOTEL changes the destination for the profiler's output so that
-// all further profile data will be written to an OTEL-compatible profiling signal
+// SetProfileOutputPPROF changes the destination for the profiler's output so that
+// all further profile data will be written to a PPROF-compatible profiling signal
 // endpoint. It also refreshes the linking metadata including entityGUID in case
 // this needs to be updated.
-func (app *Application) SetProfileOutputOTEL() error {
+func (app *Application) SetProfileOutputPPROF() error {
 	if app != nil && app.app != nil {
 		md := app.GetLinkingMetadata()
 		app.app.profiler.lock.Lock()
 		defer app.app.profiler.lock.Unlock()
 		app.app.profiler.hostname = md.Hostname
 		app.app.profiler.entityGUID = md.EntityGUID
-		app.app.profiler.ingestSwitch <- profileIngestOTEL
+		app.app.profiler.ingestSwitch <- profileIngestPPROF
 		return <-app.app.profiler.switchResult
 	}
 	return fmt.Errorf("nil application")
@@ -446,9 +473,29 @@ func (pc *profilerConfig) monitor(a *app) {
 		return
 	}
 
+	if pc.delayToStart > 0 {
+		a.config.Logger.Info(fmt.Sprintf("profiler delaying startup %s", a.config.Config.Profiling.Delay.String()), nil)
+		time.Sleep(pc.delayToStart)
+		a.config.Logger.Info(fmt.Sprintf("profiler starting after delay"), nil)
+	}
+
+	var autoShutdown *time.Timer
+	if pc.delayToStop > 0 {
+		a.config.Logger.Info(fmt.Sprintf("profiler will run for %s before stopping", a.config.Config.Profiling.Duration.String()), nil)
+		autoShutdown = time.NewTimer(pc.delayToStop)
+		a.config.Logger.Info(fmt.Sprintf("timer set"), nil)
+	} else {
+		autoShutdown = time.NewTimer(0)
+		if !autoShutdown.Stop() {
+			<-autoShutdown.C
+		}
+	}
+	a.config.Logger.Info(fmt.Sprintf("starting"), nil)
+
 	pc.SetRunning(true)
 	defer pc.SetRunning(false)
 
+	a.config.Logger.Info(fmt.Sprintf("started"), nil)
 	auditLog(pc.auditFile, "monitor started")
 	if pc.isBlockSelected() {
 		runtime.SetBlockProfileRate(pc.blockRate)
@@ -462,6 +509,19 @@ func (pc *profilerConfig) monitor(a *app) {
 	var cpuData, traceData bytes.Buffer
 	var err error
 	var harvestNumber int64
+
+	a.config.Logger.Info("launching ingest switch", nil)
+	go func() {
+		a.config.Logger.Info("launching ingest switch", nil)
+		pc.ingestSwitch <- profileIngestPPROF
+		err := <-pc.switchResult
+		a.config.Logger.Info("launching ingest switch", map[string]any{"err": err})
+		if err != nil {
+			a.config.Logger.Error("unable to switch to default PPROF ingest destination", map[string]any{
+				"reason": err,
+			})
+		}
+	}()
 
 	reportBufferedTraceSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		var err error
@@ -537,8 +597,8 @@ func (pc *profilerConfig) monitor(a *app) {
 		}
 	}
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
-		if profileDestination == profileIngestOTEL {
-			pc.sendOTELProfileRawData(eventType, eventType, profileData)
+		if profileDestination == profileIngestPPROF {
+			pc.sendProfilePprofMethod(eventType, eventType, profileData)
 			return
 		}
 
@@ -661,7 +721,14 @@ func (pc *profilerConfig) monitor(a *app) {
 	}
 	defer closeLocalFiles()
 
+	fmt.Println("starting loop")
 	for {
+		fmt.Println("checking for update")
+		if pc.methodRpmCmd.RunID == "" {
+			// we haven't successfully obtained this yet; try again
+			fmt.Println("need to update")
+			a.UpdateProfiler()
+		}
 		select {
 		// To prevent interthread contention without the need for mutexes, we use channels here
 		// to let user threads request switching profile output destinations here and only this
@@ -669,7 +736,7 @@ func (pc *profilerConfig) monitor(a *app) {
 		//
 		case newDestination := <-pc.ingestSwitch:
 			switch newDestination {
-			case profileIngestOTEL, profileIngestMELT, profileNilDest:
+			case profileIngestPPROF, profileIngestMELT, profileNilDest:
 				if profileDestination == profileLocalFile {
 					closeLocalFiles()
 				}
@@ -823,8 +890,8 @@ func (pc *profilerConfig) monitor(a *app) {
 				reportProfileSample := func(profileName, eventType string, debug bool, audit io.Writer) {
 					var data bytes.Buffer
 					pprof.Lookup(profileName).WriteTo(&data, 0)
-					if profileDestination == profileIngestOTEL {
-						pc.sendOTELProfileRawData(profileName, eventType, &data)
+					if profileDestination == profileIngestPPROF {
+						pc.sendProfilePprofMethod(profileName, eventType, &data)
 						return
 					}
 					var p *profile.Profile
@@ -938,6 +1005,10 @@ func (pc *profilerConfig) monitor(a *app) {
 			// We were told to terminate our profile monitoring
 			auditLog(pc.auditFile, "monitor stopped")
 			return
+		case <-autoShutdown.C:
+			auditLog(pc.auditFile, "monitor auto-stopped")
+			a.config.Logger.Info(fmt.Sprintf("profiler automatically stopped due to configured duration"), nil)
+			return
 		}
 	}
 }
@@ -957,10 +1028,26 @@ func normalizeAttrNameFromSampleValueType(typeName, unitName string) string {
 	}, strings.ToLower(typeName+"_"+unitName))
 }
 
-func (pc *profilerConfig) sendOTELProfilePprofMethod(profileName, eventType string, data *bytes.Buffer) {
+func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, data *bytes.Buffer) {
+
+	pc.methodRpmCmd.Data = data.Bytes()
+	fmt.Printf("Sending payload of %d bytes\n", len(pc.methodRpmCmd.Data))
+	resp := collectorRequest(pc.methodRpmCmd, pc.methodRpmControls)
+	if resp.IsDisconnect() || resp.IsRestartException() {
+		// TODO: handle shutdown condition
+		fmt.Println("SHUTDOWN")
+		return
+	}
+	if resp.GetError() != nil {
+		// TODO
+		fmt.Printf("ERROR %v\n", resp.GetError().Error())
+		return
+	}
+
+	fmt.Printf("--> %v [%v]\n", resp.statusCode, string(resp.body))
 }
 
-func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, data *bytes.Buffer) {
+func (pc *profilerConfig) sendExperimentalPPROFProfileRawData(profileName, eventType string, data *bytes.Buffer) {
 	if pc.ingestClient == nil {
 		pc.ingestClient = &http.Client{Transport: &http.Transport{
 			DisableKeepAlives:  false,
@@ -969,7 +1056,7 @@ func (pc *profilerConfig) sendOTELProfileRawData(profileName, eventType string, 
 			DisableCompression: true, // our data format is already compressed
 		}}
 		if pc.auditFile != nil {
-			auditLog(pc.auditFile, "OTEL ingest endpoint transport setup to %s", pc.ingestEndpoint)
+			auditLog(pc.auditFile, "PPROF ingest endpoint transport setup to %s", pc.ingestEndpoint)
 		}
 	}
 	req, err := http.NewRequest(http.MethodPost, pc.ingestEndpoint, data)
