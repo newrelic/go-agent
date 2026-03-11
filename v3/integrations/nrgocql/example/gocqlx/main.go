@@ -57,11 +57,6 @@ func main() {
 
 	// Add transaction to context
 	ctx := newrelic.NewContext(context.Background(), txn)
-	// Start a New Relic transaction
-	//txn := app.StartTransaction("cassandra-operations")
-
-	// Add transaction to context
-	//ctx := newrelic.NewContext(context.Background(), txn)
 	var tweetMetadata = table.Metadata{
 		Name:    "tweet",
 		Columns: []string{"timeline", "id", "text"},
@@ -69,28 +64,6 @@ func main() {
 		SortKey: []string{"id"},
 	}
 	tweetTable := table.New(tweetMetadata)
-	// id := gocql.TimeUUID()
-	// t := Tweet{
-	// 	Timeline: "me",
-	// 	ID:       id,
-	// 	Text:     "hello world",
-	// }
-	// s, l := tweetTable.Insert()
-	// fmt.Println(s, l)
-	// q := session.Query(tweetTable.Insert()).BindStruct(t)
-	// if err := q.ExecRelease(); err != nil {
-	// 	log.Fatal(err)
-	// }
-	// tt := Tweet{
-	// 	Timeline: "me",
-	// 	ID:       id,
-	// 	Text:     "hello world",
-	// }
-	// q = session.Query(tweetTable.Get()).BindStruct(tt)
-	// if err := q.GetRelease(&tt); err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(tt)
 
 	var tweets []Tweet
 	stmt, names := tweetTable.Select()
@@ -101,26 +74,5 @@ func main() {
 	txn.End()
 	fmt.Println(tweets)
 	app.Shutdown(10 * time.Second)
-
-	// insert a tweet
-	// if err := session.Query(`INSERT INTO tweet (timeline, id, text) VALUES (?, ?, ?)`, nil).
-	// 	Bind("me", gocql.TimeUUID(), "hello world").Exec(); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// var id gocql.UUID
-	// var text string
-
-	// /* Search for a specific set of records whose 'timeline' column matches
-	//  * the value 'me'. The secondary index that we created earlier will be
-	//  * used for optimizing the search */
-	// if err := session.Query(`SELECT id, text FROM tweet WHERE timeline = ? LIMIT 1`, nil).
-	// 	Consistency(gocql.One).Bind("me").Scan(&id, &text); err != nil {
-	// 	log.Fatal(err)
-	// }
-	// //txn.End()
-	// fmt.Println("Tweet:", id, text)
-	// fmt.Println()
-	//app.Shutdown(10 * time.Second)
 
 }
