@@ -19,6 +19,7 @@ package nrgocql
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -36,6 +37,85 @@ type queryObserver[T any] struct {
 	}
 }
 
+type NRGoCQLSessionWrapper struct {
+	original *gocql.Session
+}
+type NRGocqlQueryWrapper struct {
+	original *gocql.Query
+}
+
+func NRGoCQLNewSession(cfg *gocql.ClusterConfig) (*NRGoCQLSessionWrapper, error) {
+	session, err := cfg.CreateSession()
+	if err != nil {
+		return nil, err
+	}
+	return &NRGoCQLSessionWrapper{
+		original: session,
+	}, nil
+}
+
+func (s *NRGoCQLSessionWrapper) Close() {
+	s.original.Close()
+}
+
+func (s *NRGoCQLSessionWrapper) Query(stmt string, values ...any) *NRGocqlQueryWrapper {
+	q := s.original.Query(stmt, values...)
+	return &NRGocqlQueryWrapper{
+		original: q,
+	}
+}
+
+func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrapper {
+	qWithConsitency := q.original.Consistency(c)
+	return &NRGocqlQueryWrapper{
+		original: qWithConsitency,
+	}
+}
+
+func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fmt.Errorf("cannot find nr transaction in context")
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+
+	// do I need newrelic security agent?
+
+	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
+	err := q.original.ExecContext(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (q *NRGocqlQueryWrapper) ScanContext(ctx context.Context, dest ...any) error {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fmt.Errorf("cannot find nr transaction in context")
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+
+	// do I need newrelic security agent?
+
+	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
+	err := q.original.ScanContext(ctx, dest...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // NewQueryObserver returns a gocql.QueryObserver that creates
 // newrelic.DatastoreSegment for each database query. If provided, the
 // original gocql.QueryObserver will be called as well.
@@ -49,20 +129,17 @@ func NewQueryObserver[T any](original interface {
 
 // ObserveQuery implements the gocql.QueryObserver interface
 func (o *queryObserver[T]) ObserveQuery(ctx context.Context, query T) {
-	// Call original observer if present
 	if observer, ok := any(o.original).(interface{ ObserveQuery(context.Context, T) }); ok {
 		if observer != nil {
 			observer.ObserveQuery(ctx, query)
 		}
 	}
 
-	// Get transaction from context
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return
 	}
 
-	// Create and immediately end the segment since ObserveQuery is called after completion
 	var host, statement, keyspace string
 	var port int
 	switch q := any(query).(type) {
@@ -84,17 +161,18 @@ func (o *queryObserver[T]) ObserveQuery(ctx context.Context, query T) {
 
 	}
 
-	sgmt := &newrelic.DatastoreSegment{
-		StartTime:          txn.StartSegmentNow(),
-		Product:            newrelic.DatastoreCassandra,
-		Operation:          extractOperation(statement),
-		ParameterizedQuery: statement,
-		Host:               host,
-		PortPathOrID:       strconv.Itoa(port),
-		DatabaseName:       keyspace,
+	segment, ok := ctx.Value("nrGocqlSegment").(*newrelic.DatastoreSegment)
+	if !ok {
+		return
 	}
+	segment.Operation = extractOperation(statement)
+	segment.ParameterizedQuery = statement
+	segment.Host = host
+	segment.Collection = "tableNameExample"
+	segment.PortPathOrID = strconv.Itoa(port)
+	segment.DatabaseName = keyspace
 
-	sgmt.End()
+	segment.End()
 }
 
 // extractOperation extracts the operation type from a CQL statement

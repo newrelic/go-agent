@@ -37,7 +37,7 @@ func main() {
 	// Set the New Relic query observer
 	cluster.QueryObserver = nrgocql.NewQueryObserver[gocql.ObservedQuery](nil)
 
-	session, err := cluster.CreateSession()
+	session, err := nrgocql.NRGoCQLNewSession(cluster)
 	if err != nil {
 		log.Fatal(err)
 	}
