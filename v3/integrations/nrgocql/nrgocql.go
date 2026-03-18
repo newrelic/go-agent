@@ -65,6 +65,24 @@ func (s *NRGoCQLSessionWrapper) Query(stmt string, values ...any) *NRGocqlQueryW
 	}
 }
 
+func (q *NRGocqlQueryWrapper) execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fmt.Errorf("cannot find nr transaction in context")
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+
+	// do I need newrelic security agent?
+
+	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
+	return fn(ctx, dest...)
+}
+
 func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrapper {
 	qWithConsitency := q.original.Consistency(c)
 	return &NRGocqlQueryWrapper{
@@ -73,47 +91,23 @@ func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrap
 }
 
 func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
-	txn := newrelic.FromContext(ctx)
-	if txn == nil {
-		return fmt.Errorf("cannot find nr transaction in context")
-	}
-
-	// start datastore segment
-	sgmt := &newrelic.DatastoreSegment{
-		StartTime: txn.StartSegmentNow(),
-		Product:   newrelic.DatastoreCassandra,
-	}
-
-	// do I need newrelic security agent?
-
-	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
-	err := q.original.ExecContext(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return q.execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.original.ExecContext(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (q *NRGocqlQueryWrapper) ScanContext(ctx context.Context, dest ...any) error {
-	txn := newrelic.FromContext(ctx)
-	if txn == nil {
-		return fmt.Errorf("cannot find nr transaction in context")
-	}
-
-	// start datastore segment
-	sgmt := &newrelic.DatastoreSegment{
-		StartTime: txn.StartSegmentNow(),
-		Product:   newrelic.DatastoreCassandra,
-	}
-
-	// do I need newrelic security agent?
-
-	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
-	err := q.original.ScanContext(ctx, dest...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return q.execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.original.ScanContext(ctx, dest...)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, dest...)
 }
 
 // NewQueryObserver returns a gocql.QueryObserver that creates
