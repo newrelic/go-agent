@@ -232,6 +232,61 @@ func TestEventWebRequest(t *testing.T) {
 			urlString:  "//:3000/the/path",
 			transport:  newrelic.TransportHTTP,
 		},
+
+		{
+			testname:   "empty LambdaFunctionURLRequest",
+			input:      events.LambdaFunctionURLRequest{},
+			numHeaders: 0,
+			method:     "",
+			urlString:  "",
+			transport:  newrelic.TransportUnknown,
+		},
+		{
+			testname: "populated LambdaFunctionURLRequest",
+			input: events.LambdaFunctionURLRequest{
+				Headers: map[string]string{
+					"x-forwarded-port":  "3000",
+					"x-forwarded-proto": "HttP",
+				},
+				RequestContext: events.LambdaFunctionURLRequestContext{
+					HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{
+						Method: "GET",
+						Path:   "the/path",
+					},
+				},
+			},
+			numHeaders: 2,
+			method:     "GET",
+			urlString:  "//:3000/the/path",
+			transport:  newrelic.TransportHTTP,
+		},
+		{
+			testname:   "nil *LambdaFunctionURLRequest",
+			input:      (*events.LambdaFunctionURLRequest)(nil),
+			numHeaders: 0,
+			method:     "",
+			urlString:  "",
+			transport:  newrelic.TransportUnknown,
+		},
+		{
+			testname: "populated *LambdaFunctionURLRequest",
+			input: &events.LambdaFunctionURLRequest{
+				Headers: map[string]string{
+					"x-forwarded-port":  "3000",
+					"x-forwarded-proto": "HttP",
+				},
+				RequestContext: events.LambdaFunctionURLRequestContext{
+					HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{
+						Method: "GET",
+						Path:   "the/path",
+					},
+				},
+			},
+			numHeaders: 2,
+			method:     "GET",
+			urlString:  "//:3000/the/path",
+			transport:  newrelic.TransportHTTP,
+		},
 	}
 
 	for _, tc := range testcases {
@@ -414,6 +469,112 @@ func TestEventResponse(t *testing.T) {
 					StatusCode:        200,
 					Headers:           tc.headers,
 					MultiValueHeaders: tc.multiValueHeaders,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
+		}
+	})
+
+	t.Run("LambdaFunctionURLResponse", func(t *testing.T) {
+		t.Run("empty", func(t *testing.T) {
+			input := events.LambdaFunctionURLResponse{}
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			if len(tc.multiValueHeaders) > 0 {
+				// LambdaFunctionURLResponse does not currently support multi-value headers
+				continue
+			}
+			t.Run(tc.testname, func(t *testing.T) {
+				input := events.LambdaFunctionURLResponse{
+					StatusCode: 200,
+					Headers:    tc.headers,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
+		}
+	})
+	t.Run("*LambdaFunctionURLResponse", func(t *testing.T) {
+		t.Run("nil", func(t *testing.T) {
+			input := (*events.LambdaFunctionURLResponse)(nil)
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			if len(tc.multiValueHeaders) > 0 {
+				// LambdaFunctionURLResponse does not currently support multi-value headers
+				continue
+			}
+			t.Run(tc.testname, func(t *testing.T) {
+				input := &events.LambdaFunctionURLResponse{
+					StatusCode: 200,
+					Headers:    tc.headers,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
+		}
+	})
+
+	t.Run("LambdaFunctionURLStreamingResponse", func(t *testing.T) {
+		t.Run("empty", func(t *testing.T) {
+			input := events.LambdaFunctionURLStreamingResponse{}
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			if len(tc.multiValueHeaders) > 0 {
+				// LambdaFunctionURLStreamingResponse does not currently support multi-value headers
+				continue
+			}
+			t.Run(tc.testname, func(t *testing.T) {
+				input := events.LambdaFunctionURLStreamingResponse{
+					StatusCode: 200,
+					Headers:    tc.headers,
+				}
+				runTest(t, input, &response{
+					header: tc.wantHeaders,
+					code:   200,
+				})
+			})
+		}
+	})
+	t.Run("*LambdaFunctionURLStreamingResponse", func(t *testing.T) {
+		t.Run("nil", func(t *testing.T) {
+			input := (*events.LambdaFunctionURLStreamingResponse)(nil)
+			runTest(t, input, &response{
+				header: http.Header{},
+				code:   0,
+			})
+		})
+
+		for _, tc := range testcases {
+			if len(tc.multiValueHeaders) > 0 {
+				// LambdaFunctionURLStreamingResponse does not currently support multi-value headers
+				continue
+			}
+			t.Run(tc.testname, func(t *testing.T) {
+				input := &events.LambdaFunctionURLStreamingResponse{
+					StatusCode: 200,
+					Headers:    tc.headers,
 				}
 				runTest(t, input, &response{
 					header: tc.wantHeaders,
