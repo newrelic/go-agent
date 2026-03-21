@@ -1,3 +1,8 @@
+## 3.41.0 Profiling Limited Preview (unreleased)
+ * Added continuous profiling feature to the agent.
+
+ **Note:** Continuous Profiling UI is coming soon! While the Go agent on this special preview branch now supports Continuous Profiling data collection, the visualization experience will debut in Limited Preview starting 23 March 2026. If you would like to get early access to the profiling dashboards and UI features, please reach out to your Account Executive (AE) about how to opt-in to the preview.
+
 ## 3.41.0
 ### Added
   * Added `DistributedTracer.Sampler` config options for controlling the sampling behavior for Inbound Requests for distributed traces
