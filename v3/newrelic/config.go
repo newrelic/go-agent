@@ -28,7 +28,8 @@ const (
 	ProfilingTypeHeap
 	ProfilingTypeMutex
 	ProfilingTypeThreadCreate
-	ProfilingTypeTrace
+	//	ProfilingTypeTrace
+	ProfilingTypeAll = 0xffff
 )
 
 func (p *ProfilingType) FromStrings(types []string, additive bool) error {
@@ -42,6 +43,8 @@ func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 
 	for _, t := range types {
 		switch t {
+		case "all":
+			*p = ProfilingTypeAll
 		case "block":
 			*p |= ProfilingTypeBlock
 		case "cpu":
@@ -54,8 +57,8 @@ func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 			*p |= ProfilingTypeMutex
 		case "threadcreate":
 			*p |= ProfilingTypeThreadCreate
-		case "trace":
-			*p |= ProfilingTypeTrace
+			//		case "trace":
+			//			*p |= ProfilingTypeTrace
 		default:
 			return fmt.Errorf("unknown ProfilingType \"%s\"", t)
 		}
@@ -84,9 +87,9 @@ func (p ProfilingType) Strings() []string {
 	if ProfilingTypeThreadCreate&p != 0 {
 		typeSet = append(typeSet, "threadcreate")
 	}
-	if ProfilingTypeTrace&p != 0 {
-		typeSet = append(typeSet, "trace")
-	}
+	//	if ProfilingTypeTrace&p != 0 {
+	//		typeSet = append(typeSet, "trace")
+	//	}
 	return typeSet
 }
 
@@ -570,10 +573,6 @@ type Config struct {
 	Profiling struct {
 		// Enabled controls whether the profiler is running.
 		Enabled bool
-		// WithSegments controls whether we report the actively-running segments
-		// along with the sample data so they can be associated with them when data are
-		// analyzed later.
-		WithSegments bool
 		// Delay controls how long to wait before starting the profiler.
 		Delay time.Duration
 		// Duration controls how long to run the profiler before automatically stopping it. If this is
@@ -599,8 +598,6 @@ type Config struct {
 		// mutex profiles altogether. Otherwise, we try to get 1/n. By default we set this to 1, which
 		// tries to collect them all.
 		MutexRate int
-		// Host provides the OTEl/pprof ingest endpoint to use.
-		Host string
 	}
 
 	// Security is used to post security configuration on UI.
@@ -861,6 +858,7 @@ func defaultConfig() Config {
 
 	// Profiling settings
 	c.Profiling.CPUSampleRateHz = 100
+	c.Profiling.Interval = 60 * time.Second
 	c.Profiling.BlockRate = 1
 	c.Profiling.MutexRate = 1
 	return c

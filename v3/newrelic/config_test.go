@@ -218,12 +218,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"BlockRate": 1,
 				"CPUReportInterval": 0,
 				"CPUSampleRateHz": 100,
+				"Delay": 0,
+				"Duration": 0,
 				"Enabled":false,
-				"Host": "",
-				"Interval": 0,
+				"Interval": 60000000000,
 				"MutexRate": 1,
-				"SelectedProfiles": null,
-				"WithSegments": false
+				"SelectedProfiles": null
 			},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",
@@ -453,12 +453,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"BlockRate": 1,
 				"CPUReportInterval": 0,
 				"CPUSampleRateHz": 100,
+				"Delay": 0,
+				"Duration": 0,
 				"Enabled":false,
-				"Host": "",
-				"Interval": 0,
+				"Interval": 60000000000,
 				"MutexRate": 1,
-				"SelectedProfiles": null,
-				"WithSegments": false
+				"SelectedProfiles": null
 			},
 			"RuntimeSampler":{"Enabled":true},
 			"SecurityPoliciesToken":"",

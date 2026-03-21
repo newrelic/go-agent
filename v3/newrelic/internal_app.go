@@ -333,6 +333,9 @@ func (app *app) process() {
 			})
 			processConnectMessages(run, app)
 			secureAgent.RefreshState(getLinkedMetaData(app))
+			if run.Config.Profiling.Enabled {
+				app.StartProfiler()
+			}
 		}
 	}
 }
@@ -473,7 +476,7 @@ func newApp(c config) *app {
 				go runSampler(app, runtimeSamplerPeriod)
 			}
 		}
-		// for now run in it's own goroutine but we may move this up to the main process later
+		// for now run in its own goroutine but we may move this up to the main process later
 		if app.config.Profiling.Enabled {
 			app.StartProfiler()
 		}

@@ -441,11 +441,13 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 }
 
 // ConfigProfilingHost sets the ingest endpoint URL for sending OTEL/pprof-format data.
+/*
 func ConfigProfilingHost(URL string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.Profiling.Host = URL
 	}
 }
+*/
 
 // ConfigProfilingEnabled turns on profiling of the runtime, which is further broken down into
 // specific areas to measure by ConfigProfilingInclude.
@@ -458,11 +460,13 @@ func ConfigProfilingEnabled(enabled bool) ConfigOption {
 // ConfigProfilingWithSegments includes segment information in profile samples so that
 // the samples may be associated with what segments were active at the time they were taken,
 // and therefore deduce which code units may be responsible for the resources expended.
+/*
 func ConfigProfilingWithSegments(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.Profiling.WithSegments = enabled
 	}
 }
+*/
 
 // ConfigProfilingInclude enables specific profiler modules to measure aspects of the runtime.
 // These are specified as a list of constant values, e.g., ProfilingTypeCPU, etc.
@@ -476,6 +480,7 @@ func ConfigProfilingInclude(ptype ...ProfilingType) ConfigOption {
 
 // ConfigProfilingIncludeByName is just like ConfigProfilingInclude, execpt that it takes
 // a slice of human-friendly strings with the profiling type names, e.g., "cpu" for ProfilingTypeCPU.
+// "all" means to select all possible types.
 func ConfigProfilingIncludeByName(ptype []string) ConfigOption {
 	return func(cfg *Config) {
 		cfg.Profiling.SelectedProfiles.FromStrings(ptype, false)
@@ -593,7 +598,6 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 //							NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
 //							NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //				         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
-//						 NEW_RELIC_PROFILING_HOST									 sets Profiling.Host OTEL ingest endpoint
 //	                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
 //	                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
 //			          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
@@ -601,7 +605,6 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 //			          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ						 sets Profiling.CPUSampleRateHz
 //			          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
 //			          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
-//		           NEW_RELIC_PROFILING_WITH_SEGMENTS                              sets Profiling.WithSegments
 //				         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //
 // This function is strict and will assign Config.Error if any of the
@@ -749,8 +752,8 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 
 		assignBool(&cfg.Profiling.Enabled, "NEW_RELIC_PROFILING_ENABLED")
-		assignBool(&cfg.Profiling.WithSegments, "NEW_RELIC_PROFILING_WITH_SEGMENTS")
-		assignString(&cfg.Profiling.Host, "NEW_RELIC_PROFILING_HOST")
+		//assignBool(&cfg.Profiling.WithSegments, "NEW_RELIC_PROFILING_WITH_SEGMENTS")
+		//assignString(&cfg.Profiling.Host, "NEW_RELIC_PROFILING_HOST")
 
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.
