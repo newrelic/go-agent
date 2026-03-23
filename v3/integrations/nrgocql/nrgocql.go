@@ -19,7 +19,6 @@ package nrgocql
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -38,10 +37,10 @@ type queryObserver[T any] struct {
 }
 
 type NRGoCQLSessionWrapper struct {
-	original *gocql.Session
+	*gocql.Session
 }
 type NRGocqlQueryWrapper struct {
-	original *gocql.Query
+	*gocql.Query
 }
 
 func NRGoCQLNewSession(cfg *gocql.ClusterConfig) (*NRGoCQLSessionWrapper, error) {
@@ -49,26 +48,17 @@ func NRGoCQLNewSession(cfg *gocql.ClusterConfig) (*NRGoCQLSessionWrapper, error)
 	if err != nil {
 		return nil, err
 	}
-	return &NRGoCQLSessionWrapper{
-		original: session,
-	}, nil
-}
-
-func (s *NRGoCQLSessionWrapper) Close() {
-	s.original.Close()
+	return &NRGoCQLSessionWrapper{session}, nil
 }
 
 func (s *NRGoCQLSessionWrapper) Query(stmt string, values ...any) *NRGocqlQueryWrapper {
-	q := s.original.Query(stmt, values...)
-	return &NRGocqlQueryWrapper{
-		original: q,
-	}
+	return &NRGocqlQueryWrapper{s.Session.Query(stmt, values...)}
 }
 
-func (q *NRGocqlQueryWrapper) execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
-		return fmt.Errorf("cannot find nr transaction in context")
+		return fn(ctx, dest...)
 	}
 
 	// start datastore segment
@@ -76,23 +66,44 @@ func (q *NRGocqlQueryWrapper) execOriginal(ctx context.Context, fn func(ctx cont
 		StartTime: txn.StartSegmentNow(),
 		Product:   newrelic.DatastoreCassandra,
 	}
+	defer sgmt.End()
 
-	// do I need newrelic security agent?
-
+	// securtiy agent?
 	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
-	return fn(ctx, dest...)
+	return fn(ctx, dest...) // enriching of sgmt called withing fn()
 }
 
 func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrapper {
-	qWithConsitency := q.original.Consistency(c)
-	return &NRGocqlQueryWrapper{
-		original: qWithConsitency,
-	}
+	return &NRGocqlQueryWrapper{q.Query.Consistency(c)}
+}
+
+func (q *NRGocqlQueryWrapper) PageSize(n int) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.PageSize(n)}
+}
+
+func (q *NRGocqlQueryWrapper) Bind(v ...interface{}) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.Bind(v...)}
+}
+
+func (q *NRGocqlQueryWrapper) RetryPolicy(r gocql.RetryPolicy) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.RetryPolicy(r)}
+}
+
+func (q *NRGocqlQueryWrapper) Idempotent(value bool) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.Idempotent(value)}
+}
+
+func (q *NRGocqlQueryWrapper) SerialConsistency(cons gocql.Consistency) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.SerialConsistency(cons)}
+}
+
+func (q *NRGocqlQueryWrapper) PageState(state []byte) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{q.Query.PageState(state)}
 }
 
 func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
-	return q.execOriginal(ctx, func(ctx context.Context, dest ...any) error {
-		err := q.original.ExecContext(ctx)
+	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.Query.ExecContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -101,8 +112,8 @@ func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
 }
 
 func (q *NRGocqlQueryWrapper) ScanContext(ctx context.Context, dest ...any) error {
-	return q.execOriginal(ctx, func(ctx context.Context, dest ...any) error {
-		err := q.original.ScanContext(ctx, dest...)
+	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.Query.ScanContext(ctx, dest...)
 		if err != nil {
 			return err
 		}
@@ -155,6 +166,7 @@ func (o *queryObserver[T]) ObserveQuery(ctx context.Context, query T) {
 
 	}
 
+	// enrich segment
 	segment, ok := ctx.Value("nrGocqlSegment").(*newrelic.DatastoreSegment)
 	if !ok {
 		return
@@ -166,7 +178,7 @@ func (o *queryObserver[T]) ObserveQuery(ctx context.Context, query T) {
 	segment.PortPathOrID = strconv.Itoa(port)
 	segment.DatabaseName = keyspace
 
-	segment.End()
+	// security agent?
 }
 
 // extractOperation extracts the operation type from a CQL statement
