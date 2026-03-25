@@ -40,7 +40,7 @@ type NRGocqlxSessionWrapper struct {
 	*gocqlx.Session
 }
 
-type NRGocqlxQueryWrapper struct {
+type NRGocqlxQueryxWrapper struct {
 	*gocqlx.Queryx
 }
 
@@ -52,10 +52,10 @@ func NRGoCQLXWrapSession(cluster *gocql.ClusterConfig) (*NRGocqlxSessionWrapper,
 	return &NRGocqlxSessionWrapper{&session}, nil
 }
 
-func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) error, dest any) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
-		return fn(ctx, dest...)
+		return fn(ctx, dest)
 	}
 
 	// start datastore segment
@@ -67,21 +67,32 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any)
 
 	// securtiy agent?
 	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
-	return fn(ctx, dest...) // enriching of sgmt called withing fn()
+	return fn(ctx, dest) // enriching of sgmt called withing fn()
 }
 
-func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryWrapper {
-	return &NRGocqlxQueryWrapper{s.Session.ContextQuery(ctx, stmt, names)}
+func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
+	return &NRGocqlxQueryxWrapper{s.Session.ContextQuery(ctx, stmt, names)}
 }
 
-func (x *NRGocqlxQueryWrapper) BindMap(arg map[string]any) *NRGocqlxQueryWrapper {
-	return &NRGocqlxQueryWrapper{x.Queryx.BindMap(arg)}
+func (x *NRGocqlxQueryxWrapper) BindMap(arg map[string]any) *NRGocqlxQueryxWrapper {
+	return &NRGocqlxQueryxWrapper{x.Queryx.BindMap(arg)}
 }
 
-func (x *NRGocqlxQueryWrapper) SelectRelease(dest any) error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest ...any) error {
+func (x *NRGocqlxQueryxWrapper) BindStruct(arg any) *NRGocqlxQueryxWrapper {
+	return &NRGocqlxQueryxWrapper{x.Queryx.BindStruct(arg)}
+}
+
+func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
 		x.Queryx.Query = x.Queryx.Query.WithContext(ctx) // Update ctx stored in Query with segment
-		return x.Queryx.SelectRelease(dest[0])
+		return x.Queryx.SelectRelease(dest)
+	}, dest)
+}
+
+func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+		return x.Queryx.GetRelease(dest)
 	}, dest)
 }
 

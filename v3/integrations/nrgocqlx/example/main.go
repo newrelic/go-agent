@@ -69,7 +69,22 @@ func main() {
 	if err := q.SelectRelease(&tweets); err != nil {
 		log.Fatal(err)
 	}
+	uuid, err := gocql.ParseUUID("f05589ea-22df-11f1-9d1c-6e568f55f81c")
+	if err != nil {
+		log.Fatal(err)
+	}
+	t := Tweet{
+		Timeline: "me",
+		ID:       uuid,
+		Text:     "hello world",
+	}
+	stmt, names = tweetTable.Get()
+	qq := session.ContextQuery(ctx, stmt, names).BindStruct(t)
+	if err := qq.GetRelease(&t); err != nil {
+		log.Fatal(err)
+	}
 	txn.End()
+	fmt.Println("\n\n\n", t)
 	fmt.Println(tweets)
 	app.Shutdown(10 * time.Second)
 
