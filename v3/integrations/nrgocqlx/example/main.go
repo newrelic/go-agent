@@ -8,10 +8,10 @@ import (
 	"time"
 
 	gocql "github.com/gocql/gocql"
-	"github.com/newrelic/go-agent/v3/integrations/nrgocql"
 	"github.com/scylladb/gocqlx/v3/qb"
 	"github.com/scylladb/gocqlx/v3/table"
 
+	"github.com/newrelic/go-agent/v3/integrations/nrgocqlx"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
@@ -43,8 +43,8 @@ func main() {
 	cluster.Timeout = 10 * time.Second
 
 	// Set the New Relic query observer
-	cluster.QueryObserver = nrgocql.NewQueryObserver[gocql.ObservedQuery](nil)
-	session, err := nrgocql.NRGoCQLXWrapSession(cluster)
+	cluster.QueryObserver = nrgocqlx.NewQueryObserver(nil)
+	session, err := nrgocqlx.NRGoCQLXWrapSession(cluster)
 	if err != nil {
 		log.Fatal(err)
 	}

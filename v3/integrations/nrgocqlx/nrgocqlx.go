@@ -15,16 +15,17 @@
 //
 //	ctx := newrelic.NewContext(context.Background(), txn)
 //	err := session.Query(`SELECT id, text FROM tweet WHERE timeline = ?`, "me").ExecContext(ctx)
-package nrgocql
+package nrgocqlx
 
 import (
 	"context"
 	"strconv"
 	"strings"
 
-	gocql "github.com/apache/cassandra-gocql-driver/v2"
+	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	gocqlx "github.com/scylladb/gocqlx/v3"
 )
 
 func init() { internal.TrackUsage("integration", "datastore", "gocql") }
@@ -35,20 +36,20 @@ type queryObserver struct {
 	}
 }
 
-type NRGoCQLSessionWrapper struct {
-	*gocql.Session
+type NRGocqlxSessionWrapper struct {
+	*gocqlx.Session
 }
 
-type NRGocqlQueryWrapper struct {
-	*gocql.Query
+type NRGocqlxQueryWrapper struct {
+	*gocqlx.Queryx
 }
 
-func NRGoCQLNewSession(cfg *gocql.ClusterConfig) (*NRGoCQLSessionWrapper, error) {
-	session, err := cfg.CreateSession()
+func NRGoCQLXWrapSession(cluster *gocql.ClusterConfig) (*NRGocqlxSessionWrapper, error) {
+	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		return nil, err
 	}
-	return &NRGoCQLSessionWrapper{session}, nil
+	return &NRGocqlxSessionWrapper{&session}, nil
 }
 
 func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
@@ -65,60 +66,23 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any)
 	defer sgmt.End()
 
 	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
+	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
 	return fn(ctx, dest...) // enriching of sgmt called withing fn()
 }
 
-func (s *NRGoCQLSessionWrapper) Query(stmt string, values ...any) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{s.Session.Query(stmt, values...)}
+func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryWrapper {
+	return &NRGocqlxQueryWrapper{s.Session.ContextQuery(ctx, stmt, names)}
 }
 
-func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.Consistency(c)}
+func (x *NRGocqlxQueryWrapper) BindMap(arg map[string]any) *NRGocqlxQueryWrapper {
+	return &NRGocqlxQueryWrapper{x.Queryx.BindMap(arg)}
 }
 
-func (q *NRGocqlQueryWrapper) PageSize(n int) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.PageSize(n)}
-}
-
-func (q *NRGocqlQueryWrapper) Bind(v ...interface{}) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.Bind(v...)}
-}
-
-func (q *NRGocqlQueryWrapper) RetryPolicy(r gocql.RetryPolicy) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.RetryPolicy(r)}
-}
-
-func (q *NRGocqlQueryWrapper) Idempotent(value bool) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.Idempotent(value)}
-}
-
-func (q *NRGocqlQueryWrapper) SerialConsistency(cons gocql.Consistency) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.SerialConsistency(cons)}
-}
-
-func (q *NRGocqlQueryWrapper) PageState(state []byte) *NRGocqlQueryWrapper {
-	return &NRGocqlQueryWrapper{Query: q.Query.PageState(state)}
-}
-
-func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
-	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
-		err := q.Query.ExecContext(ctx)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (q *NRGocqlQueryWrapper) ScanContext(ctx context.Context, dest ...any) error {
-	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
-		err := q.Query.ScanContext(ctx, dest...)
-		if err != nil {
-			return err
-		}
-		return nil
-	}, dest...)
+func (x *NRGocqlxQueryWrapper) SelectRelease(dest any) error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest ...any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx) // Update ctx stored in Query with segment
+		return x.Queryx.SelectRelease(dest[0])
+	}, dest)
 }
 
 // NewQueryObserver returns a gocql.QueryObserver that creates
@@ -134,8 +98,12 @@ func NewQueryObserver(original interface {
 
 // ObserveQuery implements the gocql.QueryObserver interface
 func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQuery) {
-	if o.original != nil {
-		o.original.ObserveQuery(ctx, query)
+	if observer, ok := any(o.original).(interface {
+		ObserveQuery(context.Context, gocql.ObservedQuery)
+	}); ok {
+		if observer != nil {
+			observer.ObserveQuery(ctx, query)
+		}
 	}
 
 	txn := newrelic.FromContext(ctx)
@@ -154,7 +122,7 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	keyspace = query.Keyspace
 
 	// enrich segment
-	segment, ok := ctx.Value("nrGocqlSegment").(*newrelic.DatastoreSegment)
+	segment, ok := ctx.Value("nrGocqlxSegment").(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
