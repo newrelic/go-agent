@@ -9,7 +9,6 @@ import (
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/integrations/nrgocql"
-	gocqlx "github.com/scylladb/gocqlx/v3"
 	"github.com/scylladb/gocqlx/v3/qb"
 	"github.com/scylladb/gocqlx/v3/table"
 
@@ -45,8 +44,7 @@ func main() {
 
 	// Set the New Relic query observer
 	cluster.QueryObserver = nrgocql.NewQueryObserver[gocql.ObservedQuery](nil)
-
-	session, err := gocqlx.WrapSession(cluster.CreateSession())
+	session, err := nrgocql.NRGoCQLXWrapSession(cluster)
 	if err != nil {
 		log.Fatal(err)
 	}
