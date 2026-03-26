@@ -74,12 +74,20 @@ func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, 
 	return &NRGocqlxQueryxWrapper{s.Session.ContextQuery(ctx, stmt, names)}
 }
 
+func (x *NRGocqlxQueryxWrapper) Bind(v ...any) *NRGocqlxQueryxWrapper {
+	return &NRGocqlxQueryxWrapper{x.Queryx.Bind(v...)}
+}
+
 func (x *NRGocqlxQueryxWrapper) BindMap(arg map[string]any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.BindMap(arg)}
 }
 
 func (x *NRGocqlxQueryxWrapper) BindStruct(arg any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.BindStruct(arg)}
+}
+
+func (x *NRGocqlxQueryxWrapper) BindStructMap(arg0 any, arg1 map[string]any) *NRGocqlxQueryxWrapper {
+	return &NRGocqlxQueryxWrapper{x.Queryx.BindStructMap(arg0, arg1)}
 }
 
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
@@ -94,6 +102,13 @@ func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
 		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
 		return x.Queryx.GetRelease(dest)
 	}, dest)
+}
+
+func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+		return x.Queryx.ExecRelease()
+	}, nil)
 }
 
 // NewQueryObserver returns a gocql.QueryObserver that creates

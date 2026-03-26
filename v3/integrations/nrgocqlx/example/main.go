@@ -35,6 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer app.Shutdown(10 * time.Second)
 
 	cluster := gocql.NewCluster("127.0.0.1")
 	cluster.Consistency = gocql.One
@@ -52,6 +53,7 @@ func main() {
 
 	// Start a New Relic transaction
 	txn := app.StartTransaction("gocqlx-operations")
+	defer txn.End()
 
 	// Add transaction to context
 	ctx := newrelic.NewContext(context.Background(), txn)
@@ -63,29 +65,51 @@ func main() {
 	}
 	tweetTable := table.New(tweetMetadata)
 
+	uuid := gocql.TimeUUID()
+
+	/*
+		Insert a tweet with the above UUID
+	*/
+	insertStruct := Tweet{
+		Timeline: "timeline",
+		ID:       uuid,
+		Text:     "hello world",
+	}
+	stmt, names := tweetTable.Insert()
+	insertQuery := session.ContextQuery(ctx, stmt, names).BindStruct(insertStruct)
+	if err := insertQuery.ExecRelease(); err != nil {
+		log.Fatal(err)
+	}
+
+	/*
+		Select all tweets with the above timeline
+	*/
 	var tweets []Tweet
-	stmt, names := tweetTable.Select()
-	q := session.ContextQuery(ctx, stmt, names).BindMap(qb.M{"timeline": "me"})
-	if err := q.SelectRelease(&tweets); err != nil {
+	selectMap := qb.M{"timeline": "timeline"}
+	stmt, names = tweetTable.Select()
+	selectQuery := session.ContextQuery(ctx, stmt, names).BindMap(selectMap)
+	if err := selectQuery.SelectRelease(&tweets); err != nil {
 		log.Fatal(err)
 	}
-	uuid, err := gocql.ParseUUID("f05589ea-22df-11f1-9d1c-6e568f55f81c")
-	if err != nil {
-		log.Fatal(err)
-	}
-	t := Tweet{
-		Timeline: "me",
+
+	/*
+		Get tweet with the above UUID
+	*/
+	getStruct := Tweet{
+		Timeline: "timeline",
 		ID:       uuid,
 		Text:     "hello world",
 	}
 	stmt, names = tweetTable.Get()
-	qq := session.ContextQuery(ctx, stmt, names).BindStruct(t)
-	if err := qq.GetRelease(&t); err != nil {
+	getQuery := session.ContextQuery(ctx, stmt, names).BindStruct(getStruct)
+	if err := getQuery.GetRelease(&getStruct); err != nil {
 		log.Fatal(err)
 	}
-	txn.End()
-	fmt.Println("\n\n\n", t)
-	fmt.Println(tweets)
-	app.Shutdown(10 * time.Second)
+
+	/*
+		Display results
+	*/
+	fmt.Printf("\n\n\nNew Inserted row: %v\n\n\n", getStruct)
+	fmt.Printf("\n\n\nTweets containing timeline: %v", tweets)
 
 }
