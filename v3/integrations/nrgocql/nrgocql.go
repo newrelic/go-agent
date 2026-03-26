@@ -22,6 +22,92 @@ type queryObserver struct {
 	}
 }
 
+type NRGoCQLSessionWrapper struct {
+	*gocql.Session
+}
+
+type NRGocqlQueryWrapper struct {
+	*gocql.Query
+}
+
+func NRGoCQLNewSession(cfg *gocql.ClusterConfig) (*NRGoCQLSessionWrapper, error) {
+	session, err := cfg.CreateSession()
+	if err != nil {
+		return nil, err
+	}
+	return &NRGoCQLSessionWrapper{session}, nil
+}
+
+func execOriginal(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fn(ctx, dest...)
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+	defer sgmt.End()
+
+	// securtiy agent?
+	ctx = context.WithValue(ctx, "nrGocqlSegment", sgmt)
+	return fn(ctx, dest...) // enriching of sgmt called withing fn()
+}
+
+func (s *NRGoCQLSessionWrapper) Query(stmt string, values ...any) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{s.Session.Query(stmt, values...)}
+}
+
+func (q *NRGocqlQueryWrapper) Consistency(c gocql.Consistency) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.Consistency(c)}
+}
+
+func (q *NRGocqlQueryWrapper) PageSize(n int) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.PageSize(n)}
+}
+
+func (q *NRGocqlQueryWrapper) Bind(v ...interface{}) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.Bind(v...)}
+}
+
+func (q *NRGocqlQueryWrapper) RetryPolicy(r gocql.RetryPolicy) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.RetryPolicy(r)}
+}
+
+func (q *NRGocqlQueryWrapper) Idempotent(value bool) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.Idempotent(value)}
+}
+
+func (q *NRGocqlQueryWrapper) SerialConsistency(cons gocql.Consistency) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.SerialConsistency(cons)}
+}
+
+func (q *NRGocqlQueryWrapper) PageState(state []byte) *NRGocqlQueryWrapper {
+	return &NRGocqlQueryWrapper{Query: q.Query.PageState(state)}
+}
+
+func (q *NRGocqlQueryWrapper) ExecContext(ctx context.Context) error {
+	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.Query.ExecContext(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (q *NRGocqlQueryWrapper) ScanContext(ctx context.Context, dest ...any) error {
+	return execOriginal(ctx, func(ctx context.Context, dest ...any) error {
+		err := q.Query.ScanContext(ctx, dest...)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, dest...)
+}
+
 // NewQueryObserver returns a gocql.QueryObserver that creates
 // newrelic.DatastoreSegment for each database query. If provided, the
 // original gocql.QueryObserver will be called as well.
