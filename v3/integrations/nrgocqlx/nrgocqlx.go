@@ -20,7 +20,6 @@ package nrgocqlx
 import (
 	"context"
 	"strconv"
-	"strings"
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -124,12 +123,9 @@ func NewQueryObserver(original interface {
 
 // ObserveQuery implements the gocql.QueryObserver interface
 func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQuery) {
-	if observer, ok := any(o.original).(interface {
-		ObserveQuery(context.Context, gocql.ObservedQuery)
-	}); ok {
-		if observer != nil {
-			observer.ObserveQuery(ctx, query)
-		}
+
+	if o.original != nil {
+		o.original.ObserveQuery(ctx, query)
 	}
 
 	txn := newrelic.FromContext(ctx)
@@ -152,7 +148,6 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	if !ok {
 		return
 	}
-	segment.Operation = extractOperation(statement)
 	segment.ParameterizedQuery = statement
 	segment.Host = host
 	segment.Collection = "tableNameExample"
@@ -160,20 +155,4 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	segment.DatabaseName = keyspace
 
 	// security agent?
-}
-
-// extractOperation extracts the operation type from a CQL statement
-// e.g., "SELECT", "INSERT", "UPDATE", "DELETE"
-func extractOperation(statement string) string {
-	statement = strings.TrimSpace(statement)
-	if len(statement) == 0 {
-		return "unknown"
-	}
-
-	// Find the first word (operation)
-	idx := strings.IndexAny(statement, " \t\n")
-	if idx == -1 {
-		return strings.ToUpper(statement)
-	}
-	return strings.ToUpper(statement[:idx])
 }
