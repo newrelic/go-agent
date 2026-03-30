@@ -29,6 +29,9 @@ func TestObserveQuery(t *testing.T) {
 		integrationsupport.ConfigFullTraces,
 	)
 
+	hostWithID := new(gocql.HostInfo)
+	hostWithID.SetHostID("test-host-id")
+
 	tests := []struct {
 		name           string
 		useTransaction bool
@@ -37,6 +40,8 @@ func TestObserveQuery(t *testing.T) {
 		wantOrigCalled bool
 		wantQuery      string
 		wantKeyspace   string
+		wantHost       string
+		wantPort       string
 	}{
 		{
 			name:           "nil transaction returns early",
@@ -59,6 +64,18 @@ func TestObserveQuery(t *testing.T) {
 			query:          gocql.ObservedQuery{Statement: "INSERT INTO t", Keyspace: "mykeyspace"},
 			wantQuery:      "INSERT INTO t",
 			wantKeyspace:   "mykeyspace",
+		},
+		{
+			name:           "host info is captured",
+			useTransaction: true,
+			query: gocql.ObservedQuery{
+				Statement: "SELECT * FROM t",
+				Keyspace:  "ks",
+				Host:      hostWithID,
+			},
+			wantQuery:    "SELECT * FROM t",
+			wantKeyspace: "ks",
+			wantHost:     "test-host-id",
 		},
 	}
 
@@ -87,6 +104,9 @@ func TestObserveQuery(t *testing.T) {
 				}
 				if seg.DatabaseName != tt.wantKeyspace {
 					t.Errorf("DatabaseName = %q, want %q", seg.DatabaseName, tt.wantKeyspace)
+				}
+				if seg.Host != tt.wantHost {
+					t.Errorf("Host = %q, want %q", seg.Host, tt.wantHost)
 				}
 			}
 		})
