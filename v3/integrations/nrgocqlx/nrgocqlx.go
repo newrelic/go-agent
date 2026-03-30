@@ -79,8 +79,15 @@ func (x *NRGocqlxQueryxWrapper) BindStructMap(arg0 any, arg1 map[string]any) *NR
 
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
 	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx) // Update ctx stored in Query with segment
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
 		return x.Queryx.SelectRelease(dest)
+	}, dest)
+}
+
+func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+		return x.Queryx.Select(dest)
 	}, dest)
 }
 
@@ -91,10 +98,24 @@ func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
 	}, dest)
 }
 
+func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+		return x.Queryx.Get(dest)
+	}, dest)
+}
+
 func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
 	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
 		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
 		return x.Queryx.ExecRelease()
+	}, nil)
+}
+
+func (x *NRGocqlxQueryxWrapper) Exec() error {
+	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
+		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+		return x.Queryx.Exec()
 	}, nil)
 }
 
