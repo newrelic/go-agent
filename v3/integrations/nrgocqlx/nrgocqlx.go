@@ -17,20 +17,45 @@ import (
 
 func init() { internal.TrackUsage("integration", "datastore", "gocql") }
 
+/*
+queryObserver contains the implementation for ObserveQuery
+and a field for the original ObserveQuery if the user chooses to
+call it
+*/
 type queryObserver struct {
 	original interface {
 		ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
 	}
 }
 
+/*
+Wrapper for gocqlx.Session that implements gocqlx.Session.ContextQuery. All other gocqlx.Session
+functions are accessible through this struct's embedded field *gocqlx.Session. This wrapper
+does not implement any gocql.Session functions, however those functions are also accessible through
+embedded fields. The wrapper's implementation of ContextQuery must be used in order to instrument
+with New Relic properly.
+*/
 type NRGocqlxSessionWrapper struct {
 	*gocqlx.Session
 }
 
+/*
+Wrapper for gocqlx.Queryx that implements gocqlx.Queryx functions: Bind, BindMap, BindStruct,
+BindStructMap, SelectRelease, Select, GetRelease, Get, GetCAS, GetCASRelease, ExecRelease, Exec,
+ExecCAS, ExecCASRelease and Scan. All other gocqlx.Queryx functions are accessible through this
+struct's embedded field *gocqlx.Queryx.  This wrapper does not implement any gocql.Query functions,
+however those functions are also accessible through embedded fields.  NOTE: In order to properly
+instrument with New Relic, you must use only the implemented functions for NRGocqlxQueryxWrapper,
+especially if you are chaining.
+*/
 type NRGocqlxQueryxWrapper struct {
 	*gocqlx.Queryx
 }
 
+/*
+Call that wraps a gocqlx.Session.  This function takes a gocql.ClusterConfig and returns a
+NRGocqlxSessionWrapper.
+*/
 func NRGoCQLXWrapSession(cluster *gocql.ClusterConfig) (*NRGocqlxSessionWrapper, error) {
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
@@ -39,6 +64,13 @@ func NRGoCQLXWrapSession(cluster *gocql.ClusterConfig) (*NRGocqlxSessionWrapper,
 	return &NRGocqlxSessionWrapper{&session}, nil
 }
 
+/*
+Executes a passed in function while beginning a New Relic Datastore Segment. This function does
+not accept a spread operator and only will function for one destination. If a transaction
+cannot be pulled from context, no segment will be created but the passed in function will still execute. The
+segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
+the segment.  The segment is stored in context to be enriched later.
+*/
 func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) error, dest any) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
@@ -57,6 +89,13 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) er
 	return fn(ctx, dest) // enriching of sgmt called withing fn()
 }
 
+/*
+Executes a passed in function while beginning a New Relic Datastore Segment. This function does
+accepts a spread operator and only will function for multiple destinations. If a transaction
+cannot be pulled from context, no segment will be created but the passed in function will still execute. The
+segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
+the segment.  The segment is stored in context to be enriched later.
+*/
 func execOriginalSpread(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
@@ -75,6 +114,14 @@ func execOriginalSpread(ctx context.Context, fn func(ctx context.Context, dest .
 	return fn(ctx, dest...) // enriching of sgmt called withing fn()
 }
 
+/*
+Executes a passed in function while beginning a New Relic Datastore Segment. This function is to be
+used with any lightweight queries.  It will return a bool in addition to an errorto indicate if a
+query was applied.  If a transactioncannot be pulled from context, no segment will be created but
+the passed in function will still execute. The segment gets populated with its StartTime and Product
+as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
+to be enriched later.
+*/
 func execOriginalCAS(ctx context.Context, fn func(ctx context.Context, dest any) (bool, error), dest any) (bool, error) {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
