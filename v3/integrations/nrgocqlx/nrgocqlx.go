@@ -57,6 +57,42 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) er
 	return fn(ctx, dest) // enriching of sgmt called withing fn()
 }
 
+func execOriginalSpread(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fn(ctx, dest...)
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+	defer sgmt.End()
+
+	// securtiy agent?
+	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	return fn(ctx, dest...) // enriching of sgmt called withing fn()
+}
+
+func execOriginalCAS(ctx context.Context, fn func(ctx context.Context, dest any) (bool, error), dest any) (bool, error) {
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return fn(ctx, dest)
+	}
+
+	// start datastore segment
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+	defer sgmt.End()
+
+	// securtiy agent?
+	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	return fn(ctx, dest) // enriching of sgmt called withing fn()
+}
+
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{s.Session.ContextQuery(ctx, stmt, names)}
 }
@@ -78,45 +114,80 @@ func (x *NRGocqlxQueryxWrapper) BindStructMap(arg0 any, arg1 map[string]any) *NR
 }
 
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.SelectRelease(dest)
 	}, dest)
 }
 
 func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.Select(dest)
 	}, dest)
 }
 
 func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.GetRelease(dest)
 	}, dest)
 }
 
 func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.Get(dest)
 	}, dest)
 }
 
+func (x *NRGocqlxQueryxWrapper) GetCASRelease(dest any) (bool, error) {
+	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
+		x.Query = x.Query.WithContext(ctx)
+		return x.Queryx.GetCASRelease(dest)
+	}, dest)
+}
+
+func (x *NRGocqlxQueryxWrapper) GetCAS(dest any) (bool, error) {
+	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
+		x.Query = x.Query.WithContext(ctx)
+		return x.Queryx.GetCAS(dest)
+	}, dest)
+}
+
 func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.ExecRelease()
 	}, nil)
 }
 
 func (x *NRGocqlxQueryxWrapper) Exec() error {
-	return execOriginal(x.Queryx.Query.Context(), func(ctx context.Context, dest any) error {
-		x.Queryx.Query = x.Queryx.Query.WithContext(ctx)
+	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
+		x.Query = x.Query.WithContext(ctx)
 		return x.Queryx.Exec()
 	}, nil)
+}
+
+func (x *NRGocqlxQueryxWrapper) ExecCAS() (bool, error) {
+	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
+		x.Query = x.Query.WithContext(ctx)
+		return x.Queryx.ExecCAS()
+	}, nil)
+}
+
+func (x *NRGocqlxQueryxWrapper) ExecCASRelease() (bool, error) {
+	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
+		x.Query = x.Query.WithContext(ctx)
+		return x.Queryx.ExecCASRelease()
+	}, nil)
+}
+
+func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
+	return execOriginalSpread(x.Context(), func(ctx context.Context, dest ...any) error {
+		x.Query = x.Query.WithContext(ctx)
+		return x.Queryx.Scan(dest...)
+	}, v...)
 }
 
 // NewQueryObserver returns a gocql.QueryObserver that creates
