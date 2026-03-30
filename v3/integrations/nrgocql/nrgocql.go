@@ -6,6 +6,7 @@ package nrgocql
 
 import (
 	"context"
+	"reflect"
 	"strconv"
 
 	gocql "github.com/apache/cassandra-gocql-driver/v2"
@@ -27,6 +28,9 @@ type queryObserver struct {
 func NewQueryObserver(original interface {
 	ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
 }) *queryObserver {
+	if original != nil && reflect.ValueOf(original).IsNil() {
+		original = nil
+	}
 	return &queryObserver{
 		original: original,
 	}

@@ -41,7 +41,6 @@ func TestObserveQuery(t *testing.T) {
 		wantQuery      string
 		wantKeyspace   string
 		wantHost       string
-		wantPort       string
 	}{
 		{
 			name:           "nil transaction returns early",
