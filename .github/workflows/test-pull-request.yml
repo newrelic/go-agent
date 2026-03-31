@@ -186,6 +186,7 @@ jobs:
         env:
           GO_VERSION: ${{ matrix.go-version }}
           PROFILE: ${{ matrix.integration-test }}
+          GOPROXY: https://proxy.golang.org,direct
         run: |
           make test-services-start
       - name: Run Integration tests
