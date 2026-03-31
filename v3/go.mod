@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	google.golang.org/grpc v1.79.3
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.34.2
 )
 
 retract v3.22.0 // release process error corrected in v3.22.1
