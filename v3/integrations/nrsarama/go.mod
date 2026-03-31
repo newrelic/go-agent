@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrsarama
 
-go 1.24
+go 1.25
 
 toolchain go1.24.2
 
