@@ -140,26 +140,54 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context, dest any)
 	return fn(ctx, dest) // enriching of sgmt called withing fn()
 }
 
+/*
+Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overridden implementations
+for gocqlx.Queryx.
+*/
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{s.Session.ContextQuery(ctx, stmt, names)}
 }
 
+/*
+Sets the arguments of a query.  Use this function, which belongs to the wrapper NRGocqlxQueryxWrapper,
+to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.Bind, you will not be able
+to instrument with New Relic.
+*/
 func (x *NRGocqlxQueryxWrapper) Bind(v ...any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.Bind(v...)}
 }
 
+/*
+Sets the arguments of a query using a map.  Use this function, which belongs to the wrapper NRGocqlxQueryxWrapper,
+to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.BindMap, you will not be able
+to instrument with New Relic.
+*/
 func (x *NRGocqlxQueryxWrapper) BindMap(arg map[string]any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.BindMap(arg)}
 }
 
+/*
+Sets the arguments of a query using a struct.  Use this function, which belongs to the wrapper NRGocqlxQueryxWrapper,
+to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.BindStruct, you will not be able
+to instrument with New Relic.
+*/
 func (x *NRGocqlxQueryxWrapper) BindStruct(arg any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.BindStruct(arg)}
 }
 
+/*
+Sets the arguments of a struct on a map.  Use this function, which belongs to the wrapper NRGocqlxQueryxWrapper,
+to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.BindStructMap, you will not be able
+to instrument with New Relic.
+*/
 func (x *NRGocqlxQueryxWrapper) BindStructMap(arg0 any, arg1 map[string]any) *NRGocqlxQueryxWrapper {
 	return &NRGocqlxQueryxWrapper{x.Queryx.BindStructMap(arg0, arg1)}
 }
 
+/*
+Run a Select query and release it immediately after.  Released queries cannot be reused.  This function calls
+execOriginal with a function that calls gocqlx.Queryx.SelectRelease with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -167,6 +195,10 @@ func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
 	}, dest)
 }
 
+/*
+Run a Select query. This function calls execOriginal with a function that calls gocqlx.Queryx.Select with
+updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -174,6 +206,10 @@ func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
 	}, dest)
 }
 
+/*
+Run a Get query and release it immediately after.  Released queries cannot be reused.  This function calls
+execOriginal with a function that calls gocqlx.Queryx.Get with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -181,6 +217,10 @@ func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
 	}, dest)
 }
 
+/*
+Run a Get query.  This function calls execOriginal with a function that calls gocqlx.Queryx.Get with
+updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -188,6 +228,10 @@ func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
 	}, dest)
 }
 
+/*
+Run a Get lightweight transaction and release it immediately after.  Released queries cannot be reused.  This function
+calls execOriginalCAS with a function that calls gocqlx.Queryx.GetCASRelease with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) GetCASRelease(dest any) (bool, error) {
 	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
 		x.Query = x.Query.WithContext(ctx)
@@ -195,6 +239,10 @@ func (x *NRGocqlxQueryxWrapper) GetCASRelease(dest any) (bool, error) {
 	}, dest)
 }
 
+/*
+Run a Get lightweight transaction.  This function calls execOriginalCAS with a function that calls gocqlx.Queryx.GetCAS
+with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) GetCAS(dest any) (bool, error) {
 	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
 		x.Query = x.Query.WithContext(ctx)
@@ -202,6 +250,10 @@ func (x *NRGocqlxQueryxWrapper) GetCAS(dest any) (bool, error) {
 	}, dest)
 }
 
+/*
+Run an Exec query and release it immediately after.  Released queries cannot be reused.  This function calls
+execOriginal with a function that calls gocqlx.Queryx.ExecRelease with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -209,6 +261,10 @@ func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
 	}, nil)
 }
 
+/*
+Run an Exec query.  This function calls execOriginal with a function that calls gocqlx.Queryx.Exec with
+updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) Exec() error {
 	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -216,6 +272,10 @@ func (x *NRGocqlxQueryxWrapper) Exec() error {
 	}, nil)
 }
 
+/*
+Run an Exec lightweight transaction.  This function calls execOriginalCAS with a function that calls gocqlx.Queryx.ExecCAS
+with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) ExecCAS() (bool, error) {
 	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
 		x.Query = x.Query.WithContext(ctx)
@@ -223,6 +283,10 @@ func (x *NRGocqlxQueryxWrapper) ExecCAS() (bool, error) {
 	}, nil)
 }
 
+/*
+Run an Exec lightweight transaction and release it immediately after.  Released queries cannot be reused.  This function
+calls execOriginalCAS with a function that calls gocqlx.Queryx.ExecCASRelease with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) ExecCASRelease() (bool, error) {
 	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
 		x.Query = x.Query.WithContext(ctx)
@@ -230,6 +294,10 @@ func (x *NRGocqlxQueryxWrapper) ExecCASRelease() (bool, error) {
 	}, nil)
 }
 
+/*
+Run a query and copies the columns of the first selected row into the values pointed at by dest and discards the rest.
+This function calls execOriginal with a function that calls gocqlx.Queryx.Scan with updated context.
+*/
 func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
 	return execOriginalSpread(x.Context(), func(ctx context.Context, dest ...any) error {
 		x.Query = x.Query.WithContext(ctx)
@@ -237,9 +305,10 @@ func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
 	}, v...)
 }
 
-// NewQueryObserver returns a gocql.QueryObserver that creates
-// newrelic.DatastoreSegment for each database query. If provided, the
-// original gocql.QueryObserver will be called as well.
+/*
+NewQueryObserver returns a gocql.QueryObserver that creates newrelic.DatastoreSegment for each database query. If provided,
+the original gocql.QueryObserver will be called as well.
+*/
 func NewQueryObserver(original interface {
 	ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
 }) *queryObserver {
@@ -251,7 +320,12 @@ func NewQueryObserver(original interface {
 	}
 }
 
-// ObserveQuery implements the gocql.QueryObserver interface
+/*
+ObserveQuery is the implementation for the gocql.QueryObserver.  This will run after the
+query is executed.  It will execute the original implementation of ObserveQuery if it is
+passed in.  If there is no new relic transaction in context, it will return early.  Otherwise,
+it will take the segment from context, and enrich it with query data.
+*/
 func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQuery) {
 
 	if o.original != nil {
