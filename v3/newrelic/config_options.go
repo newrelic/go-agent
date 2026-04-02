@@ -488,6 +488,26 @@ func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]stri
 	}
 }
 
+// ConfigCloudAWSAccountID is used to set the accountID for the AWS account to add as an attribute to span events. This may also be set using the
+// NEW_RELIC_CLOUD_AWS_ACCOUNT_ID environment variable.
+func ConfigCloudAWSAccountID(accountID string) ConfigOption {
+	return func(cfg *Config) {
+		validatedAccountID, err := validateAWSAccountID(accountID)
+		if err != nil {
+			cfg.Error = err
+		}
+		cfg.CloudAWS.AccountID = validatedAccountID
+	}
+}
+
+// ConfigCloudAWSAccountDecodingEnabled is used to enable/disable accountID decoding for an AWS Access Key.  Any value that is decoded will be
+// overriden if the accountID is set in the config.
+func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CloudAWS.AccountDecoding.Enabled = enabled
+	}
+}
+
 // ConfigFromEnvironment populates the config based on environment variables:
 //
 //		NEW_RELIC_APP_NAME                                			sets AppName
@@ -530,6 +550,7 @@ func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]stri
 //		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
 //		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
 //		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//		NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -623,6 +644,16 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// Error Collector Env Variables
 		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED", maxErrorEvents)
+
+		// AWS Env Variables
+		assignString(&cfg.CloudAWS.AccountID, "NEW_RELIC_CLOUD_AWS_ACCOUNT_ID")
+		if env := getenv("NEW_RELIC_CLOUD_AWS_ACCOUNT_ID"); env != "" {
+			awsAccountID, err := validateAWSAccountID(env) // will either be a proper accountID or empty string if err
+			if err != nil {
+				cfg.Error = err
+			}
+			cfg.CloudAWS.AccountID = awsAccountID
+		}
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))

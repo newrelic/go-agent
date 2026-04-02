@@ -196,3 +196,14 @@ func TestExtractTable(t *testing.T) {
 		}
 	}
 }
+func TestParseSQLWith(t *testing.T) {
+	for _, tc := range []sqlTestcase{
+		{Input: "WITH cte AS (SELECT * FROM users) SELECT * FROM cte", Operation: "with", Table: "cte"},
+		{Input: "Select * FROM cte; WITH cte AS (SELECT * FROM users) SELECT * FROM cte;", Operation: "select", Table: "cte"},
+		{Input: "WITH RECURSIVE cte AS (SELECT id FROM employees) SELECT * FROM cte", Operation: "with", Table: "cte"},
+		{Input: "with temp AS (SELECT id FROM foo) SELECT * FROM temp", Operation: "with", Table: "temp"},
+		{Input: "  WITH cte AS (SELECT * FROM bar) SELECT * FROM cte", Operation: "with", Table: "cte"},
+	} {
+		tc.test(t)
+	}
+}

@@ -85,6 +85,13 @@ func eventWebRequest(event interface{}) *newrelic.WebRequest {
 	case *events.ALBTargetGroupRequest:
 		return eventWebRequest(safeDereference(r))
 
+	case events.LambdaFunctionURLRequest:
+		request.Method = r.RequestContext.HTTP.Method
+		path = r.RequestContext.HTTP.Path
+		headers = r.Headers
+	case *events.LambdaFunctionURLRequest:
+		return eventWebRequest(safeDereference(r))
+
 	default:
 		return nil
 	}
@@ -134,6 +141,20 @@ func eventResponse(event interface{}) *response {
 		headers = r.Headers
 		multiValueHeaders = r.MultiValueHeaders
 	case *events.ALBTargetGroupResponse:
+		return eventResponse(safeDereference(r))
+
+	case events.LambdaFunctionURLResponse:
+		code = r.StatusCode
+		headers = r.Headers
+		multiValueHeaders = nil // LambdaFunctionURLResponse does not currently support multi-value headers
+	case *events.LambdaFunctionURLResponse:
+		return eventResponse(safeDereference(r))
+
+	case events.LambdaFunctionURLStreamingResponse:
+		code = r.StatusCode
+		headers = r.Headers
+		multiValueHeaders = nil // LambdaFunctionURLStreamingResponse does not currently support multi-value headers
+	case *events.LambdaFunctionURLStreamingResponse:
 		return eventResponse(safeDereference(r))
 
 	default:

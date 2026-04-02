@@ -1,3 +1,27 @@
+## 3.43.0
+### Added
+  * Added UnWrap support for replacement response right
+    * Thank you to community member @ArturFortunato for contributing to this solution
+  * Added support for Lambda function URL request and response in the `nrlambda` integration
+    * Thank you to community member @rittneje for contributing to this solution
+  * Added additional Span attribute for Opensearch/elastic search endpoint in the `nrawssdk` integration
+  * Added Support for "WITH" clauses to sqlparse
+
+### Fixed
+  * Fixed failing httptest
+### Security
+  * Updated CI/CD go version
+  * Bumped `nrgrpc` version
+  * Dependabot security bumps
+    * `logcontext/nrlogrus`
+    * `logcontext/nrlogrusplugin`
+    * `logcontext-v2/nrlogrus`
+    * `nrfiber`
+  
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.42.0
 ### Added
   * Added `ConfigTransactionEventsMaxSamplesStored`and `ConfigErrorCollectorMaxSamplesStored` allowing full control of maximum samples stored for Transaction Events, Custom Insights Events, Error Events, and Log Events

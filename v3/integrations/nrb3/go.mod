@@ -1,8 +1,8 @@
 module github.com/newrelic/go-agent/v3/integrations/nrb3
 
-go 1.24
+go 1.25
 
-require github.com/newrelic/go-agent/v3 v3.42.0
+require github.com/newrelic/go-agent/v3 v3.43.0
 
 
 replace github.com/newrelic/go-agent/v3 => ../..

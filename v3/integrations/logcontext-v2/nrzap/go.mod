@@ -1,9 +1,9 @@
 module github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzap
 
-go 1.24
+go 1.25
 
 require (
-	github.com/newrelic/go-agent/v3 v3.42.0
+	github.com/newrelic/go-agent/v3 v3.43.0
 	go.uber.org/zap v1.24.0
 )
 
