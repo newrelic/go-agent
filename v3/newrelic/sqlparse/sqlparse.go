@@ -24,6 +24,7 @@ var (
 	tablePattern      = `(` + `\s+` + basicTable + `|` + `\s*` + enclosedTable + `)`
 	extractTableRegex = regexp.MustCompile(`[\s` + "`" + `"'\(\)\{\}\[\]]*`)
 	updateRegex       = regexp.MustCompile(`(?is)^update(?:\s+(?:low_priority|ignore|or|rollback|abort|replace|fail|only))*` + tablePattern)
+	withRegex         = regexp.MustCompile(`(?is)^with(?:\s+recursive)?.*\)\s*select.*?\sfrom` + tablePattern)
 	sqlOperations     = map[string]*regexp.Regexp{
 		"select":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
 		"delete":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
@@ -39,7 +40,7 @@ var (
 		"alter":    nil,
 		"commit":   nil,
 		"rollback": nil,
-		"with":     nil,
+		"with":     withRegex,
 	}
 	firstWordRegex   = regexp.MustCompile(`^\w+`)
 	cCommentRegex    = regexp.MustCompile(`(?is)/\*.*?\*/`)
