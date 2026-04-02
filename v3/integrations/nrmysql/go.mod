@@ -1,7 +1,7 @@
 module github.com/newrelic/go-agent/v3/integrations/nrmysql
 
 // 1.10 is the Go version in mysql's go.mod
-go 1.24
+go 1.25
 
 require (
 	// v1.5.0 is the first mysql version to support gomod

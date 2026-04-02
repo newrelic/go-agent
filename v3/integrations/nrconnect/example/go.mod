@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrconnect/example
 
-go 1.24
+go 1.25
 
 require (
 	connectrpc.com/connect v1.16.2

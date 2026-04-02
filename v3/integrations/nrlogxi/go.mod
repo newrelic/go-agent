@@ -2,7 +2,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrlogxi
 
 // As of Dec 2019, logxi requires 1.3+:
 // https://github.com/mgutz/logxi#requirements
-go 1.24
+go 1.25
 
 require (
 	// 'v1', at commit aebf8a7d67ab, is the only logxi release.

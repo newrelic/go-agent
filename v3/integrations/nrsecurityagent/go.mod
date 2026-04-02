@@ -1,6 +1,6 @@
 module github.com/newrelic/go-agent/v3/integrations/nrsecurityagent
 
-go 1.24
+go 1.25
 
 require (
 	github.com/newrelic/csec-go-agent v1.6.0
