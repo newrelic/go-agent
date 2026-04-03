@@ -65,6 +65,53 @@ func getEventSourceARN(event interface{}) string {
 	return ""
 }
 
+func getEventSourceEventType(event any) string {
+	switch event.(type) {
+	case events.ALBTargetGroupRequest:
+		return "alb"
+	case *events.ALBTargetGroupRequest:
+		return "alb"
+	case events.APIGatewayProxyRequest:
+		return "apiGateway"
+	case *events.APIGatewayProxyRequest:
+		return "apiGateway"
+	case events.CloudWatchEvent:
+		return "cloudWatch_scheduled"
+	case *events.CloudWatchEvent:
+		return "cloudWatch_scheduled"
+	case events.SimpleEmailEvent:
+		return "ses"
+	case *events.SimpleEmailEvent:
+		return "ses"
+	case events.KinesisFirehoseEvent:
+		return "firehose"
+	case *events.KinesisFirehoseEvent:
+		return "firehose"
+	case events.KinesisEvent:
+		return "kinesis"
+	case *events.KinesisEvent:
+		return "kinesis"
+	case events.DynamoDBEvent:
+		return "dynamo_streams"
+	case *events.DynamoDBEvent:
+		return "dynamo_streams"
+	case events.SQSEvent:
+		return "sqs"
+	case *events.SQSEvent:
+		return "sqs"
+	case events.S3Event:
+		return "s3"
+	case *events.S3Event:
+		return "s3"
+	case events.SNSEvent:
+		return "sns"
+	case *events.SNSEvent:
+		return "sns"
+	}
+
+	return ""
+}
+
 func eventWebRequest(event interface{}) *newrelic.WebRequest {
 	var path string
 	var request newrelic.WebRequest
