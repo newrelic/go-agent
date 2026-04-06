@@ -216,3 +216,113 @@ func Test_execOriginal(t *testing.T) {
 		})
 	}
 }
+
+func Test_execOriginalCAS(t *testing.T) {
+	tests := []struct {
+		name             string
+		fn               func(ctx context.Context, dest any) (bool, error)
+		wantErr          bool
+		wantApplied      bool
+		ctx              context.Context
+		startTransaction bool
+	}{
+		{
+			name: "Context is nil, should execute function and not begin a segment",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and not begin a segment",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context is nil, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and begin segment, applied true",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function and begin segment, applied false",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return false, nil
+			},
+			wantErr:          false,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function that returns error and begin segment",
+			fn: func(ctx context.Context, dest any) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if tt.startTransaction {
+				app := integrationsupport.NewTestApp(
+					integrationsupport.SampleEverythingReplyFn,
+					integrationsupport.ConfigFullTraces,
+				)
+				txn := app.StartTransaction("test-txn")
+				defer txn.End()
+				ctx = newrelic.NewContext(ctx, txn)
+			}
+			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn, struct{}{})
+
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("execOriginalCAS() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("execOriginalCAS() succeeded unexpectedly")
+			}
+			if gotApplied != tt.wantApplied {
+				t.Errorf("execOriginalCAS() applied = %v, want %v", gotApplied, tt.wantApplied)
+			}
+		})
+	}
+}
