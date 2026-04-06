@@ -90,31 +90,6 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) er
 }
 
 /*
-Executes a passed in function while beginning a New Relic Datastore Segment. This function does
-accepts a spread operator and only will function for multiple destinations. If a transaction
-cannot be pulled from context, no segment will be created but the passed in function will still execute. The
-segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
-the segment.  The segment is stored in context to be enriched later.
-*/
-func execOriginalSpread(ctx context.Context, fn func(ctx context.Context, dest ...any) error, dest ...any) error {
-	txn := newrelic.FromContext(ctx)
-	if txn == nil {
-		return fn(ctx, dest...)
-	}
-
-	// start datastore segment
-	sgmt := &newrelic.DatastoreSegment{
-		StartTime: txn.StartSegmentNow(),
-		Product:   newrelic.DatastoreCassandra,
-	}
-	defer sgmt.End()
-
-	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
-	return fn(ctx, dest...) // enriching of sgmt called withing fn()
-}
-
-/*
 Executes a passed in function while beginning a New Relic Datastore Segment. This function is to be
 used with any lightweight queries.  It will return a bool in addition to an errorto indicate if a
 query was applied.  If a transactioncannot be pulled from context, no segment will be created but
@@ -299,10 +274,20 @@ Run a query and copies the columns of the first selected row into the values poi
 This function calls execOriginal with a function that calls gocqlx.Queryx.Scan with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
-	return execOriginalSpread(x.Context(), func(ctx context.Context, dest ...any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.Scan(dest...)
-	}, v...)
+	ctx := x.Context()
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return x.Queryx.Scan(v...)
+	}
+
+	sgmt := &newrelic.DatastoreSegment{
+		StartTime: txn.StartSegmentNow(),
+		Product:   newrelic.DatastoreCassandra,
+	}
+	defer sgmt.End()
+
+	x.Query = x.Query.WithContext(context.WithValue(ctx, "nrGocqlxSegment", sgmt))
+	return x.Queryx.Scan(v...)
 }
 
 /*
