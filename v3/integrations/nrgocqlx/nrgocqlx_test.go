@@ -5,6 +5,7 @@ package nrgocqlx
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	gocql "github.com/gocql/gocql"
@@ -108,6 +109,110 @@ func TestObserveQuery(t *testing.T) {
 					t.Errorf("Host = %q, want %q", seg.Host, tt.wantHost)
 				}
 			}
+		})
+	}
+}
+
+// func sgmtStartedCheck(t *testing.T, sgmtStarted bool, sgmt *newrelic.DatastoreSegment) {
+// 	if !sgmtStarted {
+// 		if sgmt != nil {
+// 			t.Errorf("execOriginal() began segment unexpectedly")
+// 		}
+// 	} else {
+// 		if sgmt == nil {
+// 			t.Errorf("execOriginal() segment not started unexpectedly")
+// 		}
+// 	}
+// }
+
+func Test_execOriginal(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		fn               func(ctx context.Context, dest any) error
+		wantErr          bool
+		ctx              context.Context
+		startTransaction bool
+	}{
+		{
+			name: "Context is nil, should execute function and not begin a segment",
+			fn: func(ctx context.Context, dest any) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and not begin a segment",
+			fn: func(ctx context.Context, dest any) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context is nil, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context, dest any) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context, dest any) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and begin segment",
+			fn: func(ctx context.Context, dest any) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function that returns error and begin segment",
+			fn: func(ctx context.Context, dest any) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if tt.startTransaction {
+				app := integrationsupport.NewTestApp(
+					integrationsupport.SampleEverythingReplyFn,
+					integrationsupport.ConfigFullTraces,
+				)
+				txn := app.StartTransaction("test-txn")
+				defer txn.End()
+				ctx = newrelic.NewContext(ctx, txn)
+			}
+			gotErr := execOriginal(ctx, tt.fn, struct{}{})
+
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("execOriginal() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("execOriginal() succeeded unexpectedly")
+			}
+
 		})
 	}
 }
