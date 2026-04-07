@@ -51,7 +51,7 @@ especially if you are chaining.
 type NRGocqlxQueryxWrapper struct {
 	*gocqlx.Queryx
 	segmentRunner    func(fn func() error) error
-	casSegmentRunner func(fn func() (bool, error)) (bool, error)
+	CASSegmentRunner func(fn func() (bool, error)) (bool, error)
 }
 
 /*
@@ -117,15 +117,19 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, er
 	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
-func newNRWrapper(q *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
-	w := &NRGocqlxQueryxWrapper{Queryx: q}
+/*
+Returns a new NRGocqlxQueryxWrapper.  This sets the Queryx field to the passed in parameter queryx,
+the segmentRunner field, and the CASSegmentRunner.
+*/
+func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
+	w := &NRGocqlxQueryxWrapper{Queryx: queryx}
 	w.segmentRunner = func(fn func() error) error {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
 		})
 	}
-	w.casSegmentRunner = func(fn func() (bool, error)) (bool, error) {
+	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
@@ -134,12 +138,18 @@ func newNRWrapper(q *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 	return w
 }
 
+/*
+Runs the segmentRunner with the passed in function fn.
+*/
 func (x *NRGocqlxQueryxWrapper) runWithSegment(fn func() error) error {
 	return x.segmentRunner(fn)
 }
 
+/*
+Runs the CASSegmentRunner with the passed in function fn.
+*/
 func (x *NRGocqlxQueryxWrapper) runCASWithSegment(fn func() (bool, error)) (bool, error) {
-	return x.casSegmentRunner(fn)
+	return x.CASSegmentRunner(fn)
 }
 
 /*
@@ -147,7 +157,16 @@ Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overr
 for gocqlx.Queryx.
 */
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
-	return newNRWrapper(s.Session.ContextQuery(ctx, stmt, names))
+	return newNRGocqlxQueryxWrapper(s.Session.ContextQuery(ctx, stmt, names))
+}
+
+/*
+Sets the NRGocqlxQueryxWrapper.Queryx to the parameter q and returns the wrapper.  This should be
+called by any NRGocqlxQueryxWrapper methods (such as Bind) that return a NRGocqlxQueryxWrapper.
+*/
+func (x *NRGocqlxQueryxWrapper) withQueryx(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
+	x.Queryx = queryx
+	return x
 }
 
 /*
@@ -155,11 +174,6 @@ Sets the arguments of a query.  Use this function, which belongs to the wrapper 
 to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.Bind, you will not be able
 to instrument with New Relic.
 */
-func (x *NRGocqlxQueryxWrapper) withQueryx(q *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
-	x.Queryx = q
-	return x
-}
-
 func (x *NRGocqlxQueryxWrapper) Bind(v ...any) *NRGocqlxQueryxWrapper {
 	return x.withQueryx(x.Queryx.Bind(v...))
 }
