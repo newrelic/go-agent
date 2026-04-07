@@ -50,6 +50,8 @@ especially if you are chaining.
 */
 type NRGocqlxQueryxWrapper struct {
 	*gocqlx.Queryx
+	segmentRunner    func(fn func() error) error
+	casSegmentRunner func(fn func() (bool, error)) (bool, error)
 }
 
 /*
@@ -71,10 +73,10 @@ cannot be pulled from context, no segment will be created but the passed in func
 segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
 the segment.  The segment is stored in context to be enriched later.
 */
-func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) error, dest any) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context) error) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
-		return fn(ctx, dest)
+		return fn(ctx)
 	}
 
 	// start datastore segment
@@ -86,7 +88,7 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context, dest any) er
 
 	// securtiy agent?
 	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
-	return fn(ctx, dest) // enriching of sgmt called withing fn()
+	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
 /*
@@ -97,10 +99,10 @@ the passed in function will still execute. The segment gets populated with its S
 as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
 to be enriched later.
 */
-func execOriginalCAS(ctx context.Context, fn func(ctx context.Context, dest any) (bool, error), dest any) (bool, error) {
+func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error)) (bool, error) {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
-		return fn(ctx, dest)
+		return fn(ctx)
 	}
 
 	// start datastore segment
@@ -112,7 +114,32 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context, dest any)
 
 	// securtiy agent?
 	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
-	return fn(ctx, dest) // enriching of sgmt called withing fn()
+	return fn(ctx) // enriching of sgmt called withing fn()
+}
+
+func newNRWrapper(q *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
+	w := &NRGocqlxQueryxWrapper{Queryx: q}
+	w.segmentRunner = func(fn func() error) error {
+		return execOriginal(w.Context(), func(ctx context.Context) error {
+			w.Query = w.Query.WithContext(ctx)
+			return fn()
+		})
+	}
+	w.casSegmentRunner = func(fn func() (bool, error)) (bool, error) {
+		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
+			w.Query = w.Query.WithContext(ctx)
+			return fn()
+		})
+	}
+	return w
+}
+
+func (x *NRGocqlxQueryxWrapper) runWithSegment(fn func() error) error {
+	return x.segmentRunner(fn)
+}
+
+func (x *NRGocqlxQueryxWrapper) runCASWithSegment(fn func() (bool, error)) (bool, error) {
+	return x.casSegmentRunner(fn)
 }
 
 /*
@@ -120,7 +147,7 @@ Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overr
 for gocqlx.Queryx.
 */
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
-	return &NRGocqlxQueryxWrapper{s.Session.ContextQuery(ctx, stmt, names)}
+	return newNRWrapper(s.Session.ContextQuery(ctx, stmt, names))
 }
 
 /*
@@ -128,8 +155,13 @@ Sets the arguments of a query.  Use this function, which belongs to the wrapper 
 to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Queryx.Bind, you will not be able
 to instrument with New Relic.
 */
+func (x *NRGocqlxQueryxWrapper) withQueryx(q *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
+	x.Queryx = q
+	return x
+}
+
 func (x *NRGocqlxQueryxWrapper) Bind(v ...any) *NRGocqlxQueryxWrapper {
-	return &NRGocqlxQueryxWrapper{x.Queryx.Bind(v...)}
+	return x.withQueryx(x.Queryx.Bind(v...))
 }
 
 /*
@@ -138,7 +170,7 @@ to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Quer
 to instrument with New Relic.
 */
 func (x *NRGocqlxQueryxWrapper) BindMap(arg map[string]any) *NRGocqlxQueryxWrapper {
-	return &NRGocqlxQueryxWrapper{x.Queryx.BindMap(arg)}
+	return x.withQueryx(x.Queryx.BindMap(arg))
 }
 
 /*
@@ -147,7 +179,7 @@ to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Quer
 to instrument with New Relic.
 */
 func (x *NRGocqlxQueryxWrapper) BindStruct(arg any) *NRGocqlxQueryxWrapper {
-	return &NRGocqlxQueryxWrapper{x.Queryx.BindStruct(arg)}
+	return x.withQueryx(x.Queryx.BindStruct(arg))
 }
 
 /*
@@ -156,7 +188,7 @@ to set the arguments and return a NRGocqlxQueryxWrapper.  If you use gocqlx.Quer
 to instrument with New Relic.
 */
 func (x *NRGocqlxQueryxWrapper) BindStructMap(arg0 any, arg1 map[string]any) *NRGocqlxQueryxWrapper {
-	return &NRGocqlxQueryxWrapper{x.Queryx.BindStructMap(arg0, arg1)}
+	return x.withQueryx(x.Queryx.BindStructMap(arg0, arg1))
 }
 
 /*
@@ -164,10 +196,7 @@ Run a Select query and release it immediately after.  Released queries cannot be
 execOriginal with a function that calls gocqlx.Queryx.SelectRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.SelectRelease(dest)
-	}, dest)
+	return x.runWithSegment(func() error { return x.Queryx.SelectRelease(dest) })
 }
 
 /*
@@ -175,10 +204,7 @@ Run a Select query. This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.Select(dest)
-	}, dest)
+	return x.runWithSegment(func() error { return x.Queryx.Select(dest) })
 }
 
 /*
@@ -186,10 +212,7 @@ Run a Get query and release it immediately after.  Released queries cannot be re
 execOriginal with a function that calls gocqlx.Queryx.Get with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.GetRelease(dest)
-	}, dest)
+	return x.runWithSegment(func() error { return x.Queryx.GetRelease(dest) })
 }
 
 /*
@@ -197,10 +220,7 @@ Run a Get query.  This function calls execOriginal with a function that calls go
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.Get(dest)
-	}, dest)
+	return x.runWithSegment(func() error { return x.Queryx.Get(dest) })
 }
 
 /*
@@ -208,10 +228,7 @@ Run a Get lightweight transaction and release it immediately after.  Released qu
 calls execOriginalCAS with a function that calls gocqlx.Queryx.GetCASRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetCASRelease(dest any) (bool, error) {
-	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.GetCASRelease(dest)
-	}, dest)
+	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.GetCASRelease(dest) })
 }
 
 /*
@@ -219,10 +236,7 @@ Run a Get lightweight transaction.  This function calls execOriginalCAS with a f
 with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetCAS(dest any) (bool, error) {
-	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.GetCAS(dest)
-	}, dest)
+	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.GetCAS(dest) })
 }
 
 /*
@@ -230,10 +244,7 @@ Run an Exec query and release it immediately after.  Released queries cannot be 
 execOriginal with a function that calls gocqlx.Queryx.ExecRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.ExecRelease()
-	}, nil)
+	return x.runWithSegment(func() error { return x.Queryx.ExecRelease() })
 }
 
 /*
@@ -241,10 +252,7 @@ Run an Exec query.  This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Exec() error {
-	return execOriginal(x.Context(), func(ctx context.Context, dest any) error {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.Exec()
-	}, nil)
+	return x.runWithSegment(func() error { return x.Queryx.ExecRelease() })
 }
 
 /*
@@ -252,10 +260,7 @@ Run an Exec lightweight transaction.  This function calls execOriginalCAS with a
 with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecCAS() (bool, error) {
-	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.ExecCAS()
-	}, nil)
+	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.ExecCAS() })
 }
 
 /*
@@ -263,10 +268,7 @@ Run an Exec lightweight transaction and release it immediately after.  Released 
 calls execOriginalCAS with a function that calls gocqlx.Queryx.ExecCASRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecCASRelease() (bool, error) {
-	return execOriginalCAS(x.Context(), func(ctx context.Context, dest any) (bool, error) {
-		x.Query = x.Query.WithContext(ctx)
-		return x.Queryx.ExecCASRelease()
-	}, nil)
+	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.ExecCASRelease() })
 }
 
 /*
@@ -274,20 +276,7 @@ Run a query and copies the columns of the first selected row into the values poi
 This function calls execOriginal with a function that calls gocqlx.Queryx.Scan with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
-	ctx := x.Context()
-	txn := newrelic.FromContext(ctx)
-	if txn == nil {
-		return x.Queryx.Scan(v...)
-	}
-
-	sgmt := &newrelic.DatastoreSegment{
-		StartTime: txn.StartSegmentNow(),
-		Product:   newrelic.DatastoreCassandra,
-	}
-	defer sgmt.End()
-
-	x.Query = x.Query.WithContext(context.WithValue(ctx, "nrGocqlxSegment", sgmt))
-	return x.Queryx.Scan(v...)
+	return x.runWithSegment(func() error { return x.Queryx.Scan(v...) })
 }
 
 /*

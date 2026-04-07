@@ -34,40 +34,58 @@ func TestObserveQuery(t *testing.T) {
 	hostWithID.SetHostID("test-host-id")
 
 	tests := []struct {
-		name           string
-		useTransaction bool
-		original       *mockObserver
-		query          gocql.ObservedQuery
-		wantOrigCalled bool
-		wantQuery      string
-		wantKeyspace   string
-		wantHost       string
+		name             string
+		startTransaction bool
+		storeSegment     bool
+		original         *mockObserver
+		query            gocql.ObservedQuery
+		wantOrigCalled   bool
+		wantQuery        string
+		wantKeyspace     string
+		wantHost         string
 	}{
 		{
-			name:           "nil transaction returns early",
-			useTransaction: false,
-			original:       nil,
-			query:          gocql.ObservedQuery{Statement: "SELECT 1"},
+			name:             "nil transaction returns early",
+			startTransaction: false,
+			storeSegment:     false,
+			original:         nil,
+			query:            gocql.ObservedQuery{Statement: "SELECT 1"},
 		},
 		{
-			name:           "original observer is called",
-			useTransaction: true,
-			original:       &mockObserver{},
-			query:          gocql.ObservedQuery{Statement: "SELECT * FROM users", Keyspace: "ks"},
-			wantOrigCalled: true,
-			wantQuery:      "SELECT * FROM users",
-			wantKeyspace:   "ks",
+			name:             "original observer is called",
+			startTransaction: true,
+			storeSegment:     true,
+			original:         &mockObserver{},
+			query:            gocql.ObservedQuery{Statement: "SELECT * FROM users", Keyspace: "ks"},
+			wantOrigCalled:   true,
+			wantQuery:        "SELECT * FROM users",
+			wantKeyspace:     "ks",
 		},
 		{
-			name:           "segment is enriched",
-			useTransaction: true,
-			query:          gocql.ObservedQuery{Statement: "INSERT INTO t", Keyspace: "mykeyspace"},
-			wantQuery:      "INSERT INTO t",
-			wantKeyspace:   "mykeyspace",
+			name:             "segment is enriched",
+			startTransaction: true,
+			storeSegment:     true,
+			query:            gocql.ObservedQuery{Statement: "INSERT INTO t", Keyspace: "mykeyspace"},
+			wantQuery:        "INSERT INTO t",
+			wantKeyspace:     "mykeyspace",
 		},
 		{
-			name:           "host info is captured",
-			useTransaction: true,
+			name:             "host info is captured",
+			startTransaction: true,
+			storeSegment:     true,
+			query: gocql.ObservedQuery{
+				Statement: "SELECT * FROM t",
+				Keyspace:  "ks",
+				Host:      hostWithID,
+			},
+			wantQuery:    "SELECT * FROM t",
+			wantKeyspace: "ks",
+			wantHost:     "test-host-id",
+		},
+		{
+			name:             "early return no segment",
+			startTransaction: true,
+			storeSegment:     false,
 			query: gocql.ObservedQuery{
 				Statement: "SELECT * FROM t",
 				Keyspace:  "ks",
@@ -84,13 +102,17 @@ func TestObserveQuery(t *testing.T) {
 			ctx := context.Background()
 			var seg *newrelic.DatastoreSegment
 
-			if tt.useTransaction {
+			if tt.startTransaction {
 				txn := app.StartTransaction("test-txn")
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
-				seg = &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
-				defer seg.End()
-				ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+				if tt.storeSegment {
+					seg = &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+					defer seg.End()
+					ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+				}
 			}
 
 			NewQueryObserver(tt.original).ObserveQuery(ctx, tt.query)
@@ -129,14 +151,14 @@ func Test_execOriginal(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
-		fn               func(ctx context.Context, dest any) error
+		fn               func(ctx context.Context) error
 		wantErr          bool
 		ctx              context.Context
 		startTransaction bool
 	}{
 		{
 			name: "Context is nil, should execute function and not begin a segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return nil
 			},
 			wantErr:          false,
@@ -145,7 +167,7 @@ func Test_execOriginal(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function and not begin a segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return nil
 			},
 			wantErr:          false,
@@ -154,7 +176,7 @@ func Test_execOriginal(t *testing.T) {
 		},
 		{
 			name: "Context is nil, should execute function that returns error and not begin a segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -163,7 +185,7 @@ func Test_execOriginal(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function that returns error and not begin a segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -172,7 +194,7 @@ func Test_execOriginal(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function and begin segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return nil
 			},
 			wantErr:          false,
@@ -181,7 +203,7 @@ func Test_execOriginal(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function that returns error and begin segment",
-			fn: func(ctx context.Context, dest any) error {
+			fn: func(ctx context.Context) error {
 				return fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -201,7 +223,7 @@ func Test_execOriginal(t *testing.T) {
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
 			}
-			gotErr := execOriginal(ctx, tt.fn, struct{}{})
+			gotErr := execOriginal(ctx, tt.fn)
 
 			if gotErr != nil {
 				if !tt.wantErr {
@@ -220,7 +242,7 @@ func Test_execOriginal(t *testing.T) {
 func Test_execOriginalCAS(t *testing.T) {
 	tests := []struct {
 		name             string
-		fn               func(ctx context.Context, dest any) (bool, error)
+		fn               func(ctx context.Context) (bool, error)
 		wantErr          bool
 		wantApplied      bool
 		ctx              context.Context
@@ -228,7 +250,7 @@ func Test_execOriginalCAS(t *testing.T) {
 	}{
 		{
 			name: "Context is nil, should execute function and not begin a segment",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return true, nil
 			},
 			wantErr:          false,
@@ -238,7 +260,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function and not begin a segment",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return true, nil
 			},
 			wantErr:          false,
@@ -248,7 +270,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context is nil, should execute function that returns error and not begin a segment",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return false, fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -258,7 +280,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function that returns error and not begin a segment",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return false, fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -268,7 +290,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function and begin segment, applied true",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return true, nil
 			},
 			wantErr:          false,
@@ -278,7 +300,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function and begin segment, applied false",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return false, nil
 			},
 			wantErr:          false,
@@ -288,7 +310,7 @@ func Test_execOriginalCAS(t *testing.T) {
 		},
 		{
 			name: "Context exists, should execute function that returns error and begin segment",
-			fn: func(ctx context.Context, dest any) (bool, error) {
+			fn: func(ctx context.Context) (bool, error) {
 				return false, fmt.Errorf("testing error")
 			},
 			wantErr:          true,
@@ -309,7 +331,7 @@ func Test_execOriginalCAS(t *testing.T) {
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
 			}
-			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn, struct{}{})
+			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn)
 
 			if gotErr != nil {
 				if !tt.wantErr {
