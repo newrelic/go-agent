@@ -11,6 +11,7 @@ import (
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 type mockObserver struct {
@@ -344,6 +345,104 @@ func Test_execOriginalCAS(t *testing.T) {
 			}
 			if gotApplied != tt.wantApplied {
 				t.Errorf("execOriginalCAS() applied = %v, want %v", gotApplied, tt.wantApplied)
+			}
+		})
+	}
+}
+
+func Test_newNRGocqlxQueryxWrapper(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		queryx *gocqlx.Queryx
+	}{
+		{
+			name:   "Wrapper with runners set and queryx set",
+			queryx: &gocqlx.Queryx{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newNRGocqlxQueryxWrapper(tt.queryx)
+
+			if got.segmentRunner == nil {
+				t.Errorf("newNRGocqlxQueryxWrapper() segmentRunner is nil")
+			}
+
+			if got.CASSegmentRunner == nil {
+				t.Errorf("newNRGocqlxQueryxWrapper() CASSegmentRunner is nil")
+			}
+		})
+	}
+}
+
+func Test_segmentRunner(t *testing.T) {
+
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+	w := newNRGocqlxQueryxWrapper(&gocqlx.Queryx{Query: &gocql.Query{}})
+	ctx := context.Background()
+	txn := app.StartTransaction("test-txn")
+	defer txn.End()
+	ctx = newrelic.NewContext(ctx, txn)
+	w.WithContext(ctx)
+
+	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+	defer seg.End()
+	ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
+		err := w.runWithSegment(func() error {
+			return nil
+		})
+		if err != nil {
+			t.Errorf("runWithSegment returning error while should be nil")
+		}
+		_, err = w.runCASWithSegment(func() (bool, error) {
+			return true, nil
+		})
+		if err != nil {
+			t.Errorf("runCASWithSegment returning error while should be nil")
+		}
+	})
+}
+
+func TestNewQueryObserver(t *testing.T) {
+	var explicitNil *queryObserver = nil
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		original interface {
+			ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
+		}
+		want *queryObserver
+	}{
+		{
+			name:     "Original is explicit nil return original as nil",
+			original: nil,
+			want:     &queryObserver{nil},
+		},
+		{
+			name:     "Original is type nil return original as nil",
+			original: explicitNil,
+			want:     &queryObserver{nil},
+		},
+		{
+			name:     "Original is an observer, return original as set",
+			original: &mockObserver{},
+			want:     &queryObserver{original: &mockObserver{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewQueryObserver(tt.original)
+			if tt.want.original == nil && got.original != nil {
+				t.Errorf("NewQueryObserver() = %v, want %v", got.original, tt.want.original)
+			}
+			if tt.want.original != nil && got.original == nil {
+				t.Errorf("NewQueryObserver() = %v, want %v", got.original, tt.want.original)
 			}
 		})
 	}
