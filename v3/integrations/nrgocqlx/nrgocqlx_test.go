@@ -394,13 +394,13 @@ func Test_segmentRunner(t *testing.T) {
 	ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
 
 	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
-		err := w.runWithSegment(func() error {
+		err := w.segmentRunner(func() error {
 			return nil
 		})
 		if err != nil {
 			t.Errorf("runWithSegment returning error while should be nil")
 		}
-		_, err = w.runCASWithSegment(func() (bool, error) {
+		_, err = w.CASSegmentRunner(func() (bool, error) {
 			return true, nil
 		})
 		if err != nil {

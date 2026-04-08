@@ -139,20 +139,6 @@ func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 }
 
 /*
-Runs the segmentRunner with the passed in function fn.
-*/
-func (x *NRGocqlxQueryxWrapper) runWithSegment(fn func() error) error {
-	return x.segmentRunner(fn)
-}
-
-/*
-Runs the CASSegmentRunner with the passed in function fn.
-*/
-func (x *NRGocqlxQueryxWrapper) runCASWithSegment(fn func() (bool, error)) (bool, error) {
-	return x.CASSegmentRunner(fn)
-}
-
-/*
 Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overridden implementations
 for gocqlx.Queryx.
 */
@@ -210,7 +196,7 @@ Run a Select query and release it immediately after.  Released queries cannot be
 execOriginal with a function that calls gocqlx.Queryx.SelectRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) SelectRelease(dest any) error {
-	return x.runWithSegment(func() error { return x.Queryx.SelectRelease(dest) })
+	return x.segmentRunner(func() error { return x.Queryx.SelectRelease(dest) })
 }
 
 /*
@@ -218,7 +204,7 @@ Run a Select query. This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Select(dest any) error {
-	return x.runWithSegment(func() error { return x.Queryx.Select(dest) })
+	return x.segmentRunner(func() error { return x.Queryx.Select(dest) })
 }
 
 /*
@@ -226,7 +212,7 @@ Run a Get query and release it immediately after.  Released queries cannot be re
 execOriginal with a function that calls gocqlx.Queryx.Get with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetRelease(dest any) error {
-	return x.runWithSegment(func() error { return x.Queryx.GetRelease(dest) })
+	return x.segmentRunner(func() error { return x.Queryx.GetRelease(dest) })
 }
 
 /*
@@ -234,7 +220,7 @@ Run a Get query.  This function calls execOriginal with a function that calls go
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Get(dest any) error {
-	return x.runWithSegment(func() error { return x.Queryx.Get(dest) })
+	return x.segmentRunner(func() error { return x.Queryx.Get(dest) })
 }
 
 /*
@@ -242,7 +228,7 @@ Run a Get lightweight transaction and release it immediately after.  Released qu
 calls execOriginalCAS with a function that calls gocqlx.Queryx.GetCASRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetCASRelease(dest any) (bool, error) {
-	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.GetCASRelease(dest) })
+	return x.CASSegmentRunner(func() (bool, error) { return x.Queryx.GetCASRelease(dest) })
 }
 
 /*
@@ -250,7 +236,7 @@ Run a Get lightweight transaction.  This function calls execOriginalCAS with a f
 with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) GetCAS(dest any) (bool, error) {
-	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.GetCAS(dest) })
+	return x.CASSegmentRunner(func() (bool, error) { return x.Queryx.GetCAS(dest) })
 }
 
 /*
@@ -258,7 +244,7 @@ Run an Exec query and release it immediately after.  Released queries cannot be 
 execOriginal with a function that calls gocqlx.Queryx.ExecRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecRelease() error {
-	return x.runWithSegment(func() error { return x.Queryx.ExecRelease() })
+	return x.segmentRunner(func() error { return x.Queryx.ExecRelease() })
 }
 
 /*
@@ -266,7 +252,7 @@ Run an Exec query.  This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Exec() error {
-	return x.runWithSegment(func() error { return x.Queryx.ExecRelease() })
+	return x.segmentRunner(func() error { return x.Queryx.ExecRelease() })
 }
 
 /*
@@ -274,7 +260,7 @@ Run an Exec lightweight transaction.  This function calls execOriginalCAS with a
 with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecCAS() (bool, error) {
-	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.ExecCAS() })
+	return x.CASSegmentRunner(func() (bool, error) { return x.Queryx.ExecCAS() })
 }
 
 /*
@@ -282,7 +268,7 @@ Run an Exec lightweight transaction and release it immediately after.  Released 
 calls execOriginalCAS with a function that calls gocqlx.Queryx.ExecCASRelease with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) ExecCASRelease() (bool, error) {
-	return x.runCASWithSegment(func() (bool, error) { return x.Queryx.ExecCASRelease() })
+	return x.CASSegmentRunner(func() (bool, error) { return x.Queryx.ExecCASRelease() })
 }
 
 /*
@@ -290,7 +276,7 @@ Run a query and copies the columns of the first selected row into the values poi
 This function calls execOriginal with a function that calls gocqlx.Queryx.Scan with updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Scan(v ...any) error {
-	return x.runWithSegment(func() error { return x.Queryx.Scan(v...) })
+	return x.segmentRunner(func() error { return x.Queryx.Scan(v...) })
 }
 
 /*
