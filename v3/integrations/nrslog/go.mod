@@ -4,7 +4,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrslog
 go 1.25
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.0
+	github.com/newrelic/go-agent/v3 v3.43.1
 	github.com/stretchr/testify v1.9.0
 )
 

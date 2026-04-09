@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/go-chi/chi/v5 v5.2.2
-	github.com/newrelic/go-agent/v3 v3.43.0
+	github.com/newrelic/go-agent/v3 v3.43.1
 )
 
 replace github.com/newrelic/go-agent/v3 => ../..
