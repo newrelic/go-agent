@@ -1,3 +1,12 @@
+## 3.43.1
+## Fixed
+  * Fixed a bug where we were importing the incorrect version of the `nrsecureagent` in our `nrgrpc` integration
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.43.0
 ### Added
   * Added UnWrap support for replacement response right
