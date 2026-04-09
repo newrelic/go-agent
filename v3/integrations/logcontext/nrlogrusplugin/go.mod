@@ -5,7 +5,7 @@ module github.com/newrelic/go-agent/v3/integrations/logcontext/nrlogrusplugin
 go 1.25
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.0
+	github.com/newrelic/go-agent/v3 v3.43.1
 	// v1.4.0 is required for for the log.WithContext.
 	github.com/sirupsen/logrus v1.8.3
 )
