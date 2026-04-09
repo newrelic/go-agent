@@ -12,10 +12,9 @@ require (
 )
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.0
-	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v0.0.0-00010101000000-000000000000
+	github.com/newrelic/go-agent/v3 v3.43.1
+	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.1.0
 )
-
 
 replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../../integrations/nrsecurityagent
 
