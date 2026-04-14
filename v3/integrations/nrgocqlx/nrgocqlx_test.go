@@ -5,11 +5,13 @@ package nrgocqlx
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 type mockObserver struct {
@@ -33,40 +35,58 @@ func TestObserveQuery(t *testing.T) {
 	hostWithID.SetHostID("test-host-id")
 
 	tests := []struct {
-		name           string
-		useTransaction bool
-		original       *mockObserver
-		query          gocql.ObservedQuery
-		wantOrigCalled bool
-		wantQuery      string
-		wantKeyspace   string
-		wantHost       string
+		name             string
+		startTransaction bool
+		storeSegment     bool
+		original         *mockObserver
+		query            gocql.ObservedQuery
+		wantOrigCalled   bool
+		wantQuery        string
+		wantKeyspace     string
+		wantHost         string
 	}{
 		{
-			name:           "nil transaction returns early",
-			useTransaction: false,
-			original:       nil,
-			query:          gocql.ObservedQuery{Statement: "SELECT 1"},
+			name:             "nil transaction returns early",
+			startTransaction: false,
+			storeSegment:     false,
+			original:         nil,
+			query:            gocql.ObservedQuery{Statement: "SELECT 1"},
 		},
 		{
-			name:           "original observer is called",
-			useTransaction: true,
-			original:       &mockObserver{},
-			query:          gocql.ObservedQuery{Statement: "SELECT * FROM users", Keyspace: "ks"},
-			wantOrigCalled: true,
-			wantQuery:      "SELECT * FROM users",
-			wantKeyspace:   "ks",
+			name:             "original observer is called",
+			startTransaction: true,
+			storeSegment:     true,
+			original:         &mockObserver{},
+			query:            gocql.ObservedQuery{Statement: "SELECT * FROM users", Keyspace: "ks"},
+			wantOrigCalled:   true,
+			wantQuery:        "SELECT * FROM users",
+			wantKeyspace:     "ks",
 		},
 		{
-			name:           "segment is enriched",
-			useTransaction: true,
-			query:          gocql.ObservedQuery{Statement: "INSERT INTO t", Keyspace: "mykeyspace"},
-			wantQuery:      "INSERT INTO t",
-			wantKeyspace:   "mykeyspace",
+			name:             "segment is enriched",
+			startTransaction: true,
+			storeSegment:     true,
+			query:            gocql.ObservedQuery{Statement: "INSERT INTO t", Keyspace: "mykeyspace"},
+			wantQuery:        "INSERT INTO t",
+			wantKeyspace:     "mykeyspace",
 		},
 		{
-			name:           "host info is captured",
-			useTransaction: true,
+			name:             "host info is captured",
+			startTransaction: true,
+			storeSegment:     true,
+			query: gocql.ObservedQuery{
+				Statement: "SELECT * FROM t",
+				Keyspace:  "ks",
+				Host:      hostWithID,
+			},
+			wantQuery:    "SELECT * FROM t",
+			wantKeyspace: "ks",
+			wantHost:     "test-host-id",
+		},
+		{
+			name:             "early return no segment",
+			startTransaction: true,
+			storeSegment:     false,
 			query: gocql.ObservedQuery{
 				Statement: "SELECT * FROM t",
 				Keyspace:  "ks",
@@ -83,13 +103,17 @@ func TestObserveQuery(t *testing.T) {
 			ctx := context.Background()
 			var seg *newrelic.DatastoreSegment
 
-			if tt.useTransaction {
+			if tt.startTransaction {
 				txn := app.StartTransaction("test-txn")
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
-				seg = &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
-				defer seg.End()
-				ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+				if tt.storeSegment {
+					seg = &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+					defer seg.End()
+					ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+				}
 			}
 
 			NewQueryObserver(tt.original).ObserveQuery(ctx, tt.query)
@@ -107,6 +131,318 @@ func TestObserveQuery(t *testing.T) {
 				if seg.Host != tt.wantHost {
 					t.Errorf("Host = %q, want %q", seg.Host, tt.wantHost)
 				}
+			}
+		})
+	}
+}
+
+// func sgmtStartedCheck(t *testing.T, sgmtStarted bool, sgmt *newrelic.DatastoreSegment) {
+// 	if !sgmtStarted {
+// 		if sgmt != nil {
+// 			t.Errorf("execOriginal() began segment unexpectedly")
+// 		}
+// 	} else {
+// 		if sgmt == nil {
+// 			t.Errorf("execOriginal() segment not started unexpectedly")
+// 		}
+// 	}
+// }
+
+func Test_execOriginal(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		fn               func(ctx context.Context) error
+		wantErr          bool
+		ctx              context.Context
+		startTransaction bool
+	}{
+		{
+			name: "Context is nil, should execute function and not begin a segment",
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and not begin a segment",
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context is nil, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and begin segment",
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			wantErr:          false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function that returns error and begin segment",
+			fn: func(ctx context.Context) error {
+				return fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if tt.startTransaction {
+				app := integrationsupport.NewTestApp(
+					integrationsupport.SampleEverythingReplyFn,
+					integrationsupport.ConfigFullTraces,
+				)
+				txn := app.StartTransaction("test-txn")
+				defer txn.End()
+				ctx = newrelic.NewContext(ctx, txn)
+			}
+			gotErr := execOriginal(ctx, tt.fn)
+
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("execOriginal() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("execOriginal() succeeded unexpectedly")
+			}
+
+		})
+	}
+}
+
+func Test_execOriginalCAS(t *testing.T) {
+	tests := []struct {
+		name             string
+		fn               func(ctx context.Context) (bool, error)
+		wantErr          bool
+		wantApplied      bool
+		ctx              context.Context
+		startTransaction bool
+	}{
+		{
+			name: "Context is nil, should execute function and not begin a segment",
+			fn: func(ctx context.Context) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and not begin a segment",
+			fn: func(ctx context.Context) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context is nil, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              nil,
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function that returns error and not begin a segment",
+			fn: func(ctx context.Context) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: false,
+		},
+		{
+			name: "Context exists, should execute function and begin segment, applied true",
+			fn: func(ctx context.Context) (bool, error) {
+				return true, nil
+			},
+			wantErr:          false,
+			wantApplied:      true,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function and begin segment, applied false",
+			fn: func(ctx context.Context) (bool, error) {
+				return false, nil
+			},
+			wantErr:          false,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+		{
+			name: "Context exists, should execute function that returns error and begin segment",
+			fn: func(ctx context.Context) (bool, error) {
+				return false, fmt.Errorf("testing error")
+			},
+			wantErr:          true,
+			wantApplied:      false,
+			ctx:              context.Background(),
+			startTransaction: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if tt.startTransaction {
+				app := integrationsupport.NewTestApp(
+					integrationsupport.SampleEverythingReplyFn,
+					integrationsupport.ConfigFullTraces,
+				)
+				txn := app.StartTransaction("test-txn")
+				defer txn.End()
+				ctx = newrelic.NewContext(ctx, txn)
+			}
+			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn)
+
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("execOriginalCAS() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("execOriginalCAS() succeeded unexpectedly")
+			}
+			if gotApplied != tt.wantApplied {
+				t.Errorf("execOriginalCAS() applied = %v, want %v", gotApplied, tt.wantApplied)
+			}
+		})
+	}
+}
+
+func Test_newNRGocqlxQueryxWrapper(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		queryx *gocqlx.Queryx
+	}{
+		{
+			name:   "Wrapper with runners set and queryx set",
+			queryx: &gocqlx.Queryx{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newNRGocqlxQueryxWrapper(tt.queryx)
+
+			if got.segmentRunner == nil {
+				t.Errorf("newNRGocqlxQueryxWrapper() segmentRunner is nil")
+			}
+
+			if got.CASSegmentRunner == nil {
+				t.Errorf("newNRGocqlxQueryxWrapper() CASSegmentRunner is nil")
+			}
+		})
+	}
+}
+
+func Test_segmentRunner(t *testing.T) {
+
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+	w := newNRGocqlxQueryxWrapper(&gocqlx.Queryx{Query: &gocql.Query{}})
+	ctx := context.Background()
+	txn := app.StartTransaction("test-txn")
+	defer txn.End()
+	ctx = newrelic.NewContext(ctx, txn)
+	w.WithContext(ctx)
+
+	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+	defer seg.End()
+	ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+
+	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
+		err := w.segmentRunner(func() error {
+			return nil
+		})
+		if err != nil {
+			t.Errorf("runWithSegment returning error while should be nil")
+		}
+		_, err = w.CASSegmentRunner(func() (bool, error) {
+			return true, nil
+		})
+		if err != nil {
+			t.Errorf("runCASWithSegment returning error while should be nil")
+		}
+	})
+}
+
+func TestNewQueryObserver(t *testing.T) {
+	var explicitNil *queryObserver = nil
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		original interface {
+			ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
+		}
+		want *queryObserver
+	}{
+		{
+			name:     "Original is explicit nil return original as nil",
+			original: nil,
+			want:     &queryObserver{nil},
+		},
+		{
+			name:     "Original is type nil return original as nil",
+			original: explicitNil,
+			want:     &queryObserver{nil},
+		},
+		{
+			name:     "Original is an observer, return original as set",
+			original: &mockObserver{},
+			want:     &queryObserver{original: &mockObserver{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewQueryObserver(tt.original)
+			if tt.want.original == nil && got.original != nil {
+				t.Errorf("NewQueryObserver() = %v, want %v", got.original, tt.want.original)
+			}
+			if tt.want.original != nil && got.original == nil {
+				t.Errorf("NewQueryObserver() = %v, want %v", got.original, tt.want.original)
 			}
 		})
 	}
