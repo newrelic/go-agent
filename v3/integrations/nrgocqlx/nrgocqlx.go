@@ -8,6 +8,7 @@ import (
 	"context"
 	"reflect"
 	"strconv"
+	"strings"
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -25,6 +26,17 @@ call it
 type queryObserver struct {
 	original interface {
 		ObserveQuery(ctx context.Context, query gocql.ObservedQuery)
+	}
+}
+
+/*
+queryObserver contains the implementation for ObserveQuery
+and a field for the original ObserveQuery if the user chooses to
+call it
+*/
+type batchObserver struct {
+	original interface {
+		ObserveBatch(ctx context.Context, batch gocql.ObservedBatch)
 	}
 }
 
@@ -333,4 +345,37 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	segment.DatabaseName = keyspace
 
 	// security agent?
+}
+
+func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBatch) {
+	if o.original != nil {
+		o.original.ObserveBatch(ctx, batch)
+	}
+
+	txn := newrelic.FromContext(ctx)
+	if txn == nil {
+		return
+	}
+
+	var host, keyspace string
+	var statements []string
+	var port int
+
+	if batch.Host != nil {
+		host = batch.Host.HostID()
+		port = batch.Host.Port()
+	}
+	statements = batch.Statements // copy or set each individual element
+	keyspace = batch.Keyspace
+
+	segment, ok := ctx.Value("nrGocqlxBatchSegment").(*newrelic.DatastoreSegment)
+	if !ok {
+		return
+	}
+	segment.ParameterizedQuery = strings.Join(statements, ",") // join statements together?
+	segment.Host = host
+	segment.Collection = "tableNameExample"
+	segment.PortPathOrID = strconv.Itoa(port)
+	segment.DatabaseName = keyspace
+	// enrich segment below
 }
