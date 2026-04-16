@@ -5,7 +5,7 @@ go 1.25
 toolchain go1.23.2
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.1
+	github.com/newrelic/go-agent/v3 v3.43.2
 	github.com/snowflakedb/gosnowflake v1.14.0
 )
 

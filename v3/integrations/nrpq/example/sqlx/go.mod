@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.0
-	github.com/newrelic/go-agent/v3 v3.43.1
+	github.com/newrelic/go-agent/v3 v3.43.2
 	github.com/newrelic/go-agent/v3/integrations/nrpq v0.0.0
 )
 replace github.com/newrelic/go-agent/v3/integrations/nrpq => ../../
