@@ -14,6 +14,9 @@ type replacementResponseWriter struct {
 	thd      *thread
 	original http.ResponseWriter
 }
+type responseWriterUnwrapper interface {
+	Unwrap() http.ResponseWriter
+}
 
 func (rw *replacementResponseWriter) Header() http.Header {
 	return rw.original.Header()
@@ -91,98 +94,114 @@ func upgradeResponseWriter(rw *replacementResponseWriter) http.ResponseWriter {
 	default: // No optional interfaces implemented
 		return struct {
 			http.ResponseWriter
-		}{rw}
+			responseWriterUnwrapper
+		}{rw, rw}
 	case i0:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
-		}{rw, rw}
+		}{rw, rw, rw}
 	case i1:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.Flusher
-		}{rw, rw}
+		}{rw, rw, rw}
 	case i0 | i1:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			http.Flusher
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i2:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.Hijacker
-		}{rw, rw}
+		}{rw, rw, rw}
 	case i0 | i2:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			http.Hijacker
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i1 | i2:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.Flusher
 			http.Hijacker
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i0 | i1 | i2:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			http.Flusher
 			http.Hijacker
-		}{rw, rw, rw, rw}
+		}{rw, rw, rw, rw, rw}
 	case i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			io.ReaderFrom
-		}{rw, rw}
+		}{rw, rw, rw}
 	case i0 | i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			io.ReaderFrom
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i1 | i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.Flusher
 			io.ReaderFrom
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i0 | i1 | i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			http.Flusher
 			io.ReaderFrom
-		}{rw, rw, rw, rw}
+		}{rw, rw, rw, rw, rw}
 	case i2 | i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.Hijacker
 			io.ReaderFrom
-		}{rw, rw, rw}
+		}{rw, rw, rw, rw}
 	case i0 | i2 | i3:
 		return struct {
 			http.ResponseWriter
+			responseWriterUnwrapper
 			http.CloseNotifier
 			http.Hijacker
 			io.ReaderFrom
-		}{rw, rw, rw, rw}
+		}{rw, rw, rw, rw, rw}
 	case i1 | i2 | i3:
 		return struct {
 			http.ResponseWriter
-			http.Flusher
-			http.Hijacker
-			io.ReaderFrom
-		}{rw, rw, rw, rw}
-	case i0 | i1 | i2 | i3:
-		return struct {
-			http.ResponseWriter
-			http.CloseNotifier
+			responseWriterUnwrapper
 			http.Flusher
 			http.Hijacker
 			io.ReaderFrom
 		}{rw, rw, rw, rw, rw}
+	case i0 | i1 | i2 | i3:
+		return struct {
+			http.ResponseWriter
+			responseWriterUnwrapper
+			http.CloseNotifier
+			http.Flusher
+			http.Hijacker
+			io.ReaderFrom
+		}{rw, rw, rw, rw, rw, rw}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 )
 
 type rwNoExtraMethods struct {
@@ -18,8 +19,13 @@ type rwNoExtraMethods struct {
 	closeNotifyCalled bool
 }
 
+type rwSetWriteDeadline struct{ rwNoExtraMethods }
 type rwTwoExtraMethods struct{ rwNoExtraMethods }
 type rwAllExtraMethods struct{ rwTwoExtraMethods }
+
+func (rw *rwSetWriteDeadline) SetWriteDeadline(time time.Time) error {
+	return nil
+}
 
 func (rw *rwAllExtraMethods) CloseNotify() <-chan bool {
 	rw.closeNotifyCalled = true
@@ -47,6 +53,50 @@ func TestReplacementResponseWriterUnwrap(t *testing.T) {
 	rw := &replacementResponseWriter{original: original}
 	if got := rw.Unwrap(); got != original {
 		t.Fatalf("Unwrap returned unexpected response writer: got %T, want %T", got, original)
+	}
+}
+
+func TestReplacementResponseWriterUnwrapController(t *testing.T) {
+	// Create a mock response writer
+	original := &rwNoExtraMethods{}
+	rw := &replacementResponseWriter{original: original}
+
+	upgraded := upgradeResponseWriter(rw)
+
+	unwrapper, ok := upgraded.(responseWriterUnwrapper)
+	if !ok {
+		t.Fatal("upgraded response writer does not expose Unwrap() method")
+	}
+
+	if got := unwrapper.Unwrap(); got != original {
+		t.Errorf("Unwrap() returned wrong writer: got %v, want %v", got, original)
+	}
+}
+
+func TestReplacementResponseWriterUnwrapSetWriteDeadline(t *testing.T) {
+	// Create a mock response writer
+	original := &rwSetWriteDeadline{}
+	rw := &replacementResponseWriter{original: original}
+
+	upgraded := upgradeResponseWriter(rw)
+
+	unwrapper, ok := upgraded.(responseWriterUnwrapper)
+	if !ok {
+		t.Fatal("upgraded response writer does not expose Unwrap() method")
+	}
+
+	if got := unwrapper.Unwrap(); got != original {
+		t.Errorf("Unwrap() returned wrong writer: got %v, want %v", got, original)
+	}
+
+	controller := http.NewResponseController(upgraded)
+	if controller == nil {
+		t.Fatal("http.NewResponseController returned nil")
+	}
+	var time time.Time
+	err := controller.SetWriteDeadline(time)
+	if err != nil {
+		t.Fatalf("http.ResponseController.SetWriteDeadline failed with: %v", err)
 	}
 }
 
