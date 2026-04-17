@@ -35,12 +35,8 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		Attributes: e.Data,
 	}
 
-	logBytes, err := f.formatter.Format(e)
-	if err != nil {
-		return nil, err
-	}
-	logBytes = bytes.TrimRight(logBytes, "\n")
-	b := bytes.NewBuffer(logBytes)
+	messageBytes := []byte(e.Message)
+	messageBuf := bytes.NewBuffer(messageBytes)
 
 	ctx := e.Context
 	var txn *newrelic.Transaction
@@ -49,17 +45,26 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	}
 	if txn != nil {
 		txn.RecordLog(logData)
-		err := newrelic.EnrichLog(b, newrelic.FromTxn(txn))
+		err := newrelic.EnrichLog(messageBuf, newrelic.FromTxn(txn))
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		f.app.RecordLog(logData)
-		err := newrelic.EnrichLog(b, newrelic.FromApp(f.app))
+		err := newrelic.EnrichLog(messageBuf, newrelic.FromApp(f.app))
 		if err != nil {
 			return nil, err
 		}
 	}
-	b.WriteString("\n")
+	e.Message = messageBuf.String()
+
+	logBytes, err := f.formatter.Format(e)
+	if err != nil {
+		return nil, err
+	}
+	logBytes = bytes.TrimRight(logBytes, "\n")
+	b := bytes.NewBuffer(logBytes)
+	b.WriteString("\n") // do i need this
+
 	return b.Bytes(), nil
 }
