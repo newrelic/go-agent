@@ -27,6 +27,23 @@ func NewFormatter(app *newrelic.Application, formatter logrus.Formatter) Context
 	}
 }
 
+// recordLog records the log data to the transaction or application
+func (f ContextFormatter) recordLog(logData newrelic.LogData, txn *newrelic.Transaction) {
+	if txn != nil {
+		txn.RecordLog(logData)
+	} else {
+		f.app.RecordLog(logData)
+	}
+}
+
+// enrichLog enriches the buffer with linking metadata
+func (f ContextFormatter) enrichLog(buf *bytes.Buffer, txn *newrelic.Transaction) error {
+	if txn != nil {
+		return newrelic.EnrichLog(buf, newrelic.FromTxn(txn))
+	}
+	return newrelic.EnrichLog(buf, newrelic.FromApp(f.app))
+}
+
 // Format renders a single log entry.
 func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	logData := newrelic.LogData{
@@ -35,36 +52,36 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		Attributes: e.Data,
 	}
 
-	messageBytes := []byte(e.Message)
-	messageBuf := bytes.NewBuffer(messageBytes)
-
 	ctx := e.Context
 	var txn *newrelic.Transaction
 	if ctx != nil {
 		txn = newrelic.FromContext(ctx)
 	}
-	if txn != nil {
-		txn.RecordLog(logData)
-		err := newrelic.EnrichLog(messageBuf, newrelic.FromTxn(txn))
-		if err != nil {
+
+	f.recordLog(logData, txn)
+
+	cfg, _ := f.app.Config()
+
+	if cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
+		msgBuf := bytes.NewBufferString(e.Message)
+		if err := f.enrichLog(msgBuf, txn); err != nil {
 			return nil, err
 		}
-	} else {
-		f.app.RecordLog(logData)
-		err := newrelic.EnrichLog(messageBuf, newrelic.FromApp(f.app))
-		if err != nil {
-			return nil, err
-		}
+		e.Message = msgBuf.String()
 	}
-	e.Message = messageBuf.String()
 
 	logBytes, err := f.formatter.Format(e)
 	if err != nil {
 		return nil, err
 	}
-	logBytes = bytes.TrimRight(logBytes, "\n")
-	b := bytes.NewBuffer(logBytes)
-	b.WriteString("\n") // do i need this
 
+	b := bytes.NewBuffer(bytes.TrimRight(logBytes, "\n"))
+	if !cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
+		if err := f.enrichLog(b, txn); err != nil {
+			return nil, err
+		}
+	}
+
+	b.WriteString("\n")
 	return b.Bytes(), nil
 }
