@@ -5,6 +5,7 @@ package nrlogrus
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -37,7 +38,10 @@ func (f ContextFormatter) recordLog(logData newrelic.LogData, txn *newrelic.Tran
 }
 
 // enrichLog enriches the buffer with linking metadata
-func (f ContextFormatter) enrichLog(buf *bytes.Buffer, txn *newrelic.Transaction) error {
+func (f ContextFormatter) enrichLog(buf *bytes.Buffer, txn *newrelic.Transaction, cfg newrelic.Config) error {
+	if !cfg.ApplicationLogging.Enabled || !cfg.ApplicationLogging.LocalDecorating.Enabled {
+		return nil // not an error we just don't enrich the log
+	}
 	if txn != nil {
 		return newrelic.EnrichLog(buf, newrelic.FromTxn(txn))
 	}
@@ -60,11 +64,14 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 
 	f.recordLog(logData, txn)
 
-	cfg, _ := f.app.Config()
+	cfg, ok := f.app.Config()
+	if !ok {
+		return nil, fmt.Errorf("couldn't retrieve app config")
+	}
 
 	if cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
 		msgBuf := bytes.NewBufferString(e.Message)
-		if err := f.enrichLog(msgBuf, txn); err != nil {
+		if err := f.enrichLog(msgBuf, txn, cfg); err != nil {
 			return nil, err
 		}
 		e.Message = msgBuf.String()
@@ -77,7 +84,7 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 
 	b := bytes.NewBuffer(bytes.TrimRight(logBytes, "\n"))
 	if !cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
-		if err := f.enrichLog(b, txn); err != nil {
+		if err := f.enrichLog(b, txn, cfg); err != nil {
 			return nil, err
 		}
 	}
