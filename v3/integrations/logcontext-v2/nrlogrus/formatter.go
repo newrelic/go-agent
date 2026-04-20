@@ -19,12 +19,24 @@ func init() { internal.TrackUsage("integration", "logcontext-v2", "logrus") }
 type ContextFormatter struct {
 	app       *newrelic.Application
 	formatter logrus.Formatter
+	enricher  logEnricher
+}
+
+type logEnricher interface {
+	Enrich(buf *bytes.Buffer, opts newrelic.EnricherOption) error
+}
+
+type defaultEnricher struct{}
+
+func (e *defaultEnricher) Enrich(buf *bytes.Buffer, opts newrelic.EnricherOption) error {
+	return newrelic.EnrichLog(buf, opts)
 }
 
 func NewFormatter(app *newrelic.Application, formatter logrus.Formatter) ContextFormatter {
 	return ContextFormatter{
 		app:       app,
 		formatter: formatter,
+		enricher:  &defaultEnricher{},
 	}
 }
 
@@ -43,9 +55,9 @@ func (f ContextFormatter) enrichLog(buf *bytes.Buffer, txn *newrelic.Transaction
 		return nil // not an error we just don't enrich the log
 	}
 	if txn != nil {
-		return newrelic.EnrichLog(buf, newrelic.FromTxn(txn))
+		return f.enricher.Enrich(buf, newrelic.FromTxn(txn))
 	}
-	return newrelic.EnrichLog(buf, newrelic.FromApp(f.app))
+	return f.enricher.Enrich(buf, newrelic.FromApp(f.app))
 }
 
 // Format renders a single log entry.

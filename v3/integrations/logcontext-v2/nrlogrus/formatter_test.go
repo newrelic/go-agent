@@ -18,6 +18,14 @@ var (
 	host, _ = sysinfo.Hostname()
 )
 
+type testEnricher struct {
+	called bool
+}
+
+func (e *testEnricher) Enrich(buf *bytes.Buffer, opts newrelic.EnricherOption) error {
+	e.called = true
+	return nil
+}
 func newTextLogger(out io.Writer, app *newrelic.Application) *logrus.Logger {
 	l := logrus.New()
 	l.Formatter = NewFormatter(app, &logrus.TextFormatter{
@@ -253,4 +261,110 @@ func TestLogInContextWithFields(t *testing.T) {
 	})
 
 	txn.End()
+}
+
+func TestContextFormatter_enrichLog(t *testing.T) {
+	// do I need to test different types of formatters? Probably should
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		formatter logrus.Formatter
+		// Named input parameters for target function.
+		txn *newrelic.Transaction
+
+		enabled                bool
+		localDecoratingEnabled bool
+
+		wantCallSpy bool
+	}{
+		{
+			name:                   "Logging and Local Decorating Disabled and existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    &newrelic.Transaction{},
+			enabled:                false,
+			localDecoratingEnabled: false,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging and Local Decorating Disabled and no existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    nil,
+			enabled:                false,
+			localDecoratingEnabled: false,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging Enabled and Local Decorating Disabled and existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    &newrelic.Transaction{},
+			enabled:                true,
+			localDecoratingEnabled: false,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging Enabled and Local Decorating Disabled and no existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    nil,
+			enabled:                true,
+			localDecoratingEnabled: false,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging Disabled and Local Decorating Enabled and existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    &newrelic.Transaction{},
+			enabled:                false,
+			localDecoratingEnabled: true,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging Disabled and Local Decorating Enabled and no existing txn. Should not call Enrich Log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    nil,
+			enabled:                false,
+			localDecoratingEnabled: true,
+			wantCallSpy:            false,
+		},
+		{
+			name:                   "Logging and Local Decorating Enabled and no existing txn. Should call enrich log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    nil,
+			enabled:                true,
+			localDecoratingEnabled: true,
+			wantCallSpy:            true,
+		},
+		{
+			name:                   "Logging and Local Decorating Enabled and existing txn. Should call enrich log",
+			formatter:              &logrus.TextFormatter{},
+			txn:                    &newrelic.Transaction{},
+			enabled:                true,
+			localDecoratingEnabled: true,
+			wantCallSpy:            true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			enricherSpy := &testEnricher{}
+			f := ContextFormatter{
+				formatter: tt.formatter,
+				enricher:  enricherSpy,
+			} // not testing any app functionality so we can set it to nil in this case
+			f.enrichLog(nil, tt.txn, newrelic.Config{
+				ApplicationLogging: newrelic.ApplicationLogging{
+					Enabled: tt.enabled,
+					LocalDecorating: struct {
+						Enabled            bool
+						WithinMessageField bool
+					}{
+						Enabled: tt.localDecoratingEnabled,
+					},
+				},
+			})
+
+			if enricherSpy.called != tt.wantCallSpy {
+				t.Errorf("enrichLog() failed with calling newrelic.Enrich(), Got: %v want: %v", enricherSpy.called, tt.wantCallSpy)
+			}
+
+		})
+	}
 }
