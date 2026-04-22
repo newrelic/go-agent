@@ -66,6 +66,12 @@ type NRGocqlxQueryxWrapper struct {
 	CASSegmentRunner func(fn func() (bool, error)) (bool, error)
 }
 
+type NRGocqlxBatchWrapper struct {
+	*gocqlx.Batch
+	segmentRunner    func(fn func() error) error
+	CASSegmentRunner func(fn func() (bool, error)) (bool, error)
+}
+
 /*
 Call that wraps a gocqlx.Session.  This function takes a gocql.ClusterConfig and returns a
 NRGocqlxSessionWrapper.
@@ -150,12 +156,33 @@ func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 	return w
 }
 
+func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
+	w := &NRGocqlxBatchWrapper{Batch: batch}
+	w.segmentRunner = func(fn func() error) error {
+		return execOriginal(w.Context(), func(ctx context.Context) error {
+			w.Batch = w.Batch.WithContext(ctx)
+			return fn()
+		})
+	}
+	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
+		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
+			w.Batch = w.Batch.WithContext(ctx)
+			return fn()
+		})
+	}
+	return w
+}
+
 /*
 Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overridden implementations
 for gocqlx.Queryx.
 */
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
 	return newNRGocqlxQueryxWrapper(s.Session.ContextQuery(ctx, stmt, names))
+}
+
+func (s *NRGocqlxSessionWrapper) ContextBatch(ctx context.Context, bt gocql.BatchType) *NRGocqlxBatchWrapper {
+	return newNRGocqlxBatchWrapper(s.Session.ContextBatch(ctx, bt))
 }
 
 /*
