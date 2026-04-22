@@ -30,8 +30,8 @@ type queryObserver struct {
 }
 
 /*
-queryObserver contains the implementation for ObserveQuery
-and a field for the original ObserveQuery if the user chooses to
+batchObserver contains the implementation for ObserveBatch
+and a field for the original ObserveBatch if the user chooses to
 call it
 */
 type batchObserver struct {
@@ -307,6 +307,21 @@ func NewQueryObserver(original interface {
 }
 
 /*
+NewBatchObserver returns a gocql.BatchObserver that creates newrelic.DatastoreSegment for each database batch query. If provided,
+the original gocql.BatchObserver will be called as well.
+*/
+func NewBatchObserver(original interface {
+	ObserveBatch(ctx context.Context, batch gocql.ObservedBatch)
+}) *batchObserver {
+	if original != nil && reflect.ValueOf(original).IsNil() {
+		original = nil
+	}
+	return &batchObserver{
+		original: original,
+	}
+}
+
+/*
 ObserveQuery is the implementation for the gocql.QueryObserver.  This will run after the
 query is executed.  It will execute the original implementation of ObserveQuery if it is
 passed in.  If there is no new relic transaction in context, it will return early.  Otherwise,
@@ -365,14 +380,14 @@ func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBa
 		host = batch.Host.HostID()
 		port = batch.Host.Port()
 	}
-	statements = batch.Statements // copy or set each individual element
+	statements = batch.Statements
 	keyspace = batch.Keyspace
 
 	segment, ok := ctx.Value("nrGocqlxBatchSegment").(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
-	segment.ParameterizedQuery = strings.Join(statements, ",") // join statements together?
+	segment.ParameterizedQuery = strings.Join(statements, "; ") // join statements together
 	segment.Host = host
 	segment.Collection = "tableNameExample"
 	segment.PortPathOrID = strconv.Itoa(port)
