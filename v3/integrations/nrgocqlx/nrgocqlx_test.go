@@ -21,7 +21,18 @@ type mockObserver struct {
 	}
 }
 
+type mockBatchObserver struct {
+	called   bool
+	original interface {
+		ObserveBatch(ctx context.Context, batch gocql.ObservedBatch)
+	}
+}
+
 func (m *mockObserver) ObserveQuery(ctx context.Context, q gocql.ObservedQuery) {
+	m.called = true
+}
+
+func (m *mockBatchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBatch) {
 	m.called = true
 }
 
@@ -109,7 +120,7 @@ func TestObserveQuery(t *testing.T) {
 				ctx = newrelic.NewContext(ctx, txn)
 
 				if tt.storeSegment {
-					seg = &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+					seg = &newrelic.DatastoreSegment{StartTime: newrelic.SegmentStartTime{}}
 					defer seg.End()
 					ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
 
@@ -443,6 +454,130 @@ func TestNewQueryObserver(t *testing.T) {
 			}
 			if tt.want.original != nil && got.original == nil {
 				t.Errorf("NewQueryObserver() = %v, want %v", got.original, tt.want.original)
+			}
+		})
+	}
+}
+
+func TestObserveBatch(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+
+	hostWithID := new(gocql.HostInfo)
+	hostWithID.SetHostID("test-host-id")
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		batch            gocql.ObservedBatch
+		startTransaction bool
+		storeSegment     bool
+		original         *mockBatchObserver
+		wantOrigCalled   bool
+		wantBatch        string
+		wantKeyspace     string
+		wantHost         string
+	}{
+		{
+			name:             "nil transaction returns early",
+			startTransaction: false,
+			storeSegment:     false,
+			original:         nil,
+			batch:            gocql.ObservedBatch{Statements: []string{}},
+		},
+		{
+			name:             "original observer is called",
+			startTransaction: true,
+			storeSegment:     true,
+			original:         &mockBatchObserver{},
+			batch:            gocql.ObservedBatch{Statements: []string{"SELECT * FROM USERS", "INSERT INTO t"}, Keyspace: "mykeyspace"},
+			wantOrigCalled:   true,
+			wantBatch:        "SELECT * FROM USERS; INSERT INTO t",
+			wantKeyspace:     "mykeyspace",
+		},
+		{
+			name:             "segment is enriched",
+			startTransaction: true,
+			storeSegment:     true,
+			batch:            gocql.ObservedBatch{Statements: []string{"INSERT INTO t", "DELETE FROM t"}, Keyspace: "mykeyspace"},
+			wantBatch:        "INSERT INTO t; DELETE FROM t",
+			wantKeyspace:     "mykeyspace",
+		},
+		{
+			name:             "host info is captured",
+			startTransaction: true,
+			storeSegment:     true,
+			batch: gocql.ObservedBatch{
+				Statements: []string{"SELECT * FROM t"},
+				Keyspace:   "ks",
+				Host:       hostWithID,
+			},
+			wantBatch:    "SELECT * FROM t",
+			wantKeyspace: "ks",
+			wantHost:     "test-host-id",
+		},
+		{
+			name:             "early return no segment",
+			startTransaction: true,
+			storeSegment:     false,
+			batch: gocql.ObservedBatch{
+				Statements: []string{"SELECT * FROM t"},
+				Keyspace:   "ks",
+				Host:       hostWithID,
+			},
+		},
+		{
+			name:             "more than two statements joined",
+			startTransaction: true,
+			storeSegment:     true,
+			batch: gocql.ObservedBatch{
+				Statements: []string{"SELECT * FROM a", "INSERT INTO b", "DELETE FROM c"},
+				Keyspace:   "ks",
+			},
+			wantBatch:    "SELECT * FROM a; INSERT INTO b; DELETE FROM c",
+			wantKeyspace: "ks",
+		},
+		{
+			name:             "empty statements",
+			startTransaction: true,
+			storeSegment:     true,
+			batch:            gocql.ObservedBatch{Statements: []string{}, Keyspace: "ks"},
+			wantBatch:        "",
+			wantKeyspace:     "ks",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			var seg *newrelic.DatastoreSegment
+
+			if tt.startTransaction {
+				txn := app.StartTransaction("test-txn")
+				defer txn.End()
+				ctx = newrelic.NewContext(ctx, txn)
+				if tt.storeSegment {
+					seg = &newrelic.DatastoreSegment{StartTime: newrelic.SegmentStartTime{}}
+					defer seg.End()
+					ctx = context.WithValue(ctx, "nrGocqlxBatchSegment", seg)
+				}
+			}
+			NewBatchObserver(tt.original).ObserveBatch(ctx, tt.batch)
+
+			if tt.original != nil && tt.original.called != tt.wantOrigCalled {
+				t.Errorf("original.called = %v, want %v", tt.original.called, tt.wantOrigCalled)
+			}
+			if seg != nil {
+				if seg.ParameterizedQuery != tt.wantBatch {
+					t.Errorf("ParameterizedQuery = %q, want %q", seg.ParameterizedQuery, tt.wantBatch)
+				}
+				if seg.DatabaseName != tt.wantKeyspace {
+					t.Errorf("DatabaseName = %q, want %q", seg.DatabaseName, tt.wantKeyspace)
+				}
+				if seg.Host != tt.wantHost {
+					t.Errorf("Host = %q, want %q", seg.Host, tt.wantHost)
+				}
 			}
 		})
 	}
