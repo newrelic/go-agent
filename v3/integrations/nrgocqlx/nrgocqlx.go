@@ -173,6 +173,22 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 	return w
 }
 
+func (b *NRGocqlxBatchWrapper) Bind(qry *gocqlx.Queryx, args ...any) error {
+	return b.Batch.Bind(qry, args...)
+}
+
+func (b *NRGocqlxBatchWrapper) BindMap(qry *gocqlx.Queryx, arg map[string]any) error {
+	return b.Batch.BindMap(qry, arg)
+}
+
+func (b *NRGocqlxBatchWrapper) BindStruct(qry *gocqlx.Queryx, arg any) error {
+	return b.Batch.BindStruct(qry, arg)
+}
+
+func (b *NRGocqlxBatchWrapper) BindStructMap(qry *gocqlx.Queryx, arg0 any, arg1 map[string]any) error {
+	return b.Batch.BindStructMap(qry, arg0, arg1)
+}
+
 /*
 Returns a wrapper NRGocqlxQueryxWrapper which contains embedded fields and overridden implementations
 for gocqlx.Queryx.
