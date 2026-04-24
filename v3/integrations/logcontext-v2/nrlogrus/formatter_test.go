@@ -281,19 +281,14 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 	// do I need to test different types of formatters? Probably should
 	tests := []struct {
 		name string // description of this test case
-		// Named input parameters for receiver constructor.
-		formatter logrus.Formatter
 		// Named input parameters for target function.
-		txn *newrelic.Transaction
-
+		txn                    *newrelic.Transaction
 		enabled                bool
 		localDecoratingEnabled bool
-
-		wantCallSpy bool
+		wantCallSpy            bool
 	}{
 		{
 			name:                   "Logging and Local Decorating Disabled and existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    &newrelic.Transaction{},
 			enabled:                false,
 			localDecoratingEnabled: false,
@@ -301,7 +296,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging and Local Decorating Disabled and no existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    nil,
 			enabled:                false,
 			localDecoratingEnabled: false,
@@ -309,7 +303,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging Enabled and Local Decorating Disabled and existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    &newrelic.Transaction{},
 			enabled:                true,
 			localDecoratingEnabled: false,
@@ -317,7 +310,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging Enabled and Local Decorating Disabled and no existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    nil,
 			enabled:                true,
 			localDecoratingEnabled: false,
@@ -325,7 +317,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging Disabled and Local Decorating Enabled and existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    &newrelic.Transaction{},
 			enabled:                false,
 			localDecoratingEnabled: true,
@@ -333,7 +324,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging Disabled and Local Decorating Enabled and no existing txn. Should not call Enrich Log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    nil,
 			enabled:                false,
 			localDecoratingEnabled: true,
@@ -341,7 +331,6 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging and Local Decorating Enabled and no existing txn. Should call enrich log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    nil,
 			enabled:                true,
 			localDecoratingEnabled: true,
@@ -349,37 +338,43 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 		},
 		{
 			name:                   "Logging and Local Decorating Enabled and existing txn. Should call enrich log",
-			formatter:              &logrus.TextFormatter{},
 			txn:                    &newrelic.Transaction{},
 			enabled:                true,
 			localDecoratingEnabled: true,
 			wantCallSpy:            true,
 		},
 	}
+	formatters := map[string]logrus.Formatter{
+		"Text": &logrus.TextFormatter{},
+		"JSON": &logrus.JSONFormatter{},
+	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			enricherSpy := &testEnricher{}
-			f := ContextFormatter{
-				formatter: tt.formatter,
-				enricher:  enricherSpy,
-			} // not testing any app functionality so we can set it to nil in this case
-			f.enrichLog(nil, tt.txn, newrelic.Config{
-				ApplicationLogging: newrelic.ApplicationLogging{
-					Enabled: tt.enabled,
-					LocalDecorating: struct {
-						Enabled            bool
-						WithinMessageField bool
-					}{
-						Enabled: tt.localDecoratingEnabled,
+		for key, formatter := range formatters {
+			testName := fmt.Sprintf("%s: tt.name", key)
+			t.Run(testName, func(t *testing.T) {
+				enricherSpy := &testEnricher{}
+				f := ContextFormatter{
+					formatter: formatter,
+					enricher:  enricherSpy,
+				} // not testing any app functionality so we can set it to nil in this case
+				f.enrichLog(nil, tt.txn, newrelic.Config{
+					ApplicationLogging: newrelic.ApplicationLogging{
+						Enabled: tt.enabled,
+						LocalDecorating: struct {
+							Enabled            bool
+							WithinMessageField bool
+						}{
+							Enabled: tt.localDecoratingEnabled,
+						},
 					},
-				},
+				})
+
+				if enricherSpy.called != tt.wantCallSpy {
+					t.Errorf("enrichLog() failed with calling newrelic.Enrich(), Got: %v want: %v", enricherSpy.called, tt.wantCallSpy)
+				}
+
 			})
-
-			if enricherSpy.called != tt.wantCallSpy {
-				t.Errorf("enrichLog() failed with calling newrelic.Enrich(), Got: %v want: %v", enricherSpy.called, tt.wantCallSpy)
-			}
-
-		})
+		}
 	}
 }
 
@@ -387,7 +382,7 @@ func TestContextFormatter_Format(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
-		formatter                  logrus.Formatter
+		jsonOnly                   bool
 		enricher                   logEnricher
 		appInitialized             bool
 		logForwardingEnabled       bool
@@ -401,11 +396,11 @@ func TestContextFormatter_Format(t *testing.T) {
 	}{
 		{
 			name:                       "Couldn't retrieve app config and all log enabling set to true. Should return with error and nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             false,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: true,
+			enricher:                   &testEnricher{},
 			e:                          &logrus.Entry{},
 			want:                       nil,
 			wantErr:                    true,
@@ -413,35 +408,37 @@ func TestContextFormatter_Format(t *testing.T) {
 		},
 		{
 			name:                       "Couldn't retrieve app config and all log enabling set to false. Should return with error and nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             false,
 			logForwardingEnabled:       false,
 			localDecoratingEnabled:     false,
 			logDecoratingWithinMessage: false,
-			e:                          &logrus.Entry{},
-			want:                       nil,
-			wantErr:                    true,
-			wantCallSpy:                false,
+			enricher:                   &testEnricher{},
+
+			e:           &logrus.Entry{},
+			want:        nil,
+			wantErr:     true,
+			wantCallSpy: false,
 		},
 		{
 			name:                       "Couldn't retrieve app config and some log enabling set to false. Should return with error and nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             false,
 			logForwardingEnabled:       false,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: false,
-			e:                          &logrus.Entry{},
-			want:                       nil,
-			wantErr:                    true,
-			wantCallSpy:                false,
+			enricher:                   &testEnricher{},
+
+			e:           &logrus.Entry{},
+			want:        nil,
+			wantErr:     true,
+			wantCallSpy: false,
 		},
 		{
 			name:                       "Couldn't retrieve app config and some log enabling set to true. Should return with error and nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             false,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: false,
+			enricher:                   &testEnricher{},
 			e:                          &logrus.Entry{},
 			want:                       nil,
 			wantErr:                    true,
@@ -449,7 +446,6 @@ func TestContextFormatter_Format(t *testing.T) {
 		},
 		{
 			name:                       "Log decorating within message set to true but enrich log returns error. Should return with error and nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -458,11 +454,10 @@ func TestContextFormatter_Format(t *testing.T) {
 			e:                          &logrus.Entry{},
 			want:                       nil,
 			wantErr:                    true,
-			wantCallSpy:                false,
+			wantCallSpy:                true,
 		},
 		{
 			name:                       "Log decorating within message set to true but others set to false but enrich log returns error. Should return with nil bytes.",
-			formatter:                  &logrus.TextFormatter{},
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -471,11 +466,11 @@ func TestContextFormatter_Format(t *testing.T) {
 			e:                          &logrus.Entry{},
 			want:                       nil,
 			wantErr:                    true,
-			wantCallSpy:                false,
+			wantCallSpy:                true,
 		},
 		{
 			name:                       "Log decorating within message set to true and enrich log returns nil. Format returns an error (JSON only). Should return with nil bytes but should enrich.",
-			formatter:                  &logrus.JSONFormatter{},
+			jsonOnly:                   true,
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -489,8 +484,23 @@ func TestContextFormatter_Format(t *testing.T) {
 			wantCallSpy: true,
 		},
 		{
-			name:                       "Log decorating within message set to false and enrich log returns nil. Format returns an error (JSON only). Should return with nil bytes and should call enrich.",
-			formatter:                  &logrus.JSONFormatter{},
+			name:                       "Log decorating within message set to true and enrich log returns err. Format returns an error (JSON only). Should return with nil bytes but should enrich.",
+			jsonOnly:                   true,
+			appInitialized:             true,
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: true,
+			enricher:                   &testEnricher{err: fmt.Errorf("test error")},
+			e: &logrus.Entry{
+				Data: logrus.Fields{"fn": func() {}}, // json encode won't work in JSONFormatter.Format()
+			},
+			want:        nil,
+			wantErr:     true,
+			wantCallSpy: true,
+		},
+		{
+			name:                       "Log decorating within message set to false and enrich log returns nil. Format returns an error (JSON only). Should return with nil bytes.",
+			jsonOnly:                   true,
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -501,11 +511,11 @@ func TestContextFormatter_Format(t *testing.T) {
 			},
 			want:        nil,
 			wantErr:     true,
-			wantCallSpy: true,
+			wantCallSpy: false,
 		},
 		{
-			name:                       "Log decorating within message set to false and enrich log returns err. Format returns an error (JSON only). Should return with nil bytes and should call enrich.",
-			formatter:                  &logrus.JSONFormatter{},
+			name:                       "Log decorating within message set to false and enrich log returns err. Format returns an error (JSON only). Should return with nil bytes.",
+			jsonOnly:                   true,
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -516,11 +526,10 @@ func TestContextFormatter_Format(t *testing.T) {
 			},
 			want:        nil,
 			wantErr:     true,
-			wantCallSpy: true,
+			wantCallSpy: false,
 		},
 		{
 			name:                       "Log decorating within message set to false and enrich log returns err. Should return with nil bytes and should call enrich.",
-			formatter:                  &logrus.JSONFormatter{},
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -533,7 +542,6 @@ func TestContextFormatter_Format(t *testing.T) {
 		},
 		{
 			name:                       "Log decorating within message set to false and enrich log returns nil. Should return with bytes and should call enrich.",
-			formatter:                  &logrus.JSONFormatter{},
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -546,7 +554,6 @@ func TestContextFormatter_Format(t *testing.T) {
 		},
 		{
 			name:                       "Log decorating within message set to true and enrich log returns nil. Should return with bytes and should call enrich.",
-			formatter:                  &logrus.JSONFormatter{},
 			appInitialized:             true,
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
@@ -557,46 +564,62 @@ func TestContextFormatter_Format(t *testing.T) {
 			wantErr:                    false,
 			wantCallSpy:                true,
 		},
+		{
+			name:                       "App initialized with local decorating disabled. Should return with bytes and should not call enrich.",
+			appInitialized:             true,
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: false,
+			enricher:                   &testEnricher{},
+			e:                          &logrus.Entry{},
+			want:                       []byte{},
+			wantErr:                    false,
+			wantCallSpy:                false,
+		},
+	}
+	formatters := map[string]logrus.Formatter{
+		"Text": &logrus.TextFormatter{},
+		"JSON": &logrus.JSONFormatter{},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := buildApp(tt.appInitialized, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
-			f := &ContextFormatter{
-				app:       app.Application,
-				formatter: tt.formatter,
-				enricher:  tt.enricher,
+		for key, formatter := range formatters {
+			if tt.jsonOnly && key == "Text" {
+				continue
 			}
-			got, gotErr := f.Format(tt.e)
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("Format() failed: %v", gotErr)
+			testName := fmt.Sprintf("%s: %s", key, tt.name)
+			t.Run(testName, func(t *testing.T) {
+				app := buildApp(tt.appInitialized, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
+				f := &ContextFormatter{
+					app:       app.Application,
+					formatter: formatter,
+					enricher:  tt.enricher,
 				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("Format() succeeded unexpectedly")
-			}
-			if tt.want != nil {
-				if len(got) == 0 {
-					t.Errorf("Unexpected nil return -> Format() = %v, want %v", got, tt.want)
-				}
-				return
-			}
-			if len(got) > 0 {
-				t.Errorf("Unexpected non-nil return -> Format() = %v, want %v", got, tt.want)
-			}
-			if checker, ok := tt.enricher.(calledChecker); ok {
-				if tt.wantCallSpy {
-					if !checker.WasCalled() {
-						t.Errorf("Unexpected non-call of Enrich()")
+				got, gotErr := f.Format(tt.e)
+				if gotErr != nil {
+					if !tt.wantErr {
+						t.Errorf("Format() failed: %v", gotErr)
 					}
-					return
+				} else if tt.wantErr {
+					t.Errorf("Format() succeeded unexpectedly: %v", key)
 				}
-				if checker.WasCalled() {
-					t.Errorf("Unexpected call of Enrich()")
+				if tt.want != nil {
+					if len(got) == 0 {
+						t.Errorf("Unexpected nil return -> Format() = %v, want %v", got, tt.want)
+					}
+				} else if len(got) > 0 {
+					t.Errorf("Unexpected non-nil return -> Format() = %v, want %v", got, tt.want)
 				}
-			}
-		})
+				if checker, ok := tt.enricher.(calledChecker); ok {
+					if tt.wantCallSpy {
+						if !checker.WasCalled() {
+							t.Errorf("Unexpected non-call of Enrich()")
+						}
+					} else if checker.WasCalled() {
+						t.Errorf("Unexpected call of Enrich()")
+					}
+				}
+			})
+		}
 	}
 }
 
