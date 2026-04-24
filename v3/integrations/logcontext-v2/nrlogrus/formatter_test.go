@@ -3,6 +3,7 @@ package nrlogrus
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"testing"
@@ -350,7 +351,7 @@ func TestContextFormatter_enrichLog(t *testing.T) {
 	}
 	for _, tt := range tests {
 		for key, formatter := range formatters {
-			testName := fmt.Sprintf("%s: tt.name", key)
+			testName := fmt.Sprintf("%s: %s", key, tt.name)
 			t.Run(testName, func(t *testing.T) {
 				enricherSpy := &testEnricher{}
 				f := ContextFormatter{
@@ -584,7 +585,7 @@ func TestContextFormatter_Format(t *testing.T) {
 	for _, tt := range tests {
 		for key, formatter := range formatters {
 			if tt.jsonOnly && key == "Text" {
-				continue
+				continue // skip TextFormatter if we are expecting a JSON error
 			}
 			testName := fmt.Sprintf("%s: %s", key, tt.name)
 			t.Run(testName, func(t *testing.T) {
@@ -634,4 +635,40 @@ func buildApp(appInitialized bool, logForwardingEnabled, localDecoratingEnabled,
 		newrelic.ConfigAppLogForwardingEnabled(logForwardingEnabled),
 		newrelic.ConfigAppLogDecoratingWithinMessage(logDecoratingWithinMessage),
 	)
+}
+
+func TestLogInfoWithMessage(t *testing.T) {
+	tests := []struct {
+		name                       string
+		logForwardingEnabled       bool
+		localDecoratingEnabled     bool
+		logDecoratingWithinMessage bool
+	}{
+		{
+			name:                       "TEST TEST",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: true,
+		},
+	}
+
+	for _, tt := range tests {
+		app := buildApp(true, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
+		out := bytes.NewBuffer([]byte{})
+		log := newJSONLogger(out, app.Application)
+		message := "Hello World"
+		log.Info(message)
+
+		var entry any
+		s := out.String()
+		if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
+			t.Fatalf("Failed to unmarshal logger entry: %v", err)
+		}
+		t.Logf("ENTRY: %v\n%v", entry, s)
+		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+			EntityGUID: integrationsupport.TestEntityGUID,
+			Hostname:   host,
+			EntityName: "integrationsupport.SampleAppName",
+		})
+	}
 }
