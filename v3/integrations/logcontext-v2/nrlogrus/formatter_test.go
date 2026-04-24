@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -645,30 +646,86 @@ func TestLogInfoWithMessage(t *testing.T) {
 		logDecoratingWithinMessage bool
 	}{
 		{
-			name:                       "TEST TEST",
+			name:                       "Within message field",
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: true,
 		},
+		{
+			name:                       "Not within message field",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: false,
+		},
 	}
 
+	buildLoggers := map[string]func(out io.Writer, app *newrelic.Application) *logrus.Logger{
+		"Text": newTextLogger,
+		"JSON": newJSONLogger,
+	}
 	for _, tt := range tests {
-		app := buildApp(true, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
-		out := bytes.NewBuffer([]byte{})
-		log := newJSONLogger(out, app.Application)
-		message := "Hello World"
-		log.Info(message)
+		for key, buildLog := range buildLoggers {
+			testName := fmt.Sprintf("%s: %s", key, tt.name)
+			t.Run(testName, func(t *testing.T) {
+				app := buildApp(true, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
+				out := bytes.NewBuffer([]byte{})
+				log := buildLog(out, app.Application)
+				message := "Hello World"
+				log.Info(message)
 
-		var entry any
-		s := out.String()
-		if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
-			t.Fatalf("Failed to unmarshal logger entry: %v", err)
+				if tt.logDecoratingWithinMessage {
+					if key == "Text" {
+						// do something diff
+					} else {
+						var entry map[string]string
+						if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
+							t.Fatalf("Failed to unmarshal logger entry: %v", err)
+						}
+						s, ok := entry["msg"]
+						if !ok {
+							t.Fatal("No message field found")
+						}
+						logcontext.ValidateNRLinkingString(t, bytes.NewBufferString(s), &logcontext.DecorationExpect{
+							EntityGUID:         integrationsupport.TestEntityGUID,
+							Hostname:           host,
+							EntityName:         integrationsupport.SampleAppName,
+							DecorationDisabled: false, // we expect the NR-LINKING string to be within the message field
+						})
+					}
+				} else {
+					// NR-LINKING STRING SHOULD BE AT THE END so breaks JSON formatting
+					if key == "Text" {
+						// do something diff
+					} else {
+						var entry map[string]string
+						split := strings.Split(out.String(), "NR-LINKING")
+						if len(split) != 2 {
+							t.Fatalf("expected log decoration, but NR-LINKING data was missing: %s", out.String())
+						}
+
+						// test if first portion of split (non NR-LINKING) msg has no nr linking
+						if err := json.Unmarshal([]byte(split[0]), &entry); err != nil {
+							t.Fatalf("Failed to unmarshal logger entry: %v", err)
+						}
+						s, ok := entry["msg"]
+						if !ok {
+							t.Fatal("No message field found")
+						}
+						logcontext.ValidateNRLinkingString(t, bytes.NewBufferString(s), &logcontext.DecorationExpect{
+							EntityGUID:         integrationsupport.TestEntityGUID,
+							Hostname:           host,
+							EntityName:         integrationsupport.SampleAppName,
+							DecorationDisabled: true, // we don't expect to find a NR-LINKING string within a message field
+						})
+					}
+				}
+
+				logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
+					EntityGUID: integrationsupport.TestEntityGUID,
+					Hostname:   host,
+					EntityName: integrationsupport.SampleAppName,
+				})
+			})
 		}
-		t.Logf("ENTRY: %v\n%v", entry, s)
-		logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-			EntityGUID: integrationsupport.TestEntityGUID,
-			Hostname:   host,
-			EntityName: "integrationsupport.SampleAppName",
-		})
 	}
 }
