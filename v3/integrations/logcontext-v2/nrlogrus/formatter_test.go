@@ -638,6 +638,26 @@ func buildApp(appInitialized bool, logForwardingEnabled, localDecoratingEnabled,
 		newrelic.ConfigAppLogDecoratingWithinMessage(logDecoratingWithinMessage),
 	)
 }
+func validateMessageField(t *testing.T, byts []byte, decorationDisabled bool) {
+	var entry map[string]string
+	if err := json.Unmarshal(byts, &entry); err != nil {
+		t.Fatalf("Failed to unmarshal logger entry: %v", err)
+	}
+	s, ok := entry["msg"]
+	if !ok {
+		t.Fatal("No message field found")
+	}
+	validateMessageFieldStr(t, s, decorationDisabled)
+}
+
+func validateMessageFieldStr(t *testing.T, str string, decorationDisabled bool) {
+	logcontext.ValidateNRLinkingString(t, bytes.NewBufferString(str), &logcontext.DecorationExpect{
+		EntityGUID:         integrationsupport.TestEntityGUID,
+		Hostname:           host,
+		EntityName:         integrationsupport.SampleAppName,
+		DecorationDisabled: decorationDisabled, // we expect the NR-LINKING string to be within the message field
+	})
+}
 
 func TestLogWithMessageLogDecorating(t *testing.T) {
 	tests := []struct {
@@ -648,31 +668,101 @@ func TestLogWithMessageLogDecorating(t *testing.T) {
 		logDecoratingWithinMessage bool
 	}{
 		{
-			name:                       "Within message field",
+			name:                       "Hello world logged. All config set to true.",
 			message:                    "Hello World",
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: true,
 		},
 		{
-			name:                       "Not within message field",
+			name:                       "Hello world logged. Log decorating within message set to false.",
 			message:                    "Hello World",
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: false,
 		},
 		{
-			name:                       "Empty string logged. Decorator should be within message field.",
+			name:                       "Empty string logged.  All config set to true",
 			message:                    "",
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
 			logDecoratingWithinMessage: true,
 		},
 		{
-			name:                       "Empty string logged. Decorater should not be within empty message field.",
+			name:                       "Empty string logged. Log decorating withing message set to false.",
 			message:                    "",
 			logForwardingEnabled:       true,
 			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Hello world logged. Log decorating set to false.",
+			message:                    "Hello World",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: true,
+		},
+		{
+			name:                       "Hello world logged. Log decorating and log decorating within message set to false.",
+			message:                    "Hello World",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Empty string logged. Log decorating set to false.",
+			message:                    "",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: true,
+		},
+		{
+			name:                       "Empty string logged. Log decorating and log decorating within message set to false.",
+			message:                    "",
+			logForwardingEnabled:       true,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Hello world logged. Log forwarding set to false.",
+			message:                    "Hello World",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: true,
+		},
+		{
+			name:                       "Hello world logged. Log forwarding and log decorating within message set to false.",
+			message:                    "Hello World",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Hello world logged. All config set to false.",
+			message:                    "Hello World",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     false,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Empty string logged. Log forwarding set to false.",
+			message:                    "",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: true,
+		},
+		{
+			name:                       "Empty string logged. Log forwarding and log decorating within message set to false.",
+			message:                    "",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     true,
+			logDecoratingWithinMessage: false,
+		},
+		{
+			name:                       "Empty string logged. All config set to false.",
+			message:                    "",
+			logForwardingEnabled:       false,
+			localDecoratingEnabled:     false,
 			logDecoratingWithinMessage: false,
 		},
 	}
@@ -682,86 +772,68 @@ func TestLogWithMessageLogDecorating(t *testing.T) {
 		"JSON": newJSONLogger,
 	}
 
-	validateMessageField := func(t *testing.T, byts []byte, decorationDisabled bool) {
-		var entry map[string]string
-		if err := json.Unmarshal(byts, &entry); err != nil {
-			t.Fatalf("Failed to unmarshal logger entry: %v", err)
-		}
-		s, ok := entry["msg"]
-		if !ok {
-			t.Fatal("No message field found")
-		}
-		logcontext.ValidateNRLinkingString(t, bytes.NewBufferString(s), &logcontext.DecorationExpect{
-			EntityGUID:         integrationsupport.TestEntityGUID,
-			Hostname:           host,
-			EntityName:         integrationsupport.SampleAppName,
-			DecorationDisabled: decorationDisabled, // we expect the NR-LINKING string to be within the message field
-		})
-	}
-
-	validateMessageFieldStr := func(t *testing.T, str string, decorationDisabled bool) {
-		logcontext.ValidateNRLinkingString(t, bytes.NewBufferString(str), &logcontext.DecorationExpect{
-			EntityGUID:         integrationsupport.TestEntityGUID,
-			Hostname:           host,
-			EntityName:         integrationsupport.SampleAppName,
-			DecorationDisabled: decorationDisabled, // we expect the NR-LINKING string to be within the message field
-		})
-	}
-
 	var re = regexp.MustCompile(`(?m)msg="[^"]*"`)
 	for _, tt := range tests {
 		for key, buildLog := range buildLoggers {
+
 			testName := fmt.Sprintf("%s: %s", key, tt.name)
 			t.Run(testName, func(t *testing.T) {
 				app := buildApp(true, tt.logForwardingEnabled, tt.localDecoratingEnabled, tt.logDecoratingWithinMessage)
 				out := bytes.NewBuffer([]byte{})
 				log := buildLog(out, app.Application)
-				message := tt.message
-				log.Info(message)
+				log.Info(tt.message)
 
 				// if we expect the log decorating to be within the message check if its there
-				if tt.logDecoratingWithinMessage {
-					if key == "Text" {
-						s := out.String()
-						sl := re.FindStringSubmatch(s)
-						if len(sl) == 0 {
-							if tt.message != "" {
-								t.Fatal("couldn't find msg field in string")
+				if tt.localDecoratingEnabled {
+					if tt.logDecoratingWithinMessage {
+						if key == "Text" {
+							sl := re.FindStringSubmatch(out.String())
+							if len(sl) == 0 {
+								if tt.message != "" {
+									t.Fatal("couldn't find msg field in string")
+								}
+							} else {
+								validateMessageFieldStr(t, sl[0], false)
 							}
-						}
-						validateMessageFieldStr(t, sl[0], false)
-
-					} else {
-						validateMessageField(t, out.Bytes(), false)
-					}
-				} else {
-					// NR-LINKING STRING SHOULD BE AT THE END so breaks JSON formatting
-					if key == "Text" {
-						s := out.String()
-						sl := re.FindStringSubmatch(s)
-						if len(sl) == 0 {
-							if tt.message != "" {
-								t.Fatal("couldn't find msg field in string")
-							}
-							// empty message case means there is nothing to check
 						} else {
-							validateMessageFieldStr(t, sl[0], true)
+							validateMessageField(t, out.Bytes(), false)
 						}
 					} else {
-						split := strings.Split(out.String(), "NR-LINKING")
-						if len(split) != 2 {
-							t.Fatalf("expected log decoration, but NR-LINKING data was missing: %s", out.String())
+						// NR-LINKING STRING SHOULD BE AT THE END so breaks JSON formatting
+						if key == "Text" {
+							sl := re.FindStringSubmatch(out.String())
+							if len(sl) == 0 {
+								if tt.message != "" {
+									t.Fatal("couldn't find msg field in string")
+								}
+								// msg field doesn't exist so split out whole string
+								split := strings.Split(out.String(), "NR-LINKING")
+								if len(split) != 2 {
+									t.Fatalf("expected log decoration, but NR-LINKING data was missing: %s", out.String())
+								}
+								validateMessageFieldStr(t, split[0], true)
+							} else {
+								validateMessageFieldStr(t, sl[0], true)
+							}
+						} else {
+							// split so formatting works and we can check msg field for no NR-LINKING
+							split := strings.Split(out.String(), "NR-LINKING")
+							if len(split) != 2 {
+								t.Fatalf("expected log decoration, but NR-LINKING data was missing: %s", out.String())
+							}
+							validateMessageField(t, []byte(split[0]), true)
 						}
-						validateMessageField(t, []byte(split[0]), true)
 					}
-				}
 
+				}
 				// still validate log as a whole not mattering where NR-LINKING string is
 				logcontext.ValidateDecoratedOutput(t, out, &logcontext.DecorationExpect{
-					EntityGUID: integrationsupport.TestEntityGUID,
-					Hostname:   host,
-					EntityName: integrationsupport.SampleAppName,
+					EntityGUID:         integrationsupport.TestEntityGUID,
+					Hostname:           host,
+					EntityName:         integrationsupport.SampleAppName,
+					DecorationDisabled: !tt.localDecoratingEnabled,
 				})
+
 			})
 		}
 	}
