@@ -345,6 +345,7 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// EXPERIMENTAL 4/27/2026.  Use with caution.
 // ConfigAppLogDecoratingWithinMessage enables or disables the location of the
 // local log decorating string within a log. If local log decorating or application
 // logging is not enabled, no string will be added.  Example:
