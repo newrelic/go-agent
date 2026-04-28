@@ -5,7 +5,7 @@ module github.com/newrelic/go-agent/v3/integrations/nrmongo
 go 1.25
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.2
+	github.com/newrelic/go-agent/v3 v3.43.3
 	// mongo-driver does not support modules as of Nov 2019.
 	go.mongodb.org/mongo-driver v1.17.4
 )
