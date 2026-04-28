@@ -624,6 +624,8 @@ type ApplicationLogging struct {
 	LocalDecorating struct {
 		// Toggles whether the agent enriches local logs printed to console so they can be sent to new relic for ingestion
 		Enabled bool
+		// Toggles whether the agent enriches local logs in the message field or appends to the end of the message (default)
+		WithinMessageField bool
 	}
 	// We want to enable this when your app collects fewer logs, or if your app can afford to compile the json
 	// during log collection, slowing down the execution of the line of code that will write the log. If your

@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/newrelic/go-agent/v3 v3.43.2
+	github.com/newrelic/go-agent/v3 v3.43.3
 	google.golang.org/protobuf v1.34.2
 )
 
