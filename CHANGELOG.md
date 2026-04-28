@@ -1,3 +1,18 @@
+## 3.43.3
+### Feature
+  * EXPERIMENTAL: Added a config option `ConfigAppLogDecoratingWithinMessage` to allow Local Log Decorator to appear within a message field.  This can only be applied to the `logcontext-v2/nrlogrus` integration. The `logcontext-v2/nrlogrus` integration will be bumped to v1.1.4.
+
+### Security
+  * Dependabot security bumps
+    * `nrawsbedrock` (integration will be bumped to v1.1.1)
+    * `nrawssdk-v2` (integration will be bumped to v1.2.7)
+    * `nrpgx5` (integration will be bumped to v1.3.4)
+  
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
 ## 3.43.2
 ### Fixed
   * Fixed a bug in `replacementResponseWriter` where the `Unwrap` function wasn't being promoted as a part of an anoynmous struct

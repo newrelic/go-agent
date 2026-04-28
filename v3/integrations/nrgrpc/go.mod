@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/newrelic/go-agent/v3 v3.43.2
+	github.com/newrelic/go-agent/v3 v3.43.3
 	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.1.0
 )
 

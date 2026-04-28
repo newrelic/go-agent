@@ -5,7 +5,7 @@ go 1.25
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/newrelic/go-agent/v3 v3.43.2
+	github.com/newrelic/go-agent/v3 v3.43.3
 )
 
 replace github.com/newrelic/go-agent/v3 => ../..

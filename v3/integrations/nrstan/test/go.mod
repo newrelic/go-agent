@@ -9,7 +9,7 @@ toolchain go1.24.2
 require (
 	github.com/nats-io/nats-streaming-server v0.25.6
 	github.com/nats-io/stan.go v0.10.4
-	github.com/newrelic/go-agent/v3 v3.43.2
+	github.com/newrelic/go-agent/v3 v3.43.3
 	github.com/newrelic/go-agent/v3/integrations/nrstan v0.0.0
 )
 
