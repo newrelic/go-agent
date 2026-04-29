@@ -173,20 +173,20 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 	return w
 }
 
-func (b *NRGocqlxBatchWrapper) Bind(qry *gocqlx.Queryx, args ...any) error {
-	return b.Batch.Bind(qry, args...)
+func (b *NRGocqlxBatchWrapper) Bind(qry *NRGocqlxQueryxWrapper, args ...any) error {
+	return b.Batch.Bind(qry.Queryx, args...)
 }
 
-func (b *NRGocqlxBatchWrapper) BindMap(qry *gocqlx.Queryx, arg map[string]any) error {
-	return b.Batch.BindMap(qry, arg)
+func (b *NRGocqlxBatchWrapper) BindMap(qry *NRGocqlxQueryxWrapper, arg map[string]any) error {
+	return b.Batch.BindMap(qry.Queryx, arg)
 }
 
-func (b *NRGocqlxBatchWrapper) BindStruct(qry *gocqlx.Queryx, arg any) error {
-	return b.Batch.BindStruct(qry, arg)
+func (b *NRGocqlxBatchWrapper) BindStruct(qry *NRGocqlxQueryxWrapper, arg any) error {
+	return b.Batch.BindStruct(qry.Queryx, arg)
 }
 
-func (b *NRGocqlxBatchWrapper) BindStructMap(qry *gocqlx.Queryx, arg0 any, arg1 map[string]any) error {
-	return b.Batch.BindStructMap(qry, arg0, arg1)
+func (b *NRGocqlxBatchWrapper) BindStructMap(qry *NRGocqlxQueryxWrapper, arg0 any, arg1 map[string]any) error {
+	return b.Batch.BindStructMap(qry.Queryx, arg0, arg1)
 }
 
 /*
