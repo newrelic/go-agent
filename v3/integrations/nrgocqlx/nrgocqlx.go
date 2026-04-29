@@ -19,6 +19,13 @@ import (
 
 func init() { internal.TrackUsage("integration", "datastore", "gocql") }
 
+type gocqlContextKey string
+
+var (
+	queryKey gocqlContextKey = "nrGocqlxSegment"
+	batchKey gocqlContextKey = "nrGocqlxBatchSegment"
+)
+
 /*
 queryObserver contains the implementation for ObserveQuery
 and a field for the original ObserveQuery if the user chooses to
@@ -92,7 +99,7 @@ cannot be pulled from context, no segment will be created but the passed in func
 segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
 the segment.  The segment is stored in context to be enriched later.
 */
-func execOriginal(ctx context.Context, fn func(ctx context.Context) error, contextKey string) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context) error, contextKey gocqlContextKey) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -118,7 +125,7 @@ the passed in function will still execute. The segment gets populated with its S
 as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
 to be enriched later.
 */
-func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error), contextKey string) (bool, error) {
+func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error), contextKey gocqlContextKey) (bool, error) {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -146,13 +153,13 @@ func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		}, "nrGocqlxSegment")
+		}, queryKey)
 	}
 	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		}, "nrGocqlxSegment")
+		}, queryKey)
 	}
 	return w
 }
@@ -163,13 +170,13 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Batch = w.Batch.WithContext(ctx)
 			return fn()
-		}, "nrGocqlxBatchSegment")
+		}, batchKey)
 	}
 	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Batch = w.Batch.WithContext(ctx)
 			return fn()
-		}, "nrGocqlxBatchSegment")
+		}, batchKey)
 	}
 	return w
 }
@@ -448,7 +455,7 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	keyspace = query.Keyspace
 
 	// enrich segment
-	segment, ok := ctx.Value("nrGocqlxSegment").(*newrelic.DatastoreSegment)
+	segment, ok := ctx.Value(queryKey).(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
@@ -482,7 +489,7 @@ func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBa
 	statements = batch.Statements
 	keyspace = batch.Keyspace
 
-	segment, ok := ctx.Value("nrGocqlxBatchSegment").(*newrelic.DatastoreSegment)
+	segment, ok := ctx.Value(batchKey).(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
