@@ -6,6 +6,7 @@ package nrgocqlx
 
 import (
 	"context"
+	"time"
 	"reflect"
 	"strconv"
 	"strings"
@@ -173,6 +174,11 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 	return w
 }
 
+func (b *NRGocqlxBatchWrapper) withBatch(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
+	b.Batch = batch
+	return b
+}
+
 func (b *NRGocqlxBatchWrapper) Bind(qry *NRGocqlxQueryxWrapper, args ...any) error {
 	return b.Batch.Bind(qry.Queryx, args...)
 }
@@ -187,6 +193,50 @@ func (b *NRGocqlxBatchWrapper) BindStruct(qry *NRGocqlxQueryxWrapper, arg any) e
 
 func (b *NRGocqlxBatchWrapper) BindStructMap(qry *NRGocqlxQueryxWrapper, arg0 any, arg1 map[string]any) error {
 	return b.Batch.BindStructMap(qry.Queryx, arg0, arg1)
+}
+
+func (b *NRGocqlxBatchWrapper) Query(stmt string, args ...any) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Query(stmt, args...))
+}
+
+func (b *NRGocqlxBatchWrapper) WithContext(ctx context.Context) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.WithContext(ctx))
+}
+
+func (b *NRGocqlxBatchWrapper) SetRequestTimeout(timeout time.Duration) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SetRequestTimeout(timeout))
+}
+
+func (b *NRGocqlxBatchWrapper) SetHostID(hostID string) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SetHostID(hostID))
+}
+
+func (b *NRGocqlxBatchWrapper) DefaultTimestamp(enable bool) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.DefaultTimestamp(enable))
+}
+
+func (b *NRGocqlxBatchWrapper) WithTimestamp(timestamp int64) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.WithTimestamp(timestamp))
+}
+
+func (b *NRGocqlxBatchWrapper) Observer(observer gocql.BatchObserver) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Observer(observer))
+}
+
+func (b *NRGocqlxBatchWrapper) RetryPolicy(policy gocql.RetryPolicy) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.RetryPolicy(policy))
+}
+
+func (b *NRGocqlxBatchWrapper) SerialConsistency(cons gocql.Consistency) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SerialConsistency(cons))
+}
+
+func (b *NRGocqlxBatchWrapper) SpeculativeExecutionPolicy(policy gocql.SpeculativeExecutionPolicy) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SpeculativeExecutionPolicy(policy))
+}
+
+func (b *NRGocqlxBatchWrapper) Trace(trace gocql.Tracer) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Trace(trace))
 }
 
 /*
