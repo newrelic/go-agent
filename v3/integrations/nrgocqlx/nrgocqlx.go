@@ -6,10 +6,10 @@ package nrgocqlx
 
 import (
 	"context"
-	"time"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -92,7 +92,7 @@ cannot be pulled from context, no segment will be created but the passed in func
 segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
 the segment.  The segment is stored in context to be enriched later.
 */
-func execOriginal(ctx context.Context, fn func(ctx context.Context) error) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context) error, contextKey string) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -106,7 +106,7 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context) error) error
 	defer sgmt.End()
 
 	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	ctx = context.WithValue(ctx, contextKey, sgmt)
 	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
@@ -118,7 +118,7 @@ the passed in function will still execute. The segment gets populated with its S
 as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
 to be enriched later.
 */
-func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error)) (bool, error) {
+func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error), contextKey string) (bool, error) {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -132,7 +132,7 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, er
 	defer sgmt.End()
 
 	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	ctx = context.WithValue(ctx, contextKey, sgmt)
 	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
@@ -146,13 +146,13 @@ func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		})
+		}, "nrGocqlxSegment")
 	}
 	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		})
+		}, "nrGocqlxSegment")
 	}
 	return w
 }
@@ -163,13 +163,13 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Batch = w.Batch.WithContext(ctx)
 			return fn()
-		})
+		}, "nrGocqlxBatchSegment")
 	}
 	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Batch = w.Batch.WithContext(ctx)
 			return fn()
-		})
+		}, "nrGocqlxBatchSegment")
 	}
 	return w
 }
@@ -237,6 +237,12 @@ func (b *NRGocqlxBatchWrapper) SpeculativeExecutionPolicy(policy gocql.Speculati
 
 func (b *NRGocqlxBatchWrapper) Trace(trace gocql.Tracer) *NRGocqlxBatchWrapper {
 	return b.withBatch(b.Batch.Trace(trace))
+}
+
+func (b *NRGocqlxBatchWrapper) Exec() error {
+	return b.segmentRunner(func() error {
+		return b.Batch.Exec()
+	})
 }
 
 /*
@@ -357,7 +363,7 @@ Run an Exec query.  This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Exec() error {
-	return x.segmentRunner(func() error { return x.Queryx.ExecRelease() })
+	return x.segmentRunner(func() error { return x.Queryx.Exec() })
 }
 
 /*
