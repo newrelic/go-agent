@@ -610,3 +610,24 @@ func TestNewBatchObserver(t *testing.T) {
 		})
 	}
 }
+
+func Test_newNRGocqlxBatchWrapper(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		batch *gocqlx.Batch
+	}{
+		{
+			name:  "Wrapper with runner set and batch set",
+			batch: &gocqlx.Batch{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newNRGocqlxBatchWrapper(tt.batch)
+			if got.segmentRunner == nil {
+				t.Errorf("newNRGocqlxBatchWrapper() segmentRunner is nil")
+			}
+		})
+	}
+}
