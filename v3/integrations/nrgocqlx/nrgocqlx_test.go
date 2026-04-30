@@ -375,7 +375,7 @@ func Test_newNRGocqlxQueryxWrapper(t *testing.T) {
 	}
 }
 
-func Test_segmentRunner(t *testing.T) {
+func Test_segmentRunner_Query(t *testing.T) {
 
 	app := integrationsupport.NewTestApp(
 		integrationsupport.SampleEverythingReplyFn,
@@ -390,7 +390,7 @@ func Test_segmentRunner(t *testing.T) {
 
 	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
 	defer seg.End()
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+	ctx = context.WithValue(ctx, queryKey, seg)
 
 	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
 		err := w.segmentRunner(func() error {
@@ -404,6 +404,33 @@ func Test_segmentRunner(t *testing.T) {
 		})
 		if err != nil {
 			t.Errorf("runCASWithSegment returning error while should be nil")
+		}
+	})
+}
+
+func Test_segmentRunner_Batch(t *testing.T) {
+
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+	w := newNRGocqlxBatchWrapper(&gocqlx.Batch{Batch: &gocql.Batch{}})
+	ctx := context.Background()
+	txn := app.StartTransaction("test-txn")
+	defer txn.End()
+	ctx = newrelic.NewContext(ctx, txn)
+	w.WithContext(ctx)
+
+	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+	defer seg.End()
+	ctx = context.WithValue(ctx, batchKey, seg)
+
+	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
+		err := w.segmentRunner(func() error {
+			return nil
+		})
+		if err != nil {
+			t.Errorf("runWithSegment returning error while should be nil")
 		}
 	})
 }
