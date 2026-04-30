@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"runtime"
 	"runtime/pprof"
 	"strings"
@@ -102,6 +101,7 @@ type profilerConfig struct {
 	auditFile       *os.File      // debugging audit file of profile data (nil for normal production runs)
 	done            chan byte
 	outputDirectory string
+	outputDebug     int
 	ingestSwitch    chan byte
 	outputSwitch    chan string
 	switchResult    chan error
@@ -245,6 +245,13 @@ func (app *Application) CloseProfileAuditLog() error {
 	app.app.profiler.auditFile = nil
 	app.app.profiler.lock.Unlock()
 	return err
+}
+
+func (app *Application) SetProfileOutputDebugLevel(level int) {
+	if app == nil || app.app == nil {
+		return
+	}
+	app.app.profiler.outputDebug = level
 }
 
 // RemoveSegmentFromProfiler signals that a segment has terminated and the profiler should stop
@@ -456,6 +463,11 @@ func sanitizeProfileEventAttrs(attrs map[string]any) {
 	}
 }
 
+func localProfileFileName(ptype string) string {
+	now := time.Now()
+	return fmt.Sprintf("%s.%04d-%03d-%02d%02d.*.pprof", ptype, now.Year(), now.YearDay(), now.Hour(), now.Minute())
+}
+
 func (pc *profilerConfig) monitor(a *app) {
 	if pc == nil {
 		return
@@ -649,8 +661,38 @@ func (pc *profilerConfig) monitor(a *app) {
 	defer closeLocalFiles()
 
 	recheckConfig := time.NewTicker(100 * time.Millisecond)
+	saveLocalProfileSample := func(ptype, etype string, bits ProfilingType) {
+		var err error
+		var f *os.File
+		a.config.Logger.Debug(fmt.Sprintf("saveLocalProfileSample(%s)", ptype), nil)
+		if f, err = os.CreateTemp(pc.outputDirectory, localProfileFileName(ptype)); err == nil {
+			a.config.Logger.Debug(fmt.Sprintf("Created file %s", f.Name()), nil)
+			pprof.Lookup(ptype).WriteTo(f, pc.outputDebug)
+			a.config.Logger.Debug("Wrote data", nil)
+			if err = f.Close(); err != nil {
+				a.config.Logger.Debug("ERROR CLOSING", map[string]any{
+					"error": err.Error(),
+				})
+				a.Error(fmt.Sprintf("error closing local output file for %s profile data", ptype), map[string]any{
+					"event-type": etype,
+					"reason":     err.Error(),
+				})
+			}
+		} else {
+			a.config.Logger.Debug("ERROR OPENING", map[string]any{
+				"error": err.Error(),
+			})
+			a.Error(fmt.Sprintf("error opening local output file for %s profile data", ptype), map[string]any{
+				"event-type": etype,
+				"reason":     err.Error(),
+			})
+			pc.selected &= ^bits
+		}
+	}
+	a.Debug("checkpoint", nil)
 
 	for {
+		a.Debug("f", nil)
 		select {
 		case <-recheckConfig.C:
 			if pc.ableToSend() {
@@ -697,36 +739,11 @@ func (pc *profilerConfig) monitor(a *app) {
 
 			pc.outputDirectory = newDirectory
 			closeLocalFiles()
-			if pc.isHeapSelected() {
-				if heap_f, err = os.OpenFile(path.Join(newDirectory, "heap.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-					pc.switchResult <- err
-					return
-				}
-			}
-			if pc.isGoroutineSelected() {
-				if goroutine_f, err = os.OpenFile(path.Join(newDirectory, "goroutine.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-					pc.switchResult <- err
-					return
-				}
-			}
-			if pc.isThreadCreateSelected() {
-				if threadcreate_f, err = os.OpenFile(path.Join(newDirectory, "threadcreate.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-					pc.switchResult <- err
-					return
-				}
-			}
-			if pc.isBlockSelected() {
-				if block_f, err = os.OpenFile(path.Join(newDirectory, "block.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-					pc.switchResult <- err
-					return
-				}
-			}
-			if pc.isMutexSelected() {
-				if mutex_f, err = os.OpenFile(path.Join(newDirectory, "mutex.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
-					pc.switchResult <- err
-					return
-				}
-			}
+			heap_f = nil
+			goroutine_f = nil
+			threadcreate_f = nil
+			block_f = nil
+			mutex_f = nil
 			//			if pc.isTraceSelected() {
 			//				if trace_f, err = os.OpenFile(path.Join(newDirectory, "trace.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
 			//					pc.switchResult <- err
@@ -738,7 +755,7 @@ func (pc *profilerConfig) monitor(a *app) {
 			//				}
 			//			}
 			if pc.isCPUSelected() {
-				if cpu_f, err = os.OpenFile(path.Join(newDirectory, "cpu.pprof"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+				if cpu_f, err = os.CreateTemp(newDirectory, localProfileFileName("cpu")); err != nil {
 					pc.switchResult <- err
 					return
 				}
@@ -762,7 +779,7 @@ func (pc *profilerConfig) monitor(a *app) {
 					if profileDestination == profileLocalFile {
 						// cycle to a new destination file
 						_ = cpu_f.Close()
-						if cpu_f, err = os.OpenFile(path.Join(pc.outputDirectory, fmt.Sprintf("cpu.pprof%v", harvestNumber)), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+						if cpu_f, err = os.CreateTemp(pc.outputDirectory, localProfileFileName("cpu")); err != nil {
 							a.Error("error restarting CPU profiler", map[string]any{
 								"event-type": "ProfileCPU",
 								"filename":   fmt.Sprintf("cpu.pprof%v", harvestNumber),
@@ -796,25 +813,32 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 
 		case <-pc.sampleTicker.C:
+			a.Debug("tick", nil)
 			if profileDestination == profileNilDest {
 				continue
 			}
 
 			if profileDestination == profileLocalFile {
+				a.Debug("local", nil)
 				if pc.isHeapSelected() {
-					pprof.Lookup("heap").WriteTo(heap_f, 1)
+					a.Debug("heap", nil)
+					saveLocalProfileSample("heap", "ProfileHeap", ProfilingTypeHeap)
 				}
 				if pc.isGoroutineSelected() {
-					pprof.Lookup("goroutine").WriteTo(goroutine_f, 1)
+					a.Debug("goroutine", nil)
+					saveLocalProfileSample("goroutine", "ProfileGoroutine", ProfilingTypeGoroutine)
 				}
 				if pc.isThreadCreateSelected() {
-					pprof.Lookup("threadcreate").WriteTo(threadcreate_f, 1)
+					a.Debug("tc", nil)
+					saveLocalProfileSample("threadcreate", "ProfileThreadCreate", ProfilingTypeThreadCreate)
 				}
 				if pc.isBlockSelected() {
-					pprof.Lookup("block").WriteTo(block_f, 1)
+					a.Debug("blk", nil)
+					saveLocalProfileSample("block", "ProfileBlock", ProfilingTypeBlock)
 				}
 				if pc.isMutexSelected() {
-					pprof.Lookup("mutex").WriteTo(mutex_f, 1)
+					a.Debug("mutex", nil)
+					saveLocalProfileSample("mutex", "ProfileMutex", ProfilingTypeMutex)
 				}
 				// The tracer writes to the file on its own, as does the cpu profiler,
 				// so we don't need to do anything for them here.

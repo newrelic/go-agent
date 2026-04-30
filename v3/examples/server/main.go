@@ -104,6 +104,72 @@ func traceprof(w http.ResponseWriter, r *http.Request) {
 		trace.IsEnabled()))
 }
 
+func block(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	txn.RecordLog(newrelic.LogData{
+		Message:  "Launched block/mutex testcase",
+		Severity: "info",
+	})
+	starvation := make(chan byte)
+
+	go func(tx *newrelic.Transaction, c chan byte) {
+		tx.RecordLog(newrelic.LogData{
+			Message:  "Block reader started",
+			Severity: "info",
+		})
+		got := <-c
+		tx.RecordLog(newrelic.LogData{
+			Message:  fmt.Sprintf("Block reader received %v", got),
+			Severity: "info",
+		})
+	}(txn, starvation)
+
+	go func() {
+		time.Sleep(5 * time.Minute)
+		starvation <- 0
+		log.Print("released locked block reader")
+	}()
+
+	io.WriteString(w, "block test")
+}
+
+func deadlock(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	txn.RecordLog(newrelic.LogData{
+		Message:  "Launched mutex deadlock testcase",
+		Severity: "info",
+	})
+
+	var a sync.Mutex
+	var b sync.Mutex
+
+	x := func() {
+		// keep locking a->b repeatedly as fast as possible
+		for {
+			a.Lock()
+			b.Lock()
+			b.Unlock()
+			a.Unlock()
+		}
+	}
+
+	y := func() {
+		// keep locking b->a repeatedly as fast as possible, to conflict
+		// eventually with x
+		for {
+			b.Lock()
+			a.Lock()
+			a.Unlock()
+			b.Unlock()
+		}
+	}
+
+	go x()
+	go y()
+
+	io.WriteString(w, "mutex deadlock test")
+}
+
 // Make a blizzard of goroutines, some of which will block for a while
 func goStorm(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
@@ -395,6 +461,9 @@ func main() {
 			log.Printf("Profiling: %v every %v", c.Profiling.SelectedProfiles.Strings(), c.Profiling.Interval)
 		}
 	}
+	if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
+		log.Fatalf("failed to write profile to directory %s: %v", "/tmp", err)
+	}
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))
@@ -419,6 +488,8 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/gostorm", goStorm))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/alloc100", alloc100))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/trace", traceprof))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/block", block))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/deadlock", deadlock))
 
 	//loc := newrelic.ThisCodeLocation()
 	backgroundCache := newrelic.NewCachedCodeLocation()
