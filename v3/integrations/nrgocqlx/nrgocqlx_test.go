@@ -122,7 +122,7 @@ func TestObserveQuery(t *testing.T) {
 				if tt.storeSegment {
 					seg = &newrelic.DatastoreSegment{StartTime: newrelic.SegmentStartTime{}}
 					defer seg.End()
-					ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+					ctx = context.WithValue(ctx, queryKey, seg)
 
 				}
 			}
@@ -146,18 +146,6 @@ func TestObserveQuery(t *testing.T) {
 		})
 	}
 }
-
-// func sgmtStartedCheck(t *testing.T, sgmtStarted bool, sgmt *newrelic.DatastoreSegment) {
-// 	if !sgmtStarted {
-// 		if sgmt != nil {
-// 			t.Errorf("execOriginal() began segment unexpectedly")
-// 		}
-// 	} else {
-// 		if sgmt == nil {
-// 			t.Errorf("execOriginal() segment not started unexpectedly")
-// 		}
-// 	}
-// }
 
 func Test_execOriginal(t *testing.T) {
 	tests := []struct {
@@ -235,7 +223,7 @@ func Test_execOriginal(t *testing.T) {
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
 			}
-			gotErr := execOriginal(ctx, tt.fn)
+			gotErr := execOriginal(ctx, tt.fn, queryKey)
 
 			if gotErr != nil {
 				if !tt.wantErr {
@@ -343,7 +331,7 @@ func Test_execOriginalCAS(t *testing.T) {
 				defer txn.End()
 				ctx = newrelic.NewContext(ctx, txn)
 			}
-			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn)
+			gotApplied, gotErr := execOriginalCAS(ctx, tt.fn, queryKey)
 
 			if gotErr != nil {
 				if !tt.wantErr {
@@ -387,7 +375,7 @@ func Test_newNRGocqlxQueryxWrapper(t *testing.T) {
 	}
 }
 
-func Test_segmentRunner(t *testing.T) {
+func Test_segmentRunner_Query(t *testing.T) {
 
 	app := integrationsupport.NewTestApp(
 		integrationsupport.SampleEverythingReplyFn,
@@ -402,7 +390,7 @@ func Test_segmentRunner(t *testing.T) {
 
 	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
 	defer seg.End()
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", seg)
+	ctx = context.WithValue(ctx, queryKey, seg)
 
 	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
 		err := w.segmentRunner(func() error {
@@ -416,6 +404,33 @@ func Test_segmentRunner(t *testing.T) {
 		})
 		if err != nil {
 			t.Errorf("runCASWithSegment returning error while should be nil")
+		}
+	})
+}
+
+func Test_segmentRunner_Batch(t *testing.T) {
+
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+	w := newNRGocqlxBatchWrapper(&gocqlx.Batch{Batch: &gocql.Batch{}})
+	ctx := context.Background()
+	txn := app.StartTransaction("test-txn")
+	defer txn.End()
+	ctx = newrelic.NewContext(ctx, txn)
+	w.WithContext(ctx)
+
+	seg := &newrelic.DatastoreSegment{StartTime: txn.StartSegmentNow()}
+	defer seg.End()
+	ctx = context.WithValue(ctx, batchKey, seg)
+
+	t.Run("runWithSegment and runCASWithSegment no error", func(t *testing.T) {
+		err := w.segmentRunner(func() error {
+			return nil
+		})
+		if err != nil {
+			t.Errorf("runWithSegment returning error while should be nil")
 		}
 	})
 }
@@ -560,7 +575,7 @@ func TestObserveBatch(t *testing.T) {
 				if tt.storeSegment {
 					seg = &newrelic.DatastoreSegment{StartTime: newrelic.SegmentStartTime{}}
 					defer seg.End()
-					ctx = context.WithValue(ctx, "nrGocqlxBatchSegment", seg)
+					ctx = context.WithValue(ctx, batchKey, seg)
 				}
 			}
 			NewBatchObserver(tt.original).ObserveBatch(ctx, tt.batch)
@@ -578,6 +593,67 @@ func TestObserveBatch(t *testing.T) {
 				if seg.Host != tt.wantHost {
 					t.Errorf("Host = %q, want %q", seg.Host, tt.wantHost)
 				}
+			}
+		})
+	}
+}
+
+func TestNewBatchObserver(t *testing.T) {
+	var explicitNil *batchObserver = nil
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		original interface {
+			ObserveBatch(ctx context.Context, batch gocql.ObservedBatch)
+		}
+		want *batchObserver
+	}{
+		{
+			name:     "Original is explicit nil return original as nil",
+			original: nil,
+			want:     &batchObserver{nil},
+		},
+		{
+			name:     "Orignal is type nil return original as nil",
+			original: explicitNil,
+			want:     &batchObserver{nil},
+		},
+		{
+			name:     "Orignal is an observer return original as observer",
+			original: &mockBatchObserver{},
+			want:     &batchObserver{original: &mockBatchObserver{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewBatchObserver(tt.original)
+			if tt.want.original == nil && got.original != nil {
+				t.Errorf("NewBatchObserver() = %v, want %v", got, tt.want)
+			}
+			if tt.want.original != nil && got.original == nil {
+				t.Errorf("NewBatchObserver() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_newNRGocqlxBatchWrapper(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		batch *gocqlx.Batch
+	}{
+		{
+			name:  "Wrapper with runner set and batch set",
+			batch: &gocqlx.Batch{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newNRGocqlxBatchWrapper(tt.batch)
+			if got.segmentRunner == nil {
+				t.Errorf("newNRGocqlxBatchWrapper() segmentRunner is nil")
 			}
 		})
 	}

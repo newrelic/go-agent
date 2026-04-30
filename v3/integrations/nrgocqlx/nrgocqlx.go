@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
@@ -17,6 +18,13 @@ import (
 )
 
 func init() { internal.TrackUsage("integration", "datastore", "gocql") }
+
+type gocqlContextKey string
+
+var (
+	queryKey gocqlContextKey = "nrGocqlxSegment"
+	batchKey gocqlContextKey = "nrGocqlxBatchSegment"
+)
 
 /*
 queryObserver contains the implementation for ObserveQuery
@@ -67,6 +75,21 @@ type NRGocqlxQueryxWrapper struct {
 }
 
 /*
+Wrapper for gocqlx.Batch that implements gocqlx.Batch functions: Bind, BindMap, BindStruct,
+BindStructMap, Query, Exec, WithContext, SetRequestTimeout, SetHostID, DefaultTimestamp,
+WithTimestamp, Observer, RetryPolicy, SerialConsistency, SpeculativeExecutionPolicy and Trace.
+All other gocqlx.Batch functions are accessible through this struct's embedded field *gocqlx.Batch.
+NOTE: In order to properly instrument with New Relic, you must use only the implemented functions
+for NRGocqlxBatchWrapper,
+especially if you are chaining.
+*/
+type NRGocqlxBatchWrapper struct {
+	*gocqlx.Batch
+	segmentRunner    func(fn func() error) error
+	CASSegmentRunner func(fn func() (bool, error)) (bool, error)
+}
+
+/*
 Call that wraps a gocqlx.Session.  This function takes a gocql.ClusterConfig and returns a
 NRGocqlxSessionWrapper.
 */
@@ -85,7 +108,7 @@ cannot be pulled from context, no segment will be created but the passed in func
 segment gets populated with its StartTime and Product as the function that is called will enrich the rest of
 the segment.  The segment is stored in context to be enriched later.
 */
-func execOriginal(ctx context.Context, fn func(ctx context.Context) error) error {
+func execOriginal(ctx context.Context, fn func(ctx context.Context) error, contextKey gocqlContextKey) error {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -99,7 +122,7 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context) error) error
 	defer sgmt.End()
 
 	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	ctx = context.WithValue(ctx, contextKey, sgmt)
 	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
@@ -111,7 +134,7 @@ the passed in function will still execute. The segment gets populated with its S
 as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
 to be enriched later.
 */
-func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error)) (bool, error) {
+func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error), contextKey gocqlContextKey) (bool, error) {
 	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return fn(ctx)
@@ -125,7 +148,7 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, er
 	defer sgmt.End()
 
 	// securtiy agent?
-	ctx = context.WithValue(ctx, "nrGocqlxSegment", sgmt)
+	ctx = context.WithValue(ctx, contextKey, sgmt)
 	return fn(ctx) // enriching of sgmt called withing fn()
 }
 
@@ -139,15 +162,187 @@ func newNRGocqlxQueryxWrapper(queryx *gocqlx.Queryx) *NRGocqlxQueryxWrapper {
 		return execOriginal(w.Context(), func(ctx context.Context) error {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		})
+		}, queryKey)
 	}
 	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
 		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
 			w.Query = w.Query.WithContext(ctx)
 			return fn()
-		})
+		}, queryKey)
 	}
 	return w
+}
+
+/*
+Returns a new NRGocqlxBatchWrapper.  This sets the Batch field to the passed in parameter batch
+and the segmentRunner field.
+*/
+func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
+	w := &NRGocqlxBatchWrapper{Batch: batch}
+	w.segmentRunner = func(fn func() error) error {
+		return execOriginal(w.Context(), func(ctx context.Context) error {
+			w.Batch = w.Batch.WithContext(ctx)
+			return fn()
+		}, batchKey)
+	}
+	return w
+}
+
+/*
+Sets the NRGocqlxBatchWrapper.Batch to the parameter batch and returns the wrapper.  This should be
+called by any NRGocqlxBatchWrapper methods (such as WithContext) that return a NRGocqlxBatchWrapper.
+*/
+func (b *NRGocqlxBatchWrapper) withBatch(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
+	b.Batch = batch
+	return b
+}
+
+/*
+Binds query positional parameters to values from args.  Use this function, which belongs to the
+wrapper NRGocqlxBatchWrapper, to add a statement to the batch.  If you use gocqlx.Batch.Bind, you
+will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) Bind(qry *NRGocqlxQueryxWrapper, args ...any) error {
+	return b.Batch.Bind(qry.Queryx, args...)
+}
+
+/*
+Binds query named parameters to values from a map.  Use this function, which belongs to the
+wrapper NRGocqlxBatchWrapper, to add a statement to the batch.  If you use gocqlx.Batch.BindMap,
+you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) BindMap(qry *NRGocqlxQueryxWrapper, arg map[string]any) error {
+	return b.Batch.BindMap(qry.Queryx, arg)
+}
+
+/*
+Binds query named parameters to values from a struct.  Use this function, which belongs to the
+wrapper NRGocqlxBatchWrapper, to add a statement to the batch.  If you use gocqlx.Batch.BindStruct,
+you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) BindStruct(qry *NRGocqlxQueryxWrapper, arg any) error {
+	return b.Batch.BindStruct(qry.Queryx, arg)
+}
+
+/*
+Binds query named parameters to values from a struct and a map.  Use this function, which belongs
+to the wrapper NRGocqlxBatchWrapper, to add a statement to the batch.  If you use
+gocqlx.Batch.BindStructMap, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) BindStructMap(qry *NRGocqlxQueryxWrapper, arg0 any, arg1 map[string]any) error {
+	return b.Batch.BindStructMap(qry.Queryx, arg0, arg1)
+}
+
+/*
+Adds a raw statement with positional arguments to the batch and returns the wrapper for chaining.
+Use this function, which belongs to the wrapper NRGocqlxBatchWrapper, to add a statement to the
+batch.  If you use gocqlx.Batch.Query, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) Query(stmt string, args ...any) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Query(stmt, args...))
+}
+
+/*
+Returns a shallow copy of the batch with its context set to ctx and returns the wrapper for
+chaining.  Use this function, which belongs to the wrapper NRGocqlxBatchWrapper, to set the
+context.  If you use gocqlx.Batch.WithContext, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) WithContext(ctx context.Context) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.WithContext(ctx))
+}
+
+/*
+Sets the time the driver waits for a server response and returns the wrapper for chaining.  Use
+this function, which belongs to the wrapper NRGocqlxBatchWrapper, to configure the timeout.  If you
+use gocqlx.Batch.SetRequestTimeout, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) SetRequestTimeout(timeout time.Duration) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SetRequestTimeout(timeout))
+}
+
+/*
+Pins the batch to a specific host by ID and returns the wrapper for chaining.  Use this function,
+which belongs to the wrapper NRGocqlxBatchWrapper, to set the host.  If you use
+gocqlx.Batch.SetHostID, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) SetHostID(hostID string) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SetHostID(hostID))
+}
+
+/*
+Enables or disables the default timestamp flag on the batch and returns the wrapper for chaining.
+Use this function, which belongs to the wrapper NRGocqlxBatchWrapper, to configure the timestamp
+behavior.  If you use gocqlx.Batch.DefaultTimestamp, you will not be able to instrument with New
+Relic.
+*/
+func (b *NRGocqlxBatchWrapper) DefaultTimestamp(enable bool) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.DefaultTimestamp(enable))
+}
+
+/*
+Sets an explicit timestamp on the batch and returns the wrapper for chaining.  Use this function,
+which belongs to the wrapper NRGocqlxBatchWrapper, to set the timestamp.  If you use
+gocqlx.Batch.WithTimestamp, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) WithTimestamp(timestamp int64) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.WithTimestamp(timestamp))
+}
+
+/*
+Sets a batch-level observer and returns the wrapper for chaining.  Use this function, which belongs
+to the wrapper NRGocqlxBatchWrapper, to attach an observer.  If you use gocqlx.Batch.Observer, you
+will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) Observer(observer gocql.BatchObserver) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Observer(observer))
+}
+
+/*
+Sets the retry policy for the batch and returns the wrapper for chaining.  Use this function, which
+belongs to the wrapper NRGocqlxBatchWrapper, to configure retries.  If you use
+gocqlx.Batch.RetryPolicy, you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) RetryPolicy(policy gocql.RetryPolicy) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.RetryPolicy(policy))
+}
+
+/*
+Sets the serial consistency level for conditional updates in the batch and returns the wrapper for
+chaining.  Use this function, which belongs to the wrapper NRGocqlxBatchWrapper, to configure
+serial consistency.  If you use gocqlx.Batch.SerialConsistency, you will not be able to instrument
+with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) SerialConsistency(cons gocql.Consistency) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SerialConsistency(cons))
+}
+
+/*
+Sets the speculative execution policy for the batch and returns the wrapper for chaining.  Use this
+function, which belongs to the wrapper NRGocqlxBatchWrapper, to configure speculative execution.
+If you use gocqlx.Batch.SpeculativeExecutionPolicy, you will not be able to instrument with New
+Relic.
+*/
+func (b *NRGocqlxBatchWrapper) SpeculativeExecutionPolicy(policy gocql.SpeculativeExecutionPolicy) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.SpeculativeExecutionPolicy(policy))
+}
+
+/*
+Enables tracing on the batch and returns the wrapper for chaining.  Use this function, which
+belongs to the wrapper NRGocqlxBatchWrapper, to attach a tracer.  If you use gocqlx.Batch.Trace,
+you will not be able to instrument with New Relic.
+*/
+func (b *NRGocqlxBatchWrapper) Trace(trace gocql.Tracer) *NRGocqlxBatchWrapper {
+	return b.withBatch(b.Batch.Trace(trace))
+}
+
+/*
+Executes the batch.  This function calls execOriginal with a function that calls gocqlx.Batch.Exec
+with updated context.
+*/
+func (b *NRGocqlxBatchWrapper) Exec() error {
+	return b.segmentRunner(func() error {
+		return b.Batch.Exec()
+	})
 }
 
 /*
@@ -156,6 +351,10 @@ for gocqlx.Queryx.
 */
 func (s *NRGocqlxSessionWrapper) ContextQuery(ctx context.Context, stmt string, names []string) *NRGocqlxQueryxWrapper {
 	return newNRGocqlxQueryxWrapper(s.Session.ContextQuery(ctx, stmt, names))
+}
+
+func (s *NRGocqlxSessionWrapper) ContextBatch(ctx context.Context, bt gocql.BatchType) *NRGocqlxBatchWrapper {
+	return newNRGocqlxBatchWrapper(s.Session.ContextBatch(ctx, bt))
 }
 
 /*
@@ -264,7 +463,7 @@ Run an Exec query.  This function calls execOriginal with a function that calls 
 updated context.
 */
 func (x *NRGocqlxQueryxWrapper) Exec() error {
-	return x.segmentRunner(func() error { return x.Queryx.ExecRelease() })
+	return x.segmentRunner(func() error { return x.Queryx.Exec() })
 }
 
 /*
@@ -349,7 +548,7 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	keyspace = query.Keyspace
 
 	// enrich segment
-	segment, ok := ctx.Value("nrGocqlxSegment").(*newrelic.DatastoreSegment)
+	segment, ok := ctx.Value(queryKey).(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
@@ -362,6 +561,12 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	// security agent?
 }
 
+/*
+ObserveBatch is the implementation for the gocql.BatchObserver.  This will run after the
+batch is executed.  It will execute the original implementation of ObserveBatch if it is
+passed in.  If there is no new relic transaction in context, it will return early.  Otherwise,
+it will take the segment from context, and enrich it with batch data.
+*/
 func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBatch) {
 	if o.original != nil {
 		o.original.ObserveBatch(ctx, batch)
@@ -383,7 +588,7 @@ func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBa
 	statements = batch.Statements
 	keyspace = batch.Keyspace
 
-	segment, ok := ctx.Value("nrGocqlxBatchSegment").(*newrelic.DatastoreSegment)
+	segment, ok := ctx.Value(batchKey).(*newrelic.DatastoreSegment)
 	if !ok {
 		return
 	}
