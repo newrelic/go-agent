@@ -4,10 +4,8 @@ module github.com/newrelic/go-agent/v3/integrations/nrnats
 // https://github.com/nats-io/nats.go/blob/master/.travis.yml
 go 1.25
 
-toolchain go1.23.4
-
 require (
-	github.com/nats-io/nats-server v1.4.1
+	github.com/nats-io/nats-server/v2 v2.10.22
 	github.com/nats-io/nats.go v1.36.0
 	github.com/newrelic/go-agent/v3 v3.43.3
 )
