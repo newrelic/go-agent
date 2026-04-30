@@ -172,12 +172,6 @@ func newNRGocqlxBatchWrapper(batch *gocqlx.Batch) *NRGocqlxBatchWrapper {
 			return fn()
 		}, batchKey)
 	}
-	w.CASSegmentRunner = func(fn func() (bool, error)) (bool, error) {
-		return execOriginalCAS(w.Context(), func(ctx context.Context) (bool, error) {
-			w.Batch = w.Batch.WithContext(ctx)
-			return fn()
-		}, batchKey)
-	}
 	return w
 }
 
