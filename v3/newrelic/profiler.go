@@ -689,10 +689,8 @@ func (pc *profilerConfig) monitor(a *app) {
 			pc.selected &= ^bits
 		}
 	}
-	a.Debug("checkpoint", nil)
 
 	for {
-		a.Debug("f", nil)
 		select {
 		case <-recheckConfig.C:
 			if pc.ableToSend() {
@@ -813,31 +811,24 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 
 		case <-pc.sampleTicker.C:
-			a.Debug("tick", nil)
 			if profileDestination == profileNilDest {
 				continue
 			}
 
 			if profileDestination == profileLocalFile {
-				a.Debug("local", nil)
 				if pc.isHeapSelected() {
-					a.Debug("heap", nil)
 					saveLocalProfileSample("heap", "ProfileHeap", ProfilingTypeHeap)
 				}
 				if pc.isGoroutineSelected() {
-					a.Debug("goroutine", nil)
 					saveLocalProfileSample("goroutine", "ProfileGoroutine", ProfilingTypeGoroutine)
 				}
 				if pc.isThreadCreateSelected() {
-					a.Debug("tc", nil)
 					saveLocalProfileSample("threadcreate", "ProfileThreadCreate", ProfilingTypeThreadCreate)
 				}
 				if pc.isBlockSelected() {
-					a.Debug("blk", nil)
 					saveLocalProfileSample("block", "ProfileBlock", ProfilingTypeBlock)
 				}
 				if pc.isMutexSelected() {
-					a.Debug("mutex", nil)
 					saveLocalProfileSample("mutex", "ProfileMutex", ProfilingTypeMutex)
 				}
 				// The tracer writes to the file on its own, as does the cpu profiler,
