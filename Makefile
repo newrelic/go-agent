@@ -57,7 +57,7 @@ integration-test:
 	WD=$(shell pwd); \
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$${WD}/${MODULE_DIR}";\
 	if [ "$(TEST)" == "nrnats" ]; then \
-		GOPROXY=direct $(GO) mod tidy; \
+		GOPROXY=https://proxy.golang.org,direct $(GO) mod tidy; \
 	else \
 		$(GO) mod tidy; \
 	fi; \
