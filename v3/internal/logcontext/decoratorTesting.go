@@ -101,3 +101,34 @@ func ValidateDecoratedOutput(t *testing.T, out *bytes.Buffer, expect *Decoration
 		}
 	}
 }
+
+func ValidateNRLinkingString(t *testing.T, out *bytes.Buffer, expect *DecorationExpect) {
+	actual := out.String()
+
+	if expect.DecorationDisabled {
+		if strings.Contains(actual, "NR-LINKING") {
+			t.Fatal("log decoration was expected to be disabled, but were decorated anyway")
+		} else {
+			return
+		}
+	}
+
+	if expect.DecoratorError != nil {
+		if strings.Contains(actual, "NR-LINKING") {
+			t.Fatal("logs should not be decorated when a decorator error occurs")
+		}
+
+		msg := expect.DecoratorError.Error()
+		if !strings.Contains(actual, msg) {
+			t.Fatalf("an error message debug log was expected, \"%s\", but was not found: %s", msg, actual)
+		} else {
+			return
+		}
+	}
+
+	split := strings.Split(actual, "NR-LINKING")
+
+	if len(split) != 2 {
+		t.Fatalf("expected log decoration, but NR-LINKING data was missing: %s", actual)
+	}
+}
