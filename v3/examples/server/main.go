@@ -461,9 +461,9 @@ func main() {
 			log.Printf("Profiling: %v every %v", c.Profiling.SelectedProfiles.Strings(), c.Profiling.Interval)
 		}
 	}
-	if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
-		log.Fatalf("failed to write profile to directory %s: %v", "/tmp", err)
-	}
+	//	if err := app.SetProfileOutputDirectory("/tmp"); err != nil {
+	//		log.Fatalf("failed to write profile to directory %s: %v", "/tmp", err)
+	//	}
 
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/", index))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/version", versionHandler))

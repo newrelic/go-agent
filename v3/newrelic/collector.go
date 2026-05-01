@@ -49,6 +49,7 @@ type rpmCmd struct {
 	Data              []byte
 	RequestHeadersMap map[string]string
 	MaxPayloadSize    int
+	MethodParams      map[string]string
 }
 
 // rpmControls contains fields which will be the same for all calls made
@@ -180,6 +181,9 @@ func rpmURL(cmd rpmCmd, cs rpmControls) string {
 	query.Set("protocol_version", strconv.Itoa(procotolVersion))
 	query.Set("method", cmd.Name)
 	query.Set("license_key", cs.License)
+	for paramName, paramValue := range cmd.MethodParams {
+		query.Set(paramName, paramValue)
+	}
 
 	if len(cmd.RunID) > 0 {
 		query.Set("run_id", cmd.RunID)

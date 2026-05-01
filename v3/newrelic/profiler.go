@@ -145,6 +145,7 @@ func (a *app) UpdateProfiler() {
 		a.profiler.methodRpmCmd.RunID = reply.Reply.RunID.String()
 		a.profiler.methodRpmCmd.RequestHeadersMap = reply.Reply.RequestHeadersMap
 		a.profiler.methodRpmCmd.MaxPayloadSize = reply.Reply.MaxPayloadSizeInBytes
+		a.profiler.methodRpmCmd.MethodParams = make(map[string]string)
 		a.profiler.lock.Unlock()
 		if a.run != nil && a.profiler.ableToSend() && !a.run.Config.Profiling.Enabled {
 			// we got disabled, probably from server-side config
@@ -647,7 +648,7 @@ func (pc *profilerConfig) monitor(a *app) {
 			// we're sending to an ingest endpoint of some sort
 			if pc.isCPUSelected() {
 				pprof.StopCPUProfile()
-				reportBufferedProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
+				reportBufferedProfileSamples(&cpuData, "cpu", false, pc.auditFile)
 				cpuData.Reset()
 			}
 			//			if pc.isTraceSelected() {
@@ -994,6 +995,7 @@ func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, 
 
 	pc.methodRpmCmd.Data = data.Bytes()
 	app.Debug(fmt.Sprintf("Sending %s payload of %d bytes\n", eventType, len(pc.methodRpmCmd.Data)), nil)
+	pc.methodRpmCmd.MethodParams["profileMetadata"] = "category=" + profileName
 	resp := collectorRequest(pc.methodRpmCmd, pc.methodRpmControls)
 	if resp.IsDisconnect() || resp.IsRestartException() {
 		// TODO: handle shutdown condition
