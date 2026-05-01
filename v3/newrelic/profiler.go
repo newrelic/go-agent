@@ -995,7 +995,12 @@ func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, 
 
 	pc.methodRpmCmd.Data = data.Bytes()
 	app.Debug(fmt.Sprintf("Sending %s payload of %d bytes\n", eventType, len(pc.methodRpmCmd.Data)), nil)
-	pc.methodRpmCmd.MethodParams["profileMetadata"] = "category=" + profileName
+	if profileName == "mutex" || profileName == "block" {
+		pc.methodRpmCmd.MethodParams["profileMetadata"] = "category=" + profileName
+	} else {
+		delete(pc.methodRpmCmd.MethodParams, "profileMetadata")
+	}
+
 	resp := collectorRequest(pc.methodRpmCmd, pc.methodRpmControls)
 	if resp.IsDisconnect() || resp.IsRestartException() {
 		// TODO: handle shutdown condition
