@@ -24,11 +24,12 @@ var (
 	tablePattern      = `(` + `\s+` + basicTable + `|` + `\s*` + enclosedTable + `)`
 	extractTableRegex = regexp.MustCompile(`[\s` + "`" + `"'\(\)\{\}\[\]]*`)
 	updateRegex       = regexp.MustCompile(`(?is)^update(?:\s+(?:low_priority|ignore|or|rollback|abort|replace|fail|only))*` + tablePattern)
+	insertRegex       = regexp.MustCompile(`(?is)^insert(?:\s+(?:low_priority|delayed|high_priority|ignore))*(?:\s+into)?` + tablePattern)
 	withRegex         = regexp.MustCompile(`(?is)^with(?:\s+recursive)?.*\)\s*select.*?\sfrom` + tablePattern)
 	sqlOperations     = map[string]*regexp.Regexp{
 		"select":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
 		"delete":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
-		"insert":   regexp.MustCompile(`(?is)^.*\sinto?` + tablePattern),
+		"insert":   insertRegex,
 		"update":   updateRegex,
 		"call":     nil,
 		"create":   nil,
