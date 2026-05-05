@@ -18,6 +18,13 @@ func extractTable(s string) string {
 	return s
 }
 
+/*
+CQL is similar to SQL in syntax with a few key differences.  There are no Common Table Expressions (CTE),
+so the WITH keyword is not captured with regular expressions below.  Additionally, there are no
+sub-queries in CQL.  In some SQL queries, INTO may be an optional keyword to use with INSERT.  However, in
+CQL is required.  We only capture the DatastoreSegmemt.Collection (table in CQL) for DML queries (SELECT, UPDATE,
+INSERT, DELETE) and TRUNCATE.
+*/
 var (
 	basicTable        = `[^)(\]\[\}\{\s,;]+`
 	enclosedTable     = `[\[\(\{]` + `\s*` + basicTable + `\s*` + `[\]\)\}]`
@@ -28,14 +35,14 @@ var (
 	cqlOperations     = map[string]*regexp.Regexp{
 		"select":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
 		"delete":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
-		"insert":   regexp.MustCompile(`(?is)^.*\sinto` + tablePattern),
+		"insert":   regexp.MustCompile(`(?is)^.*\sinto` + tablePattern), // INTO is a required keyword after INSERT
 		"update":   updateRegex,
 		"create":   nil,
 		"drop":     nil,
 		"alter":    nil,
-		"truncate": truncateRegex,
+		"truncate": truncateRegex, // drops all rows from table
 		"use":      nil,
-		"begin":    nil, // BEGIN [UNLOGGED|COUNTER] BATCH
+		"begin":    nil, // BEGIN BATCH
 		"apply":    nil, // APPLY BATCH
 	}
 	firstWordRegex   = regexp.MustCompile(`^\w+`)
@@ -44,8 +51,11 @@ var (
 	cqlPrefixRegex   = regexp.MustCompile(`^[\s;]*`)
 )
 
-// ParseQuery parses table and operation from a CQL query string. It is a
-// helper meant to be used when writing Cassandra driver instrumentation.
+/*
+ParseQuery parses table and operation from a CQL query string. It is a
+helper meant to be used when writing Cassandra driver instrumentation.
+This is not meant to be used to parse SQL.
+*/
 func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	s := cCommentRegex.ReplaceAllString(query, "")
 	s = lineCommentRegex.ReplaceAllString(s, "")
