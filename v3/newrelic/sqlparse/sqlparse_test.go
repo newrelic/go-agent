@@ -218,6 +218,10 @@ func TestInsertSQL(t *testing.T) {
 		{Input: "INSERT DELAYED employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
 		{Input: "INSERT HIGH_PRIORITY employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
 		{Input: "INSERT LOW_PRIORITY IGNORE employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		//modifiers with INTO
+		{Input: "INSERT DELAYED INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT HIGH_PRIORITY INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT LOW_PRIORITY IGNORE INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
 	} {
 		tc.test(t)
 	}
