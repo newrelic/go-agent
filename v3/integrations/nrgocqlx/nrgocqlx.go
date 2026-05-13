@@ -14,6 +14,7 @@ import (
 	gocql "github.com/gocql/gocql"
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/cqlparse"
 	"github.com/scylladb/gocqlx/v3"
 )
 
@@ -552,9 +553,9 @@ func (o *queryObserver) ObserveQuery(ctx context.Context, query gocql.ObservedQu
 	if !ok {
 		return
 	}
+	cqlparse.ParseQuery(segment, statement)
 	segment.ParameterizedQuery = statement
 	segment.Host = host
-	segment.Collection = "tableNameExample"
 	segment.PortPathOrID = strconv.Itoa(port)
 	segment.DatabaseName = keyspace
 
@@ -592,9 +593,9 @@ func (o *batchObserver) ObserveBatch(ctx context.Context, batch gocql.ObservedBa
 	if !ok {
 		return
 	}
+	segment.Operation = "batch"
 	segment.ParameterizedQuery = strings.Join(statements, "; ") // join statements together
 	segment.Host = host
-	segment.Collection = "tableNameExample"
 	segment.PortPathOrID = strconv.Itoa(port)
 	segment.DatabaseName = keyspace
 	// enrich segment below
