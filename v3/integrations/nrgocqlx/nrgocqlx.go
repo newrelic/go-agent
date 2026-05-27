@@ -1,7 +1,58 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package nrgocql instruments https://github.com/scylladb/gocqlx/
+/*
+Package nrgocqlx instruments https://github.com/scylladb/gocqlx/
+
+Use this package to instrument your ScyllaDB calls using the gocqlx package.
+
+To instrument your database operations, set the *gocql.ClusterConfig.QueryObserver
+and/or the *gocql.ClusterConfig.BatchObserver to an instrumented observer.  These will
+be nrgocqlx.NewQueryObserver and nrgocqlx.NewBatchObserver respectively.
+
+After setting the observer, call nrgocqlx.NRGoCQLXWrapSession(cluster).  This returns a
+wrapped *gocqlx.Session which can be used to execute queries.  Only ContextBatch and
+ContextQuery on the wrapped session record database operations; all other *gocqlx.Session
+methods pass through unchanged.
+
+NOTE: Calls to ContextQuery return a *nrgocqlx.NRGocqlxQueryxWrapper which wraps a
+*gocqlx.Queryx, and calls to ContextBatch return a *nrgocqlx.NRGocqlxBatchWrapper which
+wraps a *gocqlx.Batch.  Both wrappers allow chaining, but only the methods reimplemented
+on the wrapper produce segments — chaining off any other method silently drops
+instrumentation.
+
+For example:
+
+	import (
+		"log"
+
+		gocql "github.com/gocql/gocql"
+		"github.com/newrelic/go-agent/v3/integrations/nrgocqlx"
+	)
+
+	func main() {
+		cluster := gocql.NewCluster("127.0.0.1")
+
+		// Set the New Relic observers
+		cluster.QueryObserver = nrgocqlx.NewQueryObserver(nil)
+		cluster.BatchObserver = nrgocqlx.NewBatchObserver(nil)
+
+		session, err := nrgocqlx.NRGoCQLXWrapSession(cluster)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer session.Close()
+
+		// This will record a database operation because BindStruct is implemented by *nrgocqlx.NRGocqlxQueryxWrapper.
+		insertQuery := session.ContextQuery(ctx, stmt, names).BindStruct(insertStruct)
+		if err := insertQuery.ExecRelease(); err != nil {
+			log.Fatal(err)
+		}
+
+		// This will NOT record a database operation because DefaultTimestamp is not implemented by *nrgocqlx.NRGocqlxQueryxWrapper.
+		_ = session.ContextQuery(ctx, stmt, names).DefaultTimestamp(true)
+	}
+*/
 package nrgocqlx
 
 import (
@@ -122,17 +173,17 @@ func execOriginal(ctx context.Context, fn func(ctx context.Context) error, conte
 	}
 	defer sgmt.End()
 
-	// securtiy agent?
+	// security agent?
 	ctx = context.WithValue(ctx, contextKey, sgmt)
-	return fn(ctx) // enriching of sgmt called withing fn()
+	return fn(ctx) // enriching of sgmt called within fn()
 }
 
 /*
 Executes a passed in function while beginning a New Relic Datastore Segment. This function is to be
-used with any lightweight queries.  It will return a bool in addition to an errorto indicate if a
-query was applied.  If a transactioncannot be pulled from context, no segment will be created but
+used with any lightweight queries.  It will return a bool in addition to an error to indicate if a
+query was applied.  If a transaction cannot be pulled from context, no segment will be created but
 the passed in function will still execute. The segment gets populated with its StartTime and Product
-as the function that is called will enrich the rest ofthe segment.  The segment is stored in context
+as the function that is called will enrich the rest of the segment.  The segment is stored in context
 to be enriched later.
 */
 func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, error), contextKey gocqlContextKey) (bool, error) {
@@ -148,9 +199,9 @@ func execOriginalCAS(ctx context.Context, fn func(ctx context.Context) (bool, er
 	}
 	defer sgmt.End()
 
-	// securtiy agent?
+	// security agent?
 	ctx = context.WithValue(ctx, contextKey, sgmt)
-	return fn(ctx) // enriching of sgmt called withing fn()
+	return fn(ctx) // enriching of sgmt called within fn()
 }
 
 /*
