@@ -3,6 +3,8 @@ module github.com/newrelic/go-agent/v3
 go 1.24.0
 
 require (
+	github.com/google/btree v1.1.3
+	github.com/google/pprof v0.0.0-20260507013755-92041b743c96
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2

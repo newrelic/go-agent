@@ -536,9 +536,9 @@ func main() {
 		log.Println("HTTP server shutdown, shutting down APM agent...")
 	}
 	app.ShutdownProfiler(true)
-	if err := app.CloseProfileAuditLog(); err != nil {
-		panic(err)
-	}
+	//	if err := app.CloseProfileAuditLog(); err != nil {
+	//		panic(err)
+	//	}
 	app.Shutdown(time.Second * 60)
 	log.Println("Agent shutdown.")
 }

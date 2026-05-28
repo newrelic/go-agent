@@ -16,6 +16,9 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/google/btree"
+	"github.com/google/pprof/profile"
 )
 
 const (
@@ -89,6 +92,86 @@ func auditError(audit io.Writer, eventType string, harvestSeq int64, e error, fo
 	}
 }
 
+// pfofileSpanData holds each active transaction we noticed happening while we were doing
+// CPU profiling. We hold onto these in a cache until we report out the CPU profiles we
+// collect and know we've attached these to the outgoing samples that were collected at the
+// same time frames the transactions were active.
+// We have to cache them away because the CPU profiler runs asynchronously (and in a totally
+// different system facility) from us, and we'll collect its output later, possibly after these
+// transactions have finished.
+//
+// The combination of TimeNanos+TxnID must be unique within the cache of span data we're holding.
+// The data are kept ordered by that combination of values as well. "TxnID" here is somewhat
+// arbitrary and for our purposes is created (by us here) from the transaction name and internal
+// ID if possible, and from the memory object pointer as a last resort.
+type profileSpanData struct {
+	TimeNanos     int64  // nanoseconds on clock of span start since Jan 1 1970 UTC
+	DurationNanos int64  // nanoseconds span was alive or 0 if still running
+	TxnID         string // transaction ID
+	TxnName       string // transaction Name
+	SpanID        string // trace spanID
+	TraceID       string // trace traceID
+}
+
+// Derive our unique key from transaction pointer
+func profileSpanDataID(txn *Transaction) string {
+	TxnID := txn.thread.TxnID + ":" + txn.Name()
+	if TxnID == ":" {
+		TxnID = fmt.Sprintf("TXN<%v>", txn)
+	}
+
+	return strings.Map(func(s rune) rune {
+		if unicode.IsSpace(s) {
+			return '_'
+		}
+		return s
+	}, TxnID)
+}
+
+// Return a new profileSpanData value from an existing transaction, start time, and associated
+// TraceMetadata, ready to use in our cache.
+func profileSpanDataFromTxn(txn *Transaction) profileSpanData {
+	md := txn.GetTraceMetadata()
+	return profileSpanData{
+		TimeNanos: txn.thread.Start.UnixNano(),
+		TxnID:     profileSpanDataID(txn),
+		TxnName:   txn.Name(),
+		SpanID:    md.SpanID,
+		TraceID:   md.TraceID,
+	}
+}
+
+// End records the end time of a profileSpanData value in our cache, possibly also
+// updating the TraceMetadata (in case that's changed or in case it wasn't available
+// at the time the transaction was first created).
+func (sd *profileSpanData) End(duration time.Duration, md TraceMetadata) {
+	sd.DurationNanos = duration.Nanoseconds()
+
+	// Force non-zero just in case somehow the span lasted less than a nanosecond, since
+	// zero here means it's still running.
+	if sd.DurationNanos == 0 {
+		sd.DurationNanos = 1
+	}
+
+	// Only update the metadata if what is passed to this method actually has new data
+	if md.SpanID != "" && sd.SpanID != md.SpanID {
+		sd.SpanID = md.SpanID
+	}
+	if md.TraceID != "" && sd.TraceID != md.TraceID {
+		sd.TraceID = md.TraceID
+	}
+}
+
+// LessThan takes a pair of profileSpanData values and returns True if the first of them
+// is less than the second. This is used by the btree library to order the cache data and
+// to iterate over and search through them.
+func PSDLessThan(a, b profileSpanData) bool {
+	if a.TimeNanos != b.TimeNanos {
+		return a.TimeNanos < b.TimeNanos
+	}
+	return a.TxnID < b.TxnID
+}
+
 type profilerConfig struct {
 	lock            sync.RWMutex // protects creation of the ticker and access to map
 	segLock         sync.RWMutex // protects access to segment list
@@ -105,7 +188,7 @@ type profilerConfig struct {
 	ingestSwitch    chan byte
 	outputSwitch    chan string
 	switchResult    chan error
-	activeSegments  map[string]struct{}
+	spanCache       *btree.BTreeG[profileSpanData]
 	blockRate       int
 	mutexRate       int
 	cpuSampleRateHz int
@@ -212,18 +295,115 @@ func (a *app) StartProfiler() {
 // the segment name to track.
 //
 // Note that this assumes segment names are unique at any given point in the program's runtime.
-func (app *Application) AddSegmentToProfiler(name string) {
-	app.app.profiler.segLock.Lock()
-	if app.app.profiler.activeSegments == nil {
-		app.app.profiler.activeSegments = make(map[string]struct{})
-	}
-	app.app.profiler.activeSegments[name] = struct{}{}
-	app.app.profiler.segLock.Unlock()
-}
+//func (app *Application) AddSegmentToProfiler(name string) {
+//	app.app.profiler.segLock.Lock()
+//	if app.app.profiler.activeSegments == nil {
+//		app.app.profiler.activeSegments = make(map[string]struct{})
+//	}
+//	app.app.profiler.activeSegments[name] = struct{}{}
+//	app.app.profiler.segLock.Unlock()
+//}
 
 // The following are undocumented because they're intended for internal testing
 // purposes. They open and close an audit log of the profile samples collected
 // and reported for the profiler.
+
+// Add a new span to the profiler. This is called automatically when a transaction is started
+// and we have CPU profiling running.
+
+func (app *Application) ProfilerStartSpan(txn *Transaction) {
+	if app == nil {
+		return
+	}
+	app.app.profilerStartSpan(txn)
+}
+
+func (app *app) profilerStartSpan(txn *Transaction) {
+	if txn == nil {
+		app.Error("ProfilerStartSpan called on nil transaction", nil)
+		return
+	}
+	newSpanDatum := profileSpanDataFromTxn(txn)
+	app.profiler.segLock.Lock()
+	if app.profiler.spanCache == nil {
+		app.profiler.spanCache = btree.NewG[profileSpanData](64, PSDLessThan)
+	}
+	app.profiler.spanCache.ReplaceOrInsert(newSpanDatum)
+	app.profiler.segLock.Unlock()
+	app.Debug("profiler: recorded transaction", map[string]any{
+		"txn-id":            newSpanDatum.TxnID,
+		"span_id":           newSpanDatum.SpanID,
+		"trace_id":          newSpanDatum.TraceID,
+		"cache-size":        app.profiler.spanCache.Len(),
+		"start-time":        newSpanDatum.TimeNanos,
+		"start-time-string": time.Unix(newSpanDatum.TimeNanos/1_000_000_000, newSpanDatum.TimeNanos%1_000_000_000).String(),
+	})
+}
+
+// End a span we're tracking in the profiler. Ignored if we can't find it, otherwise it
+// finds the span and records the end time in it.
+func (app *Application) ProfilerEndSpan(txn *Transaction) {
+	if app == nil {
+		return
+	}
+	if txn == nil || txn.thread == nil {
+		app.app.Error("ProfilerEndSpan called on nil transaction", nil)
+		return
+	}
+	key := profileSpanDataID(txn)
+	app.app.profiler.segLock.Lock()
+	defer app.app.profiler.segLock.Unlock()
+	if app.app.profiler.spanCache == nil {
+		// we don't even have the btree at all, so we already know we have nothing to do.
+		return
+	}
+
+	targetValue, isInCache := app.app.profiler.spanCache.Get(profileSpanData{
+		TimeNanos: txn.thread.Start.UnixNano(),
+		TxnID:     key,
+	})
+	if isInCache {
+		targetValue.End(txn.thread.Duration, txn.GetTraceMetadata())
+		app.app.profiler.spanCache.ReplaceOrInsert(targetValue)
+		app.app.Debug("profiler: ended transaction", map[string]any{
+			"txn-id":            targetValue.TxnID,
+			"span_id":           targetValue.SpanID,
+			"trace_id":          targetValue.TraceID,
+			"cache-size":        app.app.profiler.spanCache.Len(),
+			"start-time":        targetValue.TimeNanos,
+			"duration":          targetValue.DurationNanos,
+			"start-time-string": time.Unix(targetValue.TimeNanos/1_000_000_000, targetValue.TimeNanos%1_000_000_000).String(),
+			"duration-ms":       targetValue.DurationNanos / 1_000_000,
+		})
+	} else {
+		// we didn't find the exact match we were hoping for. Search the cache to see if we
+		// can find the transaction ID, possibly with a different start time
+		// TODO: remove this warning after preview release
+		app.app.Warn("ProfilerEndSpan unable to directly target transaction; searching cache", map[string]any{
+			"key":     key,
+			"EndTime": txn.thread.Stop.UnixNano(),
+		})
+
+		app.app.profiler.spanCache.Ascend(func(sd profileSpanData) bool {
+			if sd.TxnID == key {
+				sd.End(txn.thread.Duration, txn.GetTraceMetadata())
+				app.app.profiler.spanCache.ReplaceOrInsert(sd)
+				app.app.Debug("profiler: ended transaction", map[string]any{
+					"txn-id":            sd.TxnID,
+					"span_id":           sd.SpanID,
+					"trace_id":          sd.TraceID,
+					"cache-size":        app.app.profiler.spanCache.Len(),
+					"start-time":        sd.TimeNanos,
+					"duration":          sd.DurationNanos,
+					"start-time-string": time.Unix(sd.TimeNanos/1_000_000_000, sd.TimeNanos%1_000_000_000).String(),
+					"duration-ms":       sd.DurationNanos / 1_000_000,
+				})
+				return false
+			}
+			return true
+		})
+	}
+}
 
 func (app *Application) OpenProfileAuditLog(filename string) error {
 	var err error
@@ -258,13 +438,13 @@ func (app *Application) SetProfileOutputDebugLevel(level int) {
 // RemoveSegmentFromProfiler signals that a segment has terminated and the profiler should stop
 // tracking that segment name to collected samples. If the ConfigProfilingWithSegments(true) option is
 // set, this will automatically be called when the segment's End method is invoked.
-func (app *Application) RemoveSegmentFromProfiler(name string) {
-	app.app.profiler.segLock.Lock()
-	if app.app.profiler.activeSegments != nil {
-		delete(app.app.profiler.activeSegments, name)
-	}
-	app.app.profiler.segLock.Unlock()
-}
+//func (app *Application) RemoveSegmentFromProfiler(name string) {
+//	app.app.profiler.segLock.Lock()
+//	if app.app.profiler.activeSegments != nil {
+//		delete(app.app.profiler.activeSegments, name)
+//	}
+//	app.app.profiler.segLock.Unlock()
+//}
 
 // ShutdownProfiler stops the collection and reporting of profile data and stops the
 // monitor background goroutine. If the waitForShutdown parameter is true, it will block
@@ -534,6 +714,90 @@ func (pc *profilerConfig) monitor(a *app) {
 		}
 	*/
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
+		if eventType == "cpu" && pc.spanCache != nil {
+			// inject cached span IDs into CPU samples before reporting them
+			p, err := profile.ParseData(profileData.Bytes())
+			if err != nil {
+				a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
+					"event-type": eventType,
+					"reason":     err.Error(),
+				})
+			} else {
+				// Search for all spans covering this time frame
+				// Because we don't know what spans may be long-running from a while ago, we need
+				// to start at the earliest end of the tree. We know when to *stop* searching, just
+				// not when to *start*. So the optimization here is to occasionally clean up the btree
+				// when we don't need these in the cache anymore.
+				// TODO: clean the cache
+				spansRecorded := 0
+				trashList := make([]profileSpanData, 0, 64)
+				pc.segLock.Lock()
+				pc.spanCache.Ascend(func(sd profileSpanData) bool {
+					if sd.TimeNanos > p.TimeNanos+p.DurationNanos {
+						return false
+					}
+					if sd.DurationNanos == 0 || sd.TimeNanos+sd.DurationNanos >= p.TimeNanos {
+						//TODO: more robust encoding here
+						p.SetLabel("span:"+sd.TxnID, []string{fmt.Sprintf("span_id=%s,trace_id=%s", sd.SpanID, sd.TraceID)})
+						spansRecorded++
+					} else {
+						// this item exists entirely before the time this profile covers.
+						// assuming we receive all our profile data in order, we can discard this one
+						// but we can't do it until we stop iterating over the tree, so save it for now.
+						trashList = append(trashList, sd)
+					}
+					return true
+				})
+				if len(trashList) > 0 {
+					a.Debug("profiler: purging old transaction data from cache", map[string]any{
+						"event-type":      eventType,
+						"spans-recorded":  spansRecorded,
+						"cache-size":      pc.spanCache.Len(),
+						"items-to-remove": len(trashList),
+					})
+					for i, oldItem := range trashList {
+						if _, removed := pc.spanCache.Delete(oldItem); !removed {
+							a.Debug("profiler: failed to remove item from cache", map[string]any{
+								"event-type":      eventType,
+								"spans-recorded":  spansRecorded,
+								"cache-size":      pc.spanCache.Len(),
+								"items-to-remove": len(trashList),
+								"failed-index":    i,
+								"failed-id":       oldItem.TxnID,
+							})
+						}
+					}
+				}
+				pc.segLock.Unlock()
+
+				if spansRecorded > 0 {
+					profileData.Reset()
+					p.Write(profileData)
+					a.Debug("profiler: profile data with labels recorded", map[string]any{
+						"event-type":        eventType,
+						"profile-data":      p.String(),
+						"spans-recorded":    spansRecorded,
+						"cache-size":        pc.spanCache.Len(),
+						"start-time":        p.TimeNanos,
+						"duration":          p.DurationNanos,
+						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+						"duration-ms":       p.DurationNanos / 1_000_000,
+					})
+				} else {
+					a.Debug("profiler: profile data skipped adding labels (no active spans found)", map[string]any{
+						"event-type":        eventType,
+						"profile-data":      p.String(),
+						"spans-recorded":    spansRecorded,
+						"cache-size":        pc.spanCache.Len(),
+						"start-time":        p.TimeNanos,
+						"duration":          p.DurationNanos,
+						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+						"duration-ms":       p.DurationNanos / 1_000_000,
+					})
+				}
+			}
+		}
+
 		if profileDestination == profileIngestPPROF {
 			pc.sendProfilePprofMethod(eventType, eventType, profileData, a)
 			return
@@ -796,7 +1060,7 @@ func (pc *profilerConfig) monitor(a *app) {
 						}
 					} else {
 						// report to ingest endpoint
-						reportBufferedProfileSamples(&cpuData, "ProfileCPU", false, pc.auditFile)
+						reportBufferedProfileSamples(&cpuData, "cpu", false, pc.auditFile)
 						cpuData.Reset()
 						if err = pprof.StartCPUProfile(&cpuData); err != nil {
 							a.Error("error restarting CPU profiler", map[string]any{
@@ -996,9 +1260,9 @@ func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, 
 	pc.methodRpmCmd.Data = data.Bytes()
 	app.Debug(fmt.Sprintf("Sending %s payload of %d bytes\n", eventType, len(pc.methodRpmCmd.Data)), nil)
 	if profileName == "mutex" || profileName == "block" {
-		pc.methodRpmCmd.MethodParams["profileMetadata"] = "category=" + profileName
+		pc.methodRpmCmd.MethodParams["profile_metadata"] = "category=" + profileName
 	} else {
-		delete(pc.methodRpmCmd.MethodParams, "profileMetadata")
+		delete(pc.methodRpmCmd.MethodParams, "profile_metadata")
 	}
 
 	resp := collectorRequest(pc.methodRpmCmd, pc.methodRpmControls)

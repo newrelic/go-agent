@@ -51,6 +51,9 @@ func (txn *Transaction) End() {
 		secureAgent.SendEvent("INBOUND_END", txn.GetLinkingMetadata().TraceID)
 	}
 	txn.thread.logAPIError(txn.thread.End(r), "end transaction", nil)
+	if txn.thread.Config.DistributedTracer.Enabled && txn.thread.Config.Profiling.Enabled && (txn.thread.Config.Profiling.SelectedProfiles&ProfilingTypeCPU) != 0 {
+		txn.Application().ProfilerEndSpan(txn)
+	}
 }
 
 // SetOption allows the setting of some transaction TraceOption parameters

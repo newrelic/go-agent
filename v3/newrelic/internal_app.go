@@ -543,11 +543,16 @@ func newTransaction(thd *thread) *Transaction {
 
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *app) StartTransaction(name string, opts ...TraceOption) *Transaction {
-	if nil == app {
+	if app == nil {
 		return nil
 	}
 	run, _ := app.getState()
-	return newTransaction(newTxn(app, run, name, opts...))
+	newtxn := newTransaction(newTxn(app, run, name, opts...))
+
+	if newtxn != nil && newtxn.thread != nil && newtxn.thread.Config.DistributedTracer.Enabled && newtxn.thread.Config.Profiling.Enabled && (newtxn.thread.Config.Profiling.SelectedProfiles&ProfilingTypeCPU) != 0 {
+		app.profilerStartSpan(newtxn)
+	}
+	return newtxn
 }
 
 var (
