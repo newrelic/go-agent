@@ -28,7 +28,6 @@ const (
 	ProfilingTypeHeap
 	ProfilingTypeMutex
 	ProfilingTypeThreadCreate
-	//	ProfilingTypeTrace
 	ProfilingTypeAll = 0xffff
 )
 
@@ -57,8 +56,6 @@ func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 			*p |= ProfilingTypeMutex
 		case "threadcreate":
 			*p |= ProfilingTypeThreadCreate
-			//		case "trace":
-			//			*p |= ProfilingTypeTrace
 		default:
 			return fmt.Errorf("unknown ProfilingType \"%s\"", t)
 		}
@@ -87,9 +84,6 @@ func (p ProfilingType) Strings() []string {
 	if ProfilingTypeThreadCreate&p != 0 {
 		typeSet = append(typeSet, "threadcreate")
 	}
-	//	if ProfilingTypeTrace&p != 0 {
-	//		typeSet = append(typeSet, "trace")
-	//	}
 	return typeSet
 }
 

@@ -440,15 +440,6 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
-// ConfigProfilingHost sets the ingest endpoint URL for sending OTEL/pprof-format data.
-/*
-func ConfigProfilingHost(URL string) ConfigOption {
-	return func(cfg *Config) {
-		cfg.Profiling.Host = URL
-	}
-}
-*/
-
 // ConfigProfilingEnabled turns on profiling of the runtime, which is further broken down into
 // specific areas to measure by ConfigProfilingInclude.
 func ConfigProfilingEnabled(enabled bool) ConfigOption {
@@ -456,17 +447,6 @@ func ConfigProfilingEnabled(enabled bool) ConfigOption {
 		cfg.Profiling.Enabled = enabled
 	}
 }
-
-// ConfigProfilingWithSegments includes segment information in profile samples so that
-// the samples may be associated with what segments were active at the time they were taken,
-// and therefore deduce which code units may be responsible for the resources expended.
-/*
-func ConfigProfilingWithSegments(enabled bool) ConfigOption {
-	return func(cfg *Config) {
-		cfg.Profiling.WithSegments = enabled
-	}
-}
-*/
 
 // ConfigProfilingInclude enables specific profiler modules to measure aspects of the runtime.
 // These are specified as a list of constant values, e.g., ProfilingTypeCPU, etc.
@@ -752,8 +732,6 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		}
 
 		assignBool(&cfg.Profiling.Enabled, "NEW_RELIC_PROFILING_ENABLED")
-		//assignBool(&cfg.Profiling.WithSegments, "NEW_RELIC_PROFILING_WITH_SEGMENTS")
-		//assignString(&cfg.Profiling.Host, "NEW_RELIC_PROFILING_HOST")
 
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.
