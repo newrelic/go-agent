@@ -53,6 +53,7 @@ type betterCAT struct {
 	TxnID         string
 	TraceID       string
 	TransportType string
+	Granularity   granularity
 	Inbound       *payload
 }
 
@@ -78,13 +79,13 @@ func (e *txnEvent) SetTransactionID(transactionID string) {
 
 }
 
-// calculateGranularity sets the granularity flags on the transaction.
+// calculateGranularity sets the granularity flags on the betterCAT state.
 // Distributed tracing acts as a master gate: if it's disabled, both flags are
 // false regardless of the partial/full inputs. Otherwise, each flag tracks its
 // corresponding input directly.
-func (t *txnData) calculateGranularity(distributedTracing, partial, full bool) {
-	t.Granularity.FullGranularity = distributedTracing && full
-	t.Granularity.PartialGranularity = distributedTracing && partial
+func (bc *betterCAT) calculateGranularity(distributedTracing, partial, full bool) {
+	bc.Granularity.FullGranularity = distributedTracing && full
+	bc.Granularity.PartialGranularity = distributedTracing && partial
 }
 
 // txnData contains the recorded data of a transaction.
@@ -102,8 +103,7 @@ type txnData struct {
 	rootSpanID string
 
 	txnEvent
-	Granularity granularity
-	TxnTrace    txnTrace
+	TxnTrace txnTrace
 
 	Stop               time.Time
 	ApdexThreshold     time.Duration

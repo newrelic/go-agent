@@ -140,7 +140,7 @@ func newTxn(app *app, run *appRun, name string, opts ...TraceOption) *thread {
 	}
 
 	// calculate granularity
-	txn.calculateGranularity(run.Config.DistributedTracer.Enabled, run.Config.DistributedTracer.Sampler.PartialGranularity.Enabled, run.Config.DistributedTracer.Sampler.FullGranularity.Enabled)
+	txn.BetterCAT.calculateGranularity(run.Config.DistributedTracer.Enabled, run.Config.DistributedTracer.Sampler.PartialGranularity.Enabled, run.Config.DistributedTracer.Sampler.FullGranularity.Enabled)
 
 	txn.Attrs.Agent.Add(AttributeHostDisplayName, txn.Config.HostDisplayName, nil)
 	txn.TxnTrace.Enabled = txn.Config.TransactionTracer.Enabled
