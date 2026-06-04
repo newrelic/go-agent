@@ -79,6 +79,7 @@ func CPUspinner(w http.ResponseWriter, r *http.Request) {
 		"gamma":      gamma3,
 		"xy":         xy,
 	})
+
 }
 
 var a [][]byte
@@ -536,9 +537,6 @@ func main() {
 		log.Println("HTTP server shutdown, shutting down APM agent...")
 	}
 	app.ShutdownProfiler(true)
-	//	if err := app.CloseProfileAuditLog(); err != nil {
-	//		panic(err)
-	//	}
 	app.Shutdown(time.Second * 60)
 	log.Println("Agent shutdown.")
 }

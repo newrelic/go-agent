@@ -25,8 +25,6 @@ const (
 	profileNilDest byte = iota
 	profileLocalFile
 	profileIngestPPROF
-
-// profileIngestMELT
 )
 
 type profilerAuditRecord struct {
@@ -800,7 +798,7 @@ func (pc *profilerConfig) monitor(a *app) {
 		//
 		case newDestination := <-pc.ingestSwitch:
 			switch newDestination {
-			case profileIngestPPROF, profileNilDest: //profileIngestMELT
+			case profileIngestPPROF, profileNilDest:
 				if profileDestination == profileLocalFile {
 					closeLocalFiles()
 				}
