@@ -87,6 +87,36 @@ func ConfigRemoteParentNotSampled(flag RemoteParentSamplingConfig) ConfigOption 
 	}
 }
 
+// ConfigPartialGranularityEnabled enables or disables partial granularity sampling.
+// Alters the DistributedTracer.Sampler.PartialGranularity.Enabled setting.
+//
+// Note: PartialGranularity is experimental.
+func ConfigPartialGranularityEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.DistributedTracer.Sampler.PartialGranularity.Enabled = enabled
+	}
+}
+
+// ConfigPartialGranularityType sets the type for partial granularity sampling.
+// Alters the DistributedTracer.Sampler.PartialGranularity.Type setting.
+//
+// Note: PartialGranularity is experimental.
+func ConfigPartialGranularityType(typ string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.DistributedTracer.Sampler.PartialGranularity.Type = typ
+	}
+}
+
+// ConfigFullGranularityEnabled enables or disables full granularity sampling.
+// Alters the DistributedTracer.Sampler.FullGranularity.Enabled setting.
+//
+// Note: FullGranularity is experimental.
+func ConfigFullGranularityEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.DistributedTracer.Sampler.FullGranularity.Enabled = enabled
+	}
+}
+
 // ConfigTransactionEventsMaxSamplesStored alters the sample size allowing control
 // of how many transaction events are stored in an agent for a given harvest cycle.
 // Alters the TransactionEvents.MaxSamplesStored setting.

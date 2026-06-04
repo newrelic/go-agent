@@ -307,6 +307,16 @@ type Config struct {
 		Sampler struct {
 			RemoteParentSampled    string
 			RemoteParentNotSampled string
+			/*
+				BELOW IS EXPERIMENTAL
+			*/
+			PartialGranularity struct {
+				Type    string
+				Enabled bool
+			}
+			FullGranularity struct {
+				Enabled bool
+			}
 		}
 	}
 

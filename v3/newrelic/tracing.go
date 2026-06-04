@@ -26,6 +26,7 @@ type txnEvent struct {
 	Attrs              *attributes
 	CrossProcess       txnCrossProcess
 	BetterCAT          betterCAT
+	Granularity        granularity
 	Start              time.Time
 	Duration           time.Duration
 	TotalTime          time.Duration
@@ -37,6 +38,11 @@ type txnEvent struct {
 	datastoreDuration  time.Duration
 	errGroupCallback   ErrorGroupCallback
 	TxnID              string
+}
+
+type granularity struct {
+	PartialGranularity bool
+	FullGranularity    bool
 }
 
 // betterCAT stores the transaction's priority and all fields related
@@ -71,6 +77,15 @@ func (e *txnEvent) SetTransactionID(transactionID string) {
 		e.TxnID = transactionID[:txnLength]
 	}
 
+}
+
+// calculateGranularity sets the granularity flags on the txnEvent.
+// Distributed tracing acts as a master gate: if it's disabled, both flags are
+// false regardless of the partial/full inputs. Otherwise, each flag tracks its
+// corresponding input directly.
+func (e *txnEvent) calculateGranularity(distributedTracing, partial, full bool) {
+	e.Granularity.FullGranularity = distributedTracing && full
+	e.Granularity.PartialGranularity = distributedTracing && partial
 }
 
 // txnData contains the recorded data of a transaction.
