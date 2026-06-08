@@ -109,6 +109,30 @@ func (e *spanEvent) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (event *spanEvent) shouldKeepPartialGranularity() bool {
+	for key := range event.AgentAttributes {
+		if isSynthesisAttribute(key) {
+			return true
+		}
+	}
+	for key := range event.UserAttributes {
+		if isSynthesisAttribute(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func isSynthesisAttribute(key string) bool {
+	switch key {
+	case AttributeCloudAccountID:
+		return true
+	default:
+		return false
+	}
+
+}
+
 type spanEvents struct {
 	*analyticsEvents
 }

@@ -734,6 +734,7 @@ func defaultConfig() Config {
 	c.DistributedTracer.ReservoirLimit = internal.MaxSpanEvents
 	c.DistributedTracer.Sampler.RemoteParentSampled = Default.String()
 	c.DistributedTracer.Sampler.RemoteParentNotSampled = Default.String()
+	c.DistributedTracer.Sampler.FullGranularity.Enabled = true
 	c.SpanEvents.Enabled = true
 	c.SpanEvents.Attributes.Enabled = true
 	c.SpanEvents.MaxSamplesStored = internal.MaxSpanEvents

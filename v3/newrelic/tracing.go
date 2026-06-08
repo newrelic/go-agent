@@ -69,6 +69,17 @@ func (bc *betterCAT) SetTraceAndTxnIDs(traceID string) {
 	}
 }
 
+func (bc *betterCAT) shouldKeepSpan(e *spanEvent) bool {
+	if bc.Granularity.FullGranularity {
+		return true
+	}
+	if !bc.Granularity.PartialGranularity {
+		return false
+	}
+	// right now just dropping everything
+	return e.shouldKeepPartialGranularity()
+}
+
 func (e *txnEvent) SetTransactionID(transactionID string) {
 	txnLength := 16
 	if len(transactionID) <= txnLength {
@@ -446,6 +457,11 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
+	if !t.BetterCAT.shouldKeepSpan(e) {
+		//fmt.Printf("\n\n\nDROPPED SPAN: %v, %v\n\n\n", e.Name, e.AgentAttributes)
+		// drop the span
+		return
+	}
 	if len(t.SpanEvents) < internal.MaxSpanEvents {
 		t.SpanEvents = append(t.SpanEvents, e)
 	}
