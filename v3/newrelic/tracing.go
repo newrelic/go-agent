@@ -70,13 +70,15 @@ func (bc *betterCAT) SetTraceAndTxnIDs(traceID string) {
 }
 
 func (bc *betterCAT) shouldKeepSpan(e *spanEvent) bool {
+	if e.IsEntrypoint {
+		return true
+	}
 	if bc.Granularity.FullGranularity {
 		return true
 	}
 	if !bc.Granularity.PartialGranularity {
 		return false
 	}
-	// right now just dropping everything
 	return e.shouldKeepPartialGranularity()
 }
 
@@ -138,6 +140,8 @@ type txnData struct {
 	datastoreSegments map[datastoreMetricKey]*metricData
 	externalSegments  map[externalMetricKey]*metricData
 	messageSegments   map[internal.MessageMetricKey]*metricData
+
+	droppedSegments map[string]string // dropped segments used for reparenting
 }
 
 func (t *txnData) saveTraceSegment(end segmentEnd, name string, attrs spanAttributeMap, externalGUID string) {
@@ -457,10 +461,18 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
+	// map of currentId to []parentID to reparent
 	if !t.BetterCAT.shouldKeepSpan(e) {
-		//fmt.Printf("\n\n\nDROPPED SPAN: %v, %v\n\n\n", e.Name, e.AgentAttributes)
+		fmt.Printf("\n\n\nDROPPED SPAN: %v, %v\n\n\n", e.Name, e.ParentID)
 		// drop the span
-		return
+		// reparent the span if not root
+		if t.droppedSegments == nil {
+			t.droppedSegments = map[string]string{} // init nil map
+		}
+		if e.GUID != t.rootSpanID {
+			t.droppedSegments[e.GUID] = e.ParentID
+			return
+		}
 	}
 	if len(t.SpanEvents) < internal.MaxSpanEvents {
 		t.SpanEvents = append(t.SpanEvents, e)

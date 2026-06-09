@@ -127,6 +127,8 @@ func isSynthesisAttribute(key string) bool {
 	switch key {
 	case AttributeCloudAccountID:
 		return true
+	case SpanAttributeHTTPURL:
+		return true
 	default:
 		return false
 	}

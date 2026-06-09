@@ -531,6 +531,24 @@ func (thd *thread) End(recovered interface{}) error {
 			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType)
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
+		if txn.droppedSegments != nil {
+			for _, span := range txn.SpanEvents {
+				parentID := span.ParentID
+				if _, dropped := txn.droppedSegments[parentID]; !dropped {
+					continue
+				}
+				for i := 0; i < len(txn.droppedSegments); i++ {
+					next, dropped := txn.droppedSegments[parentID]
+					if !dropped {
+						break
+					}
+					parentID = next
+				}
+				span.ParentID = parentID
+			}
+
+		}
+
 		txn.SpanEvents = append(txn.SpanEvents, root)
 
 		// Add transaction tracing fields to span events at the end of
