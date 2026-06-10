@@ -510,6 +510,9 @@ func (thd *thread) End(recovered interface{}) error {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
+		if thd.app.config.DistributedTracer.Sampler.PartialGranularity.Enabled {
+			root.isPartialGranularity = true
+		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
 
@@ -531,8 +534,9 @@ func (thd *thread) End(recovered interface{}) error {
 			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType)
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
-		if txn.droppedSegments != nil {
-			for _, span := range txn.SpanEvents {
+
+		for _, span := range txn.SpanEvents {
+			if txn.droppedSegments != nil {
 				parentID := span.ParentID
 				if _, dropped := txn.droppedSegments[parentID]; !dropped {
 					continue

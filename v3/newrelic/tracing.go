@@ -79,6 +79,7 @@ func (bc *betterCAT) shouldKeepSpan(e *spanEvent) bool {
 	if !bc.Granularity.PartialGranularity {
 		return false
 	}
+	e.isPartialGranularity = true
 	return e.shouldKeepPartialGranularity()
 }
 
@@ -463,7 +464,6 @@ func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
 	// map of currentId to []parentID to reparent
 	if !t.BetterCAT.shouldKeepSpan(e) {
-		fmt.Printf("\n\n\nDROPPED SPAN: %v, %v\n\n\n", e.Name, e.ParentID)
 		// drop the span
 		// reparent the span if not root
 		if t.droppedSegments == nil {

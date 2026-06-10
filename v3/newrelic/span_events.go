@@ -21,24 +21,25 @@ const (
 
 // spanEvent represents a span event, necessary to support Distributed Tracing.
 type spanEvent struct {
-	TraceID         string
-	GUID            string
-	ParentID        string
-	TransactionID   string
-	Sampled         bool
-	Priority        priority
-	Timestamp       time.Time
-	Duration        time.Duration
-	Name            string
-	TxnName         string
-	Category        spanCategory
-	Component       string
-	Kind            string
-	IsEntrypoint    bool
-	TrustedParentID string
-	TracingVendors  string
-	AgentAttributes spanAttributeMap
-	UserAttributes  spanAttributeMap
+	TraceID              string
+	GUID                 string
+	ParentID             string
+	TransactionID        string
+	Sampled              bool
+	Priority             priority
+	Timestamp            time.Time
+	Duration             time.Duration
+	Name                 string
+	TxnName              string
+	Category             spanCategory
+	Component            string
+	Kind                 string
+	IsEntrypoint         bool
+	isPartialGranularity bool
+	TrustedParentID      string
+	TracingVendors       string
+	AgentAttributes      spanAttributeMap
+	UserAttributes       spanAttributeMap
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -61,6 +62,9 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	w.stringField("category", string(e.Category))
 	if e.IsEntrypoint {
 		w.boolField("nr.entryPoint", true)
+		if e.isPartialGranularity {
+			w.boolField("nr.pg", true)
+		}
 	}
 	if e.Component != "" {
 		w.stringField("component", e.Component)
