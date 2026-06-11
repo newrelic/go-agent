@@ -1,7 +1,7 @@
 // Copyright 2020 New Relic Corporation. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package sqlparse
+package cqlparse
 
 import (
 	"regexp"
@@ -18,51 +18,50 @@ func extractTable(s string) string {
 	return s
 }
 
+/*
+CQL is similar to SQL in syntax with a few key differences.  There are no Common Table Expressions (CTE),
+so the WITH keyword is not captured with regular expressions below.  Additionally, there are no
+sub-queries in CQL.  In some SQL queries, INTO may be an optional keyword to use with INSERT.  However, in
+CQL is required.  We only capture the DatastoreSegmemt.Collection (table in CQL) for DML queries (SELECT, UPDATE,
+INSERT, DELETE) and TRUNCATE.
+*/
 var (
 	basicTable        = `[^)(\]\[\}\{\s,;]+`
 	enclosedTable     = `[\[\(\{]` + `\s*` + basicTable + `\s*` + `[\]\)\}]`
 	tablePattern      = `(` + `\s+` + basicTable + `|` + `\s*` + enclosedTable + `)`
 	extractTableRegex = regexp.MustCompile(`[\s` + "`" + `"'\(\)\{\}\[\]]*`)
-	updateRegex       = regexp.MustCompile(`(?is)^update(?:\s+(?:low_priority|ignore|or|rollback|abort|replace|fail|only))*` + tablePattern)
-	insertRegex       = regexp.MustCompile(`(?is)^insert(?:\s+(?:low_priority|delayed|high_priority|ignore))*(?:\s+into)?` + tablePattern)
-	withRegex         = regexp.MustCompile(`(?is)^with(?:\s+recursive)?.*\)\s*select.*?\sfrom` + tablePattern)
-	sqlOperations     = map[string]*regexp.Regexp{
+	updateRegex       = regexp.MustCompile(`(?is)^update` + tablePattern)
+	truncateRegex     = regexp.MustCompile(`(?is)^truncate(?:\s+table)?` + tablePattern)
+	cqlOperations     = map[string]*regexp.Regexp{
 		"select":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
 		"delete":   regexp.MustCompile(`(?is)^.*\sfrom` + tablePattern),
-		"insert":   insertRegex,
+		"insert":   regexp.MustCompile(`(?is)^.*\sinto` + tablePattern), // INTO is a required keyword after INSERT
 		"update":   updateRegex,
-		"call":     nil,
 		"create":   nil,
 		"drop":     nil,
-		"show":     nil,
-		"set":      nil,
-		"exec":     nil,
-		"execute":  nil,
 		"alter":    nil,
-		"commit":   nil,
-		"rollback": nil,
-		"with":     withRegex,
+		"truncate": truncateRegex, // drops all rows from table
+		"use":      nil,
+		"begin":    nil, // BEGIN BATCH
+		"apply":    nil, // APPLY BATCH
 	}
 	firstWordRegex   = regexp.MustCompile(`^\w+`)
 	cCommentRegex    = regexp.MustCompile(`(?is)/\*.*?\*/`)
-	lineCommentRegex = regexp.MustCompile(`(?im)(?:--|#).*?$`)
-	sqlPrefixRegex   = regexp.MustCompile(`^[\s;]*`)
+	lineCommentRegex = regexp.MustCompile(`(?im)--.*?$`)
+	cqlPrefixRegex   = regexp.MustCompile(`^[\s;]*`)
 )
 
-// ParseQuery parses table and operation from the SQL query string.  It is
-// a helper meant to be used when writing database/sql driver instrumentation.
-// Check out full example usage here:
-// https://github.com/newrelic/go-agent/blob/master/v3/integrations/nrmysql/nrmysql.go
-//
-// ParseQuery is designed to work with MySQL, Postgres, and SQLite drivers.
-// Ability to correctly parse queries for other SQL databases is not
-// guaranteed.
+/*
+ParseQuery parses table and operation from a CQL query string. It is a
+helper meant to be used when writing Cassandra driver instrumentation.
+This is not meant to be used to parse SQL.
+*/
 func ParseQuery(segment *newrelic.DatastoreSegment, query string) {
 	s := cCommentRegex.ReplaceAllString(query, "")
 	s = lineCommentRegex.ReplaceAllString(s, "")
-	s = sqlPrefixRegex.ReplaceAllString(s, "")
+	s = cqlPrefixRegex.ReplaceAllString(s, "")
 	op := strings.ToLower(firstWordRegex.FindString(s))
-	if rg, ok := sqlOperations[op]; ok {
+	if rg, ok := cqlOperations[op]; ok {
 		segment.Operation = op
 		segment.RawQuery = query
 		if nil != rg {

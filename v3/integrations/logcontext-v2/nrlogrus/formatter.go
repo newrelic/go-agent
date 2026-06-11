@@ -5,6 +5,7 @@ package nrlogrus
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
@@ -18,13 +19,45 @@ func init() { internal.TrackUsage("integration", "logcontext-v2", "logrus") }
 type ContextFormatter struct {
 	app       *newrelic.Application
 	formatter logrus.Formatter
+	enricher  logEnricher
+}
+
+type logEnricher interface {
+	Enrich(buf *bytes.Buffer, opts newrelic.EnricherOption) error
+}
+
+type defaultEnricher struct{}
+
+func (e *defaultEnricher) Enrich(buf *bytes.Buffer, opts newrelic.EnricherOption) error {
+	return newrelic.EnrichLog(buf, opts)
 }
 
 func NewFormatter(app *newrelic.Application, formatter logrus.Formatter) ContextFormatter {
 	return ContextFormatter{
 		app:       app,
 		formatter: formatter,
+		enricher:  &defaultEnricher{},
 	}
+}
+
+// recordLog records the log data to the transaction or application
+func (f ContextFormatter) recordLog(logData newrelic.LogData, txn *newrelic.Transaction) {
+	if txn != nil {
+		txn.RecordLog(logData)
+	} else {
+		f.app.RecordLog(logData)
+	}
+}
+
+// enrichLog enriches the buffer with linking metadata
+func (f ContextFormatter) enrichLog(buf *bytes.Buffer, txn *newrelic.Transaction, cfg newrelic.Config) error {
+	if !cfg.ApplicationLogging.Enabled || !cfg.ApplicationLogging.LocalDecorating.Enabled {
+		return nil // not an error we just don't enrich the log
+	}
+	if txn != nil {
+		return f.enricher.Enrich(buf, newrelic.FromTxn(txn))
+	}
+	return f.enricher.Enrich(buf, newrelic.FromApp(f.app))
 }
 
 // Format renders a single log entry.
@@ -35,31 +68,39 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		Attributes: e.Data,
 	}
 
-	logBytes, err := f.formatter.Format(e)
-	if err != nil {
-		return nil, err
-	}
-	logBytes = bytes.TrimRight(logBytes, "\n")
-	b := bytes.NewBuffer(logBytes)
-
 	ctx := e.Context
 	var txn *newrelic.Transaction
 	if ctx != nil {
 		txn = newrelic.FromContext(ctx)
 	}
-	if txn != nil {
-		txn.RecordLog(logData)
-		err := newrelic.EnrichLog(b, newrelic.FromTxn(txn))
-		if err != nil {
+
+	f.recordLog(logData, txn)
+
+	cfg, ok := f.app.Config()
+	if !ok {
+		return nil, fmt.Errorf("couldn't retrieve app config")
+	}
+
+	if cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
+		msgBuf := bytes.NewBufferString(e.Message)
+		if err := f.enrichLog(msgBuf, txn, cfg); err != nil {
 			return nil, err
 		}
-	} else {
-		f.app.RecordLog(logData)
-		err := newrelic.EnrichLog(b, newrelic.FromApp(f.app))
-		if err != nil {
+		e.Message = msgBuf.String()
+	}
+
+	logBytes, err := f.formatter.Format(e)
+	if err != nil {
+		return nil, err
+	}
+
+	b := bytes.NewBuffer(bytes.TrimRight(logBytes, "\n"))
+	if !cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
+		if err := f.enrichLog(b, txn, cfg); err != nil {
 			return nil, err
 		}
 	}
+
 	b.WriteString("\n")
 	return b.Bytes(), nil
 }

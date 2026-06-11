@@ -207,3 +207,22 @@ func TestParseSQLWith(t *testing.T) {
 		tc.test(t)
 	}
 }
+
+func TestInsertSQL(t *testing.T) {
+	for _, tc := range []sqlTestcase{
+		// standard form
+		{Input: "INSERT INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		// INTO is optional
+		{Input: "INSERT employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		// modifiers without INTO
+		{Input: "INSERT DELAYED employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT HIGH_PRIORITY employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT LOW_PRIORITY IGNORE employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		//modifiers with INTO
+		{Input: "INSERT DELAYED INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT HIGH_PRIORITY INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+		{Input: "INSERT LOW_PRIORITY IGNORE INTO employees VALUES (1, 'Alice')", Operation: "insert", Table: "employees"},
+	} {
+		tc.test(t)
+	}
+}

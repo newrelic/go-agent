@@ -153,7 +153,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
-					"Enabled": false
+					"Enabled": false,
+					"WithinMessageField": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -374,7 +375,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
-					"Enabled": false
+					"Enabled": false,
+					"WithinMessageField": false
 				},
 				"Metrics": {
 					"Enabled": true

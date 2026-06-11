@@ -345,6 +345,25 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// EXPERIMENTAL 4/27/2026.  Use with caution.
+// ConfigAppLogDecoratingWithinMessage enables or disables the location of the
+// local log decorating string within a log. If local log decorating or application
+// logging is not enabled, no string will be added.  Example:
+// If set to true:
+//
+//	ConfigAppLogDecoratingWithinMessage(true)
+//	"{"message": "...NR-LINKING|...|..."}"
+//
+// If set to false (Default):
+//
+//	ConfigAppLogDecoratingWithinMessage(false)
+//	"{"message": "..."} NR-LINKING|...|..."
+func ConfigAppLogDecoratingWithinMessage(withinMessage bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.LocalDecorating.WithinMessageField = withinMessage
+	}
+}
+
 // ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
 func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
