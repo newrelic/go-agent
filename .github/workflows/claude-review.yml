@@ -1,0 +1,65 @@
+# Copyright 2025 New Relic Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: claude-review
+
+on:
+  # Automatic review when a PR is opened or updated.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # On-demand review when someone comments "@claude" on a PR.
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude-review:
+    # Run the auto-review on PR events, OR when a PR comment mentions @claude.
+    if: >
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout go-agent code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+
+            You are reviewing a pull request for the New Relic Go Agent.
+
+            First, read the review guidelines checked into this repo at
+            `v3/CODING_GUIDELINES.md`. Treat that file as the
+            authoritative best-practices standard for this codebase.
+
+            Then review the PR diff against those guidelines, focusing on:
+            - Adherence to the Go Agent best-practices in the guidelines file
+            - Correctness bugs and potential panics / nil dereferences
+            - Concurrency issues (data races, goroutine leaks)
+            - Public API / backwards-compatibility concerns
+            - Test coverage for new behavior
+
+            The PR branch is already checked out in the current working directory.
+
+            Use `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for specific code issues, and `gh pr comment`
+            for a top-level summary. Only post GitHub comments — do not return
+            review text as a chat message. If the diff fully satisfies the
+            guidelines, say so briefly rather than inventing nits.
+
+          claude_args: |
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
