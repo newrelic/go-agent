@@ -39,9 +39,44 @@ type txnEvent struct {
 	TxnID              string
 }
 
+// granularityDecision is the per-trace granularity outcome resolved at
+// sampling time. The granularity config booleans say which features are
+// enabled; this says what this particular trace actually is.
+type granularityDecision uint8
+
+const (
+	granularityUndecided granularityDecision = iota
+	granularityDropped
+	granularityPartial
+	granularityFull
+)
+
 type granularity struct {
 	PartialGranularity bool
 	FullGranularity    bool
+	// Resolved is the per-trace outcome (full/partial/dropped) decided by the
+	// sampling gates or inherited from an inbound payload. shouldKeepSpan reads
+	// this rather than the config booleans above.
+	Resolved granularityDecision
+}
+
+// inboundGranularity maps the granularity carried on an accepted payload to the
+// per-trace resolved outcome. Known values (full/partial/dropped) are honored
+// directly so the trace keeps a consistent granularity across services. Only
+// granularityUndecided is treated as a legacy producer that predates this
+// field, and defaults to full granularity, matching the prior behavior where
+// every span on a sampled trace was kept.
+func inboundGranularity(p *payload) granularityDecision {
+	switch p.Granularity {
+	case granularityPartial:
+		return granularityPartial
+	case granularityFull:
+		return granularityFull
+	case granularityDropped:
+		return granularityDropped
+	default: // granularityUndecided: legacy producer with no granularity field
+		return granularityFull
+	}
 }
 
 // betterCAT stores the transaction's priority and all fields related
@@ -73,14 +108,15 @@ func (bc *betterCAT) shouldKeepSpan(e *spanEvent) bool {
 	if e.IsEntrypoint {
 		return true
 	}
-	if bc.Granularity.FullGranularity {
+	switch bc.Granularity.Resolved {
+	case granularityFull:
 		return true
-	}
-	if !bc.Granularity.PartialGranularity {
+	case granularityPartial:
+		e.isPartialGranularity = true
+		return e.shouldKeepPartialGranularity()
+	default: // granularityDropped / granularityUndecided
 		return false
 	}
-	e.isPartialGranularity = true
-	return e.shouldKeepPartialGranularity()
 }
 
 func (e *txnEvent) SetTransactionID(transactionID string) {
@@ -462,21 +498,40 @@ func (t *txnData) CurrentSpanIdentifier(thread *tracingThread) string {
 
 func (t *txnData) saveSpanEvent(e *spanEvent) {
 	e.AgentAttributes = t.Attrs.filterSpanAttributes(e.AgentAttributes, destSpan)
-	// map of currentId to []parentID to reparent
-	if !t.BetterCAT.shouldKeepSpan(e) {
-		// drop the span
-		// reparent the span if not root
-		if t.droppedSegments == nil {
-			t.droppedSegments = map[string]string{} // init nil map
-		}
-		if e.GUID != t.rootSpanID {
-			t.droppedSegments[e.GUID] = e.ParentID
-			return
-		}
-	}
+	// Buffer the span unconditionally. The granularity keep/drop and reparenting
+	// decision is deferred to transaction End (filterSpanEventsByGranularity),
+	// because the per-trace granularity outcome may not be resolved until then
+	// (sampling is lazy and an inbound payload can be accepted after early
+	// segments have already ended).
 	if len(t.SpanEvents) < internal.MaxSpanEvents {
 		t.SpanEvents = append(t.SpanEvents, e)
 	}
+}
+
+// filterSpanEventsByGranularity applies the resolved per-trace granularity to
+// the buffered span events: spans that should not be kept are dropped and their
+// GUID->ParentID mapping is recorded in droppedSegments so the End reparenting
+// pass can rewrite their childrens' ParentID to the nearest surviving ancestor.
+// The root span is never dropped here. Called at transaction End, after the
+// sampling/granularity decision has been resolved.
+func (t *txnData) filterSpanEventsByGranularity() {
+	kept := t.SpanEvents[:0]
+	for _, e := range t.SpanEvents {
+		if t.BetterCAT.shouldKeepSpan(e) {
+			kept = append(kept, e)
+			continue
+		}
+		if e.GUID != t.rootSpanID {
+			if t.droppedSegments == nil {
+				t.droppedSegments = map[string]string{}
+			}
+			t.droppedSegments[e.GUID] = e.ParentID
+			continue
+		}
+		// Root is always retained even if shouldKeepSpan would drop it.
+		kept = append(kept, e)
+	}
+	t.SpanEvents = kept
 }
 
 var (

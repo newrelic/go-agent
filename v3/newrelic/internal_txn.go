@@ -211,12 +211,42 @@ func (txn *txn) lazilyCalculateSampled() bool {
 	if txn.sampledCalculated {
 		return txn.BetterCAT.Sampled
 	}
-	txn.BetterCAT.Sampled = txn.appRun.adaptiveSampler.computeSampled(txn.BetterCAT.Priority.Float32(), time.Now())
-	if txn.BetterCAT.Sampled {
-		txn.BetterCAT.Priority += 1.0
-	}
+	txn.resolveGranularity(time.Now())
 	txn.sampledCalculated = true
 	return txn.BetterCAT.Sampled
+}
+
+// resolveGranularity runs the granularity sampling gates for a trace that
+// originates here (no inbound decision). Full granularity is the existing
+// distributed-tracing sampling decision and is evaluated first; if it does not
+// sample, the partial granularity gate is evaluated. The resolved per-trace
+// outcome and the propagated priority are both set here:
+//   - full    -> Sampled, priority += 2.0
+//   - partial -> Sampled, priority += 1.0
+//   - neither -> dropped
+func (txn *txn) resolveGranularity(now time.Time) {
+	g := &txn.BetterCAT.Granularity
+
+	// Full gate first (full granularity == today's DT sampling decision).
+	if g.FullGranularity &&
+		txn.appRun.adaptiveSampler.computeSampled(txn.BetterCAT.Priority.Float32(), now) {
+		g.Resolved = granularityFull
+		txn.BetterCAT.Sampled = true
+		txn.BetterCAT.Priority += 2.0
+		return
+	}
+
+	// Partial gate second, only if full did not sample.
+	if g.PartialGranularity && txn.appRun.partialGranularitySampler != nil &&
+		txn.appRun.partialGranularitySampler.computeSampled(txn.BetterCAT.Priority.Float32(), now) {
+		g.Resolved = granularityPartial
+		txn.BetterCAT.Sampled = true
+		txn.BetterCAT.Priority += 1.0
+		return
+	}
+
+	g.Resolved = granularityDropped
+	txn.BetterCAT.Sampled = false
 }
 
 func (txn *txn) SetWebRequest(r WebRequest) error {
@@ -510,7 +540,7 @@ func (thd *thread) End(recovered interface{}) error {
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
 		}
-		if thd.app.config.DistributedTracer.Sampler.PartialGranularity.Enabled {
+		if txn.BetterCAT.Granularity.Resolved == granularityPartial {
 			root.isPartialGranularity = true
 		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
@@ -534,6 +564,11 @@ func (thd *thread) End(recovered interface{}) error {
 			root.AgentAttributes.addString("parent.transportType", txn.BetterCAT.TransportType)
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
+
+		// Apply the resolved granularity now that sampling is decided: drop
+		// non-kept spans and record their parentage in droppedSegments so the
+		// reparenting pass below can rewrite surviving spans' ParentID.
+		txn.filterSpanEventsByGranularity()
 
 		for _, span := range txn.SpanEvents {
 			if txn.droppedSegments != nil {
@@ -1228,6 +1263,11 @@ func (thd *thread) CreateDistributedTracePayload(hdrs http.Header) {
 		}
 	}
 
+	// Propagate the resolved per-trace granularity so downstream continuations
+	// honor the same granularity as this trace. Sampling is already resolved by
+	// the lazilyCalculateSampled call above.
+	p.Granularity = txn.BetterCAT.Granularity.Resolved
+
 	support.TraceContextCreateSuccess = true
 
 	if !excludeNRHeader {
@@ -1335,6 +1375,11 @@ func (txn *txn) acceptDistributedTraceHeadersLocked(t TransportType, hdrs http.H
 	if nil != payload.Sampled {
 		txn.BetterCAT.Sampled = *payload.Sampled
 		txn.sampledCalculated = true
+		// Inherit the upstream granularity decision so the whole trace keeps a
+		// consistent granularity. A sampled payload that carries no granularity
+		// (legacy producer) defaults to full granularity, preserving the prior
+		// behavior where every sampled span was kept.
+		txn.BetterCAT.Granularity.Resolved = inboundGranularity(payload)
 	}
 
 	txn.BetterCAT.Inbound = payload

@@ -81,6 +81,12 @@ func (tm timestampMillis) unixMillisecondsString() string {
 	return strconv.FormatUint(ms, 10)
 }
 
+// dtGranularityField is the key used for the propagated granularity value in
+// both the New Relic distributed-trace payload "d" object and (as the trailing
+// field) the W3C tracestate NR vendor entry. The name is provisional and
+// subject to change; keep it in sync with the payload struct's json tag.
+const dtGranularityField = "gr"
+
 // payload is the distributed tracing payload.
 type payload struct {
 	Type          string   `json:"ty"`
@@ -100,6 +106,11 @@ type payload struct {
 	TrustedAccountKey    string          `json:"tk,omitempty"`
 	NonTrustedTraceState string          `json:"-"`
 	OriginalTraceState   string          `json:"-"`
+	// Granularity propagates the resolved per-trace granularity downstream so
+	// continuations honor the same granularity as the trace origin. Encoded as
+	// the granularityDecision value; granularityUndecided (0) is omitted, and a
+	// missing value on inbound is treated as full granularity (legacy default).
+	Granularity granularityDecision `json:"gr,omitempty"`
 }
 
 // WriteJSON implements the functionality to support writerField
@@ -129,6 +140,9 @@ func (p payload) WriteJSON(buf *bytes.Buffer) {
 	w.writerField("ti", p.Timestamp)
 	if p.TrustedAccountKey != "" {
 		w.stringField("tk", p.TrustedAccountKey)
+	}
+	if p.Granularity != granularityUndecided {
+		w.intField(dtGranularityField, int64(p.Granularity))
 	}
 	buf.WriteByte('}')
 }
@@ -271,7 +285,10 @@ func (p payload) W3CTraceState() string {
 		p.TransactionID + "-" +
 		flags + "-" +
 		p.Priority.traceStateFormat() + "-" +
-		p.Timestamp.unixMillisecondsString()
+		p.Timestamp.unixMillisecondsString() + "-" +
+		// Trailing granularity field (provisional). Appended after the
+		// timestamp so older 9-field parsers ignore it; see processTraceState.
+		strconv.Itoa(int(p.Granularity))
 	if p.NonTrustedTraceState != "" {
 		state += "," + p.NonTrustedTraceState
 	}
@@ -468,6 +485,14 @@ func processTraceState(hdrs http.Header, trustedAccountKey string, p *payload) e
 		p.Priority = priority(pty)
 	}
 	p.Timestamp = timestampMillis(timeFromUnixMilliseconds(timestamp))
+
+	// Optional trailing granularity field. Absent for legacy 9-field producers.
+	if len(matches) >= 10 {
+		if gr, err := strconv.Atoi(matches[9]); err == nil {
+			p.Granularity = granularityDecision(gr)
+		}
+	}
+
 	p.HasNewRelicTraceInfo = true
 	return nil
 }

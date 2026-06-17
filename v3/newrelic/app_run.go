@@ -27,6 +27,12 @@ type appRun struct {
 
 	adaptiveSampler *adaptiveSampler
 
+	// partialGranularitySampler is the second sampling gate used when partial
+	// granularity is enabled. It is only constructed when partial granularity
+	// is configured. For now it shares the same connect-reply sampling target
+	// as adaptiveSampler; per-granularity targets are a future addition.
+	partialGranularitySampler *adaptiveSampler
+
 	// rulesCache caches the results of creating transaction names.  It
 	// exists here since it is specific to a set of rules and is shared
 	// between transactions.
@@ -134,6 +140,16 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		time.Duration(reply.SamplingTargetPeriodInSeconds)*time.Second,
 		reply.SamplingTarget,
 		time.Now())
+
+	// Partial granularity uses a separate sampling gate so its decision is
+	// independent of the full granularity sampler. For the spike it reuses the
+	// single connect-reply sampling target.
+	if run.Config.DistributedTracer.Sampler.PartialGranularity.Enabled {
+		run.partialGranularitySampler = newAdaptiveSampler(
+			time.Duration(reply.SamplingTargetPeriodInSeconds)*time.Second,
+			reply.SamplingTarget,
+			time.Now())
+	}
 
 	if run.Reply.RunID != "" {
 		js, _ := json.Marshal(settings(run.Config.Config))
