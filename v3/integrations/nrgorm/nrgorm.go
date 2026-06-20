@@ -1,10 +1,6 @@
 package nrgorm
 
 import (
-	"fmt"
-	"reflect"
-	"strconv"
-
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"gorm.io/gorm"
 )
@@ -72,23 +68,8 @@ func afterCallback(operation string) func(db *gorm.DB) {
 				Operation:          operation,
 				StartTime:          startTime.(newrelic.SegmentStartTime),
 				ParameterizedQuery: db.Statement.SQL.String(),
-				QueryParameters:    parseVars(db.Statement.Vars),
 			}
 			segment.End()
 		}
 	}
-}
-
-func parseVars(vars []interface{}) map[string]interface{} {
-	queryParameters := make(map[string]interface{})
-	for i, v := range vars {
-		i := i
-		v := v
-		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
-		queryParameters[fmt.Sprintf("$%v", strconv.Itoa(i+1))] = fmt.Sprintf("%v", val.Interface())
-	}
-	return queryParameters
 }
