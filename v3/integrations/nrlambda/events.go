@@ -65,48 +65,77 @@ func getEventSourceARN(event interface{}) string {
 	return ""
 }
 
+const (
+	eventTypeALB                 = "alb"
+	eventTypeAPIGateway          = "apiGateway"
+	eventTypeCloudWatchScheduled = "cloudWatch_scheduled"
+	eventTypeSES                 = "ses"
+	eventTypeFirehose            = "firehose"
+	eventTypeKinesis             = "kinesis"
+	eventTypeDynamoStreams       = "dynamo_streams"
+	eventTypeSQS                 = "sqs"
+	eventTypeS3                  = "s3"
+	eventTypeSNS                 = "sns"
+)
+
 func getEventSourceEventType(event any) string {
 	switch event.(type) {
 	case events.ALBTargetGroupRequest:
-		return "alb"
+		return eventTypeALB
 	case *events.ALBTargetGroupRequest:
-		return "alb"
+		return eventTypeALB
 	case events.APIGatewayProxyRequest:
-		return "apiGateway"
+		return eventTypeAPIGateway
 	case *events.APIGatewayProxyRequest:
-		return "apiGateway"
+		return eventTypeAPIGateway
+	case events.APIGatewayV2HTTPRequest:
+		return eventTypeAPIGateway
+	case *events.APIGatewayV2HTTPRequest:
+		return eventTypeAPIGateway
+	case events.APIGatewayWebsocketProxyRequest:
+		return eventTypeAPIGateway
+	case *events.APIGatewayWebsocketProxyRequest:
+		return eventTypeAPIGateway
 	case events.CloudWatchEvent:
-		return "cloudWatch_scheduled"
+		return eventTypeCloudWatchScheduled
 	case *events.CloudWatchEvent:
-		return "cloudWatch_scheduled"
+		return eventTypeCloudWatchScheduled
 	case events.SimpleEmailEvent:
-		return "ses"
+		return eventTypeSES
 	case *events.SimpleEmailEvent:
-		return "ses"
+		return eventTypeSES
 	case events.KinesisFirehoseEvent:
-		return "firehose"
+		return eventTypeFirehose
 	case *events.KinesisFirehoseEvent:
-		return "firehose"
+		return eventTypeFirehose
 	case events.KinesisEvent:
-		return "kinesis"
+		return eventTypeKinesis
 	case *events.KinesisEvent:
-		return "kinesis"
+		return eventTypeKinesis
+	case events.KinesisTimeWindowEvent:
+		return eventTypeKinesis
+	case *events.KinesisTimeWindowEvent:
+		return eventTypeKinesis
 	case events.DynamoDBEvent:
-		return "dynamo_streams"
+		return eventTypeDynamoStreams
 	case *events.DynamoDBEvent:
-		return "dynamo_streams"
+		return eventTypeDynamoStreams
+	case events.DynamoDBTimeWindowEvent:
+		return eventTypeDynamoStreams
+	case *events.DynamoDBTimeWindowEvent:
+		return eventTypeDynamoStreams
 	case events.SQSEvent:
-		return "sqs"
+		return eventTypeSQS
 	case *events.SQSEvent:
-		return "sqs"
+		return eventTypeSQS
 	case events.S3Event:
-		return "s3"
+		return eventTypeS3
 	case *events.S3Event:
-		return "s3"
+		return eventTypeS3
 	case events.SNSEvent:
-		return "sns"
+		return eventTypeSNS
 	case *events.SNSEvent:
-		return "sns"
+		return eventTypeSNS
 	}
 
 	return ""
