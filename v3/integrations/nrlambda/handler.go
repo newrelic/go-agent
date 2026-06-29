@@ -51,6 +51,11 @@ func requestEvent(ctx context.Context, event interface{}) {
 		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaEventSourceARN, sourceARN, nil)
 	}
 
+	// keep the same logic for getting the sourceArn
+	if sourceEventType := getEventSourceEventType(event); "" != sourceEventType {
+		integrationsupport.AddAgentAttribute(txn, newrelic.AttributeAWSLambdaEventSourceEventType, sourceEventType, nil)
+	}
+
 	if request := eventWebRequest(event); nil != request {
 		txn.SetWebRequest(*request)
 	}

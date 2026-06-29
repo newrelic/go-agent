@@ -55,6 +55,7 @@ var (
 		AttributeResponseCodeDeprecated:          usualDests,
 		AttributeAWSRequestID:                    usualDests,
 		AttributeAWSLambdaARN:                    usualDests,
+		AttributeAWSLambdaEventSourceEventType:   usualDests,
 		AttributeAWSLambdaColdStart:              usualDests,
 		AttributeAWSLambdaEventSourceARN:         usualDests,
 		AttributeMessageRoutingKey:               usualDests,
