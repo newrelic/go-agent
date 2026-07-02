@@ -12,9 +12,9 @@ import (
 	"context"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -24,18 +24,80 @@ type nrotelExporter struct {
 	Incoming chan sdktrace.ReadOnlySpan
 	shutdown chan bool
 }
-type nrSegment interface {
-	End()
+
+type nrotelProcessor struct {
+	original       sdktrace.SpanProcessor
+	app            *newrelic.Application
+	mu             sync.Mutex
+	transactionMap map[trace.TraceID]*newrelic.Transaction
+	segmentMap     map[trace.SpanID]*newrelic.Segment
 }
 
-func HybridTracerProvider() *sdktrace.TracerProvider {
+func (p *nrotelProcessor) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	traceID := s.SpanContext().TraceID()
+
+	// Entry span -> New Relic transaction, keyed by trace ID so descendants can
+	// find it.
+	if isRoot(s.Parent()) {
+		p.transactionMap[traceID] = p.app.StartTransaction(s.Name())
+		return
+	}
+
+	// Child span -> segment on the trace's transaction.
+	txn := p.transactionMap[traceID]
+	if txn == nil {
+		return
+	}
+	p.segmentMap[s.SpanContext().SpanID()] = txn.StartSegment(s.Name())
+}
+
+func (p *nrotelProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// Entry span -> end the transaction.
+	if isRoot(s.Parent()) {
+		traceID := s.SpanContext().TraceID()
+		if txn := p.transactionMap[traceID]; txn != nil {
+			delete(p.transactionMap, traceID)
+			txn.End()
+		}
+		return
+	}
+
+	// Child span -> end the segment.
+	spanID := s.SpanContext().SpanID()
+	if seg := p.segmentMap[spanID]; seg != nil {
+		delete(p.segmentMap, spanID)
+		seg.End()
+	}
+}
+
+func (p *nrotelProcessor) Shutdown(ctx context.Context) error {
+	//return p.original.Shutdown(ctx)
+	return nil
+}
+
+func (p *nrotelProcessor) ForceFlush(ctx context.Context) error {
+	//return p.original.ForceFlush(ctx)
+	return nil
+}
+
+func HybridTracerProvider(app *newrelic.Application) *sdktrace.TracerProvider {
 	exporter, err := stdouttrace.New(stdouttrace.WithWriter(os.Stdout), stdouttrace.WithPrettyPrint())
 	if err != nil {
 		log.Fatalf("failed to create exporter: %v", err)
 	}
-	expo := &nrotelExporter{}
+	proc := &nrotelProcessor{
+		app:            app,
+		transactionMap: make(map[trace.TraceID]*newrelic.Transaction),
+		segmentMap:     make(map[trace.SpanID]*newrelic.Segment),
+	}
 	// if hybrid agent is configured to send to new relic
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter), sdktrace.WithBatcher(expo))
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter), sdktrace.WithSpanProcessor(proc))
 	return tp
 }
 
@@ -60,49 +122,16 @@ func processSpan(span sdktrace.ReadOnlySpan) error {
 		// turn into transaction with a root span
 		return nil
 	}
-	// otherwise it is a segment so what type of segment is it?
-	if err := populateSegments(span.Attributes()); err != nil {
-		return err
-	}
-
 	return nil
 }
 
+// isRoot reports whether a span with the given parent span context is an entry
+// span for this service, and therefore maps to a New Relic transaction rather
+// than a segment. A span is an entry span when it has no parent, or when its
+// parent lives in another process (a remote parent), which makes it the root of
+// the trace as far as this service is concerned.
+//
+// Callers must pass the span's parent (s.Parent()), not the span's own context.
 func isRoot(parent trace.SpanContext) bool {
-	// probably need to change this logic.  What makes it a root?
-	//parent.IsValid()?
-	if parent.HasSpanID() && parent.HasTraceID() {
-		return false
-	}
-	return true
-}
-
-func populateSegments(attrs []attribute.KeyValue) error {
-	for _, attr := range attrs {
-
-	}
-}
-
-func segmentType(attr attribute.KeyValue) nrSegment {
-	// http - spans: http.request.method, server.address, server.port, url.full -> ExternalSegment
-	// db - spans: db.system.name -> DatastoreSegment
-	// messaging: messaging.operation.name, messaging.system -> MessageProducerSegment
-	// everything else is a general segment -> Segment
-	switch attr.Key {
-	case "http.request.method":
-		return &newrelic.ExternalSegment{}
-	case "server.address":
-		return &newrelic.ExternalSegment{}
-	case "server.port":
-		return &newrelic.ExternalSegment{}
-	case "url.full":
-		return &newrelic.ExternalSegment{}
-	case "db.system.name":
-		return &newrelic.DatastoreSegment{}
-	case "messaging.operation.name":
-		return &newrelic.MessageProducerSegment{}
-	case "messaging.system":
-		return &newrelic.MessageProducerSegment{}
-	}
-	return &newrelic.Segment{}
+	return !parent.IsValid() || parent.IsRemote()
 }

@@ -20,16 +20,35 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/integrations/nrotel"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 func main() {
 	// Export spans to stdout as indented JSON.
-	tp := nrotel.HybridTracerProvider()
+
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Hybrid Example"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDistributedTracerEnabled(true),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = app.WaitForConnection(10 * time.Second)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer app.Shutdown(10 * time.Second)
+
+	tp := nrotel.HybridTracerProvider(app)
 	defer tp.Shutdown(context.Background())
 	otel.SetTracerProvider(tp)
 	handleCheckout(context.Background(), "order-12345")
