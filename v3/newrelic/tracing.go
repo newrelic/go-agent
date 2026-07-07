@@ -310,6 +310,13 @@ type segmentFrame struct {
 	userAttributes  spanAttributeMap
 }
 
+// trace id and span id should be native to segment
+type segmentLink struct {
+	timestamp     segmentStamp
+	linkedSpanId  string
+	linkedTraceId string
+}
+
 type segmentEnd struct {
 	start           segmentTime
 	stop            segmentTime
@@ -318,6 +325,7 @@ type segmentEnd struct {
 	SpanID          string
 	ParentID        string
 	threadID        uint64
+	links           []segmentLink
 	agentAttributes spanAttributeMap
 	userAttributes  spanAttributeMap
 }
@@ -335,6 +343,23 @@ func (end segmentEnd) spanEvent() *spanEvent {
 		UserAttributes:  end.userAttributes,
 		IsEntrypoint:    false,
 	}
+}
+
+// spanLinkEvents builds the span links for this segment. The source span GUID
+// (id) is known here; the source traceId is stamped later at transaction
+// finalization, once BetterCAT.TraceID is settled.
+func (end segmentEnd) spanLinkEvents() []*spanLink {
+	var ret []*spanLink
+	for _, link := range end.links {
+		ret = append(ret, &spanLink{
+			timestamp:     timeToIntMillis(end.start.Time),
+			linkedSpanId:  link.linkedSpanId,
+			linkedTraceId: link.linkedTraceId,
+			spanLinkType:  "SpanLink",
+			id:            end.SpanID,
+		})
+	}
+	return ret
 }
 
 const (
@@ -444,7 +469,7 @@ var (
 		`use https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.NewGoroutine to use the transaction in multiple goroutines`)
 )
 
-func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time) (segmentEnd, error) {
+func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, links []Link) (segmentEnd, error) {
 	if start.Stamp == 0 {
 		return segmentEnd{}, errMalformedSegment
 	}
@@ -463,9 +488,19 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 	for i := start.Depth; i < len(thread.stack); i++ {
 		children += thread.stack[i].children
 	}
+
+	var segLinks []segmentLink
+	for _, link := range links {
+		segLinks = append(segLinks, segmentLink{
+			timestamp:     start.Stamp,
+			linkedSpanId:  link.LinkedSpanId,
+			linkedTraceId: link.LinkedTraceId,
+		})
+	}
 	s := segmentEnd{
 		stop:            t.time(now),
 		start:           frame.segmentTime,
+		links:           segLinks,
 		agentAttributes: frame.agentAttributes,
 		userAttributes:  frame.userAttributes,
 	}
@@ -509,8 +544,8 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 }
 
 // endBasicSegment ends a basic segment.
-func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string) error {
-	end, err := endSegment(t, thread, start, now)
+func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []Link) error {
+	end, err := endSegment(t, thread, start, now, links)
 	if err != nil {
 		return err
 	}
@@ -536,6 +571,9 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = customSegmentMetric(name)
 		evt.Category = spanCategoryGeneric
+		// Store the links on the span event itself so they ride the span into
+		// the reservoir and are dropped with it if the span is sampled out.
+		evt.SpanLinks = end.spanLinkEvents()
 		t.saveSpanEvent(evt)
 	}
 
@@ -560,7 +598,7 @@ type endExternalParams struct {
 // endExternalSegment ends an external segment.
 func endExternalSegment(p endExternalParams) error {
 	t := p.TxnData
-	end, err := endSegment(t, p.Thread, p.Start, p.Now)
+	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{})
 	if err != nil {
 		return err
 	}
@@ -666,7 +704,7 @@ type endMessageParams struct {
 // endMessageSegment ends an external segment.
 func endMessageSegment(p endMessageParams) error {
 	t := p.TxnData
-	end, err := endSegment(t, p.Thread, p.Start, p.Now)
+	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{})
 	if err != nil {
 		return err
 	}
@@ -756,7 +794,7 @@ func datastoreSpanAddress(host, portPathOrID string) string {
 
 // endDatastoreSegment ends a datastore segment.
 func endDatastoreSegment(p endDatastoreParams) error {
-	end, err := endSegment(p.TxnData, p.Thread, p.Start, p.Now)
+	end, err := endSegment(p.TxnData, p.Thread, p.Start, p.Now, []Link{})
 	if err != nil {
 		return err
 	}

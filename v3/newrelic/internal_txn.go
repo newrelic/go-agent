@@ -538,6 +538,11 @@ func (thd *thread) End(recovered interface{}) error {
 			evt.TransactionID = txn.TxnID
 			evt.Sampled = txn.BetterCAT.Sampled
 			evt.Priority = txn.BetterCAT.Priority
+			// Span links live on the span event; stamp their source trace ID
+			// now that BetterCAT.TraceID is settled.
+			for i := range evt.SpanLinks {
+				evt.SpanLinks[i].traceId = txn.BetterCAT.TraceID
+			}
 		}
 	}
 
@@ -919,7 +924,7 @@ func endBasic(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name)
+		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links)
 	}
 	txn.Unlock()
 	return err

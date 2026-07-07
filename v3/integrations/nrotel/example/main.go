@@ -28,6 +28,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func main() {
@@ -79,6 +80,14 @@ func handleCheckout(ctx context.Context, orderID string) {
 func chargePayment(ctx context.Context) {
 	_, seg := otel.Tracer("nrotel-example").Start(ctx, "ChargePayment")
 	defer seg.End()
+	link := trace.Link{
+		SpanContext: seg.SpanContext(),
+	}
+	link.Attributes = append(link.Attributes, attribute.KeyValue{
+		Key:   "SpanLinkTest1",
+		Value: attribute.Value{},
+	})
+	seg.AddLink(link)
 
 	seg.SetAttributes(attribute.Float64("payment.amount", 49.99))
 	time.Sleep(15 * time.Millisecond) // pretend to call a payment gateway
@@ -88,7 +97,14 @@ func chargePayment(ctx context.Context) {
 func saveOrder(ctx context.Context) {
 	_, seg := otel.Tracer("nrotel-example").Start(ctx, "SaveOrder")
 	defer seg.End()
-
+	link := trace.Link{
+		SpanContext: seg.SpanContext(),
+	}
+	link.Attributes = append(link.Attributes, attribute.KeyValue{
+		Key:   "SpanLinkTest2",
+		Value: attribute.Value{},
+	})
+	seg.AddLink(link)
 	seg.SetAttributes(attribute.String("db.operation", "INSERT"))
 	time.Sleep(10 * time.Millisecond) // pretend to write to a database
 }

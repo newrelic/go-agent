@@ -53,12 +53,12 @@ func TestTxnTrace(t *testing.T) {
 		URL:     parseURL("http://example.com/zip/zap?secret=shhh"),
 		Logger:  logger.ShimLogger{},
 	})
-	endBasicSegment(txndata, thread, t1, start.Add(6*time.Second), "t1")
+	endBasicSegment(txndata, thread, t1, start.Add(6*time.Second), "t1", nil)
 	t4 := startSegment(txndata, thread, start.Add(7*time.Second))
 	t5 := startSegment(txndata, thread, start.Add(8*time.Second))
 	t6 := startSegment(txndata, thread, start.Add(9*time.Second))
-	endBasicSegment(txndata, thread, t6, start.Add(10*time.Second), "t6")
-	endBasicSegment(txndata, thread, t5, start.Add(11*time.Second), "t5")
+	endBasicSegment(txndata, thread, t6, start.Add(10*time.Second), "t6", nil)
+	endBasicSegment(txndata, thread, t5, start.Add(11*time.Second), "t5", nil)
 	t7 := startSegment(txndata, thread, start.Add(12*time.Second))
 	endDatastoreSegment(endDatastoreParams{
 		TxnData:   txndata,
@@ -78,7 +78,7 @@ func TestTxnTrace(t *testing.T) {
 		URL:     nil,
 		Logger:  logger.ShimLogger{},
 	})
-	endBasicSegment(txndata, thread, t4, start.Add(16*time.Second), "t4")
+	endBasicSegment(txndata, thread, t4, start.Add(16*time.Second), "t4", nil)
 
 	t9 := startSegment(txndata, thread, start.Add(17*time.Second))
 	endMessageSegment(endMessageParams{
@@ -290,14 +290,14 @@ func TestTxnTraceAsync(t *testing.T) {
 	t1s2 := startSegment(txndata, thread1, start.Add(2*time.Second))
 	thread2 := newTracingThread(txndata)
 	t2s1 := startSegment(txndata, thread2, start.Add(3*time.Second))
-	endBasicSegment(txndata, thread1, t1s2, start.Add(4*time.Second), "thread1.segment2")
-	endBasicSegment(txndata, thread2, t2s1, start.Add(5*time.Second), "thread2.segment1")
+	endBasicSegment(txndata, thread1, t1s2, start.Add(4*time.Second), "thread1.segment2", nil)
+	endBasicSegment(txndata, thread2, t2s1, start.Add(5*time.Second), "thread2.segment1", nil)
 	thread3 := newTracingThread(txndata)
 	t3s1 := startSegment(txndata, thread3, start.Add(6*time.Second))
 	t3s2 := startSegment(txndata, thread3, start.Add(7*time.Second))
-	endBasicSegment(txndata, thread1, t1s1, start.Add(8*time.Second), "thread1.segment1")
-	endBasicSegment(txndata, thread3, t3s2, start.Add(9*time.Second), "thread3.segment2")
-	endBasicSegment(txndata, thread3, t3s1, start.Add(10*time.Second), "thread3.segment1")
+	endBasicSegment(txndata, thread1, t1s1, start.Add(8*time.Second), "thread1.segment1", nil)
+	endBasicSegment(txndata, thread3, t3s2, start.Add(9*time.Second), "thread3.segment2", nil)
+	endBasicSegment(txndata, thread3, t3s1, start.Add(10*time.Second), "thread3.segment1", nil)
 
 	if tt := thread1.TotalTime(); tt != 7*time.Second {
 		t.Error(tt)
@@ -632,7 +632,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 	for _, d := range durations {
 		s := startSegment(txndata, thread, now)
 		now = now.Add(time.Duration(d) * time.Second)
-		endBasicSegment(txndata, thread, s, now, strconv.Itoa(d))
+		endBasicSegment(txndata, thread, s, now, strconv.Itoa(d), nil)
 	}
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
@@ -735,7 +735,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 	for _, d := range durations {
 		s := startSegment(txndata, thread, now)
 		now = now.Add(time.Duration(d) * time.Second)
-		endBasicSegment(txndata, thread, s, now, strconv.Itoa(d))
+		endBasicSegment(txndata, thread, s, now, strconv.Itoa(d), nil)
 	}
 
 	acfg := createAttributeConfig(config{Config: defaultConfig()}, true)
@@ -916,11 +916,11 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 
 	// below stack trace threshold
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
-	endBasicSegment(txndata, thread, t1, start.Add(2*time.Second), "t1")
+	endBasicSegment(txndata, thread, t1, start.Add(2*time.Second), "t1", nil)
 
 	// not above stack trace threshold w/out params
 	t2 := startSegment(txndata, thread, start.Add(2*time.Second))
-	endBasicSegment(txndata, thread, t2, start.Add(4*time.Second), "t2")
+	endBasicSegment(txndata, thread, t2, start.Add(4*time.Second), "t2", nil)
 
 	// node above stack trace threshold w/ params
 	t3 := startSegment(txndata, thread, start.Add(4*time.Second))

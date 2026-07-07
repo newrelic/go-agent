@@ -15,11 +15,17 @@ type SegmentStartTime struct {
 	thread *thread
 }
 
+type Link struct {
+	LinkedSpanId  string
+	LinkedTraceId string
+}
+
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
 type Segment struct {
 	StartTime SegmentStartTime
 	Name      string
+	Links     []Link
 }
 
 // DatastoreSegment is used to instrument calls to databases and object stores.

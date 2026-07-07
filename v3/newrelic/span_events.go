@@ -39,6 +39,11 @@ type spanEvent struct {
 	TracingVendors  string
 	AgentAttributes spanAttributeMap
 	UserAttributes  spanAttributeMap
+	// SpanLinks are stored on the span event itself (never in a separate
+	// reservoir) so that if this span is dropped, its links are dropped with
+	// it. They are extracted and serialized into the span_event_data payload
+	// during WriteJSON.
+	SpanLinks []*spanLink
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -91,6 +96,14 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 
 	buf.WriteByte('}')
 	buf.WriteByte(']')
+
+	// Extract this span's links into the same payload as sibling events. The
+	// enclosing reservoir writer only inserts commas between top-level events,
+	// so each link is emitted as its own comma-separated array element here.
+	for i := range e.SpanLinks {
+		buf.WriteByte(',')
+		e.SpanLinks[i].WriteJSON(buf)
+	}
 }
 
 func writeAttrs(buf *bytes.Buffer, attrs spanAttributeMap) {
