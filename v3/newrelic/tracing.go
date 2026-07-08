@@ -318,6 +318,11 @@ type segmentLink struct {
 	linkedTraceId string
 }
 
+type segmentEvent struct {
+	timestamp segmentStamp
+	name      string
+}
+
 type segmentEnd struct {
 	start           segmentTime
 	stop            segmentTime
@@ -327,6 +332,7 @@ type segmentEnd struct {
 	ParentID        string
 	threadID        uint64
 	links           []segmentLink
+	events          []segmentEvent
 	agentAttributes spanAttributeMap
 	userAttributes  spanAttributeMap
 }
@@ -358,6 +364,20 @@ func (end segmentEnd) spanLinkEvents() []*spanLink {
 			linkedTraceId: link.linkedTraceId,
 			spanLinkType:  "SpanLink",
 			id:            end.SpanID,
+		})
+	}
+	return ret
+}
+
+func (end segmentEnd) spanEventEvents() []*spanEventEvent {
+	var ret []*spanEventEvent
+	for _, event := range end.events {
+		ret = append(ret, &spanEventEvent{
+			timestamp:     timeToIntMillis(end.start.Time),
+			spanEventType: "SpanEvent",
+			spanId:        end.SpanID,
+			name:          event.name,
+			//need to set the trace id later
 		})
 	}
 	return ret
@@ -470,7 +490,7 @@ var (
 		`use https://godoc.org/github.com/newrelic/go-agent/v3/newrelic#Transaction.NewGoroutine to use the transaction in multiple goroutines`)
 )
 
-func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, links []Link) (segmentEnd, error) {
+func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, links []Link, events []Event) (segmentEnd, error) {
 	if start.Stamp == 0 {
 		return segmentEnd{}, errMalformedSegment
 	}
@@ -498,10 +518,19 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 			linkedTraceId: link.LinkedTraceId,
 		})
 	}
+
+	var segEvents []segmentEvent
+	for _, event := range events {
+		segEvents = append(segEvents, segmentEvent{
+			timestamp: start.Stamp,
+			name:      event.Name,
+		})
+	}
 	s := segmentEnd{
 		stop:            t.time(now),
 		start:           frame.segmentTime,
 		links:           segLinks,
+		events:          segEvents,
 		agentAttributes: frame.agentAttributes,
 		userAttributes:  frame.userAttributes,
 	}
@@ -545,8 +574,8 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 }
 
 // endBasicSegment ends a basic segment.
-func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []Link, otelSpanID string) error {
-	end, err := endSegment(t, thread, start, now, links)
+func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []Link, events []Event, otelSpanID string) error {
+	end, err := endSegment(t, thread, start, now, links, events)
 	if err != nil {
 		return err
 	}
@@ -575,6 +604,7 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 		// Store the links on the span event itself so they ride the span into
 		// the reservoir and are dropped with it if the span is sampled out.
 		evt.SpanLinks = end.spanLinkEvents()
+		evt.SpanEventEvents = end.spanEventEvents()
 		// Remember the source OTel span ID so links targeting this span can be
 		// resolved to evt.GUID at finalization.
 		evt.otelSpanID = otelSpanID
@@ -602,7 +632,7 @@ type endExternalParams struct {
 // endExternalSegment ends an external segment.
 func endExternalSegment(p endExternalParams) error {
 	t := p.TxnData
-	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{})
+	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{}, []Event{})
 	if err != nil {
 		return err
 	}
@@ -708,7 +738,7 @@ type endMessageParams struct {
 // endMessageSegment ends an external segment.
 func endMessageSegment(p endMessageParams) error {
 	t := p.TxnData
-	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{})
+	end, err := endSegment(t, p.Thread, p.Start, p.Now, []Link{}, []Event{})
 	if err != nil {
 		return err
 	}
@@ -798,7 +828,7 @@ func datastoreSpanAddress(host, portPathOrID string) string {
 
 // endDatastoreSegment ends a datastore segment.
 func endDatastoreSegment(p endDatastoreParams) error {
-	end, err := endSegment(p.TxnData, p.Thread, p.Start, p.Now, []Link{})
+	end, err := endSegment(p.TxnData, p.Thread, p.Start, p.Now, []Link{}, []Event{})
 	if err != nil {
 		return err
 	}

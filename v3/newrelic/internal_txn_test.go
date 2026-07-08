@@ -247,7 +247,7 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	tx := &txn{}
 	tx.markStart(start)
 	segmentStart := startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
-	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, nil, "")
 	tx.markEnd(start.Add(3*time.Second), &tx.mainThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -262,10 +262,10 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	tx = &txn{}
 	tx.markStart(start)
 	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
-	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, nil, "")
 	asyncThread := createThread(tx)
 	asyncSegmentStart := startSegment(&tx.txnData, asyncThread, start.Add(1*time.Second))
-	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name", nil, nil, "")
 	tx.markEnd(start.Add(3*time.Second), &tx.mainThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -280,10 +280,10 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	tx = &txn{}
 	tx.markStart(start)
 	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(1*time.Second))
-	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(2*time.Second), "name", nil, nil, "")
 	asyncThread = createThread(tx)
 	asyncSegmentStart = startSegment(&tx.txnData, asyncThread, start.Add(1*time.Second))
-	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(2*time.Second), "name", nil, nil, "")
 	tx.markEnd(start.Add(3*time.Second), asyncThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,
@@ -298,10 +298,10 @@ func TestTransactionDurationTotalTime(t *testing.T) {
 	tx = &txn{}
 	tx.markStart(start)
 	segmentStart = startSegment(&tx.txnData, &tx.mainThread, start.Add(0*time.Second))
-	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(1*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, &tx.mainThread, segmentStart, start.Add(1*time.Second), "name", nil, nil, "")
 	asyncThread = createThread(tx)
 	asyncSegmentStart = startSegment(&tx.txnData, asyncThread, start.Add(2*time.Second))
-	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(3*time.Second), "name", nil, "")
+	endBasicSegment(&tx.txnData, asyncThread, asyncSegmentStart, start.Add(3*time.Second), "name", nil, nil, "")
 	tx.markEnd(start.Add(3*time.Second), asyncThread)
 	testTxnTimes(expectTxnTimes{
 		txn:       tx,

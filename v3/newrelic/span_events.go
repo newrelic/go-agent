@@ -44,6 +44,11 @@ type spanEvent struct {
 	// it. They are extracted and serialized into the span_event_data payload
 	// during WriteJSON.
 	SpanLinks []*spanLink
+
+	// SpanEvent events are stored on the span event itself (never in a separate reservoir)
+	// so that if this span is dropped, its events are dropped with it.  They are extraced
+	// and serialized into the span_event_data payload during WriteJSON.
+	SpanEventEvents []*spanEventEvent
 	// otelSpanID is the source OpenTelemetry span ID this span event was
 	// derived from, if any. It is never serialized; it is used only at
 	// transaction finalization to translate span link targets (OTel span IDs)
@@ -108,6 +113,11 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	for i := range e.SpanLinks {
 		buf.WriteByte(',')
 		e.SpanLinks[i].WriteJSON(buf)
+	}
+
+	for i := range e.SpanEventEvents {
+		buf.WriteByte(',')
+		e.SpanEventEvents[i].WriteJSON(buf)
 	}
 }
 

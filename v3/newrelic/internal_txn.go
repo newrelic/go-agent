@@ -561,6 +561,10 @@ func (thd *thread) End(recovered interface{}) error {
 					evt.SpanLinks[i].linkedTraceId = txn.BetterCAT.TraceID
 				}
 			}
+
+			for i := range evt.SpanEventEvents {
+				evt.SpanEventEvents[i].traceId = txn.BetterCAT.TraceID
+			}
 		}
 	}
 
@@ -942,7 +946,7 @@ func endBasic(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links, s.OTelSpanID)
+		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links, s.Events, s.OTelSpanID)
 	}
 	txn.Unlock()
 	return err

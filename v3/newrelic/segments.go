@@ -20,12 +20,17 @@ type Link struct {
 	LinkedTraceId string
 }
 
+type Event struct {
+	Name string
+}
+
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
 type Segment struct {
 	StartTime SegmentStartTime
 	Name      string
 	Links     []Link
+	Events    []Event
 	// OTelSpanID, when set, is the OpenTelemetry span ID this segment was
 	// created from. It is not sent to New Relic directly; it lets span links
 	// that target this span be resolved to the New Relic GUID at harvest.

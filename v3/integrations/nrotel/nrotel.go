@@ -81,6 +81,7 @@ func (p *nrotelProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 	if seg := p.segmentMap[spanID]; seg != nil {
 		delete(p.segmentMap, spanID)
 		seg.Links = convertLinks(s.Links())
+		seg.Events = convertEvents(s.Events())
 		seg.End()
 	}
 }
@@ -93,6 +94,16 @@ func convertLinks(links []sdktrace.Link) []newrelic.Link {
 			LinkedTraceId: link.SpanContext.TraceID().String(),
 		}
 		ret = append(ret, nrLink)
+	}
+	return ret
+}
+
+func convertEvents(events []sdktrace.Event) []newrelic.Event {
+	var ret []newrelic.Event
+	for _, event := range events {
+		ret = append(ret, newrelic.Event{
+			Name: event.Name,
+		})
 	}
 	return ret
 }

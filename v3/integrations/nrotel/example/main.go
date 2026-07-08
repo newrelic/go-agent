@@ -87,8 +87,9 @@ func chargePayment(ctx context.Context) {
 		Key:   "SpanLinkTest1",
 		Value: attribute.Value{},
 	})
-	seg.AddLink(link)
 
+	seg.AddLink(link)
+	seg.AddEvent("charge-payment-event")
 	seg.SetAttributes(attribute.Float64("payment.amount", 49.99))
 	time.Sleep(15 * time.Millisecond) // pretend to call a payment gateway
 }
@@ -105,6 +106,7 @@ func saveOrder(ctx context.Context) {
 		Value: attribute.Value{},
 	})
 	seg.AddLink(link)
+	seg.AddEvent("save-order-event")
 	seg.SetAttributes(attribute.String("db.operation", "INSERT"))
 	time.Sleep(10 * time.Millisecond) // pretend to write to a database
 }
