@@ -192,16 +192,16 @@ func TestLostChildren(t *testing.T) {
 
 	alpha := startSegment(txndata, thread, start.Add(1*time.Second))
 	t1 := startSegment(txndata, thread, start.Add(2*time.Second))
-	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil, "")
 	startSegment(txndata, thread, start.Add(4*time.Second))
 	t2 := startSegment(txndata, thread, start.Add(5*time.Second))
-	endBasicSegment(txndata, thread, t2, start.Add(6*time.Second), "t2", nil)
+	endBasicSegment(txndata, thread, t2, start.Add(6*time.Second), "t2", nil, "")
 	startSegment(txndata, thread, start.Add(7*time.Second))
 	t3 := startSegment(txndata, thread, start.Add(8*time.Second))
-	endBasicSegment(txndata, thread, t3, start.Add(9*time.Second), "t3", nil)
+	endBasicSegment(txndata, thread, t3, start.Add(9*time.Second), "t3", nil, "")
 	t4 := startSegment(txndata, thread, start.Add(10*time.Second))
-	endBasicSegment(txndata, thread, t4, start.Add(11*time.Second), "t4", nil)
-	endBasicSegment(txndata, thread, alpha, start.Add(12*time.Second), "alpha", nil)
+	endBasicSegment(txndata, thread, t4, start.Add(11*time.Second), "t4", nil, "")
+	endBasicSegment(txndata, thread, alpha, start.Add(12*time.Second), "alpha", nil, "")
 
 	metrics := newMetricTable(100, time.Now())
 	txndata.FinalName = "WebTransaction/Go/zip"
@@ -232,15 +232,15 @@ func TestLostChildrenRoot(t *testing.T) {
 	thread := &tracingThread{}
 
 	t1 := startSegment(txndata, thread, start.Add(2*time.Second))
-	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil, "")
 	startSegment(txndata, thread, start.Add(4*time.Second))
 	t2 := startSegment(txndata, thread, start.Add(5*time.Second))
-	endBasicSegment(txndata, thread, t2, start.Add(6*time.Second), "t2", nil)
+	endBasicSegment(txndata, thread, t2, start.Add(6*time.Second), "t2", nil, "")
 	startSegment(txndata, thread, start.Add(7*time.Second))
 	t3 := startSegment(txndata, thread, start.Add(8*time.Second))
-	endBasicSegment(txndata, thread, t3, start.Add(9*time.Second), "t3", nil)
+	endBasicSegment(txndata, thread, t3, start.Add(9*time.Second), "t3", nil, "")
 	t4 := startSegment(txndata, thread, start.Add(10*time.Second))
-	endBasicSegment(txndata, thread, t4, start.Add(11*time.Second), "t4", nil)
+	endBasicSegment(txndata, thread, t4, start.Add(11*time.Second), "t4", nil, "")
 
 	if thread.TotalTime() != 9*time.Second {
 		t.Error(thread.TotalTime())
@@ -365,14 +365,14 @@ func TestSegmentBasic(t *testing.T) {
 
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
 	t2 := startSegment(txndata, thread, start.Add(2*time.Second))
-	endBasicSegment(txndata, thread, t2, start.Add(3*time.Second), "t2", nil)
-	endBasicSegment(txndata, thread, t1, start.Add(4*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t2, start.Add(3*time.Second), "t2", nil, "")
+	endBasicSegment(txndata, thread, t1, start.Add(4*time.Second), "t1", nil, "")
 	t3 := startSegment(txndata, thread, start.Add(5*time.Second))
 	t4 := startSegment(txndata, thread, start.Add(6*time.Second))
-	endBasicSegment(txndata, thread, t3, start.Add(7*time.Second), "t3", nil)
-	endBasicSegment(txndata, thread, t4, start.Add(8*time.Second), "out-of-order", nil)
+	endBasicSegment(txndata, thread, t3, start.Add(7*time.Second), "t3", nil, "")
+	endBasicSegment(txndata, thread, t4, start.Add(8*time.Second), "out-of-order", nil, "")
 	t5 := startSegment(txndata, thread, start.Add(9*time.Second))
-	endBasicSegment(txndata, thread, t5, start.Add(10*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t5, start.Add(10*time.Second), "t1", nil, "")
 
 	metrics := newMetricTable(100, time.Now())
 	txndata.FinalName = "WebTransaction/Go/zip"
@@ -649,7 +649,7 @@ func TestGenericSpanEventCreation(t *testing.T) {
 	thread := &tracingThread{}
 
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
-	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil, "")
 
 	// Since a basic segment has just ended, there should be exactly one generic span event in txndata.SpanEvents[]
 	if 1 != len(txndata.SpanEvents) {
@@ -672,7 +672,7 @@ func TestSpanEventNotCollected(t *testing.T) {
 	thread := &tracingThread{}
 
 	t1 := startSegment(txndata, thread, start.Add(1*time.Second))
-	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil)
+	endBasicSegment(txndata, thread, t1, start.Add(3*time.Second), "t1", nil, "")
 
 	if 0 != len(txndata.SpanEvents) {
 		t.Error(txndata.SpanEvents)

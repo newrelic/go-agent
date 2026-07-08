@@ -44,6 +44,11 @@ type spanEvent struct {
 	// it. They are extracted and serialized into the span_event_data payload
 	// during WriteJSON.
 	SpanLinks []*spanLink
+	// otelSpanID is the source OpenTelemetry span ID this span event was
+	// derived from, if any. It is never serialized; it is used only at
+	// transaction finalization to translate span link targets (OTel span IDs)
+	// into the New Relic GUIDs the agent generated for them.
+	otelSpanID string
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.

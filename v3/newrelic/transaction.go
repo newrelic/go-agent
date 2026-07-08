@@ -92,6 +92,19 @@ func (txn *Transaction) SetName(name string) {
 	txn.thread.logAPIError(txn.thread.SetName(name), "set transaction name", nil)
 }
 
+// SetRootOTelSpanID records the OpenTelemetry span ID of the transaction's
+// entry (root) span. It is used only by the OpenTelemetry bridge so that span
+// links targeting the root span can be resolved to the New Relic GUID at
+// harvest. It has no effect if called outside of that bridge.
+func (txn *Transaction) SetRootOTelSpanID(id string) {
+	if nilTransaction(txn) {
+		return
+	}
+	txn.thread.txn.Lock()
+	defer txn.thread.txn.Unlock()
+	txn.thread.txn.rootOTelSpanID = id
+}
+
 // Name returns the name currently set for the transaction, as, e.g. by a call to SetName.
 // If unable to do so (such as due to a nil transaction pointer), the empty string is returned.
 func (txn *Transaction) Name() string {

@@ -506,6 +506,7 @@ func (thd *thread) End(recovered interface{}) error {
 			TxnName:      txn.FinalName,
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
+			otelSpanID:   txn.rootOTelSpanID,
 		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
@@ -530,6 +531,16 @@ func (thd *thread) End(recovered interface{}) error {
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
 
+		// Build a lookup from source OTel span ID to the New Relic GUID the
+		// agent generated for it. Done after the root is appended and every
+		// segment GUID has been assigned, so span link targets can be resolved.
+		otelToGUID := make(map[string]string, len(txn.SpanEvents))
+		for _, evt := range txn.SpanEvents {
+			if evt.otelSpanID != "" {
+				otelToGUID[evt.otelSpanID] = evt.GUID
+			}
+		}
+
 		// Add transaction tracing fields to span events at the end of
 		// the transaction since we could accept payload after the early
 		// segments occur.
@@ -542,6 +553,13 @@ func (thd *thread) End(recovered interface{}) error {
 			// now that BetterCAT.TraceID is settled.
 			for i := range evt.SpanLinks {
 				evt.SpanLinks[i].traceId = txn.BetterCAT.TraceID
+				// Resolve a link that targets a span in this trace to the New
+				// Relic GUID and trace ID. Targets outside this trace have no
+				// entry in the map and are left as external references.
+				if guid, ok := otelToGUID[evt.SpanLinks[i].linkedSpanId]; ok {
+					evt.SpanLinks[i].linkedSpanId = guid
+					evt.SpanLinks[i].linkedTraceId = txn.BetterCAT.TraceID
+				}
 			}
 		}
 	}
@@ -924,7 +942,7 @@ func endBasic(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links)
+		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links, s.OTelSpanID)
 	}
 	txn.Unlock()
 	return err

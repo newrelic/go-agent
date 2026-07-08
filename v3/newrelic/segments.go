@@ -26,6 +26,10 @@ type Segment struct {
 	StartTime SegmentStartTime
 	Name      string
 	Links     []Link
+	// OTelSpanID, when set, is the OpenTelemetry span ID this segment was
+	// created from. It is not sent to New Relic directly; it lets span links
+	// that target this span be resolved to the New Relic GUID at harvest.
+	OTelSpanID string
 }
 
 // DatastoreSegment is used to instrument calls to databases and object stores.

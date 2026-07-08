@@ -42,7 +42,11 @@ func (p *nrotelProcessor) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 	// Entry span -> New Relic transaction, keyed by trace ID so descendants can
 	// find it.
 	if isRoot(s.Parent()) {
-		p.transactionMap[traceID] = p.app.StartTransaction(s.Name())
+		txn := p.app.StartTransaction(s.Name())
+		// Record the entry span's OTel ID so links targeting the root span can
+		// be resolved to the New Relic GUID at harvest.
+		txn.SetRootOTelSpanID(s.SpanContext().SpanID().String())
+		p.transactionMap[traceID] = txn
 		return
 	}
 
@@ -51,7 +55,11 @@ func (p *nrotelProcessor) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 	if txn == nil {
 		return
 	}
-	p.segmentMap[s.SpanContext().SpanID()] = txn.StartSegment(s.Name())
+	seg := txn.StartSegment(s.Name())
+	// Carry the OTel span ID so links targeting this span resolve to its New
+	// Relic GUID at harvest.
+	seg.OTelSpanID = s.SpanContext().SpanID().String()
+	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
 
 func (p *nrotelProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
@@ -81,7 +89,7 @@ func convertLinks(links []sdktrace.Link) []newrelic.Link {
 	var ret []newrelic.Link
 	for _, link := range links {
 		nrLink := newrelic.Link{
-			LinkedSpanId:  link.SpanContext.SpanID().String(),
+			LinkedSpanId:  link.SpanContext.SpanID().String(), // this is the otel link we need it to be the New Relic Linked Span ID
 			LinkedTraceId: link.SpanContext.TraceID().String(),
 		}
 		ret = append(ret, nrLink)

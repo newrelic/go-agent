@@ -84,8 +84,9 @@ type txnData struct {
 	stamp           segmentStamp
 	threadIDCounter uint64
 
-	Name       string // Work in progress name.
-	rootSpanID string
+	Name           string // Work in progress name.
+	rootSpanID     string
+	rootOTelSpanID string // source OTel span ID of the entry span, if bridged
 
 	txnEvent
 	TxnTrace txnTrace
@@ -544,7 +545,7 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 }
 
 // endBasicSegment ends a basic segment.
-func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []Link) error {
+func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []Link, otelSpanID string) error {
 	end, err := endSegment(t, thread, start, now, links)
 	if err != nil {
 		return err
@@ -574,6 +575,9 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 		// Store the links on the span event itself so they ride the span into
 		// the reservoir and are dropped with it if the span is sampled out.
 		evt.SpanLinks = end.spanLinkEvents()
+		// Remember the source OTel span ID so links targeting this span can be
+		// resolved to evt.GUID at finalization.
+		evt.otelSpanID = otelSpanID
 		t.saveSpanEvent(evt)
 	}
 
