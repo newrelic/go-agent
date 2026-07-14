@@ -216,14 +216,6 @@ func (txn *txn) lazilyCalculateSampled() bool {
 	return txn.BetterCAT.Sampled
 }
 
-// resolveGranularity runs the granularity sampling gates for a trace that
-// originates here (no inbound decision). Full granularity is the existing
-// distributed-tracing sampling decision and is evaluated first; if it does not
-// sample, the partial granularity gate is evaluated. The resolved per-trace
-// outcome and the propagated priority are both set here:
-//   - full    -> Sampled, priority += 2.0
-//   - partial -> Sampled, priority += 1.0
-//   - neither -> dropped
 func (txn *txn) resolveGranularity(now time.Time) {
 	g := &txn.BetterCAT.Granularity
 
@@ -565,9 +557,6 @@ func (thd *thread) End(recovered interface{}) error {
 		}
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 
-		// Apply the resolved granularity now that sampling is decided: drop
-		// non-kept spans and record their parentage in droppedSegments so the
-		// reparenting pass below can rewrite surviving spans' ParentID.
 		txn.filterSpanEventsByGranularity()
 
 		for _, span := range txn.SpanEvents {

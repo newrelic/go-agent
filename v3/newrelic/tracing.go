@@ -129,10 +129,6 @@ func (e *txnEvent) SetTransactionID(transactionID string) {
 
 }
 
-// calculateGranularity sets the granularity flags on the betterCAT state.
-// Distributed tracing acts as a master gate: if it's disabled, both flags are
-// false regardless of the partial/full inputs. Otherwise, each flag tracks its
-// corresponding input directly.
 func (bc *betterCAT) calculateGranularity(distributedTracing, partial, full bool) {
 	bc.Granularity.FullGranularity = distributedTracing && full
 	bc.Granularity.PartialGranularity = distributedTracing && partial
@@ -508,12 +504,6 @@ func (t *txnData) saveSpanEvent(e *spanEvent) {
 	}
 }
 
-// filterSpanEventsByGranularity applies the resolved per-trace granularity to
-// the buffered span events: spans that should not be kept are dropped and their
-// GUID->ParentID mapping is recorded in droppedSegments so the End reparenting
-// pass can rewrite their childrens' ParentID to the nearest surviving ancestor.
-// The root span is never dropped here. Called at transaction End, after the
-// sampling/granularity decision has been resolved.
 func (t *txnData) filterSpanEventsByGranularity() {
 	kept := t.SpanEvents[:0]
 	for _, e := range t.SpanEvents {
