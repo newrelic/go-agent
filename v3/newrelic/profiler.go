@@ -635,6 +635,8 @@ func (pc *profilerConfig) monitor(a *app) {
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		if eventType == "cpu" && pc.spanCache != nil {
 			// inject cached span IDs into CPU samples before reporting them
+			spanIDs := make([]string, 0, 2)
+			traceIDs := make([]string, 0, 2)
 			p, err := profile.ParseData(profileData.Bytes())
 			if err != nil {
 				a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
@@ -647,7 +649,6 @@ func (pc *profilerConfig) monitor(a *app) {
 				// to start at the earliest end of the tree. We know when to *stop* searching, just
 				// not when to *start*. So the optimization here is to occasionally clean up the btree
 				// when we don't need these in the cache anymore.
-				spansRecorded := 0
 				trashList := make([]profileSpanData, 0, 64)
 				pc.segLock.Lock()
 				pc.spanCache.Ascend(func(sd profileSpanData) bool {
@@ -655,9 +656,8 @@ func (pc *profilerConfig) monitor(a *app) {
 						return false
 					}
 					if sd.DurationNanos == 0 || sd.TimeNanos+sd.DurationNanos >= p.TimeNanos {
-						//TODO: more robust encoding here
-						p.SetLabel("span:"+sd.TxnID, []string{fmt.Sprintf("span_id=%s,trace_id=%s", sd.SpanID, sd.TraceID)})
-						spansRecorded++
+						spanIDs = append(spanIDs, sd.SpanID)
+						traceIDs = append(traceIDs, sd.TraceID)
 					} else {
 						// this item exists entirely before the time this profile covers.
 						// assuming we receive all our profile data in order, we can discard this one
@@ -669,7 +669,7 @@ func (pc *profilerConfig) monitor(a *app) {
 				if len(trashList) > 0 {
 					a.Debug("profiler: purging old transaction data from cache", map[string]any{
 						"event-type":      eventType,
-						"spans-recorded":  spansRecorded,
+						"spans-recorded":  len(spanIDs),
 						"cache-size":      pc.spanCache.Len(),
 						"items-to-remove": len(trashList),
 					})
@@ -677,7 +677,7 @@ func (pc *profilerConfig) monitor(a *app) {
 						if _, removed := pc.spanCache.Delete(oldItem); !removed {
 							a.Debug("profiler: failed to remove item from cache", map[string]any{
 								"event-type":      eventType,
-								"spans-recorded":  spansRecorded,
+								"spans-recorded":  len(spanIDs),
 								"cache-size":      pc.spanCache.Len(),
 								"items-to-remove": len(trashList),
 								"failed-index":    i,
@@ -688,13 +688,17 @@ func (pc *profilerConfig) monitor(a *app) {
 				}
 				pc.segLock.Unlock()
 
-				if spansRecorded > 0 {
+				if len(spanIDs) > 0 {
+					//TODO: more robust encoding here
+					p.SetLabel("span_id", []string{strings.Join(spanIDs, ",")})
+					p.SetLabel("trace_id", []string{strings.Join(traceIDs, ",")})
+
 					profileData.Reset()
 					p.Write(profileData)
 					a.Debug("profiler: profile data with labels recorded", map[string]any{
 						"event-type":        eventType,
 						"profile-data":      p.String(),
-						"spans-recorded":    spansRecorded,
+						"spans-recorded":    len(spanIDs),
 						"cache-size":        pc.spanCache.Len(),
 						"start-time":        p.TimeNanos,
 						"duration":          p.DurationNanos,
@@ -705,7 +709,7 @@ func (pc *profilerConfig) monitor(a *app) {
 					a.Debug("profiler: profile data skipped adding labels (no active spans found)", map[string]any{
 						"event-type":        eventType,
 						"profile-data":      p.String(),
-						"spans-recorded":    spansRecorded,
+						"spans-recorded":    len(spanIDs),
 						"cache-size":        pc.spanCache.Len(),
 						"start-time":        p.TimeNanos,
 						"duration":          p.DurationNanos,
