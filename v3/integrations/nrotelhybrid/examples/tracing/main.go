@@ -69,7 +69,7 @@ func newHttpHandler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/routeone/", routeOne)
-	mux.HandleFunc("routetwo/", routeTwo)
+	mux.HandleFunc("/routetwo/", routeTwo)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
