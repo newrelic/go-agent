@@ -15,6 +15,9 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/metric"
+
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -82,8 +85,41 @@ func (p *nrotelProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 		delete(p.segmentMap, spanID)
 		seg.Links = convertLinks(s.Links())
 		seg.Events = convertEvents(s.Events())
+		for _, attr := range s.Attributes() {
+			//  attr.Value.Type() switch on type
+			seg.AddAttribute(string(attr.Key), extractAttibuteValue(attr.Value))
+		}
 		seg.End()
 	}
+}
+
+func extractAttibuteValue(val attribute.Value) any {
+
+	switch val.Type() {
+	case attribute.BOOL:
+		return val.AsBool()
+	case attribute.INT64:
+		return val.AsInt64()
+	case attribute.FLOAT64:
+		return val.AsFloat64()
+	case attribute.STRING:
+		return val.AsString()
+	case attribute.BOOLSLICE:
+		return val.AsBoolSlice()
+	case attribute.INT64SLICE:
+		return val.AsInt64Slice()
+	case attribute.FLOAT64SLICE:
+		return val.AsFloat64Slice()
+	case attribute.STRINGSLICE:
+		return val.AsStringSlice()
+	case attribute.BYTESLICE:
+		return val.AsByteSlice()
+	case attribute.SLICE:
+		return val.AsSlice()
+	default:
+		return nil // EMPTY OR INVALID
+	}
+
 }
 
 func convertLinks(links []sdktrace.Link) []newrelic.Link {
@@ -130,6 +166,8 @@ func HybridTracerProvider(app *newrelic.Application) *sdktrace.TracerProvider {
 	}
 	// if hybrid agent is configured to send to new relic
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter), sdktrace.WithSpanProcessor(proc))
+	// lp := sdklog.NewLoggerProvider(sdklog.WithProcessor()) OnEmit
+	mp := metric.NewMeterConfig()
 	return tp
 }
 

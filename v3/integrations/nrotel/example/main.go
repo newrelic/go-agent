@@ -28,6 +28,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -90,7 +91,15 @@ func chargePayment(ctx context.Context) {
 
 	seg.AddLink(link)
 	seg.AddEvent("charge-payment-event")
-	seg.SetAttributes(attribute.Float64("payment.amount", 49.99))
+	seg.SetAttributes(
+		attribute.Float64("payment.amount", 49.99),
+		semconv.GenAIOperationNameChat,
+		semconv.GenAIProviderNameAnthropic,
+		semconv.GenAIAgentDescription("Anthropic Agent to help with stuff"),
+		attribute.String(string(semconv.GenAIInputMessagesKey), "THIS IS A MESSAGE INPUT"),
+		attribute.String(string(semconv.GenAIOutputMessagesKey), "THIS IS A MESSAGE OUTPUT"),
+		semconv.GenAIRequestModel("opus-5"),
+	)
 	time.Sleep(15 * time.Millisecond) // pretend to call a payment gateway
 }
 
