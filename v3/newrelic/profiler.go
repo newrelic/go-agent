@@ -688,14 +688,25 @@ func (pc *profilerConfig) monitor(a *app) {
 				}
 				pc.segLock.Unlock()
 
-				if len(spanIDs) > 0 {
+				if len(spanIDs) == 1 && len(traceIDs) == 1 {
 					//TODO: more robust encoding here
-					p.SetLabel("span_id", []string{strings.Join(spanIDs, ",")})
-					p.SetLabel("trace_id", []string{strings.Join(traceIDs, ",")})
+					p.SetLabel("span_id", spanIDs)
+					p.SetLabel("trace_id", traceIDs)
 
 					profileData.Reset()
 					p.Write(profileData)
 					a.Debug("profiler: profile data with labels recorded", map[string]any{
+						"event-type":        eventType,
+						"profile-data":      p.String(),
+						"spans-recorded":    len(spanIDs),
+						"cache-size":        pc.spanCache.Len(),
+						"start-time":        p.TimeNanos,
+						"duration":          p.DurationNanos,
+						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+						"duration-ms":       p.DurationNanos / 1_000_000,
+					})
+				} else if len(spanIDs) > 1 {
+					a.Debug("profiler: profile data skipped adding labels (could not map exactly one span to the sample set)", map[string]any{
 						"event-type":        eventType,
 						"profile-data":      p.String(),
 						"spans-recorded":    len(spanIDs),
