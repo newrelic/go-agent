@@ -28,7 +28,11 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
-
+	// use the trace id from trace.ReadOnlySpan to end the transaction
+	if s.Parent().IsValid() && s.Parent().IsRemote() {
+		txn := p.txnMap[s.SpanContext().TraceID()]
+		txn.End()
+	}
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
