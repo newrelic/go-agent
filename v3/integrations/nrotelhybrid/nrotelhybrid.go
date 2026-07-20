@@ -20,7 +20,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	if s.Parent().IsValid() && s.Parent().IsRemote() {
+	if shouldStartTransaction(s.Parent()) {
 		txn := p.app.StartTransaction(s.Name())
 		p.txnMap[s.SpanContext().TraceID()] = txn
 	}
@@ -31,7 +31,9 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	if s.Parent().IsValid() && s.Parent().IsRemote() {
 		txn := p.txnMap[s.SpanContext().TraceID()]
-		txn.End()
+		if txn != nil {
+			txn.End()
+		}
 	}
 }
 
@@ -41,4 +43,8 @@ func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
 
 func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 	return nil
+}
+
+func shouldStartTransaction(parent oteltrace.SpanContext) bool {
+	return !parent.IsValid() || parent.IsRemote()
 }
