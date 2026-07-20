@@ -8,12 +8,14 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+type txnMapEntry struct {
+	txn    *newrelic.Transaction
+	spanID oteltrace.SpanID
+}
+
 type nrotelhybridProcessor struct {
 	app    *newrelic.Application
-	txnMap map[oteltrace.TraceID]struct {
-		txn    *newrelic.Transaction
-		spanID oteltrace.SpanID
-	} // Trace ID -> Transaction
+	txnMap map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
 }
 
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
@@ -25,10 +27,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// this begins a transaction
 	if p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()) {
 		txn := p.app.StartTransaction(s.Name())
-		p.txnMap[s.SpanContext().TraceID()] = struct {
-			txn    *newrelic.Transaction
-			spanID oteltrace.SpanID
-		}{txn, s.SpanContext().SpanID()}
+		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
 	}
 
 }
