@@ -464,16 +464,25 @@ func addUserAttribute(a *attributes, key string, val interface{}, d destinationS
 }
 
 func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
+	writeAttributeValueJSONLimit(w, key, val, maxAttributeLengthBytes)
+}
+
+// writeAttributeValueJSONLimit writes an attribute value to JSON, truncating
+// string values (and JSON-marshaled composites) at limit bytes. A limit <= 0
+// disables truncation and preserves the full value; this is required for
+// LlmChatCompletionMessage.content and LlmEmbedding.input per the LLM spec.
+// https://source.datanerd.us/agents/agent-specs/blob/main/artificial_intelligence/LLMs.md#llm-events
+func writeAttributeValueJSONLimit(w *jsonFieldsWriter, key string, val interface{}, limit int) {
 	switch v := val.(type) {
 	case string:
-		if len(v) > maxAttributeLengthBytes {
-			v = v[:maxAttributeLengthBytes]
+		if limit > 0 && len(v) > limit {
+			v = v[:limit]
 		}
 		w.stringField(key, v)
 	case error:
 		value := v.Error()
-		if len(value) > maxAttributeLengthBytes {
-			value = value[:maxAttributeLengthBytes]
+		if limit > 0 && len(value) > limit {
+			value = value[:limit]
 		}
 		w.stringField(key, value)
 	case bool:
@@ -509,22 +518,22 @@ func writeAttributeValueJSON(w *jsonFieldsWriter, key string, val interface{}) {
 	case float64:
 		w.floatField(key, v)
 	case time.Time:
-		writeAttributeValueJSON(w, key, v.String())
+		writeAttributeValueJSONLimit(w, key, v.String(), limit)
 	case time.Duration:
-		writeAttributeValueJSON(w, key, v.String())
+		writeAttributeValueJSONLimit(w, key, v.String(), limit)
 	case time.Weekday:
-		writeAttributeValueJSON(w, key, v.String())
+		writeAttributeValueJSONLimit(w, key, v.String(), limit)
 	case *time.Location:
-		writeAttributeValueJSON(w, key, v.String())
+		writeAttributeValueJSONLimit(w, key, v.String(), limit)
 	case time.Month:
-		writeAttributeValueJSON(w, key, v.String())
+		writeAttributeValueJSONLimit(w, key, v.String(), limit)
 	default:
 		// attempt to construct a JSON string
 		kind := reflect.ValueOf(v).Kind()
 		if kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice || kind == reflect.Array {
 			bytes, _ := json.Marshal(v)
-			if len(bytes) > maxAttributeLengthBytes {
-				bytes = bytes[:maxAttributeLengthBytes]
+			if limit > 0 && len(bytes) > limit {
+				bytes = bytes[:limit]
 			}
 			w.stringField(key, string(bytes))
 		} else {
