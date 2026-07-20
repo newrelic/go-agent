@@ -3,10 +3,14 @@ package nrotelhybrid
 import (
 	"context"
 
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/sdk/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type nrotelhybridProcessor struct {
+	app    *newrelic.Application
+	txnMap map[oteltrace.TraceID]*newrelic.Transaction // Trace ID -> Transaction
 }
 
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
@@ -17,6 +21,8 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	if s.Parent().IsValid() && s.Parent().IsRemote() {
+		txn := p.app.StartTransaction(s.Name())
+		p.txnMap[s.SpanContext().TraceID()] = txn
 	}
 
 }
