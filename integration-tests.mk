@@ -56,4 +56,5 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrzap \
 	nrzerolog \
 	nranthropic \
+	nrgemini \
 }
