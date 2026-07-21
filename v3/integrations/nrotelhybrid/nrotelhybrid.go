@@ -76,6 +76,7 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 }
 
 func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
+	// if the transaction exists and is not the same span id, it is within an existing transaction
 	if val, ok := txnMap[traceID]; ok {
 		return val.spanID != spanID
 	}
