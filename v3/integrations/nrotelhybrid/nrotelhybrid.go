@@ -2,6 +2,7 @@ package nrotelhybrid
 
 import (
 	"context"
+	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -15,11 +16,14 @@ type txnMapEntry struct {
 
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
+	mu         sync.Mutex
 	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
 	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	// for now pretending like everything is enabled
 	// first check for case when span has a remote parent.  In this case, it must create a new transaction
 
@@ -34,6 +38,8 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	if p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()) {
 		if val, ok := p.txnMap[s.SpanContext().TraceID()]; ok && val.txn != nil {
