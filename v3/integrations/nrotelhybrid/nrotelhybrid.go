@@ -21,6 +21,14 @@ type nrotelhybridProcessor struct {
 	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
+func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
+	return &nrotelhybridProcessor{
+		app:        app,
+		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
+		txnChecker: isWithinTransaction,
+	}
+}
+
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
