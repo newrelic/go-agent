@@ -14,8 +14,9 @@ type txnMapEntry struct {
 }
 
 type nrotelhybridProcessor struct {
-	app    *newrelic.Application
-	txnMap map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
+	app        *newrelic.Application
+	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
+	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
@@ -52,8 +53,8 @@ func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 
 func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) bool {
 	if parent.IsRemote() {
-		// if valid remote parent
-		return parent.IsValid()
+		// any span with a remote parent is a transaction
+		return true
 	}
 	// check if within a transaction
 	switch kind {
@@ -62,21 +63,20 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 	case oteltrace.SpanKindInternal:
 		return false
 	case oteltrace.SpanKindServer:
-		return !p.isWithinTransaction(current.TraceID(), current.SpanID())
+		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID())
 	case oteltrace.SpanKindClient:
 		return false
 	case oteltrace.SpanKindProducer:
 		return false
 	case oteltrace.SpanKindConsumer:
-		return !p.isWithinTransaction(current.TraceID(), current.SpanID())
+		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID())
 	default:
 		return false
-
 	}
 }
 
-func (p *nrotelhybridProcessor) isWithinTransaction(traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
-	if val, ok := p.txnMap[traceID]; ok {
+func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
+	if val, ok := txnMap[traceID]; ok {
 		return val.spanID != spanID
 	}
 	return false
