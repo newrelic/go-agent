@@ -65,6 +65,82 @@ func getEventSourceARN(event interface{}) string {
 	return ""
 }
 
+const (
+	eventTypeALB                 = "alb"
+	eventTypeAPIGateway          = "apiGateway"
+	eventTypeCloudWatchScheduled = "cloudWatch_scheduled"
+	eventTypeSES                 = "ses"
+	eventTypeFirehose            = "firehose"
+	eventTypeKinesis             = "kinesis"
+	eventTypeDynamoStreams       = "dynamo_streams"
+	eventTypeSQS                 = "sqs"
+	eventTypeS3                  = "s3"
+	eventTypeSNS                 = "sns"
+)
+
+func getEventSourceEventType(event any) string {
+	switch event.(type) {
+	case events.ALBTargetGroupRequest:
+		return eventTypeALB
+	case *events.ALBTargetGroupRequest:
+		return eventTypeALB
+	case events.APIGatewayProxyRequest:
+		return eventTypeAPIGateway
+	case *events.APIGatewayProxyRequest:
+		return eventTypeAPIGateway
+	case events.APIGatewayV2HTTPRequest:
+		return eventTypeAPIGateway
+	case *events.APIGatewayV2HTTPRequest:
+		return eventTypeAPIGateway
+	case events.APIGatewayWebsocketProxyRequest:
+		return eventTypeAPIGateway
+	case *events.APIGatewayWebsocketProxyRequest:
+		return eventTypeAPIGateway
+	case events.CloudWatchEvent:
+		return eventTypeCloudWatchScheduled
+	case *events.CloudWatchEvent:
+		return eventTypeCloudWatchScheduled
+	case events.SimpleEmailEvent:
+		return eventTypeSES
+	case *events.SimpleEmailEvent:
+		return eventTypeSES
+	case events.KinesisFirehoseEvent:
+		return eventTypeFirehose
+	case *events.KinesisFirehoseEvent:
+		return eventTypeFirehose
+	case events.KinesisEvent:
+		return eventTypeKinesis
+	case *events.KinesisEvent:
+		return eventTypeKinesis
+	case events.KinesisTimeWindowEvent:
+		return eventTypeKinesis
+	case *events.KinesisTimeWindowEvent:
+		return eventTypeKinesis
+	case events.DynamoDBEvent:
+		return eventTypeDynamoStreams
+	case *events.DynamoDBEvent:
+		return eventTypeDynamoStreams
+	case events.DynamoDBTimeWindowEvent:
+		return eventTypeDynamoStreams
+	case *events.DynamoDBTimeWindowEvent:
+		return eventTypeDynamoStreams
+	case events.SQSEvent:
+		return eventTypeSQS
+	case *events.SQSEvent:
+		return eventTypeSQS
+	case events.S3Event:
+		return eventTypeS3
+	case *events.S3Event:
+		return eventTypeS3
+	case events.SNSEvent:
+		return eventTypeSNS
+	case *events.SNSEvent:
+		return eventTypeSNS
+	}
+
+	return ""
+}
+
 func eventWebRequest(event interface{}) *newrelic.WebRequest {
 	var path string
 	var request newrelic.WebRequest
