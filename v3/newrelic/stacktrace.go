@@ -5,9 +5,12 @@ package newrelic
 
 import (
 	"bytes"
+	"fmt"
 	"path"
 	"runtime"
 	"strings"
+
+	"github.com/newrelic/go-agent/v3/internal/jsonx"
 )
 
 // stackTrace is a stack trace.
@@ -45,18 +48,7 @@ func (f StacktraceFrame) isAgent() bool {
 }
 
 func (f StacktraceFrame) WriteJSON(buf *bytes.Buffer) {
-	buf.WriteByte('{')
-	w := jsonFieldsWriter{buf: buf}
-	if f.Name != "" {
-		w.stringField("name", f.formattedName())
-	}
-	if f.File != "" {
-		w.stringField("filepath", f.File)
-	}
-	if f.Line != 0 {
-		w.intField("line", f.Line)
-	}
-	buf.WriteByte('}')
+	jsonx.AppendString(buf, fmt.Sprintf("%s (%s:%d)", f.formattedName(), f.File, f.Line))
 }
 
 func writeFrames(buf *bytes.Buffer, frames []StacktraceFrame) {
