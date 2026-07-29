@@ -74,6 +74,8 @@ func (trace *txnTrace) witnessNode(end segmentEnd, name string, attrs spanAttrib
 	}
 	node.attributes = attrs
 	node.TransactionGUID = externalGUID
+	exclusiveMs := float64(end.exclusive.Milliseconds())
+	node.exclusiveDurationMillis = &exclusiveMs
 	if !trace.considerNode(end) {
 		return
 	}
@@ -102,7 +104,8 @@ func (trace *txnTrace) witnessNode(end segmentEnd, name string, attrs spanAttrib
 // the collector.
 type harvestTrace struct {
 	txnEvent
-	Trace txnTrace
+	Trace     txnTrace
+	asyncWork bool
 }
 
 type nodeDetails struct {
@@ -210,6 +213,12 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 	for i := 0; i < len(nodes); i++ {
 		nodes[i] = &trace.Trace.nodes[i]
 	}
+	// if there is not async work, don't calculate exclusiveDurationMillis
+	if !trace.asyncWork {
+		for _, n := range nodes {
+			n.exclusiveDurationMillis = nil
+		}
+	}
 	sort.Sort(nodes)
 
 	buf.WriteByte('[') // begin trace
@@ -244,17 +253,19 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 		relativeStop:  trace.Duration,
 	})
 
-	// exclusive_duration_millis field is added to fix the transaction trace
-	// summary tab.  If exclusive_duration_millis is not provided, the UIs
-	// will calculate exclusive time, which doesn't work for this root node
-	// since all async goroutines are children of this root.
-	exclusiveDurationMillis := trace.Duration.Seconds() * 1000.0
 	details := nodeDetails{ // begin inner root
 		name:          trace.FinalName,
 		relativeStart: 0,
 		relativeStop:  trace.Duration,
 	}
-	details.exclusiveDurationMillis = &exclusiveDurationMillis
+	if trace.asyncWork {
+		// exclusive_duration_millis field is added to fix the transaction trace
+		// summary tab.  If exclusive_duration_millis is not provided, the UIs
+		// will calculate exclusive time, which doesn't work for this root node
+		// since all async goroutines are children of this root.
+		exclusiveDurationMillis := trace.Duration.Seconds() * 1000.0
+		details.exclusiveDurationMillis = &exclusiveDurationMillis
+	}
 	printNodeStart(buf, details)
 
 	for next := 0; next < len(nodes); {
