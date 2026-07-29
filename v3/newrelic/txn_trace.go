@@ -214,7 +214,7 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 
 	buf.WriteByte('[') // begin trace
 
-	jsonx.AppendInt(buf, trace.Start.UnixNano()/1000)
+	jsonx.AppendFloat(buf, float64(trace.Start.UnixMilli()))
 	buf.WriteByte(',')
 	jsonx.AppendFloat(buf, trace.Duration.Seconds()*1000.0)
 	buf.WriteByte(',')
@@ -231,12 +231,12 @@ func (trace *harvestTrace) writeJSON(buf *bytes.Buffer) {
 
 	// If the trace string pool is used, insert another array here.
 
-	jsonx.AppendFloat(buf, 0.0) // unused timestamp
-	buf.WriteByte(',')          //
-	buf.WriteString("{}")       // unused: formerly request parameters
-	buf.WriteByte(',')          //
-	buf.WriteString("{}")       // unused: formerly custom parameters
-	buf.WriteByte(',')          //
+	jsonx.AppendFloat(buf, float64(trace.Start.UnixMilli())) // unused timestamp
+	buf.WriteByte(',')                                       //
+	buf.WriteString("{}")                                    // unused: formerly request parameters
+	buf.WriteByte(',')                                       //
+	buf.WriteString("{}")                                    // unused: formerly custom parameters
+	buf.WriteByte(',')                                       //
 
 	printNodeStart(buf, nodeDetails{ // begin outer root
 		name:          "ROOT",
