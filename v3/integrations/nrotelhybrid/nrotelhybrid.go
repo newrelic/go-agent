@@ -6,6 +6,7 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -40,6 +41,17 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// this begins a transaction
 	if p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()) {
 		txn := p.app.StartTransaction(s.Name())
+		attrs := s.Attributes()
+		var url string
+		for _, kv := range attrs {
+			if kv.Key == semconv.URLFullKey {
+				url = kv.Value.AsString()
+			}
+		if isWebTransaction(s.SpanKind()) {
+			txn.SetWebRequest(newrelic.WebRequest{
+				URL: url,
+			})
+		}
 		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
 	}
 
@@ -95,4 +107,24 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID otelt
 		return val.spanID != spanID
 	}
 	return false
+}
+
+func isWebTransaction(kind oteltrace.SpanKind) bool {
+	// check if within a transaction
+	switch kind {
+	case oteltrace.SpanKindUnspecified:
+		return false
+	case oteltrace.SpanKindInternal:
+		return false
+	case oteltrace.SpanKindServer:
+		return true
+	case oteltrace.SpanKindClient:
+		return true
+	case oteltrace.SpanKindProducer:
+		return false
+	case oteltrace.SpanKindConsumer:
+		return false
+	default:
+		return false
+	}
 }
