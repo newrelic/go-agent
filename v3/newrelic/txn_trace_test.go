@@ -136,7 +136,6 @@ func TestTxnTrace(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  20000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName:         "Custom/t1",
@@ -266,7 +265,7 @@ func TestTxnTraceNoNodes(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  20000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Attributes:          map[string]interface{}{},
 				Children:            []internal.WantTraceSegment{},
 			}},
 		},
@@ -357,7 +356,8 @@ func TestTxnTraceAsync(t *testing.T) {
 				Priority: 0.5,
 			},
 		},
-		Trace: txndata.TxnTrace,
+		Trace:     txndata.TxnTrace,
+		asyncWork: true,
 	})
 
 	expectTxnTraces(t, ht, []internal.WantTxnTrace{{
@@ -387,13 +387,13 @@ func TestTxnTraceAsync(t *testing.T) {
 						SegmentName:         "Custom/thread1.segment1",
 						RelativeStartMillis: 1000,
 						RelativeStopMillis:  8000,
-						Attributes:          map[string]interface{}{},
+						Attributes:          map[string]interface{}{"exclusive_duration_millis": 5000},
 						Children: []internal.WantTraceSegment{
 							{
 								SegmentName:         "Custom/thread1.segment2",
 								RelativeStartMillis: 2000,
 								RelativeStopMillis:  4000,
-								Attributes:          map[string]interface{}{},
+								Attributes:          map[string]interface{}{"exclusive_duration_millis": 2000},
 								Children:            []internal.WantTraceSegment{},
 							},
 						},
@@ -402,20 +402,20 @@ func TestTxnTraceAsync(t *testing.T) {
 						SegmentName:         "Custom/thread2.segment1",
 						RelativeStartMillis: 3000,
 						RelativeStopMillis:  5000,
-						Attributes:          map[string]interface{}{},
+						Attributes:          map[string]interface{}{"exclusive_duration_millis": 2000},
 						Children:            []internal.WantTraceSegment{},
 					},
 					{
 						SegmentName:         "Custom/thread3.segment1",
 						RelativeStartMillis: 6000,
 						RelativeStopMillis:  10000,
-						Attributes:          map[string]interface{}{},
+						Attributes:          map[string]interface{}{"exclusive_duration_millis": 2000},
 						Children: []internal.WantTraceSegment{
 							{
 								SegmentName:         "Custom/thread3.segment2",
 								RelativeStartMillis: 7000,
 								RelativeStopMillis:  9000,
-								Attributes:          map[string]interface{}{},
+								Attributes:          map[string]interface{}{"exclusive_duration_millis": 2000},
 								Children:            []internal.WantTraceSegment{},
 							},
 						},
@@ -486,7 +486,7 @@ func TestTxnTraceOldCAT(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  20000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Attributes:          map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName:         "ExternalTransaction/example.com/1#1/WebTransaction/Go/otherService",
@@ -555,7 +555,7 @@ func TestTxnTraceExcludeURI(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  20000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Attributes:          map[string]interface{}{},
 				Children:            []internal.WantTraceSegment{},
 			}},
 		},
@@ -611,7 +611,7 @@ func TestTxnTraceNoSegmentsNoAttributes(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  20000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 20000},
+				Attributes:          map[string]interface{}{},
 				Children:            []internal.WantTraceSegment{},
 			}},
 		},
@@ -678,7 +678,7 @@ func TestTxnTraceSlowestNodesSaved(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  123000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 123000},
+				Attributes:          map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName:         "Custom/5",
@@ -781,7 +781,7 @@ func TestTxnTraceSegmentThreshold(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/hello",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  123000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 123000},
+				Attributes:          map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName:         "Custom/7",
@@ -898,7 +898,7 @@ func TestLongestTraceSaved(t *testing.T) {
 				SegmentName:         "WebTransaction/Go/5",
 				RelativeStartMillis: 0,
 				RelativeStopMillis:  5000,
-				Attributes:          map[string]interface{}{"exclusive_duration_millis": 5000},
+				Attributes:          map[string]interface{}{},
 				Children:            []internal.WantTraceSegment{},
 			}},
 		},
@@ -960,7 +960,7 @@ func TestTxnTraceStackTraceThreshold(t *testing.T) {
 					SegmentName:         "WebTransaction/Go/3",
 					RelativeStartMillis: 0,
 					RelativeStopMillis:  3000,
-					Attributes:          map[string]interface{}{"exclusive_duration_millis": 3000},
+					Attributes:          map[string]interface{}{},
 					Children: []internal.WantTraceSegment{
 						{
 							SegmentName:         "Custom/t1",
@@ -1071,7 +1071,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 					SegmentName:         "WebTransaction/Go/3",
 					RelativeStartMillis: 0,
 					RelativeStopMillis:  3000,
-					Attributes:          map[string]interface{}{"exclusive_duration_millis": 3000},
+					Attributes:          map[string]interface{}{},
 					Children:            []internal.WantTraceSegment{},
 				}},
 			},
@@ -1094,7 +1094,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 					SegmentName:         "WebTransaction/Go/5",
 					RelativeStartMillis: 0,
 					RelativeStopMillis:  5000,
-					Attributes:          map[string]interface{}{"exclusive_duration_millis": 5000},
+					Attributes:          map[string]interface{}{},
 					Children:            []internal.WantTraceSegment{},
 				}},
 			},
@@ -1117,7 +1117,7 @@ func TestTxnTraceSynthetics(t *testing.T) {
 					SegmentName:         "WebTransaction/Go/4",
 					RelativeStartMillis: 0,
 					RelativeStopMillis:  4000,
-					Attributes:          map[string]interface{}{"exclusive_duration_millis": 4000},
+					Attributes:          map[string]interface{}{},
 					Children:            []internal.WantTraceSegment{},
 				}},
 			},
@@ -1147,17 +1147,17 @@ func TestTraceJSON(t *testing.T) {
    "12345",
    [
       [
-         1417136460000000,
+         1.41713646e+12,
          3000,
          "WebTransaction/Go/trace",
          null,
-         [0,{},{},
+         [1.41713646e+12,{},{},
             [
                0,
                3000,
                "ROOT",
                {},
-               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+               [[0,3000,"WebTransaction/Go/trace",{},[]]]
             ],
             {
                "agentAttributes":{},
@@ -1201,17 +1201,17 @@ func TestTraceCatGUID(t *testing.T) {
    "12345",
    [
       [
-         1417136460000000,
+         1.41713646e+12,
          3000,
          "WebTransaction/Go/trace",
          null,
-         [0,{},{},
+         [1.41713646e+12,{},{},
             [
                0,
                3000,
                "ROOT",
                {},
-               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+               [[0,3000,"WebTransaction/Go/trace",{},[]]]
             ],
             {
                "agentAttributes":{},
@@ -1256,17 +1256,17 @@ func TestTraceDistributedTracingGUID(t *testing.T) {
    "12345",
    [
       [
-         1417136460000000,
+         1.41713646e+12,
          3000,
          "WebTransaction/Go/trace",
          null,
-         [0,{},{},
+         [1.41713646e+12,{},{},
             [
                0,
                3000,
                "ROOT",
                {},
-               [[0,3000,"WebTransaction/Go/trace",{"exclusive_duration_millis":3000},[]]]
+               [[0,3000,"WebTransaction/Go/trace",{},[]]]
             ],
             {
                "agentAttributes":{},
