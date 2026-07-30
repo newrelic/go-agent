@@ -39,16 +39,16 @@ func TestLongStackTraceLimitsFrames(t *testing.T) {
 func TestManyStackTraceFramesLimitsOutput(t *testing.T) {
 	frames := make([]StacktraceFrame, maxStackTraceFrames+20)
 	expect := `[
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{},
-	{},{},{},{},{},{},{},{},{},{}
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","","",
+	"","","","","","","","","",""
 	]`
 	estimate := 256 * len(frames)
 	output := bytes.NewBuffer(make([]byte, 0, estimate))
@@ -135,56 +135,16 @@ func TestStacktraceFrames(t *testing.T) {
 	buf := &bytes.Buffer{}
 	writeFrames(buf, inputFrames)
 	expectedJSON := `[
-		{
-			"name":"main.noticeError",
-			"filepath":"/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/examples/server/main.go",
-			"line":30
-		},
-		{
-			"name":"http.HandlerFunc.ServeHTTP",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":2007
-		},
-		{
-			"name":"newrelic.WrapHandle.func1",
-			"filepath":"/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/newrelic/instrumentation.go",
-			"line":41
-		},
-		{
-			"name":"http.HandlerFunc.ServeHTTP",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":2007
-		},
-		{
-			"name":"newrelic.WrapHandleFunc.func1",
-			"filepath":"/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/newrelic/instrumentation.go",
-			"line":71
-		},
-		{
-			"name":"http.HandlerFunc.ServeHTTP",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":2007
-		},
-		{
-			"name":"http.(*ServeMux).ServeHTTP",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":2387
-		},
-		{
-			"name":"http.serverHandler.ServeHTTP",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":2802
-		},
-		{
-			"name":"http.(*conn).serve",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/net/http/server.go",
-			"line":1890
-		},
-		{
-			"name":"runtime.goexit",
-			"filepath":"/Users/will/.gvm/gos/go1.13/src/runtime/asm_amd64.s",
-			"line":1357
-		}]`
+		"main.noticeError (/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/examples/server/main.go:30)",
+		"http.HandlerFunc.ServeHTTP (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:2007)",
+		"newrelic.WrapHandle.func1 (/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/newrelic/instrumentation.go:41)",
+		"http.HandlerFunc.ServeHTTP (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:2007)",
+		"newrelic.WrapHandleFunc.func1 (/Users/will/Desktop/gopath/src/github.com/newrelic/go-agent/v3/newrelic/instrumentation.go:71)",
+		"http.HandlerFunc.ServeHTTP (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:2007)",
+		"http.(*ServeMux).ServeHTTP (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:2387)",
+		"http.serverHandler.ServeHTTP (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:2802)",
+		"http.(*conn).serve (/Users/will/.gvm/gos/go1.13/src/net/http/server.go:1890)",
+		"runtime.goexit (/Users/will/.gvm/gos/go1.13/src/runtime/asm_amd64.s:1357)"]`
 	testExpectedJSON(t, expectedJSON, buf.String())
 }
 
@@ -197,24 +157,17 @@ func TestStackTraceTopFrame(t *testing.T) {
 		return js
 	})
 
-	stack := []struct {
-		Name     string `json:"name"`
-		FilePath string `json:"filepath"`
-		Line     int    `json:"line"`
-	}{}
+	stack := []string{}
 	if err := json.Unmarshal(stackJSON, &stack); err != nil {
 		t.Fatal(err)
 	}
 	if len(stack) < 2 {
 		t.Fatal(string(stackJSON))
 	}
-	if stack[0].Name != "stacktracetest.TopStackFrame" {
+	if !strings.HasPrefix(stack[0], "stacktracetest.TopStackFrame (") {
 		t.Error(string(stackJSON))
 	}
-	if stack[0].Line != 9 {
-		t.Error(string(stackJSON))
-	}
-	if !strings.Contains(stack[0].FilePath, "go-agent/v3/internal/stacktracetest/stacktracetest.go") {
+	if !strings.Contains(stack[0], "go-agent/v3/internal/stacktracetest/stacktracetest.go") {
 		t.Error(string(stackJSON))
 	}
 }

@@ -57,7 +57,6 @@ func TestTraceSegments(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -139,7 +138,6 @@ func TestTraceSegmentsNoBacktrace(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -195,7 +193,6 @@ func TestTraceStacktraceServerSideConfig(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -269,7 +266,6 @@ func TestTraceSegmentAttributesExcluded(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -349,7 +345,6 @@ func TestTraceSegmentAttributesSpecificallyExcluded(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -414,7 +409,6 @@ func TestTraceSegmentAttributesDisabled(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",
@@ -487,7 +481,6 @@ func TestTraceSegmentAttributesSpecificallyDisabled(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/hello",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/basic",

@@ -154,7 +154,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/UnaryUnary",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryUnary",
@@ -248,7 +248,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/UnaryStream",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoUnaryStream",
@@ -340,7 +340,7 @@ func TestStreamUnaryClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/StreamUnary",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamUnary",
@@ -456,7 +456,7 @@ func TestStreamStreamClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/StreamStream",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/bufnet/gRPC/TestApplication/DoStreamStream",
@@ -604,7 +604,7 @@ func TestClientStreamingError(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/UnaryStream",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children:    []internal.WantTraceSegment{},
 			}},
 		},
