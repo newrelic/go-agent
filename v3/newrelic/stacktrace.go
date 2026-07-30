@@ -47,7 +47,15 @@ func (f StacktraceFrame) isAgent() bool {
 		strings.Contains(f.Name, "github.com/newrelic/go-agent/v3/newrelic.")
 }
 
+func (f StacktraceFrame) isPopulated() bool {
+	return f.Name != "" || f.File != "" || f.Line != 0
+}
+
 func (f StacktraceFrame) WriteJSON(buf *bytes.Buffer) {
+	if !f.isPopulated() {
+		jsonx.AppendString(buf, "")
+		return
+	}
 	jsonx.AppendString(buf, fmt.Sprintf("%s (%s:%d)", f.formattedName(), f.File, f.Line))
 }
 
