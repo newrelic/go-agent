@@ -225,7 +225,7 @@ func testClientCallWithTransaction(c client.Client, t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/name",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/testing/Micro/TestHandler.Method",
@@ -379,7 +379,7 @@ func TestClientPublishWithTransaction(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/name",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "MessageBroker/Micro/Topic/Produce/Named/topic",
@@ -547,7 +547,7 @@ func TestClientStreamWrapperWithTransaction(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/name",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/testing/Micro/TestHandler.StreamingMethod",
@@ -645,7 +645,7 @@ func TestServerWrapperWithApp(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "WebTransaction/Go/TestHandler.Method",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "Custom/Method",
@@ -739,7 +739,7 @@ func TestServerWrapperWithAppReturnsError(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "WebTransaction/Go/TestHandlerWithError.Method",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children:    []internal.WantTraceSegment{},
 			}},
 		},
@@ -979,7 +979,7 @@ func TestServerSubscribe(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{{
 					SegmentName: "Custom/segment",
 					Attributes:  map[string]interface{}{},
@@ -1051,7 +1051,7 @@ func TestServerSubscribeWithError(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/Message/Micro/Topic/Named/topic",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children:    []internal.WantTraceSegment{},
 			}},
 		},
