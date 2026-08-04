@@ -16,61 +16,114 @@ func Test_isTransaction(t *testing.T) {
 		kind     oteltrace.SpanKind
 		parent   oteltrace.SpanContext
 		txnCheck bool
-		want     bool
+		wantTxn  bool
+		wantWeb  bool
 	}{
 		{
-			name: "Remote parent exists and is valid.",
+			name: "Remote parent exists and is valid. Kind is unspecified.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				TraceID: validTraceID,
 				SpanID:  validSpanID,
 				Remote:  true,
 			}),
-			want: true,
+			wantTxn: true,
+			wantWeb: false,
 		},
 		{
-			name: "Remote parent exists but is not valid.",
+			name: "Remote parent exists but is not valid. Kind is unspecified.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: true,
 			}),
-			want: true,
+			wantTxn: true,
+			wantWeb: false,
 		},
 		{
-			name: "No parent. Kind is unspecified.",
-			kind: oteltrace.SpanKindUnspecified,
-			want: false,
+			name: "Remote parent exists. Kind is server.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID: validTraceID,
+				SpanID:  validSpanID,
+				Remote:  true,
+			}),
+			kind:    oteltrace.SpanKindServer,
+			wantTxn: true,
+			wantWeb: true,
+		},
+		{
+			name: "Remote parent exists. Kind is client.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID: validTraceID,
+				SpanID:  validSpanID,
+				Remote:  true,
+			}),
+			kind:    oteltrace.SpanKindClient,
+			wantTxn: true,
+			wantWeb: true,
+		},
+		{
+			name: "Remote parent exists. Kind is consumer.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID: validTraceID,
+				SpanID:  validSpanID,
+				Remote:  true,
+			}),
+			kind:    oteltrace.SpanKindConsumer,
+			wantTxn: true,
+			wantWeb: false,
+		},
+		{
+			name: "Remote parent exists. Kind is producer.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID: validTraceID,
+				SpanID:  validSpanID,
+				Remote:  true,
+			}),
+			kind:    oteltrace.SpanKindProducer,
+			wantTxn: true,
+			wantWeb: false,
+		},
+		{
+			name:    "No parent. Kind is unspecified.",
+			kind:    oteltrace.SpanKindUnspecified,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name: "Parent is not remote. Kind is unspecified.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: false,
 			}),
-			kind: oteltrace.SpanKindUnspecified,
-			want: false,
+			kind:    oteltrace.SpanKindUnspecified,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
-			name: "No parent. Kind is internal.",
-			kind: oteltrace.SpanKindInternal,
-			want: false,
+			name:    "No parent. Kind is internal.",
+			kind:    oteltrace.SpanKindInternal,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name: "Parent is not remote. Kind is internal.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: false,
 			}),
-			kind: oteltrace.SpanKindInternal,
-			want: false,
+			kind:    oteltrace.SpanKindInternal,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name:     "No parent. Kind is server. txnChecker returns true.",
 			kind:     oteltrace.SpanKindServer,
 			txnCheck: true,
-			want:     false,
+			wantTxn:  false,
+			wantWeb:  true,
 		},
 		{
 			name:     "No parent. Kind is server. txnChecker returns false.",
 			kind:     oteltrace.SpanKindServer,
 			txnCheck: false,
-			want:     true,
+			wantTxn:  true,
+			wantWeb:  true,
 		},
 		{
 			name: "Parent is not remote. Kind is server. txnChecker returns true.",
@@ -79,7 +132,8 @@ func Test_isTransaction(t *testing.T) {
 			}),
 			kind:     oteltrace.SpanKindServer,
 			txnCheck: true,
-			want:     false,
+			wantTxn:  false,
+			wantWeb:  true,
 		},
 		{
 			name: "Parent is not remote. Kind is server. txnChecker returns false.",
@@ -88,45 +142,52 @@ func Test_isTransaction(t *testing.T) {
 			}),
 			kind:     oteltrace.SpanKindServer,
 			txnCheck: false,
-			want:     true,
+			wantTxn:  true,
+			wantWeb:  true,
 		},
 		{
-			name: "No parent. Kind is client.",
-			kind: oteltrace.SpanKindClient,
-			want: false,
+			name:    "No parent. Kind is client.",
+			kind:    oteltrace.SpanKindClient,
+			wantTxn: false,
+			wantWeb: true,
 		},
 		{
 			name: "Parent is not remote. Kind is client.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: false,
 			}),
-			kind: oteltrace.SpanKindClient,
-			want: false,
+			kind:    oteltrace.SpanKindClient,
+			wantTxn: false,
+			wantWeb: true,
 		},
 		{
-			name: "No parent. Kind is producer.",
-			kind: oteltrace.SpanKindProducer,
-			want: false,
+			name:    "No parent. Kind is producer.",
+			kind:    oteltrace.SpanKindProducer,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name: "Parent is not remote. Kind is producer.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: false,
 			}),
-			kind: oteltrace.SpanKindProducer,
-			want: false,
+			kind:    oteltrace.SpanKindProducer,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name:     "No parent. Kind is consumer. txnCheck returns true.",
 			kind:     oteltrace.SpanKindConsumer,
 			txnCheck: true,
-			want:     false,
+			wantTxn:  false,
+			wantWeb:  false,
 		},
 		{
 			name:     "No parent. Kind is consumer. txnCheck returns false.",
 			kind:     oteltrace.SpanKindConsumer,
 			txnCheck: false,
-			want:     true,
+			wantTxn:  true,
+			wantWeb:  false,
 		},
 		{
 			name: "Parent is not remote. Kind is consumer. txnCheck returns true.",
@@ -135,7 +196,8 @@ func Test_isTransaction(t *testing.T) {
 			}),
 			kind:     oteltrace.SpanKindConsumer,
 			txnCheck: true,
-			want:     false,
+			wantTxn:  false,
+			wantWeb:  false,
 		},
 		{
 			name: "Parent is not remote. Kind is consumer. txnCheck returns false",
@@ -144,20 +206,23 @@ func Test_isTransaction(t *testing.T) {
 			}),
 			kind:     oteltrace.SpanKindConsumer,
 			txnCheck: false,
-			want:     true,
+			wantTxn:  true,
+			wantWeb:  false,
 		},
 		{
-			name: "No parent. Kind is not listed.",
-			kind: 7,
-			want: false,
+			name:    "No parent. Kind is not listed.",
+			kind:    7,
+			wantTxn: false,
+			wantWeb: false,
 		},
 		{
 			name: "Parent is not remote. Kind is not listed.",
 			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 				Remote: false,
 			}),
-			kind: 8,
-			want: false,
+			kind:    8,
+			wantTxn: false,
+			wantWeb: false,
 		},
 	}
 	for _, tt := range tests {
@@ -167,9 +232,9 @@ func Test_isTransaction(t *testing.T) {
 					return tt.txnCheck
 				},
 			}
-			got := p.isTransaction(tt.kind, trace.SpanContext{}, tt.parent)
-			if got != tt.want {
-				t.Errorf("isTransaction() = %v, want %v", got, tt.want)
+			gotTxn, gotWeb := p.isTransaction(tt.kind, trace.SpanContext{}, tt.parent)
+			if gotTxn != tt.wantTxn || gotWeb != tt.wantWeb {
+				t.Errorf("isTransaction() = (%v, %v), want (%v, %v)", gotTxn, gotWeb, tt.wantTxn, tt.wantWeb)
 			}
 		})
 	}
