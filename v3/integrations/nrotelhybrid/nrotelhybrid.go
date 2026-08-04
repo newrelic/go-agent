@@ -19,7 +19,8 @@ type txnMapEntry struct {
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
+	txnMap     map[oteltrace.TraceID]txnMapEntry      // Trace ID -> Transaction
+	segmentMap map[oteltrace.SpanID]*newrelic.Segment // SpanID -> Segment
 	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
@@ -58,8 +59,16 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 			txn.SetWebRequest(req)
 		}
 		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+		return
 	}
-
+	// start the segment with the txn entry
+	entry, ok := p.txnMap[s.SpanContext().TraceID()]
+	if !ok {
+		// transaction does not exist do not create segment
+		return
+	}
+	seg := entry.txn.StartSegment(s.Name())
+	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
@@ -71,7 +80,15 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 			val.txn.End()
 			delete(p.txnMap, s.SpanContext().TraceID())
 		}
+		return
 	}
+	// otherwise end segment
+	spanID := s.SpanContext().SpanID()
+	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
+		seg.End()
+		delete(p.segmentMap, spanID)
+	}
+
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
