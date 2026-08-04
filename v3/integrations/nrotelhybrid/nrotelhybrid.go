@@ -28,6 +28,7 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
 		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
+		segmentMap: map[oteltrace.SpanID]*newrelic.Segment{},
 		txnChecker: isWithinTransaction,
 	}
 }
@@ -42,31 +43,36 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		txn := p.app.StartTransaction(s.Name())
-		if isWeb {
-			attrs := s.Attributes()
-			var fullURL string
-			for _, attr := range attrs {
-				if attr.Key == semconv.URLFullKey {
-					fullURL = attr.Value.AsString()
-				}
-			}
-			req := newrelic.WebRequest{}
-			nrURL, err := url.Parse(fullURL)
-			if err == nil {
-				req.URL = nrURL
-			}
-			txn.SetWebRequest(req)
-		}
-		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+		p.startTransaction(s, isWeb)
 		return
 	}
 	// start the segment with the txn entry
-	entry, ok := p.txnMap[s.SpanContext().TraceID()]
-	if !ok {
-		// transaction does not exist do not create segment
-		return
+	if entry, ok := p.txnMap[s.SpanContext().TraceID()]; ok && entry.txn != nil {
+		p.startSegment(s, entry)
 	}
+}
+
+func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
+	txn := p.app.StartTransaction(s.Name())
+	if isWeb {
+		attrs := s.Attributes()
+		var fullURL string
+		for _, attr := range attrs {
+			if attr.Key == semconv.URLFullKey {
+				fullURL = attr.Value.AsString()
+			}
+		}
+		req := newrelic.WebRequest{}
+		nrURL, err := url.Parse(fullURL)
+		if err == nil {
+			req.URL = nrURL
+		}
+		txn.SetWebRequest(req)
+	}
+	p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+}
+
+func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
 	seg := entry.txn.StartSegment(s.Name())
 	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
@@ -75,10 +81,11 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
+	traceID := s.SpanContext().TraceID()
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		if val, ok := p.txnMap[s.SpanContext().TraceID()]; ok && val.txn != nil {
-			val.txn.End()
-			delete(p.txnMap, s.SpanContext().TraceID())
+		if entry, ok := p.txnMap[traceID]; ok && entry.txn != nil {
+			entry.txn.End()
+			delete(p.txnMap, traceID)
 		}
 		return
 	}
