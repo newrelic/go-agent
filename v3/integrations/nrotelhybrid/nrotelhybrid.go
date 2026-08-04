@@ -50,13 +50,12 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 					fullURL = attr.Value.AsString()
 				}
 			}
+			req := newrelic.WebRequest{}
 			nrURL, err := url.Parse(fullURL)
-			if err != nil {
-				// debug log
+			if err == nil {
+				req.URL = nrURL
 			}
-			txn.SetWebRequest(newrelic.WebRequest{
-				URL: nrURL,
-			})
+			txn.SetWebRequest(req)
 		}
 		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
 	}
