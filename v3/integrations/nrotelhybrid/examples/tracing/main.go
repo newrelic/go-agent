@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -24,7 +26,18 @@ func main() {
 }
 
 func run() (err error) {
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("Hybrid Example"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDistributedTracerEnabled(true),
+		newrelic.ConfigDebugLogger(os.Stdout),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer app.Shutdown(10 * time.Second)
 
+	processor := nrotelhybrid.NewHybridProcessor(app)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
@@ -33,7 +46,7 @@ func run() (err error) {
 		return err
 	}
 
-	tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+	tp := trace.NewTracerProvider(trace.WithSyncer(exporter), trace.WithSpanProcessor(processor))
 	shutdown := func(ctx context.Context) error {
 		err := tp.Shutdown(ctx)
 		return err
