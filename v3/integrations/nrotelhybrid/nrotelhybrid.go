@@ -2,6 +2,7 @@ package nrotelhybrid
 
 import (
 	"context"
+	"net/url"
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -39,17 +40,22 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	if p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()) {
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
 		txn := p.app.StartTransaction(s.Name())
-		attrs := s.Attributes()
-		var url string
-		for _, kv := range attrs {
-			if kv.Key == semconv.URLFullKey {
-				url = kv.Value.AsString()
+		if isWeb {
+			attrs := s.Attributes()
+			var fullURL string
+			for _, attr := range attrs {
+				if attr.Key == semconv.URLFullKey {
+					fullURL = attr.Value.AsString()
+				}
 			}
-		if isWebTransaction(s.SpanKind()) {
+			nrURL, err := url.Parse(fullURL)
+			if err != nil {
+				// debug log
+			}
 			txn.SetWebRequest(newrelic.WebRequest{
-				URL: url,
+				URL: nrURL,
 			})
 		}
 		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
@@ -61,7 +67,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
-	if p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()) {
+	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
 		if val, ok := p.txnMap[s.SpanContext().TraceID()]; ok && val.txn != nil {
 			val.txn.End()
 			delete(p.txnMap, s.SpanContext().TraceID())
@@ -77,27 +83,27 @@ func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 	return nil
 }
 
-func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) bool {
+// isTransaction reports whether the span should start/continue a transaction (isTxn),
+// and whether that transaction is a web transaction (isWeb).
+func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) (isTxn, isWeb bool) {
 	if parent.IsRemote() {
 		// any span with a remote parent is a transaction
-		return true
+		switch kind {
+		case oteltrace.SpanKindServer, oteltrace.SpanKindClient:
+			return true, true
+		default:
+			return true, false
+		}
 	}
-	// check if within a transaction
 	switch kind {
-	case oteltrace.SpanKindUnspecified:
-		return false
-	case oteltrace.SpanKindInternal:
-		return false
 	case oteltrace.SpanKindServer:
-		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID())
+		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), true
 	case oteltrace.SpanKindClient:
-		return false
-	case oteltrace.SpanKindProducer:
-		return false
+		return false, true
 	case oteltrace.SpanKindConsumer:
-		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID())
+		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), false
 	default:
-		return false
+		return false, false
 	}
 }
 
@@ -107,24 +113,4 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID otelt
 		return val.spanID != spanID
 	}
 	return false
-}
-
-func isWebTransaction(kind oteltrace.SpanKind) bool {
-	// check if within a transaction
-	switch kind {
-	case oteltrace.SpanKindUnspecified:
-		return false
-	case oteltrace.SpanKindInternal:
-		return false
-	case oteltrace.SpanKindServer:
-		return true
-	case oteltrace.SpanKindClient:
-		return true
-	case oteltrace.SpanKindProducer:
-		return false
-	case oteltrace.SpanKindConsumer:
-		return false
-	default:
-		return false
-	}
 }
