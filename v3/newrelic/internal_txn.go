@@ -363,8 +363,9 @@ func (txn *txn) MergeIntoHarvest(h *harvest) {
 
 	if txn.shouldSaveTrace() {
 		h.TxnTraces.Witness(harvestTrace{
-			txnEvent: txn.txnEvent,
-			Trace:    txn.TxnTrace,
+			txnEvent:  txn.txnEvent,
+			Trace:     txn.TxnTrace,
+			asyncWork: len(txn.asyncThreads) > 0,
 		})
 	}
 
