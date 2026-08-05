@@ -79,7 +79,7 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
-	seg := entry.txn.StartSegment(s.Name())
+	seg := p.getSegmentType(s, entry)
 	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
 
@@ -104,35 +104,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		}
 		seg.End()
 		delete(p.segmentMap, spanID)
-	}
-
-}
-
-func extractAttributeValue(val attribute.Value) any {
-
-	switch val.Type() {
-	case attribute.BOOL:
-		return val.AsBool()
-	case attribute.INT64:
-		return val.AsInt64()
-	case attribute.FLOAT64:
-		return val.AsFloat64()
-	case attribute.STRING:
-		return val.AsString()
-	case attribute.BOOLSLICE:
-		return val.AsBoolSlice()
-	case attribute.INT64SLICE:
-		return val.AsInt64Slice()
-	case attribute.FLOAT64SLICE:
-		return val.AsFloat64Slice()
-	case attribute.STRINGSLICE:
-		return val.AsStringSlice()
-	case attribute.BYTESLICE:
-		return val.AsByteSlice()
-	case attribute.SLICE:
-		return val.AsSlice()
-	default:
-		return nil // EMPTY OR INVALID
 	}
 
 }
@@ -169,10 +140,60 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 	}
 }
 
+func (p *nrotelhybridProcessor) getSegmentType(s trace.ReadWriteSpan, entry txnMapEntry) nrSegment {
+	var fullURL = ""
+	switch s.SpanKind() {
+	case oteltrace.SpanKindClient:
+		for _, attr := range s.Attributes() {
+			// db.system is not in current semconv package
+			if attr.Key == semconv.URLFullKey {
+				fullURL = attr.Value.AsString()
+			}
+			if attr.Key == semconv.DBSystemNameKey || attr.Key == "db.system" {
+				return &newrelic.DatastoreSegment{}
+			}
+		}
+		seg := newrelic.StartExternalSegment(entry.txn, nil)
+		seg.URL = fullURL
+		return seg
+	default:
+		return entry.txn.StartSegment(s.Name())
+	}
+}
+
 func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
 	// if the transaction exists and is not the same span id, it is within an existing transaction
 	if val, ok := txnMap[traceID]; ok {
 		return val.spanID != spanID
 	}
 	return false
+}
+
+func extractAttributeValue(val attribute.Value) any {
+
+	switch val.Type() {
+	case attribute.BOOL:
+		return val.AsBool()
+	case attribute.INT64:
+		return val.AsInt64()
+	case attribute.FLOAT64:
+		return val.AsFloat64()
+	case attribute.STRING:
+		return val.AsString()
+	case attribute.BOOLSLICE:
+		return val.AsBoolSlice()
+	case attribute.INT64SLICE:
+		return val.AsInt64Slice()
+	case attribute.FLOAT64SLICE:
+		return val.AsFloat64Slice()
+	case attribute.STRINGSLICE:
+		return val.AsStringSlice()
+	case attribute.BYTESLICE:
+		return val.AsByteSlice()
+	case attribute.SLICE:
+		return val.AsSlice()
+	default:
+		return nil // EMPTY OR INVALID
+	}
+
 }
