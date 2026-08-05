@@ -335,7 +335,6 @@ func Test_nrotelhybridProcessor(t *testing.T) {
 		integrationsupport.SampleEverythingReplyFn,
 		integrationsupport.ConfigFullTraces,
 	)
-	//validTraceID := [16]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
 
 	tests := []struct {
 		name                string
@@ -410,8 +409,6 @@ func Test_nrotelhybridProcessor(t *testing.T) {
 			expectTxnMapLen:     0,
 			expectSegmentMapLen: 0,
 		},
-		// {name: "empty span name", spanName: ""},
-		// {name: "duplicate segment name", spanName: "seg-a"},
 	}
 
 	for _, tt := range tests {
