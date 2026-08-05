@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -16,10 +17,16 @@ type txnMapEntry struct {
 	spanID oteltrace.SpanID
 }
 
+type nrSegment interface {
+	End()
+	AddAttribute(key string, val interface{})
+}
+
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
 	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
+	segmentMap map[oteltrace.SpanID]nrSegment    // SpanID -> Segment
 	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
@@ -27,6 +34,7 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
 		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
+		segmentMap: map[oteltrace.SpanID]nrSegment{},
 		txnChecker: isWithinTransaction,
 	}
 }
@@ -41,37 +49,92 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		txn := p.app.StartTransaction(s.Name())
-		if isWeb {
-			attrs := s.Attributes()
-			var fullURL string
-			for _, attr := range attrs {
-				if attr.Key == semconv.URLFullKey {
-					fullURL = attr.Value.AsString()
-				}
-			}
-			req := newrelic.WebRequest{}
-			nrURL, err := url.Parse(fullURL)
-			if err == nil {
-				req.URL = nrURL
-			}
-			txn.SetWebRequest(req)
-		}
-		p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+		p.startTransaction(s, isWeb)
+		return
 	}
+	// start the segment with the txn entry
+	if entry, ok := p.txnMap[s.SpanContext().TraceID()]; ok && entry.txn != nil {
+		p.startSegment(s, entry)
+	}
+}
 
+func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
+	txn := p.app.StartTransaction(s.Name())
+	if isWeb {
+		attrs := s.Attributes()
+		var fullURL string
+		for _, attr := range attrs {
+			if attr.Key == semconv.URLFullKey {
+				fullURL = attr.Value.AsString()
+			}
+		}
+		req := newrelic.WebRequest{}
+		nrURL, err := url.Parse(fullURL)
+		if err == nil {
+			req.URL = nrURL
+		}
+		txn.SetWebRequest(req)
+	}
+	p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+}
+
+func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
+	seg := entry.txn.StartSegment(s.Name())
+	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
+	traceID := s.SpanContext().TraceID()
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		if val, ok := p.txnMap[s.SpanContext().TraceID()]; ok && val.txn != nil {
-			val.txn.End()
-			delete(p.txnMap, s.SpanContext().TraceID())
+		if entry, ok := p.txnMap[traceID]; ok && entry.txn != nil {
+			entry.txn.End()
+			delete(p.txnMap, traceID)
 		}
+		return
 	}
+	// otherwise end segment
+	spanID := s.SpanContext().SpanID()
+	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
+		for _, attr := range s.Attributes() {
+			//  attr.Value.Type() switch on type
+			seg.AddAttribute(string(attr.Key), extractAttributeValue(attr.Value))
+		}
+		seg.End()
+		delete(p.segmentMap, spanID)
+	}
+
+}
+
+func extractAttributeValue(val attribute.Value) any {
+
+	switch val.Type() {
+	case attribute.BOOL:
+		return val.AsBool()
+	case attribute.INT64:
+		return val.AsInt64()
+	case attribute.FLOAT64:
+		return val.AsFloat64()
+	case attribute.STRING:
+		return val.AsString()
+	case attribute.BOOLSLICE:
+		return val.AsBoolSlice()
+	case attribute.INT64SLICE:
+		return val.AsInt64Slice()
+	case attribute.FLOAT64SLICE:
+		return val.AsFloat64Slice()
+	case attribute.STRINGSLICE:
+		return val.AsStringSlice()
+	case attribute.BYTESLICE:
+		return val.AsByteSlice()
+	case attribute.SLICE:
+		return val.AsSlice()
+	default:
+		return nil // EMPTY OR INVALID
+	}
+
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
