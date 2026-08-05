@@ -17,11 +17,16 @@ type txnMapEntry struct {
 	spanID oteltrace.SpanID
 }
 
+type nrSegment interface {
+	End()
+	AddAttribute(key string, val interface{})
+}
+
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID]txnMapEntry      // Trace ID -> Transaction
-	segmentMap map[oteltrace.SpanID]*newrelic.Segment // SpanID -> Segment
+	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
+	segmentMap map[oteltrace.SpanID]nrSegment    // SpanID -> Segment
 	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
@@ -29,7 +34,7 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
 		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
-		segmentMap: map[oteltrace.SpanID]*newrelic.Segment{},
+		segmentMap: map[oteltrace.SpanID]nrSegment{},
 		txnChecker: isWithinTransaction,
 	}
 }
@@ -95,7 +100,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		for _, attr := range s.Attributes() {
 			//  attr.Value.Type() switch on type
-			seg.AddAttribute(string(attr.Key), extractAttibuteValue(attr.Value))
+			seg.AddAttribute(string(attr.Key), extractAttributeValue(attr.Value))
 		}
 		seg.End()
 		delete(p.segmentMap, spanID)
@@ -103,7 +108,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 
 }
 
-func extractAttibuteValue(val attribute.Value) any {
+func extractAttributeValue(val attribute.Value) any {
 
 	switch val.Type() {
 	case attribute.BOOL:
