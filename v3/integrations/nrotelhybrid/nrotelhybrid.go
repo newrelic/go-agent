@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -92,8 +93,41 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// otherwise end segment
 	spanID := s.SpanContext().SpanID()
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
+		for _, attr := range s.Attributes() {
+			//  attr.Value.Type() switch on type
+			seg.AddAttribute(string(attr.Key), extractAttibuteValue(attr.Value))
+		}
 		seg.End()
 		delete(p.segmentMap, spanID)
+	}
+
+}
+
+func extractAttibuteValue(val attribute.Value) any {
+
+	switch val.Type() {
+	case attribute.BOOL:
+		return val.AsBool()
+	case attribute.INT64:
+		return val.AsInt64()
+	case attribute.FLOAT64:
+		return val.AsFloat64()
+	case attribute.STRING:
+		return val.AsString()
+	case attribute.BOOLSLICE:
+		return val.AsBoolSlice()
+	case attribute.INT64SLICE:
+		return val.AsInt64Slice()
+	case attribute.FLOAT64SLICE:
+		return val.AsFloat64Slice()
+	case attribute.STRINGSLICE:
+		return val.AsStringSlice()
+	case attribute.BYTESLICE:
+		return val.AsByteSlice()
+	case attribute.SLICE:
+		return val.AsSlice()
+	default:
+		return nil // EMPTY OR INVALID
 	}
 
 }
