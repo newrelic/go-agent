@@ -1,9 +1,12 @@
 package nrotelhybrid
 
 import (
+	"context"
 	"testing"
 
-	"go.opentelemetry.io/otel/trace"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -232,7 +235,7 @@ func Test_isTransaction(t *testing.T) {
 					return tt.txnCheck
 				},
 			}
-			gotTxn, gotWeb := p.isTransaction(tt.kind, trace.SpanContext{}, tt.parent)
+			gotTxn, gotWeb := p.isTransaction(tt.kind, oteltrace.SpanContext{}, tt.parent)
 			if gotTxn != tt.wantTxn || gotWeb != tt.wantWeb {
 				t.Errorf("isTransaction() = (%v, %v), want (%v, %v)", gotTxn, gotWeb, tt.wantTxn, tt.wantWeb)
 			}
@@ -323,6 +326,116 @@ func Test_nrotelhybridProcessor_isWithinTransaction(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("isWithinTransaction() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func Test_nrotelhybridProcessor(t *testing.T) {
+	app := integrationsupport.NewTestApp(
+		integrationsupport.SampleEverythingReplyFn,
+		integrationsupport.ConfigFullTraces,
+	)
+	//validTraceID := [16]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
+
+	tests := []struct {
+		name                string
+		spanName            string
+		fn                  func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span
+		expectTxnMapLen     int
+		expectSegmentMapLen int
+	}{
+		{
+			name:     "No txn or segment. Defaults to SpanKind.INTERNAL",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName)
+				return span
+			},
+			expectTxnMapLen:     0,
+			expectSegmentMapLen: 0,
+		},
+		{
+			name:     "No txn or segment. Set to SpanKind.INTERNAL",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName, oteltrace.WithSpanKind(oteltrace.SpanKindInternal))
+				return span
+			},
+			expectTxnMapLen:     0,
+			expectSegmentMapLen: 0,
+		},
+		{
+			name:     "Basic txn. Set to SpanKind.SERVER",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName, oteltrace.WithSpanKind(oteltrace.SpanKindServer))
+				return span
+			},
+			expectTxnMapLen:     1,
+			expectSegmentMapLen: 0,
+		},
+		{
+			name:     "No txn or segment. Set to SpanKind.CLIENT",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName, oteltrace.WithSpanKind(oteltrace.SpanKindClient))
+				return span
+			},
+			expectTxnMapLen:     0,
+			expectSegmentMapLen: 0,
+		},
+		{
+			name:     "Basic txn. Set to SpanKind.CONSUMER",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName, oteltrace.WithSpanKind(oteltrace.SpanKindConsumer))
+				return span
+			},
+			expectTxnMapLen:     1,
+			expectSegmentMapLen: 0,
+		},
+		{
+			name:     "No txn or segment. Set to SpanKind.UNSPECIFIED",
+			spanName: "transaction-a",
+			fn: func(ctx context.Context, spanName string, tp *trace.TracerProvider) oteltrace.Span {
+				tracer := otel.Tracer("test")
+				_, span := tracer.Start(ctx, spanName, oteltrace.WithSpanKind(oteltrace.SpanKindUnspecified))
+				return span
+			},
+			expectTxnMapLen:     0,
+			expectSegmentMapLen: 0,
+		},
+		// {name: "empty span name", spanName: ""},
+		// {name: "duplicate segment name", spanName: "seg-a"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			processor := NewHybridProcessor(app.Application)
+			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor))
+			shutdown := func(ctx context.Context) error {
+				err := tp.Shutdown(ctx)
+				return err
+			}
+			defer shutdown(context.Background())
+			otel.SetTracerProvider(tp)
+
+			span := tt.fn(context.Background(), tt.spanName, tp)
+
+			if len(processor.txnMap) != tt.expectTxnMapLen {
+				t.Errorf("Unexpected length of txnMap. Expected len =  %d, got len = %d", tt.expectTxnMapLen, len(processor.txnMap))
+			}
+			if len(processor.segmentMap) != tt.expectSegmentMapLen {
+				t.Errorf("Unexpected length of segmentMap. Expected len =  %d, got len = %d", tt.expectSegmentMapLen, len(processor.segmentMap))
+			}
+
+			span.End()
+
 		})
 	}
 }
