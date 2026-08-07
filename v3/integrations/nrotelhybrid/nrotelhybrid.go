@@ -25,15 +25,15 @@ type nrSegment interface {
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
-	segmentMap map[oteltrace.SpanID]nrSegment    // SpanID -> Segment
-	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
+	txnMap     map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
+	segmentMap map[oteltrace.SpanID]nrSegment      // SpanID -> Segment
+	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
 func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
-		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
+		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
 		segmentMap: map[oteltrace.SpanID]nrSegment{},
 		txnChecker: isWithinTransaction,
 	}
@@ -53,8 +53,10 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 		return
 	}
 	// start the segment with the txn entry
-	if entry, ok := p.txnMap[s.SpanContext().TraceID()]; ok && entry.txn != nil {
-		p.startSegment(s, entry)
+	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
+		if entry := entries[len(entries)-1]; entry.txn != nil {
+			p.startSegment(s, entry)
+		}
 	}
 }
 
@@ -75,11 +77,12 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		}
 		txn.SetWebRequest(req)
 	}
-	p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+	traceID := s.SpanContext().TraceID()
+	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn, s.SpanContext().SpanID()})
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
-	seg := p.getSegmentType(s, entry)
+	seg := entry.txn.StartSegment(s.Name())
 	p.segmentMap[s.SpanContext().SpanID()] = seg
 }
 
@@ -89,14 +92,27 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	traceID := s.SpanContext().TraceID()
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		if entry, ok := p.txnMap[traceID]; ok && entry.txn != nil {
-			entry.txn.End()
+		spanID := s.SpanContext().SpanID()
+		entries := p.txnMap[traceID]
+		for i := len(entries) - 1; i >= 0; i-- {
+			if entries[i].spanID == spanID {
+				if entries[i].txn != nil {
+					entries[i].txn.End()
+				}
+				entries = append(entries[:i], entries[i+1:]...)
+				break
+			}
+		}
+		if len(entries) == 0 {
 			delete(p.txnMap, traceID)
+		} else {
+			p.txnMap[traceID] = entries
 		}
 		return
 	}
 	// otherwise end segment
 	spanID := s.SpanContext().SpanID()
+	p.switchSegmentType(s)
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		for _, attr := range s.Attributes() {
 			//  attr.Value.Type() switch on type
@@ -140,8 +156,16 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 	}
 }
 
-func (p *nrotelhybridProcessor) getSegmentType(s trace.ReadWriteSpan, entry txnMapEntry) nrSegment {
+func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 	var fullURL = ""
+	segInterface, ok := p.segmentMap[s.SpanContext().SpanID()]
+	if !ok {
+		return
+	}
+	basicSegment, ok := segInterface.(*newrelic.Segment)
+	if !ok {
+		return
+	}
 	switch s.SpanKind() {
 	case oteltrace.SpanKindClient:
 		for _, attr := range s.Attributes() {
@@ -150,21 +174,23 @@ func (p *nrotelhybridProcessor) getSegmentType(s trace.ReadWriteSpan, entry txnM
 				fullURL = attr.Value.AsString()
 			}
 			if attr.Key == semconv.DBSystemNameKey || attr.Key == "db.system" {
-				return &newrelic.DatastoreSegment{}
+				return
 			}
 		}
-		seg := newrelic.StartExternalSegment(entry.txn, nil)
+		seg := &newrelic.ExternalSegment{
+			StartTime: basicSegment.StartTime,
+		}
 		seg.URL = fullURL
-		return seg
+		p.segmentMap[s.SpanContext().SpanID()] = seg
 	default:
-		return entry.txn.StartSegment(s.Name())
+		return
 	}
 }
 
-func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
-	// if the transaction exists and is not the same span id, it is within an existing transaction
-	if val, ok := txnMap[traceID]; ok {
-		return val.spanID != spanID
+func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
+	// if the innermost active transaction exists and is not the same span id, it is within an existing transaction
+	if entries := txnMap[traceID]; len(entries) > 0 {
+		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
 }
