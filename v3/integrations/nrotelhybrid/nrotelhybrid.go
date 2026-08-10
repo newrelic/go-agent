@@ -91,8 +91,9 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	traceID := s.SpanContext().TraceID()
+	spanID := s.SpanContext().SpanID()
+
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		spanID := s.SpanContext().SpanID()
 		entries := p.txnMap[traceID]
 		for i := len(entries) - 1; i >= 0; i-- {
 			if entries[i].spanID == spanID {
@@ -111,7 +112,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		return
 	}
 	// otherwise end segment
-	spanID := s.SpanContext().SpanID()
 	p.switchSegmentType(s)
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		for _, attr := range s.Attributes() {
@@ -174,6 +174,11 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 				fullURL = attr.Value.AsString()
 			}
 			if attr.Key == semconv.DBSystemNameKey || attr.Key == "db.system" {
+				seg := &newrelic.DatastoreSegment{
+					StartTime: basicSegment.StartTime,
+				}
+				// map attribtues for db
+				p.segmentMap[s.SpanContext().SpanID()] = seg
 				return
 			}
 		}
