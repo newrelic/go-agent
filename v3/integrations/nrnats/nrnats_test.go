@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nats-io/nats-server/test"
+	"github.com/nats-io/nats-server/v2/test"
 	nats "github.com/nats-io/nats.go"
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"

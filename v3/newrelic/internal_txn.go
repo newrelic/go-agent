@@ -397,6 +397,7 @@ func headersJustWritten(thd *thread, code int, hdr http.Header) {
 		e := txnErrorFromResponseCode(time.Now(), code)
 		e.Stack = getStackTrace()
 		expect := txn.appRun.responseCodeIsExpected(code)
+		e.Expect = expect
 		thd.noticeErrorInternal(e, nil, expect)
 	}
 }

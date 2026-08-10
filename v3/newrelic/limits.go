@@ -39,9 +39,10 @@ const (
 
 	errorEventMessageLengthLimit = 4096
 	// attributes
-	attributeKeyLengthLimit   = 255
-	attributeValueLengthLimit = 255
-	attributeUserLimit        = 64
+	attributeKeyLengthLimit       = 255
+	attributeValueLengthLimit     = 255
+	attributeUserLimit            = 64
+	attributeSpanDBStatementLimit = 4096 // int representing max db.statement size in bytes
 	// attributeErrorLimit limits the number of extra attributes that can be
 	// provided when noticing an error.
 	attributeErrorLimit       = 32

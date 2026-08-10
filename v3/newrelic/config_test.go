@@ -154,7 +154,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
-					"Enabled": false
+					"Enabled": false,
+					"WithinMessageField": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -167,6 +168,10 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"BrowserMonitoring":{
 				"Attributes":{"Enabled":false,"Exclude":["10"],"Include":["9"]},
 				"Enabled":true
+			},
+			"CloudAWS":{
+				"AccountDecoding": {"Enabled": true},
+				"AccountID": ""
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
@@ -195,6 +200,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled":true,
 				"ExpectStatusCodes":[500],
 				"IgnoreStatusCodes":[0,5,404,405],
+				"MaxSamplesStored": %d,
 				"RecordPanics":false
 			},
 			"Heroku":{
@@ -238,7 +244,8 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Attributes":{
 					"Enabled":true,"Exclude":["12"],"Include":["11"]
 				},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":["4"],"Include":["3"]},
@@ -310,7 +317,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxErrorEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	securityPoliciesInput := []byte(`{
 		"record_sql":                    { "enabled": false, "required": false },
@@ -385,7 +392,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"MaxSamplesStored": %d
 				},
 				"LocalDecorating":{
-					"Enabled": false
+					"Enabled": false,
+					"WithinMessageField": false
 				},
 				"Metrics": {
 					"Enabled": true
@@ -402,6 +410,10 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 					"Include":null
 				},
 				"Enabled":true
+			},
+			"CloudAWS":{
+				"AccountDecoding": {"Enabled": true},
+				"AccountID": ""
 			},
 			"CodeLevelMetrics":{"Enabled":true,"IgnoredPrefix":"","IgnoredPrefixes":null,"PathPrefix":"","PathPrefixes":null,"RedactIgnoredPrefixes":true,"RedactPathPrefixes":true,"Scope":"all"},
 			"CrossApplicationTracer":{"Enabled":false},
@@ -430,6 +442,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled":true,
 				"ExpectStatusCodes":null,
 				"IgnoreStatusCodes":null,
+				"MaxSamplesStored": %d,
 				"RecordPanics":false
 			},
 			"Heroku":{
@@ -471,7 +484,8 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			},
 			"SpanEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
-				"Enabled":true
+				"Enabled":true,
+				"MaxSamplesStored": %d
 			},
 			"TransactionEvents":{
 				"Attributes":{"Enabled":true,"Exclude":null,"Include":null},
@@ -533,7 +547,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"span_event_data": %d
 			}
 		}
-	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
+	}]`, internal.MaxLogEvents, internal.MaxCustomEvents, internal.MaxSpanEvents, internal.MaxErrorEvents, internal.MaxSpanEvents, internal.MaxTxnEvents, internal.MaxCustomEvents, internal.MaxTxnEvents, internal.MaxSpanEvents))
 
 	metadata := map[string]string{}
 	js, err := configConnectJSONInternal(cp, 123, &utilization.SampleData, sampleEnvironment, "0.2.2", nil, metadata)
@@ -772,37 +786,6 @@ func TestPreconnectHostCrossAgent(t *testing.T) {
 	}
 }
 
-func TestConfigMaxTxnEvents(t *testing.T) {
-	cfg := defaultConfig()
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = 434
-	if n := cfg.maxTxnEvents(); n != 434 {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = 0
-	if n := cfg.maxTxnEvents(); n != 0 {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = -1
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-
-	cfg = defaultConfig()
-	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 1
-	if n := cfg.maxTxnEvents(); n != internal.MaxTxnEvents {
-		t.Error(n)
-	}
-}
-
 func TestComputeDynoHostname(t *testing.T) {
 	testcases := []struct {
 		useDynoNames     bool
@@ -893,16 +876,6 @@ func TestNewInternalConfig(t *testing.T) {
 		"NEW_RELIC_METADATA_ZIP": "ZAP",
 	}) {
 		t.Error(c.metadata)
-	}
-}
-
-func TestConfigurableMaxCustomEvents(t *testing.T) {
-	expected := 1000
-	cfg := config{Config: defaultConfig()}
-	cfg.CustomInsightsEvents.MaxSamplesStored = expected
-	result := cfg.maxCustomEvents()
-	if result != expected {
-		t.Errorf("Unexpected max number of custom events, expected %d but got %d", expected, result)
 	}
 }
 
@@ -999,5 +972,423 @@ func TestCLMJsonUnmarshalling(t *testing.T) {
 				t.Errorf("#%d expected \"%v\" but got \"%v\"", i, tc.S, s)
 			}
 		}
+	}
+}
+
+func Test_maxTxnEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxTxnEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxTxnEvents + 1,
+			want:       internal.MaxTxnEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxTxnEvents,
+			want:       internal.MaxTxnEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxTxnEvents / 2,
+			want:       internal.MaxTxnEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxTxnEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxTxnEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxCustomEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxCustomEvents + 1,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxCustomEvents,
+			want:       internal.MaxCustomEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxCustomEvents / 2,
+			want:       internal.MaxCustomEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxCustomEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxCustomEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxSpanEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxSpanEvents + 1,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxSpanEvents,
+			want:       internal.MaxSpanEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxSpanEvents / 2,
+			want:       internal.MaxSpanEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxSpanEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxSpanEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxErrorEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxErrorEvents + 1,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxErrorEvents,
+			want:       internal.MaxErrorEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxErrorEvents / 2,
+			want:       internal.MaxErrorEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 10,
+			want:       10,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxErrorEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxErrorEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxLogEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		configured int
+		want       int
+	}{
+		{
+			name:       "configured is less than 0",
+			configured: -1,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is greater than max",
+			configured: internal.MaxLogEvents + 1,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is equal to max",
+			configured: internal.MaxLogEvents,
+			want:       internal.MaxLogEvents,
+		},
+		{
+			name:       "configured is equal to 0",
+			configured: 0,
+			want:       0,
+		},
+		{
+			name:       "configured is between 0 and max",
+			configured: internal.MaxLogEvents / 2,
+			want:       internal.MaxLogEvents / 2,
+		},
+		{
+			name:       "configured is between 0 and max (small value)",
+			configured: 100,
+			want:       100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maxLogEvents(tt.configured)
+			if got != tt.want {
+				t.Errorf("maxLogEvents(%d) = %v, want %v", tt.configured, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefaultConfigMaxSamplesStored(t *testing.T) {
+	cfg := defaultConfig()
+
+	tests := []struct {
+		name     string
+		actual   int
+		expected int
+	}{
+		{
+			name:     "CustomInsightsEvents.MaxSamplesStored",
+			actual:   cfg.CustomInsightsEvents.MaxSamplesStored,
+			expected: internal.MaxCustomEvents,
+		},
+		{
+			name:     "TransactionEvents.MaxSamplesStored",
+			actual:   cfg.TransactionEvents.MaxSamplesStored,
+			expected: internal.MaxTxnEvents,
+		},
+		{
+			name:     "ErrorCollector.MaxSamplesStored",
+			actual:   cfg.ErrorCollector.MaxSamplesStored,
+			expected: internal.MaxErrorEvents,
+		},
+		{
+			name:     "SpanEvents.MaxSamplesStored",
+			actual:   cfg.SpanEvents.MaxSamplesStored,
+			expected: internal.MaxSpanEvents,
+		},
+		{
+			name:     "ApplicationLogging.Forwarding.MaxSamplesStored",
+			actual:   cfg.ApplicationLogging.Forwarding.MaxSamplesStored,
+			expected: internal.MaxLogEvents,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.actual != tt.expected {
+				t.Errorf("%s: defaultConfig() sets %d, expected %d", tt.name, tt.actual, tt.expected)
+			}
+		})
+	}
+}
+
+func Test_validateAWSAccountID(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		accountID string
+		want      string
+		wantErr   bool
+		// no need to check error string since it is always the same
+	}{
+		{
+			name:      "Improper formatted account ID with non-number characters",
+			accountID: "onetwothreef",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper formatted account ID with non-number characters and numbers",
+			accountID: "111twothree4",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with numbers",
+			accountID: "111222333",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with non-number characters and numbers",
+			accountID: "onetwo34",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Improper length account ID with non-number characters",
+			accountID: "onetwothre",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Proper length account ID with all numbers",
+			accountID: "123234345456",
+			want:      "123234345456",
+			wantErr:   false,
+		},
+		{
+			name:      "Empty string",
+			accountID: "",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with leading zeros",
+			accountID: "000123456789",
+			want:      "000123456789",
+			wantErr:   false,
+		},
+		{
+			name:      "All zeros",
+			accountID: "000000000000",
+			want:      "000000000000",
+			wantErr:   false,
+		},
+		{
+			name:      "13+ digits (too long)",
+			accountID: "1234567890123",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with hyphens",
+			accountID: "123-456-7890",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with spaces",
+			accountID: "123 456 7890",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with leading whitespace",
+			accountID: " 123456789012",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Account ID with trailing whitespace",
+			accountID: "123456789012 ",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Negative number representation",
+			accountID: "-12345678901",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Floating point representation",
+			accountID: "12345678.012",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "Single digit",
+			accountID: "1",
+			want:      "",
+			wantErr:   true,
+		},
+		{
+			name:      "11 digits (just under the limit)",
+			accountID: "12345678901",
+			want:      "",
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := validateAWSAccountID(tt.accountID)
+			// putting tt.want comparison before error check because we want to see
+			// if it properly returns an empty string
+			if tt.want != got {
+				t.Errorf("validateAWSAccountID() = %v, want %v", got, tt.want)
+			}
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("validateAWSAccountID() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("validateAWSAccountID() succeeded unexpectedly")
+			}
+		})
 	}
 }

@@ -1,7 +1,105 @@
-## 3.41.0 Profiling Limited Preview (unreleased)
- * Added continuous profiling feature to the agent.
+## 3.44.1
+### Fixed
+  * Corrected incorrect tag for previous release 
+### Security
+  * Dependabot security bumps
+    * nrgochi (integration will be bumped to v5.2.4)
+    * nrmongo (integration will be bumped to v1.17.7)
+    * nrmongo-v2 (integration will be bumped to v2.4.2)
+    * nrnats (integration will be bumped to v2.11.15)
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
- **Note:** Continuous Profiling UI is coming soon! While the Go agent on this special preview branch now supports Continuous Profiling data collection, the visualization experience will debut in Limited Preview starting 23 March 2026. If you would like to get early access to the profiling dashboards and UI features, please reach out to your Account Executive (AE) about how to opt-in to the preview.
+## 3.44.0
+### Added
+  * Added Support for Anthropic SDK `nranthropic`
+  * Added Support for GocqlX `nrgocqlx`
+### Fixed
+  * Export Internal Test Types via `integrationsupport` to unblock external test consumers
+    * Thank you to community member @nitinprajwal for contributing to this solution
+  * Fixed a bug in sqlparse to support optional `INTO` statements in sql integrations
+  * Fixed a bug in `nrnats` that caused flaky testing
+### Security
+  * Dependabot Security Bumps
+    * `nrfiber`
+
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.43.3
+### Feature
+  * EXPERIMENTAL: Added a config option `ConfigAppLogDecoratingWithinMessage` to allow Local Log Decorator to appear within a message field.  This can only be applied to the `logcontext-v2/nrlogrus` integration. The `logcontext-v2/nrlogrus` integration will be bumped to v1.1.4.
+
+### Security
+  * Dependabot security bumps
+    * `nrawsbedrock` (integration will be bumped to v1.1.1)
+    * `nrawssdk-v2` (integration will be bumped to v1.2.7)
+    * `nrpgx5` (integration will be bumped to v1.3.4)
+  
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.43.2
+### Fixed
+  * Fixed a bug in `replacementResponseWriter` where the `Unwrap` function wasn't being promoted as a part of an anoynmous struct
+  
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.43.1
+## Fixed
+  * Fixed a bug where we were importing the incorrect version of the `nrsecureagent` in our `nrgrpc` integration
+
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+
+## 3.43.0
+### Added
+  * Added UnWrap support for replacement response right
+    * Thank you to community member @ArturFortunato for contributing to this solution
+  * Added support for Lambda function URL request and response in the `nrlambda` integration
+    * Thank you to community member @rittneje for contributing to this solution
+  * Added additional Span attribute for Opensearch/elastic search endpoint in the `nrawssdk` integration
+  * Added Support for "WITH" clauses to sqlparse
+
+### Fixed
+  * Fixed failing httptest
+### Security
+  * Updated CI/CD go version
+  * Bumped `nrgrpc` version
+  * Dependabot security bumps
+    * `logcontext/nrlogrus`
+    * `logcontext/nrlogrusplugin`
+    * `logcontext-v2/nrlogrus`
+    * `nrfiber`
+  
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
+## 3.42.0
+### Added
+  * Added `ConfigTransactionEventsMaxSamplesStored`and `ConfigErrorCollectorMaxSamplesStored` allowing full control of maximum samples stored for Transaction Events, Custom Insights Events, Error Events, and Log Events
+  * Added support for the `MultiValueHeaders` property when extracting the headers from `events.APIGatewayProxyResponse` in nrlambda
+      * Thank you to community member @rittneje for contributing to this solution
+### Fixed
+  * Removed unused variables and modernize by replacing interface{} with any in the `nrpxg5` integration
+  * Fixed a bug where error events did not correctly mark expected errors
+      * Thank you to community member @driimus for contributing to this solution
+  * Bumped `nrwriter` integration to use v1.0.2
+      * Thank you to community member @hiicharm for spotting this.
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
 
 ## 3.41.0
 ### Added

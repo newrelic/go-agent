@@ -24,6 +24,8 @@ func main() {
 		newrelic.ConfigAppName("Example App"),
 		newrelic.ConfigInfoLogger(os.Stdout),
 		newrelic.ConfigDistributedTracerEnabled(true),
+		// newrelic.ConfigCloudAWSAccountID("<insert-aws-account-id>"), // Set the AWS accountID.  Will override any previous config options
+		// newrelic.ConfigCloudAWSAccountDecodingEnabled(false), // Enable/disable accountID decoding. Default is enabled
 	)
 	if nil != err {
 		fmt.Println(err)
@@ -38,17 +40,28 @@ func main() {
 	// Start recording a New Relic transaction
 	txn := app.StartTransaction("My sample transaction")
 
-	ctx := context.Background()
-	awsConfig, err := config.LoadDefaultConfig(ctx, func(awsConfig *config.LoadOptions) error {
-		// Instrument all new AWS clients with New Relic
-		nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, nil)
-		return nil
-	})
+	ctx := newrelic.NewContext(context.Background(), txn)
+
+	// We need the values in the aws.Config for InitializeMiddleware, so
+	// there is no longer a need for a config option function.
+	awsConfig, err := config.LoadDefaultConfig(ctx)
+
+	// nrawssdk.AppendMiddlewares(&awsConfig.APIOptions, txn) // LEGACY
+	// AppendMiddlewares is DEPRECATED. Please use InitializeMiddleware shown below
+	nrawssdk.InitializeMiddleware(&awsConfig.APIOptions, ctx, awsConfig.Credentials)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	s3Client := s3.NewFromConfig(awsConfig)
+	// If you want to instrument per request pass InitializeMiddleware in an optional
+	// function with the resolved awsConfig.Credentials
+	// output, err := s3Client.ListBuckets(ctx, nil, func(o *s3.Options) {
+	// 	nrawssdk.InitializeMiddleware(&o.APIOptions, ctx, awsConfig.Credentials)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// })
 	output, err := s3Client.ListBuckets(ctx, nil)
 	if err != nil {
 		log.Fatal(err)

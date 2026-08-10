@@ -363,9 +363,32 @@ func TestConfigurableTxnEvents_withCollResponse(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	result := newAppRun(config{Config: defaultConfig()}, h).MaxTxnEvents()
-	if result != 15 {
-		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, result)
+	run := newAppRun(config{Config: defaultConfig()}, h)
+	// changed this line because I believe we are not changing the local config based on the response but just the harvest config
+	if run.harvestConfig.MaxTxnEvents != 15 {
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", 15, run.harvestConfig.MaxTxnEvents)
+	}
+}
+
+func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
+	h, err := internal.UnmarshalConnectReply([]byte(
+		`{"return_value":{
+			"event_harvest_config": {
+				"report_period_ms": 10000
+			}
+        }}`), internal.PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	cfg := config{Config: defaultConfig()}
+	// Original
+	// cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
+	// through code (almost like a setter)
+	cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(internal.MaxTxnEvents + 100)
+
+	run := newAppRun(cfg, h)
+	if run.harvestConfig.MaxTxnEvents != internal.MaxTxnEvents {
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, run.harvestConfig.MaxTxnEvents)
 	}
 }
 
@@ -382,27 +405,9 @@ func TestConfigurableTxnEvents_notInCollResponse(t *testing.T) {
 	expected := 10
 	cfg := config{Config: defaultConfig()}
 	cfg.TransactionEvents.MaxSamplesStored = expected
-	result := newAppRun(cfg, reply).MaxTxnEvents()
-	if result != expected {
-		t.Errorf("Unexpected max number of txn events, expected %d but got %d", expected, result)
-	}
-}
-
-func TestConfigurableTxnEvents_configMoreThanMax(t *testing.T) {
-	h, err := internal.UnmarshalConnectReply([]byte(
-		`{"return_value":{
-			"event_harvest_config": {
-				"report_period_ms": 10000
-			}
-        }}`), internal.PreconnectReply{})
-	if nil != err {
-		t.Fatal(err)
-	}
-	cfg := config{Config: defaultConfig()}
-	cfg.TransactionEvents.MaxSamplesStored = internal.MaxTxnEvents + 100
-	result := newAppRun(cfg, h).MaxTxnEvents()
-	if result != internal.MaxTxnEvents {
-		t.Errorf("Unexpected max number of txn events, expected %d but got %d", internal.MaxTxnEvents, result)
+	run := newAppRun(cfg, reply)
+	if run.Config.TransactionEvents.MaxSamplesStored != expected {
+		t.Errorf("Unexpected max number of txn events, expected %d but got %d", expected, run.Config.TransactionEvents.MaxSamplesStored)
 	}
 }
 
@@ -497,5 +502,245 @@ func TestCreateTransactionName(t *testing.T) {
 	// Check that the next call returns the same output.
 	if out := run.createTransactionName("/zap/zip/zep", true); out != want {
 		t.Error("wanted:", want, "got:", out)
+	}
+}
+
+func testMockConnectReply(t *testing.T, retVal string) *internal.ConnectReply {
+	h, err := internal.UnmarshalConnectReply([]byte(retVal), internal.PreconnectReply{})
+	if nil != err {
+		t.Fatal(err)
+	}
+	return h
+}
+
+func uintPtr(v uint) *uint {
+	return &v
+}
+
+func Test_appRun_limit(t *testing.T) {
+	tests := []struct {
+		name                   string
+		configMaxSamplesStored int
+		fieldValue             *uint // nil means field() returns nil
+		want                   int
+	}{
+		{
+			name:                   "field returns nil, use config value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             nil,
+			want:                   1000,
+		},
+		{
+			name:                   "field returns value, use field value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(500),
+			want:                   500,
+		},
+		{
+			name:                   "field returns zero, use field value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(0),
+			want:                   0,
+		},
+		{
+			name:                   "config is zero, field returns nil",
+			configMaxSamplesStored: 0,
+			fieldValue:             nil,
+			want:                   0,
+		},
+		{
+			name:                   "config is zero, field returns value",
+			configMaxSamplesStored: 0,
+			fieldValue:             uintPtr(100),
+			want:                   100,
+		},
+		{
+			name:                   "config is negative, field returns nil", // keeping this test so we know whatever value exists, we will use
+			configMaxSamplesStored: -1,
+			fieldValue:             nil,
+			want:                   -1,
+		},
+		{
+			name:                   "config is negative, field returns value",
+			configMaxSamplesStored: -1,
+			fieldValue:             uintPtr(200),
+			want:                   200,
+		},
+		{
+			name:                   "field returns large value",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(999999),
+			want:                   999999,
+		},
+		{
+			name:                   "field returns 1",
+			configMaxSamplesStored: 1000,
+			fieldValue:             uintPtr(1),
+			want:                   1,
+		},
+		{
+			name:                   "config and field both large values",
+			configMaxSamplesStored: 50000,
+			fieldValue:             uintPtr(60000),
+			want:                   60000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := &appRun{}
+
+			// Create a field function that returns the test value
+			fieldFunc := func() *uint {
+				return tt.fieldValue
+			}
+
+			got := run.limit(tt.configMaxSamplesStored, fieldFunc)
+			if got != tt.want {
+				t.Errorf("limit() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Since we are using uint we are expecting a non-negative number in the harvester response.
+// If there were to be a negative number in the test case, it would cause an error when
+// unmarshaling the json response.  This test in only testing how the response is handled
+// it does not matter what the limits are in this case
+func Test_appRun_ptrEventsMethods(t *testing.T) {
+	type eventTypeTest struct {
+		name       string
+		methodName string
+		method     func(*appRun) *uint
+		jsonKey    string
+		configKey  string
+	}
+
+	eventTypes := []eventTypeTest{
+		{
+			name:       "TxnEvents",
+			methodName: "ptrTxnEvents",
+			method:     (*appRun).ptrTxnEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"analytic_event_data": %s}`,
+		},
+		{
+			name:       "CustomEvents",
+			methodName: "ptrCustomEvents",
+			method:     (*appRun).ptrCustomEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"custom_event_data": %s}`,
+		},
+		{
+			name:       "LogEvents",
+			methodName: "ptrLogEvents",
+			method:     (*appRun).ptrLogEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"log_event_data": %s}`,
+		},
+		{
+			name:       "ErrorEvents",
+			methodName: "ptrErrorEvents",
+			method:     (*appRun).ptrErrorEvents,
+			jsonKey:    "event_harvest_config",
+			configKey:  `{"error_event_data": %s}`,
+		},
+		{
+			name:       "SpanEvents",
+			methodName: "ptrSpanEvents",
+			method:     (*appRun).ptrSpanEvents,
+			jsonKey:    "span_event_harvest_config",
+			configKey:  `%s`,
+		},
+	}
+
+	testCases := []struct {
+		name          string
+		format        string
+		harvest_limit string
+		want          *uint
+	}{
+		{
+			name:          "limit is set to 2000",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "2000",
+			want:          uintPtr(2000),
+		},
+		{
+			name:          "limit is set to 0",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "0",
+			want:          uintPtr(0),
+		},
+		{
+			name:          "limit is set to 1",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "1",
+			want:          uintPtr(1),
+		},
+		{
+			name:          "limit is set to large value",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "999999",
+			want:          uintPtr(999999),
+		},
+		{
+			name:          "config section is null",
+			format:        `{"return_value": {"%s": {"%s": null}}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+		{
+			name:          "limit field is null",
+			format:        `{"return_value": {"%s": {"%s": %s}}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+		{
+			name:          "config section is missing",
+			format:        `{"return_value": {}}`,
+			harvest_limit: "null",
+			want:          nil,
+		},
+	}
+
+	for _, eventType := range eventTypes {
+		t.Run(eventType.name, func(t *testing.T) {
+			harvestLimitField := "harvest_limits"
+			if eventType.name == "SpanEvents" {
+				harvestLimitField = "harvest_limit"
+			}
+			for _, tt := range testCases {
+				t.Run(tt.name, func(t *testing.T) {
+					var jsonStr string
+
+					switch tt.name {
+					case "config section is missing":
+						jsonStr = tt.format
+					case "config section is null":
+						jsonStr = fmt.Sprintf(tt.format, harvestLimitField, eventType.jsonKey)
+					default:
+						harvestLimit := fmt.Sprintf(eventType.configKey, tt.harvest_limit)
+						jsonStr = fmt.Sprintf(tt.format, eventType.jsonKey, harvestLimitField, harvestLimit)
+					}
+
+					reply := testMockConnectReply(t, jsonStr)
+					run := &appRun{Reply: reply}
+					got := eventType.method(run)
+
+					if tt.want == nil {
+						if got != nil {
+							t.Errorf("%s() = %v, want nil", eventType.methodName, got)
+						}
+					} else {
+						if got == nil {
+							t.Errorf("%s() = nil, want %v", eventType.methodName, *tt.want)
+						} else if *got != *tt.want {
+							t.Errorf("%s() = %v, want %v", eventType.methodName, *got, *tt.want)
+						}
+					}
+				})
+			}
+		})
 	}
 }

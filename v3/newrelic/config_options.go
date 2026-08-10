@@ -88,28 +88,57 @@ func ConfigRemoteParentNotSampled(flag RemoteParentSamplingConfig) ConfigOption 
 	}
 }
 
+// ConfigTransactionEventsMaxSamplesStored alters the sample size allowing control
+// of how many transaction events are stored in an agent for a given harvest cycle.
+// Alters the TransactionEvents.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 10000.
+func ConfigTransactionEventsMaxSamplesStored(value int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.TransactionEvents.MaxSamplesStored = maxTxnEvents(value)
+	}
+}
+
 // ConfigCustomInsightsEventsMaxSamplesStored alters the sample size allowing control
 // of how many custom events are stored in an agent for a given harvest cycle.
 // Alters the CustomInsightsEvents.MaxSamplesStored setting.
-// Note: As of Jul 2022, the absolute maximum events that can be sent each minute is 100000.
-func ConfigCustomInsightsEventsMaxSamplesStored(limit int) ConfigOption {
-	if limit > 100000 {
-		return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = 100000 }
+// Note: As of Oct 2025, the absolute maximum events that can be sent each minute is 100000.
+func ConfigCustomInsightsEventsMaxSamplesStored(value int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CustomInsightsEvents.MaxSamplesStored = maxCustomEvents(value)
 	}
-	return func(cfg *Config) { cfg.CustomInsightsEvents.MaxSamplesStored = limit }
 }
 
-// ConfigCustomInsightsEventsEnabled enables or disables the collection of custom insight events.
-func ConfigCustomInsightsEventsEnabled(enabled bool) ConfigOption {
-	return func(cfg *Config) { cfg.CustomInsightsEvents.Enabled = enabled }
+// ConfigSpanEventsMaxSamplesStored alters the sample size allowing control
+// of how many span events are stored in an agent for a given harvest cycle.
+// Alters the SpanEvents.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum span events that can be sent each minute is 2000.
+func ConfigSpanEventsMaxSamplesStored(value int) ConfigOption {
+	return func(cfg *Config) { cfg.SpanEvents.MaxSamplesStored = maxSpanEvents(value) }
 }
 
+// ConfigSpanEventsEnabled enables or disables the collection of span events.
+func ConfigSpanEventsEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) { cfg.SpanEvents.Enabled = enabled }
+}
+
+// Deprecated: ConfigDistributedTracerReservoirLimit is deprecated in favor of ConfigSpanEventsMaxSamplesStored
 // ConfigDistributedTracerReservoirLimit alters the sample reservoir size (maximum
 // number of span events to be collected) for distributed tracing instead of
 // using the built-in default.
 // Alters the DistributedTracer.ReservoirLimit setting.
 func ConfigDistributedTracerReservoirLimit(limit int) ConfigOption {
-	return func(cfg *Config) { cfg.DistributedTracer.ReservoirLimit = limit }
+	// will add some logging logic here to notify that this option is deprectated
+	return ConfigSpanEventsMaxSamplesStored(limit)
+}
+
+// ConfigErrorCollectorMaxSamplesStored alters the sample size allowing control
+// of how many errors are stored in an agent for a given harvest cycle.
+// Alters the ErrorCollector.MaxSamplesStored setting.
+// Note: As of Oct 2025, the absolute maximum errors that can be sent each minute is 100.
+func ConfigErrorCollectorMaxSamplesStored(value int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ErrorCollector.MaxSamplesStored = maxErrorEvents(value)
+	}
 }
 
 // ConfigAIMonitoringStreamingEnabled turns on or off the collection of AI Monitoring streaming mode metrics.
@@ -317,6 +346,25 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// EXPERIMENTAL 4/27/2026.  Use with caution.
+// ConfigAppLogDecoratingWithinMessage enables or disables the location of the
+// local log decorating string within a log. If local log decorating or application
+// logging is not enabled, no string will be added.  Example:
+// If set to true:
+//
+//	ConfigAppLogDecoratingWithinMessage(true)
+//	"{"message": "...NR-LINKING|...|..."}"
+//
+// If set to false (Default):
+//
+//	ConfigAppLogDecoratingWithinMessage(false)
+//	"{"message": "..."} NR-LINKING|...|..."
+func ConfigAppLogDecoratingWithinMessage(withinMessage bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.ApplicationLogging.LocalDecorating.WithinMessageField = withinMessage
+	}
+}
+
 // ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
 func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
@@ -360,9 +408,10 @@ func ConfigAppLogEnabled(enabled bool) ConfigOption {
 
 // ConfigAppLogForwardingMaxSamplesStored allows users to set the maximium number of
 // log events the agent is allowed to collect and store in a given harvest cycle.
-func ConfigAppLogForwardingMaxSamplesStored(maxSamplesStored int) ConfigOption {
+// Note: As of Oct 2025, the absolute maximum log events that can be sent each minute is 10000.
+func ConfigAppLogForwardingMaxSamplesStored(limit int) ConfigOption {
 	return func(cfg *Config) {
-		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxSamplesStored
+		cfg.ApplicationLogging.Forwarding.MaxSamplesStored = maxLogEvents(limit)
 	}
 }
 
@@ -537,46 +586,69 @@ func ConfigProfilingMutexRate(rate int) ConfigOption {
 	}
 }
 
+// ConfigCloudAWSAccountID is used to set the accountID for the AWS account to add as an attribute to span events. This may also be set using the
+// NEW_RELIC_CLOUD_AWS_ACCOUNT_ID environment variable.
+func ConfigCloudAWSAccountID(accountID string) ConfigOption {
+	return func(cfg *Config) {
+		validatedAccountID, err := validateAWSAccountID(accountID)
+		if err != nil {
+			cfg.Error = err
+		}
+		cfg.CloudAWS.AccountID = validatedAccountID
+	}
+}
+
+// ConfigCloudAWSAccountDecodingEnabled is used to enable/disable accountID decoding for an AWS Access Key.  Any value that is decoded will be
+// overriden if the accountID is set in the config.
+func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.CloudAWS.AccountDecoding.Enabled = enabled
+	}
+}
+
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//							NEW_RELIC_APP_NAME                                			sets AppName
-//							NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//							NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
-//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
-//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
-//							NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
-//							NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
-//							NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
-//							NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
-//							NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
-//						 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
-//							NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
-//							NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
-//							NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
-//							NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
-//							NEW_RELIC_HOST                                    			sets Host
-//							NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//							NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
-//							NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
-//							NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//							NEW_RELIC_LICENSE_KEY                             			sets License
-//							NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//							NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//							NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
-//							NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
-//							NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
-//							NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
-//							NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
-//							NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
-//						 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
-//					     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
-//					     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
-//						 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
-//						 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
-//							NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
-//							NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
-//							NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
-//							NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//		NEW_RELIC_APP_NAME                                			sets AppName
+//		NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//		NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
+//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
+//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
+//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
+//		NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
+//		NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//		NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//		NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
+//	 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
+//		NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
+//		NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
+//		NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
+//		NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
+//		NEW_RELIC_HOST                                    			sets Host
+//		NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
+//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
+//		NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//		NEW_RELIC_LICENSE_KEY                             			sets License
+//		NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//		NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//		NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
+//		NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
+//		NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
+//		NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
+//		NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
+//		NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
+//	 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
+//	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
+//	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED sets CustomInsightsEvents.CustomAttributesEnabled to enable sending application custom attributes with forwarded logs.
+//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES	sets CustomInsightsEvents.CustomAttributesValues A hash with key/value pairs to add as custom attributes to all log events forwarded to New Relic.
+//		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
+//		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//		NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
 //				         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
 //	                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
 //	                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
@@ -608,20 +680,26 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				}
 			}
 		}
-		assignIntOk := func(field *int, name string) bool {
+
+		assignIntOk := func(field *int, name string, fn func(configured int) int) bool {
 			if env := getenv(name); env != "" {
 				if i, err := strconv.Atoi(env); err != nil {
 					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
 				} else {
-					*field = i
+					if fn == nil {
+						*field = i
+					} else {
+						*field = fn(i)
+					}
 					return true
 				}
 			}
 			return false
 		}
-		assignInt := func(field *int, name string) {
-			_ = assignIntOk(field, name)
+		assignInt := func(field *int, name string, fn func(configured int) int) {
+			_ = assignIntOk(field, name, fn)
 		}
+
 		assignString := func(field *string, name string) {
 			if env := getenv(name); env != "" {
 				*field = env
@@ -650,23 +728,46 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignString(&cfg.HostDisplayName, "NEW_RELIC_PROCESS_HOST_DISPLAY_NAME")
 		assignString(&cfg.Utilization.BillingHostname, "NEW_RELIC_UTILIZATION_BILLING_HOSTNAME")
 		assignString(&cfg.InfiniteTracing.TraceObserver.Host, "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST")
-		assignInt(&cfg.InfiniteTracing.TraceObserver.Port, "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT")
-		assignInt(&cfg.Utilization.LogicalProcessors, "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS")
-		assignInt(&cfg.Utilization.TotalRAMMIB, "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB")
-		assignInt(&cfg.InfiniteTracing.SpanEvents.QueueSize, "NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE")
+		assignInt(&cfg.InfiniteTracing.TraceObserver.Port, "NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT", nil)
+		assignInt(&cfg.Utilization.LogicalProcessors, "NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS", nil)
+		assignInt(&cfg.Utilization.TotalRAMMIB, "NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB", nil)
+		assignInt(&cfg.InfiniteTracing.SpanEvents.QueueSize, "NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE", nil)
 
 		// Application Logging Env Variables
 		assignBool(&cfg.ApplicationLogging.Enabled, "NEW_RELIC_APPLICATION_LOGGING_ENABLED")
 		assignBool(&cfg.ApplicationLogging.Forwarding.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED")
 		assignBool(&cfg.ApplicationLogging.Forwarding.Labels.Enabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED")
 		assignStringSlice(&cfg.ApplicationLogging.Forwarding.Labels.Exclude, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE", ",")
-		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED")
+		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED", maxLogEvents)
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
 		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
 		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
+
+		// Transaction Event Env Variables
+		assignInt(&cfg.TransactionEvents.MaxSamplesStored, "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED", maxTxnEvents)
+
+		// Custom Insights Events Env Variables
+		assignInt(&cfg.CustomInsightsEvents.MaxSamplesStored, "NEW_RELIC_CUSTOM_INSIGHTS_EVENTS_MAX_SAMPLES_STORED", maxCustomEvents)
+
+		// Span Event Env Variables
+		assignBool(&cfg.SpanEvents.Enabled, "NEW_RELIC_SPAN_EVENTS_ENABLED")
+		assignInt(&cfg.SpanEvents.MaxSamplesStored, "NEW_RELIC_SPAN_EVENTS_MAX_SAMPLES_STORED", maxSpanEvents)
+
+		// Error Collector Env Variables
+		assignInt(&cfg.ErrorCollector.MaxSamplesStored, "NEW_RELIC_ERROR_COLLECTOR_MAX_EVENT_SAMPLES_STORED", maxErrorEvents)
+
+		// AWS Env Variables
+		assignString(&cfg.CloudAWS.AccountID, "NEW_RELIC_CLOUD_AWS_ACCOUNT_ID")
+		if env := getenv("NEW_RELIC_CLOUD_AWS_ACCOUNT_ID"); env != "" {
+			awsAccountID, err := validateAWSAccountID(env) // will either be a proper accountID or empty string if err
+			if err != nil {
+				cfg.Error = err
+			}
+			cfg.CloudAWS.AccountID = awsAccountID
+		}
 
 		if env := getenv("NEW_RELIC_LABELS"); env != "" {
 			labels, err := getLabels(getenv("NEW_RELIC_LABELS"))
@@ -736,27 +837,27 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.
 		var intervalMS int
-		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS") && intervalMS >= 0 {
+		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS", nil) && intervalMS >= 0 {
 			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
 		}
 		var delayMS int
-		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DELAY") && delayMS >= 0 {
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DELAY", nil) && delayMS >= 0 {
 			cfg.Profiling.Delay = time.Duration(delayMS) * time.Millisecond
 		}
 		var durationMS int
-		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DURATION") && durationMS >= 0 {
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DURATION", nil) && durationMS >= 0 {
 			cfg.Profiling.Duration = time.Duration(durationMS) * time.Millisecond
 		}
 		var intervalCPU int
-		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS") && intervalCPU >= 0 {
+		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS", nil) && intervalCPU >= 0 {
 			cfg.Profiling.CPUReportInterval = time.Duration(intervalCPU) * time.Millisecond
 		}
 		if env := getenv("NEW_RELIC_PROFILING_INCLUDE"); env != "" {
 			cfg.Profiling.SelectedProfiles.FromStrings(strings.Split(env, ","), false)
 		}
-		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ")
-		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE")
-		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE")
+		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ", nil)
+		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE", nil)
+		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE", nil)
 	}
 }
 

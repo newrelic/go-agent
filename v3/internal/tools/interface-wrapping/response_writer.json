@@ -3,7 +3,8 @@
 	"variable_name": "rw",
 	"test_variable_name": "rw.original",
 	"required_interfaces": [
-		"http.ResponseWriter"
+		"http.ResponseWriter",
+		"responseWriterUnwrapper"
 	],
 	"optional_interfaces": [
 		"http.CloseNotifier",

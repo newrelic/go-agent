@@ -56,11 +56,7 @@ integration-test:
 	cd $(MODULE_DIR)/integrations/$(TEST); \
 	WD=$(shell pwd); \
 	$(GO) mod edit -replace github.com/newrelic/go-agent/v3="$${WD}/${MODULE_DIR}";\
-	if [ "$(TEST)" == "nrnats" ]; then \
-		GOPROXY=direct $(GO) mod tidy; \
-	else \
-		$(GO) mod tidy; \
-	fi; \
+	$(GO) mod tidy; \
 	if [ "$(COVERAGE)" == "1" ]; then \
 		$(GO) test -coverprofile=coverage.txt -race -benchtime=$(BENCHTIME) -bench=. ./ || exit 1; \
 	else \

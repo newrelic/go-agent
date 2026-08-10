@@ -55,4 +55,5 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrsqlite3 \
 	nrzap \
 	nrzerolog \
+	nranthropic \
 }
