@@ -8,7 +8,6 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -66,7 +65,7 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		attrs := s.Attributes()
 		var fullURL string
 		for _, attr := range attrs {
-			if attr.Key == semconv.URLFullKey {
+			if attr.Key == attribute.Key(AttrURLFull) {
 				fullURL = attr.Value.AsString()
 			}
 		}
@@ -169,11 +168,10 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 	switch s.SpanKind() {
 	case oteltrace.SpanKindClient:
 		for _, attr := range s.Attributes() {
-			// db.system is not in current semconv package
-			if attr.Key == semconv.URLFullKey {
+			if attr.Key == attribute.Key(AttrURLFull) {
 				fullURL = attr.Value.AsString()
 			}
-			if attr.Key == semconv.DBSystemNameKey || attr.Key == "db.system" {
+			if attr.Key == attribute.Key(AttrDBSystemName) || attr.Key == attribute.Key(AttrDBSystem) {
 				seg := &newrelic.DatastoreSegment{
 					StartTime: basicSegment.StartTime,
 				}
