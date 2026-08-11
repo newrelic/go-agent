@@ -1,4 +1,7 @@
 ## 3.44.2
+### Added
+  * Add attribute for `aws.lambda.eventSource.eventType`
+    *`nrlambda` integration will be bumped to v1.2.7
 ### Fixed
   * `TransactionTrace` backtrace shows properly in the UI
   * `timestamp` no longer null
