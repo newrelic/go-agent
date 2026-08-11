@@ -177,7 +177,7 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 					StartTime: basicSegment.StartTime,
 				}
 				// map attribtues for db
-				p.addSegmentAttributes(spanID, seg, attributes, OTELToNRDBAttributeMap)
+				p.addSegmentAttributes(seg, attributes, OTELToNRDBAttributeMap)
 				p.segmentMap[spanID] = seg
 				return
 			}
@@ -186,15 +186,15 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 			StartTime: basicSegment.StartTime,
 		}
 		seg.URL = fullURL
-		p.addSegmentAttributes(spanID, seg, attributes, OTELToNRHTTPAttributeMap)
+		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
 	default:
-		p.addSegmentAttributes(spanID, basicSegment, attributes, nil)
+		p.addSegmentAttributes(basicSegment, attributes, nil)
 		return
 	}
 }
 
-func (p *nrotelhybridProcessor) addSegmentAttributes(spanID oteltrace.SpanID, seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
+func (p *nrotelhybridProcessor) addSegmentAttributes(seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
 	for _, otelAttribute := range attributes {
 		if nrAttribute, ok := checkMap(otelAttribute.Key, attrMap); ok {
 			seg.AddAttribute(string(nrAttribute), extractAttributeValue(otelAttribute.Value))

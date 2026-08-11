@@ -231,7 +231,7 @@ func Test_isTransaction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := nrotelhybridProcessor{
-				txnChecker: func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
+				txnChecker: func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
 					return tt.txnCheck
 				},
 			}
@@ -250,15 +250,32 @@ func Test_nrotelhybridProcessor_isWithinTransaction(t *testing.T) {
 	otherSpanID := [8]byte{0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18}
 	missingTraceID := [16]byte{0x12, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20}
 
-	noEntriesMap := map[oteltrace.TraceID]txnMapEntry{}
+	noEntriesMap := map[oteltrace.TraceID][]txnMapEntry{}
 
-	singleEntryMap := map[oteltrace.TraceID]txnMapEntry{
-		validTraceID: {txn: nil, spanID: validSpanID},
+	singleEntryMap := map[oteltrace.TraceID][]txnMapEntry{
+		validTraceID: {{txn: nil, spanID: validSpanID}},
+	}
+	singleEntryMultipleTxnMapEntriesMap := map[oteltrace.TraceID][]txnMapEntry{
+		validTraceID: {
+			{txn: nil, spanID: validSpanID},
+			{txn: nil, spanID: otherSpanID},
+		},
 	}
 
-	multiEntryMap := map[oteltrace.TraceID]txnMapEntry{
-		validTraceID: {txn: nil, spanID: validSpanID},
-		otherTraceID: {txn: nil, spanID: otherSpanID},
+	multiEntryMap := map[oteltrace.TraceID][]txnMapEntry{
+		validTraceID: {{txn: nil, spanID: validSpanID}},
+		otherTraceID: {{txn: nil, spanID: otherSpanID}},
+	}
+
+	multiEntryMultipleTxnMapEntriesMap := map[oteltrace.TraceID][]txnMapEntry{
+		validTraceID: {
+			{txn: nil, spanID: validSpanID},
+			{txn: nil, spanID: otherSpanID},
+		},
+		otherTraceID: {
+			{txn: nil, spanID: otherSpanID},
+			{txn: nil, spanID: validSpanID},
+		},
 	}
 
 	tests := []struct {
@@ -266,7 +283,7 @@ func Test_nrotelhybridProcessor_isWithinTransaction(t *testing.T) {
 		// Named input parameters for target function.
 		traceID oteltrace.TraceID
 		spanID  oteltrace.SpanID
-		txnMap  map[oteltrace.TraceID]txnMapEntry
+		txnMap  map[oteltrace.TraceID][]txnMapEntry
 		want    bool
 	}{
 		{
@@ -316,6 +333,48 @@ func Test_nrotelhybridProcessor_isWithinTransaction(t *testing.T) {
 			traceID: missingTraceID,
 			spanID:  validSpanID,
 			txnMap:  multiEntryMap,
+			want:    false,
+		},
+		{
+			name:    "TraceID is within transaction map and is within an existing transaction.",
+			traceID: validTraceID,
+			spanID:  validSpanID,
+			txnMap:  singleEntryMultipleTxnMapEntriesMap,
+			want:    true,
+		},
+		{
+			name:    "TraceID is within transaction map and is not within an existing transaction.",
+			traceID: validTraceID,
+			spanID:  otherSpanID,
+			txnMap:  singleEntryMultipleTxnMapEntriesMap,
+			want:    false,
+		},
+		{
+			name:    "TraceID is within mutli entry transaction map is within an existing transaction.",
+			traceID: validTraceID,
+			spanID:  validSpanID,
+			txnMap:  multiEntryMultipleTxnMapEntriesMap,
+			want:    true,
+		},
+		{
+			name:    "TraceID is within mutli entry transaction map is within an existing transaction.",
+			traceID: validTraceID,
+			spanID:  otherSpanID,
+			txnMap:  multiEntryMultipleTxnMapEntriesMap,
+			want:    false,
+		},
+		{
+			name:    "TraceID is within mutli entry transaction map (different entry) is within an existing transaction.",
+			traceID: otherTraceID,
+			spanID:  otherSpanID,
+			txnMap:  multiEntryMultipleTxnMapEntriesMap,
+			want:    true,
+		},
+		{
+			name:    "TraceID is within mutli entry transaction map (different entry) is within an existing transaction.",
+			traceID: otherTraceID,
+			spanID:  validSpanID,
+			txnMap:  multiEntryMultipleTxnMapEntriesMap,
 			want:    false,
 		},
 	}
