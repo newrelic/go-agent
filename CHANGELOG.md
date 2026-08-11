@@ -5,8 +5,8 @@
   * `exclusive_duration_millis` no longer null
 ### Security
   * Dependabot security updates
-    * `nrgrpc` bump google.golang.org/grpc to 1.82.1
-    * `nrconnect` bump golang.org/x/net to 0.55.0
+    * `nrgrpc` bump google.golang.org/grpc to 1.82.1 (integration will be bumped to v1.4.10)
+    * `nrconnect` bump golang.org/x/net to 0.55.0 (integration will be bumped to v1.0.2)
 ### Support statement
 We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
 See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
