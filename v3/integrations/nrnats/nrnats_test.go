@@ -115,7 +115,7 @@ func TestStartPublishSegmentBasic(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/testing",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "MessageBroker/NATS/Topic/Produce/Named/mysubject",

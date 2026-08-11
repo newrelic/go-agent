@@ -279,8 +279,9 @@ func TestSetWebRequest(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart": true,
-			"request.uri":          "//:4000",
+			"aws.lambda.coldStart":             true,
+			"request.uri":                      "//:4000",
+			"aws.lambda.eventSource.eventType": "apiGateway",
 		},
 	}})
 	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
@@ -296,8 +297,9 @@ func TestSetWebRequest(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart": true,
-			"request.uri":          "//:4000",
+			"aws.lambda.coldStart":             true,
+			"request.uri":                      "//:4000",
+			"aws.lambda.eventSource.eventType": "apiGateway",
 		},
 	}})
 	if 0 == buf.Len() {
@@ -367,8 +369,9 @@ func TestDistributedTracing(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart": true,
-			"request.uri":          "//:4000",
+			"aws.lambda.coldStart":             true,
+			"request.uri":                      "//:4000",
+			"aws.lambda.eventSource.eventType": "apiGateway",
 		},
 	}})
 	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
@@ -386,13 +389,14 @@ func TestDistributedTracing(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart":     true,
-			"parent.account":           "1",
-			"parent.app":               "1",
-			"parent.transportDuration": internal.MatchAnything,
-			"parent.transportType":     "HTTPS",
-			"parent.type":              "App",
-			"request.uri":              "//:4000",
+			"aws.lambda.coldStart":             true,
+			"parent.account":                   "1",
+			"parent.app":                       "1",
+			"parent.transportDuration":         internal.MatchAnything,
+			"parent.transportType":             "HTTPS",
+			"parent.type":                      "App",
+			"request.uri":                      "//:4000",
+			"aws.lambda.eventSource.eventType": "apiGateway",
 		},
 	}})
 	if 0 == buf.Len() {
@@ -442,8 +446,9 @@ func TestEventARN(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart":       true,
-			"aws.lambda.eventSource.arn": "ARN",
+			"aws.lambda.coldStart":             true,
+			"aws.lambda.eventSource.arn":       "ARN",
+			"aws.lambda.eventSource.eventType": "dynamo_streams",
 		},
 	}})
 	app.Private.(internal.Expect).ExpectSpanEvents(t, []internal.WantEvent{{
@@ -459,8 +464,9 @@ func TestEventARN(t *testing.T) {
 		},
 		UserAttributes: map[string]interface{}{},
 		AgentAttributes: map[string]interface{}{
-			"aws.lambda.coldStart":       true,
-			"aws.lambda.eventSource.arn": "ARN",
+			"aws.lambda.coldStart":             true,
+			"aws.lambda.eventSource.arn":       "ARN",
+			"aws.lambda.eventSource.eventType": "dynamo_streams",
 		},
 	}})
 	if 0 == buf.Len() {

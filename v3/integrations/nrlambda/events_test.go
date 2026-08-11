@@ -124,6 +124,62 @@ func TestGetEventAttributes(t *testing.T) {
 	}
 }
 
+func TestGetEventSourceEventType(t *testing.T) {
+	testcases := []struct {
+		Name      string
+		Input     interface{}
+		EventType string
+	}{
+		{Name: "nil expect \"\"", Input: nil, EventType: ""},
+		{Name: "int (unsupported) expect \"\"", Input: 22, EventType: ""},
+
+		{Name: "ALBTargetGroupRequest expect alb", Input: events.ALBTargetGroupRequest{}, EventType: "alb"},
+		{Name: "*ALBTargetGroupRequest expect alb", Input: &events.ALBTargetGroupRequest{}, EventType: "alb"},
+
+		{Name: "APIGatewayProxyRequest expect apiGateway", Input: events.APIGatewayProxyRequest{}, EventType: "apiGateway"},
+		{Name: "*APIGatewayProxyRequest expect apiGateway", Input: &events.APIGatewayProxyRequest{}, EventType: "apiGateway"},
+		{Name: "APIGatewayV2HTTPRequest expect apiGateway", Input: events.APIGatewayV2HTTPRequest{}, EventType: "apiGateway"},
+		{Name: "*APIGatewayV2HTTPRequest expect apiGateway", Input: &events.APIGatewayV2HTTPRequest{}, EventType: "apiGateway"},
+		{Name: "APIGatewayWebsocketProxyRequest expect apiGateway", Input: events.APIGatewayWebsocketProxyRequest{}, EventType: "apiGateway"},
+		{Name: "*APIGatewayWebsocketProxyRequest expect apiGateway", Input: &events.APIGatewayWebsocketProxyRequest{}, EventType: "apiGateway"},
+
+		{Name: "CloudWatchEvent expect cloudWatch_scheduled", Input: events.CloudWatchEvent{}, EventType: "cloudWatch_scheduled"},
+		{Name: "*CloudWatchEvent expect cloudWatch_scheduled", Input: &events.CloudWatchEvent{}, EventType: "cloudWatch_scheduled"},
+
+		{Name: "SimpleEmailEvent expect ses", Input: events.SimpleEmailEvent{}, EventType: "ses"},
+		{Name: "*SimpleEmailEvent expect ses", Input: &events.SimpleEmailEvent{}, EventType: "ses"},
+
+		{Name: "KinesisFirehoseEvent expect firehose", Input: events.KinesisFirehoseEvent{}, EventType: "firehose"},
+		{Name: "*KinesisFirehoseEvent expect firehose", Input: &events.KinesisFirehoseEvent{}, EventType: "firehose"},
+
+		{Name: "KinesisEvent expect kinesis", Input: events.KinesisEvent{}, EventType: "kinesis"},
+		{Name: "*KinesisEvent expect kinesis", Input: &events.KinesisEvent{}, EventType: "kinesis"},
+		{Name: "KinesisTimeWindowEvent expect kinesis", Input: events.KinesisTimeWindowEvent{}, EventType: "kinesis"},
+		{Name: "*KinesisTimeWindowEvent expect kinesis", Input: &events.KinesisTimeWindowEvent{}, EventType: "kinesis"},
+
+		{Name: "DynamoDBEvent expect dynamo_streams", Input: events.DynamoDBEvent{}, EventType: "dynamo_streams"},
+		{Name: "*DynamoDBEvent expect dynamo_streams", Input: &events.DynamoDBEvent{}, EventType: "dynamo_streams"},
+		{Name: "DynamoDBTimeWindowEvent expect dynamo_streams", Input: events.DynamoDBTimeWindowEvent{}, EventType: "dynamo_streams"},
+		{Name: "*DynamoDBTimeWindowEvent expect dynamo_streams", Input: &events.DynamoDBTimeWindowEvent{}, EventType: "dynamo_streams"},
+
+		{Name: "SQSEvent expect sqs", Input: events.SQSEvent{}, EventType: "sqs"},
+		{Name: "*SQSEvent expect sqs", Input: &events.SQSEvent{}, EventType: "sqs"},
+
+		{Name: "S3Event expect s3", Input: events.S3Event{}, EventType: "s3"},
+		{Name: "*S3Event expect s3", Input: &events.S3Event{}, EventType: "s3"},
+
+		{Name: "SNSEvent expect sns", Input: events.SNSEvent{}, EventType: "sns"},
+		{Name: "*SNSEvent expect sns", Input: &events.SNSEvent{}, EventType: "sns"},
+	}
+
+	for _, testcase := range testcases {
+		eventType := getEventSourceEventType(testcase.Input)
+		if eventType != testcase.EventType {
+			t.Error(testcase.Name, eventType, testcase.EventType)
+		}
+	}
+}
+
 func TestEventWebRequest(t *testing.T) {
 	// First test a type that does not count as a web request.
 	req := eventWebRequest(22)
