@@ -3,9 +3,10 @@
   * Add attribute for `aws.lambda.eventSource.eventType`
     *`nrlambda` integration will be bumped to v1.2.7
 ### Fixed
-  * `TransactionTrace` backtrace shows properly in the UI
-  * `timestamp` no longer null
-  * `exclusive_duration_millis` no longer null
+  * `TransactionTrace` fixes
+    * `backtrace` shows properly in the UI -> Fixed an issue where backtraces weren't properly displaying in NR1
+    * `timestamp` no longer null -> Fixed an issue where timestamp always showed as null
+    * `exclusive_duration_millis` no longer null -> Fixed an issue where exclusive_duration_millis always showed as null
 ### Security
   * Dependabot security updates
     * `nrgrpc` bump google.golang.org/grpc to 1.82.1 (integration will be bumped to v1.4.10)
