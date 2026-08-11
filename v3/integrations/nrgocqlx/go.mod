@@ -7,7 +7,7 @@ replace github.com/gocql/gocql => github.com/scylladb/gocql v1.16.0
 
 require (
 	github.com/gocql/gocql v1.7.0
-	github.com/newrelic/go-agent/v3 v3.44.1
+	github.com/newrelic/go-agent/v3 v3.44.2
 	github.com/scylladb/gocqlx/v3 v3.0.4
 )
 
