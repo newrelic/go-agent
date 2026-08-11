@@ -62,9 +62,8 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
 	txn := p.app.StartTransaction(s.Name())
 	if isWeb {
-		attrs := s.Attributes()
 		var fullURL string
-		for _, attr := range attrs {
+		for _, attr := range s.Attributes() {
 			if attr.Key == attribute.Key(AttrURLFull) {
 				fullURL = attr.Value.AsString()
 			}
@@ -110,13 +109,11 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		}
 		return
 	}
-	// otherwise end segment
+	// otherwise end segment if it exists in the map
 	p.switchSegmentType(s)
+
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
-		for _, attr := range s.Attributes() {
-			//  attr.Value.Type() switch on type
-			seg.AddAttribute(string(attr.Key), extractAttributeValue(attr.Value))
-		}
+		// find type of segment to switch segment type and add attributes
 		seg.End()
 		delete(p.segmentMap, spanID)
 	}
@@ -156,8 +153,8 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 }
 
 func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
-	var fullURL = ""
-	segInterface, ok := p.segmentMap[s.SpanContext().SpanID()]
+	spanID := s.SpanContext().SpanID()
+	segInterface, ok := p.segmentMap[spanID]
 	if !ok {
 		return
 	}
@@ -165,9 +162,13 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 	if !ok {
 		return
 	}
+
+	var fullURL = ""
+	attributes := s.Attributes()
+
 	switch s.SpanKind() {
 	case oteltrace.SpanKindClient:
-		for _, attr := range s.Attributes() {
+		for _, attr := range attributes {
 			if attr.Key == attribute.Key(AttrURLFull) {
 				fullURL = attr.Value.AsString()
 			}
@@ -176,7 +177,8 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 					StartTime: basicSegment.StartTime,
 				}
 				// map attribtues for db
-				p.segmentMap[s.SpanContext().SpanID()] = seg
+				p.addSegmentAttributes(spanID, seg, attributes, OTELToNRDBAttributeMap)
+				p.segmentMap[spanID] = seg
 				return
 			}
 		}
@@ -184,10 +186,31 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 			StartTime: basicSegment.StartTime,
 		}
 		seg.URL = fullURL
-		p.segmentMap[s.SpanContext().SpanID()] = seg
+		p.addSegmentAttributes(spanID, seg, attributes, OTELToNRHTTPAttributeMap)
+		p.segmentMap[spanID] = seg
 	default:
+		p.addSegmentAttributes(spanID, basicSegment, attributes, nil)
 		return
 	}
+}
+
+func (p *nrotelhybridProcessor) addSegmentAttributes(spanID oteltrace.SpanID, seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
+	for _, otelAttribute := range attributes {
+		if nrAttribute, ok := checkMap(otelAttribute.Key, attrMap); ok {
+			seg.AddAttribute(string(nrAttribute), extractAttributeValue(otelAttribute.Value))
+			continue
+		}
+		seg.AddAttribute(string(otelAttribute.Key), extractAttributeValue(otelAttribute.Value))
+	}
+}
+
+func checkMap(key attribute.Key, attrMap map[string]string) (string, bool) {
+	if attrMap == nil {
+		return "", false
+	}
+	nrAttribute, ok := attrMap[string(key)]
+	return nrAttribute, ok
+
 }
 
 func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
