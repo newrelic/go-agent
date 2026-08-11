@@ -2,10 +2,12 @@ package nrotelhybrid
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -492,6 +494,79 @@ func Test_nrotelhybridProcessor(t *testing.T) {
 
 			span.End()
 
+		})
+	}
+}
+
+func Test_extractAttributeValue(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		val  attribute.Value
+		want any
+	}{
+		{
+			name: "Bool",
+			val:  attribute.BoolValue(true),
+			want: true,
+		},
+		{
+			name: "Int64",
+			val:  attribute.Int64Value(42),
+			want: int64(42),
+		},
+		{
+			name: "Float64",
+			val:  attribute.Float64Value(3.14),
+			want: 3.14,
+		},
+		{
+			name: "String",
+			val:  attribute.StringValue("hello"),
+			want: "hello",
+		},
+		{
+			name: "BoolSlice",
+			val:  attribute.BoolSliceValue([]bool{true, false}),
+			want: []bool{true, false},
+		},
+		{
+			name: "Int64Slice",
+			val:  attribute.Int64SliceValue([]int64{1, 2, 3}),
+			want: []int64{1, 2, 3},
+		},
+		{
+			name: "Float64Slice",
+			val:  attribute.Float64SliceValue([]float64{1.1, 2.2}),
+			want: []float64{1.1, 2.2},
+		},
+		{
+			name: "StringSlice",
+			val:  attribute.StringSliceValue([]string{"a", "b"}),
+			want: []string{"a", "b"},
+		},
+		{
+			name: "ByteSlice",
+			val:  attribute.ByteSliceValue([]byte{0x01, 0x02}),
+			want: []byte{0x01, 0x02},
+		},
+		{
+			name: "Slice",
+			val:  attribute.SliceValue(attribute.StringValue("a"), attribute.IntValue(1)),
+			want: []attribute.Value{attribute.StringValue("a"), attribute.IntValue(1)},
+		},
+		{
+			name: "Empty/invalid value",
+			val:  attribute.Value{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractAttributeValue(tt.val)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("extractAttributeValue() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
