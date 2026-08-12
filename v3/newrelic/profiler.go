@@ -1068,10 +1068,41 @@ func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, 
 	})
 }
 
+// ProfilerWrapCall wraps a function call that the APM Agent is instrumenting so that it will also be noticed
+// by the CPU profiler if it's running. Specifically, this causes the Transaction's span ID and trace ID to be added to
+// the profile sample data so that there will be an association between the profile data and the spans/traces in the New Relic UI.
+// Currently, this association is supported for CPU and Goroutine profile types.
+//
+// To use this, pass the transaction which has been started for the function to be covered, and a function which accepts a
+// context.Context value. This function should then itself call the code you wish to be covered.
+//
+// For example, if you have some instrumented code like the following:
+//
+//	txn := newrelic.FromContext(r.Context())
+//	seg := txn.StartSegment("doStuff")
+//	defer seg.End()
+//	for i := range(1000) {
+//	   DoInterestingThings(i)
+//	}
+//
+// Then you can wrap this in a call to ProfilerWrapCall so that the profiler will see its span information by changing it to:
+//
+//	 txn := newrelic.FromContext(r.Context())
+//	 newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
+//	    seg := txn.StartSegment("doStuff")
+//	    defer seg.End()
+//	    for i := range(1000) {
+//	       DoInterestingThings(i)
+//	    }
+//	})
 func ProfilerWrapCall(txn *Transaction, f func(context.Context)) {
 	ProfilerWrapCallWithContext(txn, context.TODO(), f)
 }
 
+// ProfilerWrapCallWithContext is just like ProfilerWrapCall, except that it also accepts a context.Context value which it
+// adds profile-specific span label data to and then passes this on to the called wrapper function, whereas ProfilerWrapCall
+// creates a new context.Context value for that purpose. Use this one if you have an existing context value you need to pass on
+// to the called function.
 func ProfilerWrapCallWithContext(txn *Transaction, ctx context.Context, f func(context.Context)) {
 	var labels pprof.LabelSet
 	if txn != nil {
