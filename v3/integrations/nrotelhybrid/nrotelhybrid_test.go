@@ -752,3 +752,47 @@ func Test_nrotelhybridProcessor_switchSegmentType(t *testing.T) {
 		})
 	}
 }
+
+func Test_checkMap(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		key     attribute.Key
+		attrMap map[string]string
+		want    string
+		want2   bool
+	}{
+		{
+			name:    "Nil map",
+			key:     attribute.Key("some.key"),
+			attrMap: nil,
+			want:    "",
+			want2:   false,
+		},
+		{
+			name:    "Key present in map",
+			key:     attribute.Key("some.key"),
+			attrMap: map[string]string{"some.key": "nr.attribute"},
+			want:    "nr.attribute",
+			want2:   true,
+		},
+		{
+			name:    "Key not present in map",
+			key:     attribute.Key("missing.key"),
+			attrMap: map[string]string{"some.key": "nr.attribute"},
+			want:    "",
+			want2:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got2 := checkMap(tt.key, tt.attrMap)
+			if got != tt.want {
+				t.Errorf("checkMap() = %v, want %v", got, tt.want)
+			}
+			if got2 != tt.want2 {
+				t.Errorf("checkMap() = %v, want %v", got2, tt.want2)
+			}
+		})
+	}
+}
