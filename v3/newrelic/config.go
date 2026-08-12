@@ -582,6 +582,12 @@ type Config struct {
 	Profiling struct {
 		// Enabled controls whether the profiler is running.
 		Enabled bool
+		// MatchSpans controls whether the profiler attempts to try to match up instrumented spans and traces
+		// with profile samples. If we don't have the span and trace IDs directly, we can try to match them
+		// up (if this option is enabled) by looking for any span/trace that was active at the same time
+		// as the profile sample was collected and go with that. It's not as accurate but if the preferred
+		// signal isn't available, it may be an option to attempt as a backup plan.
+		MatchSpans bool
 		// Delay controls how long to wait before starting the profiler.
 		Delay time.Duration
 		// Duration controls how long to run the profiler before automatically stopping it. If this is

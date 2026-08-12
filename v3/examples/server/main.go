@@ -60,26 +60,51 @@ func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 
 func CPUspinner(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	var i int
-	var hypot, gamma3, xy float64
+	newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
+		var i int
+		var hypot, gamma3, xy float64
 
-	sgmt := txn.StartSegment("spinner")
-	defer sgmt.End()
-	for i := 0; i < 50_000_000; i++ {
-		if i%1_000_000 == 0 {
-			io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
+		sgmt := txn.StartSegment("spinner")
+		defer sgmt.End()
+		for i := 0; i < 50_000_000; i++ {
+			if i%1_000_000 == 0 {
+				io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
+			}
+			hypot = math.Hypot(123.56789, 23.4567889)
+			gamma3 = math.Gamma(3)
+			xy = math.Pow(20, 3.5)
+			RecursiveFib(10)
 		}
-		hypot = math.Hypot(123.56789, 23.4567889)
-		gamma3 = math.Gamma(3)
-		xy = math.Pow(20, 3.5)
-	}
-	txn.Application().RecordCustomEvent("CPUspinner", map[string]any{
-		"iterations": i,
-		"hypot":      hypot,
-		"gamma":      gamma3,
-		"xy":         xy,
+		txn.Application().RecordCustomEvent("CPUspinner", map[string]any{
+			"iterations": i,
+			"hypot":      hypot,
+			"gamma":      gamma3,
+			"xy":         xy,
+		})
 	})
+}
+func Fib(w http.ResponseWriter, r *http.Request) {
+	txn := newrelic.FromContext(r.Context())
+	newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
+		sgmt := txn.StartSegment("fib")
+		defer sgmt.End()
+		for i := 0; i < 10_000_000; i++ {
+			if i%1_000_000 == 0 {
+				io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
+			}
+			RecursiveFib(10)
+		}
+	})
+}
 
+func RecursiveFib(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	if n == 1 {
+		return 1
+	}
+	return RecursiveFib(n-1) + RecursiveFib(n-2)
 }
 
 var a [][]byte
@@ -174,36 +199,38 @@ func deadlock(w http.ResponseWriter, r *http.Request) {
 // Make a blizzard of goroutines, some of which will block for a while
 func goStorm(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	txn.RecordLog(newrelic.LogData{
-		Message:  "Launched goroutine storm",
-		Severity: "info",
-	})
-
-	var group sync.WaitGroup
-	for i := range 10_000 {
-		group.Add(1)
-		go func(tx *newrelic.Transaction, goRoutineNumber, total int, wg *sync.WaitGroup) {
-			defer wg.Done()
-			<-wasteSomeTime
-			tx.RecordLog(newrelic.LogData{
-				Message:  fmt.Sprintf("Storm goroutine #%d/%d terminated", goRoutineNumber+1, total),
-				Severity: "info",
-			})
-			log.Printf("Terminated goroutine %d/%d", goRoutineNumber+1, total)
-		}(txn, i, 10_000, &group)
-		log.Printf("Launched goroutine %d/%d", i+1, 10_000)
-	}
-
-	go func(tx *newrelic.Transaction, wg *sync.WaitGroup) {
-		wg.Wait()
-		tx.RecordLog(newrelic.LogData{
-			Message:  "Goroutine storm is over",
+	newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
+		txn.RecordLog(newrelic.LogData{
+			Message:  "Launched goroutine storm",
 			Severity: "info",
 		})
-		log.Print("Goroutine storm is over")
-	}(txn, &group)
 
-	io.WriteString(w, "A blizzard of goroutines was released")
+		var group sync.WaitGroup
+		for i := range 10_000 {
+			group.Add(1)
+			go func(tx *newrelic.Transaction, goRoutineNumber, total int, wg *sync.WaitGroup) {
+				defer wg.Done()
+				<-wasteSomeTime
+				tx.RecordLog(newrelic.LogData{
+					Message:  fmt.Sprintf("Storm goroutine #%d/%d terminated", goRoutineNumber+1, total),
+					Severity: "info",
+				})
+				log.Printf("Terminated goroutine %d/%d", goRoutineNumber+1, total)
+			}(txn, i, 10_000, &group)
+			log.Printf("Launched goroutine %d/%d", i+1, 10_000)
+		}
+
+		go func(tx *newrelic.Transaction, wg *sync.WaitGroup) {
+			wg.Wait()
+			tx.RecordLog(newrelic.LogData{
+				Message:  "Goroutine storm is over",
+				Severity: "info",
+			})
+			log.Print("Goroutine storm is over")
+		}(txn, &group)
+
+		io.WriteString(w, "A blizzard of goroutines was released")
+	})
 }
 
 func customEvent(w http.ResponseWriter, r *http.Request) {
@@ -486,6 +513,7 @@ func main() {
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/message", message))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/log", logTxnMessage))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/cpuspin", CPUspinner))
+	http.HandleFunc(newrelic.WrapHandleFunc(app, "/fib", Fib))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/gostorm", goStorm))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/alloc100", alloc100))
 	http.HandleFunc(newrelic.WrapHandleFunc(app, "/trace", traceprof))

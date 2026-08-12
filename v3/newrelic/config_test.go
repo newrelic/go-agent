@@ -228,6 +228,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Duration": 0,
 				"Enabled":false,
 				"Interval": 60000000000,
+				"MatchSpans": false,
 				"MutexRate": 1,
 				"SelectedProfiles": null
 			},
@@ -470,6 +471,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Duration": 0,
 				"Enabled":false,
 				"Interval": 60000000000,
+				"MatchSpans": false,
 				"MutexRate": 1,
 				"SelectedProfiles": null
 			},

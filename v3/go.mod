@@ -1,10 +1,20 @@
 module github.com/newrelic/go-agent/v3
 
-go 1.25
+go 1.25.0
 
 require (
+	github.com/google/btree v1.1.3
+	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3
+	github.com/nsf/jsondiff v0.0.0-20260207060731-8e8d90c4c0ac
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
+)
+
+require (
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 )
 
 retract (

@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -178,6 +179,7 @@ type profilerConfig struct {
 	delayToStart      time.Duration
 	delayToStop       time.Duration
 	isRunning         bool
+	matchSpans        bool
 	selected          ProfilingType // which profiling types we've selected to report
 	auditFile         *os.File      // debugging audit file of profile data (nil for normal production runs)
 	done              chan byte
@@ -266,6 +268,7 @@ func (a *app) StartProfiler() {
 	a.profiler.apiKey = a.config.License
 	reply, err := a.getState()
 	a.profiler.hostname = a.config.hostname
+	a.profiler.matchSpans = a.config.Profiling.MatchSpans
 	if err == nil {
 		a.profiler.entityGUID = reply.Reply.EntityGUID
 		a.profiler.methodRpmCmd.Collector = reply.Reply.Collector
@@ -299,6 +302,9 @@ func (app *app) profilerStartSpan(txn *Transaction) {
 		app.Error("ProfilerStartSpan called on nil transaction", nil)
 		return
 	}
+	if !app.profiler.matchSpans {
+		return
+	}
 	newSpanDatum := profileSpanDataFromTxn(txn)
 	app.profiler.segLock.Lock()
 	if app.profiler.spanCache == nil {
@@ -328,6 +334,9 @@ func (app *Application) ProfilerEndSpan(txn *Transaction) {
 	}
 	if txn == nil || txn.thread == nil {
 		app.app.Error("ProfilerEndSpan called on nil transaction", nil)
+		return
+	}
+	if !app.app.profiler.matchSpans {
 		return
 	}
 	key := profileSpanDataID(txn)
@@ -633,7 +642,49 @@ func (pc *profilerConfig) monitor(a *app) {
 	}()
 
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
-		if eventType == "cpu" && pc.spanCache != nil {
+		p, err := profile.ParseData(profileData.Bytes())
+		if err != nil {
+			a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
+				"event-type": eventType,
+				"reason":     err.Error(),
+			})
+		} else {
+			for _, sample := range p.Sample {
+				var span_id, trace_id string
+				if sample != nil {
+					if len(sample.Label) > 0 {
+						if s, ok := sample.Label["span_id"]; ok {
+							span_id = s[0]
+						}
+						if s, ok := sample.Label["trace_id"]; ok {
+							trace_id = s[0]
+						}
+					}
+					if span_id != "" || trace_id != "" {
+						var location string
+
+						if len(sample.Location) > 0 {
+							var locs []string
+							for _, l := range sample.Location {
+								if l != nil && l.Mapping != nil {
+									locs = append(locs, l.Mapping.File)
+								}
+							}
+							location = strings.Join(locs, ", ")
+						}
+
+						a.Debug("profiler: sample includes embedded span data", map[string]any{
+							"event-type": eventType,
+							"location":   location,
+							"span_id":    span_id,
+							"trace_id":   trace_id,
+						})
+					}
+				}
+			}
+		}
+
+		if eventType == "cpu" && pc.matchSpans && pc.spanCache != nil {
 			// inject cached span IDs into CPU samples before reporting them
 			spanIDs := make([]string, 0, 2)
 			traceIDs := make([]string, 0, 2)
@@ -1015,4 +1066,17 @@ func (pc *profilerConfig) sendProfilePprofMethod(profileName, eventType string, 
 		"body":       resp.body,
 		"profile":    eventType,
 	})
+}
+
+func ProfilerWrapCall(txn *Transaction, f func(context.Context)) {
+	ProfilerWrapCallWithContext(txn, context.TODO(), f)
+}
+
+func ProfilerWrapCallWithContext(txn *Transaction, ctx context.Context, f func(context.Context)) {
+	var labels pprof.LabelSet
+	if txn != nil {
+		md := txn.GetTraceMetadata()
+		labels = pprof.Labels("span_id", md.SpanID, "trace_id", md.TraceID)
+	}
+	pprof.Do(ctx, labels, f)
 }
