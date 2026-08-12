@@ -2,9 +2,11 @@ package nrotelhybrid
 
 import (
 	"context"
+	"maps"
 	"reflect"
 	"testing"
 
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -566,6 +568,186 @@ func Test_extractAttributeValue(t *testing.T) {
 			got := extractAttributeValue(tt.val)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("extractAttributeValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_nrotelhybridProcessor_switchSegmentType(t *testing.T) {
+	validSpanID := [8]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	otherSpanID := [8]byte{0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18}
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		initialSegmentMap map[oteltrace.SpanID]nrSegment
+		spanID            oteltrace.SpanID
+		attributes        []attribute.KeyValue
+		spanKind          oteltrace.SpanKind
+		want              nrSegment
+	}{
+		{
+			name:              "Segment does not exist in empty segment map.",
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{},
+			spanID:            validSpanID,
+			spanKind:          oteltrace.SpanKindClient,
+			want:              nil,
+		},
+		{
+			name: "Segment does not exist in segment map",
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			spanID:   validSpanID,
+			spanKind: oteltrace.SpanKindConsumer,
+			want:     nil,
+		},
+		{
+			name:   "Segment is not a basic segment upon type cast. Should stay the same type.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.DatastoreSegment{
+					StartTime: newrelic.SegmentStartTime{},
+				},
+			},
+			spanKind: oteltrace.SpanKindInternal,
+			want:     &newrelic.DatastoreSegment{},
+		},
+		{
+			name:   "Segment is not a basic segment (different type) upon type cast. Should stay the same type.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.ExternalSegment{
+					StartTime: newrelic.SegmentStartTime{},
+				},
+			},
+			spanKind: oteltrace.SpanKindInternal,
+			want:     &newrelic.ExternalSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is INTERNAL. Should stay the same type.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			spanKind: oteltrace.SpanKindInternal,
+			want:     &newrelic.Segment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is UNSPECIFIED. Should stay the same type.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			spanKind: oteltrace.SpanKindUnspecified,
+			want:     &newrelic.Segment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CLIENT. Should convert to External Segment.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{},
+			spanKind:   oteltrace.SpanKindClient,
+			want:       &newrelic.ExternalSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CLIENT. Should convert to External Segment. Attributes are present.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrURLFull), Value: attribute.StringValue("testURL")},
+			},
+			spanKind: oteltrace.SpanKindClient,
+			want:     &newrelic.ExternalSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CLIENT. Should convert to Datastore Segment. Uses AttrDBSystem constant.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrDBSystem), Value: attribute.StringValue("test-system")},
+			},
+			spanKind: oteltrace.SpanKindClient,
+			want:     &newrelic.DatastoreSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CLIENT.Should convert to Datastore Segment. Uses AttrDBSystemName constant.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrDBSystemName), Value: attribute.StringValue("test-system")},
+			},
+			spanKind: oteltrace.SpanKindClient,
+			want:     &newrelic.DatastoreSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CLIENT.Should convert to Datastore Segment. Contains both DB constants.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrDBSystemName), Value: attribute.StringValue("test-system")},
+				{Key: attribute.Key(AttrDBSystem), Value: attribute.StringValue("test-system")},
+			},
+			spanKind: oteltrace.SpanKindClient,
+			want:     &newrelic.DatastoreSegment{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewHybridProcessor(&newrelic.Application{})
+			maps.Copy(p.segmentMap, tt.initialSegmentMap)
+			p.switchSegmentType(tt.spanID, tt.attributes, tt.spanKind)
+
+			seg, ok := p.segmentMap[tt.spanID]
+
+			if tt.want == nil {
+				if ok {
+					t.Errorf("Expected no segment, got segment at spanID = %v", tt.spanID)
+				}
+				return
+			}
+
+			if !ok {
+				t.Errorf("Expected segment at spanID = %v, got nothing", tt.spanID)
+				return
+			}
+
+			if reflect.TypeOf(seg) != reflect.TypeOf(tt.want) {
+				t.Errorf("Expected segment type of %v, got %v", reflect.TypeOf(seg), reflect.TypeOf(tt.want))
 			}
 		})
 	}

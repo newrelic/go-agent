@@ -110,7 +110,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		return
 	}
 	// otherwise end segment if it exists in the map
-	p.switchSegmentType(s)
+	p.switchSegmentType(spanID, s.Attributes(), s.SpanKind())
 
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		// find type of segment to switch segment type and add attributes
@@ -152,8 +152,7 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 	}
 }
 
-func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
-	spanID := s.SpanContext().SpanID()
+func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attributes []attribute.KeyValue, spanKind oteltrace.SpanKind) {
 	segInterface, ok := p.segmentMap[spanID]
 	if !ok {
 		return
@@ -163,20 +162,15 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 		return
 	}
 
-	var fullURL = ""
-	attributes := s.Attributes()
-
-	switch s.SpanKind() {
+	switch spanKind {
 	case oteltrace.SpanKindClient:
 		for _, attr := range attributes {
-			if attr.Key == attribute.Key(AttrURLFull) {
-				fullURL = attr.Value.AsString()
-			}
+
 			if attr.Key == attribute.Key(AttrDBSystemName) || attr.Key == attribute.Key(AttrDBSystem) {
 				seg := &newrelic.DatastoreSegment{
 					StartTime: basicSegment.StartTime,
 				}
-				// map attribtues for db
+				// map attributes for db
 				p.addSegmentAttributes(seg, attributes, OTELToNRDBAttributeMap)
 				p.segmentMap[spanID] = seg
 				return
@@ -185,7 +179,6 @@ func (p *nrotelhybridProcessor) switchSegmentType(s trace.ReadOnlySpan) {
 		seg := &newrelic.ExternalSegment{
 			StartTime: basicSegment.StartTime,
 		}
-		seg.URL = fullURL
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
 	default:
