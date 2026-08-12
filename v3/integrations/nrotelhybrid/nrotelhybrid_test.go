@@ -796,3 +796,85 @@ func Test_checkMap(t *testing.T) {
 		})
 	}
 }
+
+type fakeSegment struct {
+	attrs map[string]interface{}
+}
+
+func (f *fakeSegment) End() {}
+
+func (f *fakeSegment) AddAttribute(key string, val interface{}) {
+	if f.attrs == nil {
+		f.attrs = map[string]interface{}{}
+	}
+	f.attrs[key] = val
+}
+
+func Test_nrotelhybridProcessor_addSegmentAttributes(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		attributes []attribute.KeyValue
+		attrMap    map[string]string
+		want       map[string]interface{}
+	}{
+		{
+			name:       "No attributes.",
+			attributes: []attribute.KeyValue{},
+			attrMap:    map[string]string{},
+			want:       map[string]interface{}{},
+		},
+		{
+			name: "Nil attrMap. Keys pass through unmapped.",
+			attributes: []attribute.KeyValue{
+				attribute.String("otel.key", "value"),
+			},
+			attrMap: nil,
+			want: map[string]interface{}{
+				"otel.key": "value",
+			},
+		},
+		{
+			name: "Key present in attrMap is renamed.",
+			attributes: []attribute.KeyValue{
+				attribute.String("otel.key", "value"),
+			},
+			attrMap: map[string]string{
+				"otel.key": "nr.key",
+			},
+			want: map[string]interface{}{
+				"nr.key": "value",
+			},
+		},
+		{
+			name: "Mix of mapped and unmapped keys, various value types.",
+			attributes: []attribute.KeyValue{
+				attribute.String("otel.mapped", "value"),
+				attribute.Int64("otel.unmapped", 42),
+				attribute.Bool("otel.bool", true),
+			},
+			attrMap: map[string]string{
+				"otel.mapped": "nr.mapped",
+			},
+			want: map[string]interface{}{
+				"nr.mapped":     "value",
+				"otel.unmapped": int64(42),
+				"otel.bool":     true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewHybridProcessor(&newrelic.Application{})
+			seg := &fakeSegment{}
+			p.addSegmentAttributes(seg, tt.attributes, tt.attrMap)
+
+			if seg.attrs == nil {
+				seg.attrs = map[string]interface{}{}
+			}
+			if !reflect.DeepEqual(seg.attrs, tt.want) {
+				t.Errorf("addSegmentAttributes() attrs = %v, want %v", seg.attrs, tt.want)
+			}
+		})
+	}
+}
