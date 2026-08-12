@@ -164,7 +164,11 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 
 	switch spanKind {
 	case oteltrace.SpanKindClient:
+		var fullURL string
 		for _, attr := range attributes {
+			if attr.Key == attribute.Key(AttrURLFull) || attr.Key == attribute.Key(AttrHTTPURL) {
+				fullURL = attr.Value.AsString()
+			}
 
 			if attr.Key == attribute.Key(AttrDBSystemName) || attr.Key == attribute.Key(AttrDBSystem) {
 				seg := &newrelic.DatastoreSegment{
@@ -178,6 +182,7 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 		}
 		seg := &newrelic.ExternalSegment{
 			StartTime: basicSegment.StartTime,
+			URL:       fullURL,
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
