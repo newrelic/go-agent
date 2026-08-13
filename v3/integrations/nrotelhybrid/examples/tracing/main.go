@@ -10,12 +10,16 @@ import (
 	"os/signal"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 )
 
 func main() {
@@ -54,6 +58,7 @@ func run() (err error) {
 	defer shutdown(context.Background())
 
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	srv := &http.Server{
 		Addr:         ":8080",
@@ -83,6 +88,9 @@ func newHttpHandler() http.Handler {
 
 	mux.HandleFunc("/routeone/", routeOne)
 	mux.HandleFunc("/routetwo/", routeTwo)
+	mux.HandleFunc("/routethree/", routeThree)
+	mux.HandleFunc("/routefour/", routeFour)
+	mux.HandleFunc("/routefive/", routeFive)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
@@ -106,6 +114,35 @@ func routeTwo(w http.ResponseWriter, r *http.Request) {
 	nestedRouteTwo(ctx)
 }
 
+func routeThree(w http.ResponseWriter, r *http.Request) {
+	tracer := otel.Tracer("nrotel-example")
+	ctx, span := tracer.Start(r.Context(), "route-three")
+	defer span.End()
+
+	nestedRouteThree(ctx)
+}
+
+func routeFour(w http.ResponseWriter, r *http.Request) {
+	tracer := otel.Tracer("nrotel-example")
+	_, span := tracer.Start(r.Context(), "route-four")
+	defer span.End()
+	n := rand.IntN(500)
+	time.Sleep(time.Duration(n) * time.Millisecond)
+}
+
+func routeFive(w http.ResponseWriter, r *http.Request) {
+	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
+		semconv.DBSystemPostgreSQL),
+		otelsql.WithDBName("secondTestDB"),
+		otelsql.WithTracerProvider(otel.GetTracerProvider()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	db.QueryRowContext(r.Context(), "SELECT count(*) FROM pg_catalog.pg_tables")
+
+}
+
 func nestedRouteOne(ctx context.Context) {
 	_, span := otel.Tracer("nrotel-example").Start(ctx, "nested-route-two")
 	defer span.End()
@@ -116,6 +153,23 @@ func nestedRouteTwo(ctx context.Context) {
 	_, span := otel.Tracer("nrotel-example").Start(ctx, "nested-route-two")
 	defer span.End()
 	leafCall(ctx)
+}
+
+func nestedRouteThree(ctx context.Context) {
+	_, span := otel.Tracer("nrotel-example").Start(ctx, "nested-route-two")
+	defer span.End()
+	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/routefour/", nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp.Body.Close()
 }
 
 func leafCall(ctx context.Context) {
