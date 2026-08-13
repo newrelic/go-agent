@@ -26,12 +26,16 @@ const (
 	AttrHTTPRequestMethod      = "http.request.method"       // OTEL HTTP Client v1.23
 	AttrURLFull                = "url.full"                  // OTEL HTTP Client v1.23
 
-	AttrDBSystemName = "db.system.name" // OTEL DB Client v1.25 (DB/Redis/Mongo)
-	AttrDBNamespace  = "db.namespace"   // OTEL DB Client v1.25 (DB/Mongo)
+	AttrDBSystemName     = "db.system.name"     // OTEL DB Client v1.25 (DB/Redis/Mongo)
+	AttrDBNamespace      = "db.namespace"       // OTEL DB Client v1.25 (DB/Mongo)
+	AttrDBCollectionName = "db.collection.name" // OTEL DB Client v1.25 (DB/Redis/Mongo)
+	AttrDBOperationName  = "db.operation.name"  // OTEL DB Client v1.25 (DB/Redis/Mongo)
 
-	AttrDBSystem = "db.system" // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
-	AttrDBName   = "db.name"   // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
-
+	AttrDBSystem    = "db.system"    // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBName      = "db.name"      // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBSQLTable  = "db.sql.table" // OTEL DB Client v1.17 (SQL only)
+	AttrDBOperation = "db.operation" // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBStatement = "db.statement" // OTEL DB Client v1.17 and v1.25 (DB/Redis/Mongo)
 )
 
 // NR segment/transaction attribute keys used by this package.
@@ -50,6 +54,7 @@ const (
 
 // OTELToNRHTTPAttributeMap maps OTel HTTP client/server attribute keys to their
 // NR segment attribute equivalents (OTel HTTP Client v1.17 and v1.23).
+// TODO: If it contains an attribute from both 1.17 and 1.23 it might overwrite.
 var OTELToNRHTTPAttributeMap = map[string]string{
 	// OTEL HTTP Client 1.17
 	AttrHTTPStatusCode: NRHTTPStatusCode,

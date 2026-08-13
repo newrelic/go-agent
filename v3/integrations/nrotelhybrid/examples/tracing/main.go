@@ -10,13 +10,16 @@ import (
 	"os/signal"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 )
 
 func main() {
@@ -87,6 +90,7 @@ func newHttpHandler() http.Handler {
 	mux.HandleFunc("/routetwo/", routeTwo)
 	mux.HandleFunc("/routethree/", routeThree)
 	mux.HandleFunc("/routefour/", routeFour)
+	mux.HandleFunc("/routefive/", routeFive)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
@@ -124,6 +128,19 @@ func routeFour(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 	n := rand.IntN(500)
 	time.Sleep(time.Duration(n) * time.Millisecond)
+}
+
+func routeFive(w http.ResponseWriter, r *http.Request) {
+	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
+		semconv.DBSystemPostgreSQL),
+		otelsql.WithDBName("secondTestDB"),
+		otelsql.WithTracerProvider(otel.GetTracerProvider()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	db.QueryRowContext(r.Context(), "SELECT count(*) FROM pg_catalog.pg_tables")
+
 }
 
 func nestedRouteOne(ctx context.Context) {

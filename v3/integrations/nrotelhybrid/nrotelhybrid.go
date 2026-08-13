@@ -164,12 +164,7 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 
 	switch spanKind {
 	case oteltrace.SpanKindClient:
-		var fullURL string
 		for _, attr := range attributes {
-			if attr.Key == attribute.Key(AttrURLFull) || attr.Key == attribute.Key(AttrHTTPURL) {
-				fullURL = attr.Value.AsString()
-			}
-
 			if attr.Key == attribute.Key(AttrDBSystemName) || attr.Key == attribute.Key(AttrDBSystem) {
 				seg := &newrelic.DatastoreSegment{
 					StartTime: basicSegment.StartTime,
@@ -182,7 +177,6 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 		}
 		seg := &newrelic.ExternalSegment{
 			StartTime: basicSegment.StartTime,
-			URL:       fullURL,
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
@@ -193,12 +187,47 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 }
 
 func (p *nrotelhybridProcessor) addSegmentAttributes(seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
-	for _, otelAttribute := range attributes {
-		if nrAttribute, ok := checkMap(otelAttribute.Key, attrMap); ok {
-			seg.AddAttribute(string(nrAttribute), extractAttributeValue(otelAttribute.Value))
-			continue
+	switch s := seg.(type) {
+	case *newrelic.DatastoreSegment:
+		for _, attribute := range attributes {
+			switch string(attribute.Key) {
+			case AttrDBCollectionName, AttrDBSQLTable:
+				s.Collection = attribute.Value.AsString()
+			case AttrDBOperationName, AttrDBOperation:
+				s.Operation = attribute.Value.AsString()
+			case AttrDBStatement:
+				s.ParameterizedQuery = attribute.Value.AsString()
+			case AttrDBSystem, AttrDBSystemName:
+				s.Product = newrelic.DatastoreProduct(attribute.Value.AsString())
+			default:
+				if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+					s.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+					continue
+				}
+				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+			}
 		}
-		seg.AddAttribute(string(otelAttribute.Key), extractAttributeValue(otelAttribute.Value))
+	case *newrelic.ExternalSegment:
+		for _, attribute := range attributes {
+			switch string(attribute.Key) {
+			case AttrURLFull, AttrHTTPURL:
+				s.URL = attribute.Value.AsString()
+			default:
+				if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+					s.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+					continue
+				}
+				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+			}
+		}
+	default:
+		for _, attribute := range attributes {
+			if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+				seg.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+				continue
+			}
+			seg.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+		}
 	}
 }
 
