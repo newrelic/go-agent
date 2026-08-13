@@ -8,7 +8,6 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -25,15 +24,15 @@ type nrSegment interface {
 type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID]txnMapEntry // Trace ID -> Transaction
-	segmentMap map[oteltrace.SpanID]nrSegment    // SpanID -> Segment
-	txnChecker func(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
+	txnMap     map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
+	segmentMap map[oteltrace.SpanID]nrSegment      // SpanID -> Segment
+	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
 func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
-		txnMap:     map[oteltrace.TraceID]txnMapEntry{},
+		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
 		segmentMap: map[oteltrace.SpanID]nrSegment{},
 		txnChecker: isWithinTransaction,
 	}
@@ -53,18 +52,19 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 		return
 	}
 	// start the segment with the txn entry
-	if entry, ok := p.txnMap[s.SpanContext().TraceID()]; ok && entry.txn != nil {
-		p.startSegment(s, entry)
+	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
+		if entry := entries[len(entries)-1]; entry.txn != nil {
+			p.startSegment(s, entry)
+		}
 	}
 }
 
 func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
 	txn := p.app.StartTransaction(s.Name())
 	if isWeb {
-		attrs := s.Attributes()
 		var fullURL string
-		for _, attr := range attrs {
-			if attr.Key == semconv.URLFullKey {
+		for _, attr := range s.Attributes() {
+			if attr.Key == attribute.Key(AttrURLFull) {
 				fullURL = attr.Value.AsString()
 			}
 		}
@@ -75,7 +75,8 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		}
 		txn.SetWebRequest(req)
 	}
-	p.txnMap[s.SpanContext().TraceID()] = txnMapEntry{txn, s.SpanContext().SpanID()}
+	traceID := s.SpanContext().TraceID()
+	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn, s.SpanContext().SpanID()})
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
@@ -88,51 +89,33 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	traceID := s.SpanContext().TraceID()
+	spanID := s.SpanContext().SpanID()
+
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		if entry, ok := p.txnMap[traceID]; ok && entry.txn != nil {
-			entry.txn.End()
+		entries := p.txnMap[traceID]
+		for i := len(entries) - 1; i >= 0; i-- {
+			if entries[i].spanID == spanID {
+				if entries[i].txn != nil {
+					entries[i].txn.End()
+				}
+				entries = append(entries[:i], entries[i+1:]...)
+				break
+			}
+		}
+		if len(entries) == 0 {
 			delete(p.txnMap, traceID)
+		} else {
+			p.txnMap[traceID] = entries
 		}
 		return
 	}
-	// otherwise end segment
-	spanID := s.SpanContext().SpanID()
+	// otherwise end segment if it exists in the map
+	p.switchSegmentType(spanID, s.Attributes(), s.SpanKind())
+
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
-		for _, attr := range s.Attributes() {
-			//  attr.Value.Type() switch on type
-			seg.AddAttribute(string(attr.Key), extractAttributeValue(attr.Value))
-		}
+		// find type of segment to switch segment type and add attributes
 		seg.End()
 		delete(p.segmentMap, spanID)
-	}
-
-}
-
-func extractAttributeValue(val attribute.Value) any {
-
-	switch val.Type() {
-	case attribute.BOOL:
-		return val.AsBool()
-	case attribute.INT64:
-		return val.AsInt64()
-	case attribute.FLOAT64:
-		return val.AsFloat64()
-	case attribute.STRING:
-		return val.AsString()
-	case attribute.BOOLSLICE:
-		return val.AsBoolSlice()
-	case attribute.INT64SLICE:
-		return val.AsInt64Slice()
-	case attribute.FLOAT64SLICE:
-		return val.AsFloat64Slice()
-	case attribute.STRINGSLICE:
-		return val.AsStringSlice()
-	case attribute.BYTESLICE:
-		return val.AsByteSlice()
-	case attribute.SLICE:
-		return val.AsSlice()
-	default:
-		return nil // EMPTY OR INVALID
 	}
 
 }
@@ -169,10 +152,127 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 	}
 }
 
-func isWithinTransaction(txnMap map[oteltrace.TraceID]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
-	// if the transaction exists and is not the same span id, it is within an existing transaction
-	if val, ok := txnMap[traceID]; ok {
-		return val.spanID != spanID
+func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attributes []attribute.KeyValue, spanKind oteltrace.SpanKind) {
+	segInterface, ok := p.segmentMap[spanID]
+	if !ok {
+		return
+	}
+	basicSegment, ok := segInterface.(*newrelic.Segment)
+	if !ok {
+		return
+	}
+
+	switch spanKind {
+	case oteltrace.SpanKindClient:
+		for _, attr := range attributes {
+			if attr.Key == attribute.Key(AttrDBSystemName) || attr.Key == attribute.Key(AttrDBSystem) {
+				seg := &newrelic.DatastoreSegment{
+					StartTime: basicSegment.StartTime,
+				}
+				// map attributes for db
+				p.addSegmentAttributes(seg, attributes, OTELToNRDBAttributeMap)
+				p.segmentMap[spanID] = seg
+				return
+			}
+		}
+		seg := &newrelic.ExternalSegment{
+			StartTime: basicSegment.StartTime,
+		}
+		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
+		p.segmentMap[spanID] = seg
+	default:
+		p.addSegmentAttributes(basicSegment, attributes, nil)
+		return
+	}
+}
+
+func (p *nrotelhybridProcessor) addSegmentAttributes(seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
+	switch s := seg.(type) {
+	case *newrelic.DatastoreSegment:
+		for _, attribute := range attributes {
+			switch string(attribute.Key) {
+			case AttrDBCollectionName, AttrDBSQLTable:
+				s.Collection = attribute.Value.AsString()
+			case AttrDBOperationName, AttrDBOperation:
+				s.Operation = attribute.Value.AsString()
+			case AttrDBStatement:
+				s.ParameterizedQuery = attribute.Value.AsString()
+			case AttrDBSystem, AttrDBSystemName:
+				s.Product = newrelic.DatastoreProduct(attribute.Value.AsString())
+			default:
+				if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+					s.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+					continue
+				}
+				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+			}
+		}
+	case *newrelic.ExternalSegment:
+		for _, attribute := range attributes {
+			switch string(attribute.Key) {
+			case AttrURLFull, AttrHTTPURL:
+				s.URL = attribute.Value.AsString()
+			default:
+				if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+					s.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+					continue
+				}
+				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+			}
+		}
+	default:
+		for _, attribute := range attributes {
+			if nrAttribute, ok := checkMap(attribute.Key, attrMap); ok {
+				seg.AddAttribute(string(nrAttribute), extractAttributeValue(attribute.Value))
+				continue
+			}
+			seg.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+		}
+	}
+}
+
+func checkMap(key attribute.Key, attrMap map[string]string) (string, bool) {
+	if attrMap == nil {
+		return "", false
+	}
+	nrAttribute, ok := attrMap[string(key)]
+	return nrAttribute, ok
+
+}
+
+func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
+	// if the innermost active transaction exists and is not the same span id, it is within an existing transaction
+	if entries := txnMap[traceID]; len(entries) > 0 {
+		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
+}
+
+func extractAttributeValue(val attribute.Value) any {
+
+	switch val.Type() {
+	case attribute.BOOL:
+		return val.AsBool()
+	case attribute.INT64:
+		return val.AsInt64()
+	case attribute.FLOAT64:
+		return val.AsFloat64()
+	case attribute.STRING:
+		return val.AsString()
+	case attribute.BOOLSLICE:
+		return val.AsBoolSlice()
+	case attribute.INT64SLICE:
+		return val.AsInt64Slice()
+	case attribute.FLOAT64SLICE:
+		return val.AsFloat64Slice()
+	case attribute.STRINGSLICE:
+		return val.AsStringSlice()
+	case attribute.BYTESLICE:
+		return val.AsByteSlice()
+	case attribute.SLICE:
+		return val.AsSlice()
+	default:
+		return nil // EMPTY OR INVALID
+	}
+
 }
