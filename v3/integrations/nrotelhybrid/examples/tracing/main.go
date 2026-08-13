@@ -10,12 +10,14 @@ import (
 	"os/signal"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -55,6 +57,7 @@ func run() (err error) {
 	defer shutdown(context.Background())
 
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	srv := &http.Server{
 		Addr:         ":8080",
@@ -128,6 +131,23 @@ func nestedRouteTwo(ctx context.Context) {
 	_, span := otel.Tracer("nrotel-example").Start(ctx, "nested-route-two")
 	defer span.End()
 	leafCall(ctx)
+}
+
+func nestedRouteThree(ctx context.Context) {
+	_, span := otel.Tracer("nrotel-example").Start(ctx, "nested-route-two")
+	defer span.End()
+	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/routefour/", nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp.Body.Close()
 }
 
 func leafCall(ctx context.Context) {
