@@ -878,3 +878,90 @@ func Test_nrotelhybridProcessor_addSegmentAttributes(t *testing.T) {
 		})
 	}
 }
+
+func Test_addSegmentAttributes_DatastoreSegment(t *testing.T) {
+	tests := []struct {
+		name           string
+		attributes     []attribute.KeyValue
+		wantCollection string
+		wantOperation  string
+		wantQuery      string
+	}{
+		{
+			name: "db.collection.name and db.operation.name set typed fields.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrDBCollectionName, "users"),
+				attribute.String(AttrDBOperationName, "SELECT"),
+			},
+			wantCollection: "users",
+			wantOperation:  "SELECT",
+		},
+		{
+			name: "Legacy db.sql.table and db.operation set typed fields.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrDBSQLTable, "orders"),
+				attribute.String(AttrDBOperation, "INSERT"),
+			},
+			wantCollection: "orders",
+			wantOperation:  "INSERT",
+		},
+		{
+			name: "db.statement sets ParameterizedQuery.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrDBStatement, "SELECT count(*) FROM pg_catalog.pg_tables"),
+			},
+			wantQuery: "SELECT count(*) FROM pg_catalog.pg_tables",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewHybridProcessor(&newrelic.Application{})
+			seg := &newrelic.DatastoreSegment{}
+			p.addSegmentAttributes(seg, tt.attributes, OTELToNRDBAttributeMap)
+
+			if seg.Collection != tt.wantCollection {
+				t.Errorf("Collection = %v, want %v", seg.Collection, tt.wantCollection)
+			}
+			if seg.Operation != tt.wantOperation {
+				t.Errorf("Operation = %v, want %v", seg.Operation, tt.wantOperation)
+			}
+			if seg.ParameterizedQuery != tt.wantQuery {
+				t.Errorf("ParameterizedQuery = %v, want %v", seg.ParameterizedQuery, tt.wantQuery)
+			}
+		})
+	}
+}
+
+func Test_addSegmentAttributes_ExternalSegment(t *testing.T) {
+	tests := []struct {
+		name       string
+		attributes []attribute.KeyValue
+		wantURL    string
+	}{
+		{
+			name: "url.full sets URL.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrURLFull, "http://example.com/path"),
+			},
+			wantURL: "http://example.com/path",
+		},
+		{
+			name: "Legacy http.url sets URL.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrHTTPURL, "http://legacy.example.com/path"),
+			},
+			wantURL: "http://legacy.example.com/path",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewHybridProcessor(&newrelic.Application{})
+			seg := &newrelic.ExternalSegment{}
+			p.addSegmentAttributes(seg, tt.attributes, OTELToNRHTTPAttributeMap)
+
+			if seg.URL != tt.wantURL {
+				t.Errorf("URL = %v, want %v", seg.URL, tt.wantURL)
+			}
+		})
+	}
+}
