@@ -48,8 +48,13 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		p.startTransaction(s, isWeb)
-		return
+		switch s.SpanKind() {
+		case oteltrace.SpanKindProducer:
+			return
+		default:
+			p.startTransaction(s, isWeb)
+			return
+		}
 	}
 	// start the segment with the txn entry
 	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
@@ -145,7 +150,7 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), true
 	case oteltrace.SpanKindClient:
 		return false, true
-	case oteltrace.SpanKindConsumer:
+	case oteltrace.SpanKindConsumer, oteltrace.SpanKindProducer:
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), false
 	default:
 		return false, false
