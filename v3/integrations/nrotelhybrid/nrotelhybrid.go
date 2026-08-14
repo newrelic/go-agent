@@ -185,6 +185,12 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
+	case oteltrace.SpanKindProducer:
+		seg := &newrelic.MessageProducerSegment{
+			StartTime: basicSegment.StartTime,
+		}
+		p.addSegmentAttributes(seg, attributes, nil)
+		p.segmentMap[spanID] = seg
 	default:
 		p.addSegmentAttributes(basicSegment, attributes, nil)
 		return
