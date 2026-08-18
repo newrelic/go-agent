@@ -107,12 +107,13 @@ var OTELToNRDBAttributeMap = map[string]string{
 // keys to their NR segment attribute equivalents (OTel Messaging Consumer
 // v1.17, v1.24, and v1.30).
 var OTELToNRMessagingConsumerAttributeMap = map[string]string{
-	// OTEL Messaging Consumer v1.24/v1.30
-	AttrMessagingDestinationName:    NRMessageQueueName,
-	AttrServerAddress:               NRHost,
-	AttrServerPort:                  NRPort,
-	AttrMessagingKafkaMessageKey:    NRMessageRoutingKey, // v1.30 only
+	// OTEL Messaging Consumer v1.17/v1.24/v1.30
 	AttrMessagingRabbitMQRoutingKey: NRMessageRoutingKey,
+	// OTEL Messaging Consumer v1.24/v1.30
+	AttrMessagingDestinationName: NRMessageQueueName,
+	AttrServerAddress:            NRHost,
+	AttrServerPort:               NRPort,
+	AttrMessagingKafkaMessageKey: NRMessageRoutingKey, // v1.30 only
 	// OTEL Messaging Consumer v1.17
 	AttrMessagingDestination: NRMessageQueueName,
 	AttrNetPeerName:          NRHost,

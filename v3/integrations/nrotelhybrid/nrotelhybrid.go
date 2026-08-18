@@ -48,13 +48,8 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		switch s.SpanKind() {
-		case oteltrace.SpanKindProducer:
-			return
-		default:
-			p.startTransaction(s, isWeb)
-			return
-		}
+		p.startTransaction(s, isWeb)
+		return
 	}
 	// start the segment with the txn entry
 	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
@@ -150,7 +145,9 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), true
 	case oteltrace.SpanKindClient:
 		return false, true
-	case oteltrace.SpanKindConsumer, oteltrace.SpanKindProducer:
+	case oteltrace.SpanKindProducer:
+		return false, false
+	case oteltrace.SpanKindConsumer:
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), false
 	default:
 		return false, false
@@ -191,9 +188,10 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRMessagingProducerAttributeMap)
 		p.segmentMap[spanID] = seg
+	case oteltrace.SpanKindConsumer:
+		p.addSegmentAttributes(basicSegment, attributes, OTELToNRMessagingConsumerAttributeMap)
 	default:
 		p.addSegmentAttributes(basicSegment, attributes, nil)
-		return
 	}
 }
 
