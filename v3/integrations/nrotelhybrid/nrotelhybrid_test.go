@@ -725,6 +725,62 @@ func Test_nrotelhybridProcessor_switchSegmentType(t *testing.T) {
 			spanKind: oteltrace.SpanKindClient,
 			want:     &newrelic.DatastoreSegment{},
 		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is PRODUCER. Should convert to Producer Segment.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			spanKind: oteltrace.SpanKindProducer,
+			want:     &newrelic.MessageProducerSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is PRODUCER. Should convert to Producer Segment.  Has attributes for Messages.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrServerAddress), Value: attribute.StringValue("address")},
+				{Key: attribute.Key(AttrServerPort), Value: attribute.StringValue("port")},
+			},
+			spanKind: oteltrace.SpanKindProducer,
+			want:     &newrelic.MessageProducerSegment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CONSUMER. Should stay a basic segment.",
+			spanID: otherSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				otherSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			spanKind: oteltrace.SpanKindConsumer,
+			want:     &newrelic.Segment{},
+		},
+		{
+			name:   "Segment is a basic segment upon type cast. SpanKind is CONSUMER. Should add attributes for Messages.",
+			spanID: validSpanID,
+			initialSegmentMap: map[oteltrace.SpanID]nrSegment{
+				validSpanID: &newrelic.Segment{
+					StartTime: newrelic.SegmentStartTime{},
+					Name:      "Basic Segment",
+				},
+			},
+			attributes: []attribute.KeyValue{
+				{Key: attribute.Key(AttrServerAddress), Value: attribute.StringValue("address")},
+				{Key: attribute.Key(AttrServerPort), Value: attribute.StringValue("port")},
+			},
+			spanKind: oteltrace.SpanKindConsumer,
+			want:     &newrelic.Segment{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -927,6 +983,69 @@ func Test_addSegmentAttributes_DatastoreSegment(t *testing.T) {
 			}
 			if seg.ParameterizedQuery != tt.wantQuery {
 				t.Errorf("ParameterizedQuery = %v, want %v", seg.ParameterizedQuery, tt.wantQuery)
+			}
+		})
+	}
+}
+
+func Test_addSegmentAttributes_MessageProducerSegment(t *testing.T) {
+	tests := []struct {
+		name         string
+		attributes   []attribute.KeyValue
+		wantLibrary  string
+		wantDestName string
+		wantDestType newrelic.MessageDestinationType
+	}{
+		{
+			name: "messaging.system sets Library.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrMessagingSystem, "rabbitmq"),
+			},
+			wantLibrary: "rabbitmq",
+		},
+		{
+			name: "messaging.destination.name sets DestinationName.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrMessagingDestinationName, "route-six-queue"),
+			},
+			wantDestName: "route-six-queue",
+		},
+		{
+			name: "messaging.destination_kind sets DestinationType.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrMessagingDestinationKind, "queue"),
+			},
+			wantDestType: newrelic.MessageDestinationType("queue"),
+		},
+		{
+			name: "messaging.operation sets DestinationType.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrMessagingOperation, "publish"),
+			},
+			wantDestType: newrelic.MessageDestinationType("publish"),
+		},
+		{
+			name: "messaging.operation.type sets DestinationType.",
+			attributes: []attribute.KeyValue{
+				attribute.String(AttrMessagingOperationType, "create"),
+			},
+			wantDestType: newrelic.MessageDestinationType("create"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewHybridProcessor(&newrelic.Application{})
+			seg := &newrelic.MessageProducerSegment{}
+			p.addSegmentAttributes(seg, tt.attributes, OTELToNRMessagingProducerAttributeMap)
+
+			if seg.Library != tt.wantLibrary {
+				t.Errorf("Library = %v, want %v", seg.Library, tt.wantLibrary)
+			}
+			if seg.DestinationName != tt.wantDestName {
+				t.Errorf("DestinationName = %v, want %v", seg.DestinationName, tt.wantDestName)
+			}
+			if seg.DestinationType != tt.wantDestType {
+				t.Errorf("DestinationType = %v, want %v", seg.DestinationType, tt.wantDestType)
 			}
 		})
 	}
