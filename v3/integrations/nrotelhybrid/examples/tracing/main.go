@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"time"
 
@@ -20,16 +21,19 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type deps struct {
-	db      *sql.DB
-	amqpCh  *amqp.Channel
-	amqpMux sync.Mutex
+	db       *sql.DB
+	amqpConn *amqp.Connection
+	amqpCh   *amqp.Channel
+	amqpMux  sync.Mutex
 }
 
 func main() {
@@ -71,7 +75,7 @@ func run() (err error) {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
-		semconv.DBSystemPostgreSQL),
+		semconv.DBSystemNamePostgreSQL),
 		otelsql.WithDBName("secondTestDB"),
 		otelsql.WithTracerProvider(otel.GetTracerProvider()),
 	)
@@ -96,7 +100,7 @@ func run() (err error) {
 		return err
 	}
 
-	d := &deps{db: db, amqpCh: amqpCh}
+	d := &deps{db: db, amqpConn: amqpConn, amqpCh: amqpCh}
 
 	srv := &http.Server{
 		Addr:         ":8080",
@@ -174,10 +178,20 @@ func (d *deps) routeFive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *deps) routeSix(w http.ResponseWriter, r *http.Request) {
+	key := "route-six-queue"
+	tracer := otel.Tracer("nrotel-example")
+	_, span := tracer.Start(r.Context(), "route-six", oteltrace.WithSpanKind(oteltrace.SpanKindProducer), oteltrace.WithAttributes(
+		attribute.String(string(semconv.MessagingDestinationNameKey), "MyTestQueue"),
+		attribute.String(string(semconv.MessagingRabbitMQDestinationRoutingKeyKey), key),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
+	))
+	defer span.End()
+
 	d.amqpMux.Lock()
 	defer d.amqpMux.Unlock()
 
-	err := d.amqpCh.PublishWithContext(r.Context(), "", "route-six-queue", false, false, amqp.Publishing{
+	err := d.amqpCh.PublishWithContext(r.Context(), "", key, false, false, amqp.Publishing{
 		ContentType: "text/plain",
 		Body:        []byte("hello from routeSix"),
 	})
