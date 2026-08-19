@@ -134,6 +134,7 @@ func newHttpHandler(d *deps) http.Handler {
 	mux.HandleFunc("/routefour/", routeFour)
 	mux.HandleFunc("/routefive/", d.routeFive)
 	mux.HandleFunc("/routesix/", d.routeSix)
+	mux.HandleFunc("/routeseven/", d.routeSeven)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
@@ -199,6 +200,33 @@ func (d *deps) routeSix(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+}
+
+func (d *deps) routeSeven(w http.ResponseWriter, r *http.Request) {
+	key := "route-six-queue"
+
+	tracer := otel.Tracer("nrotel-example")
+	_, span := tracer.Start(r.Context(), "route-seven", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
+		attribute.String(string(semconv.MessagingRabbitMQDestinationRoutingKeyKey), key),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
+	))
+	defer span.End()
+
+	d.amqpMux.Lock()
+	defer d.amqpMux.Unlock()
+
+	msg, ok, err := d.amqpCh.Get(key, true)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if !ok {
+		w.Write([]byte("no message available"))
+		return
+	}
+	w.Write(msg.Body)
 }
 
 func nestedRouteOne(ctx context.Context) {
