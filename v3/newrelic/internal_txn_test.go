@@ -5,6 +5,7 @@ package newrelic
 
 import (
 	"errors"
+	"go/version"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -1022,11 +1023,15 @@ func TestPanicNilRecovery(t *testing.T) {
 		defer txn.End()
 		panic(nil)
 	}()
+	errorMessage := "panic called with nil argument"
+	if version.Compare(runtime.Version(), "go1.26.7") > 0 {
+		errorMessage = "runtime error: panic called with nil argument"
+	}
 	app.ExpectSpanEvents(t, []internal.WantEvent{
 		{
 			AgentAttributes: map[string]interface{}{
 				SpanAttributeErrorClass:   "panic",
-				SpanAttributeErrorMessage: "panic called with nil argument",
+				SpanAttributeErrorMessage: errorMessage,
 			},
 			Intrinsics: map[string]interface{}{
 				"category":         internal.MatchAnything,
