@@ -131,7 +131,7 @@ func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 // isTransaction reports whether the span should start/continue a transaction (isTxn),
 // and whether that transaction is a web transaction (isWeb).
 func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) (isTxn, isWeb bool) {
-	if parent.IsRemote() {
+	if parent.IsRemote() || !parent.IsValid() {
 		// any span with a remote parent is a transaction
 		switch kind {
 		case oteltrace.SpanKindServer, oteltrace.SpanKindClient:
