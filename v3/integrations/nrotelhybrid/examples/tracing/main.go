@@ -14,6 +14,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -83,6 +84,7 @@ func newHttpHandler() http.Handler {
 
 	mux.HandleFunc("/routeone/", routeOne)
 	mux.HandleFunc("/routetwo/", routeTwo)
+	mux.HandleFunc("/linked/", linkedRoute)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
@@ -104,6 +106,16 @@ func routeTwo(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "route-two")
 	defer span.End()
 	nestedRouteTwo(ctx)
+}
+
+func linkedRoute(w http.ResponseWriter, r *http.Request) {
+	tracer := otel.Tracer("nrotel-example")
+	otherCtx, otherSpan := tracer.Start("nrotel-other-route")
+	defer otherSpan.End()
+	go leafCall(otherCtx)
+	ctx, span := tracer.Start(r.Context(), "linked-route", trace.WithNewRoot(), trace.LinkFromContext(otherCtx, attribute.String("link.purpose", "asynchronous_processing")))
+	defer span.End()
+	leafCall(ctx)
 }
 
 func nestedRouteOne(ctx context.Context) {
