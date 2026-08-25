@@ -155,6 +155,13 @@ const (
 	MessageQueue    MessageDestinationType = "Queue"
 	MessageTopic    MessageDestinationType = "Topic"
 	MessageExchange MessageDestinationType = "Exchange"
+	MessageCreate   MessageDestinationType = "create"  // OTEL messaging.operation.type v1.30.0, messaging.operation v1.24.0
+	MessageProcess  MessageDestinationType = "process" // OTEL messaging.operation.type v1.30.0
+	MessageReceive  MessageDestinationType = "receive" // OTEL messaging.operation.type v1.30.0, messaging.operation v1.24.0
+	MessageSend     MessageDestinationType = "send"    // OTEL messaging.operation.type v1.30.0
+	MessageSettle   MessageDestinationType = "settle"  // OTEL messaging.operation.type v1.30.0
+	MessagePublish  MessageDestinationType = "publish" // OTEL messaging.operation v1.24.0
+	MessageDeliver  MessageDestinationType = "deliver" // OTEL messaging.operation v1.24.0
 )
 
 // AddAttribute adds a key value pair to the current segment.

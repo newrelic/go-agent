@@ -145,6 +145,8 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), true
 	case oteltrace.SpanKindClient:
 		return false, true
+	case oteltrace.SpanKindProducer:
+		return false, false
 	case oteltrace.SpanKindConsumer:
 		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), false
 	default:
@@ -180,9 +182,16 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
 		p.segmentMap[spanID] = seg
+	case oteltrace.SpanKindProducer:
+		seg := &newrelic.MessageProducerSegment{
+			StartTime: basicSegment.StartTime,
+		}
+		p.addSegmentAttributes(seg, attributes, OTELToNRMessagingProducerAttributeMap)
+		p.segmentMap[spanID] = seg
+	case oteltrace.SpanKindConsumer:
+		p.addSegmentAttributes(basicSegment, attributes, OTELToNRMessagingConsumerAttributeMap)
 	default:
 		p.addSegmentAttributes(basicSegment, attributes, nil)
-		return
 	}
 }
 
@@ -219,6 +228,21 @@ func (p *nrotelhybridProcessor) addSegmentAttributes(seg nrSegment, attributes [
 				}
 				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
 			}
+		}
+	case *newrelic.MessageProducerSegment:
+		for _, attribute := range attributes {
+			switch string(attribute.Key) {
+			case AttrMessagingSystem:
+				s.Library = attribute.Value.AsString()
+			case AttrMessagingDestinationName:
+				s.DestinationName = attribute.Value.AsString()
+			case AttrMessagingDestinationKind, AttrMessagingOperation, AttrMessagingOperationType:
+				// messaging.desingation_kind this is deprecated on the OTEL side but leaving it here for spec compatibility
+				s.DestinationType = newrelic.MessageDestinationType(attribute.Value.AsString())
+			default:
+				s.AddAttribute(string(attribute.Key), extractAttributeValue(attribute.Value))
+			}
+
 		}
 	default:
 		for _, attribute := range attributes {

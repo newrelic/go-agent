@@ -36,6 +36,16 @@ const (
 	AttrDBSQLTable  = "db.sql.table" // OTEL DB Client v1.17 (SQL only)
 	AttrDBOperation = "db.operation" // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
 	AttrDBStatement = "db.statement" // OTEL DB Client v1.17 and v1.25 (DB/Redis/Mongo)
+
+	AttrMessagingDestinationName    = "messaging.destination.name"                 // OTEL Messaging Consumer v1.24/v1.30, SQS Producer v1.17
+	AttrMessagingDestination        = "messaging.destination"                      // OTEL Messaging Consumer v1.17
+	AttrMessagingKafkaMessageKey    = "messaging.kafka.message.key"                // OTEL Messaging Producer/Consumer v1.24/v1.30
+	AttrMessagingRabbitMQRoutingKey = "messaging.rabbitmq.destination.routing_key" // OTEL Messaging Producer/Consumer v1.17/v1.24/v1.30
+	AttrMessagingConversationID     = "messaging.message.conversation_id"          // OTEL Messaging Producer v1.17/v1.24/v1.30
+	AttrMessagingSystem             = "messaging.system"                           // OTEL Messaging Producer v1.17/v1.24/v1.30
+	AttrMessagingDestinationKind    = "messaging.destination_kind"                 // OTEL Messaging Producer v1.17
+	AttrMessagingOperationType      = "messaging.operation.type"                   // OTEL Messaging Producer v1.30
+	AttrMessagingOperation          = "messaging.operation"                        // OTEL Messaging Producer v1.24
 )
 
 // NR segment/transaction attribute keys used by this package.
@@ -50,6 +60,11 @@ const (
 	NRProduct      = "product"
 	NRDatabaseName = "database_name"
 	NRPortPathOrID = "port_path_or_id"
+
+	NRMessageQueueName  = "message.queueName"
+	NRMessageRoutingKey = "message.routingKey"
+	NRRoutingKey        = "routingKey"
+	NRCorrelationID     = "correlation_id"
 )
 
 // OTELToNRHTTPAttributeMap maps OTel HTTP client/server attribute keys to their
@@ -86,4 +101,36 @@ var OTELToNRDBAttributeMap = map[string]string{
 	AttrDBName:      NRDatabaseName,
 	AttrNetPeerName: NRHost, // Not used by Dynamo
 	AttrNetPeerPort: NRPortPathOrID,
+}
+
+// OTELToNRMessagingConsumerAttributeMap maps OTel messaging consumer attribute
+// keys to their NR segment attribute equivalents (OTel Messaging Consumer
+// v1.17, v1.24, and v1.30).
+var OTELToNRMessagingConsumerAttributeMap = map[string]string{
+	// OTEL Messaging Consumer v1.17/v1.24/v1.30
+	AttrMessagingRabbitMQRoutingKey: NRMessageRoutingKey,
+	// OTEL Messaging Consumer v1.24/v1.30
+	AttrMessagingDestinationName: NRMessageQueueName,
+	AttrServerAddress:            NRHost,
+	AttrServerPort:               NRPort,
+	AttrMessagingKafkaMessageKey: NRMessageRoutingKey, // v1.30 only
+	// OTEL Messaging Consumer v1.17
+	AttrMessagingDestination: NRMessageQueueName,
+	AttrNetPeerName:          NRHost,
+	AttrNetPeerPort:          NRPort,
+}
+
+// OTELToNRMessagingProducerAttributeMap maps OTel messaging producer attribute
+// keys to their NR segment attribute equivalents (OTel Messaging Producer
+// v1.17, v1.24, and v1.30).
+var OTELToNRMessagingProducerAttributeMap = map[string]string{
+	// OTEL Messaging Producer v1.24/v1.30
+	AttrServerAddress:               NRHost,
+	AttrServerPort:                  NRPort,
+	AttrMessagingKafkaMessageKey:    NRRoutingKey,
+	AttrMessagingRabbitMQRoutingKey: NRRoutingKey,
+	AttrMessagingConversationID:     NRCorrelationID,
+	// OTEL Messaging Producer v1.17
+	AttrNetPeerName: NRHost,
+	AttrNetPeerPort: NRPort,
 }
