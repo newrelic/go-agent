@@ -82,7 +82,7 @@ func (app *app) doHarvest(h *harvest, harvestStart time.Time, run *appRun) {
 
 		defer func() {
 			if r := recover(); r != nil {
-				app.Warn("panic occured when creating harvest data", map[string]interface{}{
+				app.Warn("panic occurred when creating harvest data", map[string]interface{}{
 					"cmd":   cmd,
 					"panic": r,
 				})
