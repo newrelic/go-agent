@@ -3,7 +3,9 @@ module github.com/newrelic/go-agent/v3/integrations/nrotelhybrid
 go 1.25.0
 
 require (
+	github.com/lib/pq v1.12.3
 	github.com/newrelic/go-agent/v3 v3.44.1
+	github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.44.0
