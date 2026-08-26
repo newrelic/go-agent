@@ -1665,3 +1665,22 @@ func TestStreamStateKeepsFirstError(t *testing.T) {
 		t.Errorf("resp: got %+v, want nil", c.resp)
 	}
 }
+
+// A yield carrying neither a chunk nor an error must not mark the stream as
+// observed, or finish would skip measuring the duration and report zero.
+func TestStreamStateEmptyYieldLeavesDurationMeasured(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("empty-yield")
+	defer txn.End()
+
+	st := newTestStreamState()
+	st.observe(txn, nil, nil)
+	if st.observed {
+		t.Error("an empty yield should not count as observed")
+	}
+
+	time.Sleep(5 * time.Millisecond)
+	if got := st.finish().duration; got <= 0 {
+		t.Errorf("duration: got %d, want > 0", got)
+	}
+}

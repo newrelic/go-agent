@@ -522,21 +522,21 @@ type streamState struct {
 	text     []*strings.Builder
 	start    time.Time
 	consumed bool
-	// observed records whether anything was yielded at all, which a zero duration
-	// cannot express: a stream answered inside the same millisecond measures zero.
+	// observed says a chunk was seen and timings were stamped, which a zero
+	// duration cannot express: a stream answered inside one millisecond measures
+	// zero. Set only by stamp, alongside the timings it records.
 	observed bool
 }
 
 // observe folds one yielded chunk into the accumulated state.
 func (st *streamState) observe(txn *newrelic.Transaction, chunk *genai.GenerateContentResponse, err error) {
 	c := st.completion
-	st.observed = true
 
 	if err != nil {
 		// Keep the first; the SDK may yield more chunks after an error.
 		if c.err == nil {
 			c.err = err
-			c.duration = time.Since(st.start).Milliseconds()
+			st.stamp()
 			noticeError(txn, c.id, err)
 		}
 		return
@@ -544,42 +544,91 @@ func (st *streamState) observe(txn *newrelic.Transaction, chunk *genai.GenerateC
 	if chunk == nil {
 		return
 	}
-	if c.timeToFirstToken == nil {
-		elapsed := time.Since(st.start).Milliseconds()
-		c.timeToFirstToken = &elapsed
-	}
-	// Stamped per chunk so the recording, which happens after the caller's loop
-	// exits, does not stretch the duration past the last chunk.
-	c.duration = time.Since(st.start).Milliseconds()
+	st.stamp()
 
 	if c.resp == nil {
 		c.resp = &genai.GenerateContentResponse{}
 	}
-	resp := c.resp
+	st.mergeResponse(chunk)
+	st.mergeCandidates(chunk.Candidates)
+}
 
+// stamp records the timings a chunk supplies. duration is taken per chunk so the
+// recording, which happens after the caller's loop exits, does not stretch it
+// past the last chunk; timeToFirstToken is only ever set by the first.
+func (st *streamState) stamp() {
+	elapsed := time.Since(st.start).Milliseconds()
+	if st.completion.timeToFirstToken == nil {
+		first := elapsed
+		st.completion.timeToFirstToken = &first
+	}
+	st.completion.duration = elapsed
+	st.observed = true
+}
+
+// mergeResponse carries a chunk's response-level fields over, latest wins. Most
+// chunks repeat the same ResponseID and ModelVersion, but the usage totals appear
+// only on the final one, so the last write is the one that matters:
+//
+//	chunk 1  {ResponseID: "resp_abc", ModelVersion: "gemini-2.5-flash", UsageMetadata: nil}
+//	chunk 2  {ResponseID: "resp_abc", ModelVersion: "gemini-2.5-flash", UsageMetadata: nil}
+//	chunk 3  {ResponseID: "resp_abc", ModelVersion: "gemini-2.5-flash",
+//	          UsageMetadata: {PromptTokenCount: 9, CandidatesTokenCount: 12, TotalTokenCount: 21}}
+//
+// leaving the accumulated response with the ids from any chunk and the totals
+// from the last, which recordSummary reports as response.usage.*.
+func (st *streamState) mergeResponse(chunk *genai.GenerateContentResponse) {
+	resp := st.completion.resp
 	if chunk.ResponseID != "" {
 		resp.ResponseID = chunk.ResponseID
 	}
 	if chunk.ModelVersion != "" {
 		resp.ModelVersion = chunk.ModelVersion
 	}
-	// Usage arrives on the final chunk, so the latest wins.
 	if chunk.UsageMetadata != nil {
 		resp.UsageMetadata = chunk.UsageMetadata
 	}
 	if chunk.SDKHTTPResponse != nil {
 		resp.SDKHTTPResponse = chunk.SDKHTTPResponse
 	}
+}
 
-	// Each requested candidate streams its own deltas.
-	for len(resp.Candidates) < len(chunk.Candidates) {
+// mergeCandidates folds a chunk's candidates into the accumulated ones.
+//
+// Gemini streams each candidate's text as a run of deltas, one per chunk, and
+// reports the stop reason on the last. A request with CandidateCount: 2 arrives
+// roughly like this, where every chunk carries a slice position per candidate:
+//
+//	chunk 1  Candidates[0] = {Content: {Role: "model", Parts: [{Text: "Hel"}]}}
+//	         Candidates[1] = {Content: {Role: "model", Parts: [{Text: "Bon"}]}}
+//	chunk 2  Candidates[0] = {Content: {Role: "model", Parts: [{Text: "lo"}]}}
+//	         Candidates[1] = {Content: {Role: "model", Parts: [{Text: "jour"}]}}
+//	chunk 3  Candidates[0] = {Content: {Parts: [{Text: ""}]}, FinishReason: "STOP"}
+//	         Candidates[1] = {Content: {Parts: [{Text: ""}]}, FinishReason: "STOP"}
+//
+// Deltas go to st.text[i], one builder per candidate, so nothing is recopied as
+// the text grows. The stop reason and role are written straight onto the
+// accumulated candidate. finish then moves each builder into the response:
+//
+//	resp.Candidates[0] = {Content: {Role: "model", Parts: [{Text: "Hello"}]},   FinishReason: "STOP"}
+//	resp.Candidates[1] = {Content: {Role: "model", Parts: [{Text: "Bonjour"}]}, FinishReason: "STOP"}
+//
+// which is the shape GenerateContent returns in one piece, so recordMessages
+// emits one LlmChatCompletionMessage per candidate for either path. Keeping each
+// candidate's text in a single Part matters: contentText joins separate Parts with
+// a space, which would scatter spaces between the deltas.
+func (st *streamState) mergeCandidates(candidates []*genai.Candidate) {
+	resp := st.completion.resp
+
+	// Grow to match the widest chunk seen, a builder alongside each candidate.
+	for len(resp.Candidates) < len(candidates) {
 		resp.Candidates = append(resp.Candidates, &genai.Candidate{
 			Content: &genai.Content{Parts: []*genai.Part{{}}},
 		})
 		st.text = append(st.text, &strings.Builder{})
 	}
 
-	for i, src := range chunk.Candidates {
+	for i, src := range candidates {
 		if src == nil {
 			continue
 		}
@@ -601,7 +650,9 @@ func (st *streamState) observe(txn *newrelic.Transaction, chunk *genai.GenerateC
 	}
 }
 
-// finish materializes the accumulated text and returns the completion to report.
+// finish moves each candidate's builder into its Part and returns the completion
+// to report: st.text[i] becomes resp.Candidates[i].Content.Parts[0].Text. See
+// mergeCandidates for a worked example.
 func (st *streamState) finish() *completion {
 	c := st.completion
 
