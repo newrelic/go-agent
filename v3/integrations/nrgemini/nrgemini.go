@@ -1,10 +1,11 @@
 // Package nrgemini provides New Relic instrumentation for the Google GenAI Go
 // SDK (google.golang.org/genai).
 //
-// Wrap your GenAI client with NewClient, then use the wrapped service in place of
-// the SDK's own: GenerateContent, GenerateContentStream, and ProcessContentStream
-// record LlmChatCompletionSummary and LlmChatCompletionMessage events, and open a
-// segment under the active transaction.
+// Wrap your GenAI client with NewClient, then use nrClient.Models in place of
+// client.Models. GenerateContent and GenerateContentStream keep the SDK's
+// signatures, so calling code does not otherwise change; both record
+// LlmChatCompletionSummary and LlmChatCompletionMessage events and open a segment
+// under the active transaction.
 //
 // AI monitoring must be enabled on the application
 // (newrelic.ConfigAIMonitoringEnabled(true)), plus
@@ -437,49 +438,19 @@ func candidateText(c *genai.Candidate) (string, int) {
 	return contentText(c.Content)
 }
 
-// NRGenerateContentStream tracks a streaming GenerateContent call until every
-// chunk has been processed. The SDK hands back an iter.Seq2, so your code drives
-// the loop and reports each chunk back:
+// GenerateContentStream wraps client.Models.GenerateContentStream with New Relic
+// instrumentation. It returns the same iter.Seq2 the SDK returns, so calling code
+// is unchanged apart from the receiver:
 //
-//	stream := nrClient.Models.GenerateContentStream(ctx, model, contents, cfg)
-//	defer stream.Close()
-//	for chunk, err := range stream.Stream {
-//	    stream.RecordEvent(chunk, err)
-//	    if err != nil {
-//	        break
-//	    }
+//	for chunk, err := range nrClient.Models.GenerateContentStream(ctx, model, contents, cfg) {
 //	    // ... consume chunk ...
 //	}
 //
-// Ranging over Stream is what releases the HTTP body; the SDK closes it when the
-// loop ends or breaks. Close only finishes the New Relic side, so it is safe to
-// defer. See ProcessContentStream for an easier alternative.
-type NRGenerateContentStream struct {
-	// Stream is the SDK's iterator. Range over it directly.
-	Stream iter.Seq2[*genai.GenerateContentResponse, error]
-
-	svc      *NRModelsService
-	txn      *newrelic.Transaction
-	seg      *newrelic.Segment
-	closeTxn bool
-	closed   bool
-
-	// completion holds what Close reports; its resp is accumulated chunk by chunk
-	// into the shape a non-streaming call returns.
-	completion *completion
-	// text collects each candidate's deltas. A Builder per candidate keeps the
-	// accumulation linear; concatenating onto the response recopies it every chunk.
-	text  []*strings.Builder
-	start time.Time
-}
-
-// GenerateContentStream wraps client.Models.GenerateContentStream with New Relic
-// instrumentation. Report each chunk with RecordEvent and call Close when done;
-// see NRGenerateContentStream for an example. A transaction in ctx is used as-is,
-// otherwise one named "GeminiGenerateContentStream" is started and ended by
-// Close. With AI monitoring or streaming disabled, Stream is the untouched SDK
-// iterator and RecordEvent/Close do nothing.
-func (s *NRModelsService) GenerateContentStream(ctx context.Context, model string, contents []*genai.Content, config *genai.GenerateContentConfig) *NRGenerateContentStream {
+// Events are recorded once the loop finishes, whether it ran to completion, broke
+// early, or panicked. A transaction in ctx is used as-is; otherwise one named
+// "GeminiGenerateContentStream" is started and ended with the stream. With AI
+// monitoring or streaming disabled, the SDK iterator is returned untouched.
+func (s *NRModelsService) GenerateContentStream(ctx context.Context, model string, contents []*genai.Content, config *genai.GenerateContentConfig) iter.Seq2[*genai.GenerateContentResponse, error] {
 	cfg, _ := s.app.Config()
 
 	if !cfg.AIMonitoring.Streaming.Enabled {
@@ -487,73 +458,104 @@ func (s *NRModelsService) GenerateContentStream(ctx context.Context, model strin
 			reportStreamingDisabled()
 		}
 	}
+	if !cfg.AIMonitoring.Enabled || !cfg.AIMonitoring.Streaming.Enabled {
+		return s.models.GenerateContentStream(ctx, model, contents, config)
+	}
 
-	stream := &NRGenerateContentStream{
-		svc:   s,
-		start: time.Now(),
+	txn := newrelic.FromContext(ctx)
+	closeTxn := false
+	if txn == nil {
+		txn = s.app.StartTransaction("GeminiGenerateContentStream")
+		closeTxn = true
+		ctx = newrelic.NewContext(ctx, txn)
+	}
+	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
+
+	md := txn.GetTraceMetadata()
+	st := &streamState{
 		completion: &completion{
+			id:       uuid.New().String(),
+			spanID:   md.SpanID,
+			traceID:  md.TraceID,
 			model:    model,
 			contents: contents,
 			config:   config,
 		},
+		start: time.Now(),
 	}
+	seg := txn.StartSegment("Llm/completion/Gemini/GenerateContentStream")
 
-	if cfg.AIMonitoring.Enabled && cfg.AIMonitoring.Streaming.Enabled {
-		stream.txn = newrelic.FromContext(ctx)
-		if stream.txn == nil {
-			stream.txn = s.app.StartTransaction("GeminiGenerateContentStream")
-			stream.closeTxn = true
-			ctx = newrelic.NewContext(ctx, stream.txn)
+	// The SDK issues the request here, before returning its iterator, so the
+	// segment above covers the whole call. ctx already carries the transaction.
+	seq := s.models.GenerateContentStream(ctx, model, contents, config)
+
+	return func(yield func(*genai.GenerateContentResponse, error) bool) {
+		if st.consumed {
+			// The SDK iterator is single-use; a second range would report again.
+			return
 		}
-		integrationsupport.AddAgentAttribute(stream.txn, "llm", "", true)
+		st.consumed = true
 
-		md := stream.txn.GetTraceMetadata()
-		stream.completion.id = uuid.New().String()
-		stream.completion.spanID = md.SpanID
-		stream.completion.traceID = md.TraceID
-		stream.seg = stream.txn.StartSegment("Llm/completion/Gemini/GenerateContentStream")
-	}
+		defer func() {
+			seg.End()
+			s.recordCompletion(st.finish())
+			if closeTxn {
+				txn.End()
+			}
+		}()
 
-	// Last, so the request sees the transaction added to ctx above.
-	stream.Stream = s.models.GenerateContentStream(ctx, model, contents, config)
-	return stream
-}
-
-// RecordEvent reports one chunk from Stream. Pass the chunk and error exactly as
-// the iterator yielded them.
-func (w *NRGenerateContentStream) RecordEvent(chunk *genai.GenerateContentResponse, err error) {
-	if w == nil {
-		return
-	}
-	if err != nil {
-		// Keep the first; the SDK may yield more chunks after an error.
-		if w.completion.err == nil {
-			w.completion.err = err
-			w.completion.duration = time.Since(w.start).Milliseconds()
-			if w.txn != nil {
-				noticeError(w.txn, w.completion.id, err)
+		for chunk, err := range seq {
+			st.observe(txn, chunk, err)
+			if !yield(chunk, err) {
+				return
 			}
 		}
-		return
 	}
-	if w.txn == nil || chunk == nil {
-		return
-	}
-	if w.completion.timeToFirstToken == nil {
-		elapsed := time.Since(w.start).Milliseconds()
-		w.completion.timeToFirstToken = &elapsed
-	}
-	w.completion.duration = time.Since(w.start).Milliseconds()
-	w.accumulate(chunk)
 }
 
-// accumulate folds a chunk into the response Close reports on. Deltas append to a
-// single Part, so no separator lands between them.
-func (w *NRGenerateContentStream) accumulate(chunk *genai.GenerateContentResponse) {
-	if w.completion.resp == nil {
-		w.completion.resp = &genai.GenerateContentResponse{}
+// streamState accumulates a stream into the single response a non-streaming call
+// would have returned, so both paths report through recordCompletion.
+type streamState struct {
+	completion *completion
+	// text collects each candidate's deltas. A Builder per candidate keeps the
+	// accumulation linear; concatenating onto the response recopies it every chunk.
+	text     []*strings.Builder
+	start    time.Time
+	consumed bool
+	// observed records whether anything was yielded at all, which a zero duration
+	// cannot express: a stream answered inside the same millisecond measures zero.
+	observed bool
+}
+
+// observe folds one yielded chunk into the accumulated state.
+func (st *streamState) observe(txn *newrelic.Transaction, chunk *genai.GenerateContentResponse, err error) {
+	c := st.completion
+	st.observed = true
+
+	if err != nil {
+		// Keep the first; the SDK may yield more chunks after an error.
+		if c.err == nil {
+			c.err = err
+			c.duration = time.Since(st.start).Milliseconds()
+			noticeError(txn, c.id, err)
+		}
+		return
 	}
-	resp := w.completion.resp
+	if chunk == nil {
+		return
+	}
+	if c.timeToFirstToken == nil {
+		elapsed := time.Since(st.start).Milliseconds()
+		c.timeToFirstToken = &elapsed
+	}
+	// Stamped per chunk so the recording, which happens after the caller's loop
+	// exits, does not stretch the duration past the last chunk.
+	c.duration = time.Since(st.start).Milliseconds()
+
+	if c.resp == nil {
+		c.resp = &genai.GenerateContentResponse{}
+	}
+	resp := c.resp
 
 	if chunk.ResponseID != "" {
 		resp.ResponseID = chunk.ResponseID
@@ -574,7 +576,7 @@ func (w *NRGenerateContentStream) accumulate(chunk *genai.GenerateContentRespons
 		resp.Candidates = append(resp.Candidates, &genai.Candidate{
 			Content: &genai.Content{Parts: []*genai.Part{{}}},
 		})
-		w.text = append(w.text, &strings.Builder{})
+		st.text = append(st.text, &strings.Builder{})
 	}
 
 	for i, src := range chunk.Candidates {
@@ -593,88 +595,30 @@ func (w *NRGenerateContentStream) accumulate(chunk *genai.GenerateContentRespons
 		}
 		for _, p := range src.Content.Parts {
 			if p != nil && p.Text != "" {
-				w.text[i].WriteString(p.Text)
+				st.text[i].WriteString(p.Text)
 			}
 		}
 	}
 }
 
-// response writes the accumulated text into the response and returns it.
-func (w *NRGenerateContentStream) response() *genai.GenerateContentResponse {
-	resp := w.completion.resp
-	if resp == nil {
-		return nil
-	}
-	for i, b := range w.text {
-		if i < len(resp.Candidates) {
-			resp.Candidates[i].Content.Parts[0].Text = b.String()
-		}
-	}
-	return resp
-}
-
-// Err returns the first error the stream yielded.
-func (w *NRGenerateContentStream) Err() error {
-	if w == nil {
-		return nil
-	}
-	return w.completion.err
-}
-
-// Close records the events, ends the segment, and ends the transaction if
-// GenerateContentStream started one. Idempotent, and a no-op when uninstrumented.
-func (w *NRGenerateContentStream) Close() error {
-	if w == nil || w.closed {
-		return nil
-	}
-	w.closed = true
-	if w.txn == nil {
-		return nil
-	}
-
-	if w.seg != nil {
-		w.seg.End()
-	}
+// finish materializes the accumulated text and returns the completion to report.
+func (st *streamState) finish() *completion {
+	c := st.completion
 
 	// A failed stream reports request messages only, like the non-streaming path.
-	if w.completion.err != nil {
-		w.completion.resp = nil
+	if c.err != nil {
+		c.resp = nil
 	}
-	w.response()
-	// duration is stamped as chunks arrive, so a Close that runs much later — a
-	// deferred one, say — does not stretch it. Only a stream nothing was reported
-	// for needs it measured here.
-	if w.completion.duration == 0 {
-		w.completion.duration = time.Since(w.start).Milliseconds()
-	}
-	w.svc.recordCompletion(w.completion)
-
-	if w.closeTxn {
-		w.txn.End()
-	}
-	return nil
-}
-
-// ProcessContentStream is GenerateContentStream with the loop and Close handled
-// for you, invoking callback for each chunk. A callback error stops the stream and
-// is returned; otherwise the stream's own error is.
-func (s *NRModelsService) ProcessContentStream(ctx context.Context, model string, contents []*genai.Content, config *genai.GenerateContentConfig, callback func(*genai.GenerateContentResponse) error) error {
-	stream := s.GenerateContentStream(ctx, model, contents, config)
-	defer stream.Close()
-
-	var userErr error
-	for chunk, err := range stream.Stream {
-		stream.RecordEvent(chunk, err)
-		if err != nil {
-			break
-		}
-		if userErr = callback(chunk); userErr != nil {
-			break
+	if c.resp != nil {
+		for i, b := range st.text {
+			if i < len(c.resp.Candidates) {
+				c.resp.Candidates[i].Content.Parts[0].Text = b.String()
+			}
 		}
 	}
-
-	if userErr != nil {
-		return userErr
+	// Only a stream that yielded nothing needs its duration measured here.
+	if !st.observed {
+		c.duration = time.Since(st.start).Milliseconds()
 	}
-	return stream.Err()
+	return c
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"iter"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -137,15 +138,6 @@ func responseText(resp *genai.GenerateContentResponse) string {
 }
 
 // drainStream consumes a stream the way calling code is expected to.
-func drainStream(stream *NRGenerateContentStream) {
-	for chunk, err := range stream.Stream {
-		stream.RecordEvent(chunk, err)
-		if err != nil {
-			break
-		}
-	}
-}
-
 func TestAddCustomAttributes(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
@@ -373,305 +365,6 @@ func TestGenerateContentWithExistingTxn(t *testing.T) {
 		},
 	})
 }
-
-func TestGenerateContentStream(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), &genai.GenerateContentConfig{MaxOutputTokens: 150})
-
-	drainStream(stream)
-	if err := stream.Err(); err != nil {
-		t.Fatal(err)
-	}
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	app.ExpectCustomEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "LlmChatCompletionSummary",
-				"timestamp": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"id":                             internal.MatchAnything,
-				"span_id":                        internal.MatchAnything,
-				"trace_id":                       internal.MatchAnything,
-				"request_id":                     testMessageID,
-				"request.model":                  testModel,
-				"request.max_tokens":             int32(150),
-				"vendor":                         "gemini",
-				"ingest_source":                  "Go",
-				"duration":                       internal.MatchAnything,
-				"time_to_first_token":            internal.MatchAnything,
-				"response.model":                 testModel,
-				"response.choices.finish_reason": "STOP",
-				"response.number_of_messages":    2,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "LlmChatCompletionMessage",
-				"timestamp": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       0,
-				"role":           "user",
-				"content":        testPrompt,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "LlmChatCompletionMessage",
-				"timestamp": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       1,
-				"role":           "model",
-				"content":        testResponse,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-				"is_response":    true,
-			},
-		},
-	})
-}
-
-func TestGenerateContentStreamAIMonitoringNotEnabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
-	}
-	app.ExpectCustomEvents(t, []internal.WantEvent{})
-	app.ExpectTxnEvents(t, []internal.WantEvent{})
-}
-
-func TestGenerateContentStreamDisabled(t *testing.T) {
-	// AI monitoring enabled but streaming specifically disabled — no txn should be started.
-	app := integrationsupport.NewTestApp(nil,
-		newrelic.ConfigAIMonitoringEnabled(true),
-		func(cfg *newrelic.Config) { cfg.AIMonitoring.Streaming.Enabled = false },
-		noCodeLevelMetrics,
-	)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-
-	if stream.txn != nil {
-		t.Error("expected txn to be nil when streaming is disabled, but it was set")
-	}
-	if stream.closeTxn {
-		t.Error("expected closeTxn=false when streaming is disabled")
-	}
-
-	drainStream(stream)
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
-	}
-	app.ExpectCustomEvents(t, []internal.WantEvent{})
-	app.ExpectTxnEvents(t, []internal.WantEvent{})
-}
-
-func TestGenerateContentStreamWithExistingTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	txn := app.StartTransaction("my-existing-streaming-txn")
-	ctx := newrelic.NewContext(context.Background(), txn)
-
-	stream := nrClient.Models.GenerateContentStream(ctx, testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-	stream.Close()
-	txn.End()
-
-	app.ExpectTxnEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "Transaction",
-				"name":      "OtherTransaction/Go/my-existing-streaming-txn",
-				"guid":      internal.MatchAnything,
-				"priority":  internal.MatchAnything,
-				"sampled":   internal.MatchAnything,
-				"traceId":   internal.MatchAnything,
-				"timestamp": internal.MatchAnything,
-				"duration":  internal.MatchAnything,
-				"totalTime": internal.MatchAnything,
-			},
-			UserAttributes: map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{
-				"llm": true,
-			},
-		},
-	})
-}
-
-func TestProcessContentStream(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	var got strings.Builder
-	err := nrClient.Models.ProcessContentStream(context.Background(), testModel, genai.Text(testPrompt), nil,
-		func(chunk *genai.GenerateContentResponse) error {
-			got.WriteString(responseText(chunk))
-			return nil
-		})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.String() != testResponse {
-		t.Errorf("callback text: got %q, want %q", got.String(), testResponse)
-	}
-
-	// The same three events the manual loop produces.
-	app.ExpectCustomEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionSummary", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":                             internal.MatchAnything,
-				"span_id":                        internal.MatchAnything,
-				"trace_id":                       internal.MatchAnything,
-				"request_id":                     testMessageID,
-				"request.model":                  testModel,
-				"vendor":                         "gemini",
-				"ingest_source":                  "Go",
-				"duration":                       internal.MatchAnything,
-				"time_to_first_token":            internal.MatchAnything,
-				"response.model":                 testModel,
-				"response.choices.finish_reason": "STOP",
-				"response.number_of_messages":    2,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       0,
-				"role":           "user",
-				"content":        testPrompt,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       1,
-				"role":           "model",
-				"content":        testResponse,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-				"is_response":    true,
-			},
-		},
-	})
-}
-
-// A callback error stops the stream and is returned, and events are still recorded.
-func TestProcessContentStreamCallbackError(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	calls := 0
-	wantErr := errors.New("caller bailed")
-	err := nrClient.Models.ProcessContentStream(context.Background(), testModel, genai.Text(testPrompt), nil,
-		func(chunk *genai.GenerateContentResponse) error {
-			calls++
-			return wantErr
-		})
-	if !errors.Is(err, wantErr) {
-		t.Errorf("err: got %v, want %v", err, wantErr)
-	}
-	if calls != 1 {
-		t.Errorf("callback calls: got %d, want 1 (stream should stop on error)", calls)
-	}
-
-	// Events are still recorded, covering only the chunks seen before the bail.
-	// The stream itself did not fail, so there is no error attribute and no
-	// finish_reason (that arrives on the second chunk, which was never read).
-	app.ExpectCustomEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionSummary", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":                          internal.MatchAnything,
-				"span_id":                     internal.MatchAnything,
-				"trace_id":                    internal.MatchAnything,
-				"request_id":                  testMessageID,
-				"request.model":               testModel,
-				"vendor":                      "gemini",
-				"ingest_source":               "Go",
-				"duration":                    internal.MatchAnything,
-				"time_to_first_token":         internal.MatchAnything,
-				"response.model":              testModel,
-				"response.number_of_messages": 2,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       0,
-				"role":           "user",
-				"content":        testPrompt,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-			},
-		},
-		{
-			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
-			UserAttributes: map[string]interface{}{
-				"id":             internal.MatchAnything,
-				"span_id":        internal.MatchAnything,
-				"trace_id":       internal.MatchAnything,
-				"request_id":     testMessageID,
-				"completion_id":  internal.MatchAnything,
-				"sequence":       1,
-				"role":           "model",
-				"content":        testResponse,
-				"vendor":         "gemini",
-				"ingest_source":  "Go",
-				"response.model": testModel,
-				"is_response":    true,
-			},
-		},
-	})
-}
-
-// --- Pure helper function tests ---
 
 func TestContentText(t *testing.T) {
 	tests := []struct {
@@ -1188,164 +881,6 @@ func TestRecordMessagesContentDisabled(t *testing.T) {
 	})
 }
 
-// --- NRGenerateContentStream.RecordEvent state accumulation ---
-
-func TestStreamRecordEventAccumulatesState(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-
-	drainStream(stream)
-	if err := stream.Err(); err != nil {
-		t.Fatal(err)
-	}
-
-	if stream.completion.resp == nil {
-		t.Fatal("expected accumulated response, got nil")
-	}
-	if stream.completion.resp.ResponseID != testMessageID {
-		t.Errorf("ResponseID: got %q, want %q", stream.completion.resp.ResponseID, testMessageID)
-	}
-	if stream.completion.resp.ModelVersion != testModel {
-		t.Errorf("ModelVersion: got %q, want %q", stream.completion.resp.ModelVersion, testModel)
-	}
-	if got := responseText(stream.response()); got != testResponse {
-		t.Errorf("response text: got %q, want %q", got, testResponse)
-	}
-	cand := stream.completion.resp.Candidates[0]
-	if cand.FinishReason != genai.FinishReasonStop {
-		t.Errorf("FinishReason: got %q, want %q", cand.FinishReason, genai.FinishReasonStop)
-	}
-	if cand.Content.Role != genai.RoleModel {
-		t.Errorf("Role: got %q, want %q", cand.Content.Role, genai.RoleModel)
-	}
-
-	stream.Close()
-}
-
-// Deltas concatenate verbatim: extractResponseText joins separate Parts with a
-// space, so one Part is what keeps the content identical to what the caller saw.
-func TestStreamRecordEventConcatenatesDeltas(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	svc := &NRModelsService{app: app.Application, customAttributes: map[string]interface{}{}}
-	txn := app.StartTransaction("deltas")
-	w := &NRGenerateContentStream{svc: svc, txn: txn, completion: &completion{model: testModel}}
-
-	for _, delta := range []string{"Hel", "lo", " wor", "ld"} {
-		w.RecordEvent(&genai.GenerateContentResponse{
-			Candidates: []*genai.Candidate{{
-				Content: &genai.Content{
-					Role:  genai.RoleModel,
-					Parts: []*genai.Part{{Text: delta}},
-				},
-			}},
-		}, nil)
-	}
-
-	if got := responseText(w.response()); got != "Hello world" {
-		t.Errorf("response text: got %q, want %q", got, "Hello world")
-	}
-	txn.End()
-}
-
-// --- NRGenerateContentStream.Close tests ---
-
-func TestStreamCloseReturnsNilOnSuccess(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-
-	if err := stream.Close(); err != nil {
-		t.Errorf("Close() returned unexpected error: %v", err)
-	}
-}
-
-func TestStreamCloseIdempotent(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
-	}
-	// Second Close should be a no-op (return nil, no double-flush of events).
-	if err := stream.Close(); err != nil {
-		t.Errorf("second Close() should be nil, got: %v", err)
-	}
-}
-
-func TestStreamCloseEndsTxnWhenOwned(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	// No txn in context — the stream creates and owns the transaction.
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-	stream.Close()
-
-	app.ExpectTxnEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "Transaction",
-				"name":      "OtherTransaction/Go/GeminiGenerateContentStream",
-				"guid":      internal.MatchAnything,
-				"priority":  internal.MatchAnything,
-				"sampled":   internal.MatchAnything,
-				"traceId":   internal.MatchAnything,
-				"timestamp": internal.MatchAnything,
-				"duration":  internal.MatchAnything,
-				"totalTime": internal.MatchAnything,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{"llm": true},
-		},
-	})
-}
-
-func TestStreamCloseNoTxnEndWhenNotOwned(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	// Inject an existing txn — the stream must NOT end it.
-	txn := app.StartTransaction("caller-txn")
-	ctx := newrelic.NewContext(context.Background(), txn)
-
-	stream := nrClient.Models.GenerateContentStream(ctx, testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-	stream.Close()
-
-	// Txn is still open; end it explicitly and verify the name is caller-txn.
-	txn.End()
-
-	app.ExpectTxnEvents(t, []internal.WantEvent{
-		{
-			Intrinsics: map[string]interface{}{
-				"type":      "Transaction",
-				"name":      "OtherTransaction/Go/caller-txn",
-				"guid":      internal.MatchAnything,
-				"priority":  internal.MatchAnything,
-				"sampled":   internal.MatchAnything,
-				"traceId":   internal.MatchAnything,
-				"timestamp": internal.MatchAnything,
-				"duration":  internal.MatchAnything,
-				"totalTime": internal.MatchAnything,
-			},
-			UserAttributes:  map[string]interface{}{},
-			AgentAttributes: map[string]interface{}{"llm": true},
-		},
-	})
-}
-
-// --- LLM content spec check: full content survives to serialized event ---
-
-// The LLM spec requires that LlmChatCompletionMessage.content is NOT truncated
-// at any stage. This test drives a long (>256-byte) prompt through the sync
-// integration and verifies the recorded event carries the full content.
 func TestGenerateContentLongPromptNotTruncated(t *testing.T) {
 	svc, app := newTestService(t)
 	longPrompt := strings.Repeat("a", 1024)
@@ -1597,42 +1132,8 @@ func TestAddHeaderAttrs(t *testing.T) {
 	}
 }
 
-// --- time_to_first_token ---
-
 // Only the first chunk sets it. TestGenerateContent covers the other half: its
 // summary is asserted exactly and carries no such attribute.
-func TestTimeToFirstTokenSetOnceByFirstChunk(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-
-	if stream.completion.timeToFirstToken == nil {
-		t.Fatal("expected the first chunk to record a time to first token")
-	}
-	first := *stream.completion.timeToFirstToken
-	if first < 0 {
-		t.Errorf("timeToFirstToken: got %d, want >= 0", first)
-	}
-
-	// A later chunk must not move it.
-	stream.RecordEvent(&genai.GenerateContentResponse{
-		Candidates: []*genai.Candidate{{
-			Content: &genai.Content{Parts: []*genai.Part{{Text: "later"}}},
-		}},
-	}, nil)
-	if got := *stream.completion.timeToFirstToken; got != first {
-		t.Errorf("timeToFirstToken moved: got %d, want %d", got, first)
-	}
-
-	stream.Close()
-}
-
-// --- Non-text parts ---
-
-// Parts carrying data other than text hold no message content: they are left out
-// of the content attribute and counted so the caller can log them.
 func TestContentTextSkipsNonTextParts(t *testing.T) {
 	content := &genai.Content{
 		Role: genai.RoleUser,
@@ -1691,51 +1192,407 @@ func TestRecordMessagesNonTextOnly(t *testing.T) {
 	})
 }
 
-// --- Delta accumulation ---
-
 // Deltas go into a strings.Builder per candidate, so a long stream stays linear
 // rather than recopying the accumulated text on every chunk.
-func TestStreamAccumulatesManyChunksLinearly(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	svc := &NRModelsService{app: app.Application, customAttributes: map[string]interface{}{}}
-	txn := app.StartTransaction("many-chunks")
-	w := &NRGenerateContentStream{svc: svc, txn: txn, completion: &completion{model: testModel}}
 
+// --- Streaming ---
+
+func drainStream(seq iter.Seq2[*genai.GenerateContentResponse, error]) error {
+	for _, err := range seq {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// The wrapper returns the SDK's own iter.Seq2, so a caller ranges over it exactly
+// as they would the unwrapped client, and the events land when the loop ends.
+func TestGenerateContentStream(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	var got strings.Builder
+	for chunk, err := range nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), &genai.GenerateContentConfig{MaxOutputTokens: 150}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got.WriteString(responseText(chunk))
+	}
+	if got.String() != testResponse {
+		t.Errorf("streamed text: got %q, want %q", got.String(), testResponse)
+	}
+
+	app.ExpectCustomEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionSummary", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":                             internal.MatchAnything,
+				"span_id":                        internal.MatchAnything,
+				"trace_id":                       internal.MatchAnything,
+				"request_id":                     testMessageID,
+				"request.model":                  testModel,
+				"request.max_tokens":             int32(150),
+				"vendor":                         "gemini",
+				"ingest_source":                  "Go",
+				"duration":                       internal.MatchAnything,
+				"time_to_first_token":            internal.MatchAnything,
+				"response.model":                 testModel,
+				"response.choices.finish_reason": "STOP",
+				"response.number_of_messages":    2,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       0,
+				"role":           "user",
+				"content":        testPrompt,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       1,
+				"role":           "model",
+				"content":        testResponse,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+				"is_response":    true,
+			},
+		},
+	})
+}
+
+// Breaking out of the loop early still records, covering the chunks seen so far.
+// finish_reason is absent because it arrives on the last chunk.
+func TestGenerateContentStreamEarlyBreak(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	chunks := 0
+	for range nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil) {
+		chunks++
+		break
+	}
+	if chunks != 1 {
+		t.Fatalf("chunks: got %d, want 1", chunks)
+	}
+
+	app.ExpectCustomEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionSummary", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":                          internal.MatchAnything,
+				"span_id":                     internal.MatchAnything,
+				"trace_id":                    internal.MatchAnything,
+				"request_id":                  testMessageID,
+				"request.model":               testModel,
+				"vendor":                      "gemini",
+				"ingest_source":               "Go",
+				"duration":                    internal.MatchAnything,
+				"time_to_first_token":         internal.MatchAnything,
+				"response.model":              testModel,
+				"response.number_of_messages": 2,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       0,
+				"role":           "user",
+				"content":        testPrompt,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       1,
+				"role":           "model",
+				"content":        testResponse,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+				"is_response":    true,
+			},
+		},
+	})
+}
+
+func TestGenerateContentStreamAIMonitoringNotEnabled(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	if err := drainStream(nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)); err != nil {
+		t.Fatal(err)
+	}
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
+	app.ExpectTxnEvents(t, []internal.WantEvent{})
+}
+
+// AI monitoring on, streaming off: the SDK iterator passes through untouched, so
+// no transaction is started and nothing is recorded.
+func TestGenerateContentStreamDisabled(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil,
+		newrelic.ConfigAIMonitoringEnabled(true),
+		func(cfg *newrelic.Config) { cfg.AIMonitoring.Streaming.Enabled = false },
+		noCodeLevelMetrics,
+	)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	if err := drainStream(nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)); err != nil {
+		t.Fatal(err)
+	}
+	app.ExpectCustomEvents(t, []internal.WantEvent{})
+	app.ExpectTxnEvents(t, []internal.WantEvent{})
+}
+
+// A caller-supplied transaction is left for the caller to end.
+func TestGenerateContentStreamWithExistingTxn(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	txn := app.StartTransaction("my-existing-streaming-txn")
+	ctx := newrelic.NewContext(context.Background(), txn)
+	if err := drainStream(nrClient.Models.GenerateContentStream(ctx, testModel, genai.Text(testPrompt), nil)); err != nil {
+		t.Fatal(err)
+	}
+	txn.End()
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "Transaction",
+				"name":      "OtherTransaction/Go/my-existing-streaming-txn",
+				"guid":      internal.MatchAnything,
+				"priority":  internal.MatchAnything,
+				"sampled":   internal.MatchAnything,
+				"traceId":   internal.MatchAnything,
+				"timestamp": internal.MatchAnything,
+				"duration":  internal.MatchAnything,
+				"totalTime": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{"llm": true},
+		},
+	})
+}
+
+// With no transaction in the context the stream starts and ends its own.
+func TestGenerateContentStreamStartsOwnTxn(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	if err := drainStream(nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)); err != nil {
+		t.Fatal(err)
+	}
+
+	app.ExpectTxnEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{
+				"type":      "Transaction",
+				"name":      "OtherTransaction/Go/GeminiGenerateContentStream",
+				"guid":      internal.MatchAnything,
+				"priority":  internal.MatchAnything,
+				"sampled":   internal.MatchAnything,
+				"traceId":   internal.MatchAnything,
+				"timestamp": internal.MatchAnything,
+				"duration":  internal.MatchAnything,
+				"totalTime": internal.MatchAnything,
+			},
+			UserAttributes:  map[string]interface{}{},
+			AgentAttributes: map[string]interface{}{"llm": true},
+		},
+	})
+}
+
+// Ranging a second time must not report the completion twice.
+func TestGenerateContentStreamSingleUse(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+
+	seq := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
+	if err := drainStream(seq); err != nil {
+		t.Fatal(err)
+	}
+	for range seq {
+		t.Error("second range yielded a chunk")
+	}
+
+	app.ExpectCustomEvents(t, []internal.WantEvent{
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionSummary", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":                             internal.MatchAnything,
+				"span_id":                        internal.MatchAnything,
+				"trace_id":                       internal.MatchAnything,
+				"request_id":                     testMessageID,
+				"request.model":                  testModel,
+				"vendor":                         "gemini",
+				"ingest_source":                  "Go",
+				"duration":                       internal.MatchAnything,
+				"time_to_first_token":            internal.MatchAnything,
+				"response.model":                 testModel,
+				"response.choices.finish_reason": "STOP",
+				"response.number_of_messages":    2,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       0,
+				"role":           "user",
+				"content":        testPrompt,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+			},
+		},
+		{
+			Intrinsics: map[string]interface{}{"type": "LlmChatCompletionMessage", "timestamp": internal.MatchAnything},
+			UserAttributes: map[string]interface{}{
+				"id":             internal.MatchAnything,
+				"span_id":        internal.MatchAnything,
+				"trace_id":       internal.MatchAnything,
+				"request_id":     testMessageID,
+				"completion_id":  internal.MatchAnything,
+				"sequence":       1,
+				"role":           "model",
+				"content":        testResponse,
+				"vendor":         "gemini",
+				"ingest_source":  "Go",
+				"response.model": testModel,
+				"is_response":    true,
+			},
+		},
+	})
+}
+
+func newTestStreamState() *streamState {
+	return &streamState{completion: &completion{model: testModel}, start: time.Now()}
+}
+
+// textChunk builds a chunk carrying one text delta per candidate.
+func textChunk(deltas ...string) *genai.GenerateContentResponse {
+	chunk := &genai.GenerateContentResponse{}
+	for _, d := range deltas {
+		chunk.Candidates = append(chunk.Candidates, &genai.Candidate{
+			Content: &genai.Content{Role: genai.RoleModel, Parts: []*genai.Part{{Text: d}}},
+		})
+	}
+	return chunk
+}
+
+func TestStreamStateAccumulates(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("accumulate")
+	defer txn.End()
+
+	st := newTestStreamState()
+	st.observe(txn, &genai.GenerateContentResponse{
+		ResponseID:   testMessageID,
+		ModelVersion: testModel,
+		Candidates: []*genai.Candidate{{
+			Content: &genai.Content{Role: genai.RoleModel, Parts: []*genai.Part{{Text: testResponse}}},
+		}},
+	}, nil)
+	st.observe(txn, &genai.GenerateContentResponse{
+		Candidates:    []*genai.Candidate{{FinishReason: genai.FinishReasonStop}},
+		UsageMetadata: &genai.GenerateContentResponseUsageMetadata{TotalTokenCount: 21},
+	}, nil)
+
+	resp := st.finish().resp
+	if resp.ResponseID != testMessageID {
+		t.Errorf("ResponseID: got %q, want %q", resp.ResponseID, testMessageID)
+	}
+	if resp.ModelVersion != testModel {
+		t.Errorf("ModelVersion: got %q, want %q", resp.ModelVersion, testModel)
+	}
+	if got := responseText(resp); got != testResponse {
+		t.Errorf("text: got %q, want %q", got, testResponse)
+	}
+	if resp.Candidates[0].FinishReason != genai.FinishReasonStop {
+		t.Errorf("FinishReason: got %q, want STOP", resp.Candidates[0].FinishReason)
+	}
+	if resp.UsageMetadata == nil || resp.UsageMetadata.TotalTokenCount != 21 {
+		t.Errorf("usage not carried from the final chunk: %+v", resp.UsageMetadata)
+	}
+}
+
+func TestStreamStateConcatenatesDeltas(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("deltas")
+	defer txn.End()
+
+	st := newTestStreamState()
+	for _, delta := range []string{"Hel", "lo", " wor", "ld"} {
+		st.observe(txn, textChunk(delta), nil)
+	}
+	if got := responseText(st.finish().resp); got != "Hello world" {
+		t.Errorf("text: got %q, want %q", got, "Hello world")
+	}
+}
+
+func TestStreamStateManyChunks(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("many-chunks")
+	defer txn.End()
+
+	st := newTestStreamState()
 	var want strings.Builder
 	for i := 0; i < 500; i++ {
 		delta := fmt.Sprintf("chunk%d ", i)
 		want.WriteString(delta)
-		w.RecordEvent(&genai.GenerateContentResponse{
-			Candidates: []*genai.Candidate{{
-				Content: &genai.Content{Role: genai.RoleModel, Parts: []*genai.Part{{Text: delta}}},
-			}},
-		}, nil)
+		st.observe(txn, textChunk(delta), nil)
 	}
-
-	if got := responseText(w.response()); got != want.String() {
+	if got := responseText(st.finish().resp); got != want.String() {
 		t.Errorf("accumulated text mismatch: got %d bytes, want %d", len(got), want.Len())
 	}
-	txn.End()
 }
 
 // Each candidate accumulates its own deltas.
-func TestStreamAccumulatesPerCandidate(t *testing.T) {
+func TestStreamStatePerCandidate(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	svc := &NRModelsService{app: app.Application, customAttributes: map[string]interface{}{}}
 	txn := app.StartTransaction("two-candidates")
-	w := &NRGenerateContentStream{svc: svc, txn: txn, completion: &completion{model: testModel}}
+	defer txn.End()
 
-	for _, deltas := range [][2]string{{"one ", "two "}, {"first", "second"}} {
-		chunk := &genai.GenerateContentResponse{}
-		for _, d := range deltas {
-			chunk.Candidates = append(chunk.Candidates, &genai.Candidate{
-				Content: &genai.Content{Role: genai.RoleModel, Parts: []*genai.Part{{Text: d}}},
-			})
-		}
-		w.RecordEvent(chunk, nil)
-	}
+	st := newTestStreamState()
+	st.observe(txn, textChunk("one ", "two "), nil)
+	st.observe(txn, textChunk("first", "second"), nil)
 
-	resp := w.response()
+	resp := st.finish().resp
 	if len(resp.Candidates) != 2 {
 		t.Fatalf("candidates: got %d, want 2", len(resp.Candidates))
 	}
@@ -1744,40 +1601,67 @@ func TestStreamAccumulatesPerCandidate(t *testing.T) {
 			t.Errorf("candidate %d: got %q, want %q", i, got, want)
 		}
 	}
-	txn.End()
 }
 
-// A Close that runs long after the stream finished — a deferred one, say — must
-// not stretch the reported duration past when the chunks actually arrived.
-func TestStreamDurationStampedAsChunksArrive(t *testing.T) {
+func TestStreamStateTimeToFirstTokenSetOnce(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
+	txn := app.StartTransaction("ttft")
+	defer txn.End()
 
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
-	drainStream(stream)
-
-	atDrain := stream.completion.duration
-	time.Sleep(25 * time.Millisecond)
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
+	st := newTestStreamState()
+	st.observe(txn, textChunk("first"), nil)
+	if st.completion.timeToFirstToken == nil {
+		t.Fatal("expected the first chunk to record a time to first token")
 	}
-	if stream.completion.duration != atDrain {
-		t.Errorf("duration moved after the delay: got %d, want %d",
-			stream.completion.duration, atDrain)
-	}
-}
+	first := *st.completion.timeToFirstToken
 
-// A stream nothing was ever reported for still gets a duration measured at Close.
-func TestStreamDurationWhenNothingRecorded(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
-	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
-
-	stream := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
 	time.Sleep(5 * time.Millisecond)
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
+	st.observe(txn, textChunk("later"), nil)
+	if got := *st.completion.timeToFirstToken; got != first {
+		t.Errorf("timeToFirstToken moved: got %d, want %d", got, first)
 	}
-	if stream.completion.duration <= 0 {
-		t.Errorf("duration: got %d, want > 0", stream.completion.duration)
+}
+
+func TestStreamStateDurationStampedAsChunksArrive(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("duration")
+	defer txn.End()
+
+	st := newTestStreamState()
+	st.observe(txn, textChunk("only"), nil)
+	atChunk := st.completion.duration
+
+	time.Sleep(25 * time.Millisecond)
+	if got := st.finish().duration; got != atChunk {
+		t.Errorf("duration moved after the delay: got %d, want %d", got, atChunk)
+	}
+}
+
+// A stream that yielded nothing still gets a duration.
+func TestStreamStateDurationWhenNothingYielded(t *testing.T) {
+	st := newTestStreamState()
+	time.Sleep(5 * time.Millisecond)
+	if got := st.finish().duration; got <= 0 {
+		t.Errorf("duration: got %d, want > 0", got)
+	}
+}
+
+func TestStreamStateKeepsFirstError(t *testing.T) {
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	txn := app.StartTransaction("errors")
+	defer txn.End()
+
+	first := errors.New("first failure")
+	st := newTestStreamState()
+	st.observe(txn, nil, first)
+	st.observe(txn, nil, errors.New("second failure"))
+
+	c := st.finish()
+	if !errors.Is(c.err, first) {
+		t.Errorf("err: got %v, want %v", c.err, first)
+	}
+	// A failed stream reports request messages only.
+	if c.resp != nil {
+		t.Errorf("resp: got %+v, want nil", c.resp)
 	}
 }
