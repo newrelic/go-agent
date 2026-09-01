@@ -116,7 +116,12 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
 	go leafCall(otherCtx)
-	ctx, span := tracer.Start(r.Context(), "linked-route", traceopt.WithNewRoot(), traceopt.LinkFromContext(otherCtx, attribute.String("link.purpose", "asynchronous_processing")))
+	ctx, span := tracer.Start(r.Context(), "linked-route",
+		oteltrace.WithNewRoot(),
+		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
+			attribute.String("link.purpose", "asynchronous_processing"),
+		)),
+	)
 	defer span.End()
 	leafCall(ctx)
 }
