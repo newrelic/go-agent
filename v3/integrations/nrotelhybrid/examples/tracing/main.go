@@ -21,7 +21,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
-	traceopt "go.opentelemetry.io/otel/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func main() {
@@ -122,7 +122,12 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
 	go leafCall(otherCtx)
-	ctx, span := tracer.Start(r.Context(), "linked-route", traceopt.WithNewRoot(), traceopt.LinkFromContext(otherCtx, attribute.String("link.purpose", "asynchronous_processing")))
+	ctx, span := tracer.Start(r.Context(), "linked-route",
+		oteltrace.WithNewRoot(),
+		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
+			attribute.String("link.purpose", "asynchronous_processing"),
+		)),
+	)
 	defer span.End()
 	leafCall(ctx)
 }

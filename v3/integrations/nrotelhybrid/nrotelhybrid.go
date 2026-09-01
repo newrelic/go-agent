@@ -2,6 +2,7 @@ package nrotelhybrid
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sync"
 
@@ -90,6 +91,16 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	traceID := s.SpanContext().TraceID()
 	spanID := s.SpanContext().SpanID()
+	links := s.Links()
+	if len(links) > 0 {
+		fmt.Println("Links exist:")
+		for i, linkData := range links {
+			fmt.Printf("%d - span context span=%s trace=%s valid=%v remote=%v\n", i, linkData.SpanContext.SpanID(), linkData.SpanContext.TraceID(), linkData.SpanContext.IsValid(), linkData.SpanContext.IsRemote())
+			for _, kv := range linkData.Attributes {
+				fmt.Printf("  %s=%v\n", kv.Key, kv.Value.String())
+			}
+		}
+	}
 
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
 		entries := p.txnMap[traceID]
@@ -117,7 +128,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		seg.End()
 		delete(p.segmentMap, spanID)
 	}
-
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
