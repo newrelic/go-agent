@@ -1,3 +1,14 @@
+// Messaging Example
+//
+// This example reaches out to a local RabbitMQ instance to publish and consume from
+// two different queues.
+//
+// # Run a local RabbitMQ instance in Docker:
+//
+//	docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+//
+// # Set NEW_RELIC_LICENSE_KEY then run with `go run main.go`.
+
 package main
 
 import (
@@ -33,6 +44,7 @@ func main() {
 }
 
 func run() error {
+	// Initialize New Relic Application
 	app, ctx, stop, cleanup, err := examples.NewHybridApp("Hybrid Example - Messaging")
 	if err != nil {
 		return err
@@ -41,6 +53,7 @@ func run() error {
 	defer stop()
 	defer cleanup()
 
+	// Initialize RabbitMQ connection
 	amqpConn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		return err
@@ -53,6 +66,7 @@ func run() error {
 	}
 	defer amqpCh.Close()
 
+	// Initialize Queues
 	for _, q := range []string{requestQueue, replyQueue} {
 		if _, err := amqpCh.QueueDeclare(q, false, false, false, false, nil); err != nil {
 			return err
@@ -61,10 +75,12 @@ func run() error {
 
 	d := &deps{amqpConn: amqpConn, amqpCh: amqpCh}
 
+	// Populate Queue
 	if err := d.publish(ctx, requestQueue, []byte("request")); err != nil {
 		return err
 	}
 
+	// Run consume/publish on a two second interval
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
@@ -79,6 +95,7 @@ func run() error {
 	}
 }
 
+// Get message from request queue, then publish message to reply queue
 func (d *deps) consumeThenReply(ctx context.Context) {
 	tracer := otel.Tracer("nrotel-example")
 	ctx, rootSpan := tracer.Start(ctx, "consume-request", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
@@ -103,6 +120,7 @@ func (d *deps) consumeThenReply(ctx context.Context) {
 	}
 }
 
+// Publish message to request queue then get message from reply queue
 func (d *deps) publishThenAwaitReply(ctx context.Context) {
 	remoteParent := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 		TraceID:    oteltrace.TraceID{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
@@ -145,6 +163,7 @@ func (d *deps) publishThenAwaitReply(ctx context.Context) {
 	}
 }
 
+// Initial publish to populate request queue
 func (d *deps) publish(ctx context.Context, queue string, body []byte) error {
 	return d.amqpCh.PublishWithContext(ctx, "", queue, false, false, amqp.Publishing{
 		ContentType: "text/plain",

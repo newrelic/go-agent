@@ -1,3 +1,25 @@
+// Server Example
+//
+// This example starts a server that demonstrates SpanKind INTERNAL, SERVER, and CLIENT
+// Spans.
+//
+// # Run a local Postgres instance in Docker:
+//
+//	docker run -d --name postgres -e POSTGRES_PASSWORD=<password> -p 5432:5432 postgres
+//
+// # Set NEW_RELIC_LICENSE_KEY then run with `go run main.go`.
+//
+// # Generate Traffic
+//
+// curl "localhost:8080/serverroot/"
+// curl "localhost:8080/clientexternal/"
+// curl "localhost:8080/clientdatastore/"
+//
+// # Generate Traffic with Remote Parent
+//
+// curl -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" \                                                                                                                                                      ─╯
+// "http://localhost:8080/serverroot/"
+
 package main
 
 import (
@@ -30,6 +52,7 @@ func main() {
 }
 
 func run() (err error) {
+	// Initialize New Relic Application
 	app, ctx, stop, cleanup, err := examples.NewHybridApp("Hybrid Example - Server")
 	if err != nil {
 		return err
@@ -37,9 +60,10 @@ func run() (err error) {
 	defer app.Shutdown(10 * time.Second)
 	defer cleanup()
 
-	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
+	// Initialize DB connection (change password)
+	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=<password> sslmode=disable", otelsql.WithAttributes(
 		semconv.DBSystemNamePostgreSQL),
-		otelsql.WithDBName("secondTestDB"),
+		otelsql.WithDBName("postrgres"),
 		otelsql.WithTracerProvider(otel.GetTracerProvider()),
 	)
 	if err != nil {
@@ -49,6 +73,7 @@ func run() (err error) {
 
 	d := &deps{db: db}
 
+	// Initialize and run Server
 	srv := &http.Server{
 		Addr:         ":8080",
 		BaseContext:  func(net.Listener) context.Context { return ctx },
@@ -86,6 +111,8 @@ func newHTTPHandler(d *deps) http.Handler {
 	}))
 }
 
+// serverRoot Extracts headers to check for a remote parent. It also
+// begins two child spans with different SpanKinds
 func serverRoot(w http.ResponseWriter, r *http.Request) {
 	tracer := otel.Tracer("nrotel-example")
 
@@ -98,6 +125,7 @@ func serverRoot(w http.ResponseWriter, r *http.Request) {
 	internalSpan.End()
 }
 
+// clientExternal makes an "external" request
 func clientExternal(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	req, err := http.NewRequestWithContext(r.Context(), "GET", "http://localhost:8080/serverroot/", nil)
@@ -113,6 +141,7 @@ func clientExternal(w http.ResponseWriter, r *http.Request) {
 	resp.Body.Close()
 }
 
+// clientDatastore makes a simple query
 func (d *deps) clientDatastore(w http.ResponseWriter, r *http.Request) {
 	d.db.QueryRowContext(r.Context(), "SELECT count(*) FROM pg_catalog.pg_tables")
 }
