@@ -107,7 +107,8 @@ func (d *deps) consumeThenReply(ctx context.Context) {
 	tracer := otel.Tracer("nrotel-example")
 	ctx, rootSpan := tracer.Start(ctx, "consume-request", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
 		attribute.String(string(semconv.MessagingDestinationNameKey), requestQueue),
-		d.serverAddressAttr(), d.serverPortAttr(),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
 	))
 	defer rootSpan.End()
 
@@ -138,7 +139,8 @@ func (d *deps) publishThenAwaitReply(ctx context.Context) {
 	tracer := otel.Tracer("nrotel-example")
 	ctx, rootSpan := tracer.Start(ctx, "publish-request", oteltrace.WithSpanKind(oteltrace.SpanKindProducer), oteltrace.WithAttributes(
 		attribute.String(string(semconv.MessagingDestinationNameKey), requestQueue),
-		d.serverAddressAttr(), d.serverPortAttr(),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
 	))
 	defer rootSpan.End()
 
@@ -152,7 +154,8 @@ func (d *deps) publishThenAwaitReply(ctx context.Context) {
 
 	_, segSpan := tracer.Start(ctx, "await-reply", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
 		attribute.String(string(semconv.MessagingDestinationNameKey), replyQueue),
-		d.serverAddressAttr(), d.serverPortAttr(),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
 	))
 	defer segSpan.End()
 
@@ -177,7 +180,8 @@ func (d *deps) publishSegment(ctx context.Context, queue string, body []byte) er
 	tracer := otel.Tracer("nrotel-example")
 	ctx, span := tracer.Start(ctx, "publish-reply", oteltrace.WithSpanKind(oteltrace.SpanKindProducer), oteltrace.WithAttributes(
 		attribute.String(string(semconv.MessagingDestinationNameKey), queue),
-		d.serverAddressAttr(), d.serverPortAttr(),
+		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
+		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
 	))
 	defer span.End()
 
@@ -185,12 +189,4 @@ func (d *deps) publishSegment(ctx context.Context, queue string, body []byte) er
 		ContentType: "text/plain",
 		Body:        body,
 	})
-}
-
-func (d *deps) serverAddressAttr() attribute.KeyValue {
-	return attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String())
-}
-
-func (d *deps) serverPortAttr() attribute.KeyValue {
-	return attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port))
 }
