@@ -6,20 +6,15 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"time"
 
 	_ "github.com/lib/pq"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -35,31 +30,12 @@ func main() {
 }
 
 func run() (err error) {
-	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Hybrid Example - Server"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigDistributedTracerEnabled(true),
-		newrelic.ConfigDebugLogger(os.Stdout),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer app.Shutdown(10 * time.Second)
-
-	processor := nrotelhybrid.NewHybridProcessor(app)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	app, ctx, stop, cleanup, err := examples.NewHybridApp("Hybrid Example - Server")
 	if err != nil {
 		return err
 	}
-
-	tp := trace.NewTracerProvider(trace.WithSyncer(exporter), trace.WithSpanProcessor(processor))
-	defer tp.Shutdown(context.Background())
-
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	defer app.Shutdown(10 * time.Second)
+	defer cleanup()
 
 	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
 		semconv.DBSystemNamePostgreSQL),

@@ -4,20 +4,14 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
-	"os/signal"
 	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
-	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -39,31 +33,13 @@ func main() {
 }
 
 func run() error {
-	app, err := newrelic.NewApplication(
-		newrelic.ConfigAppName("Hybrid Example - Messaging"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
-		newrelic.ConfigDistributedTracerEnabled(true),
-		newrelic.ConfigDebugLogger(os.Stdout),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer app.Shutdown(10 * time.Second)
-
-	processor := nrotelhybrid.NewHybridProcessor(app)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	app, ctx, stop, cleanup, err := examples.NewHybridApp("Hybrid Example - Messaging")
 	if err != nil {
 		return err
 	}
-
-	tp := trace.NewTracerProvider(trace.WithSyncer(exporter), trace.WithSpanProcessor(processor))
-	defer tp.Shutdown(context.Background())
-
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	defer app.Shutdown(10 * time.Second)
+	defer stop()
+	defer cleanup()
 
 	amqpConn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
