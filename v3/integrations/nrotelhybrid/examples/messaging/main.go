@@ -22,21 +22,6 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-// This example exercises span kinds Producer and Consumer against RabbitMQ,
-// with no HTTP server involved. Server/Client/Internal are covered
-// separately in examples/server.
-//
-// Producer and Consumer spans never become transaction roots from a local
-// parent - only from a remote one - so each flow below pairs a root with a
-// segment of the other kind, mirroring a request/reply pattern:
-//
-//   - consumeThenReply: Consumer root (receives a message, no active
-//     transaction) followed by a nested Producer segment (publishes a
-//     reply).
-//   - publishThenAwaitReply: Producer root (a fabricated remote parent
-//     context makes this its own transaction) followed by a nested Consumer
-//     segment (consumes the reply).
-
 const (
 	requestQueue = "hybrid-example-requests"
 	replyQueue   = "hybrid-example-replies"
@@ -100,7 +85,6 @@ func run() error {
 
 	d := &deps{amqpConn: amqpConn, amqpCh: amqpCh}
 
-	// Seed the request queue so consumeThenReply has something to receive.
 	if err := d.publish(ctx, requestQueue, []byte("request")); err != nil {
 		return err
 	}
@@ -119,9 +103,6 @@ func run() error {
 	}
 }
 
-// consumeThenReply is a Consumer-root transaction (no active transaction on
-// entry) that, on receiving a request, nests a Producer segment publishing
-// a reply.
 func (d *deps) consumeThenReply(ctx context.Context) {
 	tracer := otel.Tracer("nrotel-example")
 	ctx, rootSpan := tracer.Start(ctx, "consume-request", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
@@ -145,10 +126,6 @@ func (d *deps) consumeThenReply(ctx context.Context) {
 	}
 }
 
-// publishThenAwaitReply is a Producer-root transaction: a fabricated remote
-// parent context makes this span its own transaction (Producer spans never
-// become roots from a local parent). It nests a Consumer segment to await
-// the reply.
 func (d *deps) publishThenAwaitReply(ctx context.Context) {
 	remoteParent := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 		TraceID:    oteltrace.TraceID{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
@@ -189,8 +166,6 @@ func (d *deps) publishThenAwaitReply(ctx context.Context) {
 	}
 }
 
-// publish is an unsampled helper used only to seed the request queue at
-// startup; it is not part of the span-kind demo.
 func (d *deps) publish(ctx context.Context, queue string, body []byte) error {
 	return d.amqpCh.PublishWithContext(ctx, "", queue, false, false, amqp.Publishing{
 		ContentType: "text/plain",
@@ -198,8 +173,6 @@ func (d *deps) publish(ctx context.Context, queue string, body []byte) error {
 	})
 }
 
-// publishSegment publishes to queue as a nested Producer segment under the
-// caller's active transaction.
 func (d *deps) publishSegment(ctx context.Context, queue string, body []byte) error {
 	tracer := otel.Tracer("nrotel-example")
 	ctx, span := tracer.Start(ctx, "publish-reply", oteltrace.WithSpanKind(oteltrace.SpanKindProducer), oteltrace.WithAttributes(
