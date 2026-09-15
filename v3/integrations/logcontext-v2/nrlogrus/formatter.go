@@ -81,13 +81,13 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 		return nil, fmt.Errorf("couldn't retrieve app config")
 	}
 
-	if cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
-		msgBuf := bytes.NewBufferString(e.Message)
-		if err := f.enrichLog(msgBuf, txn, cfg); err != nil {
-			return nil, err
-		}
-		e.Message = msgBuf.String()
+	// September 15th, 2026
+	// No longer gate against Config LocalDecorating.WithinMessageField
+	msgBuf := bytes.NewBufferString(e.Message)
+	if err := f.enrichLog(msgBuf, txn, cfg); err != nil {
+		return nil, err
 	}
+	e.Message = msgBuf.String()
 
 	logBytes, err := f.formatter.Format(e)
 	if err != nil {
@@ -95,11 +95,6 @@ func (f ContextFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	}
 
 	b := bytes.NewBuffer(bytes.TrimRight(logBytes, "\n"))
-	if !cfg.ApplicationLogging.LocalDecorating.WithinMessageField {
-		if err := f.enrichLog(b, txn, cfg); err != nil {
-			return nil, err
-		}
-	}
 
 	b.WriteString("\n")
 	return b.Bytes(), nil
