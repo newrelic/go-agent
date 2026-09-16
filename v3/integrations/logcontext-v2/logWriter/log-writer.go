@@ -40,6 +40,6 @@ func (lw *LogWriter) WithContext(ctx context.Context) LogWriter {
 
 // Write is a valid io.Writer method that will write the content of an enriched log to the output io.Writer
 func (lw LogWriter) Write(p []byte) (n int, err error) {
-	enrichedLog := lw.w.EnrichLog(newrelic.LogData{Message: string(p)}, p)
-	return lw.w.Write(enrichedLog)
+	enrichedLogMessage := lw.w.EnrichLogMessage(newrelic.LogData{Message: string(p)})
+	return lw.w.Write(enrichedLogMessage)
 }

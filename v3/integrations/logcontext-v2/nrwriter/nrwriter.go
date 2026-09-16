@@ -84,6 +84,26 @@ func (b *LogWriter) EnrichLog(data newrelic.LogData, p []byte) []byte {
 	return buf.Bytes()
 }
 
+func (b *LogWriter) EnrichLogMessage(data newrelic.LogData) []byte {
+	buf := bytes.NewBufferString(data.Message)
+	var enrichErr error
+	if b.txn != nil {
+		b.txn.RecordLog(data)
+		enrichErr = newrelic.EnrichLog(buf, newrelic.FromTxn(b.txn))
+	} else {
+		b.app.RecordLog(data)
+		enrichErr = newrelic.EnrichLog(buf, newrelic.FromApp(b.app))
+	}
+
+	if b.debug && enrichErr != nil {
+		buf.WriteString("\n")
+		buf.WriteString(enrichErr.Error())
+	}
+
+	buf.WriteString("\n")
+	return buf.Bytes()
+}
+
 // Write implements io.Write
 func (b LogWriter) Write(p []byte) (n int, err error) {
 	return b.out.Write(p)
