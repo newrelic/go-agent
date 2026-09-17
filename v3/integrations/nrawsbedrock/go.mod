@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/bedrock v1.7.3
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.4
 	github.com/google/uuid v1.6.0
-	github.com/newrelic/go-agent/v3 v3.44.1
+	github.com/newrelic/go-agent/v3 v3.44.2
 )
 
 

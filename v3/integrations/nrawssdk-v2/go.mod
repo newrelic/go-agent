@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.34.6
 	github.com/aws/smithy-go v1.24.2
-	github.com/newrelic/go-agent/v3 v3.44.1
+	github.com/newrelic/go-agent/v3 v3.44.2
 )
 
 

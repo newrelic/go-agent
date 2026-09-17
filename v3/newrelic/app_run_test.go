@@ -157,6 +157,102 @@ func TestTxnTraceThreshold(t *testing.T) {
 	}
 }
 
+func TestServerSideConfigAIMonitoringEnabled(t *testing.T) {
+	// Server-side config enables a locally disabled setting.
+	cfg := config{Config: defaultConfig()}
+	cfg.AIMonitoring.Enabled = false
+	reply := internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.enabled":true}}`), &reply)
+	run := newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.Enabled {
+		t.Error("AIMonitoring.Enabled not enabled by server-side config")
+	}
+
+	// Server-side config disables a locally enabled setting.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.enabled":false}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if run.Config.AIMonitoring.Enabled {
+		t.Error("AIMonitoring.Enabled not disabled by server-side config")
+	}
+
+	// Absent server-side config leaves the local setting untouched.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.Enabled {
+		t.Error("AIMonitoring.Enabled changed despite absent server-side config")
+	}
+}
+
+func TestServerSideConfigAIMonitoringStreamingEnabled(t *testing.T) {
+	// Server-side config enables a locally disabled setting.
+	cfg := config{Config: defaultConfig()}
+	cfg.AIMonitoring.Streaming.Enabled = false
+	reply := internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.streaming.enabled":true}}`), &reply)
+	run := newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.Streaming.Enabled {
+		t.Error("AIMonitoring.Streaming.Enabled not enabled by server-side config")
+	}
+
+	// Server-side config disables a locally enabled setting.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.Streaming.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.streaming.enabled":false}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if run.Config.AIMonitoring.Streaming.Enabled {
+		t.Error("AIMonitoring.Streaming.Enabled not disabled by server-side config")
+	}
+
+	// Absent server-side config leaves the local setting untouched.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.Streaming.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.Streaming.Enabled {
+		t.Error("AIMonitoring.Streaming.Enabled changed despite absent server-side config")
+	}
+}
+
+func TestServerSideConfigAIMonitoringRecordContentEnabled(t *testing.T) {
+	// Server-side config enables a locally disabled setting.
+	cfg := config{Config: defaultConfig()}
+	cfg.AIMonitoring.RecordContent.Enabled = false
+	reply := internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.record_content.enabled":true}}`), &reply)
+	run := newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.RecordContent.Enabled {
+		t.Error("AIMonitoring.RecordContent.Enabled not enabled by server-side config")
+	}
+
+	// Server-side config disables a locally enabled setting.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.RecordContent.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.record_content.enabled":false}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if run.Config.AIMonitoring.RecordContent.Enabled {
+		t.Error("AIMonitoring.RecordContent.Enabled not disabled by server-side config")
+	}
+
+	// Absent server-side config leaves the local setting untouched.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.RecordContent.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.RecordContent.Enabled {
+		t.Error("AIMonitoring.RecordContent.Enabled changed despite absent server-side config")
+	}
+}
+
 func TestEmptyReplyEventHarvestDefaults(t *testing.T) {
 	run := newAppRun(config{Config: defaultConfig()}, &internal.ConnectReply{})
 	assertHarvestConfig(t, run.harvestConfig, expectHarvestConfig{

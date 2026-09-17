@@ -7,7 +7,7 @@ go 1.25
 require (
 	github.com/nats-io/nats-server/v2 v2.11.15
 	github.com/nats-io/nats.go v1.49.0
-	github.com/newrelic/go-agent/v3 v3.44.1
+	github.com/newrelic/go-agent/v3 v3.44.2
 )
 
 
