@@ -20,6 +20,8 @@ type txnMapEntry struct {
 type nrSegment interface {
 	End()
 	AddAttribute(key string, val interface{})
+	AddLink(spanID, traceID string)
+	AddOtelSpanID(spanID string)
 }
 
 type nrotelhybridProcessor struct {
@@ -82,7 +84,9 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
 	seg := entry.txn.StartSegment(s.Name())
-	p.segmentMap[s.SpanContext().SpanID()] = seg
+	otelSpanID := s.SpanContext().SpanID()
+	seg.AddOtelSpanID(otelSpanID.String())
+	p.segmentMap[otelSpanID] = seg
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
@@ -125,6 +129,11 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		// find type of segment to switch segment type and add attributes
+		if len(links) > 0 {
+			for _, link := range links {
+				seg.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String())
+			}
+		}
 		seg.End()
 		delete(p.segmentMap, spanID)
 	}
