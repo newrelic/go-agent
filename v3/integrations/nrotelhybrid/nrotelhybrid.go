@@ -23,6 +23,7 @@ type nrSegment interface {
 	AddAttribute(key string, val interface{})
 	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
+	AddSpanEvent(name string, start time.Time)
 }
 
 type nrotelhybridProcessor struct {
