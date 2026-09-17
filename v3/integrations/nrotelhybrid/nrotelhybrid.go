@@ -13,6 +13,9 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+
+const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
+
 type txnMapEntry struct {
 	txn    *newrelic.Transaction
 	spanID oteltrace.SpanID
@@ -23,7 +26,7 @@ type nrSegment interface {
 	AddAttribute(key string, val interface{})
 	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
-	AddSpanEvent(name string, start time.Time)
+	AddSpanEventEvent(name string, start time.Time)
 }
 
 type nrotelhybridProcessor struct {
@@ -138,8 +141,12 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 					link.SpanContext.TraceID().String(),
 					s.StartTime())
 			}
-			for _, event := range events {
-				seg.AddSpanEvent(event.Name, s.StartTime()) // should we be using event.Time instead?
+			for i, event := range events {
+				if i > 99 {
+					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
+					continue
+				}
+				seg.AddSpanEventEvent(event.Name, s.StartTime()) // should we be using event.Time instead?
 			}
 		}
 		seg.End()
