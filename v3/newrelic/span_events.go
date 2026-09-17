@@ -40,6 +40,7 @@ type spanEvent struct {
 	AgentAttributes spanAttributeMap
 	UserAttributes  spanAttributeMap
 	SpanLinks       []LinkedSpan
+	SpanEventEvents []SpanEventEvent
 	otelSpanID      string
 }
 
@@ -97,6 +98,10 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	for _, link := range e.SpanLinks {
 		buf.WriteByte(',')
 		link.WriteJSONWithContainer(buf, e)
+	}
+	for _, event := range e.SpanEventEvents {
+		buf.WriteByte(',')
+		event.WriteJSON(buf, e)
 	}
 }
 

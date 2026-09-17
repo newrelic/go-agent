@@ -98,6 +98,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	traceID := s.SpanContext().TraceID()
 	spanID := s.SpanContext().SpanID()
 	links := s.Links()
+	events := s.Events()
 	if len(links) > 0 {
 		fmt.Println("Links exist:")
 		for i, linkData := range links {
@@ -136,6 +137,9 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 				seg.AddLink(link.SpanContext.SpanID().String(),
 					link.SpanContext.TraceID().String(),
 					s.StartTime())
+			}
+			for _, event := range events {
+				seg.AddSpanEvent(event.Name, s.StartTime()) // should we be using event.Time instead?
 			}
 		}
 		seg.End()
