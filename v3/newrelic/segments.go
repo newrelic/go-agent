@@ -23,6 +23,7 @@ type Segment struct {
 	StartTime  SegmentStartTime
 	Name       string
 	Links      []LinkedSpan
+	SpanEvents []SpanEvent
 	otelSpanID string // origin span ID if created from OTEL span
 }
 
@@ -31,6 +32,11 @@ type Segment struct {
 type LinkedSpan struct {
 	spanID    string
 	traceID   string
+	startTime time.Time
+}
+
+type SpanEvent struct {
+	name      string
 	startTime time.Time
 }
 
@@ -66,11 +72,23 @@ func (s *DatastoreSegment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
+func (s *DatastoreSegment) AddSpanEvent(name string, start time.Time) {
+	s.SpanEvents = append(s.SpanEvents, SpanEvent{
+		name:      name,
+		startTime: start,
+	})
+}
 func (s *Segment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *Segment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
 		spanID:    spanID,
 		traceID:   traceID,
+		startTime: start,
+	})
+}
+func (s *Segment) AddSpanEvent(name string, start time.Time) {
+	s.SpanEvents = append(s.SpanEvents, SpanEvent{
+		name:      name,
 		startTime: start,
 	})
 }
@@ -82,11 +100,23 @@ func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
+func (s *ExternalSegment) AddSpanEvent(name string, start time.Time) {
+	s.SpanEvents = append(s.SpanEvents, SpanEvent{
+		name:      name,
+		startTime: start,
+	})
+}
 func (s *MessageProducerSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *MessageProducerSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
 		spanID:    spanID,
 		traceID:   traceID,
+		startTime: start,
+	})
+}
+func (s *MessageProducerSegment) AddSpanEvent(name string, start time.Time) {
+	s.SpanEvents = append(s.SpanEvents, SpanEvent{
+		name:      name,
 		startTime: start,
 	})
 }
@@ -146,6 +176,7 @@ type DatastoreSegment struct {
 
 	Links      []LinkedSpan
 	otelSpanID string // origin span ID if created from OTEL span
+	SpanEvents []SpanEvent
 }
 
 // SetSecureAgentEvent allows integration packages to set the secureAgentEvent
@@ -200,6 +231,7 @@ type ExternalSegment struct {
 
 	Links      []LinkedSpan
 	otelSpanID string // origin span ID if created from OTEL span
+	SpanEvents []SpanEvent
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -222,6 +254,7 @@ type MessageProducerSegment struct {
 
 	Links      []LinkedSpan
 	otelSpanID string // origin span ID if created from OTEL span
+	SpanEvents []SpanEvent
 }
 
 // MessageDestinationType is used for the MessageSegment.DestinationType field.
