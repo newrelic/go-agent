@@ -551,6 +551,9 @@ func (thd *thread) End(recovered interface{}) error {
 					evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID
 				}
 			}
+			for i := range evt.SpanEventEvents {
+				evt.SpanEventEvents[i].traceID = txn.BetterCAT.TraceID
+			}
 			evt.TraceID = txn.BetterCAT.TraceID
 			evt.TransactionID = txn.TxnID
 			evt.Sampled = txn.BetterCAT.Sampled
