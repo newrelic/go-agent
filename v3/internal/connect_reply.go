@@ -102,6 +102,9 @@ type ConnectReply struct {
 		ErrorCollectorIgnoreStatusCodes      []int       `json:"error_collector.ignore_status_codes"`
 		ErrorCollectorExpectStatusCodes      []int       `json:"error_collector.expected_status_codes"`
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
+		AIMonitoringEnabled                  *bool       `json:"ai_monitoring.enabled"`
+		AIMonitoringStreamingEnabled         *bool       `json:"ai_monitoring.streaming.enabled"`
+		AIMonitoringRecordContentEnabled     *bool       `json:"ai_monitoring.record_content.enabled"`
 	} `json:"agent_config"`
 
 	// Faster Event Harvest
