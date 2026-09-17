@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/attribute"
@@ -20,7 +21,7 @@ type txnMapEntry struct {
 type nrSegment interface {
 	End()
 	AddAttribute(key string, val interface{})
-	AddLink(spanID, traceID string)
+	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
 }
 
@@ -99,7 +100,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	if len(links) > 0 {
 		fmt.Println("Links exist:")
 		for i, linkData := range links {
-			fmt.Printf("%d - span context span=%s trace=%s valid=%v remote=%v\n", i, linkData.SpanContext.SpanID(), linkData.SpanContext.TraceID(), linkData.SpanContext.IsValid(), linkData.SpanContext.IsRemote())
+			fmt.Printf("%d - span context span=%s trace=%s valid=%v remote=%v timestamp=%v\n", i, linkData.SpanContext.SpanID(), linkData.SpanContext.TraceID(), linkData.SpanContext.IsValid(), linkData.SpanContext.IsRemote(), s.StartTime())
 			for _, kv := range linkData.Attributes {
 				fmt.Printf("  %s=%v\n", kv.Key, kv.Value.String())
 			}
@@ -131,7 +132,9 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		// find type of segment to switch segment type and add attributes
 		if len(links) > 0 {
 			for _, link := range links {
-				seg.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String())
+				seg.AddLink(link.SpanContext.SpanID().String(),
+					link.SpanContext.TraceID().String(),
+					s.StartTime())
 			}
 		}
 		seg.End()

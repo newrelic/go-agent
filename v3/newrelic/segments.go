@@ -6,6 +6,7 @@ package newrelic
 import (
 	"bytes"
 	"net/http"
+	"time"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -28,44 +29,65 @@ type Segment struct {
 // LinkedSpan references another segment (possibly from an external source like OTEL)
 // from this one.
 type LinkedSpan struct {
-	spanID  string
-	traceID string
+	spanID    string
+	traceID   string
+	startTime time.Time
 }
 
-func (s *LinkedSpan) WriteJSON(buf *bytes.Buffer) {
+func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
 	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('[')
 	buf.WriteByte('{')
-	w.stringField("span.id", s.spanID)
-	w.stringField("trace.id", s.traceID)
+	w.stringField("type", "SpanLink")
+	if s.startTime.IsZero() {
+		w.intField("timestamp", timeToIntMillis(e.Timestamp))
+	} else {
+		w.intField("timestamp", timeToIntMillis(s.startTime))
+	}
+	w.stringField("id", e.GUID)
+	w.stringField("trace.id", e.TraceID)
+	w.stringField("linkedSpanID", s.spanID)
+	w.stringField("linkedTraceID", s.traceID)
 	buf.WriteByte('}')
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+	buf.WriteByte('}')
+	buf.WriteByte(']')
 }
 
 func (s *DatastoreSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
-func (s *DatastoreSegment) AddLink(spanID, traceID string) {
+func (s *DatastoreSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
-		spanID:  spanID,
-		traceID: traceID,
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
 	})
 }
 func (s *Segment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
-func (s *Segment) AddLink(spanID, traceID string) {
+func (s *Segment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
-		spanID:  spanID,
-		traceID: traceID,
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
 	})
 }
 func (s *ExternalSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
-func (s *ExternalSegment) AddLink(spanID, traceID string) {
+func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
-		spanID:  spanID,
-		traceID: traceID,
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
 	})
 }
 func (s *MessageProducerSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
-func (s *MessageProducerSegment) AddLink(spanID, traceID string) {
+func (s *MessageProducerSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
-		spanID:  spanID,
-		traceID: traceID,
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
 	})
 }
 

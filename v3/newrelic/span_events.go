@@ -90,18 +90,14 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte('{')
 
 	writeAttrs(buf, e.AgentAttributes)
-	// TODO does this belong here?
-	// TODO is this enlosed in an object or list?
-	for i, link := range e.SpanLinks {
-		if i > 0 || len(e.AgentAttributes) > 0 {
-			buf.WriteByte(',')
-		}
-		link.WriteJSON(buf)
-	}
 
 	buf.WriteByte('}')
 
 	buf.WriteByte(']')
+	for _, link := range e.SpanLinks {
+		buf.WriteByte(',')
+		link.WriteJSONWithContainer(buf, e)
+	}
 }
 
 func writeAttrs(buf *bytes.Buffer, attrs spanAttributeMap) {
