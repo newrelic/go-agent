@@ -1084,3 +1084,71 @@ func Test_addSegmentAttributes_ExternalSegment(t *testing.T) {
 		})
 	}
 }
+
+func Test_otelEventAttributes_WriteAttributes(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		eventAttributes    otelEventAttributes
+		expectedAttrLength int
+	}{
+		{
+			name:               "Empty otelEventAttributes",
+			eventAttributes:    []attribute.KeyValue{},
+			expectedAttrLength: 0,
+		},
+		{
+			name: "Non-empty otelEventAttributes",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 1,
+		},
+		{
+			name: "Non-empty otelEventAttributes multiple",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+				{
+					Key:   "Key2",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 2,
+		},
+		{
+			name: "Non-empty otelEventAttributes multiple with same key",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// TODO: construct the receiver type.
+			m := make(map[string]any)
+			write := func(key string, val any) {
+				m[key] = val
+			}
+			var a otelEventAttributes
+			a = tt.eventAttributes
+			a.WriteAttributes(write)
+			if tt.expectedAttrLength != len(m) {
+				t.Errorf("Expected attribute map of length %d, got attribute of length of length %d", tt.expectedAttrLength, len(m))
+			}
+		})
+	}
+}

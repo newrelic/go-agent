@@ -20,10 +20,11 @@ type SegmentStartTime struct {
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
 type Segment struct {
-	StartTime  SegmentStartTime
-	Name       string
-	Links      []LinkedSpan
-	otelSpanID string // origin span ID if created from OTEL span
+	StartTime       SegmentStartTime
+	Name            string
+	Links           []LinkedSpan
+	SpanEventEvents []SpanEventEvent
+	otelSpanID      string // origin span ID if created from OTEL span
 }
 
 // LinkedSpan references another segment (possibly from an external source like OTEL)
@@ -32,6 +33,17 @@ type LinkedSpan struct {
 	spanID    string
 	traceID   string
 	startTime time.Time
+}
+
+type SpanEventAttributes interface {
+	WriteAttributes(write func(key string, val interface{}))
+}
+
+type SpanEventEvent struct {
+	name       string
+	traceID    string
+	startTime  time.Time
+	attributes SpanEventAttributes
 }
 
 func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
@@ -58,12 +70,50 @@ func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
 	buf.WriteByte(']')
 }
 
+func (se *SpanEventEvent) WriteJSON(buf *bytes.Buffer, e *spanEvent) {
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('[')
+	buf.WriteByte('{')
+	w.stringField("type", "SpanEvent")
+	w.stringField("name", se.name)
+	if se.startTime.IsZero() {
+		w.intField("timestamp", timeToIntMillis(e.Timestamp))
+	} else {
+		w.intField("timestamp", timeToIntMillis(se.startTime))
+	}
+	w.stringField("id", e.GUID)
+	w.stringField("trace.id", e.TraceID)
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	// User Attributes (all other attributes added here)
+	buf.WriteByte('{')
+	w = jsonFieldsWriter{buf: buf}
+	if se.attributes != nil {
+		se.attributes.WriteAttributes(func(key string, val interface{}) {
+			writeAttributeValueJSON(&w, key, val)
+		})
+	}
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	// Agent Attributes (none for SpanEvents as of now)
+	buf.WriteByte('{')
+	buf.WriteByte('}')
+	buf.WriteByte(']')
+}
+
 func (s *DatastoreSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *DatastoreSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
 		spanID:    spanID,
 		traceID:   traceID,
 		startTime: start,
+	})
+}
+func (s *DatastoreSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
+	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 func (s *Segment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
@@ -74,6 +124,13 @@ func (s *Segment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
+func (s *Segment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
+	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
+	})
+}
 func (s *ExternalSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
@@ -82,12 +139,26 @@ func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
+func (s *ExternalSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
+	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
+	})
+}
 func (s *MessageProducerSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *MessageProducerSegment) AddLink(spanID, traceID string, start time.Time) {
 	s.Links = append(s.Links, LinkedSpan{
 		spanID:    spanID,
 		traceID:   traceID,
 		startTime: start,
+	})
+}
+func (s *MessageProducerSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
+	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 
@@ -144,8 +215,9 @@ type DatastoreSegment struct {
 	// record security-related information about the datastore operations.
 	secureAgentEvent any
 
-	Links      []LinkedSpan
-	otelSpanID string // origin span ID if created from OTEL span
+	Links           []LinkedSpan
+	otelSpanID      string // origin span ID if created from OTEL span
+	SpanEventEvents []SpanEventEvent
 }
 
 // SetSecureAgentEvent allows integration packages to set the secureAgentEvent
@@ -198,8 +270,9 @@ type ExternalSegment struct {
 	// scanning is enabled.
 	secureAgentEvent any
 
-	Links      []LinkedSpan
-	otelSpanID string // origin span ID if created from OTEL span
+	Links           []LinkedSpan
+	otelSpanID      string // origin span ID if created from OTEL span
+	SpanEventEvents []SpanEventEvent
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -220,8 +293,9 @@ type MessageProducerSegment struct {
 	// to improve metric grouping.
 	DestinationTemporary bool
 
-	Links      []LinkedSpan
-	otelSpanID string // origin span ID if created from OTEL span
+	Links           []LinkedSpan
+	otelSpanID      string // origin span ID if created from OTEL span
+	SpanEventEvents []SpanEventEvent
 }
 
 // MessageDestinationType is used for the MessageSegment.DestinationType field.
