@@ -35,10 +35,15 @@ type LinkedSpan struct {
 	startTime time.Time
 }
 
+type SpanEventAttributes interface {
+	WriteAttributes(write func(key string, val interface{}))
+}
+
 type SpanEventEvent struct {
-	name      string
-	traceID   string
-	startTime time.Time
+	name       string
+	traceID    string
+	startTime  time.Time
+	attributes SpanEventAttributes
 }
 
 func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
@@ -80,9 +85,17 @@ func (se *SpanEventEvent) WriteJSON(buf *bytes.Buffer, e *spanEvent) {
 	w.stringField("trace.id", e.TraceID)
 	buf.WriteByte('}')
 	buf.WriteByte(',')
+	// User Attributes (all other attributes added here)
 	buf.WriteByte('{')
+	w = jsonFieldsWriter{buf: buf}
+	if se.attributes != nil {
+		se.attributes.WriteAttributes(func(key string, val interface{}) {
+			writeAttributeValueJSON(&w, key, val)
+		})
+	}
 	buf.WriteByte('}')
 	buf.WriteByte(',')
+	// Agent Attributes (none for SpanEvents as of now)
 	buf.WriteByte('{')
 	buf.WriteByte('}')
 	buf.WriteByte(']')
@@ -96,10 +109,11 @@ func (s *DatastoreSegment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
-func (s *DatastoreSegment) AddSpanEventEvent(name string, start time.Time) {
+func (s *DatastoreSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
 	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
-		name:      name,
-		startTime: start,
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 func (s *Segment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
@@ -110,10 +124,11 @@ func (s *Segment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
-func (s *Segment) AddSpanEventEvent(name string, start time.Time) {
+func (s *Segment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
 	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
-		name:      name,
-		startTime: start,
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 func (s *ExternalSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
@@ -124,10 +139,11 @@ func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
 		startTime: start,
 	})
 }
-func (s *ExternalSegment) AddSpanEventEvent(name string, start time.Time) {
+func (s *ExternalSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
 	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
-		name:      name,
-		startTime: start,
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 func (s *MessageProducerSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
@@ -138,10 +154,11 @@ func (s *MessageProducerSegment) AddLink(spanID, traceID string, start time.Time
 		startTime: start,
 	})
 }
-func (s *MessageProducerSegment) AddSpanEventEvent(name string, start time.Time) {
+func (s *MessageProducerSegment) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
 	s.SpanEventEvents = append(s.SpanEventEvents, SpanEventEvent{
-		name:      name,
-		startTime: start,
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 }
 
