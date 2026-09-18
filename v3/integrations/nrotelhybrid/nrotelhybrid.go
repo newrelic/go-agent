@@ -13,7 +13,6 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-
 const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
 
 type txnMapEntry struct {
@@ -26,7 +25,7 @@ type nrSegment interface {
 	AddAttribute(key string, val interface{})
 	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
-	AddSpanEventEvent(name string, start time.Time)
+	AddSpanEventEvent(name string, start time.Time, attrs newrelic.SpanEventAttributes)
 }
 
 type nrotelhybridProcessor struct {
@@ -146,7 +145,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 					continue
 				}
-				seg.AddSpanEventEvent(event.Name, s.StartTime()) // should we be using event.Time instead?
+				seg.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
 			}
 		}
 		seg.End()
@@ -304,6 +303,17 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID ote
 		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
+}
+
+// otelEventAttributes adapts an OTEL event's attributes to
+// newrelic.SpanEventAttributes, deferring conversion until the SpanEvent
+// event is actually serialized.
+type otelEventAttributes []attribute.KeyValue
+
+func (a otelEventAttributes) WriteAttributes(write func(key string, val interface{})) {
+	for _, attr := range a {
+		write(string(attr.Key), extractAttributeValue(attr.Value))
+	}
 }
 
 func extractAttributeValue(val attribute.Value) any {
