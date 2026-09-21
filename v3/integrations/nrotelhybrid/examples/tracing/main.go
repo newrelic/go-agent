@@ -2,39 +2,24 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"math/rand/v2"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
-	amqp "github.com/rabbitmq/amqp091-go"
-
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
-
-type deps struct {
-	db       *sql.DB
-	amqpConn *amqp.Connection
-	amqpCh   *amqp.Channel
-	amqpMux  sync.Mutex
-}
 
 func main() {
 	// for pretty print to console
@@ -74,40 +59,12 @@ func run() (err error) {
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
-	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=docker sslmode=disable", otelsql.WithAttributes(
-		semconv.DBSystemNamePostgreSQL),
-		otelsql.WithDBName("secondTestDB"),
-		otelsql.WithTracerProvider(otel.GetTracerProvider()),
-	)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	amqpConn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	if err != nil {
-		return err
-	}
-	defer amqpConn.Close()
-
-	amqpCh, err := amqpConn.Channel()
-	if err != nil {
-		return err
-	}
-	defer amqpCh.Close()
-
-	if _, err := amqpCh.QueueDeclare("route-six-queue", false, false, false, false, nil); err != nil {
-		return err
-	}
-
-	d := &deps{db: db, amqpConn: amqpConn, amqpCh: amqpCh}
-
 	srv := &http.Server{
 		Addr:         ":8080",
 		BaseContext:  func(net.Listener) context.Context { return ctx },
 		ReadTimeout:  time.Second,
 		WriteTimeout: 10 * time.Second,
-		Handler:      newHttpHandler(d),
+		Handler:      newHttpHandler(),
 	}
 	srvErr := make(chan error, 1)
 	go func() {
@@ -125,16 +82,12 @@ func run() (err error) {
 	return err
 }
 
-func newHttpHandler(d *deps) http.Handler {
+func newHttpHandler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/routeone/", routeOne)
 	mux.HandleFunc("/routetwo/", routeTwo)
-	mux.HandleFunc("/routethree/", routeThree)
-	mux.HandleFunc("/routefour/", routeFour)
-	mux.HandleFunc("/routefive/", d.routeFive)
-	mux.HandleFunc("/routesix/", d.routeSix)
-	mux.HandleFunc("/routeseven/", d.routeSeven)
+	mux.HandleFunc("/linked/", linkedRoute)
 
 	// Add HTTP instrumentation for the whole server.
 	handler := otelhttp.NewHandler(mux, "/")
@@ -158,75 +111,19 @@ func routeTwo(w http.ResponseWriter, r *http.Request) {
 	nestedRouteTwo(ctx)
 }
 
-func routeThree(w http.ResponseWriter, r *http.Request) {
+func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	tracer := otel.Tracer("nrotel-example")
-	ctx, span := tracer.Start(r.Context(), "route-three")
+	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
+	defer otherSpan.End()
+	go leafCall(otherCtx)
+	ctx, span := tracer.Start(r.Context(), "linked-route",
+		oteltrace.WithNewRoot(),
+		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
+			attribute.String("link.purpose", "asynchronous_processing"),
+		)),
+	)
 	defer span.End()
-
-	nestedRouteThree(ctx)
-}
-
-func routeFour(w http.ResponseWriter, r *http.Request) {
-	tracer := otel.Tracer("nrotel-example")
-	_, span := tracer.Start(r.Context(), "route-four")
-	defer span.End()
-	n := rand.IntN(500)
-	time.Sleep(time.Duration(n) * time.Millisecond)
-}
-
-func (d *deps) routeFive(w http.ResponseWriter, r *http.Request) {
-	d.db.QueryRowContext(r.Context(), "SELECT count(*) FROM pg_catalog.pg_tables")
-}
-
-func (d *deps) routeSix(w http.ResponseWriter, r *http.Request) {
-	key := "route-six-queue"
-	tracer := otel.Tracer("nrotel-example")
-	_, span := tracer.Start(r.Context(), "route-six", oteltrace.WithSpanKind(oteltrace.SpanKindProducer), oteltrace.WithAttributes(
-		attribute.String(string(semconv.MessagingDestinationNameKey), "MyTestQueue"),
-		attribute.String(string(semconv.MessagingRabbitMQDestinationRoutingKeyKey), key),
-		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
-		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
-	))
-	defer span.End()
-
-	d.amqpMux.Lock()
-	defer d.amqpMux.Unlock()
-
-	err := d.amqpCh.PublishWithContext(r.Context(), "", key, false, false, amqp.Publishing{
-		ContentType: "text/plain",
-		Body:        []byte("hello from routeSix"),
-	})
-	if err != nil {
-		log.Println(err)
-		return
-	}
-}
-
-func (d *deps) routeSeven(w http.ResponseWriter, r *http.Request) {
-	key := "route-six-queue"
-
-	tracer := otel.Tracer("nrotel-example")
-	_, span := tracer.Start(r.Context(), "route-seven", oteltrace.WithSpanKind(oteltrace.SpanKindConsumer), oteltrace.WithAttributes(
-		attribute.String(string(semconv.MessagingRabbitMQDestinationRoutingKeyKey), key),
-		attribute.String(string(semconv.ServerAddressKey), d.amqpConn.RemoteAddr().String()),
-		attribute.String(string(semconv.ServerPortKey), strconv.Itoa(d.amqpConn.RemoteAddr().(*net.TCPAddr).Port)),
-	))
-	defer span.End()
-
-	d.amqpMux.Lock()
-	defer d.amqpMux.Unlock()
-
-	msg, ok, err := d.amqpCh.Get(key, true)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	if !ok {
-		w.Write([]byte("no message available"))
-		return
-	}
-	w.Write(msg.Body)
+	leafCall(ctx)
 }
 
 func nestedRouteOne(ctx context.Context) {

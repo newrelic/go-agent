@@ -4,7 +4,9 @@
 package newrelic
 
 import (
+	"bytes"
 	"net/http"
+	"time"
 )
 
 // SegmentStartTime is created by Transaction.StartSegmentNow and marks the
@@ -18,8 +20,75 @@ type SegmentStartTime struct {
 // Segment is used to instrument functions, methods, and blocks of code.  The
 // easiest way use Segment is the Transaction.StartSegment method.
 type Segment struct {
-	StartTime SegmentStartTime
-	Name      string
+	StartTime  SegmentStartTime
+	Name       string
+	Links      []LinkedSpan
+	otelSpanID string // origin span ID if created from OTEL span
+}
+
+// LinkedSpan references another segment (possibly from an external source like OTEL)
+// from this one.
+type LinkedSpan struct {
+	spanID    string
+	traceID   string
+	startTime time.Time
+}
+
+func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
+	w := jsonFieldsWriter{buf: buf}
+	buf.WriteByte('[')
+	buf.WriteByte('{')
+	w.stringField("type", "SpanLink")
+	if s.startTime.IsZero() {
+		w.intField("timestamp", timeToIntMillis(e.Timestamp))
+	} else {
+		w.intField("timestamp", timeToIntMillis(s.startTime))
+	}
+	w.stringField("id", e.GUID)
+	w.stringField("trace.id", e.TraceID)
+	w.stringField("linkedSpanID", s.spanID)
+	w.stringField("linkedTraceID", s.traceID)
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+	buf.WriteByte('}')
+	buf.WriteByte(',')
+	buf.WriteByte('{')
+	buf.WriteByte('}')
+	buf.WriteByte(']')
+}
+
+func (s *DatastoreSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
+func (s *DatastoreSegment) AddLink(spanID, traceID string, start time.Time) {
+	s.Links = append(s.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
+}
+func (s *Segment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
+func (s *Segment) AddLink(spanID, traceID string, start time.Time) {
+	s.Links = append(s.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
+}
+func (s *ExternalSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
+func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
+	s.Links = append(s.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
+}
+func (s *MessageProducerSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
+func (s *MessageProducerSegment) AddLink(spanID, traceID string, start time.Time) {
+	s.Links = append(s.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
 }
 
 // DatastoreSegment is used to instrument calls to databases and object stores.
@@ -74,6 +143,9 @@ type DatastoreSegment struct {
 	// secureAgentEvent is used when vulnerability scanning is enabled to
 	// record security-related information about the datastore operations.
 	secureAgentEvent any
+
+	Links      []LinkedSpan
+	otelSpanID string // origin span ID if created from OTEL span
 }
 
 // SetSecureAgentEvent allows integration packages to set the secureAgentEvent
@@ -125,6 +197,9 @@ type ExternalSegment struct {
 	// secureAgentEvent records security information when vulnerability
 	// scanning is enabled.
 	secureAgentEvent any
+
+	Links      []LinkedSpan
+	otelSpanID string // origin span ID if created from OTEL span
 }
 
 // MessageProducerSegment instruments calls to add messages to a queueing system.
@@ -144,6 +219,9 @@ type MessageProducerSegment struct {
 	// DestinationTemporary must be set to true if destination is temporary
 	// to improve metric grouping.
 	DestinationTemporary bool
+
+	Links      []LinkedSpan
+	otelSpanID string // origin span ID if created from OTEL span
 }
 
 // MessageDestinationType is used for the MessageSegment.DestinationType field.
