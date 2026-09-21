@@ -1133,14 +1133,7 @@ func Test_nrotelhybridProcessor_OnEnd_SpanEvents(t *testing.T) {
 
 			ctx, parentSpan := tracer.Start(context.Background(), "transaction-a", oteltrace.WithSpanKind(oteltrace.SpanKindServer))
 
-			link := oteltrace.WithLinks(oteltrace.Link{
-				SpanContext: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
-					TraceID: [16]byte{0x01},
-					SpanID:  [8]byte{0x01},
-					Remote:  true,
-				}),
-			})
-			_, childSpan := tracer.Start(ctx, "child-segment", link)
+			_, childSpan := tracer.Start(ctx, "child-segment")
 			for i := 0; i < tt.numEvents; i++ {
 				childSpan.AddEvent(fmt.Sprintf("event-%d", i))
 			}

@@ -140,6 +140,8 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 					link.SpanContext.TraceID().String(),
 					s.StartTime())
 			}
+		}
+		if len(events) > 0 {
 			for i, event := range events {
 				if i > 99 {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
