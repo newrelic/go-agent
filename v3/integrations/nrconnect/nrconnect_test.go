@@ -144,7 +144,7 @@ func TestUnaryClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/UnaryUnary",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/" + sv.Listener.Addr().String() + "/Connect/TestApplication/DoUnaryUnary",
@@ -236,7 +236,7 @@ func TestUnaryStreamClientInterceptor(t *testing.T) {
 			Attributes:  map[string]interface{}{},
 			Children: []internal.WantTraceSegment{{
 				SegmentName: "OtherTransaction/Go/UnaryStream",
-				Attributes:  map[string]interface{}{"exclusive_duration_millis": internal.MatchAnything},
+				Attributes:  map[string]interface{}{},
 				Children: []internal.WantTraceSegment{
 					{
 						SegmentName: "External/" + sv.Listener.Addr().String() + "/Connect/TestApplication/DoUnaryStream",

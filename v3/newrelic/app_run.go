@@ -73,6 +73,14 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	}
 	if v := run.Reply.ServerSideConfig.ProfilingEnabled; v != nil {
 		run.Config.Profiling.Enabled = *v
+	if v := run.Reply.ServerSideConfig.AIMonitoringEnabled; v != nil {
+		run.Config.AIMonitoring.Enabled = *v
+	}
+	if v := run.Reply.ServerSideConfig.AIMonitoringStreamingEnabled; v != nil {
+		run.Config.AIMonitoring.Streaming.Enabled = *v
+	}
+	if v := run.Reply.ServerSideConfig.AIMonitoringRecordContentEnabled; v != nil {
+		run.Config.AIMonitoring.RecordContent.Enabled = *v
 	}
 	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; v != nil {
 		switch val := v.(type) {
