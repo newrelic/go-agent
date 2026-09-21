@@ -538,9 +538,7 @@ func ConfigProfilingIncludeByNames(ptype ...string) ConfigOption {
 	}
 }
 
-// ConfigProfilingSampleInterval controls the pace at which we sample and report the collected profile data to the destination,
-// except for CPU profiles (which are buffered internally until the profiler is stopped, under normal circumstances).
-func ConfigProfilingSampleInterval(interval time.Duration) ConfigOption {
+func configProfilingSampleInterval(interval time.Duration) ConfigOption {
 	return func(cfg *Config) {
 		cfg.Profiling.Interval = interval
 	}
@@ -836,10 +834,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 
 		// This allows setting interval to 0 explicitly by environment variable while still
 		// allowing it to be defaulted by leaving it out of the environment altogether.
-		var intervalMS int
-		if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS", nil) && intervalMS >= 0 {
-			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
-		}
+		//var intervalMS int
+		//if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS", nil) && intervalMS >= 0 {
+		//			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
+		//		}
 		var delayMS int
 		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DELAY", nil) && delayMS >= 0 {
 			cfg.Profiling.Delay = time.Duration(delayMS) * time.Millisecond
@@ -849,13 +847,13 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			cfg.Profiling.Duration = time.Duration(durationMS) * time.Millisecond
 		}
 		var intervalCPU int
-		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS", nil) && intervalCPU >= 0 {
+		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL", nil) && intervalCPU >= 0 {
 			cfg.Profiling.CPUReportInterval = time.Duration(intervalCPU) * time.Millisecond
 		}
 		if env := getenv("NEW_RELIC_PROFILING_INCLUDE"); env != "" {
 			cfg.Profiling.SelectedProfiles.FromStrings(strings.Split(env, ","), false)
 		}
-		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE_HZ", nil)
+		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE", nil)
 		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE", nil)
 		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE", nil)
 	}

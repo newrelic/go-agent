@@ -20,6 +20,9 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/utilization"
 )
 
+// The type of profiling data to measure and report out, as an internal type.
+// These may be combined via | operators, or the constant ProfilingTypeAll may be
+// used to indicate that all supported types are to be harvested.
 type ProfilingType uint32
 
 const (
@@ -32,6 +35,16 @@ const (
 	ProfilingTypeAll = 0xffff
 )
 
+// FromStrings yields a ProfilingType value from a slice of string names for types
+// (including "all" to mean all supported types).
+//
+// This sets the value of the type it's called on as a method and returns an error value
+// if the name was not recognized.
+//
+// If additive is true, the named profiling types are added to the existing value
+// of the receiver, preserving any existing type(s) it represents. Otherwise, any
+// previous value is cleared and the receiver will only represent the profiling type(s)
+// indicated by the strings passed.
 func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 	if p == nil {
 		return fmt.Errorf("nil ProfilingType pointer")
@@ -64,6 +77,8 @@ func (p *ProfilingType) FromStrings(types []string, additive bool) error {
 	return nil
 }
 
+// Strings returns the set of profiling type(s) represented by the receiver as a slice
+// of strings.
 func (p ProfilingType) Strings() []string {
 	var typeSet []string
 
@@ -596,6 +611,7 @@ type Config struct {
 		// SelectedProfiles indicates which kinds of profiles we're collecting and reporting.
 		SelectedProfiles ProfilingType
 		// Interval is the rate at which the profiler gathers and reports non-CPU profile data.
+		// This is not exposed normally as a user-configurable adjustment and is set to 60 seconds.
 		Interval time.Duration
 		// CPUReportInterval is the rate at which we stop the CPU profiler to let it report
 		// out the data it's collected so far, after which we restart it again to collect more
