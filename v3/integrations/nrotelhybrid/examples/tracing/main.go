@@ -49,6 +49,7 @@ func run() (err error) {
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigFromEnvironment(),
 	)
 	if err != nil {
 		log.Fatal(err)
