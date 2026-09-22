@@ -31,12 +31,11 @@ const (
 	AttrDBCollectionName = "db.collection.name" // OTEL DB Client v1.25 (DB/Redis/Mongo)
 	AttrDBOperationName  = "db.operation.name"  // OTEL DB Client v1.25 (DB/Redis/Mongo)
 
-	AttrDBSystem    = "db.system"    // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
-	AttrDBName      = "db.name"      // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
-	AttrDBSQLTable  = "db.sql.table" // OTEL DB Client v1.17 (SQL only)
-	AttrDBOperation = "db.operation" // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
-	AttrDBStatement = "db.statement" // OTEL DB Client v1.17 and v1.25 (DB/Redis/Mongo)
-
+	AttrDBSystem                    = "db.system"                                  // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBName                      = "db.name"                                    // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBSQLTable                  = "db.sql.table"                               // OTEL DB Client v1.17 (SQL only)
+	AttrDBOperation                 = "db.operation"                               // OTEL DB Client v1.17 (DB/Redis/Mongo/Dynamo)
+	AttrDBStatement                 = "db.statement"                               // OTEL DB Client v1.17 and v1.25 (DB/Redis/Mongo)
 	AttrMessagingDestinationName    = "messaging.destination.name"                 // OTEL Messaging Consumer v1.24/v1.30, SQS Producer v1.17
 	AttrMessagingDestination        = "messaging.destination"                      // OTEL Messaging Consumer v1.17
 	AttrMessagingKafkaMessageKey    = "messaging.kafka.message.key"                // OTEL Messaging Producer/Consumer v1.24/v1.30

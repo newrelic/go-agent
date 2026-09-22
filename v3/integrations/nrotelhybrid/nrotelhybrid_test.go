@@ -2,10 +2,13 @@ package nrotelhybrid
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel"
@@ -854,10 +857,12 @@ func Test_checkMap(t *testing.T) {
 }
 
 type fakeSegment struct {
-	attrs map[string]interface{}
+	attrs      map[string]interface{}
+	endCalled  bool
+	spanEvents []string
 }
 
-func (f *fakeSegment) End() {}
+func (f *fakeSegment) End() { f.endCalled = true }
 
 func (f *fakeSegment) AddAttribute(key string, val interface{}) {
 	if f.attrs == nil {
@@ -866,6 +871,11 @@ func (f *fakeSegment) AddAttribute(key string, val interface{}) {
 	f.attrs[key] = val
 }
 
+func (f *fakeSegment) AddLink(spanID string, traceID string, start time.Time) {}
+func (f *fakeSegment) AddOtelSpanID(spanID string)                            {}
+func (f *fakeSegment) AddSpanEventEvent(name string, start time.Time, attrs newrelic.SpanEventAttributes) {
+	f.spanEvents = append(f.spanEvents, name)
+}
 func Test_nrotelhybridProcessor_addSegmentAttributes(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
@@ -1080,6 +1090,142 @@ func Test_addSegmentAttributes_ExternalSegment(t *testing.T) {
 
 			if seg.URL != tt.wantURL {
 				t.Errorf("URL = %v, want %v", seg.URL, tt.wantURL)
+			}
+		})
+	}
+}
+
+func Test_nrotelhybridProcessor_OnEnd_SpanEvents(t *testing.T) {
+	tests := []struct {
+		name         string
+		numEvents    int
+		wantRecorded int
+		wantDropped  float64
+	}{
+		{
+			name:         "Fewer than 100 events. All events recorded, none dropped.",
+			numEvents:    3,
+			wantRecorded: 3,
+		},
+		{
+			name:         "Exactly 100 events. All events recorded, none dropped.",
+			numEvents:    100,
+			wantRecorded: 100,
+		},
+		{
+			name:         "More than 100 events. Only first 100 recorded, rest dropped.",
+			numEvents:    105,
+			wantRecorded: 100,
+			wantDropped:  5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testApp := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+			)
+
+			processor := NewHybridProcessor(testApp.Application)
+			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor))
+			tracer := tp.Tracer("test")
+
+			ctx, parentSpan := tracer.Start(context.Background(), "transaction-a", oteltrace.WithSpanKind(oteltrace.SpanKindServer))
+
+			_, childSpan := tracer.Start(ctx, "child-segment")
+			for i := 0; i < tt.numEvents; i++ {
+				childSpan.AddEvent(fmt.Sprintf("event-%d", i))
+			}
+
+			segIface, ok := processor.segmentMap[childSpan.SpanContext().SpanID()]
+			if !ok {
+				t.Fatal("expected a segment to be created for the child span")
+			}
+			seg, ok := segIface.(*newrelic.Segment)
+			if !ok {
+				t.Fatalf("expected *newrelic.Segment, got %T", segIface)
+			}
+
+			childSpan.End()
+			parentSpan.End()
+
+			if len(seg.SpanEventEvents) != tt.wantRecorded {
+				t.Errorf("Unexpected number of recorded SpanEventEvents. Expected = %d, got = %d", tt.wantRecorded, len(seg.SpanEventEvents))
+			}
+
+			if tt.wantDropped > 0 {
+				testApp.ExpectMetricsPresent(t, []internal.WantMetric{
+					{Name: "Custom/" + spanEventEventsDroppedMetricName, Scope: "", Forced: false, Data: []float64{tt.wantDropped, tt.wantDropped, tt.wantDropped, 1, 1, tt.wantDropped}},
+				})
+			}
+		})
+	}
+}
+
+func Test_otelEventAttributes_WriteAttributes(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		eventAttributes    otelEventAttributes
+		expectedAttrLength int
+	}{
+		{
+			name:               "Empty otelEventAttributes",
+			eventAttributes:    []attribute.KeyValue{},
+			expectedAttrLength: 0,
+		},
+		{
+			name: "Non-empty otelEventAttributes",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 1,
+		},
+		{
+			name: "Non-empty otelEventAttributes multiple",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+				{
+					Key:   "Key2",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 2,
+		},
+		{
+			name: "Non-empty otelEventAttributes multiple with same key",
+			eventAttributes: []attribute.KeyValue{
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+				{
+					Key:   "Key1",
+					Value: attribute.Value{},
+				},
+			},
+			expectedAttrLength: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// TODO: construct the receiver type.
+			m := make(map[string]any)
+			write := func(key string, val any) {
+				m[key] = val
+			}
+			var a otelEventAttributes
+			a = tt.eventAttributes
+			a.WriteAttributes(write)
+			if tt.expectedAttrLength != len(m) {
+				t.Errorf("Expected attribute map of length %d, got attribute of length of length %d", tt.expectedAttrLength, len(m))
 			}
 		})
 	}
