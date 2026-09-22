@@ -13,6 +13,8 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
+
 type txnMapEntry struct {
 	txn    *newrelic.Transaction
 	spanID oteltrace.SpanID
@@ -23,6 +25,7 @@ type nrSegment interface {
 	AddAttribute(key string, val interface{})
 	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
+	AddSpanEventEvent(name string, start time.Time, attrs newrelic.SpanEventAttributes)
 }
 
 type nrotelhybridProcessor struct {
@@ -97,6 +100,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	traceID := s.SpanContext().TraceID()
 	spanID := s.SpanContext().SpanID()
 	links := s.Links()
+	events := s.Events()
 	if len(links) > 0 {
 		fmt.Println("Links exist:")
 		for i, linkData := range links {
@@ -135,6 +139,15 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 				seg.AddLink(link.SpanContext.SpanID().String(),
 					link.SpanContext.TraceID().String(),
 					s.StartTime())
+			}
+		}
+		if len(events) > 0 {
+			for i, event := range events {
+				if i > 99 {
+					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
+					continue
+				}
+				seg.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
 			}
 		}
 		seg.End()
@@ -292,6 +305,17 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID ote
 		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
+}
+
+// otelEventAttributes adapts an OTEL event's attributes to
+// newrelic.SpanEventAttributes, deferring conversion until the SpanEvent
+// event is actually serialized.
+type otelEventAttributes []attribute.KeyValue
+
+func (a otelEventAttributes) WriteAttributes(write func(key string, val interface{})) {
+	for _, attr := range a {
+		write(string(attr.Key), extractAttributeValue(attr.Value))
+	}
 }
 
 func extractAttributeValue(val attribute.Value) any {
