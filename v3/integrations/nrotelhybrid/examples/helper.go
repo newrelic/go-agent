@@ -19,6 +19,7 @@ func NewHybridApp(name string) (*newrelic.Application, context.Context, func(), 
 		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
 		newrelic.ConfigDistributedTracerEnabled(true),
 		newrelic.ConfigDebugLogger(os.Stdout),
+		newrelic.ConfigFromEnvironment(),
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err
