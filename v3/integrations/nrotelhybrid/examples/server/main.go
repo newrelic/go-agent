@@ -26,6 +26,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
@@ -36,6 +37,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -103,12 +105,35 @@ func newHTTPHandler(d *deps) http.Handler {
 	mux.HandleFunc("/serverroot/", serverRoot)
 	mux.HandleFunc("/clientexternal/", clientExternal)
 	mux.HandleFunc("/clientdatastore/", d.clientDatastore)
+	mux.HandleFunc("/linkedroute/", linkedRoute)
 
 	// Add HTTP instrumentation for the whole server; this is what makes
 	// each incoming request a SpanKindServer root transaction.
 	return otelhttp.NewHandler(mux, "/", otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
 		return r.URL.Path
 	}))
+}
+
+func linkedRoute(w http.ResponseWriter, r *http.Request) {
+	tracer := otel.Tracer("nrotel-example")
+	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
+	defer otherSpan.End()
+	go leafCall(otherCtx)
+	ctx, span := tracer.Start(r.Context(), "linked-route",
+		oteltrace.WithNewRoot(),
+		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
+			attribute.String("link.purpose", "asynchronous_processing"),
+		)),
+	)
+	defer span.End()
+	leafCall(ctx)
+}
+
+func leafCall(ctx context.Context) {
+	_, span := otel.Tracer("nrotel-example").Start(ctx, "leaf-call")
+	defer span.End()
+	n := rand.IntN(500)
+	time.Sleep(time.Duration(n) * time.Millisecond)
 }
 
 // serverRoot Extracts headers to check for a remote parent. It also
