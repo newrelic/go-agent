@@ -5,9 +5,10 @@ module github.com/newrelic/go-agent/v3/integrations/nrecho-v4
 go 1.25
 
 require (
-	github.com/labstack/echo/v4 v4.9.0
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/labstack/echo/v4 v4.15.3
+	github.com/newrelic/go-agent/v3 v3.45.0
 )
+
 
 
 replace github.com/newrelic/go-agent/v3 => ../..

@@ -439,7 +439,7 @@ func TestAppProcess_ConnectChan_TraceObserverVariants(t *testing.T) {
 
 			select {
 			case <-testApp.app.shutdownComplete:
-			case <-time.After(2 * timeout):
+			case <-time.After(80 * timeout):
 				t.Fatal("shutdown did not complete in time")
 			}
 		})

@@ -3,11 +3,12 @@ module github.com/newrelic/go-agent/v3/integrations/nrfiber
 go 1.25
 
 require (
-	github.com/gofiber/fiber/v2 v2.52.13
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/gofiber/fiber/v2 v2.52.14
+	github.com/newrelic/go-agent/v3 v3.45.0
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/fasthttp v1.51.0
 )
+
 
 
 replace github.com/newrelic/go-agent/v3 => ../..
