@@ -14,5 +14,3 @@ retract (
 	v3.25.0 // release process error corrected in v3.25.1
 	v3.22.0 // release process error corrected in v3.22.1
 )
-
-replace github.com/newrelic/go-agent/v3 => /Users/cconklin/team-go/go-agent/./v3
