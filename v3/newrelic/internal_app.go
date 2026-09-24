@@ -549,9 +549,10 @@ func (app *app) StartTransaction(name string, opts ...TraceOption) *Transaction 
 	run, _ := app.getState()
 	newtxn := newTransaction(newTxn(app, run, name, opts...))
 
-	if newtxn != nil && newtxn.thread != nil && newtxn.thread.Config.DistributedTracer.Enabled && newtxn.thread.Config.Profiling.Enabled && (newtxn.thread.Config.Profiling.SelectedProfiles&ProfilingTypeCPU) != 0 {
-		app.profilerStartSpan(newtxn)
-	}
+	//EXP:CPUSPAN
+	//if newtxn != nil && newtxn.thread != nil && newtxn.thread.Config.DistributedTracer.Enabled && newtxn.thread.Config.Profiling.Enabled && (newtxn.thread.Config.Profiling.SelectedProfiles&ProfilingTypeCPU) != 0 {
+	//	app.profilerStartSpan(newtxn)
+	//}
 	return newtxn
 }
 

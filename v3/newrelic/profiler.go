@@ -18,7 +18,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/google/btree"
 	"github.com/google/pprof/profile"
 )
 
@@ -91,6 +90,11 @@ func auditError(audit io.Writer, eventType string, harvestSeq int64, e error, fo
 	}
 }
 
+// EXP:CPUSPAN
+// This code has been deprecated and removed prior to public preview.
+// It was part of an earlier experiment and has been superceded by a newer implementation
+// approach. It is expected to be removed entirely for general availability.
+//
 // pfofileSpanData holds each active transaction we noticed happening while we were doing
 // CPU profiling. We hold onto these in a cache until we report out the CPU profiles we
 // collect and know we've attached these to the outgoing samples that were collected at the
@@ -103,92 +107,92 @@ func auditError(audit io.Writer, eventType string, harvestSeq int64, e error, fo
 // The data are kept ordered by that combination of values as well. "TxnID" here is somewhat
 // arbitrary and for our purposes is created (by us here) from the transaction name and internal
 // ID if possible, and from the memory object pointer as a last resort.
-type profileSpanData struct {
-	TimeNanos     int64  // nanoseconds on clock of span start since Jan 1 1970 UTC
-	DurationNanos int64  // nanoseconds span was alive or 0 if still running
-	TxnID         string // transaction ID
-	TxnName       string // transaction Name
-	SpanID        string // trace spanID
-	TraceID       string // trace traceID
-}
-
-// Derive our unique key from transaction pointer
-func profileSpanDataID(txn *Transaction) string {
-	TxnID := txn.thread.TxnID + ":" + txn.Name()
-	if TxnID == ":" {
-		TxnID = fmt.Sprintf("TXN<%v>", txn)
-	}
-
-	return strings.Map(func(s rune) rune {
-		if unicode.IsSpace(s) {
-			return '_'
-		}
-		return s
-	}, TxnID)
-}
-
-// Return a new profileSpanData value from an existing transaction, start time, and associated
-// TraceMetadata, ready to use in our cache.
-func profileSpanDataFromTxn(txn *Transaction) profileSpanData {
-	md := txn.GetTraceMetadata()
-	return profileSpanData{
-		TimeNanos: txn.thread.Start.UnixNano(),
-		TxnID:     profileSpanDataID(txn),
-		TxnName:   txn.Name(),
-		SpanID:    md.SpanID,
-		TraceID:   md.TraceID,
-	}
-}
-
-// End records the end time of a profileSpanData value in our cache, possibly also
-// updating the TraceMetadata (in case that's changed or in case it wasn't available
-// at the time the transaction was first created).
-func (sd *profileSpanData) End(duration time.Duration, md TraceMetadata) {
-	sd.DurationNanos = duration.Nanoseconds()
-
-	// Force non-zero just in case somehow the span lasted less than a nanosecond, since
-	// zero here means it's still running.
-	if sd.DurationNanos == 0 {
-		sd.DurationNanos = 1
-	}
-
-	// Only update the metadata if what is passed to this method actually has new data
-	if md.SpanID != "" && sd.SpanID != md.SpanID {
-		sd.SpanID = md.SpanID
-	}
-	if md.TraceID != "" && sd.TraceID != md.TraceID {
-		sd.TraceID = md.TraceID
-	}
-}
-
-// LessThan takes a pair of profileSpanData values and returns True if the first of them
-// is less than the second. This is used by the btree library to order the cache data and
-// to iterate over and search through them.
-func PSDLessThan(a, b profileSpanData) bool {
-	if a.TimeNanos != b.TimeNanos {
-		return a.TimeNanos < b.TimeNanos
-	}
-	return a.TxnID < b.TxnID
-}
+//type profileSpanData struct {
+//	TimeNanos     int64  // nanoseconds on clock of span start since Jan 1 1970 UTC
+//	DurationNanos int64  // nanoseconds span was alive or 0 if still running
+//	TxnID         string // transaction ID
+//	TxnName       string // transaction Name
+//	SpanID        string // trace spanID
+//	TraceID       string // trace traceID
+//}
+//
+//// Derive our unique key from transaction pointer
+//func profileSpanDataID(txn *Transaction) string {
+//	TxnID := txn.thread.TxnID + ":" + txn.Name()
+//	if TxnID == ":" {
+//		TxnID = fmt.Sprintf("TXN<%v>", txn)
+//	}
+//
+//	return strings.Map(func(s rune) rune {
+//		if unicode.IsSpace(s) {
+//			return '_'
+//		}
+//		return s
+//	}, TxnID)
+//}
+//
+//// Return a new profileSpanData value from an existing transaction, start time, and associated
+//// TraceMetadata, ready to use in our cache.
+//func profileSpanDataFromTxn(txn *Transaction) profileSpanData {
+//	md := txn.GetTraceMetadata()
+//	return profileSpanData{
+//		TimeNanos: txn.thread.Start.UnixNano(),
+//		TxnID:     profileSpanDataID(txn),
+//		TxnName:   txn.Name(),
+//		SpanID:    md.SpanID,
+//		TraceID:   md.TraceID,
+//	}
+//}
+//
+//// End records the end time of a profileSpanData value in our cache, possibly also
+//// updating the TraceMetadata (in case that's changed or in case it wasn't available
+//// at the time the transaction was first created).
+//func (sd *profileSpanData) End(duration time.Duration, md TraceMetadata) {
+//	sd.DurationNanos = duration.Nanoseconds()
+//
+//	// Force non-zero just in case somehow the span lasted less than a nanosecond, since
+//	// zero here means it's still running.
+//	if sd.DurationNanos == 0 {
+//		sd.DurationNanos = 1
+//	}
+//
+//	// Only update the metadata if what is passed to this method actually has new data
+//	if md.SpanID != "" && sd.SpanID != md.SpanID {
+//		sd.SpanID = md.SpanID
+//	}
+//	if md.TraceID != "" && sd.TraceID != md.TraceID {
+//		sd.TraceID = md.TraceID
+//	}
+//}
+//
+//// LessThan takes a pair of profileSpanData values and returns True if the first of them
+//// is less than the second. This is used by the btree library to order the cache data and
+//// to iterate over and search through them.
+//func PSDLessThan(a, b profileSpanData) bool {
+//	if a.TimeNanos != b.TimeNanos {
+//		return a.TimeNanos < b.TimeNanos
+//	}
+//	return a.TxnID < b.TxnID
+//}
 
 type profilerConfig struct {
-	lock              sync.RWMutex // protects creation of the ticker and access to map
-	segLock           sync.RWMutex // protects access to segment list
-	sampleTicker      *time.Ticker // once made, only read by monitor goroutine
-	cpuReportTicker   *time.Ticker // once made, only read by monitor goroutine
-	delayToStart      time.Duration
-	delayToStop       time.Duration
-	isRunning         bool
-	matchSpans        bool
-	selected          ProfilingType // which profiling types we've selected to report
-	auditFile         *os.File      // debugging audit file of profile data (nil for normal production runs)
-	done              chan byte
-	outputDirectory   string
-	outputDebug       int
-	ingestSwitch      chan byte
-	outputSwitch      chan string
-	switchResult      chan error
-	spanCache         *btree.BTreeG[profileSpanData]
+	lock            sync.RWMutex // protects creation of the ticker and access to map
+	segLock         sync.RWMutex // protects access to segment list
+	sampleTicker    *time.Ticker // once made, only read by monitor goroutine
+	cpuReportTicker *time.Ticker // once made, only read by monitor goroutine
+	delayToStart    time.Duration
+	delayToStop     time.Duration
+	isRunning       bool
+	matchSpans      bool
+	selected        ProfilingType // which profiling types we've selected to report
+	auditFile       *os.File      // debugging audit file of profile data (nil for normal production runs)
+	done            chan byte
+	outputDirectory string
+	outputDebug     int
+	ingestSwitch    chan byte
+	outputSwitch    chan string
+	switchResult    chan error
+	//EXP:CPUSPAN	spanCache         *btree.BTreeG[profileSpanData]
 	blockRate         int
 	mutexRate         int
 	cpuSampleRateHz   int
@@ -286,113 +290,114 @@ func (a *app) StartProfiler() {
 	a.profiler.methodRpmCmd.Name = cmdPprofData
 }
 
-// ProfilerStartSpan notifies the CPU profiler that a transaction has started, so that it can later
-// be associated with any CPU profile data collected during that transaction. Normally you won't need
-// to call this; the agent's transaction-handling code will automatically call this when setting up
-// the transaction if CPU profiling is enabled and running at the time.
-func (app *Application) ProfilerStartSpan(txn *Transaction) {
-	if app == nil {
-		return
-	}
-	app.app.profilerStartSpan(txn)
-}
-
-func (app *app) profilerStartSpan(txn *Transaction) {
-	if txn == nil {
-		app.Error("ProfilerStartSpan called on nil transaction", nil)
-		return
-	}
-	if !app.profiler.matchSpans {
-		return
-	}
-	newSpanDatum := profileSpanDataFromTxn(txn)
-	app.profiler.segLock.Lock()
-	if app.profiler.spanCache == nil {
-		app.profiler.spanCache = btree.NewG[profileSpanData](64, PSDLessThan)
-	}
-	app.profiler.spanCache.ReplaceOrInsert(newSpanDatum)
-	app.profiler.segLock.Unlock()
-	app.Debug("profiler: recorded transaction", map[string]any{
-		"txn-id":            newSpanDatum.TxnID,
-		"span_id":           newSpanDatum.SpanID,
-		"trace_id":          newSpanDatum.TraceID,
-		"cache-size":        app.profiler.spanCache.Len(),
-		"start-time":        newSpanDatum.TimeNanos,
-		"start-time-string": time.Unix(newSpanDatum.TimeNanos/1_000_000_000, newSpanDatum.TimeNanos%1_000_000_000).String(),
-	})
-}
-
-// ProfilerEndSpan notifies the profiler that a transaction which it had previously been notified
-// about via ProfilerStartSpan has now ended. This will record the total duration of the transaction
-// and the span and trace ID associated with it for association with CPU profile data also being
-// reported by the CPU profiler. Normally, you won't need to call this yourself, since the agent's
-// transaction handling code will call it for you when you end the transaction, if the CPU profiler
-// is enabled and running at the time.
-func (app *Application) ProfilerEndSpan(txn *Transaction) {
-	if app == nil {
-		return
-	}
-	if txn == nil || txn.thread == nil {
-		app.app.Error("ProfilerEndSpan called on nil transaction", nil)
-		return
-	}
-	if !app.app.profiler.matchSpans {
-		return
-	}
-	key := profileSpanDataID(txn)
-	app.app.profiler.segLock.Lock()
-	defer app.app.profiler.segLock.Unlock()
-	if app.app.profiler.spanCache == nil {
-		// we don't even have the btree at all, so we already know we have nothing to do.
-		return
-	}
-
-	targetValue, isInCache := app.app.profiler.spanCache.Get(profileSpanData{
-		TimeNanos: txn.thread.Start.UnixNano(),
-		TxnID:     key,
-	})
-	if isInCache {
-		targetValue.End(txn.thread.Duration, txn.GetTraceMetadata())
-		app.app.profiler.spanCache.ReplaceOrInsert(targetValue)
-		app.app.Debug("profiler: ended transaction", map[string]any{
-			"txn-id":            targetValue.TxnID,
-			"span_id":           targetValue.SpanID,
-			"trace_id":          targetValue.TraceID,
-			"cache-size":        app.app.profiler.spanCache.Len(),
-			"start-time":        targetValue.TimeNanos,
-			"duration":          targetValue.DurationNanos,
-			"start-time-string": time.Unix(targetValue.TimeNanos/1_000_000_000, targetValue.TimeNanos%1_000_000_000).String(),
-			"duration-ms":       targetValue.DurationNanos / 1_000_000,
-		})
-	} else {
-		// we didn't find the exact match we were hoping for. Search the cache to see if we
-		// can find the transaction ID, possibly with a different start time
-		// TODO: remove this warning after preview release
-		app.app.Warn("ProfilerEndSpan unable to directly target transaction; searching cache", map[string]any{
-			"key":     key,
-			"EndTime": txn.thread.Stop.UnixNano(),
-		})
-
-		app.app.profiler.spanCache.Ascend(func(sd profileSpanData) bool {
-			if sd.TxnID == key {
-				sd.End(txn.thread.Duration, txn.GetTraceMetadata())
-				app.app.profiler.spanCache.ReplaceOrInsert(sd)
-				app.app.Debug("profiler: ended transaction", map[string]any{
-					"txn-id":            sd.TxnID,
-					"span_id":           sd.SpanID,
-					"trace_id":          sd.TraceID,
-					"cache-size":        app.app.profiler.spanCache.Len(),
-					"start-time":        sd.TimeNanos,
-					"duration":          sd.DurationNanos,
-					"start-time-string": time.Unix(sd.TimeNanos/1_000_000_000, sd.TimeNanos%1_000_000_000).String(),
-					"duration-ms":       sd.DurationNanos / 1_000_000,
-				})
-				return false
-			}
-			return true
-		})
-	}
-}
+//// EXP:CPUSPAN
+//// ProfilerStartSpan notifies the CPU profiler that a transaction has started, so that it can later
+//// be associated with any CPU profile data collected during that transaction. Normally you won't need
+//// to call this; the agent's transaction-handling code will automatically call this when setting up
+//// the transaction if CPU profiling is enabled and running at the time.
+//func (app *Application) ProfilerStartSpan(txn *Transaction) {
+//	if app == nil {
+//		return
+//	}
+//	app.app.profilerStartSpan(txn)
+//}
+//
+//func (app *app) profilerStartSpan(txn *Transaction) {
+//	if txn == nil {
+//		app.Error("ProfilerStartSpan called on nil transaction", nil)
+//		return
+//	}
+//	if !app.profiler.matchSpans {
+//		return
+//	}
+//	newSpanDatum := profileSpanDataFromTxn(txn)
+//	app.profiler.segLock.Lock()
+//	if app.profiler.spanCache == nil {
+//		app.profiler.spanCache = btree.NewG[profileSpanData](64, PSDLessThan)
+//	}
+//	app.profiler.spanCache.ReplaceOrInsert(newSpanDatum)
+//	app.profiler.segLock.Unlock()
+//	app.Debug("profiler: recorded transaction", map[string]any{
+//		"txn-id":            newSpanDatum.TxnID,
+//		"span_id":           newSpanDatum.SpanID,
+//		"trace_id":          newSpanDatum.TraceID,
+//		"cache-size":        app.profiler.spanCache.Len(),
+//		"start-time":        newSpanDatum.TimeNanos,
+//		"start-time-string": time.Unix(newSpanDatum.TimeNanos/1_000_000_000, newSpanDatum.TimeNanos%1_000_000_000).String(),
+//	})
+//}
+//
+//// ProfilerEndSpan notifies the profiler that a transaction which it had previously been notified
+//// about via ProfilerStartSpan has now ended. This will record the total duration of the transaction
+//// and the span and trace ID associated with it for association with CPU profile data also being
+//// reported by the CPU profiler. Normally, you won't need to call this yourself, since the agent's
+//// transaction handling code will call it for you when you end the transaction, if the CPU profiler
+//// is enabled and running at the time.
+//func (app *Application) ProfilerEndSpan(txn *Transaction) {
+//	if app == nil {
+//		return
+//	}
+//	if txn == nil || txn.thread == nil {
+//		app.app.Error("ProfilerEndSpan called on nil transaction", nil)
+//		return
+//	}
+//	if !app.app.profiler.matchSpans {
+//		return
+//	}
+//	key := profileSpanDataID(txn)
+//	app.app.profiler.segLock.Lock()
+//	defer app.app.profiler.segLock.Unlock()
+//	if app.app.profiler.spanCache == nil {
+//		// we don't even have the btree at all, so we already know we have nothing to do.
+//		return
+//	}
+//
+//	targetValue, isInCache := app.app.profiler.spanCache.Get(profileSpanData{
+//		TimeNanos: txn.thread.Start.UnixNano(),
+//		TxnID:     key,
+//	})
+//	if isInCache {
+//		targetValue.End(txn.thread.Duration, txn.GetTraceMetadata())
+//		app.app.profiler.spanCache.ReplaceOrInsert(targetValue)
+//		app.app.Debug("profiler: ended transaction", map[string]any{
+//			"txn-id":            targetValue.TxnID,
+//			"span_id":           targetValue.SpanID,
+//			"trace_id":          targetValue.TraceID,
+//			"cache-size":        app.app.profiler.spanCache.Len(),
+//			"start-time":        targetValue.TimeNanos,
+//			"duration":          targetValue.DurationNanos,
+//			"start-time-string": time.Unix(targetValue.TimeNanos/1_000_000_000, targetValue.TimeNanos%1_000_000_000).String(),
+//			"duration-ms":       targetValue.DurationNanos / 1_000_000,
+//		})
+//	} else {
+//		// we didn't find the exact match we were hoping for. Search the cache to see if we
+//		// can find the transaction ID, possibly with a different start time
+//		// TODO: remove this warning after preview release
+//		app.app.Warn("ProfilerEndSpan unable to directly target transaction; searching cache", map[string]any{
+//			"key":     key,
+//			"EndTime": txn.thread.Stop.UnixNano(),
+//		})
+//
+//		app.app.profiler.spanCache.Ascend(func(sd profileSpanData) bool {
+//			if sd.TxnID == key {
+//				sd.End(txn.thread.Duration, txn.GetTraceMetadata())
+//				app.app.profiler.spanCache.ReplaceOrInsert(sd)
+//				app.app.Debug("profiler: ended transaction", map[string]any{
+//					"txn-id":            sd.TxnID,
+//					"span_id":           sd.SpanID,
+//					"trace_id":          sd.TraceID,
+//					"cache-size":        app.app.profiler.spanCache.Len(),
+//					"start-time":        sd.TimeNanos,
+//					"duration":          sd.DurationNanos,
+//					"start-time-string": time.Unix(sd.TimeNanos/1_000_000_000, sd.TimeNanos%1_000_000_000).String(),
+//					"duration-ms":       sd.DurationNanos / 1_000_000,
+//				})
+//				return false
+//			}
+//			return true
+//		})
+//	}
+//}
 
 func (app *Application) OpenProfileAuditLog(filename string) error {
 	var err error
@@ -644,7 +649,7 @@ func (pc *profilerConfig) monitor(a *app) {
 	reportBufferedProfileSamples := func(profileData *bytes.Buffer, eventType string, debug bool, audit io.Writer) {
 		p, err := profile.ParseData(profileData.Bytes())
 		if err != nil {
-			a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
+			a.Error("profiler: unable to parse profile data to inject/inspect span information", map[string]any{
 				"event-type": eventType,
 				"reason":     err.Error(),
 			})
@@ -684,103 +689,104 @@ func (pc *profilerConfig) monitor(a *app) {
 			}
 		}
 
-		if eventType == "cpu" && pc.matchSpans && pc.spanCache != nil {
-			// inject cached span IDs into CPU samples before reporting them
-			spanIDs := make([]string, 0, 2)
-			traceIDs := make([]string, 0, 2)
-			p, err := profile.ParseData(profileData.Bytes())
-			if err != nil {
-				a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
-					"event-type": eventType,
-					"reason":     err.Error(),
-				})
-			} else {
-				// Search for all spans covering this time frame
-				// Because we don't know what spans may be long-running from a while ago, we need
-				// to start at the earliest end of the tree. We know when to *stop* searching, just
-				// not when to *start*. So the optimization here is to occasionally clean up the btree
-				// when we don't need these in the cache anymore.
-				trashList := make([]profileSpanData, 0, 64)
-				pc.segLock.Lock()
-				pc.spanCache.Ascend(func(sd profileSpanData) bool {
-					if sd.TimeNanos > p.TimeNanos+p.DurationNanos {
-						return false
-					}
-					if sd.DurationNanos == 0 || sd.TimeNanos+sd.DurationNanos >= p.TimeNanos {
-						spanIDs = append(spanIDs, sd.SpanID)
-						traceIDs = append(traceIDs, sd.TraceID)
-					} else {
-						// this item exists entirely before the time this profile covers.
-						// assuming we receive all our profile data in order, we can discard this one
-						// but we can't do it until we stop iterating over the tree, so save it for now.
-						trashList = append(trashList, sd)
-					}
-					return true
-				})
-				if len(trashList) > 0 {
-					a.Debug("profiler: purging old transaction data from cache", map[string]any{
-						"event-type":      eventType,
-						"spans-recorded":  len(spanIDs),
-						"cache-size":      pc.spanCache.Len(),
-						"items-to-remove": len(trashList),
-					})
-					for i, oldItem := range trashList {
-						if _, removed := pc.spanCache.Delete(oldItem); !removed {
-							a.Debug("profiler: failed to remove item from cache", map[string]any{
-								"event-type":      eventType,
-								"spans-recorded":  len(spanIDs),
-								"cache-size":      pc.spanCache.Len(),
-								"items-to-remove": len(trashList),
-								"failed-index":    i,
-								"failed-id":       oldItem.TxnID,
-							})
-						}
-					}
-				}
-				pc.segLock.Unlock()
-
-				if len(spanIDs) == 1 && len(traceIDs) == 1 {
-					//TODO: more robust encoding here
-					p.SetLabel("span_id", spanIDs)
-					p.SetLabel("trace_id", traceIDs)
-
-					profileData.Reset()
-					p.Write(profileData)
-					a.Debug("profiler: profile data with labels recorded", map[string]any{
-						"event-type":        eventType,
-						"profile-data":      p.String(),
-						"spans-recorded":    len(spanIDs),
-						"cache-size":        pc.spanCache.Len(),
-						"start-time":        p.TimeNanos,
-						"duration":          p.DurationNanos,
-						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
-						"duration-ms":       p.DurationNanos / 1_000_000,
-					})
-				} else if len(spanIDs) > 1 {
-					a.Debug("profiler: profile data skipped adding labels (could not map exactly one span to the sample set)", map[string]any{
-						"event-type":        eventType,
-						"profile-data":      p.String(),
-						"spans-recorded":    len(spanIDs),
-						"cache-size":        pc.spanCache.Len(),
-						"start-time":        p.TimeNanos,
-						"duration":          p.DurationNanos,
-						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
-						"duration-ms":       p.DurationNanos / 1_000_000,
-					})
-				} else {
-					a.Debug("profiler: profile data skipped adding labels (no active spans found)", map[string]any{
-						"event-type":        eventType,
-						"profile-data":      p.String(),
-						"spans-recorded":    len(spanIDs),
-						"cache-size":        pc.spanCache.Len(),
-						"start-time":        p.TimeNanos,
-						"duration":          p.DurationNanos,
-						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
-						"duration-ms":       p.DurationNanos / 1_000_000,
-					})
-				}
-			}
-		}
+		//		//EXP:CPUSPAN
+		//		if eventType == "cpu" && pc.matchSpans && pc.spanCache != nil {
+		//			// inject cached span IDs into CPU samples before reporting them
+		//			spanIDs := make([]string, 0, 2)
+		//			traceIDs := make([]string, 0, 2)
+		//			p, err := profile.ParseData(profileData.Bytes())
+		//			if err != nil {
+		//				a.Error("profiler: unable to parse profile data to inject span information", map[string]any{
+		//					"event-type": eventType,
+		//					"reason":     err.Error(),
+		//				})
+		//			} else {
+		//				// Search for all spans covering this time frame
+		//				// Because we don't know what spans may be long-running from a while ago, we need
+		//				// to start at the earliest end of the tree. We know when to *stop* searching, just
+		//				// not when to *start*. So the optimization here is to occasionally clean up the btree
+		//				// when we don't need these in the cache anymore.
+		//				trashList := make([]profileSpanData, 0, 64)
+		//				pc.segLock.Lock()
+		//				pc.spanCache.Ascend(func(sd profileSpanData) bool {
+		//					if sd.TimeNanos > p.TimeNanos+p.DurationNanos {
+		//						return false
+		//					}
+		//					if sd.DurationNanos == 0 || sd.TimeNanos+sd.DurationNanos >= p.TimeNanos {
+		//						spanIDs = append(spanIDs, sd.SpanID)
+		//						traceIDs = append(traceIDs, sd.TraceID)
+		//					} else {
+		//						// this item exists entirely before the time this profile covers.
+		//						// assuming we receive all our profile data in order, we can discard this one
+		//						// but we can't do it until we stop iterating over the tree, so save it for now.
+		//						trashList = append(trashList, sd)
+		//					}
+		//					return true
+		//				})
+		//				if len(trashList) > 0 {
+		//					a.Debug("profiler: purging old transaction data from cache", map[string]any{
+		//						"event-type":      eventType,
+		//						"spans-recorded":  len(spanIDs),
+		//						"cache-size":      pc.spanCache.Len(),
+		//						"items-to-remove": len(trashList),
+		//					})
+		//					for i, oldItem := range trashList {
+		//						if _, removed := pc.spanCache.Delete(oldItem); !removed {
+		//							a.Debug("profiler: failed to remove item from cache", map[string]any{
+		//								"event-type":      eventType,
+		//								"spans-recorded":  len(spanIDs),
+		//								"cache-size":      pc.spanCache.Len(),
+		//								"items-to-remove": len(trashList),
+		//								"failed-index":    i,
+		//								"failed-id":       oldItem.TxnID,
+		//							})
+		//						}
+		//					}
+		//				}
+		//				pc.segLock.Unlock()
+		//
+		//				if len(spanIDs) == 1 && len(traceIDs) == 1 {
+		//					//TODO: more robust encoding here
+		//					p.SetLabel("span_id", spanIDs)
+		//					p.SetLabel("trace_id", traceIDs)
+		//
+		//					profileData.Reset()
+		//					p.Write(profileData)
+		//					a.Debug("profiler: profile data with labels recorded", map[string]any{
+		//						"event-type":        eventType,
+		//						"profile-data":      p.String(),
+		//						"spans-recorded":    len(spanIDs),
+		//						"cache-size":        pc.spanCache.Len(),
+		//						"start-time":        p.TimeNanos,
+		//						"duration":          p.DurationNanos,
+		//						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+		//						"duration-ms":       p.DurationNanos / 1_000_000,
+		//					})
+		//				} else if len(spanIDs) > 1 {
+		//					a.Debug("profiler: profile data skipped adding labels (could not map exactly one span to the sample set)", map[string]any{
+		//						"event-type":        eventType,
+		//						"profile-data":      p.String(),
+		//						"spans-recorded":    len(spanIDs),
+		//						"cache-size":        pc.spanCache.Len(),
+		//						"start-time":        p.TimeNanos,
+		//						"duration":          p.DurationNanos,
+		//						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+		//						"duration-ms":       p.DurationNanos / 1_000_000,
+		//					})
+		//				} else {
+		//					a.Debug("profiler: profile data skipped adding labels (no active spans found)", map[string]any{
+		//						"event-type":        eventType,
+		//						"profile-data":      p.String(),
+		//						"spans-recorded":    len(spanIDs),
+		//						"cache-size":        pc.spanCache.Len(),
+		//						"start-time":        p.TimeNanos,
+		//						"duration":          p.DurationNanos,
+		//						"start-time-string": time.Unix(p.TimeNanos/1_000_000_000, p.TimeNanos%1_000_000_000).String(),
+		//						"duration-ms":       p.DurationNanos / 1_000_000,
+		//					})
+		//				}
+		//			}
+		//		}
 
 		if profileDestination == profileIngestPPROF {
 			pc.sendProfilePprofMethod(eventType, eventType, profileData, a)
