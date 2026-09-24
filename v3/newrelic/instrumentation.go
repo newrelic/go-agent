@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -80,13 +81,15 @@ func WrapHandle(app *Application, pattern string, handler http.Handler, options 
 		}
 		w = txn.SetWebResponse(w)
 		txn.SetWebRequestHTTP(r)
+		ProfilerWrapCall(txn, func(_ context.Context) {
 
-		r = RequestWithTransactionContext(r, txn)
+			r = RequestWithTransactionContext(r, txn)
 
-		handler.ServeHTTP(w, r)
-		if IsSecurityAgentPresent() {
-			secureAgent.SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
-		}
+			handler.ServeHTTP(w, r)
+			if IsSecurityAgentPresent() {
+				secureAgent.SendEvent("RESPONSE_HEADER", w.Header(), txn.GetLinkingMetadata().TraceID)
+			}
+		})
 	})
 }
 

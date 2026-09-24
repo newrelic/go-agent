@@ -60,28 +60,28 @@ func noticeErrorWithAttributes(w http.ResponseWriter, r *http.Request) {
 
 func CPUspinner(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
-	newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
-		var i int
-		var hypot, gamma3, xy float64
+	//newrelic.ProfilerWrapCall(txn, func(_ context.Context) {
+	var i int
+	var hypot, gamma3, xy float64
 
-		sgmt := txn.StartSegment("spinner")
-		defer sgmt.End()
-		for i := 0; i < 50_000_000; i++ {
-			if i%1_000_000 == 0 {
-				io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
-			}
-			hypot = math.Hypot(123.56789, 23.4567889)
-			gamma3 = math.Gamma(3)
-			xy = math.Pow(20, 3.5)
-			RecursiveFib(10)
+	sgmt := txn.StartSegment("spinner")
+	defer sgmt.End()
+	for i := 0; i < 50_000_000; i++ {
+		if i%1_000_000 == 0 {
+			io.WriteString(w, fmt.Sprintf("iteration %d\r\n", i))
 		}
-		txn.Application().RecordCustomEvent("CPUspinner", map[string]any{
-			"iterations": i,
-			"hypot":      hypot,
-			"gamma":      gamma3,
-			"xy":         xy,
-		})
+		hypot = math.Hypot(123.56789, 23.4567889)
+		gamma3 = math.Gamma(3)
+		xy = math.Pow(20, 3.5)
+		RecursiveFib(10)
+	}
+	txn.Application().RecordCustomEvent("CPUspinner", map[string]any{
+		"iterations": i,
+		"hypot":      hypot,
+		"gamma":      gamma3,
+		"xy":         xy,
 	})
+	//})
 }
 func Fib(w http.ResponseWriter, r *http.Request) {
 	txn := newrelic.FromContext(r.Context())
