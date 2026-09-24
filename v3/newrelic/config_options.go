@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -488,22 +489,98 @@ func ConfigLabels(labels map[string]string) ConfigOption {
 	}
 }
 
-// ConfigCustomInsightsCustomAttributesEnabled enables or disables sending our application
-// custom attributes (which are configured via ConfigCustomInsightsCustomAttributesValues) with forwarded log events.
-// Defaults: enabled=false
-// This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED environment variable.
-func ConfigCustomInsightsCustomAttributesEnabled(enabled bool) ConfigOption {
+// ConfigProfilingEnabled turns on profiling of the runtime, which is further broken down into
+// specific areas to measure by ConfigProfilingInclude.
+func ConfigProfilingEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomInsightsEvents.CustomAttributesEnabled = enabled
+		cfg.Profiling.Enabled = enabled
 	}
 }
 
-// ConfigCustomInsightsCustomAttributesValues configures a set of custom attributes to add as attributes to all log events forwarded to New Relic.
-// This may also be set using the NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES environment variable.
-func ConfigCustomInsightsCustomAttributesValues(customAttributes map[string]string) ConfigOption {
+// ConfigProfilingInclude enables specific profiler modules to measure aspects of the runtime.
+// These are specified as a list of constant values, e.g., ProfilingTypeCPU, etc.
+func ConfigProfilingInclude(ptype ...ProfilingType) ConfigOption {
 	return func(cfg *Config) {
-		cfg.CustomInsightsEvents.CustomAttributesValues = make(map[string]string)
-		maps.Copy(cfg.CustomInsightsEvents.CustomAttributesValues, customAttributes)
+		for _, pt := range ptype {
+			cfg.Profiling.SelectedProfiles |= pt
+		}
+	}
+}
+
+// ConfigProfilingIncludeByName is just like ConfigProfilingInclude, execpt that it takes
+// a slice of human-friendly strings with the profiling type names, e.g., "cpu" for ProfilingTypeCPU.
+// "all" means to select all possible types.
+func ConfigProfilingIncludeByName(ptype []string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.SelectedProfiles.FromStrings(ptype, false)
+	}
+}
+
+// ConfigProfilingDelay sets the delay before the profiler is automatically started (assuming it's enabled).
+func ConfigProfilingDelay(delay time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Delay = delay
+	}
+}
+
+// ConfigProfilingDuration sets the time until the profiler is automatically stopped.
+func ConfigProfilingDuration(duration time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Duration = duration
+	}
+}
+
+// ConfigProfilingIncludeByNames is just like ConfigProfilingInclude, execpt that it takes
+// a list of human-friendly strings with the profiling type names, e.g., "cpu" for ProfilingTypeCPU.
+func ConfigProfilingIncludeByNames(ptype ...string) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.SelectedProfiles.FromStrings(ptype, false)
+	}
+}
+
+func configProfilingSampleInterval(interval time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.Interval = interval
+	}
+}
+
+// ConfigProfilingCPUReportInterval controls the pace at which we report the collected CPU profile data. Since the
+// CPU profiler internally buffers and aggregates its data during its entire run, reporting its data out only when
+// it is stopped, this means that every time this interval of time elapses, we actually need to stop the CPU profiler,
+// let it report out its data, then start a new CPU profiler run for a new set of profile data. Keep this in mind as you
+// determine the report interval to give yourself realtime visibility, vs. having a single comprehensive set of profile
+// data that represents the entire runtime performance of your application.
+func ConfigProfilingCPUReportInterval(interval time.Duration) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.CPUReportInterval = interval
+	}
+}
+
+// ConfigProfilingCPUSampleRateHz controls the CPU profiler's internal sample rate at which it collects the system's CPU usage
+// data as it works. By default this is set to 100 Hz, but you can adjust that here if you want to collect data more or less
+// frequently.
+func ConfigProfilingCPUSampleRateHz(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.CPUSampleRateHz = rate
+	}
+}
+
+// ConfigProfilingBlockRate controls the number of block profile samples we try to collect. The default value of
+// 1 tries to collect all data. Increasing this to some value n reduces that to try to collect 1/n of the blocks
+// seen as the profiler looks at the blocked routines. A value less than or equal to 0 means not to collect block profile
+// data at all.
+func ConfigProfilingBlockRate(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.BlockRate = rate
+	}
+}
+
+// ConfigProfilingMutexRate controls the number of mutex profile samples we try to collect. The default value of
+// 1 tries to collect all data. Increasing this to some value n reduces that to try to collect 1/n of the mutex samples.
+// A value of 0 means not to collect this data at all.
+func ConfigProfilingMutexRate(rate int) ConfigOption {
+	return func(cfg *Config) {
+		cfg.Profiling.MutexRate = rate
 	}
 }
 
@@ -570,6 +647,15 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 //		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
 //		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
 //		NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
+//				         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
+//	                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
+//	                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
+//			          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
+//			          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
+//			          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE						 sets Profiling.CPUSampleRateHz
+//			          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
+//			          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
+//				         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -592,9 +678,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				}
 			}
 		}
-		assignInt := func(field *int, name string, fn func(configured int) int) {
+
+		assignIntOk := func(field *int, name string, fn func(configured int) int) bool {
 			if env := getenv(name); env != "" {
-				if i, err := strconv.Atoi(env); nil != err {
+				if i, err := strconv.Atoi(env); err != nil {
 					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
 				} else {
 					if fn == nil {
@@ -602,9 +689,15 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 					} else {
 						*field = fn(i)
 					}
+					return true
 				}
 			}
+			return false
 		}
+		assignInt := func(field *int, name string, fn func(configured int) int) {
+			_ = assignIntOk(field, name, fn)
+		}
+
 		assignString := func(field *string, name string) {
 			if env := getenv(name); env != "" {
 				*field = env
@@ -736,6 +829,33 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				cfg.Error = fmt.Errorf("invalid NEW_RELIC_LOG value %s", env)
 			}
 		}
+
+		assignBool(&cfg.Profiling.Enabled, "NEW_RELIC_PROFILING_ENABLED")
+
+		// This allows setting interval to 0 explicitly by environment variable while still
+		// allowing it to be defaulted by leaving it out of the environment altogether.
+		//var intervalMS int
+		//if assignIntOk(&intervalMS, "NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS", nil) && intervalMS >= 0 {
+		//			cfg.Profiling.Interval = time.Duration(intervalMS) * time.Millisecond
+		//		}
+		var delayMS int
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DELAY", nil) && delayMS >= 0 {
+			cfg.Profiling.Delay = time.Duration(delayMS) * time.Millisecond
+		}
+		var durationMS int
+		if assignIntOk(&delayMS, "NEW_RELIC_PROFILING_DURATION", nil) && durationMS >= 0 {
+			cfg.Profiling.Duration = time.Duration(durationMS) * time.Millisecond
+		}
+		var intervalCPU int
+		if assignIntOk(&intervalCPU, "NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL", nil) && intervalCPU >= 0 {
+			cfg.Profiling.CPUReportInterval = time.Duration(intervalCPU) * time.Millisecond
+		}
+		if env := getenv("NEW_RELIC_PROFILING_INCLUDE"); env != "" {
+			cfg.Profiling.SelectedProfiles.FromStrings(strings.Split(env, ","), false)
+		}
+		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE", nil)
+		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE", nil)
+		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE", nil)
 	}
 }
 

@@ -9,5 +9,4 @@ require (
 	github.com/sashabaranov/go-openai v1.20.2
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

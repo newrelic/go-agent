@@ -13,5 +13,4 @@ require (
 	google.golang.org/protobuf v1.36.6
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

@@ -10,7 +10,6 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-
 replace github.com/newrelic/go-agent/v3/integrations/nrconnect => ..
 
 replace github.com/newrelic/go-agent/v3 => ../../..

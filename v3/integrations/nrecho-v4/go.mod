@@ -9,6 +9,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.44.2
 )
 
+
 require (
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

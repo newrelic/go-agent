@@ -69,6 +69,9 @@ type app struct {
 	// high water mark alarms
 	heapHighWaterMarkAlarms heapHighWaterMarkAlarmSet
 
+	// profiler
+	profiler profilerConfig
+
 	serverless *serverlessHarvest
 }
 
@@ -330,6 +333,9 @@ func (app *app) process() {
 			})
 			processConnectMessages(run, app)
 			secureAgent.RefreshState(getLinkedMetaData(app))
+			if run.Config.Profiling.Enabled {
+				app.StartProfiler()
+			}
 		}
 	}
 }
@@ -470,6 +476,10 @@ func newApp(c config) *app {
 				go runSampler(app, runtimeSamplerPeriod)
 			}
 		}
+		// for now run in its own goroutine but we may move this up to the main process later
+		if app.config.Profiling.Enabled {
+			app.StartProfiler()
+		}
 	}
 
 	return app
@@ -498,7 +508,7 @@ func (app *app) getState() (*appRun, error) {
 	defer app.RUnlock()
 
 	run := app.run
-	if nil == run {
+	if run == nil {
 		run = app.placeholderRun
 	}
 	return run, app.err
@@ -533,11 +543,17 @@ func newTransaction(thd *thread) *Transaction {
 
 // StartTransaction implements newrelic.Application's StartTransaction.
 func (app *app) StartTransaction(name string, opts ...TraceOption) *Transaction {
-	if nil == app {
+	if app == nil {
 		return nil
 	}
 	run, _ := app.getState()
-	return newTransaction(newTxn(app, run, name, opts...))
+	newtxn := newTransaction(newTxn(app, run, name, opts...))
+
+	//EXP:CPUSPAN
+	//if newtxn != nil && newtxn.thread != nil && newtxn.thread.Config.DistributedTracer.Enabled && newtxn.thread.Config.Profiling.Enabled && (newtxn.thread.Config.Profiling.SelectedProfiles&ProfilingTypeCPU) != 0 {
+	//	app.profilerStartSpan(newtxn)
+	//}
+	return newtxn
 }
 
 var (

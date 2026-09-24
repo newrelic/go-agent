@@ -10,5 +10,4 @@ require (
 	github.com/newrelic/go-agent/v3 v3.44.2
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

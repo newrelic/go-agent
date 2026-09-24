@@ -8,5 +8,4 @@ require (
 	github.com/stretchr/testify v1.11.1
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

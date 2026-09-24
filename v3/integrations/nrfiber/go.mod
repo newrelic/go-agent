@@ -9,6 +9,7 @@ require (
 	github.com/valyala/fasthttp v1.51.0
 )
 
+
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

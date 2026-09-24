@@ -9,5 +9,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-
 replace github.com/newrelic/go-agent/v3 => ../..

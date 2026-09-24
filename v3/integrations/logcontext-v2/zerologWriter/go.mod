@@ -8,6 +8,6 @@ require (
 	github.com/rs/zerolog v1.27.0
 )
 
-
 replace github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrwriter => ../nrwriter
+
 replace github.com/newrelic/go-agent/v3 => ../../..
