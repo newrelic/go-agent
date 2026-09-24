@@ -12,23 +12,16 @@ require (
 )
 
 require (
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/newrelic/go-agent/v3 v3.45.0
 	github.com/newrelic/go-agent/v3/integrations/nrsecurityagent v1.1.0
 )
 
 require (
-	github.com/adhocore/gronx v1.19.1 // indirect
-	github.com/dlclark/regexp2 v1.9.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/k2io/hookingo v1.0.6 // indirect
-	github.com/newrelic/csec-go-agent v1.6.0 // indirect
-	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 replace github.com/newrelic/go-agent/v3/integrations/nrsecurityagent => ../../integrations/nrsecurityagent
