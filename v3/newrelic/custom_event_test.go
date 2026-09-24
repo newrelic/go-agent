@@ -224,3 +224,59 @@ func TestMultipleAttributeJSON(t *testing.T) {
 		t.Error(string(js))
 	}
 }
+
+func TestLlmChatCompletionMessageContentNotTruncated(t *testing.T) {
+	event, err := createCustomEventUnlimitedSize("LlmChatCompletionMessage", map[string]interface{}{"content": strLen512}, now)
+	if nil != err {
+		t.Fatal(err)
+	}
+	js, err := json.Marshal(event)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if string(js) != `[{"type":"LlmChatCompletionMessage","timestamp":1417136460000},{"content":"`+strLen512+`"},{}]` {
+		t.Fatal(string(js))
+	}
+}
+
+func TestLlmChatCompletionSummaryContentNotTruncated(t *testing.T) {
+	event, err := createCustomEventUnlimitedSize("LlmChatCompletionSummary", map[string]interface{}{"content": strLen512}, now)
+	if nil != err {
+		t.Fatal(err)
+	}
+	js, err := json.Marshal(event)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if string(js) != `[{"type":"LlmChatCompletionSummary","timestamp":1417136460000},{"content":"`+strLen512+`"},{}]` {
+		t.Fatal(string(js))
+	}
+}
+
+func TestLlmEmbeddingInputNotTruncated(t *testing.T) {
+	event, err := createCustomEventUnlimitedSize("LlmEmbedding", map[string]interface{}{"input": strLen512}, now)
+	if nil != err {
+		t.Fatal(err)
+	}
+	js, err := json.Marshal(event)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if string(js) != `[{"type":"LlmEmbedding","timestamp":1417136460000},{"input":"`+strLen512+`"},{}]` {
+		t.Fatal(string(js))
+	}
+}
+
+func TestNonLlmEventStillTruncated(t *testing.T) {
+	event, err := createCustomEvent("myEvent", map[string]interface{}{"content": strLen512}, now)
+	if nil != err {
+		t.Fatal(err)
+	}
+	js, err := json.Marshal(event)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if string(js) != `[{"type":"myEvent","timestamp":1417136460000},{"content":"`+strLen255+`"},{}]` {
+		t.Fatal(string(js))
+	}
+}

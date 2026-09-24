@@ -198,7 +198,7 @@ func (errData *errorData) applyErrorGroup(txnEvent *txnEvent) {
 		errAttributes:   errData.ExtraAttributes,
 		stackTrace:      errData.Stack,
 		Error:           errData.RawError,
-		TimeOccured:     errData.When,
+		TimeOccurred:    errData.When,
 		Message:         errData.Msg,
 		Class:           errData.Klass,
 		Expected:        errData.Expect,
