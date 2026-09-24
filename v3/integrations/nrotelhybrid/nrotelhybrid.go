@@ -6,9 +6,13 @@ import (
 	"sync"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
+
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/embedded"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 type txnMapEntry struct {
@@ -27,6 +31,44 @@ type nrotelhybridProcessor struct {
 	txnMap     map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
 	segmentMap map[oteltrace.SpanID]nrSegment      // SpanID -> Segment
 	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
+}
+
+type hybridTracer struct {
+	embedded.Tracer
+	tracer oteltrace.Tracer
+}
+
+func (h *hybridTracer) Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, oteltrace.Span) {
+	// decide if start
+	// if does not meet start criteria{
+	//			return ctx, RETURN NO-OP SPAN
+	//}
+	if !shouldStartOTelSpan(ctx, opts) {
+		return ctx, noop.Span{}
+	}
+	return h.tracer.Start(ctx, spanName, opts...)
+}
+
+func Tracer(name string) oteltrace.Tracer {
+	return &hybridTracer{
+		tracer: otel.Tracer(name),
+	}
+}
+
+func shouldStartOTelSpan(ctx context.Context, opts []oteltrace.SpanStartOption) bool {
+	if newrelic.FromContext(ctx) != nil {
+		return true // within an existing transaction
+	}
+	spanConfig := oteltrace.NewSpanStartConfig(opts...)
+	parent := oteltrace.SpanContextFromContext(ctx)
+	if !spanConfig.NewRoot() && parent.IsValid() {
+		return true // has parent
+	}
+	switch spanConfig.SpanKind() {
+	case oteltrace.SpanKindConsumer, oteltrace.SpanKindServer: // is a consumer or server span
+		return true
+	}
+	return false
 }
 
 func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
