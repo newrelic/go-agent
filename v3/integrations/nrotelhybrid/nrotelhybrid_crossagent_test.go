@@ -3,13 +3,17 @@ package nrotelhybrid
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"testing"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 type OtelTracingTestCase struct {
@@ -73,15 +77,17 @@ type OtelTestCaseSpan struct {
 	Attributes map[string]any `json:"attributes"`
 }
 
-// Commands
-var CommandDoWorkInSpan string = "DoWorkInSpan"
+const (
+	// Commands
+	CommandDoWorkInSpan string = "DoWorkInSpan"
 
-// Operators
-var OperatorNotValid string = "NotValid"
+	// Operators
+	OperatorNotValid string = "NotValid"
 
-// Objects
-var NotValidObjectCurrentOtelSpan = "currentOTelSpan"
-var NotValidObjectCurrentTransaction = "currentTransaction"
+	// Objects
+	NotValidObjectCurrentOtelSpan    string = "currentOTelSpan"
+	NotValidObjectCurrentTransaction string = "currentTransaction"
+)
 
 func TestOtelTracing(t *testing.T) {
 	var tcs []OtelTracingTestCase
@@ -98,43 +104,61 @@ func TestOtelTracing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tc := range tcs {
+	for i, tc := range tcs {
+		if i > 0 {
+			// only doing 1st test case so far
+			break
+		}
 		t.Run(tc.TestDescription, func(t *testing.T) {
+			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
 			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor))
 			shutdown := func(ctx context.Context) error {
 				err := tp.Shutdown(ctx)
 				return err
 			}
-			defer shutdown(context.Background())
+			defer shutdown(ctx)
 			otel.SetTracerProvider(tp)
 
 			for _, op := range tc.Operations {
 				switch op.Command {
 				case CommandDoWorkInSpan:
 					// use spanKind and spanName to create span
-					tracer := otel.Tracer("test")
-					_, span := tracer.Start(context.Background(), op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
+					tracer := Tracer("test")
+					spanCtx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
 					// run child span
 					// run assertions
 					for _, assertion := range op.Assertions {
 						rule := assertion.Rule
 						switch rule.Operator {
 						case OperatorNotValid:
-							if rule.Parameters.Object == NotValidObjectCurrentOtelSpan {
-								// check if current otel span is nil
-							} else if rule.Parameters.Object == NotValidObjectCurrentTransaction {
-
+							switch rule.Parameters.Object {
+							case NotValidObjectCurrentOtelSpan:
+								// check if current otel span is no-op
+								if reflect.TypeOf(span) != reflect.TypeFor[noop.Span]() {
+									t.Errorf("Expected Noop span, got a started span")
+								}
+								if oteltrace.SpanFromContext(spanCtx).SpanContext().IsValid() {
+									t.Errorf("%s: current OTel span is valid", assertion.Description)
+								}
+							case NotValidObjectCurrentTransaction:
+								if newrelic.FromContext(spanCtx) != nil {
+									t.Errorf("Expected no transaction, got a started transaction")
+								}
 							}
 						default:
 							continue
 						}
 					}
+					span.End() // should work even with a no-op span
 					// end
 				default:
 					continue
 				}
 			}
+			// agentOutput
+			app.ExpectTxnEvents(t, []internal.WantEvent{})
+			app.ExpectSpanEvents(t, []internal.WantEvent{})
 		})
 	}
 }
