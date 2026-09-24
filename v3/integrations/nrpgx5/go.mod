@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/newrelic/go-agent/v3 v3.45.0
 	github.com/stretchr/testify v1.11.1
 )
 

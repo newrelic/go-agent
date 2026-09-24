@@ -9,7 +9,7 @@ toolchain go1.26.0
 require (
 	github.com/golang/protobuf v1.5.4
 	github.com/micro/go-micro v1.8.0
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/newrelic/go-agent/v3 v3.45.0
 	google.golang.org/protobuf v1.36.6
 )
 

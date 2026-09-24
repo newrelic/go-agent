@@ -6,7 +6,7 @@ go 1.25
 
 require (
 	github.com/jmoiron/sqlx v1.2.0
-	github.com/newrelic/go-agent/v3 v3.44.2
+	github.com/newrelic/go-agent/v3 v3.45.0
 	github.com/newrelic/go-agent/v3/integrations/nrpgx v0.0.0
 )
 

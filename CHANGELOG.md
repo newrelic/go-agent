@@ -1,3 +1,20 @@
+## 3.45.0
+### Added
+  * Added new integration nrecho-v5. Note that previous major versions (v3,v4) are still available under their respective folders
+  * Added new integration nrgemini that instruments the genai package
+  * Added support for continuous profiling
+    * NOTE: Continuous Profiling is a new feature which is not yet generally available for use. The agent-side component code is now present in the agent but to actually use it ahead of the General Availability release, you will need to contact your New Relic sales representative to join the preview early
+### Fixed
+  * Fixed a bug where LLM messages would incorrectly be truncated 
+### Security
+  * Dependabot security updates
+    * Bumped grpc from 1.82.1 to 1.83.1 in v3/integrations/nrgrpc and /v3
+    * Bumped amqp091-go from 1.9.0 to 1.13.0 in v3/integrations/nramqp
+    * Bumped echo/v4 from 4.9.0 to 4.15.3 in v3/integrations/nrecho-v4
+### Support statement
+We use the latest version of the Go language. At minimum, you should be using no version of Go older than what is supported by the Go team themselves.
+See the [Go agent EOL Policy](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/go-agent-eol-policy/) for details about supported versions of the Go agent and third-party components.
+
 ## 3.44.2
 ### Added
   * Add attribute for `aws.lambda.eventSource.eventType`
