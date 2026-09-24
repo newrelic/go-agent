@@ -33,6 +33,7 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -139,7 +140,8 @@ func leafCall(ctx context.Context, name string) {
 // serverRoot Extracts headers to check for a remote parent. It also
 // begins two child spans with different SpanKinds
 func serverRoot(w http.ResponseWriter, r *http.Request) {
-	tracer := otel.Tracer("nrotel-example")
+
+	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
