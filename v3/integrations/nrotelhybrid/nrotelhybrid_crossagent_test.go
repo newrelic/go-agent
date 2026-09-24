@@ -22,7 +22,7 @@ type OtelTestCaseOperation struct {
 	Command         string                  `json:"command"`
 	Parameters      OtelTestCaseParameters  `json:"parameters"`
 	ChildOperations []OtelTestCaseOperation `json:"childOperations"`
-	Assertions      []OtelTestCaseAssertion `json:"assertions"`
+	Assertions      []OtelTestCaseAssertion `json:"assertions"` // run before Operation completes but after ChildOperations
 }
 
 type OtelTestCaseParameters struct {
@@ -73,7 +73,15 @@ type OtelTestCaseSpan struct {
 	Attributes map[string]any `json:"attributes"`
 }
 
+// Commands
 var CommandDoWorkInSpan string = "DoWorkInSpan"
+
+// Operators
+var OperatorNotValid string = "NotValid"
+
+// Objects
+var NotValidObjectCurrentOtelSpan = "currentOTelSpan"
+var NotValidObjectCurrentTransaction = "currentTransaction"
 
 func TestOtelTracing(t *testing.T) {
 	var tcs []OtelTracingTestCase
@@ -107,7 +115,22 @@ func TestOtelTracing(t *testing.T) {
 					// use spanKind and spanName to create span
 					tracer := otel.Tracer("test")
 					_, span := tracer.Start(context.Background(), op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
+					// run child span
+					// run assertions
+					for _, assertion := range op.Assertions {
+						rule := assertion.Rule
+						switch rule.Operator {
+						case OperatorNotValid:
+							if rule.Parameters.Object == NotValidObjectCurrentOtelSpan {
+								// check if current otel span is nil
+							} else if rule.Parameters.Object == NotValidObjectCurrentTransaction {
 
+							}
+						default:
+							continue
+						}
+					}
+					// end
 				default:
 					continue
 				}
