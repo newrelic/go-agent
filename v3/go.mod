@@ -7,13 +7,6 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-require (
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-)
-
 retract (
 	v3.44.0 // retracting release due to a typo in tagging
 	v3.40.0 // this release erronously had deadlocks in utilization.go and incorrectly added aws-sdk-go to the go.mod file
