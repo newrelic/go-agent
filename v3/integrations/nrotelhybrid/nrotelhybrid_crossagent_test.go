@@ -202,6 +202,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			tracer := Tracer("test")
 			spanCtx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
 			// run child operations
+			RunOperation(t, ctx, op.ChildOperations, app)
 			// run assertions
 			for _, assertion := range op.Assertions {
 				rule := assertion.Rule
@@ -244,7 +245,12 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 		case CommandAddOTelAttribute:
 			// add OTEL attribute
 			// Use OTel API to add an attribute to the CURRENT span
-
+			span := oteltrace.SpanFromContext(ctx)
+			kv := attribute.KeyValue{
+				Key:   attribute.Key(op.Parameters.Name),
+				Value: attribute.IntValue(op.Parameters.Value), // SETTING AS INT SINCE THOSE ARE ONLY CASES NOW
+			}
+			span.SetAttributes(kv)
 		default:
 			continue
 		}
