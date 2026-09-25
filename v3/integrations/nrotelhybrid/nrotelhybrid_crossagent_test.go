@@ -79,7 +79,10 @@ type OtelTestCaseSpan struct {
 
 const (
 	// Commands
-	CommandDoWorkInSpan string = "DoWorkInSpan"
+	CommandDoWorkInSpan        string = "DoWorkInSpan"
+	CommandDoWorkInTransaction string = "DoWorkInTransaction"
+	CommandDoWorkInSegment     string = "DoWorkInSegment"
+	CommandAddOTelAttribute    string = "AddOTelAttribute"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -119,47 +122,70 @@ func TestOtelTracing(t *testing.T) {
 			}
 			defer shutdown(ctx)
 			otel.SetTracerProvider(tp)
+			// Run Operation
 
-			for _, op := range tc.Operations {
-				switch op.Command {
-				case CommandDoWorkInSpan:
-					// use spanKind and spanName to create span
-					tracer := Tracer("test")
-					spanCtx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
-					// run child span
-					// run assertions
-					for _, assertion := range op.Assertions {
-						rule := assertion.Rule
-						switch rule.Operator {
-						case OperatorNotValid:
-							switch rule.Parameters.Object {
-							case NotValidObjectCurrentOtelSpan:
-								// check if current otel span is no-op
-								if reflect.TypeOf(span) != reflect.TypeFor[noop.Span]() {
-									t.Errorf("Expected Noop span, got a started span")
-								}
-								if oteltrace.SpanFromContext(spanCtx).SpanContext().IsValid() {
-									t.Errorf("%s: current OTel span is valid", assertion.Description)
-								}
-							case NotValidObjectCurrentTransaction:
-								if newrelic.FromContext(spanCtx) != nil {
-									t.Errorf("Expected no transaction, got a started transaction")
-								}
-							}
-						default:
-							continue
-						}
-					}
-					span.End() // should work even with a no-op span
-					// end
-				default:
-					continue
-				}
-			}
+			RunOperation(t, ctx, tc.Operations, &app)
 			// agentOutput
 			app.ExpectTxnEvents(t, []internal.WantEvent{})
 			app.ExpectSpanEvents(t, []internal.WantEvent{})
 		})
+	}
+}
+
+func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOperation, app *integrationsupport.ExpectApp) {
+	for _, op := range operations {
+		switch op.Command {
+		case CommandDoWorkInSpan:
+			// use spanKind and spanName to create span
+			tracer := Tracer("test")
+			spanCtx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
+			// run child operations
+			// run assertions
+			for _, assertion := range op.Assertions {
+				rule := assertion.Rule
+				switch rule.Operator {
+				case OperatorNotValid:
+					switch rule.Parameters.Object {
+					case NotValidObjectCurrentOtelSpan:
+						// check if current otel span is no-op
+						if reflect.TypeOf(span) != reflect.TypeFor[noop.Span]() {
+							t.Errorf("Expected Noop span, got a started span")
+						}
+						if oteltrace.SpanFromContext(spanCtx).SpanContext().IsValid() {
+							t.Errorf("%s: current OTel span is valid", assertion.Description)
+						}
+					case NotValidObjectCurrentTransaction:
+						if newrelic.FromContext(spanCtx) != nil {
+							t.Errorf("Expected no transaction, got a started transaction")
+						}
+					}
+				default:
+					continue
+				}
+			}
+			span.End() // should work even with a no-op span
+			// end
+		case CommandDoWorkInTransaction:
+			// do work in transaction
+			// begin a NR Transaction
+			txn := app.StartTransaction(op.Parameters.TransactionName)
+			// run child operations
+			RunOperation(t, ctx, op.ChildOperations, app)
+			txn.End()
+		case CommandDoWorkInSegment:
+			// do work in segment
+			// begin a NR Segment
+			txn := newrelic.FromContext(ctx)
+			seg := txn.StartSegment(op.Parameters.SegmentName)
+			RunOperation(t, ctx, op.ChildOperations, app)
+			seg.End()
+		case CommandAddOTelAttribute:
+			// add OTEL attribute
+			// Use OTel API to add an attribute to the CURRENT span
+
+		default:
+			continue
+		}
 	}
 }
 
