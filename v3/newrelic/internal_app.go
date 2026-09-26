@@ -718,6 +718,11 @@ func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent)
 	expectTxnEvents(t, app.testHarvest.TxnEvents, want)
 }
 
+func (app *app) ExpectTxnEventsPartial(t internal.Validator, want []internal.WantEvent) {
+	t = extendValidator(t, "txn events")
+	expectTxnEventsPartial(t, app.testHarvest.TxnEvents, want)
+}
+
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
 	t = extendValidator(t, "metrics")
 	expectMetrics(t, app.testHarvest.Metrics, want)

@@ -108,11 +108,9 @@ func TestOtelTracing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i, tc := range tcs {
-		if i > 2 {
-			// only doing 1st - 3rd test cases so far
-			break
-		}
+	for _, tc := range tcs {
+		expectedTxnEvents := createExpectedEvents(tc.AgentOutput)
+
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
@@ -127,7 +125,7 @@ func TestOtelTracing(t *testing.T) {
 
 			RunOperation(t, ctx, tc.Operations, &app)
 			// agentOutput
-			app.ExpectTxnEvents(t, []internal.WantEvent{})
+			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
 			app.ExpectSpanEvents(t, []internal.WantEvent{})
 		})
 	}
@@ -204,4 +202,18 @@ func getSpanKind(spanKindStr string) int {
 
 	}
 	return 1
+}
+
+func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) []internal.WantEvent {
+	transactionsAgentOutput := agentOutput.Transactions
+
+	var transactionWantEvents []internal.WantEvent
+	for _, txn := range transactionsAgentOutput {
+		transactionWantEvents = append(transactionWantEvents, internal.WantEvent{
+			Intrinsics: map[string]interface{}{
+				"name": "OtherTransaction/Go/" + txn.Name,
+			},
+		})
+	}
+	return transactionWantEvents
 }

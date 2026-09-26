@@ -131,6 +131,9 @@ type Expect interface {
 
 	ExpectTxnEvents(t Validator, want []WantEvent)
 
+
+	ExpectTxnEventsPartial(t Validator, want []WantEvent)
+
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectMetricsPresent(t Validator, want []WantMetric)
 	ExpectTxnMetrics(t Validator, want WantTxn)
