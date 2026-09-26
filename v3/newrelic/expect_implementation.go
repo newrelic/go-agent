@@ -398,6 +398,7 @@ func expectTxnEvents(v internal.Validator, events *txnEvents, expect []internal.
 // present in exists but absent from expect.
 func expectAttributesPartial(v internal.Validator, exists map[string]interface{}, expect map[string]interface{}) {
 	for key, expectVal := range expect {
+
 		actualVal, ok := exists[key]
 		if !ok {
 			v.Error("expected attribute not found: ", key)
