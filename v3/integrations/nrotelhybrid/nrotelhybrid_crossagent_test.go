@@ -109,8 +109,7 @@ func TestOtelTracing(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		expectedTxnEvents := createExpectedEvents(tc.AgentOutput)
-
+		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
@@ -126,7 +125,7 @@ func TestOtelTracing(t *testing.T) {
 			RunOperation(t, ctx, tc.Operations, &app)
 			// agentOutput
 			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
-			app.ExpectSpanEvents(t, []internal.WantEvent{})
+			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
 		})
 	}
 }
@@ -137,7 +136,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 		case CommandDoWorkInSpan:
 			// use spanKind and spanName to create span
 			tracer := Tracer("test")
-			spanCtx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
+			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
 			// run child operations
 			RunOperation(t, ctx, op.ChildOperations, app)
 			// run assertions
@@ -151,11 +150,11 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 						if reflect.TypeOf(span) != reflect.TypeFor[noop.Span]() {
 							t.Errorf("Expected Noop span, got a started span")
 						}
-						if oteltrace.SpanFromContext(spanCtx).SpanContext().IsValid() {
+						if oteltrace.SpanFromContext(ctx).SpanContext().IsValid() {
 							t.Errorf("%s: current OTel span is valid", assertion.Description)
 						}
 					case NotValidObjectCurrentTransaction:
-						if newrelic.FromContext(spanCtx) != nil {
+						if newrelic.FromContext(ctx) != nil {
 							t.Errorf("Expected no transaction, got a started transaction")
 						}
 					}
@@ -169,8 +168,9 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			// do work in transaction
 			// begin a NR Transaction
 			txn := app.StartTransaction(op.Parameters.TransactionName)
+			txnCtx := newrelic.NewContext(ctx, txn)
 			// run child operations
-			RunOperation(t, ctx, op.ChildOperations, app)
+			RunOperation(t, txnCtx, op.ChildOperations, app)
 			txn.End()
 		case CommandDoWorkInSegment:
 			// do work in segment
@@ -204,16 +204,27 @@ func getSpanKind(spanKindStr string) int {
 	return 1
 }
 
-func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) []internal.WantEvent {
+func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantEvent, []internal.WantEvent) {
 	transactionsAgentOutput := agentOutput.Transactions
+	spansAgentOutput := agentOutput.Spans
 
 	var transactionWantEvents []internal.WantEvent
 	for _, txn := range transactionsAgentOutput {
 		transactionWantEvents = append(transactionWantEvents, internal.WantEvent{
 			Intrinsics: map[string]interface{}{
-				"name": "OtherTransaction/Go/" + txn.Name,
+				"name": txn.Name,
 			},
 		})
 	}
-	return transactionWantEvents
+
+	var spanWantEvents []internal.WantEvent
+	for _, span := range spansAgentOutput {
+		intrinsics := map[string]interface{}{
+			"name": span.Name,
+		}
+		spanWantEvents = append(spanWantEvents, internal.WantEvent{
+			Intrinsics: intrinsics,
+		})
+	}
+	return transactionWantEvents, spanWantEvents
 }

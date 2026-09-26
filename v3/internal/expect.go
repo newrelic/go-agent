@@ -142,4 +142,8 @@ type Expect interface {
 	ExpectSlowQueries(t Validator, want []WantSlowQuery)
 
 	ExpectSpanEvents(t Validator, want []WantEvent)
+
+	// ExpectSpanEventsPartial validates only the attributes specified in want,
+	// ignoring any additional attributes present on the actual span events.
+	ExpectSpanEventsPartial(t Validator, want []WantEvent)
 }
