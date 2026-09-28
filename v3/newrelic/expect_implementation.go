@@ -498,12 +498,17 @@ func expectTxnEventsPartial(v internal.Validator, events *txnEvents, expect []in
 // attributes specified in expect and ignoring any additional attributes
 // present on the actual events (e.g. distributed tracing intrinsics).
 func expectSpanEventsPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
-	if len(events.analyticsEvents.events) != len(expect) {
-		v.Error("number of events does not match", len(events.analyticsEvents.events), len(expect))
+	// Check for root existing and remove it if it does
+	actualEvents := events.analyticsEvents.events
+	if len(actualEvents) > 0 {
+		actualEvents = actualEvents[:len(actualEvents)-1]
+	}
+	if len(actualEvents) != len(expect) {
+		v.Error("number of events does not match", len(actualEvents), len(expect))
 		return
 	}
 	for i, e := range expect {
-		event, ok := events.analyticsEvents.events[i].jsonWriter.(json.Marshaler)
+		event, ok := actualEvents[i].jsonWriter.(json.Marshaler)
 		if !ok {
 			v.Error("event does not implement json.Marshaler")
 			continue

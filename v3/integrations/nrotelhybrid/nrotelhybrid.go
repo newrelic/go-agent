@@ -49,9 +49,9 @@ func (h *hybridTracer) Start(ctx context.Context, spanName string, opts ...otelt
 	return h.tracer.Start(ctx, spanName, opts...)
 }
 
-func Tracer(name string) oteltrace.Tracer {
+func Tracer(name string, opts ...oteltrace.TracerOption) oteltrace.Tracer {
 	return &hybridTracer{
-		tracer: otel.Tracer(name),
+		tracer: otel.Tracer(name, opts...),
 	}
 }
 
@@ -98,6 +98,11 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 		if entry := entries[len(entries)-1]; entry.txn != nil {
 			p.startSegment(s, entry)
 		}
+	}
+
+	// if no entry start it with the txn in context
+	if txn := newrelic.FromContext(ctx); txn != nil {
+		p.startSegment(s, txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID()})
 	}
 }
 
