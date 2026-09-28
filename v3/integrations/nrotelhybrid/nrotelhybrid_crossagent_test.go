@@ -105,8 +105,8 @@ func TestOtelTracing(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		if i > 0 {
-			// only doing 1st test case so far
+		if i > 2 {
+			// only doing 1st - 3rd test cases so far
 			break
 		}
 		t.Run(tc.TestDescription, func(t *testing.T) {
