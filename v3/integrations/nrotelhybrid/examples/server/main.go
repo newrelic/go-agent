@@ -118,7 +118,7 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	tracer := otel.Tracer("nrotel-example")
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
-	go leafCall(otherCtx)
+	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
 		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
@@ -126,11 +126,11 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 		)),
 	)
 	defer span.End()
-	leafCall(ctx)
+	leafCall(ctx, "main")
 }
 
-func leafCall(ctx context.Context) {
-	_, span := otel.Tracer("nrotel-example").Start(ctx, "leaf-call")
+func leafCall(ctx context.Context, name string) {
+	_, span := otel.Tracer("nrotel-example").Start(ctx, "leaf-call-"+name)
 	defer span.End()
 	n := rand.IntN(500)
 	time.Sleep(time.Duration(n) * time.Millisecond)
