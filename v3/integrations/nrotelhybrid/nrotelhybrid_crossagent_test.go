@@ -232,8 +232,18 @@ func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantE
 		intrinsics := map[string]interface{}{
 			"name": span.Name,
 		}
+		agentAttributes := map[string]interface{}{}
+
+		if val, ok := span.Attributes[NRErrorMessage]; ok {
+			switch reflect.TypeOf(val).Kind() {
+			case reflect.String:
+				agentAttributes[NRErrorMessage] = string(val.(string))
+			}
+		}
+
 		spanWantEvents = append(spanWantEvents, internal.WantEvent{
-			Intrinsics: intrinsics,
+			Intrinsics:      intrinsics,
+			AgentAttributes: agentAttributes,
 		})
 	}
 	return transactionWantEvents, spanWantEvents

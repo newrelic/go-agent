@@ -154,8 +154,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 			if entries[i].spanID == spanID {
 				if entries[i].txn != nil {
 					if hasErr {
-						// NoticeError must run before End() so the error
-						// attaches to this still-current span.
 						entries[i].txn.NoticeError(nrErr)
 					}
 					entries[i].txn.End()
@@ -176,8 +174,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 
 	if segEntry, ok := p.segmentMap[spanID]; ok && segEntry.seg != nil {
 		if hasErr && segEntry.txn != nil {
-			// NoticeError must run before End() so the error attaches to
-			// this still-current segment.
 			segEntry.txn.NoticeError(nrErr)
 		}
 		// find type of segment to switch segment type and add attributes
@@ -187,10 +183,6 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 
 }
 
-// exceptionFromSpan looks for an OTel "exception" span event and converts it
-// into a newrelic.Error. exception.message maps to Message, exception.type
-// maps to Class (which drives the error.class span attribute), and any other
-// attributes are carried through as error attributes.
 func exceptionFromSpan(s trace.ReadOnlySpan) (newrelic.Error, bool) {
 	for _, event := range s.Events() {
 		if event.Name != AttrEventException {
