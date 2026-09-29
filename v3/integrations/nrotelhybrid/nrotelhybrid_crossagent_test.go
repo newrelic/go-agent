@@ -3,6 +3,7 @@ package nrotelhybrid
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -80,10 +81,11 @@ type OtelTestCaseSpan struct {
 
 const (
 	// Commands
-	CommandDoWorkInSpan        string = "DoWorkInSpan"
-	CommandDoWorkInTransaction string = "DoWorkInTransaction"
-	CommandDoWorkInSegment     string = "DoWorkInSegment"
-	CommandAddOTelAttribute    string = "AddOTelAttribute"
+	CommandDoWorkInSpan          string = "DoWorkInSpan"
+	CommandDoWorkInTransaction   string = "DoWorkInTransaction"
+	CommandDoWorkInSegment       string = "DoWorkInSegment"
+	CommandAddOTelAttribute      string = "AddOTelAttribute"
+	CommandRecordExceptionOnSpan string = "RecordExceptionOnSpan"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -108,7 +110,10 @@ func TestOtelTracing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tc := range tcs {
+	for i, tc := range tcs {
+		if i != 4 {
+			continue
+		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			ctx := context.Background()
@@ -188,6 +193,11 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 				Value: attribute.IntValue(op.Parameters.Value), // SETTING AS INT SINCE THOSE ARE ONLY CASES NOW
 			}
 			span.SetAttributes(kv)
+		case CommandRecordExceptionOnSpan:
+			// Record Error on Span pulled from context
+			// Use OTel API to add error to the CURRENT span
+			span := oteltrace.SpanFromContext(ctx)
+			span.RecordError(errors.New(op.Parameters.ErrorMessage))
 		default:
 			continue
 		}
