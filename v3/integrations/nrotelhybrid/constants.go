@@ -46,6 +46,13 @@ const (
 	AttrMessagingDestinationKind    = "messaging.destination_kind"                 // OTEL Messaging Producer v1.17
 	AttrMessagingOperationType      = "messaging.operation.type"                   // OTEL Messaging Producer v1.30
 	AttrMessagingOperation          = "messaging.operation"                        // OTEL Messaging Producer v1.24
+
+	// Event Names
+	AttrEventException = "exception" // Need to find exact documentation
+
+	// Error Attributes
+	AttrExceptionMessage = "exception.message"
+	AttrExceptionType    = "exception.type"
 )
 
 // NR segment/transaction attribute keys used by this package.
@@ -65,6 +72,8 @@ const (
 	NRMessageRoutingKey = "message.routingKey"
 	NRRoutingKey        = "routingKey"
 	NRCorrelationID     = "correlation_id"
+
+	NRErrorMessage = "error.message"
 )
 
 // OTELToNRHTTPAttributeMap maps OTel HTTP client/server attribute keys to their
@@ -133,4 +142,8 @@ var OTELToNRMessagingProducerAttributeMap = map[string]string{
 	// OTEL Messaging Producer v1.17
 	AttrNetPeerName: NRHost,
 	AttrNetPeerPort: NRPort,
+}
+
+var OTELToNRErrorAttributeMap = map[string]string{
+	AttrExceptionMessage: NRErrorMessage,
 }
