@@ -20,6 +20,11 @@ type txnMapEntry struct {
 	spanID oteltrace.SpanID
 }
 
+type segmentEntry struct {
+	seg nrSegment
+	txn *newrelic.Transaction
+}
+
 type nrSegment interface {
 	End()
 	AddAttribute(key string, val interface{})
@@ -29,7 +34,7 @@ type nrotelhybridProcessor struct {
 	app        *newrelic.Application
 	mu         sync.Mutex
 	txnMap     map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
-	segmentMap map[oteltrace.SpanID]nrSegment      // SpanID -> Segment
+	segmentMap map[oteltrace.SpanID]segmentEntry   // SpanID -> Segment
 	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
@@ -75,7 +80,7 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 	return &nrotelhybridProcessor{
 		app:        app,
 		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
-		segmentMap: map[oteltrace.SpanID]nrSegment{},
+		segmentMap: map[oteltrace.SpanID]segmentEntry{},
 		txnChecker: isWithinTransaction,
 	}
 }
@@ -128,7 +133,10 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
 	seg := entry.txn.StartSegment(s.Name())
-	p.segmentMap[s.SpanContext().SpanID()] = seg
+	p.segmentMap[s.SpanContext().SpanID()] = segmentEntry{
+		seg: seg,
+		txn: entry.txn,
+	}
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
@@ -138,11 +146,18 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	traceID := s.SpanContext().TraceID()
 	spanID := s.SpanContext().SpanID()
 
+	nrErr, hasErr := exceptionFromSpan(s)
+
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
 		entries := p.txnMap[traceID]
 		for i := len(entries) - 1; i >= 0; i-- {
 			if entries[i].spanID == spanID {
 				if entries[i].txn != nil {
+					if hasErr {
+						// NoticeError must run before End() so the error
+						// attaches to this still-current span.
+						entries[i].txn.NoticeError(nrErr)
+					}
 					entries[i].txn.End()
 				}
 				entries = append(entries[:i], entries[i+1:]...)
@@ -159,12 +174,45 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// otherwise end segment if it exists in the map
 	p.switchSegmentType(spanID, s.Attributes(), s.SpanKind())
 
-	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
+	if segEntry, ok := p.segmentMap[spanID]; ok && segEntry.seg != nil {
+		if hasErr && segEntry.txn != nil {
+			// NoticeError must run before End() so the error attaches to
+			// this still-current segment.
+			segEntry.txn.NoticeError(nrErr)
+		}
 		// find type of segment to switch segment type and add attributes
-		seg.End()
+		segEntry.seg.End()
 		delete(p.segmentMap, spanID)
 	}
 
+}
+
+// exceptionFromSpan looks for an OTel "exception" span event and converts it
+// into a newrelic.Error. exception.message maps to Message, exception.type
+// maps to Class (which drives the error.class span attribute), and any other
+// attributes are carried through as error attributes.
+func exceptionFromSpan(s trace.ReadOnlySpan) (newrelic.Error, bool) {
+	for _, event := range s.Events() {
+		if event.Name != AttrEventException {
+			continue
+		}
+		var nrErr newrelic.Error
+		for _, attr := range event.Attributes {
+			switch string(attr.Key) {
+			case AttrExceptionMessage:
+				nrErr.Message = attr.Value.AsString()
+			case AttrExceptionType:
+				nrErr.Class = attr.Value.AsString()
+			default:
+				if nrErr.Attributes == nil {
+					nrErr.Attributes = map[string]interface{}{}
+				}
+				nrErr.Attributes[string(attr.Key)] = attr.Value.AsString()
+			}
+		}
+		return nrErr, true
+	}
+	return newrelic.Error{}, false
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
@@ -206,7 +254,7 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 	if !ok {
 		return
 	}
-	basicSegment, ok := segInterface.(*newrelic.Segment)
+	basicSegment, ok := segInterface.seg.(*newrelic.Segment)
 	if !ok {
 		return
 	}
@@ -220,7 +268,7 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 				}
 				// map attributes for db
 				p.addSegmentAttributes(seg, attributes, OTELToNRDBAttributeMap)
-				p.segmentMap[spanID] = seg
+				p.segmentMap[spanID] = segmentEntry{seg: seg, txn: segInterface.txn}
 				return
 			}
 		}
@@ -228,13 +276,13 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 			StartTime: basicSegment.StartTime,
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRHTTPAttributeMap)
-		p.segmentMap[spanID] = seg
+		p.segmentMap[spanID] = segmentEntry{seg: seg, txn: segInterface.txn}
 	case oteltrace.SpanKindProducer:
 		seg := &newrelic.MessageProducerSegment{
 			StartTime: basicSegment.StartTime,
 		}
 		p.addSegmentAttributes(seg, attributes, OTELToNRMessagingProducerAttributeMap)
-		p.segmentMap[spanID] = seg
+		p.segmentMap[spanID] = segmentEntry{seg: seg, txn: segInterface.txn}
 	case oteltrace.SpanKindConsumer:
 		p.addSegmentAttributes(basicSegment, attributes, OTELToNRMessagingConsumerAttributeMap)
 	default:
