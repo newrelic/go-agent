@@ -708,6 +708,11 @@ func (app *app) ExpectErrorEvents(t internal.Validator, want []internal.WantEven
 	expectErrorEvents(t, app.testHarvest.ErrorEvents, want)
 }
 
+func (app *app) ExpectSpanEventsPartial(t internal.Validator, want []internal.WantEvent) {
+	t = extendValidator(t, "span events")
+	expectSpanEventsPartial(t, app.testHarvest.SpanEvents, want)
+}
+
 func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
 	t = extendValidator(t, "spans events")
 	expectSpanEvents(t, app.testHarvest.SpanEvents, want)
@@ -716,6 +721,11 @@ func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent
 func (app *app) ExpectTxnEvents(t internal.Validator, want []internal.WantEvent) {
 	t = extendValidator(t, "txn events")
 	expectTxnEvents(t, app.testHarvest.TxnEvents, want)
+}
+
+func (app *app) ExpectTxnEventsPartial(t internal.Validator, want []internal.WantEvent) {
+	t = extendValidator(t, "txn events")
+	expectTxnEventsPartial(t, app.testHarvest.TxnEvents, want)
 }
 
 func (app *app) ExpectMetrics(t internal.Validator, want []internal.WantMetric) {
