@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -13,6 +15,7 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -79,6 +82,11 @@ type OtelTestCaseSpan struct {
 	Attributes map[string]any `json:"attributes"`
 }
 
+type ExternalCall struct {
+	url     string
+	headers http.Header
+}
+
 const (
 	// Commands
 	CommandDoWorkInSpan          string = "DoWorkInSpan"
@@ -86,6 +94,8 @@ const (
 	CommandDoWorkInSegment       string = "DoWorkInSegment"
 	CommandAddOTelAttribute      string = "AddOTelAttribute"
 	CommandRecordExceptionOnSpan string = "RecordExceptionOnSpan"
+	CommandSimulateExternalCall  string = "SimulateExternalCall"
+	CommandOTelInjectHeaders     string = "OTelInjectHeaders"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -100,6 +110,11 @@ const (
 	OperandCurrentOtelSpanSpanID     string = "currentOTelSpan.spanId"
 	OperandCurrentTransactionTraceID string = "currentTransaction.traceId"
 	OperandCurrentSegmentSpanID      string = "currentSegment.spanId"
+
+	ParameterCurrentTransactionSampled string = "currentTransaction.sampled"
+	ParameterInjectedTraceId           string = "injected.traceId"
+	ParameterInjectedSpanId            string = "injected.spanId"
+	ParameterInjectedSampled           string = "injected.sampled"
 )
 
 func TestOtelTracing(t *testing.T) {
@@ -114,7 +129,7 @@ func TestOtelTracing(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		if i != 1 && i != 4 {
+		if i != 5 {
 			continue
 		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
@@ -134,9 +149,10 @@ func TestOtelTracing(t *testing.T) {
 			}
 			defer shutdown(ctx)
 			otel.SetTracerProvider(tp)
+			otel.SetTextMapPropagator(propagation.TraceContext{})
 			// Run Operation
 
-			RunOperation(t, ctx, tc.Operations, &app)
+			RunOperation(t, ctx, tc.Operations, &app, nil)
 			// agentOutput
 			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
 			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
@@ -144,7 +160,7 @@ func TestOtelTracing(t *testing.T) {
 	}
 }
 
-func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOperation, app *integrationsupport.ExpectApp) {
+func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOperation, app *integrationsupport.ExpectApp, externalCall *ExternalCall) {
 	for _, op := range operations {
 		switch op.Command {
 		case CommandDoWorkInSpan:
@@ -152,7 +168,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			tracer := Tracer("test")
 			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
 			// run child operations
-			RunOperation(t, ctx, op.ChildOperations, app)
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
 			// run assertions
 			for _, assertion := range op.Assertions {
 				rule := assertion.Rule
@@ -191,14 +207,14 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			txn := app.StartTransaction(op.Parameters.TransactionName)
 			txnCtx := newrelic.NewContext(ctx, txn)
 			// run child operations
-			RunOperation(t, txnCtx, op.ChildOperations, app)
+			RunOperation(t, txnCtx, op.ChildOperations, app, externalCall)
 			txn.End()
 		case CommandDoWorkInSegment:
 			// do work in segment
 			// begin a NR Segment
 			txn := newrelic.FromContext(ctx)
 			seg := txn.StartSegment(op.Parameters.SegmentName)
-			RunOperation(t, ctx, op.ChildOperations, app)
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
 			seg.End()
 		case CommandAddOTelAttribute:
 			// add OTEL attribute
@@ -209,11 +225,51 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 				Value: attribute.IntValue(op.Parameters.Value), // SETTING AS INT SINCE THOSE ARE ONLY CASES NOW
 			}
 			span.SetAttributes(kv)
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
 		case CommandRecordExceptionOnSpan:
 			// Record Error on Span pulled from context
 			// Use OTel API to add error to the CURRENT span
 			span := oteltrace.SpanFromContext(ctx)
 			span.RecordError(errors.New(op.Parameters.ErrorMessage))
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
+		case CommandSimulateExternalCall:
+			// Use url to simulate external call
+			// Must create a request header collection in order to inject DT headers for other commands
+			req, err := http.NewRequestWithContext(ctx, "GET", op.Parameters.URL, nil)
+			if err != nil {
+				t.Errorf("Could not build request")
+			}
+			RunOperation(t, ctx, op.ChildOperations, app, &ExternalCall{
+				url:     op.Parameters.URL,
+				headers: req.Header,
+			})
+		case CommandOTelInjectHeaders:
+			// use simulated external call
+			// no parameters needed
+			otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(externalCall.headers))
+			extractedCtx := propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(externalCall.headers))
+
+			RunOperation(t, extractedCtx, op.ChildOperations, app, externalCall)
+			for _, assertion := range op.Assertions {
+				rule := assertion.Rule
+				switch rule.Operator {
+				case OperatorEquals:
+					left := populateEqualsOperator(extractedCtx, rule.Parameters.Left, externalCall)
+					if left == "" {
+						t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
+					}
+					right := populateEqualsOperator(extractedCtx, rule.Parameters.Right, externalCall)
+					if right == "" {
+						t.Errorf("Could not populate left equals for %v", rule.Parameters.Right)
+					}
+					if left != right {
+						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
+					}
+				default:
+					continue
+				}
+			}
+
 		default:
 			continue
 		}
@@ -288,4 +344,39 @@ func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantE
 		})
 	}
 	return transactionWantEvents, spanWantEvents
+}
+
+func populateEqualsOperator(ctx context.Context, parameter string, externalCall *ExternalCall) string {
+	switch parameter {
+	case ParameterCurrentOTelSpanTraceId:
+		return oteltrace.SpanContextFromContext(ctx).TraceID().String()
+	case ParameterCurrentOTelSpanSpanId:
+		return oteltrace.SpanContextFromContext(ctx).SpanID().String()
+	case ParameterCurrentTransactionTraceId:
+		return newrelic.FromContext(ctx).GetTraceMetadata().TraceID
+	case ParameterCurrentSegmentSpanId:
+		return newrelic.FromContext(ctx).GetTraceMetadata().SpanID
+	case ParameterCurrentTransactionSampled:
+		return strconv.FormatBool(newrelic.FromContext(ctx).IsSampled())
+	case ParameterInjectedTraceId, ParameterInjectedSpanId, ParameterInjectedSampled:
+		if externalCall == nil {
+			return ""
+		}
+		// Parse the injected traceparent header independently of the injector.
+		sc := oteltrace.SpanContextFromContext(
+			propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(externalCall.headers)),
+		)
+		if !sc.IsValid() {
+			return ""
+		}
+		switch parameter {
+		case ParameterInjectedTraceId:
+			return sc.TraceID().String()
+		case ParameterInjectedSpanId:
+			return sc.SpanID().String()
+		default:
+			return strconv.FormatBool(sc.IsSampled())
+		}
+	}
+	return ""
 }
