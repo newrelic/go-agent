@@ -2,6 +2,8 @@ package nrotelhybrid
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"net/url"
 	"sync"
 
@@ -14,6 +16,10 @@ import (
 	"go.opentelemetry.io/otel/trace/embedded"
 	"go.opentelemetry.io/otel/trace/noop"
 )
+
+// w3cVersion is the version of the W3C trace context traceparent header format
+// that this package emits.
+const w3cVersion = "00"
 
 type txnMapEntry struct {
 	txn    *newrelic.Transaction
@@ -113,6 +119,17 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 
 func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
 	txn := p.app.StartTransaction(s.Name())
+	// A remote parent means an upstream service sent us trace context, so the
+	// transaction must adopt the remote trace id and parent span id.
+	if parent := s.Parent(); parent.IsValid() && parent.IsRemote() {
+		transport := newrelic.TransportOther
+		if isWeb {
+			transport = newrelic.TransportHTTP
+		}
+		hdrs := http.Header{}
+		hdrs.Set("traceparent", fmt.Sprintf("%s-%s-%s-%s", w3cVersion, parent.TraceID(), parent.SpanID(), parent.TraceFlags()))
+		txn.AcceptDistributedTraceHeaders(transport, hdrs)
+	}
 	if isWeb {
 		var fullURL string
 		for _, attr := range s.Attributes() {
