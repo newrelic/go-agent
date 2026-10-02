@@ -128,6 +128,9 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		}
 		hdrs := http.Header{}
 		hdrs.Set("traceparent", fmt.Sprintf("%s-%s-%s-%s", w3cVersion, parent.TraceID(), parent.SpanID(), parent.TraceFlags()))
+		if ts := parent.TraceState().String(); ts != "" {
+			hdrs.Set("tracestate", ts)
+		}
 		txn.AcceptDistributedTraceHeaders(transport, hdrs)
 	}
 	if isWeb {
