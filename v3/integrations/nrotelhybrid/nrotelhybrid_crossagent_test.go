@@ -112,10 +112,10 @@ const (
 	OperandCurrentTransactionTraceID string = "currentTransaction.traceId"
 	OperandCurrentSegmentSpanID      string = "currentSegment.spanId"
 
-	ParameterCurrentTransactionSampled string = "currentTransaction.sampled"
-	ParameterInjectedTraceId           string = "injected.traceId"
-	ParameterInjectedSpanId            string = "injected.spanId"
-	ParameterInjectedSampled           string = "injected.sampled"
+	OperandCurrentTransactionSampled string = "currentTransaction.sampled"
+	OperandInjectedTraceID           string = "injected.traceId"
+	OperandInjectedSpanID            string = "injected.spanId"
+	OperandInjectedSampled           string = "injected.sampled"
 )
 
 func TestOtelTracing(t *testing.T) {
@@ -134,10 +134,7 @@ func TestOtelTracing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i, tc := range tcs {
-		if i != 5 {
-			continue
-		}
+	for _, tc := range tcs {
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
@@ -294,9 +291,9 @@ func resolveOperand(t *testing.T, ctx context.Context, operand string, externalC
 		return newrelic.FromContext(ctx).GetTraceMetadata().TraceID
 	case OperandCurrentSegmentSpanID:
 		return newrelic.FromContext(ctx).GetTraceMetadata().SpanID
-	case ParameterCurrentTransactionSampled:
+	case OperandCurrentTransactionSampled:
 		return strconv.FormatBool(newrelic.FromContext(ctx).IsSampled())
-	case ParameterInjectedTraceId, ParameterInjectedSpanId, ParameterInjectedSampled:
+	case OperandInjectedTraceID, OperandInjectedSpanID, OperandInjectedSampled:
 		if externalCall == nil {
 			return ""
 		}
@@ -308,9 +305,9 @@ func resolveOperand(t *testing.T, ctx context.Context, operand string, externalC
 			return ""
 		}
 		switch operand {
-		case ParameterInjectedTraceId:
+		case OperandInjectedTraceID:
 			return sc.TraceID().String()
-		case ParameterInjectedSpanId:
+		case OperandInjectedSpanID:
 			return sc.SpanID().String()
 		default:
 			return strconv.FormatBool(sc.IsSampled())
