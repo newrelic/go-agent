@@ -143,7 +143,7 @@ func TestOtelTracing(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
 			// not carry into this case's agent output expectations.
 			app := integrationsupport.NewTestApp(
-				integrationsupport.SampleEverythingReplyFn,
+				replyFn,
 				integrationsupport.ConfigFullTraces,
 			)
 			ctx := context.Background()
@@ -195,12 +195,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 						}
 					}
 				case OperatorEquals:
-					left := resolveOperand(t, ctx, rule.Parameters.Left)
-					right := resolveOperand(t, ctx, rule.Parameters.Right)
-					if left != right {
-						t.Errorf("%s: %s = %q but %s = %q", assertion.Description,
-							rule.Parameters.Left, left, rule.Parameters.Right, right)
-					}
+					equalsAssertion(t, ctx, rule, externalCall)
 				default:
 					continue
 				}
@@ -288,19 +283,38 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 }
 
 // resolveOperand reads one side of an Equals rule.
-func resolveOperand(t *testing.T, ctx context.Context, operand string) string {
+func resolveOperand(t *testing.T, ctx context.Context, operand string, externalCall *ExternalCall) string {
 	t.Helper()
 	switch operand {
 	case OperandCurrentOtelSpanTraceID:
-		return oteltrace.SpanFromContext(ctx).SpanContext().TraceID().String()
+		return oteltrace.SpanContextFromContext(ctx).TraceID().String()
 	case OperandCurrentOtelSpanSpanID:
-		return oteltrace.SpanFromContext(ctx).SpanContext().SpanID().String()
+		return oteltrace.SpanContextFromContext(ctx).SpanID().String()
 	case OperandCurrentTransactionTraceID:
 		return newrelic.FromContext(ctx).GetTraceMetadata().TraceID
 	case OperandCurrentSegmentSpanID:
-		// GetTraceMetadata reports the span ID of the segment on top of the
-		// transaction's stack.
 		return newrelic.FromContext(ctx).GetTraceMetadata().SpanID
+	case ParameterCurrentTransactionSampled:
+		return strconv.FormatBool(newrelic.FromContext(ctx).IsSampled())
+	case ParameterInjectedTraceId, ParameterInjectedSpanId, ParameterInjectedSampled:
+		if externalCall == nil {
+			return ""
+		}
+		// Parse the injected traceparent header independently of the injector.
+		sc := oteltrace.SpanContextFromContext(
+			propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(externalCall.headers)),
+		)
+		if !sc.IsValid() {
+			return ""
+		}
+		switch operand {
+		case ParameterInjectedTraceId:
+			return sc.TraceID().String()
+		case ParameterInjectedSpanId:
+			return sc.SpanID().String()
+		default:
+			return strconv.FormatBool(sc.IsSampled())
+		}
 	default:
 		t.Errorf("Equals operand %q is not implemented", operand)
 		return ""
@@ -357,50 +371,10 @@ func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantE
 	return transactionWantEvents, spanWantEvents
 }
 
-func populateEqualsOperator(ctx context.Context, parameter string, externalCall *ExternalCall) string {
-	switch parameter {
-	case ParameterCurrentOTelSpanTraceId:
-		return oteltrace.SpanContextFromContext(ctx).TraceID().String()
-	case ParameterCurrentOTelSpanSpanId:
-		return oteltrace.SpanContextFromContext(ctx).SpanID().String()
-	case ParameterCurrentTransactionTraceId:
-		return newrelic.FromContext(ctx).GetTraceMetadata().TraceID
-	case ParameterCurrentSegmentSpanId:
-		return newrelic.FromContext(ctx).GetTraceMetadata().SpanID
-	case ParameterCurrentTransactionSampled:
-		return strconv.FormatBool(newrelic.FromContext(ctx).IsSampled())
-	case ParameterInjectedTraceId, ParameterInjectedSpanId, ParameterInjectedSampled:
-		if externalCall == nil {
-			return ""
-		}
-		// Parse the injected traceparent header independently of the injector.
-		sc := oteltrace.SpanContextFromContext(
-			propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(externalCall.headers)),
-		)
-		if !sc.IsValid() {
-			return ""
-		}
-		switch parameter {
-		case ParameterInjectedTraceId:
-			return sc.TraceID().String()
-		case ParameterInjectedSpanId:
-			return sc.SpanID().String()
-		default:
-			return strconv.FormatBool(sc.IsSampled())
-		}
-	}
-	return ""
-}
-
 func equalsAssertion(t *testing.T, ctx context.Context, rule OtelTestCaseRule, externalCall *ExternalCall) {
-	left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
-	if left == "" {
-		t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
-	}
-	right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
-	if right == "" {
-		t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
-	}
+	left := resolveOperand(t, ctx, rule.Parameters.Left, externalCall)
+	right := resolveOperand(t, ctx, rule.Parameters.Right, externalCall)
+
 	if left != right {
 		t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
 	}
