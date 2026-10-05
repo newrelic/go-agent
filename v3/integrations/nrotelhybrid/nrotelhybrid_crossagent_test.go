@@ -253,20 +253,19 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			// use simulated external call
 			// no parameters needed
 			otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(externalCall.headers))
-			extractedCtx := propagation.TraceContext{}.Extract(ctx, propagation.HeaderCarrier(externalCall.headers))
 
-			RunOperation(t, extractedCtx, op.ChildOperations, app, externalCall)
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
 			for _, assertion := range op.Assertions {
 				rule := assertion.Rule
 				switch rule.Operator {
 				case OperatorEquals:
-					left := populateEqualsOperator(extractedCtx, rule.Parameters.Left, externalCall)
+					left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
 					if left == "" {
 						t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
 					}
-					right := populateEqualsOperator(extractedCtx, rule.Parameters.Right, externalCall)
+					right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
 					if right == "" {
-						t.Errorf("Could not populate left equals for %v", rule.Parameters.Right)
+						t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
 					}
 					if left != right {
 						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
@@ -279,7 +278,28 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			// use simulated external call if it exists
 			// no parameters needed
 			txn := newrelic.FromContext(ctx)
-			txn.AcceptDistributedTraceHeaders(newrelic.TransportOther, externalCall.headers)
+			txn.InsertDistributedTraceHeaders(externalCall.headers)
+
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
+			for _, assertion := range op.Assertions {
+				rule := assertion.Rule
+				switch rule.Operator {
+				case OperatorEquals:
+					left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
+					if left == "" {
+						t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
+					}
+					right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
+					if right == "" {
+						t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
+					}
+					if left != right {
+						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
+					}
+				default:
+					continue
+				}
+			}
 
 		default:
 			continue
