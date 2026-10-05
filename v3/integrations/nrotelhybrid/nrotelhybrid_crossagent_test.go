@@ -96,6 +96,7 @@ const (
 	CommandRecordExceptionOnSpan string = "RecordExceptionOnSpan"
 	CommandSimulateExternalCall  string = "SimulateExternalCall"
 	CommandOTelInjectHeaders     string = "OTelInjectHeaders"
+	CommandNRInjectHeaders       string = "NRInjectHeaders"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -119,6 +120,11 @@ const (
 
 func TestOtelTracing(t *testing.T) {
 	var tcs []OtelTracingTestCase
+	replyFn := func(reply *internal.ConnectReply) {
+		integrationsupport.SampleEverythingReplyFn(reply)
+		reply.AccountID = "123"
+		reply.TrustedAccountKey = "123"
+	}
 	data, err := crossagent.ReadFile("otelhybrid/TestCaseDefinitions.json")
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +155,7 @@ func TestOtelTracing(t *testing.T) {
 			}
 			defer shutdown(ctx)
 			otel.SetTracerProvider(tp)
-			otel.SetTextMapPropagator(propagation.TraceContext{})
+			otel.SetTextMapPropagator(NewHybridPropagator(processor))
 			// Run Operation
 
 			RunOperation(t, ctx, tc.Operations, &app, nil)
@@ -269,6 +275,11 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 					continue
 				}
 			}
+		case CommandNRInjectHeaders:
+			// use simulated external call if it exists
+			// no parameters needed
+			txn := newrelic.FromContext(ctx)
+			txn.AcceptDistributedTraceHeaders(newrelic.TransportOther, externalCall.headers)
 
 		default:
 			continue
