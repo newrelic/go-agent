@@ -259,17 +259,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 				rule := assertion.Rule
 				switch rule.Operator {
 				case OperatorEquals:
-					left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
-					if left == "" {
-						t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
-					}
-					right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
-					if right == "" {
-						t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
-					}
-					if left != right {
-						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
-					}
+					equalsAssertion(t, ctx, rule, externalCall)
 				default:
 					continue
 				}
@@ -285,17 +275,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 				rule := assertion.Rule
 				switch rule.Operator {
 				case OperatorEquals:
-					left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
-					if left == "" {
-						t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
-					}
-					right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
-					if right == "" {
-						t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
-					}
-					if left != right {
-						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
-					}
+					equalsAssertion(t, ctx, rule, externalCall)
 				default:
 					continue
 				}
@@ -410,4 +390,18 @@ func populateEqualsOperator(ctx context.Context, parameter string, externalCall 
 		}
 	}
 	return ""
+}
+
+func equalsAssertion(t *testing.T, ctx context.Context, rule OtelTestCaseRule, externalCall *ExternalCall) {
+	left := populateEqualsOperator(ctx, rule.Parameters.Left, externalCall)
+	if left == "" {
+		t.Errorf("Could not populate left equals for %v", rule.Parameters.Left)
+	}
+	right := populateEqualsOperator(ctx, rule.Parameters.Right, externalCall)
+	if right == "" {
+		t.Errorf("Could not populate right equals for %v", rule.Parameters.Right)
+	}
+	if left != right {
+		t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Left, left, rule.Parameters.Right, right)
+	}
 }
