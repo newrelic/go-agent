@@ -89,18 +89,21 @@ const (
 
 	// Operators
 	OperatorNotValid string = "NotValid"
+	OperatorEquals   string = "Equals"
 
 	// Objects
 	NotValidObjectCurrentOtelSpan    string = "currentOTelSpan"
 	NotValidObjectCurrentTransaction string = "currentTransaction"
+
+	// Equals operands
+	OperandCurrentOtelSpanTraceID    string = "currentOTelSpan.traceId"
+	OperandCurrentOtelSpanSpanID     string = "currentOTelSpan.spanId"
+	OperandCurrentTransactionTraceID string = "currentTransaction.traceId"
+	OperandCurrentSegmentSpanID      string = "currentSegment.spanId"
 )
 
 func TestOtelTracing(t *testing.T) {
 	var tcs []OtelTracingTestCase
-	app := integrationsupport.NewTestApp(
-		integrationsupport.SampleEverythingReplyFn,
-		integrationsupport.ConfigFullTraces,
-	)
 	data, err := crossagent.ReadFile("otelhybrid/TestCaseDefinitions.json")
 	if err != nil {
 		t.Fatal(err)
@@ -111,11 +114,17 @@ func TestOtelTracing(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		if i != 4 {
+		if i != 1 && i != 4 {
 			continue
 		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
+			// Each test case gets its own app, so events from an earlier case do
+			// not carry into this case's agent output expectations.
+			app := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+			)
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
 			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor))
@@ -163,6 +172,13 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 							t.Errorf("Expected no transaction, got a started transaction")
 						}
 					}
+				case OperatorEquals:
+					left := resolveOperand(t, ctx, rule.Parameters.Left)
+					right := resolveOperand(t, ctx, rule.Parameters.Right)
+					if left != right {
+						t.Errorf("%s: %s = %q but %s = %q", assertion.Description,
+							rule.Parameters.Left, left, rule.Parameters.Right, right)
+					}
 				default:
 					continue
 				}
@@ -204,6 +220,26 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 	}
 }
 
+// resolveOperand reads one side of an Equals rule.
+func resolveOperand(t *testing.T, ctx context.Context, operand string) string {
+	t.Helper()
+	switch operand {
+	case OperandCurrentOtelSpanTraceID:
+		return oteltrace.SpanFromContext(ctx).SpanContext().TraceID().String()
+	case OperandCurrentOtelSpanSpanID:
+		return oteltrace.SpanFromContext(ctx).SpanContext().SpanID().String()
+	case OperandCurrentTransactionTraceID:
+		return newrelic.FromContext(ctx).GetTraceMetadata().TraceID
+	case OperandCurrentSegmentSpanID:
+		// GetTraceMetadata reports the span ID of the segment on top of the
+		// transaction's stack.
+		return newrelic.FromContext(ctx).GetTraceMetadata().SpanID
+	default:
+		t.Errorf("Equals operand %q is not implemented", operand)
+		return ""
+	}
+}
+
 func getSpanKind(spanKindStr string) int {
 	switch spanKindStr {
 	case "Internal":
@@ -229,6 +265,11 @@ func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantE
 
 	var spanWantEvents []internal.WantEvent
 	for _, span := range spansAgentOutput {
+		if span.EntryPoint {
+			// ExpectSpanEventsPartial drops the transaction's root span event,
+			// so the entry point span is not expected either.
+			continue
+		}
 		intrinsics := map[string]interface{}{
 			"name": span.Name,
 		}
