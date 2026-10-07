@@ -25,6 +25,7 @@ func Test_isTransaction(t *testing.T) {
 		txnCheck bool
 		wantTxn  bool
 		wantWeb  bool
+		ctx      context.Context
 	}{
 		{
 			name: "Remote parent exists and is valid. Kind is unspecified.",
@@ -231,6 +232,59 @@ func Test_isTransaction(t *testing.T) {
 			wantTxn: false,
 			wantWeb: false,
 		},
+		{
+			name: "Parent is not remote. Kind is server. Ctx contains txn.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				Remote: false,
+			}),
+			kind:    oteltrace.SpanKindServer,
+			wantTxn: false,
+			wantWeb: true,
+			ctx:     newrelic.NewContext(context.Background(), &newrelic.Transaction{}),
+		},
+		{
+			name: "Parent is remote. Kind is server. Ctx contains txn.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID: validTraceID,
+				SpanID:  validSpanID,
+				Remote:  true,
+			}),
+			kind:    oteltrace.SpanKindServer,
+			wantTxn: false,
+			wantWeb: true,
+			ctx:     newrelic.NewContext(context.Background(), &newrelic.Transaction{}),
+		},
+		{
+			name: "Parent is not remote. Kind is consumer. Ctx contains txn.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				Remote: false,
+			}),
+			kind:    oteltrace.SpanKindConsumer,
+			wantTxn: false,
+			wantWeb: true,
+			ctx:     newrelic.NewContext(context.Background(), &newrelic.Transaction{}),
+		},
+		{
+			name: "Parent is not remote. Kind is client. Ctx contains txn.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				Remote: false,
+			}),
+			kind:    oteltrace.SpanKindClient,
+			wantTxn: false,
+			wantWeb: true,
+			ctx:     newrelic.NewContext(context.Background(), &newrelic.Transaction{}),
+		},
+		{
+			name: "Parent is not remote. Kind is server. txnChecker returns false. Ctx contains txn.",
+			parent: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				Remote: false,
+			}),
+			kind:     oteltrace.SpanKindServer,
+			txnCheck: false,
+			wantTxn:  false,
+			wantWeb:  true,
+			ctx:      newrelic.NewContext(context.Background(), &newrelic.Transaction{}),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -239,7 +293,7 @@ func Test_isTransaction(t *testing.T) {
 					return tt.txnCheck
 				},
 			}
-			gotTxn, gotWeb := p.isTransaction(tt.kind, oteltrace.SpanContext{}, tt.parent)
+			gotTxn, gotWeb := p.isTransaction(tt.kind, oteltrace.SpanContext{}, tt.parent, tt.ctx)
 			if gotTxn != tt.wantTxn || gotWeb != tt.wantWeb {
 				t.Errorf("isTransaction() = (%v, %v), want (%v, %v)", gotTxn, gotWeb, tt.wantTxn, tt.wantWeb)
 			}
