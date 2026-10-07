@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -390,6 +391,130 @@ func expectTxnEvents(v internal.Validator, events *txnEvents, expect []internal.
 		"totalTime": internal.MatchAnything,
 		"error":     internal.MatchAnything,
 	})
+}
+
+// expectAttributesPartial checks that every key in expect is present in exists
+// with a matching value. Unlike expectAttributes, it does not flag extra keys
+// present in exists but absent from expect.
+func expectAttributesPartial(v internal.Validator, exists map[string]interface{}, expect map[string]interface{}) {
+	for key, expectVal := range expect {
+
+		actualVal, ok := exists[key]
+		if !ok {
+			v.Error("expected attribute not found: ", key)
+			continue
+		}
+		if expectVal == internal.MatchAnything || expectVal == "*" {
+			continue
+		}
+
+		if key == "nr.entryPoint" && actualVal == true {
+			return
+		}
+
+		actualString := fmt.Sprint(actualVal)
+		expectString := fmt.Sprint(expectVal)
+		switch expectVal.(type) {
+		case float64:
+			if number, ok := actualVal.(json.Number); ok {
+				numString, _ := number.Float64()
+				actualString = fmt.Sprint(numString)
+			}
+		}
+
+		// "name" is checked with a matches, since txn/span names are
+		// prefixed (e.g. "WebTransaction/Go/Foo", "OtherTransaction/Go/Foo")
+		// and agentOutput fixtures only specify the unprefixed name.
+		if key == "name" {
+			if !strings.HasSuffix(actualString, expectString) {
+				v.Error(fmt.Sprintf("Value of key \"name\" does not end with expected suffix; Expect: %s Actual: %s", expectString, actualString))
+			}
+			continue
+		}
+
+		if expectString != actualString {
+			v.Error(fmt.Sprintf("Values of key \"%s\" do not match; Expect: %s Actual: %s", key, expectString, actualString))
+		}
+	}
+}
+
+// expectEventPartial validates only the attributes specified in expect,
+// ignoring any additional attributes present on the actual event.
+func expectEventPartial(v internal.Validator, e json.Marshaler, expect internal.WantEvent) {
+	js, err := e.MarshalJSON()
+	if nil != err {
+		v.Error("unable to marshal event", err)
+		return
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(js))
+	decoder.UseNumber()
+	var event []map[string]interface{}
+	err = decoder.Decode(&event)
+	if nil != err {
+		v.Error("unable to parse event json", err)
+		return
+	}
+
+	if len(event) == 0 {
+		v.Error("Event can not be nil or empty")
+		return
+	}
+
+	intrinsics := event[0]
+	userAttributes := event[1]
+	agentAttributes := event[2]
+
+	if nil != expect.Intrinsics {
+		expectAttributesPartial(v, intrinsics, expect.Intrinsics)
+	}
+	if nil != expect.UserAttributes {
+		expectAttributesPartial(v, userAttributes, expect.UserAttributes)
+	}
+	if nil != expect.AgentAttributes {
+		expectAttributesPartial(v, agentAttributes, expect.AgentAttributes)
+	}
+}
+
+// expectTxnEventsPartial allows testing of txn events, validating only the
+// attributes specified in expect and ignoring any additional attributes
+// present on the actual events (e.g. distributed tracing intrinsics).
+func expectTxnEventsPartial(v internal.Validator, events *txnEvents, expect []internal.WantEvent) {
+	if len(events.analyticsEvents.events) != len(expect) {
+		v.Error("number of events does not match", len(events.analyticsEvents.events), len(expect))
+		return
+	}
+	for i, e := range expect {
+		event, ok := events.analyticsEvents.events[i].jsonWriter.(json.Marshaler)
+		if !ok {
+			v.Error("event does not implement json.Marshaler")
+			continue
+		}
+		expectEventPartial(v, event, e)
+	}
+}
+
+// expectSpanEventsPartial allows testing of span events, validating only the
+// attributes specified in expect and ignoring any additional attributes
+// present on the actual events (e.g. distributed tracing intrinsics).
+func expectSpanEventsPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
+	// Check for root existing and remove it if it does
+	actualEvents := events.analyticsEvents.events
+	if len(actualEvents) > 0 {
+		actualEvents = actualEvents[:len(actualEvents)-1]
+	}
+	if len(actualEvents) != len(expect) {
+		v.Error("number of events does not match", len(actualEvents), len(expect))
+		return
+	}
+	for i, e := range expect {
+		event, ok := actualEvents[i].jsonWriter.(json.Marshaler)
+		if !ok {
+			v.Error("event does not implement json.Marshaler")
+			continue
+		}
+		expectEventPartial(v, event, e)
+	}
 }
 
 func expectError(v internal.Validator, err *tracedError, expect internal.WantError) {
