@@ -89,14 +89,15 @@ type ExternalCall struct {
 
 const (
 	// Commands
-	CommandDoWorkInSpan          string = "DoWorkInSpan"
-	CommandDoWorkInTransaction   string = "DoWorkInTransaction"
-	CommandDoWorkInSegment       string = "DoWorkInSegment"
-	CommandAddOTelAttribute      string = "AddOTelAttribute"
-	CommandRecordExceptionOnSpan string = "RecordExceptionOnSpan"
-	CommandSimulateExternalCall  string = "SimulateExternalCall"
-	CommandOTelInjectHeaders     string = "OTelInjectHeaders"
-	CommandNRInjectHeaders       string = "NRInjectHeaders"
+	CommandDoWorkInSpan                 string = "DoWorkInSpan"
+	CommandDoWorkInTransaction          string = "DoWorkInTransaction"
+	CommandDoWorkInSegment              string = "DoWorkInSegment"
+	CommandAddOTelAttribute             string = "AddOTelAttribute"
+	CommandRecordExceptionOnSpan        string = "RecordExceptionOnSpan"
+	CommandSimulateExternalCall         string = "SimulateExternalCall"
+	CommandOTelInjectHeaders            string = "OTelInjectHeaders"
+	CommandNRInjectHeaders              string = "NRInjectHeaders"
+	CommandDoWorkInSpanWithRemoteParent string = "DoWorkInSpanWithRemoteParent"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -169,7 +170,50 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 		case CommandDoWorkInSpan:
 			// use spanKind and spanName to create span
 			tracer := Tracer("test")
-			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(oteltrace.SpanKind(getSpanKind(op.Parameters.SpanKind))))
+			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(getSpanKind(op.Parameters.SpanKind)))
+			// run child operations
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall, processor)
+			// run assertions
+			for _, assertion := range op.Assertions {
+				rule := assertion.Rule
+				switch rule.Operator {
+				case OperatorNotValid:
+					switch rule.Parameters.Object {
+					case NotValidObjectCurrentOtelSpan:
+						// check if current otel span is no-op
+						if reflect.TypeOf(span) != reflect.TypeFor[noop.Span]() {
+							t.Errorf("Expected Noop span, got a started span")
+						}
+						if oteltrace.SpanFromContext(ctx).SpanContext().IsValid() {
+							t.Errorf("%s: current OTel span is valid", assertion.Description)
+						}
+					case NotValidObjectCurrentTransaction:
+						if newrelic.FromContext(ctx) != nil {
+							t.Errorf("Expected no transaction, got a started transaction")
+						}
+					}
+				case OperatorEquals:
+					equalsAssertion(t, ctx, rule, externalCall, processor)
+				default:
+					continue
+				}
+			}
+			span.End() // should work even with a no-op span
+			// end
+		case CommandDoWorkInSpanWithRemoteParent:
+			validTraceID := [16]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
+			validSpanID := [8]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+			// use spanKind and spanName to create span that is "remote"
+			parentCtx := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+				TraceID:    validTraceID,
+				SpanID:     validSpanID,
+				TraceFlags: oteltrace.FlagsSampled,
+				Remote:     true,
+			})
+			ctx = oteltrace.ContextWithRemoteSpanContext(ctx, parentCtx)
+			tracer := Tracer("test")
+
+			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(getSpanKind(op.Parameters.SpanKind)))
 			// run child operations
 			RunOperation(t, ctx, op.ChildOperations, app, externalCall, processor)
 			// run assertions
@@ -342,14 +386,17 @@ func associatedSpanContext(processor *nrotelhybridProcessor, ctx context.Context
 	return sc, ok
 }
 
-func getSpanKind(spanKindStr string) int {
+// SpanKind is an OTel type
+func getSpanKind(spanKindStr string) oteltrace.SpanKind {
 	switch spanKindStr {
 	case "Internal":
-		return 1
+		return oteltrace.SpanKindInternal
+	case "Server":
+		return oteltrace.SpanKindServer
 	default:
 
 	}
-	return 1
+	return oteltrace.SpanKindInternal
 }
 
 func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantEvent, []internal.WantEvent) {
