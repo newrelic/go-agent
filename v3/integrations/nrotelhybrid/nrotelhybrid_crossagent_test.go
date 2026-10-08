@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/internal/crossagent"
@@ -89,19 +91,21 @@ type ExternalCall struct {
 
 const (
 	// Commands
-	CommandDoWorkInSpan                 string = "DoWorkInSpan"
-	CommandDoWorkInTransaction          string = "DoWorkInTransaction"
-	CommandDoWorkInSegment              string = "DoWorkInSegment"
-	CommandAddOTelAttribute             string = "AddOTelAttribute"
-	CommandRecordExceptionOnSpan        string = "RecordExceptionOnSpan"
-	CommandSimulateExternalCall         string = "SimulateExternalCall"
-	CommandOTelInjectHeaders            string = "OTelInjectHeaders"
-	CommandNRInjectHeaders              string = "NRInjectHeaders"
-	CommandDoWorkInSpanWithRemoteParent string = "DoWorkInSpanWithRemoteParent"
+	CommandDoWorkInSpan                   string = "DoWorkInSpan"
+	CommandDoWorkInTransaction            string = "DoWorkInTransaction"
+	CommandDoWorkInSegment                string = "DoWorkInSegment"
+	CommandAddOTelAttribute               string = "AddOTelAttribute"
+	CommandRecordExceptionOnSpan          string = "RecordExceptionOnSpan"
+	CommandSimulateExternalCall           string = "SimulateExternalCall"
+	CommandOTelInjectHeaders              string = "OTelInjectHeaders"
+	CommandNRInjectHeaders                string = "NRInjectHeaders"
+	CommandDoWorkInSpanWithRemoteParent   string = "DoWorkInSpanWithRemoteParent"
+	CommandDoWorkInSpanWithInboundContext string = "DoWorkInSpanWithInboundContext"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
 	OperatorEquals   string = "Equals"
+	OperatorMatches  string = "Matches"
 
 	// Objects
 	NotValidObjectCurrentOtelSpan    string = "currentOTelSpan"
@@ -146,7 +150,7 @@ func TestOtelTracing(t *testing.T) {
 			)
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
-			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor))
+			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor), trace.WithSampler(trace.AlwaysSample()))
 			shutdown := func(ctx context.Context) error {
 				err := tp.Shutdown(ctx)
 				return err
@@ -316,7 +320,36 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 					continue
 				}
 			}
+		case CommandDoWorkInSpanWithInboundContext:
 
+			hdr := http.Header{}
+			sampled := op.Parameters.SampledFlagInHeader
+			hdr.Set("traceparent", fmt.Sprintf("00-%s-%s-0%s", op.Parameters.TraceIdInHeader, op.Parameters.SpanIdInHeader, sampled))
+			// account and trusted key match the reply set in the test setup
+			hdr.Set("tracestate", fmt.Sprintf("123@nr=0-0-123-456-%s-5569065a5b1313bd-%s-1.0-%d",
+				op.Parameters.SpanIdInHeader, sampled, time.Now().UnixMilli()))
+			ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(hdr))
+			// use spanKind and spanName to create span
+			tracer := Tracer("test")
+			ctx, span := tracer.Start(ctx, op.Parameters.SpanName, oteltrace.WithSpanKind(getSpanKind(op.Parameters.SpanKind)))
+			// run child operations
+			RunOperation(t, ctx, op.ChildOperations, app, externalCall, processor)
+			// run assertions
+			for _, assertion := range op.Assertions {
+				rule := assertion.Rule
+				switch rule.Operator {
+				case OperatorMatches:
+					left := resolveOperand(t, ctx, rule.Parameters.Object, externalCall, processor)
+					right := rule.Parameters.Value
+					if left != right {
+						t.Errorf("%v: %v does not equal %v: %v", rule.Parameters.Object, left, rule.Parameters.Value, right)
+					}
+				default:
+					continue
+				}
+			}
+			span.End() // should work even with a no-op span
+			// end
 		default:
 			continue
 		}
