@@ -2,14 +2,18 @@ package nrotelhybrid
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
 
 type txnMapEntry struct {
 	txn    *newrelic.Transaction
@@ -19,6 +23,9 @@ type txnMapEntry struct {
 type nrSegment interface {
 	End()
 	AddAttribute(key string, val interface{})
+	AddLink(spanID, traceID string, start time.Time)
+	AddOtelSpanID(spanID string)
+	AddSpanEventEvent(name string, start time.Time, attrs newrelic.SpanEventAttributes)
 }
 
 type nrotelhybridProcessor struct {
@@ -47,11 +54,14 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
+	fmt.Printf("*** OnStart trace %v, span %x, links=%d\n", s.SpanContext().TraceID(), s.SpanContext().SpanID(), len(s.Links()))
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn || len(s.Links()) > 0 {
+		fmt.Println("*** starting transaction for it")
 		p.startTransaction(s, isWeb)
 		return
 	}
 	// start the segment with the txn entry
+	fmt.Println("*** starting segment with the txn entry")
 	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
 		if entry := entries[len(entries)-1]; entry.txn != nil {
 			p.startSegment(s, entry)
@@ -61,6 +71,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 
 func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
 	txn := p.app.StartTransaction(s.Name())
+	fmt.Printf("*** startTransaction: %s\n", s.Name())
 	if isWeb {
 		var fullURL string
 		for _, attr := range s.Attributes() {
@@ -77,11 +88,14 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 	}
 	traceID := s.SpanContext().TraceID()
 	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn, s.SpanContext().SpanID()})
+	fmt.Printf("*** recorded %v\n", traceID)
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
 	seg := entry.txn.StartSegment(s.Name())
-	p.segmentMap[s.SpanContext().SpanID()] = seg
+	otelSpanID := s.SpanContext().SpanID()
+	seg.AddOtelSpanID(otelSpanID.String())
+	p.segmentMap[otelSpanID] = seg
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
@@ -90,6 +104,17 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// use the trace id from trace.ReadOnlySpan to end the transaction
 	traceID := s.SpanContext().TraceID()
 	spanID := s.SpanContext().SpanID()
+	links := s.Links()
+	events := s.Events()
+	if len(links) > 0 {
+		fmt.Println("Links exist:")
+		for i, linkData := range links {
+			fmt.Printf("%d - span context span=%s trace=%s valid=%v remote=%v timestamp=%v\n", i, linkData.SpanContext.SpanID(), linkData.SpanContext.TraceID(), linkData.SpanContext.IsValid(), linkData.SpanContext.IsRemote(), s.StartTime())
+			for _, kv := range linkData.Attributes {
+				fmt.Printf("  %s=%v\n", kv.Key, kv.Value.String())
+			}
+		}
+	}
 
 	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
 		entries := p.txnMap[traceID]
@@ -112,12 +137,33 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// otherwise end segment if it exists in the map
 	p.switchSegmentType(spanID, s.Attributes(), s.SpanKind())
 
+	if len(links) > 0 {
+		fmt.Println("*** there are links to record")
+	}
+	fmt.Printf("*** Searching for %v in segment map\n", spanID)
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		// find type of segment to switch segment type and add attributes
+		fmt.Println("*** found")
+		if len(links) > 0 {
+			for _, link := range links {
+				seg.AddLink(link.SpanContext.SpanID().String(),
+					link.SpanContext.TraceID().String(),
+					s.StartTime())
+				fmt.Println("*** Added link to segment")
+			}
+		}
+		if len(events) > 0 {
+			for i, event := range events {
+				if i > 99 {
+					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
+					continue
+				}
+				seg.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
+			}
+		}
 		seg.End()
 		delete(p.segmentMap, spanID)
 	}
-
 }
 
 func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
@@ -270,6 +316,17 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID ote
 		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
+}
+
+// otelEventAttributes adapts an OTEL event's attributes to
+// newrelic.SpanEventAttributes, deferring conversion until the SpanEvent
+// event is actually serialized.
+type otelEventAttributes []attribute.KeyValue
+
+func (a otelEventAttributes) WriteAttributes(write func(key string, val interface{})) {
+	for _, attr := range a {
+		write(string(attr.Key), extractAttributeValue(attr.Value))
+	}
 }
 
 func extractAttributeValue(val attribute.Value) any {
