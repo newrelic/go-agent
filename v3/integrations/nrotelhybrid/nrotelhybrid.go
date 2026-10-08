@@ -100,7 +100,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn {
 		p.startTransaction(s, isWeb)
 		return
 	}
@@ -168,20 +168,19 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 
 	nrErr, hasErr := exceptionFromSpan(s)
 
-	if isTxn, _ := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn {
-		entries := p.txnMap[traceID]
-		for i := len(entries) - 1; i >= 0; i-- {
-			if entries[i].spanID == spanID {
-				if entries[i].txn != nil {
-					if hasErr {
-						entries[i].txn.NoticeError(nrErr)
-					}
-					entries[i].txn.End()
-				}
-				entries = append(entries[:i], entries[i+1:]...)
-				break
-			}
+	// a span is a transaction only if OnStart recorded it in txnMap
+	entries := p.txnMap[traceID]
+	for i := len(entries) - 1; i >= 0; i-- {
+		if entries[i].spanID != spanID {
+			continue
 		}
+		if entries[i].txn != nil {
+			if hasErr {
+				entries[i].txn.NoticeError(nrErr)
+			}
+			entries[i].txn.End()
+		}
+		entries = append(entries[:i], entries[i+1:]...)
 		if len(entries) == 0 {
 			delete(p.txnMap, traceID)
 		} else {
@@ -237,7 +236,10 @@ func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 
 // isTransaction reports whether the span should start/continue a transaction (isTxn),
 // and whether that transaction is a web transaction (isWeb).
-func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) (isTxn, isWeb bool) {
+func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext, ctx context.Context) (isTxn, isWeb bool) {
+	if newrelic.FromContext(ctx) != nil {
+		return false, true // within an existing transaction
+	}
 	if parent.IsRemote() {
 		// any span with a remote parent is a transaction
 		switch kind {
